@@ -17,9 +17,6 @@ pub const RUNTIME_API_STABILIZATION_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
 ];
 
 pub const RUNTIME_API_STABILIZATION_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
-    "temporal-basis-deferred-gate",
-    "async-resource-deferred-gate",
-    "mixed-cause-delivery-deferred-gate",
     "store-backed-parity-deferred-gate",
     "durable-restart-deferred-gate",
 ];
@@ -30,16 +27,12 @@ pub enum RuntimeApiStabilizationPerturbationClass {
     GeometryKernelGoldenTranscript,
     TableSpreadsheetGoldenTranscript,
     ComposedRuntimeAdversarialTranscript,
-    TemporalBasisDeferredGate,
-    AsyncResourceDeferredGate,
-    MixedCauseDeliveryDeferredGate,
     StoreBackedParityDeferredGate,
     DurableRestartDeferredGate,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuntimeApiStabilizationFailureClass {
-    DeferredTemporalAsyncGate,
     DeferredStoreDurableGate,
 }
 
@@ -63,7 +56,7 @@ pub struct RuntimeApiStabilizationBundle {
     pub public_facade_only: bool,
     pub lower_runtime_plumbing_count: usize,
     pub meaningful_assertion_count: usize,
-    pub unsupported_neighbor_denial_count: usize,
+    pub support_gated_neighbor_denial_count: usize,
     pub delivery_residue_count: usize,
     pub stable_family_count: usize,
     pub deferred_family_count: usize,
@@ -87,7 +80,7 @@ impl RuntimeApiStabilizationBundle {
             && !self.counter_snapshot.is_empty()
             && !self.compile_fail_boundary_digest.is_empty()
             && !self.transcript_family.is_empty()
-            && self.unsupported_neighbor_denial_count >= 1
+            && self.support_gated_neighbor_denial_count >= 1
     }
 
     pub(super) fn semantic_signature(&self) -> String {
@@ -106,7 +99,7 @@ impl RuntimeApiStabilizationBundle {
             format!("family:{}", self.transcript_family),
             format!("facade_only:{}", self.public_facade_only),
             format!("plumbing:{}", self.lower_runtime_plumbing_count),
-            format!("denials:{}", self.unsupported_neighbor_denial_count),
+            format!("denials:{}", self.support_gated_neighbor_denial_count),
             format!("residue:{}", self.delivery_residue_count),
         ])
     }

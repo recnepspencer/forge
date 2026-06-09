@@ -33,4 +33,12 @@ impl ForgeQueryLiveReadResult {
         self.receipt.decision_trace_envelope = Some(decision_trace_envelope);
         self.receipt.execution_provenance = Some(execution_provenance);
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        rows: Vec<crate::memory_workspace::ForgeQueryEntity>,
+        receipt: ForgeQueryLiveReadReceipt,
+    ) -> Self {
+        Self { rows, receipt }
+    }
 }

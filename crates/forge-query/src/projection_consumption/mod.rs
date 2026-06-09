@@ -13,14 +13,18 @@ mod receipt_transitions;
 mod source;
 mod support;
 
+#[allow(unused_imports)]
 pub use certification::{
     certify_projection_consumption_closeout_core, projection_consumption_family_inventory,
+    projection_consumption_forbidden_fallback_audit,
     projection_consumption_phase_progression_digest, projection_consumption_proof_shape_audit,
     projection_consumption_public_boundary_audit, projection_consumption_support_matrix,
     ProjectionConsumptionCertificationBundle, ProjectionConsumptionCertificationCounterSnapshot,
     ProjectionConsumptionCertificationLane, ProjectionConsumptionCertificationRow,
     ProjectionConsumptionCertifiedSourceSurface, ProjectionConsumptionFamilyInventory,
-    ProjectionConsumptionFamilyInventoryRow, ProjectionConsumptionProofShapeAudit,
+    ProjectionConsumptionFamilyInventoryRow, ProjectionConsumptionForbiddenFallbackAudit,
+    ProjectionConsumptionForbiddenFallbackAuditRow, ProjectionConsumptionForbiddenFallbackSeam,
+    ProjectionConsumptionOrdinaryPathSurface, ProjectionConsumptionProofShapeAudit,
     ProjectionConsumptionProofShapeAuditRow, ProjectionConsumptionProofShapeEnforcement,
     ProjectionConsumptionProofShapeViolation, ProjectionConsumptionPublicBoundaryAudit,
     ProjectionConsumptionPublicBoundaryAuditRow, ProjectionConsumptionPublicBoundarySurface,

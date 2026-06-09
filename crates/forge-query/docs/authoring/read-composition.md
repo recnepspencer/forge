@@ -702,6 +702,13 @@ assert_eq!(
   (masking, descriptors, deferred policy-aware live/historical parity)—not duplicated here.
 - Collection cursors, ordering, aggregates, and CDC-shaped collection planning live in
   [collections, cursors, ordering, and aggregations](collections-cursors-ordering-and-aggregations.md).
+- Reusable composition posture for named scopes and templates lives in
+  [scopes, templates, saved queries, and view shapes](scopes-templates-saved-queries-and-view-shapes.md).
+  The application support report now publishes `named_scope_expansion:verified`
+  and `template_instantiation:verified` there. Observed-inspector and
+  focused-inspector template neighbors remain explicitly deferred, while
+  grouped collection templates are part of the admitted runtime-backed
+  template lane.
 - Use graph composition when you are authoring writes or mutation intent, not
   reads.
 

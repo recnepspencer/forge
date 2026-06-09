@@ -5,13 +5,11 @@ use crate::live::{
     LiveExecutionEnvelope, LiveQueryFamily, LiveQueryPlan, LiveReplayBundle, RefreshFallback,
     SuppressionReason,
 };
-use crate::view_shape::{
-    GroupedDeltaAdmissionPolicy, KanbanGroupedLiveContract, ViewShapePlanArtifact,
-};
+use crate::view_shape::{GroupedDeltaAdmissionPolicy, ViewShapePlanArtifact};
 
 use super::counters::ViewShapeLiveCounters;
 use super::family::LiveViewShapeFamily;
-use super::grouped_delta::{GroupedDeltaArtifact, GroupedRefreshReason};
+use super::grouped_delta::GroupedDeltaArtifact;
 use super::grouped_state::GroupedDesiredStateArtifact;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -211,11 +209,6 @@ pub enum ViewShapeRefreshDisposition {
     Admitted {
         family: LiveViewShapeFamily,
         fallback: RefreshFallback,
-    },
-    GroupedDeferredDebt {
-        contract: KanbanGroupedLiveContract,
-        reason: GroupedRefreshReason,
-        fallback: Option<RefreshFallback>,
     },
 }
 

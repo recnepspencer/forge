@@ -178,7 +178,7 @@ impl GroupedViewPlanningArtifact {
                 grouped_binding_width,
             },
             replay_delivery_posture: GroupedReplayDeliveryPosture::grouped_committed(),
-            grouped_delta_policy: GroupedDeltaAdmissionPolicy::refresh_deferred_debt(),
+            grouped_delta_policy: GroupedDeltaAdmissionPolicy::admitted_grouped_delta(),
         };
         let grouped_delta_policy = GroupedDeltaAdmissionPolicy::derive_from_grouped_planning(&seed);
 

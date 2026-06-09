@@ -8,6 +8,7 @@ mod causal_inspection;
 mod computed;
 #[allow(deprecated)]
 mod effect;
+mod hostile_read_bootstrap;
 #[allow(deprecated)]
 mod intent;
 mod intent_admission;

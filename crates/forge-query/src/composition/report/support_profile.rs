@@ -16,7 +16,6 @@ use super::super::families::{
 pub enum QueryCompositionDeferredScopeMarker {
     ObservedInspectorDetailTemplate,
     FocusedInspectorDetailTemplate,
-    GroupedCollectionTemplate,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -41,7 +40,6 @@ impl QueryCompositionDeferredScopeMarker {
         match self {
             Self::ObservedInspectorDetailTemplate => "observed_inspector_detail_template",
             Self::FocusedInspectorDetailTemplate => "focused_inspector_detail_template",
-            Self::GroupedCollectionTemplate => "grouped_collection_template",
         }
     }
 }
@@ -152,20 +150,20 @@ pub fn runtime_backed_query_composition_support_profile() -> QueryCompositionSup
     let admitted_template_families = vec![
         TemplateFamily::DetailTemplate,
         TemplateFamily::CollectionTemplate,
+        TemplateFamily::GroupedCollectionTemplate,
     ];
     let deferred_scope_markers = vec![
         QueryCompositionDeferredScopeMarker::ObservedInspectorDetailTemplate,
         QueryCompositionDeferredScopeMarker::FocusedInspectorDetailTemplate,
-        QueryCompositionDeferredScopeMarker::GroupedCollectionTemplate,
     ];
     let composition_statuses = vec![
         (
             QueryCompositionFamily::NamedScopeExpansion,
-            QueryCompositionComplexityStatus::Debt,
+            QueryCompositionComplexityStatus::Verified,
         ),
         (
             QueryCompositionFamily::TemplateInstantiation,
-            QueryCompositionComplexityStatus::Debt,
+            QueryCompositionComplexityStatus::Verified,
         ),
     ];
     let scope_temporal_async_postures = vec![
@@ -209,7 +207,7 @@ pub fn runtime_backed_query_composition_support_profile() -> QueryCompositionSup
         ),
         (
             TemplateFamily::GroupedCollectionTemplate,
-            QueryCompositionTemporalAsyncPosture::VisibleButDeferred,
+            QueryCompositionTemporalAsyncPosture::FuturePreserving,
         ),
     ];
     let saved_query_statuses = runtime_backed_saved_query_support_profile();

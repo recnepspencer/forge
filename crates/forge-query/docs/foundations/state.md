@@ -10,8 +10,8 @@ guessing from incidental behavior.
 ## Why You Use It
 
 - you need a typed readiness answer for a live or computed surface
-- you need a typed answer for shipped live temporal/async posture, or a
-  fail-closed answer for support-gated or unsupported public families
+- you need a typed answer for shipped live temporal/async posture, or a typed
+  non-ready answer for deferred or unsupported public families
 - you want a digest-bound explanation surface rather than an ad hoc boolean
 
 ## Stable Entry Points
@@ -22,13 +22,15 @@ Stable targets today:
 
 - live view handles
 - computed handles
-- `ForgeQueryRuntimeFacadeFamily` values for support-gated family posture
+- `ForgeQueryRuntimeFacadeFamily` values for support-gated, deferred, or
+  unsupported family posture
 
 Related boundaries:
 
 - `workspace.inspect(...)` gives richer retained evidence
 - `workspace.public_support_matrix()` and `workspace.admit_public_api_family(...)`
-  are the source of truth for stable versus deferred family posture
+  are the source of truth for stable versus support-gated, deferred, and
+  unsupported family posture
 
 ## Core Mental Model
 
@@ -62,8 +64,8 @@ For retained handles:
 For facade families:
 
 1. The runtime looks at support posture for that family.
-2. It returns a typed deferred or unsupported snapshot instead of pretending
-   the family is ready.
+2. It returns a `Ready` snapshot for shipped support-gated runtime-backed rows,
+   and a typed non-ready snapshot for deferred or unsupported rows.
 
 The same API handles both concrete retained surfaces and support-gated family
 questions.
@@ -77,12 +79,13 @@ let temporal_state = workspace
     .state(ForgeQueryRuntimeFacadeFamily::Temporal)
     .unwrap();
 
-assert_eq!(temporal_state.kind().as_str(), "pending");
+assert_eq!(temporal_state.kind().as_str(), "ready");
 ```
 
-This is the smallest honest example because it shows the fail-closed posture
-for a separate facade-family root that is still support-gated even though
-runtime-backed temporal behavior now ships through ordinary live handles.
+This is the smallest honest example because it shows that a separate
+support-gated facade-family row can still project shipped runtime-backed
+temporal posture through the same state surface without becoming a parallel
+runtime root.
 
 ## Real Example
 
@@ -131,6 +134,8 @@ let intent_state = workspace.state(ForgeQueryRuntimeFacadeFamily::Intent).unwrap
 What is ready:
 
 - stable live and computed surfaces with retained evidence
+- shipped support-gated runtime-backed rows such as `Temporal` and
+  `AsyncResource`
 
 What is support-gated:
 
@@ -170,7 +175,7 @@ explanation surface.
 Use state snapshots when you need quick answers to questions like:
 
 - is this handle ready?
-- is this family deferred or unsupported?
+- is this family support-gated, deferred, or unsupported?
 - which authority lane owns this posture?
 
 Use inspect when you need the underlying retained evidence that explains the

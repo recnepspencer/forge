@@ -99,35 +99,35 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
             }
             Self::MissingRuntimeBridge => write!(
                 f,
-                "forge query runtime backend parts require a RuntimeBridge"
+                "forge query bridge-backed runtime bootstrap requires runtime_bridge(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingSchemaAdapter => write!(
                 f,
-                "forge query runtime backend parts require a schema adapter"
+                "forge query bridge-backed runtime bootstrap requires schema_adapter(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingSourceAdapter => write!(
                 f,
-                "forge query runtime backend parts require a source adapter"
+                "forge query bridge-backed runtime bootstrap requires source_adapter(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingWriteAuthority => write!(
                 f,
-                "forge query runtime backend parts require a write authority adapter"
+                "forge query bridge-backed runtime bootstrap requires write_authority(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingSignalSink => write!(
                 f,
-                "forge query runtime backend parts require a signal sink adapter"
+                "forge query bridge-backed runtime bootstrap requires signal_sink(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingSubscriptionActivation => write!(
                 f,
-                "forge query runtime backend parts require a subscription activation adapter"
+                "forge query bridge-backed runtime bootstrap requires subscription_activation(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingPreviewBasis => write!(
                 f,
-                "forge query runtime backend parts require a preview basis adapter"
+                "forge query bridge-backed runtime bootstrap requires preview_basis(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingInspectorEvidence => write!(
                 f,
-                "forge query runtime backend parts require an inspector evidence adapter"
+                "forge query bridge-backed runtime bootstrap requires inspector_evidence(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingIntentAuthority => write!(
                 f,

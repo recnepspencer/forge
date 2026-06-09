@@ -70,7 +70,7 @@ fn milestone_eight_certification_covers_named_semantic_rows() {
         "kanban-desired-state-to-delta-parity"
     ));
     assert!(contains_row(&matrix, "kanban-delta-admission-boundary"));
-    assert!(contains_row(&matrix, "grouped-refresh-honesty"));
+    assert!(contains_row(&matrix, "grouped-delta-honesty"));
     assert!(contains_row(&matrix, "grouped-bridge-truth-view-authority"));
     assert!(contains_row(
         &matrix,
@@ -147,14 +147,14 @@ fn milestone_eight_deferred_and_forbidden_rows_are_typed_rejections() {
 }
 
 #[test]
-fn milestone_eight_grouped_refresh_row_is_non_cosmetic() {
+fn milestone_eight_grouped_delta_row_is_non_cosmetic() {
     let matrix =
         MilestoneEightCertificationAdapter::scope_template_view_shape_semantic_parity_test();
     let row = matrix
         .rows
         .iter()
-        .find(|row| row.row_name == "grouped-refresh-honesty")
-        .expect("grouped refresh honesty row should exist");
+        .find(|row| row.row_name == "grouped-delta-honesty")
+        .expect("grouped delta honesty row should exist");
 
     assert_ne!(
         row.control_lane.delivery_digest,

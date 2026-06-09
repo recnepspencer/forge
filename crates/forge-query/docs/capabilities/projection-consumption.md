@@ -54,6 +54,8 @@ Support discovery:
 - `ForgeQueryReadReceipt::discover_projection_fact_consumption_support(...)`
 - `ForgeQueryWriteReceipt::discover_projection_fact_consumption_support()`
 - `QueryContextExecutionArtifact::discover_projection_fact_consumption_support()`
+- `ForgeQueryDerivedArtifactBinding::discover_projection_fact_consumption_support()`
+- `ForgeQueryLiveArtifactBinding::discover_projection_fact_consumption_support()`
 - `discover_projection_consumption_support(...)`
 
 Advanced path:
@@ -61,6 +63,8 @@ Advanced path:
 - `ForgeQueryReadReceipt::declare_projection_fact_consumption(...)`
 - `ForgeQueryWriteReceipt::declare_projection_fact_consumption(...)`
 - `QueryContextExecutionArtifact::declare_projection_fact_consumption(...)`
+- `ForgeQueryDerivedArtifactBinding::declare_projection_fact_consumption(...)`
+- `ForgeQueryLiveArtifactBinding::declare_projection_fact_consumption(...)`
 - `evaluate_projection_consumption_eligibility(...)`
 - `AdmittedProjectionConsumption::bind_contract()`
 - `MaterializedProjectionContract`
@@ -87,20 +91,12 @@ Good to know:
   should reach for
 - the shared intent-admission path exists so projection consumption uses the
   same admitted vocabulary as the runtime-backed families
-- retained derived artifact bindings are not yet first-class projection-
-  consumption sources; when a caller needs typed scalar evidence from a named
-  retained derived artifact, the current runtime-owned seam is
-  `consume_scalar_fields(...)` on the retained artifact binding, and when a
-  caller needs a small typed pack from that same named artifact the current
-  runtime-owned seam is `decode_row_pair(...)` or `decode_row_triple(...)`;
-  when a caller needs correspondence proof across two retained rows in that
-  same named artifact, the current runtime-owned seam is
-  `verify_scalar_alignment(...)`
-- live artifact bindings are also runtime-owned pack/bind seams, not yet full
-  projection-consumption source families; when a caller needs one named live
-  snapshot pack across several live views, the current runtime-owned seams are
-  `read_live_artifact_bundle(...)`, `bind_live_artifact(...)`, and
-  `read_live_artifact_binding(...)`
+- retained derived artifact bindings and live artifact bindings are now
+  first-class projection-consumption source families for declaration, support
+  discovery, and ordinary typed fact extraction through
+  `consume_projection_facts(...)`
+- older retained/live helper seams still exist as narrower expert utilities,
+  but they are no longer the ordinary typed projection-consumption path
 
 ## Core Mental Model
 
@@ -384,10 +380,11 @@ Those are framework-level artifacts, not the normal app entry point.
   mismatched instead of being guessed.
 - Lower-source relational and bridge extraction seams exist, but they are still
   expert boundaries rather than the primary app-facing path.
-- Retained derived artifact bindings currently stop at the runtime-owned
-  retained-scalar evidence seam; they do not yet participate as full
-  projection-consumption source families with authorized-projection binding
-  semantics.
+- Retained derived artifact bindings and live artifact bindings now participate
+  in the ordinary typed projection-consumption lane through
+  `consume_projection_facts(...)`, but older retained/live helper seams still
+  exist as narrower expert utilities and should not be treated as the primary
+  typed-fact path.
 - This feature does not replace `workspace.read(...)`, `workspace.observe(...)`,
   or `workspace.materialize(...)`. Use those when rows are the real product
   surface.

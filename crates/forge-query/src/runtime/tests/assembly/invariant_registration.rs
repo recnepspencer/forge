@@ -196,6 +196,42 @@ fn query_builder_rejects_explicit_relational_runtime_when_query_owned_invariants
 }
 
 #[test]
+fn query_builder_rejects_explicit_backend_when_query_owned_invariants_are_queued() {
+    let explicit_backend = ForgeQueryBridgeBackedRuntimeBackend::from_parts(
+        ForgeQueryRuntimeBackendParts::new()
+            .runtime_bridge(test_bridge())
+            .schema_adapter(TestSchemaAdapter)
+            .source_adapter(TestSourceAdapter::default())
+            .write_authority(TestWriteAuthority)
+            .signal_sink(TestSignalSink)
+            .subscription_activation(TestSubscriptionActivation)
+            .preview_basis(TestPreviewBasis)
+            .inspector_evidence(TestInspectorEvidence),
+    )
+    .expect("explicit backend should build for invariant-lane conflict test");
+
+    let error = match ForgeQueryRuntime::builder()
+        .register_invariant(CertificationBoundaryViolationRule)
+        .expect("custom query invariant registration should succeed")
+        .backend(explicit_backend)
+        .build()
+    {
+        Ok(_) => panic!("explicit backend should reject queued query-owned invariants"),
+        Err(error) => error,
+    };
+
+    match error {
+        ForgeQueryRuntimeError::InvariantRegistration { stage, message } => {
+            assert_eq!(stage, "runtime_backend_selection");
+            assert!(message.contains("queued Query-owned invariant registrations"));
+            assert!(message.contains("backend(...)"));
+            assert!(message.contains("relational_runtime(...)"));
+        }
+        other => panic!("unexpected runtime error: {other:?}"),
+    }
+}
+
+#[test]
 fn query_builder_accepts_proof_lane_invariant_registration_artifact() {
     let declaration = sample_declaration("runtime-artifact");
     let requested =

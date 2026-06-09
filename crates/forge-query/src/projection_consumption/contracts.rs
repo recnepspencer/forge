@@ -12,6 +12,8 @@ pub enum ProjectionContractSourcePosture {
     QueryOwnedReceiptSource,
     RelationalAuthoritySource,
     BridgeAuthoritySource,
+    RetainedArtifactBindingSource,
+    LiveArtifactBindingSource,
 }
 
 impl ProjectionContractSourcePosture {
@@ -20,6 +22,8 @@ impl ProjectionContractSourcePosture {
             Self::QueryOwnedReceiptSource => "query_owned_receipt_source",
             Self::RelationalAuthoritySource => "relational_authority_source",
             Self::BridgeAuthoritySource => "bridge_authority_source",
+            Self::RetainedArtifactBindingSource => "retained_artifact_binding_source",
+            Self::LiveArtifactBindingSource => "live_artifact_binding_source",
         }
     }
 }
@@ -316,6 +320,12 @@ fn contract_source_posture(family: ProjectionSourceFamily) -> ProjectionContract
         | ProjectionSourceFamily::QueryWriteReceipt
         | ProjectionSourceFamily::QueryContextExecution => {
             ProjectionContractSourcePosture::QueryOwnedReceiptSource
+        }
+        ProjectionSourceFamily::RetainedDerivedArtifactBinding => {
+            ProjectionContractSourcePosture::RetainedArtifactBindingSource
+        }
+        ProjectionSourceFamily::LiveArtifactBinding => {
+            ProjectionContractSourcePosture::LiveArtifactBindingSource
         }
         ProjectionSourceFamily::RelationalRowSet
         | ProjectionSourceFamily::RelationalGroupedProjection => {

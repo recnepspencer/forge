@@ -30,8 +30,6 @@ but still marked as `debt` or left structurally unfinished.
 
 The concrete evidence is already visible:
 
-- `application/tests.rs` still marks `named_scope_expansion` and
-  `template_instantiation` as `debt`
 - the same support/profile tests still mark the core view families `table`,
   `detail`, `inspector_detail_observed`, `inspector_detail_focused`, and
   `kanban_grouped` as `debt`
@@ -139,522 +137,309 @@ This milestone fails if any covered path:
 
 ## Phase Plan
 
-### Phase 1: Scope And Template Composition Debt Closure Boundary
+This milestone stays one milestone, but the execution program is intentionally
+more granular than the original draft. Each phase below closes one explicit
+authority slice rather than bundling several closure jobs under one heading.
 
-Close the explicit `named_scope_expansion:debt` and
-`template_instantiation:debt` posture so reusable composition becomes a fully
-admitted runtime-backed product lane rather than a public lane that still
-claims debt in support/profile output.
+### Phase 1: Named Scope Expansion Identity Closure
 
-**Relevant subsystems**
-- `composition::scopes`
-- `composition::templates`
-- `composition::report`
-- `runtime` read-composition support reporting
-- `application` support/profile reporting
+Close `named_scope_expansion:debt` as a canonical composition problem, not a
+doc-label problem.
 
-**Relevant Query docs**
-- [Scopes, Templates, Saved Queries, And View Shapes](../../crates/forge-query/docs/authoring/scopes-templates-saved-queries-and-view-shapes.md)
-- [Read Composition](../../crates/forge-query/docs/authoring/read-composition.md)
-- [Support Matrix And Admission](../../crates/forge-query/docs/foundations/support-matrix-and-admission.md)
-
-**Documentation follow-through**
-- Revise the composition-facing docs in the same phase so they stop teaching
-  scope/template composition as admitted debt.
-
-**Relevant Query source surfaces**
-- [composition/scopes/descriptor.rs](../../crates/forge-query/src/composition/scopes/descriptor.rs)
-- [composition/scopes/expansion.rs](../../crates/forge-query/src/composition/scopes/expansion.rs)
-- [composition/templates/descriptor.rs](../../crates/forge-query/src/composition/templates/descriptor.rs)
-- [composition/templates/instantiation.rs](../../crates/forge-query/src/composition/templates/instantiation.rs)
-- [composition/report/support_profile.rs](../../crates/forge-query/src/composition/report/support_profile.rs)
-- [runtime/workspace_read_composition_support.rs](../../crates/forge-query/src/runtime/workspace_read_composition_support.rs)
-- [runtime/read_composition_support_report.rs](../../crates/forge-query/src/runtime/read_composition_support_report.rs)
-- [application/support/report.rs](../../crates/forge-query/src/application/support/report.rs)
-
-**Relevant APIs and product surfaces**
-- `ForgeQueryApplicationFacade::runtime_backed_default()`
-- `facade.support_matrix()`
-- `profile.admitted_scope_families()`
-- `profile.admitted_template_families()`
-- `profile.composition_statuses()`
-
-**Shared crate usage**
-- `forge-proof`: None.
-- `forge-foundational`: None.
-
-**Warnings**
-- Do not close debt by hiding composition statuses from the public profile.
-- Do not let host-local template binding or scope expansion rewrite canonical
-  declaration meaning.
-
-**Test requirements**
-- Add a `Scope And Template Productization Debt Closure Test` to
-  [test-requirements.md](./test-requirements.md) and close it in this phase.
-- Prove that scope expansion and template instantiation normalize to the same
+- Relevant subsystems: `composition::scopes`, composition reporting, application
+  support/profile reporting.
+- Relevant source surfaces:
+  [composition/scopes/expansion.rs](../../crates/forge-query/src/composition/scopes/expansion.rs),
+  [composition/report/support_profile.rs](../../crates/forge-query/src/composition/report/support_profile.rs),
+  [application/support/report.rs](../../crates/forge-query/src/application/support/report.rs).
+- Test requirements: prove named-scope expansion normalizes to the same
   canonical declaration identity as equivalent direct construction.
-- Prove that support/profile output moves from `debt` to closed runtime-backed
-  product readiness for the covered families.
-
-**Engineering decisions**
-- Scope and template reuse stay in the ordinary composition lane.
-- Public support/profile output is part of the product surface and must be
-  treated as authoritative.
-
-**Open questions**
-- None.
-
-### Phase 2: Core View-Shape Productization Closure Boundary
-
-Close the admitted core runtime-backed view families still marked `debt` so
-`table`, `detail`, `inspector_detail_observed`, `inspector_detail_focused`,
-and `kanban_grouped` become honest product lanes with runtime-backed planning,
-delivery, and reuse posture.
-
-**Relevant subsystems**
-- `view_shape`
-- `view_shape_live`
-- identity-evolution inspector support
-- `application` support/profile reporting
-
-**Relevant Query docs**
-- [Scopes, Templates, Saved Queries, And View Shapes](../../crates/forge-query/docs/authoring/scopes-templates-saved-queries-and-view-shapes.md)
-- [Collections, Cursors, Ordering, And Aggregations](../../crates/forge-query/docs/authoring/collections-cursors-ordering-and-aggregations.md)
-
-**Documentation follow-through**
-- Revise the view-shape docs in the same phase so admitted core families stop
-  being described as product debt.
-
-**Relevant Query source surfaces**
-- [view_shape/family.rs](../../crates/forge-query/src/view_shape/family.rs)
-- [view_shape/planning.rs](../../crates/forge-query/src/view_shape/planning.rs)
-- [view_shape/delivery.rs](../../crates/forge-query/src/view_shape/delivery.rs)
-- [view_shape/grouped_planning.rs](../../crates/forge-query/src/view_shape/grouped_planning.rs)
-- [view_shape/grouped_binding.rs](../../crates/forge-query/src/view_shape/grouped_binding.rs)
-- [view_shape_live/family.rs](../../crates/forge-query/src/view_shape_live/family.rs)
-- [view_shape_live/grouped_execution.rs](../../crates/forge-query/src/view_shape_live/grouped_execution.rs)
-- [identity_evolution/inspector.rs](../../crates/forge-query/src/identity_evolution/inspector.rs)
-- [application/support/report.rs](../../crates/forge-query/src/application/support/report.rs)
-
-**Relevant APIs and product surfaces**
-- `profile.admitted_view_families()`
-- `profile.view_shape_statuses()`
-
-**Shared crate usage**
-- `forge-proof`: None.
-- `forge-foundational`: None.
-
-**Warnings**
-- Do not mark a family closed just because it renders rows.
-- Do not let focused-inspector and grouped lanes drift into separate local
-  semantics under live or retained use.
-
-**Test requirements**
-- Add a `Core View Shape Productization Closure Test` to
-  [test-requirements.md](./test-requirements.md) and close it in this phase.
-- Prove that each admitted core view family has canonical planning, delivery,
-  and support/profile parity rather than a single happy-path rendering demo.
-- Prove exact status movement from `debt` to closed runtime-backed product
-  readiness for every covered family.
-
-**Engineering decisions**
-- Core view families are ordinary product surfaces, not examples.
-- View-shape closure includes support/profile honesty, not just planner output.
-
-**Open questions**
-- None.
-
-### Phase 3: Grouped Composition Closure Boundary
-
-Close the explicit grouped template/composition profile debt so grouped
-planning and grouped reuse become a fully built productization lane.
-
-**Relevant subsystems**
-- `grouped_authoring`
-- grouped view-shape planning/binding
-- composition support/profile reporting
-
-**Relevant Query docs**
-- [Collections, Cursors, Ordering, And Aggregations](../../crates/forge-query/docs/authoring/collections-cursors-ordering-and-aggregations.md)
-- [Scopes, Templates, Saved Queries, And View Shapes](../../crates/forge-query/docs/authoring/scopes-templates-saved-queries-and-view-shapes.md)
-
-**Documentation follow-through**
-- Remove the grouped template/composition debt wording from the authoring docs
-  in the same phase that closes the implementation debt.
-
-**Relevant Query source surfaces**
-- [grouped_authoring/declaration.rs](../../crates/forge-query/src/grouped_authoring/declaration.rs)
-- [grouped_authoring/orchestration.rs](../../crates/forge-query/src/grouped_authoring/orchestration.rs)
-- [grouped_authoring/posture.rs](../../crates/forge-query/src/grouped_authoring/posture.rs)
-- [grouped_authoring/products.rs](../../crates/forge-query/src/grouped_authoring/products.rs)
-- [grouped_authoring/support.rs](../../crates/forge-query/src/grouped_authoring/support.rs)
-- [view_shape/grouped_planning.rs](../../crates/forge-query/src/view_shape/grouped_planning.rs)
-- [view_shape/grouped_policy.rs](../../crates/forge-query/src/view_shape/grouped_policy.rs)
-
-**Relevant APIs and product surfaces**
-- grouped authoring declarations and grouped support/profile outputs carried
-  through the existing Query authoring facade
-
-**Shared crate usage**
-- `forge-proof`: None.
-- `forge-foundational`: None.
-
-**Warnings**
-- Do not close grouped debt by routing grouped composition through hidden
-  one-off ordinary collection plans.
-- Do not let grouped reuse erase view-family identity or grouping posture.
-
-**Test requirements**
-- Add a `Grouped Composition Debt Closure Test` to
-  [test-requirements.md](./test-requirements.md) and close it in this phase.
-- Prove grouped declarations preserve canonical grouped identity across direct
-  and reusable composition paths.
-- Prove grouped product docs and support/profile surfaces no longer describe
-  the admitted lane as composition debt.
-
-**Engineering decisions**
-- Grouped composition is its own productization boundary, not just a view-shape
-  subcase.
-- Documentation wording counts as part of the closure surface.
-
-**Open questions**
-- None.
-
-### Phase 4: Retained-Artifact Projection-Consumption Source Closure Boundary
-
-Close the gap where retained derived-artifact bindings and live-artifact
-bindings still fall back to special-case runtime-owned seams instead of
-participating as first-class projection-consumption source families.
-
-**Relevant subsystems**
-- `projection_consumption`
-- retained/live artifact binding seams
-- authorized projection and fact extraction
-
-**Relevant Query docs**
-- [Projection Consumption](../../crates/forge-query/docs/capabilities/projection-consumption.md)
-- [Reads, Observation, and Materialization](../../crates/forge-query/docs/runtime-surfaces/reads-observe-materialize.md)
-
-**Documentation follow-through**
-- Update projection-consumption docs in the same phase so retained derived/live
-  artifact bindings are documented as first-class source families in the
-  covered ordinary product lane.
-
-**Relevant Query source surfaces**
-- [projection_consumption/source.rs](../../crates/forge-query/src/projection_consumption/source.rs)
-- [projection_consumption/contracts.rs](../../crates/forge-query/src/projection_consumption/contracts.rs)
-- [projection_consumption/facts.rs](../../crates/forge-query/src/projection_consumption/facts.rs)
-- [projection_consumption/extraction/mod.rs](../../crates/forge-query/src/projection_consumption/extraction/mod.rs)
-- [projection_consumption/extraction/grouped.rs](../../crates/forge-query/src/projection_consumption/extraction/grouped.rs)
-- [projection_consumption/extraction/query_context.rs](../../crates/forge-query/src/projection_consumption/extraction/query_context.rs)
-- [projection_consumption/receipt.rs](../../crates/forge-query/src/projection_consumption/receipt.rs)
-- [projection_consumption/envelope.rs](../../crates/forge-query/src/projection_consumption/envelope.rs)
-
-**Relevant APIs and product surfaces**
-- `workspace.read(...)`
-- `workspace.observe(...)`
-- `workspace.materialize(...)`
-- runtime-owned seams that must stop being the ordinary product path:
-  - `consume_scalar_fields(...)`
-  - `decode_row_pair(...)`
-  - `decode_row_triple(...)`
-  - `verify_scalar_alignment(...)`
-  - `read_live_artifact_bundle(...)`
-  - `bind_live_artifact(...)`
-  - `read_live_artifact_binding(...)`
-
-**Shared crate usage**
-- `forge-proof`: None.
-- `forge-foundational`: None.
-
-**Warnings**
-- Do not "close" this by wrapping the same runtime-owned escape hatch in a new
-  name.
-- Do not reopen lower-source artifacts by hand where Query already claims a
-  typed fact lane.
-
-**Test requirements**
-- Add a `Retained Artifact Projection Consumption Closure Test` to
-  [test-requirements.md](./test-requirements.md) and close it in this phase.
-- Prove retained derived-artifact and live-artifact fact extraction flows
-  through one typed declaration, contract, extraction, receipt, and envelope
-  path when admitted.
-- Prove ordinary product code no longer needs the special-case runtime-owned
-  seams above for the covered families.
-
-**Engineering decisions**
-- Retained derived/live artifacts become real source families in the covered
-  ordinary product lane.
-- Projection consumption stays receipt/envelope based rather than turning into
-  row-bag reinterpretation.
-
-**Open questions**
-- None.
-
-### Phase 5: Preserved Temporal/Async Reuse Neighbor Closure Boundary
-
-Close the preserved inspector/grouped temporal/async reuse neighbors so
-runtime-backed reuse keeps the merged `9.4` meaning intact across the full
-covered reuse surface.
-
-**Relevant subsystems**
-- saved-query reuse
-- policy-basis saved reuse
-- preview/runtime temporal-async preserved reuse
-- view-shape and grouped preserved reuse
-
-**Relevant Query docs**
-- [Scopes, Templates, Saved Queries, And View Shapes](../../crates/forge-query/docs/authoring/scopes-templates-saved-queries-and-view-shapes.md)
-- [Historical Basis, Diff, And Comparison Queries](../../crates/forge-query/docs/capabilities/historical-diff-and-basis.md)
-- [Automatic Subscription Family Selection And Diagnostics](../../crates/forge-query/docs/capabilities/subscription-selection-and-diagnostics.md)
-
-**Documentation follow-through**
-- Replace the unfinished wording with built runtime-backed preserved reuse
-  semantics that carry the merged `9.4` meaning all the way through.
-
-**Relevant Query source surfaces**
-- [saved_query/reuse/matrix.rs](../../crates/forge-query/src/saved_query/reuse/matrix.rs)
-- [saved_query/future_support.rs](../../crates/forge-query/src/saved_query/future_support.rs)
-- [policy_basis/saved_reuse.rs](../../crates/forge-query/src/policy_basis/saved_reuse.rs)
-- [runtime/tests/preview/temporal_async.rs](../../crates/forge-query/src/runtime/tests/preview/temporal_async.rs)
-- [query_context/scoped.rs](../../crates/forge-query/src/query_context/scoped.rs)
-- [view_shape/family.rs](../../crates/forge-query/src/view_shape/family.rs)
-- [grouped_authoring/posture.rs](../../crates/forge-query/src/grouped_authoring/posture.rs)
-
-**Relevant APIs and product surfaces**
-- preserved saved-query and view-shape reuse posture carried through the
-  existing Query saved/reuse and preview surfaces
-
-**Shared crate usage**
-- `forge-proof`:
-  - `forge_proof::facade::TransitionReadiness`
-  - `forge_proof::facade::TransitionOutcome`
-  Use these only where preserved reuse and readmission already cross typed
-  reuse/admission progression boundaries. Do not introduce a second local
-  result family.
-- `forge-foundational`: None.
-
-**Warnings**
-- Do not preserve the vocabulary while erasing the merged `9.4` temporal/async
-  meaning.
-- Do not let inspector/grouped preserved reuse remain partially built at
-  milestone close.
-
-**Test requirements**
-- Add a `Preserved Temporal Async Reuse Closure Test` to
-  [test-requirements.md](./test-requirements.md) and close it in this phase.
-- Prove preserved runtime-backed reuse keeps canonical temporal/async posture
-  through the covered inspector and grouped reuse lanes.
-- Prove grouped and inspector preserved neighbors do not silently downcast to
-  plain non-temporal/non-async reuse.
-
-**Engineering decisions**
-- Runtime-backed preserved reuse must be semantically strict, not
-  vocabulary-preserving only.
-- The covered preserved neighbors are part of the build target, not optional
-  future follow-on work.
-
-**Open questions**
-- None.
-
-### Phase 6: Raw Runtime Read Bootstrap Closure Boundary
-
-Close the raw runtime bootstrap debt so hostile read/runtime certification can
-reach a valid bridge-backed read runtime through one simple public ordinary
-lane instead of building custom minimal bridge-backed harnesses around backend
-parts and adapter assembly.
-
-**Relevant subsystems**
-- `runtime` builder and backend-parts assembly
-- raw runtime bridge-backed support seams
-- public bridge-backed runtime test support
-
-**Relevant Query docs**
-- [Workspace Overview](../../crates/forge-query/docs/foundations/workspace-overview.md)
-- [Reads, Observation, and Materialization](../../crates/forge-query/docs/runtime-surfaces/reads-observe-materialize.md)
-- any raw runtime/bootstrap docs or examples that currently force full backend
-  part assembly for ordinary read-lane work
-
-**Documentation follow-through**
-- Document the simple valid read-runtime bootstrap in the same phase so
-  downstream hostile tests and examples stop teaching custom assembly as the
-  ordinary path.
-
-**Relevant Query source surfaces**
-- [runtime/builder.rs](../../crates/forge-query/src/runtime/builder.rs)
-- [runtime/backend/parts.rs](../../crates/forge-query/src/runtime/backend/parts.rs)
-- [runtime/error.rs](../../crates/forge-query/src/runtime/error.rs)
-- [tests/support/public_bridge_runtime/mod.rs](../../crates/forge-query/tests/support/public_bridge_runtime/mod.rs)
-- [runtime/tests/support/bridge/runtime_support.rs](../../crates/forge-query/src/runtime/tests/support/bridge/runtime_support.rs)
-- [runtime/tests/support/stateful_bridge_runtime/mod.rs](../../crates/forge-query/src/runtime/tests/support/stateful_bridge_runtime/mod.rs)
-
-**Relevant APIs and product surfaces**
-- `ForgeQueryRuntime::builder()`
-- `runtime_bridge(...)`
-- `build_backend_from_parts()`
-- the raw runtime ordinary lane that should become the simple public valid
-  read-runtime bootstrap for bridge-backed hostile testing
-
-**Shared crate usage**
-- `forge-proof`: None.
-- `forge-foundational`: None.
-
-**Warnings**
-- Do not "solve" this only inside test support. The debt is at the raw runtime
-  productization boundary.
-- Do not add a magical one-off helper that bypasses the real runtime authority
-  path or hides support posture.
-- Do not make write, preview, or mutation authority an implicit requirement for
-  a simple valid read-runtime bootstrap if the read seam does not actually need
-  them.
-
-**Test requirements**
-- Add a `Raw Runtime Read Bootstrap Simplicity Test` to
-  [test-requirements.md](./test-requirements.md) and close it in this phase.
-- Prove hostile runtime-backed read tests can obtain a valid bridge-backed read
-  runtime through one simple public path without custom backend-part assembly.
-- Prove the bootstrap still preserves typed support posture and does not create
-  a second authority path beside the real runtime builder.
-
-**Engineering decisions**
-- A valid read-runtime bootstrap is part of Query productization, not just test
-  ergonomics.
-- The ordinary raw runtime path must be simple enough that hostile tests can
-  focus on read behavior instead of bridge assembly.
-
-**Open questions**
-- None.
-
-### Phase 7: Support/Profile, Docs, And Debt-Marker Eradication Boundary
-
-Remove the remaining public debt wording across support/profile and docs so the
-ordinary Query product surface stops advertising admitted core lanes as debt.
-
-**Relevant subsystems**
-- `application` support/profile reporting
-- runtime support/profile output
-- public documentation coverage
-
-**Relevant Query docs**
-- [Support Matrix And Admission](../../crates/forge-query/docs/foundations/support-matrix-and-admission.md)
-- [Workspace Overview](../../crates/forge-query/docs/foundations/workspace-overview.md)
-- the authoring and capability docs touched in Phases 1 through 5
-
-**Documentation follow-through**
-- This phase is the doc closeout pass. Every remaining `debt` marker or
-  unfinished wording in the covered productization lanes must be removed
-  because the implementation is closed in the earlier phases.
-
-**Relevant Query source surfaces**
-- [application/support/report.rs](../../crates/forge-query/src/application/support/report.rs)
-- [application/support/registry.rs](../../crates/forge-query/src/application/support/registry.rs)
-- [runtime/support/profile.rs](../../crates/forge-query/src/runtime/support/profile.rs)
-- [public_doc_coverage/tests/support.rs](../../crates/forge-query/src/public_doc_coverage/tests/support.rs)
-
-**Relevant APIs and product surfaces**
-- `facade.support_matrix()`
-- public support/profile reports and documentation coverage surfaces that teach
-  the ordinary Query product lanes
-
-**Shared crate usage**
-- `forge-proof`: None.
-- `forge-foundational`:
-  - `forge_foundational::facade::DiagnosticRichnessProfile`
-  Use this for debt-closeout reporting and support/profile publication richness.
-  Do not introduce a Query-local diagnostic richness taxonomy for the same job.
-
-**Warnings**
-- Do not remove `debt` text before the underlying lane is actually built.
-- Do not let docs, support profiles, and product surfaces disagree about the
-  same lane.
-
-**Test requirements**
-- Add a `Debt Marker Eradication And Support Profile Honesty Test` to
-  [test-requirements.md](./test-requirements.md) and close it in this phase.
-- Prove the covered support/profile rows and public docs agree exactly on the
-  runtime-backed posture of scopes, templates, core views, grouped composition,
-  retained-artifact projection consumption, and preserved temporal/async reuse.
-
-**Engineering decisions**
-- Public docs and support/profile output are authority surfaces here.
-- This milestone is incomplete if wording and implementation drift.
-
-**Open questions**
-- None.
-
-### Phase 8: Hostile Debt-Close Certification Boundary
-
-Close the milestone with one hostile certification program proving that the
-covered productization lanes are truly closed rather than merely reworded.
-
-**Relevant subsystems**
-- application support/profile certification
-- view-shape certification
-- projection-consumption certification
-- saved-query/reuse certification
-- public documentation coverage
-
-**Relevant Query docs**
-- [test-requirements.md](./test-requirements.md)
-- all phase-local docs touched in Phases 1 through 7
-
-**Documentation follow-through**
-- The milestone closes only when the docs, support/profile output, and hostile
-  certification all agree. There is no later documentation cleanup phase.
-
-**Relevant Query source surfaces**
-- [application/tests.rs](../../crates/forge-query/src/application/tests.rs)
-- [projection_consumption/certification/mod.rs](../../crates/forge-query/src/projection_consumption/certification/mod.rs)
-- [view_shape/tests.rs](../../crates/forge-query/src/view_shape/tests.rs)
-- [saved_query/tests.rs](../../crates/forge-query/src/saved_query/tests.rs)
-- [public_doc_coverage/tests/support.rs](../../crates/forge-query/src/public_doc_coverage/tests/support.rs)
-- [tests/support/public_bridge_runtime/mod.rs](../../crates/forge-query/tests/support/public_bridge_runtime/mod.rs)
-- [runtime/tests/support/bridge/runtime_support.rs](../../crates/forge-query/src/runtime/tests/support/bridge/runtime_support.rs)
-
-**Relevant APIs and product surfaces**
-- the support/profile, declaration, projection-consumption, view-shape, and
-  preserved reuse certification bundles emitted by the covered Query surfaces
-- the raw runtime valid-read bootstrap surface used by hostile runtime-backed
-  read certification
-
-**Shared crate usage**
-- `forge-proof`: None.
-- `forge-foundational`:
-  - `forge_foundational::facade::FoundationalBoundaryArtifactCompileFailBoundary`
-  - `forge_foundational::facade::FoundationalBoundaryEvidenceCompileFailBoundary`
-  - `forge_foundational::facade::FoundationalPerformanceCompileFailBoundary`
-  - if milestone-close artifacts are emitted, the matching
-    `...ProductionTestReadyArtifact` surfaces
-
-**Warnings**
-- Do not close the milestone on broad support-report equality.
-- Do not certify only one axis at a time; the hostile matrix must combine
-  composition path variation, view-family variation, retained-artifact
-  extraction, temporal/async preserved reuse pressure, and raw runtime
-  bootstrap pressure.
-
-**Test requirements**
-- Add a `Milestone 9.5 Debt-Close Hostile Certification Matrix` to
-  [test-requirements.md](./test-requirements.md) and close it in this phase.
-- Require narrow canonical artifacts for:
-  - composition digest
-  - view-family digest
-  - projection-consumption contract digest
-  - preserved temporal/async reuse digest
-  - raw runtime read-bootstrap digest
-  - support-profile digest
-- Require exact zero assertions for forbidden fallback to the special-case
-  runtime-owned retained-artifact seams in the ordinary product path.
-- Require exact zero assertions for forbidden custom bootstrap scaffolding in
-  the ordinary hostile read-runtime path.
-
-**Engineering decisions**
-- This milestone closes on hostile proof, not on removal of `debt` strings.
-- Certification must prove ordinary product consumers can stay on the intended
-  Query path without hand-written glue.
-
-**Open questions**
-- None.
+
+### Phase 2: Template Instantiation Identity Closure
+
+Close `template_instantiation:debt` as ordinary canonical declaration
+composition.
+
+- Relevant subsystems: `composition::templates`, composition reporting,
+  application support/profile reporting.
+- Relevant source surfaces:
+  [composition/templates/instantiation.rs](../../crates/forge-query/src/composition/templates/instantiation.rs),
+  [composition/report/support_profile.rs](../../crates/forge-query/src/composition/report/support_profile.rs),
+  [application/support/report.rs](../../crates/forge-query/src/application/support/report.rs).
+- Test requirements: prove template instantiation normalizes to the same
+  canonical declaration identity as equivalent direct construction.
+
+### Phase 3: Composition Support-Profile And Docs Closure
+
+Flip the public composition support posture from debt to closed runtime-backed
+truth for the covered scope/template lanes and remove matching doc debt text.
+
+- Relevant docs:
+  [Scopes, Templates, Saved Queries, And View Shapes](../../crates/forge-query/docs/authoring/scopes-templates-saved-queries-and-view-shapes.md),
+  [Read Composition](../../crates/forge-query/docs/authoring/read-composition.md),
+  [Support Matrix And Admission](../../crates/forge-query/docs/foundations/support-matrix-and-admission.md).
+- Warnings: do not hide statuses from the profile; do not let docs get ahead
+  of implementation.
+- Test requirements: add the support/profile parity assertions for scope and
+  template closure.
+
+### Phase 4: Table And Detail View Closure
+
+Close `table` and `detail` as core view families with canonical planning,
+delivery, and reuse semantics rather than happy-path row rendering.
+
+- Relevant subsystems: `view_shape`, `view_shape_live`, application
+  support/profile reporting.
+- Relevant source surfaces:
+  [view_shape/planning.rs](../../crates/forge-query/src/view_shape/planning.rs),
+  [view_shape/delivery.rs](../../crates/forge-query/src/view_shape/delivery.rs),
+  [application/support/report.rs](../../crates/forge-query/src/application/support/report.rs).
+- Test requirements: prove `table` and `detail` move from `debt` to closed
+  runtime-backed product readiness with canonical artifacts.
+
+### Phase 5: Inspector Detail View Closure
+
+Close `inspector_detail_observed` and `inspector_detail_focused` as real
+inspector product lanes with stable planning, delivery, and identity posture.
+
+- Relevant subsystems: `view_shape`, identity-evolution inspector support,
+  `view_shape_live`.
+- Relevant source surfaces:
+  [view_shape/family.rs](../../crates/forge-query/src/view_shape/family.rs),
+  [identity_evolution/inspector.rs](../../crates/forge-query/src/identity_evolution/inspector.rs),
+  [view_shape_live/family.rs](../../crates/forge-query/src/view_shape_live/family.rs).
+- Warnings: do not let focused and observed inspector variants drift into
+  local semantics under retained or live use.
+
+### Phase 6: Core View Support-Profile And Docs Closure
+
+Flip the public view-family rows for non-grouped core views and remove the
+remaining doc wording that still teaches them as admitted debt.
+
+- Relevant docs:
+  [Scopes, Templates, Saved Queries, And View Shapes](../../crates/forge-query/docs/authoring/scopes-templates-saved-queries-and-view-shapes.md),
+  [Collections, Cursors, Ordering, And Aggregations](../../crates/forge-query/docs/authoring/collections-cursors-ordering-and-aggregations.md).
+- Test requirements: prove exact status movement for `table`, `detail`,
+  `inspector_detail_observed`, and `inspector_detail_focused`.
+
+### Phase 7: Kanban Grouped View Closure
+
+Close `kanban_grouped` as a view-family product lane with honest grouped
+planning, grouped delivery posture, and no residual refresh-only debt policy.
+
+- Relevant subsystems: grouped view-shape planning/binding, grouped live
+  execution.
+- Relevant source surfaces:
+  [view_shape/grouped_planning.rs](../../crates/forge-query/src/view_shape/grouped_planning.rs),
+  [view_shape/grouped_binding.rs](../../crates/forge-query/src/view_shape/grouped_binding.rs),
+  [view_shape/grouped_policy.rs](../../crates/forge-query/src/view_shape/grouped_policy.rs).
+- Warnings: do not mark closure merely because grouped rows render.
+
+### Phase 8: Grouped Composition Closure
+
+Close grouped reusable composition as its own boundary rather than routing
+everything through hidden ordinary collection plans.
+
+- Relevant subsystems: `grouped_authoring`, grouped support/profile reporting.
+- Relevant source surfaces:
+  [grouped_authoring/declaration.rs](../../crates/forge-query/src/grouped_authoring/declaration.rs),
+  [grouped_authoring/orchestration.rs](../../crates/forge-query/src/grouped_authoring/orchestration.rs),
+  [grouped_authoring/posture.rs](../../crates/forge-query/src/grouped_authoring/posture.rs),
+  [grouped_authoring/support.rs](../../crates/forge-query/src/grouped_authoring/support.rs).
+- Test requirements: prove grouped declarations preserve canonical grouped
+  identity across direct and reusable composition paths.
+
+### Phase 9: Grouped Support-Profile And Docs Closure
+
+Remove the explicit grouped template/composition debt wording from public docs
+and support/profile surfaces after grouped implementation closure is real.
+
+- Relevant docs:
+  [Collections, Cursors, Ordering, And Aggregations](../../crates/forge-query/docs/authoring/collections-cursors-ordering-and-aggregations.md),
+  [Scopes, Templates, Saved Queries, And View Shapes](../../crates/forge-query/docs/authoring/scopes-templates-saved-queries-and-view-shapes.md).
+- Warnings: documentation wording counts as part of the closure surface.
+
+### Phase 10: Retained Artifact Source-Family Admission Closure
+
+Close the admission gap where retained derived-artifact and live-artifact
+bindings are not yet first-class projection-consumption source families.
+
+- Relevant subsystems: `projection_consumption`, retained/live artifact binding
+  seams.
+- Relevant source surfaces:
+  [projection_consumption/source.rs](../../crates/forge-query/src/projection_consumption/source.rs),
+  [projection_consumption/contracts.rs](../../crates/forge-query/src/projection_consumption/contracts.rs).
+- Warnings: do not wrap the same escape hatch in a new name and call it done.
+
+### Phase 11: Projection Fact Extraction Unification Closure
+
+Close the typed declaration, contract, extraction, receipt, and envelope path
+for the covered retained/live artifact families.
+
+- Relevant source surfaces:
+  [projection_consumption/facts.rs](../../crates/forge-query/src/projection_consumption/facts.rs),
+  [projection_consumption/extraction/mod.rs](../../crates/forge-query/src/projection_consumption/extraction/mod.rs),
+  [projection_consumption/extraction/grouped.rs](../../crates/forge-query/src/projection_consumption/extraction/grouped.rs),
+  [projection_consumption/extraction/query_context.rs](../../crates/forge-query/src/projection_consumption/extraction/query_context.rs),
+  [projection_consumption/receipt.rs](../../crates/forge-query/src/projection_consumption/receipt.rs),
+  [projection_consumption/envelope.rs](../../crates/forge-query/src/projection_consumption/envelope.rs).
+- Test requirements: prove one typed fact path when admitted.
+
+### Phase 12: Projection Escape-Hatch Eradication Closure
+
+Prove the ordinary product path no longer needs the special-case runtime-owned
+retained-artifact seams named in this milestone.
+
+- Relevant APIs and product surfaces: `workspace.read(...)`,
+  `workspace.observe(...)`, `workspace.materialize(...)`, and the forbidden
+  special-case helper path.
+- Test requirements: require exact zero assertions for fallback to
+  `consume_scalar_fields(...)`, `decode_row_pair(...)`, `decode_row_triple(...)`,
+  `verify_scalar_alignment(...)`, `read_live_artifact_bundle(...)`,
+  `bind_live_artifact(...)`, and `read_live_artifact_binding(...)`.
+
+### Phase 13: Saved-Query Temporal/Async Reuse Matrix Closure
+
+Close the saved-query legality matrix so preserved reuse remains semantically
+strict about temporal/async posture.
+
+- Relevant subsystems: saved-query reuse, policy-basis saved reuse.
+- Relevant source surfaces:
+  [saved_query/reuse/matrix.rs](../../crates/forge-query/src/saved_query/reuse/matrix.rs),
+  [saved_query/future_support.rs](../../crates/forge-query/src/saved_query/future_support.rs),
+  [policy_basis/saved_reuse.rs](../../crates/forge-query/src/policy_basis/saved_reuse.rs).
+- Warnings: do not preserve the vocabulary while erasing the meaning closed in
+  [milestone-9.4.md](./milestone-9.4.md).
+
+### Phase 14: Inspector And Grouped Preserved-Reuse Propagation Closure
+
+Close preserved temporal/async posture across inspector and grouped reuse
+neighbors so they carry the same runtime-backed meaning rather than downcast.
+
+- Relevant subsystems: preview/runtime preserved reuse, view-shape and grouped
+  preserved reuse.
+- Relevant source surfaces:
+  [runtime/tests/preview/temporal_async.rs](../../crates/forge-query/src/runtime/tests/preview/temporal_async.rs),
+  [query_context/scoped.rs](../../crates/forge-query/src/query_context/scoped.rs),
+  [view_shape/family.rs](../../crates/forge-query/src/view_shape/family.rs),
+  [grouped_authoring/posture.rs](../../crates/forge-query/src/grouped_authoring/posture.rs).
+
+### Phase 15: Preserved-Reuse Parity And Downcast-Rejection Closure
+
+Add the hostile proofs showing grouped and inspector preserved neighbors do not
+silently collapse to plain non-temporal or non-async reuse.
+
+- Shared crate usage:
+  `forge_proof::facade::TransitionReadiness`,
+  `forge_proof::facade::TransitionOutcome` only where preserved reuse already
+  crosses typed reuse/readmission progression boundaries.
+- Test requirements: add the `Preserved Temporal Async Reuse Closure Test`.
+
+### Phase 16: Runtime Builder Read-Bootstrap Authority Closure
+
+Close the raw runtime builder debt so valid read-runtime bootstrap remains one
+authority path through the real builder rather than custom harness folklore.
+
+- Relevant subsystems: runtime builder and backend-parts assembly.
+- Relevant source surfaces:
+  [runtime/builder.rs](../../crates/forge-query/src/runtime/builder.rs),
+  [runtime/backend/parts.rs](../../crates/forge-query/src/runtime/backend/parts.rs),
+  [runtime/error.rs](../../crates/forge-query/src/runtime/error.rs).
+- Warnings: do not solve this only inside test support.
+
+### Phase 17: Public Bridge-Backed Read Bootstrap Surface Closure
+
+Expose the simple public valid bridge-backed read-runtime bootstrap as the
+ordinary lane for hostile testing and examples.
+
+- Relevant source surfaces:
+  [tests/support/public_bridge_runtime/mod.rs](../../crates/forge-query/tests/support/public_bridge_runtime/mod.rs),
+  [runtime/tests/support/bridge/runtime_support.rs](../../crates/forge-query/src/runtime/tests/support/bridge/runtime_support.rs),
+  [runtime/tests/support/stateful_bridge_runtime/mod.rs](../../crates/forge-query/src/runtime/tests/support/stateful_bridge_runtime/mod.rs).
+- Relevant product surfaces: `ForgeQueryRuntime::builder()`, `runtime_bridge(...)`,
+  `build_backend_from_parts()`.
+
+### Phase 18: Hostile Harness Migration To Public Bootstrap Closure
+
+Move hostile runtime-backed read certification off custom minimal scaffolding
+and onto the public bootstrap lane.
+
+- Relevant docs:
+  [Workspace Overview](../../crates/forge-query/docs/foundations/workspace-overview.md),
+  [Reads, Observation, and Materialization](../../crates/forge-query/docs/runtime-surfaces/reads-observe-materialize.md).
+- Test requirements: add the `Raw Runtime Read Bootstrap Simplicity Test`.
+
+### Phase 19: Residual Support/Profile Debt-Marker Closure
+
+Remove the remaining covered debt markers from support/profile publication once
+the underlying runtime-backed lanes are truly closed.
+
+- Relevant subsystems: application support/profile reporting, runtime support
+  profile output.
+- Relevant source surfaces:
+  [application/support/report.rs](../../crates/forge-query/src/application/support/report.rs),
+  [application/support/registry.rs](../../crates/forge-query/src/application/support/registry.rs),
+  [runtime/support/profile.rs](../../crates/forge-query/src/runtime/support/profile.rs).
+- Warnings: do not remove debt text before the implementation is actually
+  closed.
+
+### Phase 20: Public Docs Debt-Wording Closure
+
+Perform the milestone-wide doc closeout pass so the covered public product
+lanes stop advertising admitted debt after implementation closure.
+
+- Relevant docs: the authoring, capability, and foundations docs touched in
+  Phases 1 through 18.
+- Engineering decision: docs are authority surfaces here, not afterthoughts.
+
+### Phase 21: Public Doc Coverage Assertion Closure
+
+Close the documentation-coverage proof so public docs, support profiles, and
+runtime-backed truth agree exactly.
+
+- Relevant source surface:
+  [public_doc_coverage/tests/support.rs](../../crates/forge-query/src/public_doc_coverage/tests/support.rs).
+- Shared crate usage:
+  `forge_foundational::facade::DiagnosticRichnessProfile` for debt-closeout
+  reporting richness.
+
+### Phase 22: Lane-Local Hostile Certification Closure
+
+Close the lane-local hostile suites for composition, view-shape,
+projection-consumption, preserved reuse, and bootstrap semantics.
+
+- Relevant source surfaces:
+  [application/tests.rs](../../crates/forge-query/src/application/tests.rs),
+  [projection_consumption/certification/mod.rs](../../crates/forge-query/src/projection_consumption/certification/mod.rs),
+  [view_shape/tests.rs](../../crates/forge-query/src/view_shape/tests.rs),
+  [saved_query/tests.rs](../../crates/forge-query/src/saved_query/tests.rs).
+- Warnings: do not close on broad support-report equality alone.
+
+### Phase 23: Cross-Lane Hostile Certification Matrix Closure
+
+Close the combined milestone hostile matrix that varies composition path,
+view-family, retained-artifact extraction, preserved temporal/async reuse, and
+raw runtime bootstrap pressure together.
+
+- Test requirements: add the `Milestone 9.5 Debt-Close Hostile Certification Matrix`.
+- Require narrow canonical artifacts for composition, view family,
+  projection-consumption contract, preserved temporal/async reuse, raw runtime
+  read-bootstrap, and support-profile digests.
+
+### Phase 24: Forbidden-Fallback Zero-Proof Closeout
+
+Close the milestone only after exact zero assertions prove there is no
+forbidden fallback to retained-artifact escape hatches and no forbidden custom
+bootstrap scaffolding in the ordinary hostile read-runtime path.
+
+- Shared crate usage:
+  `forge_foundational::facade::FoundationalBoundaryArtifactCompileFailBoundary`,
+  `forge_foundational::facade::FoundationalBoundaryEvidenceCompileFailBoundary`,
+  `forge_foundational::facade::FoundationalPerformanceCompileFailBoundary`,
+  and matching `...ProductionTestReadyArtifact` surfaces if milestone-close
+  artifacts are emitted.
+- Engineering decision: this milestone closes on hostile proof, not on the
+  removal of `debt` strings.
 
 ## Must Ship
 

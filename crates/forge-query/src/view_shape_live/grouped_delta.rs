@@ -6,10 +6,8 @@ use crate::view_shape::{GroupedDeltaAdmissionPolicy, KanbanGroupedLiveContract};
 use super::grouped_state::{GroupedDesiredStateArtifact, GroupedLaneIdentity};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GroupedRefreshReason {
-    PlanContractRequiresRefresh,
-    CoreRefreshRequested,
-    PolicyExceeded,
+pub enum GroupedDeltaInvariantFailure {
+    GroupingAspectMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -76,34 +74,13 @@ impl GroupedDeltaArtifact {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GroupedDeltaComputation {
-    DeltaBound {
-        delta: GroupedDeltaArtifact,
-        next_state: GroupedDesiredStateArtifact,
-    },
-    RefreshDeferredDebt {
-        reason: GroupedRefreshReason,
-        prior_state: GroupedDesiredStateArtifact,
-    },
-}
-
 pub(crate) fn build_grouped_delta(
     prior_state: &GroupedDesiredStateArtifact,
     next_state: &GroupedDesiredStateArtifact,
     policy: &GroupedDeltaAdmissionPolicy,
-) -> GroupedDeltaComputation {
-    if policy.contract() == &KanbanGroupedLiveContract::RefreshDeferredDebt {
-        return GroupedDeltaComputation::RefreshDeferredDebt {
-            reason: GroupedRefreshReason::PlanContractRequiresRefresh,
-            prior_state: prior_state.clone(),
-        };
-    }
+) -> Result<GroupedDeltaArtifact, GroupedDeltaInvariantFailure> {
     if prior_state.native_grouping_aspect_key() != next_state.native_grouping_aspect_key() {
-        return GroupedDeltaComputation::RefreshDeferredDebt {
-            reason: GroupedRefreshReason::PolicyExceeded,
-            prior_state: prior_state.clone(),
-        };
+        return Err(GroupedDeltaInvariantFailure::GroupingAspectMismatch);
     }
 
     let prior_members = prior_state
@@ -159,16 +136,10 @@ pub(crate) fn build_grouped_delta(
         })
         .count();
     let member_transitions = transitions.len();
-    if member_transitions > policy.max_member_transitions()
-        || lane_reassignments > policy.max_lane_reassignments()
-    {
-        return GroupedDeltaComputation::RefreshDeferredDebt {
-            reason: GroupedRefreshReason::PolicyExceeded,
-            prior_state: prior_state.clone(),
-        };
-    }
+    debug_assert!(member_transitions <= policy.max_member_transitions());
+    debug_assert!(lane_reassignments <= policy.max_lane_reassignments());
 
-    let delta = GroupedDeltaArtifact {
+    Ok(GroupedDeltaArtifact {
         digest: hash_parts(&[
             format!("prior:{}", prior_state.digest()),
             format!("next:{}", next_state.digest()),
@@ -182,10 +153,5 @@ pub(crate) fn build_grouped_delta(
         next: next_state.clone(),
         transitions,
         contract: KanbanGroupedLiveContract::DeltaBound,
-    };
-
-    GroupedDeltaComputation::DeltaBound {
-        delta,
-        next_state: next_state.clone(),
-    }
+    })
 }

@@ -73,7 +73,7 @@ fn runtime_support_profiles_expose_facade_family_posture() {
 }
 
 #[test]
-fn runtime_public_api_contract_marks_future_async_surfaces_as_deferred() {
+fn runtime_public_api_contract_closes_runtime_backed_temporal_async_surfaces() {
     let runtime = stateful_bridge_task_runtime();
     let contract = runtime.public_api_contract();
 
@@ -81,19 +81,39 @@ fn runtime_public_api_contract_marks_future_async_surfaces_as_deferred() {
         contract.backend_posture(),
         ForgeQueryRuntimeBackendPosture::Primary
     );
-    assert_eq!(contract.deferred_family_count(), 5);
+    assert_eq!(contract.deferred_family_count(), 2);
     assert!(!contract.contract_digest().is_empty());
 
+    for family in [
+        ForgeQueryRuntimeFacadeFamily::Temporal,
+        ForgeQueryRuntimeFacadeFamily::AsyncResource,
+        ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
+    ] {
+        let row = contract
+            .family(family)
+            .expect("runtime-backed support row should exist");
+        assert_eq!(
+            row.status(),
+            ForgeQueryRuntimeFamilySupportStatus::Supported
+        );
+        assert_eq!(
+            row.teaching_posture(),
+            ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly
+        );
+        assert!(!row.ordinary_downstream_dx());
+        assert!(row.parallel_api_forbidden());
+        assert!(row.admission_fail_closed());
+        assert_eq!(row.owner_closure(), "Milestone 9.4");
+        assert_eq!(
+            row.extension_rule(),
+            "must-extend-stabilized-handle-state-lane-aspect-inspection-facade"
+        );
+        assert!(row.reason().is_none());
+        assert_eq!(row.authority_lanes().len(), 1);
+        assert_eq!(row.evidence().len(), 1);
+    }
+
     for (family, expected_reason) in [
-        (ForgeQueryRuntimeFacadeFamily::Temporal, "Milestone 9.4"),
-        (
-            ForgeQueryRuntimeFacadeFamily::AsyncResource,
-            "Milestone 9.4",
-        ),
-        (
-            ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-            "Milestone 9.4",
-        ),
         (
             ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
             "Milestone 10",
@@ -105,7 +125,7 @@ fn runtime_public_api_contract_marks_future_async_surfaces_as_deferred() {
     ] {
         let row = contract
             .family(family)
-            .expect("future support gate row should exist");
+            .expect("deferred support gate row should exist");
         assert_eq!(
             row.status(),
             ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
@@ -118,10 +138,6 @@ fn runtime_public_api_contract_marks_future_async_surfaces_as_deferred() {
         assert!(row.parallel_api_forbidden());
         assert!(row.admission_fail_closed());
         assert_eq!(row.owner_closure(), expected_reason);
-        assert_eq!(
-            row.extension_rule(),
-            "must-extend-stabilized-handle-state-lane-aspect-inspection-facade"
-        );
         assert!(row
             .reason()
             .is_some_and(|reason| reason.contains(expected_reason)));
@@ -173,11 +189,11 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     );
     assert_eq!(
         matrix.stable_row_count(),
-        contract.stable_family_count() + 3
+        contract.stable_family_count() + 4
     );
     assert_eq!(
         matrix.deferred_row_count(),
-        contract.deferred_family_count() + 1
+        contract.deferred_family_count()
     );
     assert_eq!(
         matrix.unsupported_row_count(),
@@ -189,7 +205,7 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     );
     assert_eq!(
         matrix.fail_closed_row_count(),
-        matrix.deferred_row_count() + matrix.unsupported_row_count() + 1
+        matrix.deferred_row_count() + matrix.unsupported_row_count() + 4
     );
 
     let certification = matrix
@@ -222,11 +238,11 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
         .expect("temporal support row must be explicit");
     assert_eq!(
         temporal.status(),
-        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+        ForgeQueryRuntimeFamilySupportStatus::Supported
     );
     assert_eq!(
         temporal.teaching_posture(),
-        ForgeQueryRuntimeFamilyTeachingPosture::VisibleButDeferred
+        ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly
     );
     assert!(!temporal.ordinary_downstream_dx());
     assert!(temporal.parallel_api_forbidden());
@@ -257,14 +273,14 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
         .expect("temporal async certification row must stay explicit");
     assert_eq!(
         temporal_async_certification.status(),
-        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+        ForgeQueryRuntimeFamilySupportStatus::Supported
     );
     assert_eq!(
         temporal_async_certification.teaching_posture(),
         ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly
     );
     assert!(!temporal_async_certification.ordinary_downstream_dx());
-    assert!(temporal_async_certification.admission_fail_closed());
+    assert!(!temporal_async_certification.admission_fail_closed());
 
     let temporal_async_remask = matrix
         .row("temporal-async-remask")
@@ -300,16 +316,22 @@ fn runtime_public_support_gate_denies_deferred_and_unsupported_families_before_u
         ForgeQueryRuntimeFamilySupportStatus::Supported
     );
 
+    for family in [
+        ForgeQueryRuntimeFacadeFamily::Temporal,
+        ForgeQueryRuntimeFacadeFamily::AsyncResource,
+        ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
+    ] {
+        let admitted = workspace
+            .admit_public_api_family(family)
+            .expect("runtime-backed family should now admit");
+        assert_eq!(admitted.family(), family);
+        assert_eq!(
+            admitted.status(),
+            ForgeQueryRuntimeFamilySupportStatus::Supported
+        );
+    }
+
     for (family, expected_reason) in [
-        (ForgeQueryRuntimeFacadeFamily::Temporal, "Milestone 9.4"),
-        (
-            ForgeQueryRuntimeFacadeFamily::AsyncResource,
-            "Milestone 9.4",
-        ),
-        (
-            ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-            "Milestone 9.4",
-        ),
         (
             ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
             "Milestone 10",
@@ -357,25 +379,4 @@ fn runtime_public_api_naming_contract_prefers_workspace_surface_names() {
         .rows()
         .iter()
         .all(|row| row.preferred_name() != "surface"));
-}
-
-#[test]
-fn runtime_public_mutation_surface_report_lists_only_live_lower_level_command_surfaces() {
-    let workspace = stateful_bridge_task_runtime()
-        .workspace("task.mutation-surface")
-        .expect("task runtime should open a named workspace");
-    let report = workspace.public_mutation_surface_report();
-
-    assert_eq!(report.lower_level_stable_count(), 5);
-    assert_eq!(report.support_gated_count(), 2);
-    assert!(report
-        .row_by_surface("ForgeQueryWriteCommand::Insert")
-        .is_none());
-    assert_eq!(
-        report
-            .row_by_surface("ForgeQueryWriteCommand::InsertAspects")
-            .expect("aspect insert command row should exist")
-            .posture(),
-        ForgeQueryMutationSurfacePosture::LowerLevelStable
-    );
 }

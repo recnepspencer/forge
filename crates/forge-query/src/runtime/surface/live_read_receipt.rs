@@ -97,4 +97,29 @@ impl ForgeQueryLiveReadReceipt {
             self,
         ))
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        view_name: impl Into<String>,
+        installation_digest: impl Into<String>,
+        query_digest: impl Into<String>,
+        view_shape_digest: impl Into<String>,
+        subscription_family_digest: impl Into<String>,
+        result_digest: impl Into<String>,
+        snapshot_token: impl Into<String>,
+        row_count: usize,
+    ) -> Self {
+        Self {
+            view_name: view_name.into(),
+            installation_digest: installation_digest.into(),
+            query_digest: query_digest.into(),
+            view_shape_digest: view_shape_digest.into(),
+            subscription_family_digest: subscription_family_digest.into(),
+            result_digest: result_digest.into(),
+            snapshot_token: snapshot_token.into(),
+            row_count,
+            decision_trace_envelope: None,
+            execution_provenance: None,
+        }
+    }
 }

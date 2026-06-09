@@ -3,7 +3,7 @@ use super::super::super::{
     ProjectMaterializedFacts, ProjectionConsumptionDenialReason, ProjectionConsumptionSource,
     ProjectionConsumptionWarningKind, ProjectionFactConsumptionAttempt,
 };
-use super::super::phase_four_support::{
+use super::super::phase_four::support::{
     authorized_projection, query_context_execution_preview, read_result, read_result_shape,
     write_receipt, write_receipt_without_source_references,
 };

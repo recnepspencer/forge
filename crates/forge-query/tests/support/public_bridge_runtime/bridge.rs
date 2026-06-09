@@ -3,14 +3,13 @@ use forge_foundational::facade::{
     ScalarAspectType,
 };
 use forge_runtime_bridge::facade::{
-    AspectKeySelector, BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
-    BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeDeliveryReceipt, BridgeMappingId,
-    BridgeMappingRegistration, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
-    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
-    TruthPatchTargetSelector, TruthSnapshotIdentity, TruthSnapshotReader,
+    BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
+    BridgeCommittedPatchTarget, BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration,
+    CoarseRoutingMode, InvalidationSink, MappingSelector, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult,
+    SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity, TruthCommitIdentity,
+    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
 };
 
 #[derive(Clone, Debug)]
@@ -88,10 +87,10 @@ pub(super) fn public_bridge() -> RuntimeBridge {
         .with_signal_sink(PublicBridgeSink)
         .register_mapping(BridgeMappingRegistration::new(
             BridgeMappingId::new("public-graph"),
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
-                AspectKeySelector::any(),
-                TruthPatchTargetSelector::any(),
+                aspect_key("aspect"),
+                field_key("field"),
             ),
             SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),
             SignalInvalidationScope::new("public-graph"),

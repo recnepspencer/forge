@@ -92,102 +92,174 @@ clock or raw signal timing can leak into query results.
 
 ## Milestone 9.5 Named Certification Suites
 
-### 9.5. Async Resource Query Family And Completion Causality Test
+### 9.5. Phase 1 Named Scope Expansion Productization Closure Test
 
 Purpose
 
-Prove that async/resource-backed query families preserve typed result-state
-meaning and reject stale, superseded, cancelled, policy-invalid, or
-tenant-invalid completions before they can mutate query results.
+Prove that runtime-backed named scope expansion is a verified composition lane:
+equivalent direct construction and admitted scope-composed construction must
+produce the same canonical query meaning while preserving explicit scope
+lineage, typed basis evidence, and honest support-profile posture.
 
 Scenario
 
-- declare async/resource-backed query families for admitted detail,
-  collection, grouped, and bounded-materialization query shapes
-- exercise resource result states:
-  - pending
-  - fulfilled
-  - failed
-  - stale
-  - cancelled
-  - retried
-  - revalidating
-  - superseded
+- construct equivalent detail and collection queries through:
+  - direct canonical authoring
+  - named predicate scope expansion
+  - named ordering scope expansion
+  - named projection scope expansion
+  - named traversal-bound scope expansion
+  - basis-aware scope expansion where admitted
+  - admitted multi-scope composition combining projection, ordering, and
+    traversal-bound scopes in one path
 - vary:
-  - resource source family
-  - async generation
-  - retry generation
-  - branch and preview basis
-  - policy and tenant basis
-  - completion order
-  - cancellation timing
-  - bridge-supported and bridge-unsupported resource lifecycle classes
+  - detail and collection query families
+  - single-scope and multi-scope expansion
+  - current-basis evidence on basis-aware scope paths
+  - illegal traversal widening
+  - unsupported scope-family admission
 
 Required concrete lanes
 
-- fulfilled-current lane where completion generation, query basis, policy
-  basis, tenant basis, and result shape all match and delivery is admitted
-- stale-completion denial lane where an older async completion arrives after a
-  newer truth or query basis has already superseded it
-- policy-remask lane where a resource completion becomes invalid because the
-  policy context changed before materialization
-- retry-revalidation lane where retry preserves query identity but changes
-  resource generation and emits explicit retry evidence
-- cancellation race lane where cancellation wins before completion delivery
-  and no result mutation occurs
-- unsupported-resource-family lane where Query denies the resource family
-  before bridge lifecycle activation
+- predicate-scope parity lane where direct and scope-composed detail queries
+  converge on the same canonical query digest
+- multi-scope collection parity lane where projection, ordering, and
+  traversal-bound scopes converge on the same canonical query and result-shape
+  digests as equivalent direct construction
+- basis-aware parity lane where admitted basis evidence preserves canonical
+  query meaning while emitting explicit basis metadata
+- basis-aware mismatch denial lane where evidence bound to a different canonical
+  query fails typed and early
+- traversal-widening denial lane where a traversal-bound scope attempts to
+  exceed its declared depth bound
+- unsupported-scope denial lane where non-admitted scope families fail before
+  authored-request lowering
 
 Must verify
 
-- async result states are typed query result states, not host-local strings or
-  optional UI metadata
-- completion causality binds query digest, result shape digest, truth basis,
-  policy digest, tenant digest, resource source identity, and async generation
-- stale, cancelled, denied, and superseded completions cannot emit fulfilled
-  query results
-- retry and revalidation preserve canonical query identity unless the declared
-  query basis intentionally changes
-- policy and tenant masking apply before async result materialization
-- failure taxonomy distinguishes source failure, cancellation, supersession,
-  retry exhaustion, policy denial, tenant drift, bridge denial, and unsupported
-  family denial
-- diagnostics localize whether failure occurred during query declaration,
-  source admission, bridge resource lifecycle, signal async generation,
-  completion causality, materialization, or support certification
-- compile-fail boundaries prove external callers cannot forge async resource
-  state, completion-causality artifacts, supersession witnesses, or fulfilled
-  delivery from raw completion payloads
-- small/medium/larger fixture runs prove async completion checks are bounded by
-  declared inflight generation width, completion batch width, retry width, and
-  affected result width rather than unrelated resource or row count
+- named scope expansion is canonical declaration composition rather than string
+  substitution or caller-owned rewrite folklore
+- equivalent direct and scope-composed declarations produce the same canonical
+  `query_digest`
+- result-shape parity holds for admitted scope families on the covered paths
+- `scope_lineage_digest` is explicit and non-empty on admitted named-scope
+  expansion artifacts
+- basis-aware scope evidence stays typed, query-bound, and fail-closed
+- admitted named-scope paths keep `scope_rediscovery_count == 0`
+- support/profile publication reports `named_scope_expansion:verified`
+- diagnostics localize denial to unsupported scope family, illegal widening, or
+  basis-evidence query mismatch rather than broad composition failure
+- small/medium/larger fixture runs prove scope expansion cost stays bounded by
+  declared scope count and scope width rather than unrelated row or schema
+  breadth
 
 Required verification output
 
 - `query_digest`
 - `result_shape_digest`
+- `composition_digest`
+- `scope_lineage_digest`
 - `basis_digest`
-- `policy_digest`
-- `tenant_basis_digest`
-- `async_resource_digest`
-- `async_generation_digest`
-- `completion_causality_digest`
-- `supersession_digest`
-- `retry_digest`
-- `cancellation_digest`
-- `result_digest`
-- `delivery_digest`
+- `support_profile_digest`
 - `failure_digest`
-- `diagnostic_trace_digest`
 - `counter_snapshot`
-- `async_resource_scale_slope_digest`
+- `scope_expansion_scale_slope_digest`
 - `compile_fail_boundary_digest`
 
 Pass condition
 
-Async/resource query families remain basis-bound, causally ordered,
-policy-safe, and fail-closed before stale or unsupported completions can affect
-query-shaped results.
+Named scope expansion is certified only when admitted scope families preserve
+canonical query meaning, typed basis evidence, explicit lineage, zero
+rediscovery on the ordinary path, and a public `verified` support posture while
+unsupported or widening neighbors fail typed and early.
+
+### 9.5. Phase 2 Template Instantiation Productization Closure Test
+
+Purpose
+
+Prove that runtime-backed template instantiation is a verified composition
+lane: equivalent direct construction and admitted template-instantiated
+construction must produce the same canonical query meaning while preserving
+explicit typed binding artifacts, exact binding counters, and honest
+support-profile posture.
+
+Scenario
+
+- construct equivalent detail and collection queries through:
+  - direct canonical authoring
+  - detail template instantiation with typed predicate binding
+  - collection template instantiation with typed traversal binding
+  - basis-aware template instantiation where admitted
+- vary:
+  - detail and collection query families
+  - binding kinds across predicate, ordering, projection, and traversal slots
+  - missing, duplicate, undeclared, and kind-mismatched bindings
+  - duplicate slot declaration
+  - deferred template-family admission for observed inspector, focused
+    inspector, and grouped collection template families
+
+Required concrete lanes
+
+- detail-template parity lane where direct and template-instantiated detail
+  queries converge on the same canonical query and result-shape digests
+- collection-template parity lane where direct and template-instantiated
+  collection queries converge on the same canonical query and result-shape
+  digests
+- basis-aware template parity lane where admitted basis evidence remains bound
+  to the fully instantiated canonical query and emits explicit basis metadata
+- missing-binding denial lane where a declared slot lacks a bound value
+- duplicate-binding denial lane where one slot receives multiple bindings
+- undeclared-slot denial lane where a binding targets a slot the template did
+  not declare
+- binding-kind mismatch lane where slot kind and binding kind diverge
+- duplicate-slot declaration lane where the same slot is declared twice on one
+  template
+- deferred-template-family lane where observed inspector, focused inspector,
+  and grouped collection template families remain typed-and-early deferred
+
+Must verify
+
+- template instantiation is canonical declaration composition rather than
+  caller-owned rewrite folklore
+- equivalent direct and template-instantiated declarations produce the same
+  canonical `query_digest`
+- result-shape parity holds for admitted template families on the covered
+  paths
+- `template_binding_digest` is explicit and non-empty on admitted
+  template-instantiation artifacts
+- composition reports preserve the same binding digest as the emitted
+  instantiation artifact
+- admitted template-instantiated paths keep `template_rediscovery_count == 0`
+- basis-aware template evidence stays typed, canonical-query-bound, and
+  fail-closed
+- diagnostics localize denial to missing binding, duplicate binding, undeclared
+  slot, binding-kind mismatch, duplicate slot declaration, or deferred
+  template-family posture rather than broad composition failure
+- support/profile publication reports `template_instantiation:verified`
+- small/medium/larger fixture runs prove template instantiation cost stays
+  bounded by declared slot count and binding width rather than unrelated row or
+  schema breadth
+
+Required verification output
+
+- `query_digest`
+- `result_shape_digest`
+- `composition_digest`
+- `template_binding_digest`
+- `basis_digest`
+- `support_profile_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `template_instantiation_scale_slope_digest`
+- `compile_fail_boundary_digest`
+
+Pass condition
+
+Template instantiation is certified only when admitted template families
+preserve canonical query meaning, typed binding identity, exact slot and
+binding counters, zero rediscovery on the ordinary path, and a public
+`verified` support posture while malformed or deferred neighbors fail typed and
+early.
 
 ## Milestone 9.6 Named Certification Suites
 

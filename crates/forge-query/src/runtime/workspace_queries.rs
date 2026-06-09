@@ -5,6 +5,8 @@ use serde_json::Value;
 use super::read_composition_hooks::{
     ForgeQueryReadInvariantPackContext, ForgeQueryReadInvariantPackViolation,
 };
+#[cfg(test)]
+use super::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
 use super::{
     ForgeQueryDerivedViewHandle, ForgeQueryGenericInspectionIntentTarget, ForgeQueryInspection,
     ForgeQueryInspectionTarget, ForgeQueryInstalledProgram, ForgeQueryLiveArtifactBinding,
@@ -133,6 +135,10 @@ impl ForgeQueryWorkspace {
         artifact_name: impl Into<String>,
         targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
     ) -> Result<ForgeQueryLiveArtifactBinding, ForgeQueryRuntimeError> {
+        #[cfg(test)]
+        record_forbidden_fallback_seam_invocation(
+            ForgeQueryForbiddenFallbackSeam::ReadLiveArtifactBinding,
+        );
         let retained_targets = targets.into_iter().collect::<Vec<_>>();
         self.read_live_artifact_bundle(retained_targets.clone())?
             .bind_live_artifact(artifact_name, retained_targets)
@@ -142,6 +148,10 @@ impl ForgeQueryWorkspace {
         &mut self,
         targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
     ) -> Result<ForgeQueryLiveArtifactBundle, ForgeQueryRuntimeError> {
+        #[cfg(test)]
+        record_forbidden_fallback_seam_invocation(
+            ForgeQueryForbiddenFallbackSeam::ReadLiveArtifactBundle,
+        );
         let mut retained_targets = targets.into_iter().collect::<Vec<_>>();
         retained_targets.sort();
         retained_targets.dedup();

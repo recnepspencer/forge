@@ -4,6 +4,8 @@ use crate::identity::hash_parts;
 use crate::runtime::surface::live_artifact_binding::ForgeQueryLiveArtifactBinding;
 use crate::runtime::ForgeQueryLiveView;
 use crate::runtime::ForgeQueryRuntimeError;
+#[cfg(test)]
+use crate::runtime::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
 
 use super::ForgeQueryLiveReadResult;
 
@@ -106,6 +108,18 @@ impl ForgeQueryLiveArtifactBundle {
         artifact_name: impl Into<String>,
         required_targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
     ) -> Result<ForgeQueryLiveArtifactBinding, ForgeQueryRuntimeError> {
+        #[cfg(test)]
+        record_forbidden_fallback_seam_invocation(
+            ForgeQueryForbiddenFallbackSeam::BindLiveArtifact,
+        );
         ForgeQueryLiveArtifactBinding::bind(self, artifact_name, required_targets)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        snapshot_token: impl Into<String>,
+        reads: BTreeMap<String, ForgeQueryLiveReadResult>,
+    ) -> Self {
+        Self::new(snapshot_token, reads)
     }
 }

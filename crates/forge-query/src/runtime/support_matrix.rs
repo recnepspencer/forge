@@ -170,12 +170,12 @@ impl ForgeQueryRuntimePublicSupportMatrix {
         rows.push(ForgeQueryRuntimePublicSupportMatrixRow::new(
             "temporal-async-certification",
             None,
-            ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
+            ForgeQueryRuntimeFamilySupportStatus::Supported,
             ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
             "Milestone 9.4",
             "must-extend-stabilized-handle-state-lane-aspect-inspection-facade",
             true,
-            true,
+            false,
             None::<String>,
         ));
 

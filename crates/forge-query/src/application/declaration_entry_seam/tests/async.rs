@@ -10,7 +10,7 @@ use super::support::{
 };
 
 #[test]
-fn async_current_family_projects_runtime_async_debt_into_bridge_readiness() {
+fn async_current_family_admits_bridge_readiness_once_runtime_async_support_closes() {
     let handle = handle("async-current");
     let readiness = handle.declaration_entry_readiness::<AsyncInput<AsyncCurrentFamily>>();
     let bridge_row = readiness
@@ -21,24 +21,18 @@ fn async_current_family_projects_runtime_async_debt_into_bridge_readiness() {
 
     assert_eq!(
         bridge_row.status(),
-        ForgeQueryDeclarationEntryReadinessStatus::Deferred
+        ForgeQueryDeclarationEntryReadinessStatus::Admitted
     );
     assert_eq!(
         bridge_row.reason(),
-        "async declaration-entry readiness remains deferred until the async-resource runtime facade is admitted"
+        "the declaration lowers into a bridge runtime route request"
     );
-
-    assert!(matches!(
-        handle.declare_review_and_progress(AsyncInput::<AsyncCurrentFamily>::bridge_blocking("edge:42")),
-        Err(ForgeQueryDeclarationEntryProgressionError::Entry(
-            ForgeQueryDeclarationAdmissionOrLegalityError::Legality(
-                crate::application::ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported {
-                    kind: ForgeQueryAsyncLegalityDenialKind::RuntimeFacadeDeferred,
-                    ..
-                }
-            )
-        ))
-    ));
+    if handle
+        .declare_review_and_progress(AsyncInput::<AsyncCurrentFamily>::bridge_blocking("edge:42"))
+        .is_err()
+    {
+        panic!("runtime-backed async declaration should now progress");
+    }
 }
 
 #[test]

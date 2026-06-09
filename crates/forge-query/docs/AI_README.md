@@ -353,6 +353,12 @@ decisions.
 
 The mistake to avoid is treating view shape as UI-only sugar or saved queries
 as durable product completion before store-backed reload is honestly admitted.
+On the runtime-backed application support profile, core view-family support
+rows are already verified for `table`, `detail`, inspector detail, and
+`kanban_grouped` surfaces, and grouped reusable composition/template support is
+now admitted on the same runtime-backed product lane. Remaining grouped
+follow-on work in this neighborhood is about later durable/store-backed
+neighbors, not the grouped view-family row.
 
 Read next:
 
@@ -423,6 +429,12 @@ layer hold for ordinary work?”
 
 The mistake to avoid is expecting the handle alone to replace declarations,
 basis, orchestration, or recovery lanes.
+
+For runtime-backed read bring-up specifically, Query now also ships one simple
+public bridge-backed bootstrap lane for obtaining a valid read runtime without
+custom minimal assembly folklore. Use that ordinary builder-owned path for
+hostile tests and downstream examples instead of rebuilding one-off bridge
+fixtures above Query.
 
 Read next:
 
@@ -779,6 +791,11 @@ This section is the umbrella for everything else you declare or consume through
 The important mental model is retained handles and digest-bound evidence, not
 throwaway callbacks or host-local stores.
 
+That same category now includes the simple public bridge-backed read-runtime
+bootstrap closed in Milestone 9.5: hostile tests and downstream bring-up can
+obtain a valid raw read runtime through the ordinary Query builder-owned lane
+instead of inventing custom scaffolding first.
+
 Use this category when you are operating inside the stabilized facade and need
 the overview of which workspace methods belong to which retained surface family.
 
@@ -1089,6 +1106,12 @@ typed facts Query already materialized.
 The mistake to avoid is fishing in relational truth, bridge internals, or domain
 caches for IDs and memberships that should have been declared as consumed
 projection facts.
+
+Retained derived-artifact bindings and live-artifact bindings now participate as
+first-class projection-consumption declaration, support-discovery, and typed
+fact-consumption sources. Ordinary callers should use
+`consume_projection_facts(...)` on those bindings instead of falling back to
+older runtime-owned retained/live helper seams.
 
 Read next:
 
