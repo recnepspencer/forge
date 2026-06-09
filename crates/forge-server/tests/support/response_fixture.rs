@@ -4,13 +4,14 @@ use forge_proof::{TransitionOutcome, TransitionReadiness};
 use forge_server::{
     request_context::DiagnosticRichnessProfile,
     surfaces::{CompatHttpSurface, ForgeNativeSurface},
-    ForgeServer, ForgeServerConfig, ForgeServerMiddlewareConfig, ForgeServerOperatorEvidenceConfig,
-    ForgeServerQueryHandoffConfig, ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffInput,
-    ForgeServerQueryHandoffOperation, ForgeServerQueryHandoffOutcome,
-    ForgeServerQueryWorkspaceProvider, ForgeServerRequestContextConfig,
-    ForgeServerRequestContextDenial, ForgeServerRequestContextInput,
-    ForgeServerResolvedRequestContext, ForgeServerResponseConfig, ForgeServerResponseInput,
-    ForgeServerResponseTransform, ForgeServerSurfaceFamily, ForgeServerTransportClass,
+    ForgeServer, ForgeServerConfig, ForgeServerDirectDeliveryClass, ForgeServerDirectFreshnessMode,
+    ForgeServerMiddlewareConfig, ForgeServerOperatorEvidenceConfig, ForgeServerQueryHandoffConfig,
+    ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation,
+    ForgeServerQueryHandoffOutcome, ForgeServerQueryWorkspaceProvider,
+    ForgeServerRequestContextConfig, ForgeServerRequestContextDenial,
+    ForgeServerRequestContextInput, ForgeServerResolvedRequestContext, ForgeServerResponseConfig,
+    ForgeServerResponseInput, ForgeServerResponseTransform, ForgeServerSurfaceFamily,
+    ForgeServerTransportClass,
 };
 
 pub(crate) fn test_server(
@@ -246,6 +247,13 @@ pub(crate) fn query_handoff_success(
             admit_read(server, resolved)
         }
         ForgeServerQueryHandoffOperation::QueryMutation { .. } => admit_mutation(server, resolved),
+        ForgeServerQueryHandoffOperation::DirectRead { .. }
+        | ForgeServerQueryHandoffOperation::DirectState { .. }
+        | ForgeServerQueryHandoffOperation::DirectInspection { .. }
+        | ForgeServerQueryHandoffOperation::DirectProjection { .. }
+        | ForgeServerQueryHandoffOperation::DirectMutation { .. } => {
+            panic!("response fixture does not construct direct forge-native query handoffs")
+        }
     };
     match server
         .query_handoff()
@@ -273,6 +281,8 @@ pub(crate) fn query_handoff_durable_denial(server: &ForgeServer) -> ForgeServerQ
                 ),
                 ForgeServerQueryHandoffOperation::downstream_delivery(
                     "users.profile",
+                    ForgeServerDirectFreshnessMode::LiveStrict,
+                    ForgeServerDirectDeliveryClass::AuthoritativeOrdered,
                     forge_server::ForgeServerQueryRequestedResume::durable(),
                 ),
             ));

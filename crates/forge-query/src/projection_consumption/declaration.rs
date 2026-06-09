@@ -47,6 +47,29 @@ impl ProjectionConsumptionBindingContext {
         }
     }
 
+    pub fn from_projection_metadata(
+        result_shape_digest: impl Into<String>,
+        authorized_projection_query_digest: impl Into<String>,
+        authorized_projection_result_shape_digest: impl Into<String>,
+        authorized_projection_identity: impl Into<String>,
+        narrowed_result_shape_digest: impl Into<String>,
+        policy_digest: impl Into<String>,
+        tenant_schema_basis_digest: impl Into<String>,
+        authorized_visible_fields: Vec<String>,
+    ) -> Self {
+        Self {
+            result_shape_digest: result_shape_digest.into(),
+            authorized_projection_query_digest: authorized_projection_query_digest.into(),
+            authorized_projection_result_shape_digest: authorized_projection_result_shape_digest
+                .into(),
+            authorized_projection_identity: authorized_projection_identity.into(),
+            narrowed_result_shape_digest: narrowed_result_shape_digest.into(),
+            policy_digest: policy_digest.into(),
+            tenant_schema_basis_digest: tenant_schema_basis_digest.into(),
+            authorized_visible_fields,
+        }
+    }
+
     pub fn result_shape_digest(&self) -> &str {
         &self.result_shape_digest
     }

@@ -61,6 +61,10 @@ impl ForgeServerQueryHandoff {
         &self.workspace
     }
 
+    pub(crate) fn workspace_mut(&mut self) -> &mut ForgeQueryWorkspace {
+        &mut self.workspace
+    }
+
     pub fn downstream_delivery_contract(&self) -> &ForgeQueryRuntimeDownstreamDeliveryContract {
         &self.downstream_delivery_contract
     }

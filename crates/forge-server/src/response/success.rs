@@ -7,6 +7,11 @@ use super::{receipt::ForgeServerResponseReceipt, ForgeServerResponseTransform};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeServerSuccessKind {
     QueryRead,
+    DirectRead,
+    DirectState,
+    DirectInspection,
+    DirectProjection,
+    DirectMutation,
     QueryMutation,
     DownstreamDelivery,
 }

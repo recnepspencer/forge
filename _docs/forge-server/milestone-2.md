@@ -3,9 +3,10 @@
 ## Goal
 
 Ship the first-class Forge-native `forge-server` surface so applications can
-consume typed Query-backed reads, mutations, state, inspection, lease
-declaration, and delivery-contract negotiation directly through the server
-without rebuilding ordinary product meaning as handwritten endpoint glue.
+consume typed Query-backed declarations, reads, mutations, state, inspection,
+projection facts, lease declaration, and delivery-contract negotiation directly
+through the server without rebuilding ordinary product meaning as handwritten
+endpoint glue, local status taxonomies, or caller-owned support folklore.
 
 ## Why This Milestone Exists
 
@@ -28,8 +29,9 @@ product consumption the ordinary Forge-native path.
 
 ## Governing Summaries
 
-- `MENTALITY.md`: solve the hostile "endpoint glue survives forever" problem
-  first, not the easiest demo of one pretty direct-call API.
+- `MENTALITY.md`: solve the hostile "endpoint glue survives forever" and
+  "caller-owned pseudo-Query grows above the server" problems first, not the
+  easiest demo of one pretty direct-call API.
 - `arch_laws.md`: the Forge-native surface must stay one facade over proof-
   bearing server boundaries rather than becoming a parallel semantic entrypath.
 - `composition_laws.md`: facade entry, operation families, capability posture,
@@ -39,7 +41,8 @@ product consumption the ordinary Forge-native path.
   views, denial artifacts, and compatibility bridges must stay structurally
   distinct.
 - `perf_laws.md`: Forge-native ergonomics must not hide broad scans, rich-path
-  work, rediscovered support posture, or transport-local fallback behavior.
+  work, rediscovered support posture, declaration reinterpretation, or
+  transport-local fallback behavior.
 - `milestone-1.md`: the direct surface is allowed only if it remains a real
   consumer of the Milestone 1 forced-entry path rather than a second semantic
   runtime above it.
@@ -51,26 +54,32 @@ product consumption the ordinary Forge-native path.
   equivalence, and compatibility path-honesty certification suites with narrow
   artifacts and exact zero assertions where required.
 - `AI_README.md`: Query is the ordinary domain-facing runtime, so the direct
-  server facade must project Query-owned reads, state, inspection, intent, and
-  delivery meaning instead of inventing a second product runtime.
-- `milestone-9.4.md`: Query 9.4 already closes runtime-backed temporal/async/
-  mixed-cause/downstream-delivery semantics on ordinary Query surfaces, so
-  Milestone 2 should consume those surfaces directly and keep durable-later
-  debt explicit.
+  server facade must project Query-owned declaration identity, support and
+  admission posture, reads, state, inspection, projection consumption, async
+  result-state, intent, and delivery meaning instead of inventing a second
+  product runtime.
+- `milestone-9.4-closeout.md`: Query 9.4 already closes runtime-backed
+  temporal/async/mixed-cause/downstream-delivery semantics on ordinary Query
+  surfaces, so Milestone 2 should consume those surfaces directly and keep
+  durable-later debt explicit.
 
 ## Adversarial Constraint
 
 For the same authenticated principal, tenant/workspace target, branch/basis
-posture, remask posture, diagnostics posture, and canonical Query intent, a
-Forge-native application using the direct server facade must resolve, admit,
-deny, mutate, lease, and negotiate delivery through the same canonical
-server-owned artifacts and capability posture as any other surface.
+posture, remask posture, diagnostics posture, canonical Query declaration
+identity, and canonical Query intent, a Forge-native application using the
+direct server facade must resolve, admit, deny, read, inspect, mutate,
+materialize projection facts, declare leases, and negotiate delivery through
+the same canonical server-owned artifacts and capability posture as any other
+surface.
 
 This milestone fails if the Forge-native surface:
 
 - bypasses request-context, middleware, Query-handoff, response, or evidence
   boundaries behind ergonomic helpers
 - invents a second meaning model for reads, mutations, state, or delivery
+- invents caller-owned declaration identity, support posture, async state, or
+  typed fact consumption above Query
 - hides runtime-backed versus durable-later capability posture behind "it just
   works" convenience
 - requires product teams to recreate ordinary product meaning as endpoint glue
@@ -86,9 +95,15 @@ This milestone fails if the Forge-native surface:
   directly when they stay inside admitted server contracts.
 - The direct surface must remain visibly server-owned, not a thin alias for
   Query types and not a hidden bypass around Milestone 1.
+- The direct surface must preserve canonical Query declaration identity and
+  admitted family posture instead of teaching support from autocomplete or
+  from visible method names.
 - Reads, state, inspection, mutations, lease declaration, and delivery
   negotiation are separate direct-consumption responsibilities even when they
   share one facade root.
+- Projection-fact consumption, async result-state, and time-aware retained
+  posture are ordinary direct-consumption contracts when Query already admits
+  them; they are not optional "advanced Query" escape hatches.
 - Runtime-backed-now versus durable-later posture must stay explicit on the
   direct facade just as strongly as on the compatibility surface.
 
@@ -144,22 +159,92 @@ endpoint wrappers or ad hoc client scaffolding.
 **Open questions**
 - None.
 
-### Phase 2: Direct Read, State, And Inspection Operation Families
+### Phase 2: Canonical Declaration Identity, View Shape, And Support-Admission Intake
+
+Freeze the direct intake boundary that lets Forge-native applications enter the
+server with canonical Query declaration identity, admitted family posture, and
+view-shape-aware intent instead of rebuilding those contracts through local
+builders, pseudo-support snapshots, or endpoint DTO vocabularies.
+
+**Relevant subsystems**
+- direct declaration intake
+- support/admission posture projection
+- view-shape-aware direct declaration binding
+- saved-query and template consumption seams where admitted
+
+**Relevant APIs**
+- `ForgeServerDirectDeclaration`
+- `ForgeServerDirectSupportSnapshot`
+- `ForgeServerDirectViewShape`
+- `ForgeServerForgeNativeSession`
+
+**Relevant Query surfaces**
+- `workspace.public_support_matrix()`
+- `workspace.admit_public_api_family(...)`
+- `workspace.read(...)`
+- `workspace.state(...)`
+- admitted saved-query, scope, template, and view-shape authoring surfaces
+- `ForgeQueryRuntimeFacadeFamily`
+
+**Shared crate usage**
+- Use no new `forge-proof` surfaces in this phase. Declaration intake must
+  consume existing request-context and Query-admission artifacts rather than
+  creating a direct-only declaration review ladder.
+- Use no new `forge-foundational` surfaces in this phase. The direct intake
+  boundary should project server-owned support posture through existing
+  admission and denial artifacts rather than minting a second support ontology.
+
+**Warnings**
+- Do not make the direct facade accept anonymous read builders whose canonical
+  identity exists only in caller memory.
+- Do not flatten admitted-versus-visible family posture into "method exists"
+  ergonomics.
+- Do not treat view shape as UI sugar if it affects delivery, invalidation, or
+  retained-state semantics downstream.
+
+**Test requirements**
+- Add a declaration-identity parity test proving equivalent direct and
+  compatibility-side declaration intake preserves the same canonical Query
+  identity, admitted family classification, and denial posture.
+- Add a support-posture localization test proving unsupported or
+  visible-but-not-admitted families fail through typed server posture artifacts
+  instead of ambient "not implemented" errors.
+- Add a view-shape intake parity test proving direct table/detail/grouped or
+  other admitted view-shape declarations preserve the same canonical Query
+  meaning as the underlying admitted Query declaration family.
+- This phase must contribute to `Forge-Native No-Glue Equivalence Test` in
+  [test-requirements.md](./test-requirements.md) by proving the direct facade
+  owns declaration intake instead of product-local pseudo-Query layers.
+
+**Engineering decisions**
+- Canonical declaration identity is part of the direct server surface, not an
+  internal Query detail callers are expected to rediscover.
+- Support and admission posture must be consumable through typed direct-surface
+  artifacts before ordinary product code performs meaningful work.
+
+**Open questions**
+- None.
+
+### Phase 3: Direct Read, State, Inspection, And Retained Async-Time Posture Families
 
 Freeze the ordinary direct-consumption read surface so Forge-native
-applications can express reads, state, and inspection against server-managed
-Query meaning without rewrapping them as route-local requests.
+applications can express reads, state, inspection, and admitted runtime-backed
+async/time-aware retained posture against server-managed Query meaning without
+rewrapping them as route-local requests.
 
 **Relevant subsystems**
 - direct read operation family
 - direct state operation family
 - direct inspection operation family
+- retained async/time posture projection
 - Query-first lowering through the server
 
 **Relevant APIs**
 - `ForgeServerDirectRead`
 - `ForgeServerDirectState`
 - `ForgeServerDirectInspection`
+- `ForgeServerDirectAsyncResultState`
+- `ForgeServerDirectTemporalState`
 - `ForgeServerQueryHandoff`
 - `ForgeServerResponseEnvelope`
 
@@ -169,6 +254,8 @@ Query meaning without rewrapping them as route-local requests.
 - `workspace.inspect(...)`
 - `workspace.read_live_intent(&view).review()?.admit()?.execute()`
 - `workspace.inspect_intent(target).review()?.admit()?.execute()`
+- admitted runtime-backed temporal live surfaces
+- admitted async/resource result-state surfaces
 - `workspace.public_support_matrix()`
 - `workspace.admit_public_api_family(...)`
 - `ForgeQueryRuntimeFacadeFamily`
@@ -186,6 +273,8 @@ Query meaning without rewrapping them as route-local requests.
 - Do not merge reads, state, and inspection into one generic "fetch" helper.
 - Do not let the direct read surface conceal whether an operation is one-shot,
   state-bearing, or inspection-bearing when that distinction affects meaning.
+- Do not flatten retained async/resource posture into direct-surface-local
+  `loading`, `retrying`, or `stale` enums when Query already owns those facts.
 - Do not bypass Query support posture just because the caller is Forge-native
   and in-process.
 
@@ -196,6 +285,9 @@ Query meaning without rewrapping them as route-local requests.
 - Add a direct-state parity test proving retained posture from
   `workspace.state(...)` remains canonical across direct and compatibility
   surfaces for the same retained handle family.
+- Add an async/time posture parity test proving admitted runtime-backed
+  temporal or async result-state survives on the direct surface without being
+  reclassified into local convenience status taxonomies.
 - Add a direct-surface localization test proving unsupported state or
   inspection combinations fail through typed server denial/support posture
   rather than broad "unsupported operation" convenience errors.
@@ -209,11 +301,77 @@ Query meaning without rewrapping them as route-local requests.
   pipeline.
 - The direct surface consumes server-owned Query handoff and response shaping;
   it does not reinterpret Query meaning locally.
+- Retained async and time-aware posture belong on the same direct-surface truth
+  family as other admitted retained-state contracts instead of on a parallel
+  helper lane.
 
 **Open questions**
 - None.
 
-### Phase 3: Direct Mutation Surface And Provenance-Bearing Result Boundary
+### Phase 4: Direct Projection Consumption And Typed Fact Boundary
+
+Freeze the direct projection-consumption surface so Forge-native applications
+can consume typed Query-materialized facts through the server without reopening
+authority in relational truth, bridge internals, or caller-owned caches.
+
+**Relevant subsystems**
+- direct projection-fact consumption
+- materialization-bound fact receipts
+- basis- and policy-aware fact projection
+
+**Relevant APIs**
+- `ForgeServerDirectProjectionConsumption`
+- `ForgeServerDirectFactReceipt`
+- `ForgeServerDirectMaterializationDigest`
+- `ForgeServerResponseEnvelope`
+
+**Relevant Query surfaces**
+- admitted projection-consumption declarations and receipts
+- `workspace.state(...)`
+- `workspace.inspect(...)`
+- `workspace.public_support_matrix()`
+- `workspace.admit_public_api_family(...)`
+
+**Shared crate usage**
+- Use no new `forge-proof` surfaces in this phase. Projection consumption must
+  consume the proof-bearing receipts and basis posture already established by
+  Query and Milestone 1 server boundaries.
+- Use `forge-foundational::facade::DiagnosticRichnessProfile` if direct fact
+  receipts expose policy- or provenance-shaped richness posture. Do not create
+  a direct-fact-only richness taxonomy.
+
+**Warnings**
+- Do not let the direct surface fish for facts in lower-authority runtime
+  artifacts when Query already materialized them.
+- Do not return anonymous payload bags when the fact family is semantically
+  typed.
+- Do not sever fact receipts from the materialization digest, basis, policy, or
+  view-shape posture that made them valid.
+
+**Test requirements**
+- Add a projection-fact parity test proving equivalent direct and underlying
+  Query projection-consumption paths preserve the same typed fact identity,
+  materialization digest, basis posture, and denial surface.
+- Add a hostile authority-reopening test proving the direct facade cannot bypass
+  projection-consumption receipts to reconstruct facts from lower-runtime
+  internals.
+- Add a fact-remask localization test proving masked or policy-denied facts fail
+  through typed server artifacts rather than arriving as partial anonymous
+  payloads.
+- This phase must contribute to `Forge-Native No-Glue Equivalence Test` in
+  [test-requirements.md](./test-requirements.md) by proving product code can
+  consume typed materialized facts without rebuilding authority folklore.
+
+**Engineering decisions**
+- Projection consumption is part of the ordinary direct product surface when
+  Query already owns typed fact receipts.
+- Fact consumption must remain receipt- and basis-bound, not cache- or
+  convenience-bound.
+
+**Open questions**
+- None.
+
+### Phase 5: Direct Mutation Surface And Provenance-Bearing Result Boundary
 
 Freeze the direct mutation surface so Forge-native applications can issue
 authoritative Query-backed mutations through the server without rebuilding
@@ -280,7 +438,7 @@ posture.
 **Open questions**
 - None.
 
-### Phase 4: Lease Declaration And Delivery-Contract Negotiation Surface
+### Phase 6: Lease Declaration And Delivery-Contract Negotiation Surface
 
 Freeze the direct Forge-native lease and delivery-negotiation surface so
 applications can declare server-managed live product needs directly without
@@ -289,11 +447,15 @@ dropping down into HTTP-shaped subscription glue.
 **Relevant subsystems**
 - direct lease declaration
 - direct downstream-delivery contract negotiation
+- freshness-mode request shaping
+- delivery-class and resume-basis request shaping
 - runtime-backed resume posture exposure
 
 **Relevant APIs**
 - `ForgeServerDirectLeaseDeclaration`
 - `ForgeServerDirectDeliveryContract`
+- `ForgeServerDirectFreshnessMode`
+- `ForgeServerDirectDeliveryClass`
 - `ForgeServerQueryRequestedResume`
 - `workspace.public_downstream_delivery_contract()`
 - `workspace.downstream_delivery(...)`
@@ -305,6 +467,7 @@ dropping down into HTTP-shaped subscription glue.
 - `workspace.admit_public_api_family(...)`
 - `workspace.state(...)`
 - `workspace.inspect(...)`
+- admitted freshness-mode and delivery-class Query-facing contracts
 - `ForgeQueryRuntimePublicApiFamilyContract`
 - `ForgeQueryLowerRuntimeSupportPosture`
 
@@ -320,6 +483,8 @@ dropping down into HTTP-shaped subscription glue.
 **Warnings**
 - Do not let lease declaration become connection-local or UI-widget-local
   state.
+- Do not collapse delivery class, freshness mode, and resume-basis requests
+  into one opaque "subscribe" convenience blob.
 - Do not mislabel runtime-backed resume as durable restart-stable resume on the
   direct surface.
 - Do not let the direct facade negotiate delivery without consulting Query
@@ -329,6 +494,9 @@ dropping down into HTTP-shaped subscription glue.
 - Add a lease-declaration parity test proving equivalent Forge-native lease
   declarations and ordinary server lease declarations compare equal on
   canonical identity and capability posture.
+- Add a delivery-request parity test proving direct freshness-mode,
+  delivery-class, and requested-resume contracts preserve the same canonical
+  Query-facing negotiation meaning as the underlying handoff.
 - Add a hostile delivery-negotiation denial test proving stale, unsupported, or
   durable-later resume requests fail typed and visible on the direct surface.
 - Add a support-posture parity test proving direct negotiation preserves the
@@ -344,11 +512,14 @@ dropping down into HTTP-shaped subscription glue.
   nicer constructor.
 - Delivery negotiation stays Query-first and contract-first; the direct surface
   is an admission facade over those contracts.
+- Freshness, delivery class, and resume requests are named direct-surface
+  contracts even before the later sync runtime milestones close transport
+  delivery itself.
 
 **Open questions**
 - None.
 
-### Phase 5: Branch, Basis, Remask, And Provenance Direct-Consumption Closure
+### Phase 7: Branch, Basis, Remask, And Provenance Direct-Consumption Closure
 
 Freeze the direct-surface artifact family that makes branch, basis, remask, and
 provenance posture explicit and client-consumable instead of hidden behind
@@ -417,7 +588,7 @@ Forge-native convenience defaults.
 **Open questions**
 - None.
 
-### Phase 6: Forge-Native Ergonomics And No-Endpoint-Glue Composition Boundary
+### Phase 8: Forge-Native Ergonomics And No-Endpoint-Glue Composition Boundary
 
 Freeze the composition boundary that makes the Forge-native facade genuinely
 replace ordinary endpoint glue for common product work instead of merely
@@ -427,11 +598,15 @@ wrapping the same glue in a nicer API.
 - direct surface composition model
 - operation-family aggregation
 - product-local facade integration points
+- declaration/support snapshot composition
+- projection-fact and retained-state composition
 - capability/cost visibility
 
 **Relevant APIs**
 - `ForgeServerForgeNativeFacade`
+- `ForgeServerDirectDeclaration`
 - `ForgeServerDirectRead`
+- `ForgeServerDirectProjectionConsumption`
 - `ForgeServerDirectMutation`
 - `ForgeServerDirectLeaseDeclaration`
 - `ForgeServerDirectDeliveryContract`
@@ -441,6 +616,7 @@ wrapping the same glue in a nicer API.
 - `workspace.state(...)`
 - `workspace.inspect(...)`
 - `workspace.write_intent(...)`
+- admitted projection-consumption surfaces
 - `workspace.public_downstream_delivery_contract()`
 - `workspace.public_support_matrix()`
 
@@ -456,6 +632,8 @@ wrapping the same glue in a nicer API.
   direct surface claims to replace endpoint glue.
 - Do not let convenience helpers bypass explicit support posture or basis
   posture just to keep the call shape short.
+- Do not require caller-owned glue to translate canonical declaration identity,
+  typed fact receipts, or retained async posture into product-usable shapes.
 
 **Test requirements**
 - Add a no-endpoint-glue equivalence test proving a representative Forge-native
@@ -467,6 +645,9 @@ wrapping the same glue in a nicer API.
 - Add a composition-residue test proving direct ergonomics do not require
   endpoint-like DTO layers or route-only glue to recover ordinary state,
   provenance, or denial meaning.
+- Add a retained-posture composition test proving product-facing direct flows
+  can carry support posture, async/time result-state, and typed fact receipts
+  without introducing caller-owned status enums or cache folklore.
 - This phase is the local implementation home for the core pass condition of
   `Forge-Native No-Glue Equivalence Test` in
   [test-requirements.md](./test-requirements.md): reducing glue without
@@ -481,7 +662,7 @@ wrapping the same glue in a nicer API.
 **Open questions**
 - None.
 
-### Phase 7: Hostile Direct-Surface Certification Closure
+### Phase 9: Hostile Direct-Surface Certification Closure
 
 Close Milestone 2 with certification that proves the Forge-native facade is a
 real server-owned product surface rather than a friendly bypass around the
@@ -495,7 +676,8 @@ existing pipeline.
 
 **Relevant APIs**
 - direct-surface certification bundles
-- canonical request-context, handoff, response, and support digests
+- canonical declaration, request-context, handoff, response, and support
+  digests
 - counter and provenance certification artifacts
 
 **Relevant Query surfaces**
@@ -503,6 +685,7 @@ existing pipeline.
 - `workspace.state(...)`
 - `workspace.inspect(...)`
 - `workspace.write_intent(...)`
+- admitted projection-consumption surfaces
 - `workspace.public_downstream_delivery_contract()`
 - `workspace.downstream_delivery(...)`
 - `workspace.public_support_matrix()`
@@ -526,13 +709,16 @@ existing pipeline.
   direct surface is honest.
 - Do not certify the direct surface without comparing it to the compatibility
   overlap lanes where semantics should match.
+- Do not omit declaration identity, support posture, typed fact receipts, or
+  retained async/time posture from certification just because the happy path
+  read result looked correct.
 
 **Test requirements**
 - Add one mixed-hostility Forge-native certification matrix varying branch,
   basis, remask, diagnostics posture, runtime-backed versus durable-later
-  requests, and equivalent compatibility-surface overlap while asserting exact
-  canonical request-context, handoff, response, support, provenance, and
-  counter digests.
+  requests, declaration/view-shape intake, and equivalent compatibility-surface
+  overlap while asserting exact canonical declaration, request-context,
+  handoff, response, support, provenance, and counter digests.
 - Add one direct-surface sabotage suite that attempts raw Query access,
   skipped middleware/admission use, forged direct-session handles, and direct
   lease/dependency construction, and proves each attempt fails at the narrowest
@@ -541,6 +727,9 @@ existing pipeline.
 - Add one no-endpoint-glue certification lane proving the direct facade can
   express the representative product flow without hidden endpoint families and
   without semantic drift in the certified artifacts.
+- Add one retained-posture and typed-fact certification lane proving direct
+  async/time result-state and projection-fact consumption remain parity-safe
+  and receipt-bound without caller-owned reinterpretation.
 - This phase must close Milestone 2 against the named suites
   `Shared Pipeline Non-Bypass Torture Test`, `Forge-Native No-Glue Equivalence
   Test`, and the Milestone 2 overlap portions of `Compatibility Surface
@@ -558,7 +747,12 @@ existing pipeline.
 ## Must Ship
 
 - one typed Forge-native server facade root for ordinary product consumption
-- direct Query-backed read, state, and inspection operation families
+- direct declaration intake carrying canonical Query identity, view-shape
+  posture, and support/admission posture
+- direct Query-backed read, state, inspection, and admitted retained
+  async/time-posture operation families
+- direct projection-consumption and typed fact-receipt surfaces where Query
+  already admits them
 - direct Query-backed mutation operation families with typed result posture
 - direct lease declaration and downstream-delivery negotiation surfaces
 - explicit branch, basis, remask, provenance, and capability artifacts on the
@@ -575,17 +769,22 @@ existing pipeline.
 - Milestone 1 forced-entry boundaries remain mandatory for every direct
   operation
 - Query remains the semantic authority for ordinary product meaning
+- canonical declaration identity, typed fact receipts, and retained async/time
+  posture remain Query-owned semantics projected through server-owned surfaces
 - runtime-backed-now versus durable-later posture remains explicit on the
   direct surface
-- ergonomics do not conceal cost, denial, remask, or provenance posture
+- ergonomics do not conceal cost, denial, remask, provenance, or support
+  posture
 
 ## Acceptance Evidence
 
 - direct Forge-native and compatibility overlap flows compare equal on
-  canonical request-context, handoff, response, support, and provenance
-  artifacts where they should
+  canonical declaration, request-context, handoff, response, support,
+  provenance, and materialization-bound fact artifacts where they should
 - typed denial artifacts localize invalid, unsupported, forbidden, remasked,
   or basis-mismatched direct operations to the correct server boundary
+- admitted async/time result-state and projection-fact consumption remain
+  parity-safe and do not degrade into caller-owned status or cache folklore
 - representative Forge-native product flows can be expressed without parallel
   handwritten endpoint families for ordinary product work
 - hostile certification proves direct-surface bypass attempts fail with exact

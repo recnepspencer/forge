@@ -218,6 +218,7 @@ mod handle_contract;
 mod inspection;
 mod intent;
 mod live_subscription;
+mod materialized_fact_posture;
 mod mixed_cause_delivery;
 mod mixed_cause_emission;
 mod mutation;
@@ -502,7 +503,7 @@ pub use read_composition_support_report::{
 };
 pub use remask_posture::{
     ForgeQueryRuntimeRemaskDispositionKind, ForgeQueryRuntimeRemaskPosture,
-    ForgeQueryRuntimeRemaskReasonKind,
+    ForgeQueryRuntimeRemaskProjection, ForgeQueryRuntimeRemaskReasonKind,
 };
 #[cfg(test)]
 use runtime_helpers::runtime_subscription_budget_digest;

@@ -19,4 +19,15 @@ impl ForgeServerWorkspaceTarget {
     pub fn workspace_id(&self) -> &str {
         &self.workspace_id
     }
+
+    pub fn canonical_label(&self) -> String {
+        format!("{}:{}", self.tenant_id, self.workspace_id)
+    }
+
+    pub fn workspace_digest(&self) -> String {
+        format!(
+            "forge-server-workspace-target-v1:{}",
+            self.canonical_label()
+        )
+    }
 }

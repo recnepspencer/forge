@@ -3,6 +3,7 @@ use forge_server::{
     ForgeServerSurfaceFamily, ForgeServerTransportClass,
 };
 
+use super::certification_bundle::ForgeServerCertificationField as Field;
 use super::certification_counter_assertions::{assert_counter_exact, assert_counters_zero};
 use super::certification_digest_assertions::{assert_equal_on, assert_not_equal_on};
 use super::certification_fixture::{
@@ -59,20 +60,20 @@ fn mixed_hostility_matrix_preserves_forced_entry_truth_and_typed_denial_boundari
         &control_lane,
         &equivalent_lane,
         &[
-            "request_context_digest",
-            "response_digest",
-            "provenance_digest",
-            "counter_snapshot",
+            Field::RequestContextDigest,
+            Field::ResponseDigest,
+            Field::ProvenanceDigest,
+            Field::CounterSnapshot,
         ],
     );
     assert_equal_on(
         &control_lane,
         &diagnostics_lane,
         &[
-            "request_context_digest",
-            "response_digest",
-            "provenance_digest",
-            "counter_snapshot",
+            Field::RequestContextDigest,
+            Field::ResponseDigest,
+            Field::ProvenanceDigest,
+            Field::CounterSnapshot,
         ],
     );
     assert_counter_exact(&control_lane, "response.success.count", 1);
@@ -81,28 +82,28 @@ fn mixed_hostility_matrix_preserves_forced_entry_truth_and_typed_denial_boundari
     assert_not_equal_on(
         &control_lane,
         &tenant_divergence_lane,
-        &["request_context_digest", "response_digest"],
+        &[Field::RequestContextDigest, Field::ResponseDigest],
     );
 
     assert_not_equal_on(
         &control_lane,
         &malformed_identity_lane,
-        &["response_digest", "failure_digest"],
+        &[Field::ResponseDigest, Field::FailureDigest],
     );
     assert_not_equal_on(
         &control_lane,
         &branch_hostility_lane,
-        &["response_digest", "failure_digest"],
+        &[Field::ResponseDigest, Field::FailureDigest],
     );
     assert_not_equal_on(
         &control_lane,
         &authorization_pressure_lane,
-        &["response_digest", "failure_digest"],
+        &[Field::ResponseDigest, Field::FailureDigest],
     );
     assert_not_equal_on(
         &control_lane,
         &unsupported_capability_lane,
-        &["response_digest", "failure_digest"],
+        &[Field::ResponseDigest, Field::FailureDigest],
     );
 
     assert_counter_exact(
