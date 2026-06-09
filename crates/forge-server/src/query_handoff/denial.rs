@@ -38,9 +38,22 @@ pub enum ForgeServerQueryHandoffDenialCode {
     PreparedIntentMismatch,
     UnsupportedQueryFacadeFamily,
     DownstreamDeliveryRequiresReadIntent,
+    LeaseDeclarationContextMismatch,
+    RuntimeBackedResumeMissingBasis,
+    RuntimeBackedResumeStaleBasis,
     RuntimeBackedResumeUnsupported,
     DurableResumeDeferred,
     WorkspaceBindingFailed,
+    RetainedQueryArtifactUnavailable,
+    DirectProjectionBindingInvalid,
+    DirectMutationBindingDenied,
+    DirectMutationAssertionDenied,
+    DirectMutationContinuityDenied,
+    DirectMutationNamingDenied,
+    DirectMutationTargetReferenceDenied,
+    ProjectionFactConsumptionDenied,
+    ProjectionFactConsumptionDeferred,
+    ProjectionFactConsumptionSourceMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -61,4 +74,14 @@ pub struct ForgeServerQueryHandoffRebindRequired {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeServerQueryHandoffFailure {
     reason: &'static str,
+}
+
+impl ForgeServerQueryHandoffFailure {
+    pub(crate) fn new(reason: &'static str) -> Self {
+        Self { reason }
+    }
+
+    pub fn reason(&self) -> &'static str {
+        self.reason
+    }
 }

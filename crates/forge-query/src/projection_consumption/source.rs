@@ -2,8 +2,8 @@ use crate::canonicalization::CanonicalResultShapeArtifact;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 use crate::runtime::{
-    ForgeQueryMutationTargetClass, ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt,
-    ForgeQueryWriteReceipt,
+    ForgeQueryLiveReadReceipt, ForgeQueryMutationTargetClass, ForgeQueryReadExecutionEngine,
+    ForgeQueryReadReceipt, ForgeQueryWriteReceipt,
 };
 use forge_relational::facade::grouped_truth::{
     RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
@@ -12,9 +12,15 @@ use forge_runtime_bridge::facade::{
     BridgeGroupedTruthViewArtifact, BridgeMaterializedRowSetArtifact,
 };
 
+#[path = "source_reference_identity.rs"]
+mod source_reference_identity;
+
+pub use self::source_reference_identity::ProjectionSourceReferenceIdentity;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectionSourceFamily {
     QueryReadReceipt,
+    QueryLiveReadReceipt,
     QueryWriteReceipt,
     QueryContextExecution,
     RelationalRowSet,
@@ -27,6 +33,7 @@ impl ProjectionSourceFamily {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::QueryReadReceipt => "query_read_receipt",
+            Self::QueryLiveReadReceipt => "query_live_read_receipt",
             Self::QueryWriteReceipt => "query_write_receipt",
             Self::QueryContextExecution => "query_context_execution",
             Self::RelationalRowSet => "relational_row_set",
@@ -105,6 +112,9 @@ pub(crate) enum ProjectionSourceCapabilityProfile {
     QueryReadReceipt {
         execution_posture: ProjectionSourceExecutionPosture,
     },
+    QueryLiveReadReceipt {
+        execution_posture: ProjectionSourceExecutionPosture,
+    },
     QueryWriteReceipt {
         capabilities: ProjectionWriteReceiptCapabilities,
     },
@@ -115,34 +125,6 @@ pub(crate) enum ProjectionSourceCapabilityProfile {
     RelationalGroupedProjection,
     BridgeTruthViewRowSet,
     BridgeGroupedTruthView,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProjectionSourceReferenceIdentity {
-    label: &'static str,
-    identity: String,
-}
-
-impl ProjectionSourceReferenceIdentity {
-    pub fn label(&self) -> &'static str {
-        self.label
-    }
-
-    pub fn identity(&self) -> &str {
-        &self.identity
-    }
-
-    pub(crate) fn synthetic(label: &'static str, identity: impl Into<String>) -> Self {
-        Self {
-            label,
-            identity: identity.into(),
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn test_only(label: &'static str, identity: impl Into<String>) -> Self {
-        Self::synthetic(label, identity)
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -178,20 +160,36 @@ impl ProjectionConsumptionSource {
         }
     }
 
+    pub fn from_live_read_receipt(receipt: &ForgeQueryLiveReadReceipt) -> Self {
+        Self {
+            family: ProjectionSourceFamily::QueryLiveReadReceipt,
+            capability_profile: ProjectionSourceCapabilityProfile::QueryLiveReadReceipt {
+                execution_posture: ProjectionSourceExecutionPosture::Current,
+            },
+            query_digest: Some(receipt.query_digest().to_string()),
+            basis_digest: Some(receipt.snapshot_token().to_string()),
+            result_digest: Some(receipt.result_digest().to_string()),
+            result_shape_digest: Some(receipt.view_shape_digest().to_string()),
+            source_identity: receipt.installation_digest().to_string(),
+            source_reference_identities: Vec::new(),
+            materialized_fact_posture: receipt.materialized_fact_posture().cloned(),
+        }
+    }
+
     pub fn from_write_receipt(receipt: &ForgeQueryWriteReceipt) -> Self {
         let resolved_target = receipt.target_evidence().resolved();
         let mut source_reference_identities = Vec::new();
         if let Some(provenance) = receipt.provenance_evidence() {
-            source_reference_identities.push(ProjectionSourceReferenceIdentity {
-                label: "bridge_provenance_execution_record",
-                identity: provenance.execution_record_digest().to_string(),
-            });
+            source_reference_identities.push(ProjectionSourceReferenceIdentity::synthetic(
+                "bridge_provenance_execution_record",
+                provenance.execution_record_digest(),
+            ));
         }
         if let Some(symbolic_reference) = receipt.symbolic_target_reference_evidence() {
-            source_reference_identities.push(ProjectionSourceReferenceIdentity {
-                label: "symbolic_target_reference",
-                identity: symbolic_reference.symbol().to_string(),
-            });
+            source_reference_identities.push(ProjectionSourceReferenceIdentity::synthetic(
+                "symbolic_target_reference",
+                symbolic_reference.symbol(),
+            ));
         }
         Self {
             family: ProjectionSourceFamily::QueryWriteReceipt,
@@ -221,16 +219,16 @@ impl ProjectionConsumptionSource {
     pub fn from_query_context_execution(execution: &QueryContextExecutionArtifact) -> Self {
         let mut source_reference_identities = Vec::new();
         if let Some(materialization_path_identity) = execution.materialization_path_identity() {
-            source_reference_identities.push(ProjectionSourceReferenceIdentity {
-                label: "query_context_materialization_path",
-                identity: materialization_path_identity.to_string(),
-            });
+            source_reference_identities.push(ProjectionSourceReferenceIdentity::synthetic(
+                "query_context_materialization_path",
+                materialization_path_identity,
+            ));
         }
         if let Some(preview_provenance_identity) = execution.preview_provenance_identity() {
-            source_reference_identities.push(ProjectionSourceReferenceIdentity {
-                label: "query_context_preview_provenance",
-                identity: preview_provenance_identity.to_string(),
-            });
+            source_reference_identities.push(ProjectionSourceReferenceIdentity::synthetic(
+                "query_context_preview_provenance",
+                preview_provenance_identity,
+            ));
         }
         Self {
             source_reference_identities,

@@ -11,7 +11,7 @@ use super::contracts::MaterializedProjectionContract;
 use super::facts::ProjectionFactKind;
 use super::source::ProjectionSourceFamily;
 use crate::query_context::QueryContextExecutionArtifact;
-use crate::runtime::{ForgeQueryReadResult, ForgeQueryWriteReceipt};
+use crate::runtime::{ForgeQueryLiveReadResult, ForgeQueryReadResult, ForgeQueryWriteReceipt};
 use forge_relational::facade::grouped_truth::{
     RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
@@ -78,6 +78,33 @@ impl MaterializedProjectionContract {
             Some(result.receipt().result_digest()),
         )?;
         row_like::extract_read_result_facts(self, result)
+    }
+
+    pub fn extract_from_live_read_result(
+        &self,
+        result: &ForgeQueryLiveReadResult,
+    ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
+        ensure_optional_metadata(
+            "query_digest",
+            self.query_digest(),
+            Some(result.receipt().query_digest()),
+        )?;
+        ensure_optional_metadata(
+            "basis_digest",
+            self.basis_digest(),
+            Some(result.receipt().snapshot_token()),
+        )?;
+        ensure_optional_metadata(
+            "result_digest",
+            self.result_digest(),
+            Some(result.receipt().result_digest()),
+        )?;
+        ensure_optional_metadata(
+            "result_shape_digest",
+            Some(self.canonical_result_shape_digest()),
+            Some(result.receipt().view_shape_digest()),
+        )?;
+        row_like::extract_live_read_result_facts(self, result)
     }
 
     pub fn extract_from_relational_row_set(

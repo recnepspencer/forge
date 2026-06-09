@@ -1,15 +1,22 @@
 use super::*;
 
 impl ForgeQueryRuntime {
+    pub(crate) fn inspect_live_view_name_installation(
+        &self,
+        view_name: &str,
+    ) -> Result<&ForgeQueryRuntimeLiveSubscriptionInstallation, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        self.live_subscriptions
+            .get(view_name)
+            .map(|state| &state.installation)
+            .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))
+    }
+
     pub fn inspect_live_view<T>(
         &self,
         view: &ForgeQueryLiveView<T>,
     ) -> Result<&ForgeQueryRuntimeLiveSubscriptionInstallation, ForgeQueryRuntimeError> {
-        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
-        self.live_subscriptions
-            .get(view.name())
-            .map(|state| &state.installation)
-            .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view.name().to_string()))
+        self.inspect_live_view_name_installation(view.name())
     }
 
     pub fn inspect_live_view_explanation<T>(

@@ -8,6 +8,13 @@ pub struct ForgeServerSurfaceRegistration {
 }
 
 impl ForgeServerSurfaceRegistration {
+    pub(crate) fn enabled(family: ForgeServerSurfaceFamily) -> Self {
+        Self {
+            family,
+            implementation_state: ForgeServerSurfaceImplementationState::Enabled,
+        }
+    }
+
     pub(crate) fn disabled(family: ForgeServerSurfaceFamily) -> Self {
         Self {
             family,
@@ -28,6 +35,9 @@ impl ForgeServerSurfaceRegistration {
 
     pub(crate) fn capabilities(&self) -> ForgeServerSurfaceCapabilities {
         match self.implementation_state {
+            ForgeServerSurfaceImplementationState::Enabled => {
+                ForgeServerSurfaceCapabilities::enabled(self.family)
+            }
             ForgeServerSurfaceImplementationState::Disabled => {
                 ForgeServerSurfaceCapabilities::disabled(self.family)
             }
@@ -37,5 +47,6 @@ impl ForgeServerSurfaceRegistration {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ForgeServerSurfaceImplementationState {
+    Enabled,
     Disabled,
 }

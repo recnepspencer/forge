@@ -1664,6 +1664,7 @@ dependencies = [
  "forge-proof",
  "forge-query",
  "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "trybuild",

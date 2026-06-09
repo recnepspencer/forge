@@ -1,8 +1,9 @@
 use std::io;
 
 use crate::{
-    diagnostics::ForgeServerCounterSnapshot, middleware::ForgeServerMiddlewareFacade,
-    operator_evidence::ForgeServerOperatorEvidenceFacade,
+    declaration_intake::ForgeServerDirectDeclarationIntakeFacade,
+    diagnostics::ForgeServerCounterSnapshot, forge_native::ForgeServerForgeNativeFacade,
+    middleware::ForgeServerMiddlewareFacade, operator_evidence::ForgeServerOperatorEvidenceFacade,
     query_handoff::ForgeServerQueryHandoffFacade, registration::ForgeServerSurfaceInventory,
     request_context::ForgeServerRequestContextFacade, response::ForgeServerResponseFacade,
     runtime::ForgeServerRuntime, surfaces::ForgeServerSurfacesFacade, transport::serve_runtime,
@@ -54,6 +55,19 @@ impl ForgeServer {
 
     pub fn surfaces(&self) -> ForgeServerSurfacesFacade {
         self.runtime.assembly().surfaces_facade().clone()
+    }
+
+    pub fn forge_native(&self) -> ForgeServerForgeNativeFacade {
+        ForgeServerForgeNativeFacade::new(
+            self.runtime.assembly().surfaces_facade().forge_native(),
+            self.request_contexts(),
+            self.middleware(),
+            ForgeServerDirectDeclarationIntakeFacade::new(
+                self.runtime.assembly().config().query_handoff().clone(),
+            ),
+            self.query_handoff(),
+            self.responses(),
+        )
     }
 
     pub async fn serve(self) -> io::Result<()> {

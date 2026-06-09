@@ -9,6 +9,20 @@ use crate::intent_admission::{
 };
 
 impl ForgeQueryRuntime {
+    pub(crate) fn inspect_live_view_name_result(
+        &self,
+        view_name: &str,
+    ) -> Result<ForgeQueryUnifiedInspectionResult, ForgeQueryRuntimeError> {
+        let seed = ForgeQueryGenericInspectionIntentSeed::from_target(
+            ForgeQueryInspectionTarget::LiveView { name: view_name },
+        )
+        .expect("live view names should always lower into unified inspection seeds");
+        let review = self.review_unified_inspection(seed)?;
+        let handoff = self.resolve_reviewed_admitted_unified_inspection_handoff(review)?;
+        let binding = self.prepare_unified_inspection_execution_binding(handoff);
+        self.execute_unified_inspection_execution_binding(binding)
+    }
+
     pub(crate) fn review_unified_inspection(
         &self,
         seed: ForgeQueryGenericInspectionIntentSeed,

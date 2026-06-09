@@ -63,6 +63,12 @@ The server test suite must prove the following:
 > local glue, broad equality comparisons, scheduler timing, socket order,
 > transport history, or operator folklore to redefine semantics.
 
+For Milestone 2 specifically, this also means the direct facade must preserve
+canonical declaration identity, admitted-versus-visible support posture,
+retained async/time result-state posture, and projection-fact receipts rather
+than allowing a Forge-native caller to recreate those contracts through local
+builders, status enums, or cache folklore.
+
 If a server surface works only:
 
 - on one transport
@@ -149,6 +155,7 @@ artifacts that actually encode the claimed meaning. At minimum, suites must
 compare the smallest applicable set from:
 
 - `surface_contract_digest`
+- `declaration_digest`
 - `request_context_digest`
 - `lease_digest`
 - `lease_registry_digest`
@@ -160,6 +167,9 @@ compare the smallest applicable set from:
 - `presence_digest`
 - `view_patch_digest`
 - `materialization_digest`
+- `support_posture_digest`
+- `retained_state_digest`
+- `fact_receipt_digest`
 - `policy_digest`
 - `remask_digest`
 - `tenant_digest`
@@ -214,6 +224,7 @@ At minimum, certification bundles should emit the canonical fields applicable
 to the suite scope:
 
 - `surface_contract_digest`
+- `declaration_digest`
 - `request_context_digest`
 - `response_digest`
 - `lease_digest`
@@ -226,6 +237,9 @@ to the suite scope:
 - `presence_digest`
 - `view_patch_digest`
 - `materialization_digest`
+- `support_posture_digest`
+- `retained_state_digest`
+- `fact_receipt_digest`
 - `policy_digest`
 - `remask_digest`
 - `tenant_digest`
@@ -270,6 +284,9 @@ Scenario
   - alternate route shapes where admitted
 - inject tenant mismatch, branch mismatch, auth failure, and diagnostics-policy
   variation
+- include at least one direct-surface declaration-intake lane that carries
+  canonical declaration identity and admitted support posture before ordinary
+  read or mutation execution
 - attempt deliberately malformed handlers or test-only route stubs that skip
   one pipeline phase
 
@@ -281,12 +298,16 @@ Must verify
   phase boundary
 - skipped middleware phases are mechanically discoverable and fail
   certification
+- direct declaration intake cannot bypass canonical declaration or support
+  posture lowering before the shared pipeline
 - diagnostics richness changes retained detail only
 
 Required verification output
 
 - `surface_contract_digest`
+- `declaration_digest`
 - `request_context_digest`
+- `support_posture_digest`
 - `policy_digest`
 - `failure_digest`
 - `counter_snapshot`
@@ -310,6 +331,9 @@ Scenario
   - a compatibility API surface
 - vary branch targeting, basis posture, remask posture, and diagnostics
   richness
+- vary declaration/view-shape intake, admitted-versus-visible support posture,
+  and at least one admitted retained async/time or projection-fact lane that
+  belongs to the same product flow
 - inject a tempting endpoint-only convenience shortcut that would flatten or
   omit capability posture
 
@@ -317,15 +341,32 @@ Must verify
 
 - direct-consumption and compatibility lanes compare equal on canonical Query
   meaning where overlap exists
+- direct-consumption lanes preserve canonical declaration identity and
+  admitted-versus-visible support posture rather than teaching support from
+  visible method names
 - direct-consumption lanes retain explicit capability posture rather than
   hiding unsupported runtime-backed versus durable-later distinctions
+- admitted retained async/time posture and projection-fact receipts remain
+  parity-safe and do not degrade into caller-owned status enums, anonymous
+  payloads, or cache folklore
 - shortcut surfaces that erase basis, remask, or support posture fail
   certification
+
+Milestone 2 split note
+
+- this suite must certify declaration intake and retained-state/fact-consumption
+  parity for admitted direct-consumption lanes
+- it does not need to certify later view-patch family transport behavior; that
+  belongs to Milestone 9's `View-Patch Family Precision Test`
 
 Required verification output
 
 - `surface_contract_digest`
+- `declaration_digest`
 - `basis_digest`
+- `support_posture_digest`
+- `retained_state_digest`
+- `fact_receipt_digest`
 - `policy_digest`
 - `remask_digest`
 - `provenance_digest`
@@ -348,6 +389,7 @@ Scenario
   - compatibility HTTP
   - direct facade
 - vary streaming versus buffered response shape
+- vary declaration/view-shape intake for overlap surfaces where admitted
 - vary request ordering and client retry timing
 - inject malformed basis, malformed branch targeting, and unsupported request
   combinations
@@ -355,6 +397,9 @@ Scenario
 Must verify
 
 - streaming and buffered lanes compare equal on canonical response meaning
+- overlap requests preserve the same canonical declaration identity and support
+  posture across compatibility and direct surfaces where the same public lane is
+  claimed
 - compatibility routes cannot widen basis or branch semantics
 - retries do not alter canonical result meaning when the operation is
   semantically equivalent
@@ -363,9 +408,11 @@ Must verify
 Required verification output
 
 - `surface_contract_digest`
+- `declaration_digest`
 - `response_digest`
 - `basis_digest`
 - `branch_digest`
+- `support_posture_digest`
 - `mutation_result_digest`
 - `failure_digest`
 
