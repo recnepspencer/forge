@@ -98,17 +98,26 @@ impl ForgeQueryRuntimeSupportProfile {
                 [],
                 ["retained-runtime-artifact-inspection"],
             ),
-            ForgeQueryRuntimeFamilySupport::deferred(
+            ForgeQueryRuntimeFamilySupport::supported_with_teaching_posture(
                 ForgeQueryRuntimeFacadeFamily::Temporal,
-                "temporal query basis is deferred to Milestone 9.4",
+                super::ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+                [ForgeQueryAuthorityLane::TemporalExecutionState],
+                [],
+                ["runtime-backed-temporal-basis-state-inspection"],
             ),
-            ForgeQueryRuntimeFamilySupport::deferred(
+            ForgeQueryRuntimeFamilySupport::supported_with_teaching_posture(
                 ForgeQueryRuntimeFacadeFamily::AsyncResource,
-                "async/resource query families are deferred to Milestone 9.4",
+                super::ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+                [ForgeQueryAuthorityLane::AsyncResourceState],
+                [],
+                ["runtime-backed-async-resource-state-inspection"],
             ),
-            ForgeQueryRuntimeFamilySupport::deferred(
+            ForgeQueryRuntimeFamilySupport::supported_with_teaching_posture(
                 ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-                "mixed truth/time/async delivery is deferred to Milestone 9.4",
+                super::ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+                [ForgeQueryAuthorityLane::BridgeExternalState],
+                [],
+                ["runtime-backed-mixed-cause-delivery-state-inspection"],
             ),
             ForgeQueryRuntimeFamilySupport::deferred(
                 ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,

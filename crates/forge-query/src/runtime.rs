@@ -214,6 +214,8 @@ mod downstream_delivery_contract;
 mod downstream_delivery_resume;
 mod effect;
 mod error;
+#[cfg(test)]
+mod fallback_seam_counters;
 mod handle_contract;
 mod inspection;
 mod intent;
@@ -363,6 +365,11 @@ pub use effect::{
     ForgeQueryEffectWriteAdjacentTriggerClass,
 };
 pub use error::ForgeQueryRuntimeError;
+#[cfg(test)]
+pub(crate) use fallback_seam_counters::{
+    forbidden_fallback_seam_invocation_count, record_forbidden_fallback_seam_invocation,
+    reset_forbidden_fallback_seam_invocations, ForgeQueryForbiddenFallbackSeam,
+};
 pub use handle_contract::{
     ForgeQueryHandleContract, ForgeQueryHandleContractFamily, ForgeQueryHandleContractRow,
 };

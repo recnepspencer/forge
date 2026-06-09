@@ -108,29 +108,14 @@ Good to know:
   - when the caller already knows the historical step is one exact named
   retained artifact, prefer `materialize_derived_artifact_binding(...)` so the
   runtime owns both materialization and binding in one seam
-- when a historical proof or comparison step needs only scalar basis evidence
-  from one retained derived row, downstream crates should cross
-  `consume_scalar_fields(...)` on that retained artifact binding instead of
-  decoding the whole row and reopening nested fields locally
-- when a historical proof or comparison step needs a small typed pack from one
-  retained artifact, downstream crates should cross `decode_row_pair(...)` or
-  `decode_row_triple(...)` on that retained artifact binding instead of
-  repeating separate local single-row decode choreography
-- when a historical proof or comparison step needs to prove scalar
-  correspondence across two retained rows inside one named artifact,
-  downstream crates should cross `verify_scalar_alignment(...)` on that
-  retained artifact binding instead of extracting both scalar fact sets and
-  comparing them locally
-- when a historical proof or comparison step still needs several live rows from
-  one coherent historical snapshot, downstream crates should cross
-  `read_live_artifact_bundle(...)` instead of rebuilding that pack through
-  repeated local `read(...)` calls
-  - when that live historical pack also needs exact artifact identity over a
-    specific set of live views, downstream crates should bind the bundle
-    through `bind_live_artifact(...)`
-  - when the caller already knows the historical step is one exact named live
-    artifact, prefer `read_live_artifact_binding(...)` so the runtime owns both
-    live-read materialization and binding in one seam
+- when a historical proof or comparison step needs typed identity, membership,
+  provenance, continuity, or other declared facts from retained derived/live
+  artifacts, downstream crates should use `consume_projection_facts(...)` on
+  those retained artifact bindings instead of reopening older helper seams
+- retained scalar/bundle helpers still exist as expert historical utilities
+  when the exact named artifact contract itself is the product surface, but
+  they are no longer the ordinary typed-fact lane after the retained/live
+  projection-consumption closure
 
 ## How It Executes
 

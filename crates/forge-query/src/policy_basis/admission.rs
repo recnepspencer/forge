@@ -9,8 +9,7 @@ use super::{
     AdmittedPolicyTenantContext, BranchAccessGrant, BranchAccessGrantClass,
     PolicyAdmissionDisposition, PolicyBasis, PolicyBasisCounters, PolicyExecutionModeRequest,
     PolicyRuleSnapshot, PolicyTenantAdmissionBundle, PolicyTenantAdmissionCounters,
-    PolicyTenantAdmissionError, PolicyTenantAdmissionFailureClass, SavedQueryPolicyReuseDescriptor,
-    SavedQueryPolicyReuseDisposition,
+    PolicyTenantAdmissionError, PolicyTenantAdmissionFailureClass,
 };
 
 pub fn admit_policy_tenant_context(
@@ -163,22 +162,4 @@ fn admit_tenant_bases(
             )
         })?;
     Ok((truth, schema_basis, counters))
-}
-
-pub fn classify_saved_query_policy_tenant_reuse(
-    descriptor: &SavedQueryPolicyReuseDescriptor,
-) -> SavedQueryPolicyReuseDisposition {
-    if descriptor.exact_basis_match() {
-        return SavedQueryPolicyReuseDisposition::LegalNoSemanticChange;
-    }
-
-    match descriptor.equivalence() {
-        Some(equivalence) if equivalence.exact_match() => {
-            SavedQueryPolicyReuseDisposition::LegalNoSemanticChange
-        }
-        Some(equivalence) if equivalence.compatible_rebind() => {
-            SavedQueryPolicyReuseDisposition::LegalRequiresFreshFreeze
-        }
-        _ => SavedQueryPolicyReuseDisposition::IllegalSemanticDrift,
-    }
 }

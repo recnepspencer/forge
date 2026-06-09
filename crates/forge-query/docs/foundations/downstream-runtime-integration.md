@@ -189,12 +189,12 @@ In practice:
 
 - teach rows with `ordinary_downstream_dx() == true` as normal runtime entry
   points
+- treat `support-gate-only` rows as shipped support markers that close runtime-
+  backed product truth without minting a parallel public runtime root
 - treat `visible-but-deferred` rows as published future vocabulary that must
   still deny through admission today
 - treat `visible-vocabulary-only` rows as public language, not blanket runtime
   support
-- treat `support-gate-only` rows as support or certification boundaries, not
-  ordinary runtime entry points
 
 ## Basis And Lane Rules
 

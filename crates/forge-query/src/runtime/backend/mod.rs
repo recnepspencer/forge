@@ -1,3 +1,4 @@
+mod bootstrap;
 mod bridge_backed;
 mod contracts;
 mod intent_authority;

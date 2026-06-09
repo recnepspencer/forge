@@ -8,7 +8,7 @@ use crate::projection_consumption::{
 };
 use crate::runtime::{ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt, ForgeQueryReadResult};
 
-use super::super::phase_four_support::{
+use super::super::phase_four::support::{
     authorized_projection, query_context_execution_preview, read_result_shape,
 };
 

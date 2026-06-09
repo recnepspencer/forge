@@ -1,5 +1,7 @@
 mod registry;
 mod report;
+#[cfg(test)]
+mod tests;
 
 pub use crate::query_context::QueryContextDeferredScopeMarker;
 pub use registry::{

@@ -103,5 +103,11 @@ fn default_capability_profile(family: ProjectionSourceFamily) -> ProjectionSourc
         ProjectionSourceFamily::BridgeGroupedTruthView => {
             ProjectionSourceCapabilityProfile::BridgeGroupedTruthView
         }
+        ProjectionSourceFamily::RetainedDerivedArtifactBinding => {
+            ProjectionSourceCapabilityProfile::RetainedDerivedArtifactBinding
+        }
+        ProjectionSourceFamily::LiveArtifactBinding => {
+            ProjectionSourceCapabilityProfile::LiveArtifactBinding
+        }
     }
 }

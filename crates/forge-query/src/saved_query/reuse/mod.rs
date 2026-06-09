@@ -1,12 +1,18 @@
 mod matrix;
+mod policy_basis_bridge;
 
 use crate::authoring::ResultShapeFamily;
 use crate::composition::{CompositionDigest, ScopeLineageDigest, TemplateBindingDigest};
 use crate::identity::SchemaBasisDigest;
 use crate::identity_evolution::InspectorIdentityDigest;
+use crate::policy_basis::{
+    build_saved_query_policy_reuse_evaluation, SavedQueryPolicyReuseDescriptor,
+    SavedQueryPolicyReuseDisposition, SavedQueryPolicyReuseEvaluation,
+};
 use crate::query_context::QueryContextFamily;
 use crate::saved_query::future_support::{
-    derive_runtime_backed_saved_query_surface_posture, SchemaBasisEquivalenceEvidence,
+    derive_runtime_backed_saved_query_surface_posture, SavedQueryTemporalAsyncSurfacePosture,
+    SchemaBasisEquivalenceEvidence,
 };
 use crate::saved_query::{SavedQueryArtifact, SavedQueryFailureClass};
 use crate::view_shape::{ViewShapeDigest, ViewShapeFamily, ViewShapeIdentityConsumption};
@@ -18,6 +24,7 @@ use self::matrix::{
     evaluate_view_family, row,
 };
 pub use self::matrix::{SavedQueryBindingMatrixArtifact, SavedQueryBindingMatrixRow};
+use self::policy_basis_bridge::evaluate_policy_basis_reuse;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum SavedQueryRebindingDimension {
@@ -31,6 +38,7 @@ pub enum SavedQueryRebindingDimension {
     CompositionLineage,
     SupportProfile,
     TemporalAsyncSurface,
+    PolicyBasisReuse,
 }
 
 impl SavedQueryRebindingDimension {
@@ -46,6 +54,7 @@ impl SavedQueryRebindingDimension {
             Self::CompositionLineage => "composition_lineage",
             Self::SupportProfile => "support_profile",
             Self::TemporalAsyncSurface => "temporal_async_surface",
+            Self::PolicyBasisReuse => "policy_basis_reuse",
         }
     }
 }
@@ -84,6 +93,7 @@ pub struct SavedQueryReuseDescriptor {
     scope_lineage_digest: Option<ScopeLineageDigest>,
     support_profile_digest: String,
     capability_family_identity: String,
+    policy_basis_reuse_evaluation: Option<SavedQueryPolicyReuseEvaluation>,
 }
 
 impl SavedQueryReuseDescriptor {
@@ -120,6 +130,7 @@ impl SavedQueryReuseDescriptor {
             scope_lineage_digest,
             support_profile_digest: support_profile_digest.into(),
             capability_family_identity: capability_family_identity.into(),
+            policy_basis_reuse_evaluation: None,
         }
     }
 
@@ -145,6 +156,15 @@ impl SavedQueryReuseDescriptor {
         evidence: SchemaBasisEquivalenceEvidence,
     ) -> Self {
         self.schema_basis_equivalence = Some(evidence);
+        self
+    }
+
+    pub fn with_policy_basis_reuse_descriptor(
+        mut self,
+        descriptor: SavedQueryPolicyReuseDescriptor,
+    ) -> Self {
+        self.policy_basis_reuse_evaluation =
+            Some(build_saved_query_policy_reuse_evaluation(descriptor));
         self
     }
 
@@ -208,13 +228,30 @@ impl SavedQueryReuseDescriptor {
         &self.capability_family_identity
     }
 
-    pub(crate) fn temporal_async_surface_posture(
-        &self,
-    ) -> crate::saved_query::SavedQueryTemporalAsyncSurfacePosture {
+    pub(crate) fn temporal_async_surface_posture(&self) -> SavedQueryTemporalAsyncSurfacePosture {
         derive_runtime_backed_saved_query_surface_posture(
             self.basis_family.as_ref(),
             self.view_shape_family,
         )
+    }
+
+    pub(crate) fn policy_basis_reuse_evaluation(&self) -> Option<&SavedQueryPolicyReuseEvaluation> {
+        self.policy_basis_reuse_evaluation.as_ref()
+    }
+
+    pub(crate) fn policy_basis_reuse_disposition(&self) -> SavedQueryPolicyReuseDisposition {
+        self.policy_basis_reuse_evaluation
+            .as_ref()
+            .map(crate::policy_basis::saved_query_policy_reuse_disposition)
+            .unwrap_or_else(|| match self.temporal_async_surface_posture() {
+                SavedQueryTemporalAsyncSurfacePosture::OrdinaryOnly => {
+                    SavedQueryPolicyReuseDisposition::LegalNoSemanticChange
+                }
+                SavedQueryTemporalAsyncSurfacePosture::FuturePreservingRuntimeBacked
+                | SavedQueryTemporalAsyncSurfacePosture::VisibleButDeferred => {
+                    SavedQueryPolicyReuseDisposition::IllegalSemanticDrift
+                }
+            })
     }
 }
 
@@ -222,6 +259,8 @@ impl SavedQueryReuseDescriptor {
 pub struct SavedQueryReuseDecision {
     overall: SavedQueryRebindingLegality,
     matrix: SavedQueryBindingMatrixArtifact,
+    temporal_async_surface_posture: SavedQueryTemporalAsyncSurfacePosture,
+    policy_basis_reuse_disposition: SavedQueryPolicyReuseDisposition,
 }
 
 impl SavedQueryReuseDecision {
@@ -232,6 +271,14 @@ impl SavedQueryReuseDecision {
     pub fn matrix(&self) -> &SavedQueryBindingMatrixArtifact {
         &self.matrix
     }
+
+    pub fn temporal_async_surface_posture(&self) -> SavedQueryTemporalAsyncSurfacePosture {
+        self.temporal_async_surface_posture
+    }
+
+    pub fn policy_basis_reuse_disposition(&self) -> SavedQueryPolicyReuseDisposition {
+        self.policy_basis_reuse_disposition
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -240,6 +287,8 @@ pub struct SavedQueryReuseDenial {
     overall: SavedQueryRebindingLegality,
     matrix: SavedQueryBindingMatrixArtifact,
     message: String,
+    temporal_async_surface_posture: SavedQueryTemporalAsyncSurfacePosture,
+    policy_basis_reuse_disposition: SavedQueryPolicyReuseDisposition,
 }
 
 impl SavedQueryReuseDenial {
@@ -258,6 +307,29 @@ impl SavedQueryReuseDenial {
     pub fn message(&self) -> &str {
         &self.message
     }
+
+    pub fn temporal_async_surface_posture(&self) -> SavedQueryTemporalAsyncSurfacePosture {
+        self.temporal_async_surface_posture
+    }
+
+    pub fn policy_basis_reuse_disposition(&self) -> SavedQueryPolicyReuseDisposition {
+        self.policy_basis_reuse_disposition
+    }
+
+    pub fn temporal_async_drift_dimension(&self) -> Option<SavedQueryRebindingDimension> {
+        self.matrix
+            .rows()
+            .iter()
+            .find(|row| {
+                row.legality() == SavedQueryRebindingLegality::IllegalSemanticDrift
+                    && matches!(
+                        row.dimension(),
+                        SavedQueryRebindingDimension::TemporalAsyncSurface
+                            | SavedQueryRebindingDimension::PolicyBasisReuse
+                    )
+            })
+            .map(|row| row.dimension())
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -270,6 +342,8 @@ pub fn evaluate_saved_query_reuse(
     artifact: &SavedQueryArtifact,
     descriptor: &SavedQueryReuseDescriptor,
 ) -> SavedQueryReuseOutcome {
+    let temporal_async_surface_posture = descriptor.temporal_async_surface_posture();
+    let policy_basis_reuse_disposition = descriptor.policy_basis_reuse_disposition();
     let rows = vec![
         evaluate_schema_basis(artifact, descriptor),
         evaluate_basis_family(artifact, descriptor),
@@ -281,6 +355,7 @@ pub fn evaluate_saved_query_reuse(
         evaluate_composition_lineage(artifact, descriptor),
         evaluate_support_profile(artifact, descriptor),
         evaluate_temporal_async_surface(artifact, descriptor),
+        evaluate_policy_basis_reuse(artifact, descriptor),
     ];
     let overall = if rows
         .iter()
@@ -303,10 +378,17 @@ pub fn evaluate_saved_query_reuse(
             overall,
             matrix,
             message: "saved query reuse denied due to illegal semantic drift".to_string(),
+            temporal_async_surface_posture,
+            policy_basis_reuse_disposition,
         });
     }
 
-    SavedQueryReuseOutcome::Admitted(SavedQueryReuseDecision { overall, matrix })
+    SavedQueryReuseOutcome::Admitted(SavedQueryReuseDecision {
+        overall,
+        matrix,
+        temporal_async_surface_posture,
+        policy_basis_reuse_disposition,
+    })
 }
 
 pub(crate) fn binding_row(

@@ -3,7 +3,7 @@ use super::super::super::{
     ProjectionConsumptionTransitionKind, ProjectionConsumptionTransitionPosture,
     SelfDescribingProjectionConsumptionEnvelope,
 };
-use super::super::phase_four_support::{admitted, binding, relational_row_set};
+use super::super::phase_four::support::{admitted, binding, relational_row_set};
 
 #[test]
 fn consumed_fact_set_issues_receipt_with_stable_operational_fields() {
@@ -45,15 +45,19 @@ fn projection_consumption_transition_rules_name_implemented_and_deferred_neighbo
     let receipt = consumed.issue_receipt();
     let rules = receipt.transition_rules();
 
-    assert!(rules.rules().iter().any(|rule| {
-        rule.kind() == ProjectionConsumptionTransitionKind::InspectReceipt
-            && rule.posture() == ProjectionConsumptionTransitionPosture::Implemented
-    }));
-    assert!(rules.rules().iter().any(|rule| {
-        rule.kind() == ProjectionConsumptionTransitionKind::ReloadPersistedReceipt
-            && rule.posture() == ProjectionConsumptionTransitionPosture::Deferred
-            && rule.deferred_neighbor().is_some()
-    }));
+    assert!(rules.rules().iter().any(
+        |rule: &crate::projection_consumption::ProjectionConsumptionTransitionRule| {
+            rule.kind() == ProjectionConsumptionTransitionKind::InspectReceipt
+                && rule.posture() == ProjectionConsumptionTransitionPosture::Implemented
+        }
+    ));
+    assert!(rules.rules().iter().any(
+        |rule: &crate::projection_consumption::ProjectionConsumptionTransitionRule| {
+            rule.kind() == ProjectionConsumptionTransitionKind::ReloadPersistedReceipt
+                && rule.posture() == ProjectionConsumptionTransitionPosture::Deferred
+                && rule.deferred_neighbor().is_some()
+        }
+    ));
     assert!(!rules.rules_digest().is_empty());
 }
 

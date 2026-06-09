@@ -1,6 +1,8 @@
 use crate::identity::hash_parts;
 use crate::runtime::computed::ForgeQueryDerivedViewHandle;
 use crate::runtime::ForgeQueryRuntimeError;
+#[cfg(test)]
+use crate::runtime::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
 
 use super::{ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationResult};
 
@@ -89,6 +91,10 @@ impl ForgeQueryDerivedArtifactBinding {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
+        #[cfg(test)]
+        record_forbidden_fallback_seam_invocation(
+            ForgeQueryForbiddenFallbackSeam::ConsumeScalarFields,
+        );
         let materialization = self.materialization_by_name(view_name)?;
         consume_scalar_fields_from_materialization(self, view_name, materialization, field_keys)
     }

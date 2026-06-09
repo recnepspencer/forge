@@ -233,10 +233,12 @@ not affect it.
 ## Current Limits
 
 - Live views are stable for runtime-backed synchronous use.
-- They are the foundation for query-shaped delivery, but temporal/async mixed
-  delivery is still deferred.
+- They are the foundation for query-shaped delivery, and shipped runtime-backed
+  temporal, async/resource, and mixed-cause meaning now projects through the
+  same retained live/state/inspection world.
 - Support posture still matters: future neighbors are exposed through the
-  support matrix, not admitted automatically.
+  support matrix, and separate sibling facade-family roots stay support-gated
+  instead of becoming automatic parallel entry points.
 
 ## Related Docs
 

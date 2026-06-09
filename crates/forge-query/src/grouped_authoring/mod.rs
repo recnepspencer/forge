@@ -1,4 +1,5 @@
 mod artifact;
+mod contribution_input;
 mod contributions;
 mod declaration;
 mod input;
@@ -12,9 +13,11 @@ pub use artifact::{
     ForgeQueryGroupedAspectParticipationSummary, ForgeQueryGroupedDeclarationArtifact,
     ForgeQueryGroupedDeclarationAspectRecord, ForgeQueryGroupedDeclarationMember,
 };
+pub use contribution_input::{
+    ForgeQueryGroupedContributionAssignment, ForgeQueryGroupedContributionInput,
+};
 pub use contributions::{
-    ForgeQueryGroupedContributionAssignment, ForgeQueryGroupedContributionComposition,
-    ForgeQueryGroupedContributionInput, ForgeQueryGroupedContributionMemberContext,
+    ForgeQueryGroupedContributionComposition, ForgeQueryGroupedContributionMemberContext,
     ForgeQueryGroupedContributionStop,
 };
 pub use declaration::{

@@ -1,7 +1,6 @@
 use crate::application::{
-    ForgeQueryDeclarationAdmissionOrLegalityError, ForgeQueryDeclarationEntryInspectionInput,
-    ForgeQueryDeclarationEntryProgressionError, ForgeQueryDeclarationEntryReadinessRequest,
-    ForgeQueryDeclarationEntryReadinessStatus, ForgeQueryTemporalLegalityDenialKind,
+    ForgeQueryDeclarationEntryInspectionInput, ForgeQueryDeclarationEntryReadinessRequest,
+    ForgeQueryDeclarationEntryReadinessStatus,
 };
 
 use super::support::{
@@ -10,7 +9,7 @@ use super::support::{
 };
 
 #[test]
-fn temporal_current_family_projects_runtime_temporal_debt_into_bridge_readiness() {
+fn temporal_current_family_admits_bridge_readiness_once_runtime_temporal_support_closes() {
     let handle = handle("temporal-current");
     let readiness = handle.declaration_entry_readiness::<TemporalInput<TemporalCurrentFamily>>();
     let bridge_row = readiness
@@ -21,24 +20,18 @@ fn temporal_current_family_projects_runtime_temporal_debt_into_bridge_readiness(
 
     assert_eq!(
         bridge_row.status(),
-        ForgeQueryDeclarationEntryReadinessStatus::Deferred
+        ForgeQueryDeclarationEntryReadinessStatus::Admitted
     );
     assert_eq!(
         bridge_row.reason(),
-        "temporal declaration-entry readiness remains deferred until the temporal runtime facade is admitted"
+        "the declaration lowers into a bridge runtime route request"
     );
-
-    assert!(matches!(
-        handle.declare_review_and_progress(TemporalInput::<TemporalCurrentFamily>::stale("edge:42")),
-        Err(ForgeQueryDeclarationEntryProgressionError::Entry(
-            ForgeQueryDeclarationAdmissionOrLegalityError::Legality(
-                crate::application::ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported {
-                    kind: ForgeQueryTemporalLegalityDenialKind::RuntimeFacadeDeferred,
-                    ..
-                }
-            )
-        ))
-    ));
+    if handle
+        .declare_review_and_progress(TemporalInput::<TemporalCurrentFamily>::stale("edge:42"))
+        .is_err()
+    {
+        panic!("runtime-backed temporal declaration should now progress");
+    }
 }
 
 #[test]

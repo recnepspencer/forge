@@ -56,6 +56,10 @@ Good to know:
 - if you need the explicit admitted proof chain behind covered read and
   materialization families, use
   [Intent Admission](../execution/intent-admission.md)
+- if you need typed identity, membership, provenance, continuity, or
+  view-shape-qualified facts from retained read/materialization work, use
+  [Projection Consumption](../capabilities/projection-consumption.md) as the
+  ordinary typed lane instead of reopening retained-artifact helper seams
 - if you need one typed retained computed row, use the admitted materialization
   result and `decode_single_row::<T>()` instead of rebuilding local
   `serde_json` decode helpers over `workspace.materialize(...)`
@@ -68,36 +72,19 @@ Good to know:
   - if you already know the next step is one exact named retained artifact, use
   `materialize_derived_artifact_binding(...)` instead of a caller-owned
   bundle-then-bind sequence
-- if that named retained artifact next step only needs stable scalar evidence
-  from one retained derived row, consume it through
-  `consume_scalar_fields(...)` instead of decoding the whole row or indexing
-  through raw nested JSON locally
-- if that named retained artifact next step needs a small typed pack from a
-  few retained derived rows, use `decode_row_pair(...)` or
-  `decode_row_triple(...)` on the retained artifact binding instead of
-  repeating separate `decode_single_row(...)` calls in caller code
-- if that named retained artifact next step needs to prove scalar
-  correspondence across two retained derived rows, use
-  `verify_scalar_alignment(...)` on the retained artifact binding instead of
-  extracting both fact sets and comparing them in caller code
 - if a mutation aftermath step already holds one retained batch-write receipt
   and needs the matching receipt inspection plus one exact retained derived
   artifact, use `materialize_batch_write_artifact_binding(...)` instead of
   reopening those as separate caller-owned inspection and materialization
   chores
-- if one live-read step needs a coherent pack across several retained live
-  views from the same snapshot, use `read_live_artifact_bundle(...)` instead of
-  rebuilding that pack through repeated local `read(...)` calls
-  - if that live pack also needs one exact named artifact contract, bind it
-    through `bind_live_artifact(...)` so the runtime owns the target-set
-    contract and artifact digest
-  - if the caller already knows the step is one exact named live artifact, use
-    `read_live_artifact_binding(...)` instead of a caller-owned
-    bundle-then-bind sequence
 - if you need typed identity, membership, provenance, or continuity facts from
   a read result, write receipt, or query-context execution, use
   [Projection Consumption](../capabilities/projection-consumption.md) instead of rebuilding
   those facts in caller code
+- retained derived-artifact bindings, retained live-artifact bindings, scalar
+  decode helpers, and bundle/binding helpers still exist as narrower expert
+  utilities for exact named-artifact chores, but they are no longer the
+  ordinary typed-fact path for retained runtime-backed product work
 
 ## How It Executes
 
@@ -246,9 +233,9 @@ If the data does not look right:
 - Treating a retained derived-materialization bundle as if it were already a
   named artifact contract instead of binding the exact target set through
   `bind_retained_artifact(...)`.
-- Binding a retained derived artifact and then spelunking nested scalar values
-  by hand when the runtime already exposes `consume_scalar_fields(...)` as the
-  retained-scalar evidence floor.
+- Treating retained-artifact helper seams such as scalar extraction, row-pair
+  decode, or live-artifact bundle binding as the default typed product lane
+  after Phase 9.5 closed projection consumption for retained/live sources.
 
 ## Current Limits
 

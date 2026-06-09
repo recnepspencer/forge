@@ -58,6 +58,35 @@ The progression looks like this:
 4. view-shape admission proves that a query fits a UI or product surface
 5. saved-query freeze captures that whole contract for later reuse
 
+Named scope expansion on the runtime-backed path is now a verified composition
+lane: admitted scope families must canonicalize to the same query meaning as
+equivalent direct construction, with explicit scope lineage and no caller-owned
+rewrite folklore.
+
+Template instantiation on the runtime-backed path is now a verified
+composition lane too: admitted detail and collection template families must
+canonicalize to the same query meaning as equivalent direct construction, with
+explicit binding digests, exact slot and binding counters, and typed fail-early
+denial for malformed or deferred neighbors.
+
+The public application support report now publishes that same closure through
+the query-composition support profile. When `QueryComposition` is admitted,
+downstream callers should see:
+
+- `named_scope_expansion:verified`
+- `template_instantiation:verified`
+
+The deferred composition neighbors stay explicit instead of being silently
+promoted:
+
+- `observed_inspector_detail_template`
+- `focused_inspector_detail_template`
+
+Grouped collection templates are now part of the admitted runtime-backed
+template lane rather than a deferred neighbor. They preserve canonical
+collection identity and grouped future-bearing posture through the ordinary
+template-instantiation authority path.
+
 Reuse is not a blind cache hit. Forge Query preserves the difference between:
 
 - same canonical query meaning
@@ -205,11 +234,18 @@ For saved queries:
 - Durable claims such as restart-stable continuation, import/export, and full
   durable reload are explicitly denied today.
 - Runtime-backed temporal/async reuse is only admitted for the explicitly
-  preserved surfaces. Inspector and grouped future-bearing neighbors stay
-  visible but deferred instead of being weakly admitted.
+  preserved surfaces. Table, detail, and `kanban_grouped` now remain
+  future-preserving, while observed-inspector and focused-inspector
+  future-bearing postures stay visible but deferred instead of being weakly
+  admitted.
+- Core runtime-backed view-family support rows are now verified for `table`,
+  `detail`, `inspector_detail_observed`, `inspector_detail_focused`, and
+  `kanban_grouped`.
 - View-shape planning is strong for current detail, table, inspector, and
-  grouped surfaces, but future durable/store-backed neighbors still carry their
-  own support posture.
+  grouped surfaces. Remaining grouped follow-on work in this area belongs to
+  future durable/store-backed neighbors, not to runtime-backed grouped
+  reusable composition/template closure or the `kanban_grouped` view-family
+  row itself.
 - Some reuse mismatches are legal but require a fresh freeze rather than
   outright denial. That distinction is part of the contract.
 

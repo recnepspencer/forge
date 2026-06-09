@@ -1,6 +1,8 @@
 use crate::identity::hash_parts;
 use crate::runtime::computed::ForgeQueryDerivedViewHandle;
 use crate::runtime::ForgeQueryRuntimeError;
+#[cfg(test)]
+use crate::runtime::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
 
 use super::{ForgeQueryDerivedArtifactBinding, ForgeQueryRetainedScalarFactSet};
 
@@ -91,6 +93,10 @@ impl ForgeQueryDerivedArtifactBinding {
         S1: AsRef<str>,
         S2: AsRef<str>,
     {
+        #[cfg(test)]
+        record_forbidden_fallback_seam_invocation(
+            ForgeQueryForbiddenFallbackSeam::VerifyScalarAlignment,
+        );
         let normalized_pairs = field_pairs
             .into_iter()
             .map(|(left, right)| (left.as_ref().to_string(), right.as_ref().to_string()))

@@ -1,9 +1,13 @@
 use super::*;
+use crate::view_shape::{
+    admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
+    ViewShapeDescriptor, ViewShapeFailureClass, ViewShapePatchPosture,
+};
 use forge_foundational::facade::AspectKey;
 
 #[test]
 fn kanban_grouped_requires_grouping_contract() {
-    let error = crate::view_shape::admit_view_shape(
+    let error = admit_view_shape(
         &direct_collection(),
         ViewShapeDescriptor::kanban_grouped_missing_for_test(),
     )
@@ -33,10 +37,7 @@ fn kanban_grouped_is_admitted_with_explicit_grouping_aspect() {
     )
     .unwrap();
 
-    assert_eq!(
-        planned.family(),
-        crate::view_shape::ViewShapeFamily::KanbanGrouped
-    );
+    assert_eq!(planned.family().as_str(), "kanban_grouped");
     assert_eq!(
         planned.delivery_metadata().grouping_aspect(),
         Some("status")
@@ -89,7 +90,7 @@ fn kanban_grouped_is_admitted_with_explicit_grouping_aspect() {
 }
 
 #[test]
-fn kanban_grouped_wide_surface_degrades_to_refresh_debt() {
+fn kanban_grouped_wide_surface_still_carries_grouped_delta_contract() {
     let canonical = wide_collection();
     let admitted = admit_view_shape(
         &canonical,
@@ -118,8 +119,10 @@ fn kanban_grouped_wide_surface_degrades_to_refresh_debt() {
     assert_eq!(grouped_evidence.grouped_projection_width(), 4);
     assert_eq!(
         grouped_policy.contract(),
-        &crate::view_shape::KanbanGroupedLiveContract::RefreshDeferredDebt
+        &crate::view_shape::KanbanGroupedLiveContract::DeltaBound
     );
+    assert_eq!(grouped_policy.max_member_transitions(), usize::MAX);
+    assert_eq!(grouped_policy.max_lane_reassignments(), usize::MAX);
 }
 
 fn aspect_key(value: &str) -> AspectKey {

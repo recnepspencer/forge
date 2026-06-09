@@ -5,6 +5,7 @@ mod core_support;
 mod downstream_delivery;
 mod graph_composition_capabilities;
 mod handle_and_workspace;
+mod mutation_surface;
 mod public_doc_wording;
 mod read_composition;
 mod support_denials;

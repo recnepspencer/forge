@@ -28,8 +28,8 @@ pub use grouped_baseline::{
     materialize_authoritative_grouped_baseline_from_members, AuthoritativeGroupedBaselineArtifact,
 };
 pub use grouped_delta::{
-    GroupedDeltaArtifact, GroupedDeltaComputation, GroupedMembershipTransition,
-    GroupedMembershipTransitionKind, GroupedRefreshReason,
+    GroupedDeltaArtifact, GroupedDeltaInvariantFailure, GroupedMembershipTransition,
+    GroupedMembershipTransitionKind,
 };
 pub use grouped_execution::{
     materialize_grouped_execution_surface_from_truth_view, GroupedExecutionLaneValue,
@@ -40,5 +40,7 @@ pub use grouped_state::{
 };
 pub use promotion::lower_view_shape_plan_to_live;
 
+#[cfg(test)]
+mod phase_five_tests;
 #[cfg(test)]
 mod tests;

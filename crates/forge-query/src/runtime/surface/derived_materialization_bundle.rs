@@ -116,4 +116,12 @@ impl ForgeQueryDerivedMaterializationBundle {
     ) -> Result<ForgeQueryDerivedArtifactBinding, ForgeQueryRuntimeError> {
         ForgeQueryDerivedArtifactBinding::bind(self, artifact_name, required_targets)
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        snapshot_token: impl Into<String>,
+        materializations: BTreeMap<String, ForgeQueryDerivedMaterializationResult>,
+    ) -> Self {
+        Self::new(snapshot_token, materializations)
+    }
 }

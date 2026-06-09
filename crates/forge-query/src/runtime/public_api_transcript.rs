@@ -11,7 +11,7 @@ pub struct ForgeQueryRuntimePublicApiTranscriptEvidence {
     effect_surface_digest: String,
     intent_receipt_digest: String,
     inspection_digest: String,
-    unsupported_neighbor_denial_digests: Vec<String>,
+    support_gated_neighbor_denial_digests: Vec<String>,
     delivery_residue_count: usize,
     authority_lane_digest: String,
     meaningful_assertion_count: usize,
@@ -29,7 +29,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
         effect_surface_digest: impl Into<String>,
         intent_receipt_digest: impl Into<String>,
         inspection_digest: impl Into<String>,
-        unsupported_neighbor_denial_digests: impl IntoIterator<Item = impl Into<String>>,
+        support_gated_neighbor_denial_digests: impl IntoIterator<Item = impl Into<String>>,
         delivery_residue_count: usize,
         authority_lane_digest: impl Into<String>,
         meaningful_assertion_count: usize,
@@ -42,14 +42,14 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
         let effect_surface_digest = effect_surface_digest.into();
         let intent_receipt_digest = intent_receipt_digest.into();
         let inspection_digest = inspection_digest.into();
-        let unsupported_neighbor_denial_digests = unsupported_neighbor_denial_digests
+        let support_gated_neighbor_denial_digests = support_gated_neighbor_denial_digests
             .into_iter()
             .map(Into::into)
             .collect::<Vec<_>>();
         let authority_lane_digest = authority_lane_digest.into();
         assert!(
-            !unsupported_neighbor_denial_digests.is_empty(),
-            "runtime public API transcript evidence must prove at least one unsupported neighbor denial"
+            !support_gated_neighbor_denial_digests.is_empty(),
+            "runtime public API transcript evidence must prove at least one support-gated neighbor denial"
         );
         let mut parts = vec![
             "forge_query_runtime_public_api_transcript_evidence_v1".to_string(),
@@ -66,7 +66,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             format!("assertions:{meaningful_assertion_count}"),
         ];
         parts.extend(
-            unsupported_neighbor_denial_digests
+            support_gated_neighbor_denial_digests
                 .iter()
                 .map(|digest| format!("denial:{digest}")),
         );
@@ -80,7 +80,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             effect_surface_digest,
             intent_receipt_digest,
             inspection_digest,
-            unsupported_neighbor_denial_digests,
+            support_gated_neighbor_denial_digests,
             delivery_residue_count,
             authority_lane_digest,
             meaningful_assertion_count,
@@ -120,8 +120,8 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
         &self.inspection_digest
     }
 
-    pub fn unsupported_neighbor_denial_digests(&self) -> &[String] {
-        &self.unsupported_neighbor_denial_digests
+    pub fn support_gated_neighbor_denial_digests(&self) -> &[String] {
+        &self.support_gated_neighbor_denial_digests
     }
 
     pub fn delivery_residue_count(&self) -> usize {

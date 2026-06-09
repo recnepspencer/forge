@@ -34,20 +34,6 @@ impl QueryTemplateDescriptor<DetailFamily, DetailResultShapeFamily> {
             basis_evidence: None,
         }
     }
-
-    #[cfg(test)]
-    pub fn observed_inspector_deferred_for_test(
-        query: AuthoredQuery<DetailFamily>,
-        result_shape: AuthoredResultShape<DetailResultShapeFamily>,
-    ) -> Self {
-        Self {
-            family: TemplateFamily::ObservedInspectorDetailTemplate,
-            query,
-            result_shape,
-            slots: Vec::new(),
-            basis_evidence: None,
-        }
-    }
 }
 
 impl QueryTemplateDescriptor<CollectionFamily, CollectionResultShapeFamily> {
@@ -63,6 +49,19 @@ impl QueryTemplateDescriptor<CollectionFamily, CollectionResultShapeFamily> {
             basis_evidence: None,
         }
     }
+
+    pub fn grouped_collection(
+        query: AuthoredQuery<CollectionFamily>,
+        result_shape: AuthoredResultShape<CollectionResultShapeFamily>,
+    ) -> Self {
+        Self {
+            family: TemplateFamily::GroupedCollectionTemplate,
+            query,
+            result_shape,
+            slots: Vec::new(),
+            basis_evidence: None,
+        }
+    }
 }
 
 impl<Q, S> QueryTemplateDescriptor<Q, S>
@@ -70,6 +69,21 @@ where
     Q: QueryAuthoringFamily,
     S: ResultShapeAuthoringFamily,
 {
+    #[cfg(test)]
+    pub(crate) fn with_family_for_test(
+        family: TemplateFamily,
+        query: AuthoredQuery<Q>,
+        result_shape: AuthoredResultShape<S>,
+    ) -> Self {
+        Self {
+            family,
+            query,
+            result_shape,
+            slots: Vec::new(),
+            basis_evidence: None,
+        }
+    }
+
     pub fn with_slot(mut self, slot: TemplateParameterSlot) -> Self {
         self.slots.push(slot);
         self

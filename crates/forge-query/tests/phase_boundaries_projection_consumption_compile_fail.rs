@@ -6,6 +6,9 @@ fn projection_consumption_compile_fail_boundaries_hold() {
     t.pass(
         "tests/ui/projection_consumption/golden/projection_consumption_common_query_context_golden_path_compiles.rs",
     );
+    t.pass(
+        "tests/ui/projection_consumption/golden/projection_consumption_retained_live_ordinary_path_compiles.rs",
+    );
     t.pass("tests/ui/projection_consumption/golden/projection_consumption_advanced_path_golden_transcript_compiles.rs");
     t.compile_fail("tests/ui/projection_consumption/construction/projection_consumption_authoring_surface_constructor_private.rs");
     t.compile_fail(
