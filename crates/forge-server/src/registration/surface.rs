@@ -1,10 +1,13 @@
 use super::ForgeServerSurfaceFamily;
-use crate::surfaces::ForgeServerSurfaceCapabilities;
+use crate::surfaces::{
+    compat_http::ForgeServerCompatHttpRouteFamilies, ForgeServerSurfaceCapabilities,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeServerSurfaceRegistration {
     family: ForgeServerSurfaceFamily,
     implementation_state: ForgeServerSurfaceImplementationState,
+    details: ForgeServerSurfaceRegistrationDetails,
 }
 
 impl ForgeServerSurfaceRegistration {
@@ -12,6 +15,7 @@ impl ForgeServerSurfaceRegistration {
         Self {
             family,
             implementation_state: ForgeServerSurfaceImplementationState::Enabled,
+            details: ForgeServerSurfaceRegistrationDetails::None,
         }
     }
 
@@ -19,6 +23,29 @@ impl ForgeServerSurfaceRegistration {
         Self {
             family,
             implementation_state: ForgeServerSurfaceImplementationState::Disabled,
+            details: ForgeServerSurfaceRegistrationDetails::None,
+        }
+    }
+
+    pub(crate) fn enabled_compat_http(
+        family: ForgeServerSurfaceFamily,
+        route_families: ForgeServerCompatHttpRouteFamilies,
+    ) -> Self {
+        Self {
+            family,
+            implementation_state: ForgeServerSurfaceImplementationState::Enabled,
+            details: ForgeServerSurfaceRegistrationDetails::CompatHttp { route_families },
+        }
+    }
+
+    pub(crate) fn disabled_compat_http(
+        family: ForgeServerSurfaceFamily,
+        route_families: ForgeServerCompatHttpRouteFamilies,
+    ) -> Self {
+        Self {
+            family,
+            implementation_state: ForgeServerSurfaceImplementationState::Disabled,
+            details: ForgeServerSurfaceRegistrationDetails::CompatHttp { route_families },
         }
     }
 
@@ -43,10 +70,27 @@ impl ForgeServerSurfaceRegistration {
             }
         }
     }
+
+    pub(crate) fn compat_http_route_families(&self) -> Option<ForgeServerCompatHttpRouteFamilies> {
+        match &self.details {
+            ForgeServerSurfaceRegistrationDetails::CompatHttp { route_families } => {
+                Some(route_families.clone())
+            }
+            ForgeServerSurfaceRegistrationDetails::None => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ForgeServerSurfaceImplementationState {
     Enabled,
     Disabled,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum ForgeServerSurfaceRegistrationDetails {
+    None,
+    CompatHttp {
+        route_families: ForgeServerCompatHttpRouteFamilies,
+    },
 }

@@ -2,13 +2,13 @@
 mod direct_context_runtime;
 #[path = "support/direct_delivery_runtime.rs"]
 mod direct_delivery_runtime;
-#[path = "support/forge_native_assertions.rs"]
+#[path = "support/forge_native/assertions.rs"]
 mod forge_native_assertions;
-#[path = "support/forge_native_runtime.rs"]
+#[path = "support/forge_native/runtime.rs"]
 mod forge_native_runtime;
-#[path = "support/query_handoff_fixture.rs"]
+#[path = "support/query_handoff/fixture.rs"]
 mod query_handoff_fixture;
-#[path = "support/query_handoff_runtime.rs"]
+#[path = "support/query_handoff/runtime.rs"]
 mod query_handoff_runtime;
 
 #[path = "forge_native/declaration_denials.rs"]

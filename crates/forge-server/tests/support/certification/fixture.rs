@@ -7,7 +7,7 @@ use forge_server::{
     ForgeServerTransportClass,
 };
 
-#[path = "../query_handoff_runtime.rs"]
+#[path = "../query_handoff/runtime.rs"]
 mod query_handoff_runtime;
 #[path = "../response_fixture.rs"]
 mod response_fixture;

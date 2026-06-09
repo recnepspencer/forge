@@ -107,6 +107,14 @@ fn validate_prepared_intent(
         {
             None
         }
+        ForgeServerQueryHandoffOperation::DirectRead { .. }
+        | ForgeServerQueryHandoffOperation::DirectState { .. }
+        | ForgeServerQueryHandoffOperation::DirectInspection { .. }
+        | ForgeServerQueryHandoffOperation::DirectProjection { .. }
+            if prepared.kind() == ForgeServerPreparedQueryHandoffKind::QueryRead =>
+        {
+            None
+        }
         ForgeServerQueryHandoffOperation::DownstreamDelivery { .. } => None,
         _ => Some(ForgeServerQueryHandoffDenial::new(
             ForgeServerQueryHandoffDenialCode::PreparedIntentMismatch,

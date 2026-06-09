@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use forge_query::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryEntity, ForgeQueryIntentDeclaration,
     ForgeQueryIntentExecution, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
@@ -147,12 +149,44 @@ impl ForgeServerQueryWorkspaceProvider for ProfiledCountingTestWorkspaceProvider
         Ok(workspace)
     }
 }
+#[derive(Clone, Debug)]
+pub(crate) struct PanicOnReadTestWorkspaceProvider;
+
+impl ForgeServerQueryWorkspaceProvider for PanicOnReadTestWorkspaceProvider {
+    fn provider_name(&self) -> &'static str {
+        "panic-on-read-test-workspace-provider"
+    }
+
+    fn bind_workspace(
+        &self,
+        request: &ForgeServerQueryWorkspaceBindingRequest,
+    ) -> Result<ForgeQueryWorkspace, ForgeServerQueryWorkspaceBindingError> {
+        let workspace_id = request
+            .resolved_request_context()
+            .request_context()
+            .workspace_target()
+            .workspace_id();
+        let mut workspace = ForgeQueryRuntime::builder()
+            .backend(TestQueryRuntimeBackend::new_panicking_on_live_reads())
+            .build()
+            .map_err(|error| {
+                ForgeServerQueryWorkspaceBindingError::new("runtime_build", format!("{error:?}"))
+            })?
+            .workspace(workspace_id)
+            .map_err(|error| {
+                ForgeServerQueryWorkspaceBindingError::new("workspace_bind", format!("{error:?}"))
+            })?;
+        install_requested_named_read(&mut workspace, request)?;
+        Ok(workspace)
+    }
+}
 
 #[derive(Clone, Debug)]
 struct TestQueryRuntimeBackend {
     support_profile: ForgeQueryRuntimeSupportProfile,
     declared_live_views: BTreeSet<String>,
     attempted_writes: Option<Arc<AtomicUsize>>,
+    panic_on_live_reads: bool,
 }
 
 impl Default for TestQueryRuntimeBackend {
@@ -167,6 +201,7 @@ impl TestQueryRuntimeBackend {
             support_profile,
             declared_live_views: BTreeSet::new(),
             attempted_writes: None,
+            panic_on_live_reads: false,
         }
     }
 
@@ -179,6 +214,16 @@ impl TestQueryRuntimeBackend {
             support_profile,
             declared_live_views: BTreeSet::new(),
             attempted_writes: Some(attempted_writes),
+            panic_on_live_reads: false,
+        }
+    }
+
+    fn new_panicking_on_live_reads() -> Self {
+        Self {
+            support_profile: ForgeQueryRuntimeSupportProfile::scaffold_backend_profile(),
+            declared_live_views: BTreeSet::new(),
+            attempted_writes: None,
+            panic_on_live_reads: true,
         }
     }
 
@@ -188,7 +233,6 @@ impl TestQueryRuntimeBackend {
         }
     }
 }
-
 impl ForgeQueryRuntimeBackend for TestQueryRuntimeBackend {
     fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile {
         self.support_profile.clone()
@@ -241,6 +285,10 @@ impl ForgeQueryRuntimeBackend for TestQueryRuntimeBackend {
     }
 
     fn live_entities(&self, _view_name: &str) -> Vec<ForgeQueryEntity> {
+        assert!(
+            !self.panic_on_live_reads,
+            "live entity reads must not execute for this hostile denial seam"
+        );
         if !self.declared_live_views.contains(_view_name) {
             return Vec::new();
         }

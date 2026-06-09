@@ -33,7 +33,7 @@ impl ForgeServerSurfacesFacade {
     }
 
     pub fn compat_http(&self) -> CompatHttpSurfaceRoot {
-        self.compat_http
+        self.compat_http.clone()
     }
 
     pub fn sync(&self) -> SyncSurfaceRoot {

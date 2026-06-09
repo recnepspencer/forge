@@ -6,7 +6,8 @@ use crate::{
     middleware::ForgeServerMiddlewareFacade, operator_evidence::ForgeServerOperatorEvidenceFacade,
     query_handoff::ForgeServerQueryHandoffFacade, registration::ForgeServerSurfaceInventory,
     request_context::ForgeServerRequestContextFacade, response::ForgeServerResponseFacade,
-    runtime::ForgeServerRuntime, surfaces::ForgeServerSurfacesFacade, transport::serve_runtime,
+    runtime::ForgeServerRuntime, surfaces::compat_http::ForgeServerCompatibilityFacade,
+    surfaces::ForgeServerSurfacesFacade, transport::serve_runtime,
 };
 
 use super::builder::ForgeServerBuilder;
@@ -67,6 +68,23 @@ impl ForgeServer {
             ),
             self.query_handoff(),
             self.responses(),
+        )
+    }
+
+    pub fn compat_http(&self) -> ForgeServerCompatibilityFacade {
+        ForgeServerCompatibilityFacade::new(
+            self.runtime.assembly().surfaces_facade().compat_http(),
+            self.request_contexts(),
+            self.middleware(),
+            ForgeServerDirectDeclarationIntakeFacade::new(
+                self.runtime.assembly().config().query_handoff().clone(),
+            ),
+            self.query_handoff(),
+            self.responses(),
+            self.runtime
+                .assembly()
+                .compat_http_mutation_replay_store()
+                .clone(),
         )
     }
 

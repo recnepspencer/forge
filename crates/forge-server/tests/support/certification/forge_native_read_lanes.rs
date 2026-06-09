@@ -72,7 +72,10 @@ pub fn lower_direct_read_bundle(
         declaration.support_snapshot().support_posture_digest(),
     )
     .with_output_digest(Output::Handoff, read.handoff_digest())
-    .with_output_digest(Output::SupportPosture, support_posture_digest(read.support_posture()))
+    .with_output_digest(
+        Output::SupportPosture,
+        support_posture_digest(read.support_posture()),
+    )
     .with_output_digest(Output::Branch, read.direct_context().branch_digest())
     .with_output_digest(Output::Workspace, read.direct_context().workspace_digest())
     .with_output_digest(
@@ -193,9 +196,15 @@ fn product_read_bundle_with_branch_and_shape(
     )
     .with_output_digest(Output::SurfaceContract, snapshot.family_contract_digest())
     .with_output_digest(Output::Declaration, snapshot.declaration_digest())
-    .with_output_digest(Output::DeclarationSupport, snapshot.support_posture_digest())
+    .with_output_digest(
+        Output::DeclarationSupport,
+        snapshot.support_posture_digest(),
+    )
     .with_output_digest(Output::Handoff, read.handoff_digest())
-    .with_output_digest(Output::SupportPosture, support_posture_digest(read.support_posture()))
+    .with_output_digest(
+        Output::SupportPosture,
+        support_posture_digest(read.support_posture()),
+    )
     .with_output_digest(Output::Branch, read.direct_context().branch_digest())
     .with_output_digest(Output::Workspace, read.direct_context().workspace_digest())
     .with_output_digest(Output::SupportMatrix, snapshot.support_matrix_digest())
