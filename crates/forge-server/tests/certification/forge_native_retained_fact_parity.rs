@@ -1,7 +1,7 @@
-use super::certification_digest_assertions::assert_equal_on;
 use super::certification_bundle::{
     ForgeServerCertificationField as Field, ForgeServerCertificationOutputDigest as Output,
 };
+use super::certification_digest_assertions::assert_equal_on;
 use super::certification_forge_native_fixture::{
     lower_direct_projection_bundle, lower_direct_state_bundle, product_projection_bundle,
     product_retained_bundle, remask_server,

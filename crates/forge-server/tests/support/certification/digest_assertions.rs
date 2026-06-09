@@ -1,6 +1,4 @@
-use super::certification_bundle::{
-    ForgeServerCertificationBundle, ForgeServerCertificationField,
-};
+use super::certification_bundle::{ForgeServerCertificationBundle, ForgeServerCertificationField};
 
 pub fn assert_equal_on(
     left: &ForgeServerCertificationBundle,

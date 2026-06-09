@@ -7,7 +7,7 @@ use forge_server::{
     ForgeServerResponseInput, ForgeServerResponseTransform,
 };
 
-#[path = "../support/query_handoff_runtime.rs"]
+#[path = "../support/query_handoff/runtime.rs"]
 mod query_handoff_runtime;
 #[path = "../support/response_fixture.rs"]
 mod response_fixture;

@@ -1012,6 +1012,15 @@ tree walks, per-call registry scans, or surface-local lookup helpers and treat a
 later index as a mere performance cleanup. In Query, the graph/index is part of
 the proof boundary, not just an optimization.
 
+The legality rules themselves are domain invariants, not consumer validation
+code. If your domain has structural authoring constraints — which owner kinds
+may contain which children, what may move or splice where, what may reference
+what — register them through the invariant registration lane and consume the
+runtime's typed graph-composition domain-invariant denials. Do not build a
+host-local legality graph and pre-validate commands against it; that is the
+same folklore mistake as host-local traversal, applied to constraints instead
+of lookup.
+
 The mistake to avoid is duplicating query legality or planning in domain helpers
 when read composition or graph composition already owns the lane. A closely
 related mistake is host-local traversal folklore: helper loops that reconstruct
@@ -1023,6 +1032,7 @@ Read next:
 - [Read Composition](./authoring/read-composition.md)
 - [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
 - [Query Expressions And Result Shapes](./authoring/query-expressions-and-result-shapes.md)
+- [Registering Domain Invariants Through Query](./domain-capabilities/invariants/registering-domain-invariants-through-query.md)
 
 ## Frontier-Aware Planning And Parallel Admission
 

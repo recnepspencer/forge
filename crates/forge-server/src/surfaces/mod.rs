@@ -16,7 +16,31 @@ pub use root::{
 };
 
 pub use binary::{BinarySurface, BinarySurfaceRoot};
-pub use compat_http::{CompatHttpSurface, CompatHttpSurfaceRoot};
+pub use compat_http::{
+    CompatHttpSurface, CompatHttpSurfaceRoot, ForgeServerBackgroundExportRequest,
+    ForgeServerCanonicalHeaderSet, ForgeServerCompatHttpRouteFamilies,
+    ForgeServerCompatHttpRouteFamily, ForgeServerCompatibilityCachePolicy,
+    ForgeServerCompatibilityDeferred, ForgeServerCompatibilityDenial,
+    ForgeServerCompatibilityDenialCode, ForgeServerCompatibilityExecutionInput,
+    ForgeServerCompatibilityExecutionOutcome, ForgeServerCompatibilityExport,
+    ForgeServerCompatibilityFacade, ForgeServerCompatibilityFailure,
+    ForgeServerCompatibilityInspection, ForgeServerCompatibilityMutation,
+    ForgeServerCompatibilityMutationCommand, ForgeServerCompatibilityMutationEnvelope,
+    ForgeServerCompatibilityMutationExecutionInput, ForgeServerCompatibilityMutationOutcome,
+    ForgeServerCompatibilityMutationRequest, ForgeServerCompatibilityMutationResult,
+    ForgeServerCompatibilityPreparedRequest, ForgeServerCompatibilityRead,
+    ForgeServerCompatibilityRebindRequired, ForgeServerCompatibilityRequest,
+    ForgeServerCompatibilityRequestInput, ForgeServerCompatibilityRequestInputBuilder,
+    ForgeServerCompatibilityRequestInputError, ForgeServerCompatibilityRequestOutcome,
+    ForgeServerCompatibilityStale, ForgeServerCompatibilityState, ForgeServerCompatibilityStream,
+    ForgeServerCompatibilityVersion, ForgeServerConditionalRead, ForgeServerExternalBasisRequest,
+    ForgeServerExternalRequestContract, ForgeServerIdempotencyKey,
+    ForgeServerIdempotentReplayReceipt, ForgeServerMutationPrecondition,
+    ForgeServerNegotiatedRepresentation, ForgeServerReadValidator,
+    ForgeServerStreamCancellationKind, ForgeServerStreamCancellationReceipt,
+    ForgeServerStreamFinishError, ForgeServerStreamSelection, ForgeServerStreamingChunk,
+    ForgeServerStreamingPerformanceReceipt, ForgeServerStreamingResponse,
+};
 pub use forge_native::{ForgeNativeSurface, ForgeNativeSurfaceRoot};
 pub use integration::{IntegrationSurface, IntegrationSurfaceRoot};
 pub use lease::{LeaseSurface, LeaseSurfaceRoot};

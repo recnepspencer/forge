@@ -15,10 +15,10 @@ forge-foundational.workspace = true
 forge-proof.workspace = true
 forge-query.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-serde_json.workspace = true
 trybuild.workspace = true
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 

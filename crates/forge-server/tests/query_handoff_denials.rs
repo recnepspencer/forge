@@ -8,9 +8,9 @@ use forge_server::{
     ForgeServerTransportClass,
 };
 
-#[path = "support/query_handoff_fixture.rs"]
+#[path = "support/query_handoff/fixture.rs"]
 mod query_handoff_fixture;
-#[path = "support/query_handoff_runtime.rs"]
+#[path = "support/query_handoff/runtime.rs"]
 mod query_handoff_runtime;
 
 use query_handoff_fixture::{

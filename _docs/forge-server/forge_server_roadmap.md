@@ -281,19 +281,23 @@ contracts directly without rebuilding their product meaning as endpoint glue.
 - unsupported runtime-backed versus durable-later distinctions remain explicit
   on the direct facade
 
-### Milestone 3: Compatibility Request/Response API And Streaming HTTP Surface
+### Milestone 3: External HTTP, Streaming, Binary, And Blob Surface
+
+Spec: [milestone-3.md](./milestone-3.md)
 
 ### Goal
 
-Ship the compatibility and interop request/response product surface for
-external consumers, exports, health, and non-Forge clients without creating a
-second meaning model beside Query.
+Ship the external compatibility and interop surface for request/response,
+streaming HTTP, multipart upload, range transfer, exports, health, and
+non-Forge clients without creating a second meaning model beside Query or
+polluting structured truth sync with blob transport.
 
 ### Vision Coverage
 
 - HTTP surface architecture
 - request/response compatibility lane
 - streaming responses
+- binary and asset architecture
 
 ### Must Ship
 
@@ -308,10 +312,18 @@ second meaning model beside Query.
   clients
 - streaming HTTP responses for large exports, large reads, and initial
   hydration where buffering the full response would be dishonest
+- multipart upload endpoints
+- range-request and resumable download endpoints
+- streamed upload/download handling that does not route blobs through the sync
+  delivery channel
+- explicit linkage between file metadata truth and structured API responses
+- typed policy enforcement for file upload/download boundaries
 - explicit request contracts for branch, basis, projection, and diagnostics
   posture
 - response envelopes that carry enough typed basis and provenance posture for
   clients to reason about what they just received
+- explicit binary diagnostics and counters distinct from structured truth
+  delivery counters
 
 ### Must Preserve
 
@@ -319,6 +331,12 @@ second meaning model beside Query.
   semantics
 - streaming changes transport shape only; it does not change canonical read or
   mutation meaning
+- binary bytes are not sync protocol payloads
+- file metadata remains truth-linked through the normal runtime stack
+- binary route throughput does not redefine structured truth delivery
+  guarantees
+- file routes remain within the same auth, tenant, and branch pipeline as
+  other server surfaces
 - no route invents a local caching or basis model outside Query's public
   contracts
 - compatibility APIs stay visibly secondary to the Forge-native facade for
@@ -333,47 +351,24 @@ second meaning model beside Query.
   meaning where they should
 - mutation responses preserve typed validation, denial, and provenance posture
   instead of flattening to transport-local success strings
-
-### Milestone 4: Binary Asset, Multipart, And Range-Transfer Boundary
-
-### Goal
-
-Add the server-owned binary and file surface early, but keep it structurally
-separate from structured truth sync so large asset handling does not pollute
-the sync contract.
-
-### Vision Coverage
-
-- binary and asset architecture
-
-### Must Ship
-
-- multipart upload endpoints
-- range-request and resumable download endpoints
-- explicit linkage between file metadata truth and structured API responses
-- streamed upload/download handling that does not route blobs through the sync
-  delivery channel
-- typed policy enforcement for file upload/download boundaries
-- explicit binary diagnostics and counters distinct from structured truth
-  delivery counters
-
-### Must Preserve
-
-- binary bytes are not sync protocol payloads
-- file metadata remains truth-linked through the normal runtime stack
-- binary route throughput does not redefine structured truth delivery
-  guarantees
-- file routes remain within the same auth, tenant, and branch pipeline as
-  other server surfaces
-
-### Acceptance Evidence
-
 - file metadata updates remain structurally separate from blob transfer while
   still linking back to truth updates correctly
 - large uploads and downloads do not require sync-channel participation
 - range and multipart behavior preserve typed authorization and failure
   localization
 - binary and structured route counters remain independently explainable
+
+### Milestone 4: Absorbed Into Milestone 3
+
+This milestone's earlier standalone binary/blob work is now intentionally
+absorbed into Milestone 3 so the full external HTTP surface lands as one
+architectural unit.
+
+Do not treat binary upload/download, multipart, range transfer, and structured
+compatibility request/response as separate sequencing tracks anymore. They
+share one external surface boundary and must be built together while preserving
+the rule that binary transport stays structurally separate from structured
+truth sync.
 
 ### Milestone 5: Runtime-Backed Lease Registry And Server-Managed Subscription Foundation
 
@@ -671,6 +666,14 @@ background consumers without weakening the core delivery contract.
 - integration-facing CDC and change-feed API surfaces
 - structured integration wiring for external webhooks, polling, OAuth
   callbacks, and callback ingestion
+- typed external HTTP source adapters where admitted, including:
+  - request declaration
+  - typed response contracts
+  - source identity and freshness posture
+  - explicit authority mode
+- optional typed-response projection into server-managed writeback and live-view
+  flows when the external source contract is strong enough to lower into
+  canonical server truth or canonical derived observation artifacts
 - typed mutation and outbox boundaries for cross-system workflows
 - first-party integration packages only where the server can keep the boundary
   honest and audited
@@ -681,6 +684,11 @@ background consumers without weakening the core delivery contract.
 - integration surfaces consume the same canonical delivery and mutation truth
 - external callbacks do not become server authority without validation and
   typed mutation admission
+- external HTTP sources do not become automatic truth merely because they are
+  typed; admitted typed responses must still lower through explicit authority
+  mode and canonical server artifacts
+- optional writeback/live-view support for typed external sources must remain
+  opt-in and contract-driven rather than silently attached to every HTTP call
 - outbox and integration orchestration remains distinct from core delivery
   contracts
 - CDC remains the explicit integration lane rather than silently becoming the
@@ -691,6 +699,12 @@ background consumers without weakening the core delivery contract.
 - background delivery modes preserve canonical delivery meaning across pacing
   and transport variation
 - integration ingestion fails explicitly on schema, auth, or policy mismatch
+- equivalent admitted typed external responses produce equivalent canonical
+  writeback or derived-observation artifacts when optional automatic
+  projection is claimed
+- typed external sources that are observe-only, propose-only, or
+  authority-bearing compare distinctly on canonical artifacts and cannot drift
+  silently between those modes
 - outbox-backed cross-system flows cannot partially commit authoritative truth
   silently
 - equivalent Query-shaped app delivery and CDC-shaped integration delivery
@@ -832,7 +846,7 @@ cluster, reconnect, load, policy, and topology pressure.
 - request and session front door: Milestone 1
 - Forge-native app facade: Milestone 2
 - HTTP surface architecture: Milestone 3
-- binary and asset architecture: Milestone 4
+- binary and asset architecture: Milestone 3
 - lease and subscription architecture: Milestones 5 and 6
 - sync protocol architecture: Milestone 6
 - authentication, authorization, and remask: Milestones 1 and 7
@@ -852,7 +866,7 @@ cluster, reconnect, load, policy, and topology pressure.
 - Query-first server entry: Milestones 1, 2, and 3
 - direct Forge-native consumption instead of endpoint glue: Milestone 2
 - compatibility request/response surface: Milestone 3
-- file upload and binary transfer boundary: Milestone 4
+- file upload and binary transfer boundary: Milestone 3
 - server-managed durable-in-design subscriptions: Milestone 5
 - signal-backed subscription relevance: Milestones 5 and 6
 - outbox and coalescing behavior: Milestones 5 and 6
@@ -872,6 +886,8 @@ cluster, reconnect, load, policy, and topology pressure.
 - optimistic branch-aware mutation flow: Milestone 10
 - outbox and saga boundaries: Milestone 11
 - integration-facing CDC: Milestone 11
+- typed external HTTP source adapters with optional writeback/live-view
+  projection: Milestone 11
 - first-party and extensible integrations: Milestone 11
 - durable persistence and anti-entropy recovery: Milestone 12
 - blind-server and end-to-end encrypted modes: Milestone 13

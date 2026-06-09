@@ -1,9 +1,9 @@
 use forge_proof::TransitionOutcome;
 use forge_server::{
     ForgeServer, ForgeServerDirectDeliveryClass, ForgeServerDirectDeliveryRequest,
-    ForgeServerDirectFreshnessMode, ForgeServerQueryHandoffDenial,
-    ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation, ForgeServerQueryRequestedResume,
-    ForgeServerResponseInput, ForgeServerSurfaceFamily, ForgeServerTransportClass,
+    ForgeServerDirectFreshnessMode, ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffInput,
+    ForgeServerQueryHandoffOperation, ForgeServerQueryRequestedResume, ForgeServerResponseInput,
+    ForgeServerSurfaceFamily, ForgeServerTransportClass,
 };
 
 use crate::{
@@ -45,12 +45,21 @@ pub fn runtime_backed_delivery_bundle(
         support_posture_digest(delivery.support_posture()),
     )
     .with_output_digest(Output::Branch, delivery.direct_context().branch_digest())
-    .with_output_digest(Output::Workspace, delivery.direct_context().workspace_digest())
+    .with_output_digest(
+        Output::Workspace,
+        delivery.direct_context().workspace_digest(),
+    )
     .with_output_digest(Output::Basis, lease.resume_basis_digest())
     .with_output_digest(Output::DeliveryRequest, delivery.request().request_digest())
     .with_output_digest(Output::ResumeMode, resume_mode_label(delivery.request()))
-    .with_output_digest(Output::FreshnessMode, delivery.request().freshness_mode().as_str())
-    .with_output_digest(Output::DeliveryClass, delivery.request().delivery_class().as_str())
+    .with_output_digest(
+        Output::FreshnessMode,
+        delivery.request().freshness_mode().as_str(),
+    )
+    .with_output_digest(
+        Output::DeliveryClass,
+        delivery.request().delivery_class().as_str(),
+    )
 }
 
 pub fn compatibility_runtime_backed_delivery_bundle(
@@ -72,15 +81,19 @@ pub fn compatibility_runtime_backed_delivery_bundle(
     );
     let request_context_digest_value = request_context_digest(request_context.request_context());
     let admission = admit_read(server, request_context);
-    let handoff = success(server.query_handoff().prepare(ForgeServerQueryHandoffInput::new(
-        admission,
-        ForgeServerQueryHandoffOperation::downstream_delivery(
-            operation_name,
-            request.freshness_mode(),
-            request.delivery_class(),
-            requested_resume,
-        ),
-    )));
+    let handoff = success(
+        server
+            .query_handoff()
+            .prepare(ForgeServerQueryHandoffInput::new(
+                admission,
+                ForgeServerQueryHandoffOperation::downstream_delivery(
+                    operation_name,
+                    request.freshness_mode(),
+                    request.delivery_class(),
+                    requested_resume,
+                ),
+            )),
+    );
     let branch_digest = handoff
         .admission()
         .request_context()
@@ -93,7 +106,10 @@ pub fn compatibility_runtime_backed_delivery_bundle(
         .workspace_digest();
     let handoff_digest = handoff.canonical_digest().to_string();
     let support_posture = support_posture_digest(handoff.support_posture()).to_string();
-    let surface_contract = handoff.downstream_delivery_contract().contract_digest().to_string();
+    let surface_contract = handoff
+        .downstream_delivery_contract()
+        .contract_digest()
+        .to_string();
     let response = server
         .responses()
         .shape_with_defaults(ForgeServerResponseInput::query_handoff_success(handoff));
@@ -162,13 +178,7 @@ pub fn compatibility_durable_delivery_denial_bundle(
             ),
         ),
     );
-    denial_bundle(
-        server,
-        &durable_request_context,
-        denial,
-        &lease,
-        &request,
-    )
+    denial_bundle(server, &durable_request_context, denial, &lease, &request)
 }
 
 pub fn runtime_backed_missing_basis_denial_bundle(
@@ -220,8 +230,11 @@ pub fn cross_workspace_lease_reuse_denial_bundle(
     let lease = direct_lease_success(main_session.direct().declare_lease(&declaration));
     let hostile_session = forge_native_session_for_target(server, Some("workspace-84"), None);
     let request = delivery_request(ForgeServerQueryRequestedResume::none());
-    let denial =
-        direct_delivery_denied(hostile_session.direct().negotiate_delivery(&lease, &request));
+    let denial = direct_delivery_denied(
+        hostile_session
+            .direct()
+            .negotiate_delivery(&lease, &request),
+    );
     denial_bundle(
         server,
         hostile_session.resolved_request_context().request_context(),
@@ -240,8 +253,11 @@ pub fn cross_branch_lease_reuse_denial_bundle(
     let lease = direct_lease_success(main_session.direct().declare_lease(&declaration));
     let hostile_session = forge_native_session_for_target(server, None, Some("branch-9"));
     let request = delivery_request(ForgeServerQueryRequestedResume::none());
-    let denial =
-        direct_delivery_denied(hostile_session.direct().negotiate_delivery(&lease, &request));
+    let denial = direct_delivery_denied(
+        hostile_session
+            .direct()
+            .negotiate_delivery(&lease, &request),
+    );
     denial_bundle(
         server,
         hostile_session.resolved_request_context().request_context(),
@@ -270,8 +286,14 @@ fn denial_bundle(
     )
     .with_output_digest(Output::Declaration, lease.declaration_digest())
     .with_output_digest(Output::Basis, lease.resume_basis_digest())
-    .with_output_digest(Output::Branch, request_context.branch_target().branch_digest())
-    .with_output_digest(Output::Workspace, request_context.workspace_target().workspace_digest())
+    .with_output_digest(
+        Output::Branch,
+        request_context.branch_target().branch_digest(),
+    )
+    .with_output_digest(
+        Output::Workspace,
+        request_context.workspace_target().workspace_digest(),
+    )
     .with_output_digest(Output::DeliveryRequest, request.request_digest())
     .with_output_digest(Output::ResumeMode, resume_mode_label(request))
     .with_output_digest(Output::FreshnessMode, request.freshness_mode().as_str())

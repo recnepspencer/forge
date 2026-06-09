@@ -43,8 +43,14 @@ pub fn product_retained_bundle(
         support_posture_digest(retained.support_posture()),
     )
     .with_output_digest(Output::Branch, retained.direct_context().branch_digest())
-    .with_output_digest(Output::Workspace, retained.direct_context().workspace_digest())
-    .with_output_digest(Output::RetainedState, retained.runtime_state().state_digest())
+    .with_output_digest(
+        Output::Workspace,
+        retained.direct_context().workspace_digest(),
+    )
+    .with_output_digest(
+        Output::RetainedState,
+        retained.runtime_state().state_digest(),
+    )
     .with_optional_output_digest(Output::Basis, retained.basis_digest())
     .with_optional_output_digest(Output::Remask, retained.remask_posture().remask_digest())
     .with_optional_output_digest(
@@ -79,7 +85,10 @@ pub fn lower_direct_state_bundle(
     )
     .with_output_digest(Output::Declaration, declaration.declaration_digest())
     .with_output_digest(Output::Handoff, state.handoff_digest())
-    .with_output_digest(Output::SupportPosture, support_posture_digest(state.support_posture()))
+    .with_output_digest(
+        Output::SupportPosture,
+        support_posture_digest(state.support_posture()),
+    )
     .with_output_digest(Output::Branch, state.direct_context().branch_digest())
     .with_output_digest(Output::Workspace, state.direct_context().workspace_digest())
     .with_output_digest(Output::RetainedState, state.runtime_state().state_digest())
@@ -134,14 +143,20 @@ pub fn product_projection_bundle(
         support_posture_digest(projection.support_posture()),
     )
     .with_output_digest(Output::Branch, projection.direct_context().branch_digest())
-    .with_output_digest(Output::Workspace, projection.direct_context().workspace_digest())
+    .with_output_digest(
+        Output::Workspace,
+        projection.direct_context().workspace_digest(),
+    )
     .with_optional_output_digest(Output::Basis, projection.basis_digest())
     .with_optional_output_digest(
         Output::Remask,
         projection.direct_context().remask_posture().remask_digest(),
     )
     .with_output_digest(Output::Policy, projection.policy_digest())
-    .with_output_digest(Output::FactReceipt, projection.fact_receipt().receipt_digest())
+    .with_output_digest(
+        Output::FactReceipt,
+        projection.fact_receipt().receipt_digest(),
+    )
     .with_output_digest(
         Output::Materialization,
         projection.materialization_digest().as_str(),
@@ -179,14 +194,20 @@ pub fn lower_direct_projection_bundle(
         support_posture_digest(projection.support_posture()),
     )
     .with_output_digest(Output::Branch, projection.direct_context().branch_digest())
-    .with_output_digest(Output::Workspace, projection.direct_context().workspace_digest())
+    .with_output_digest(
+        Output::Workspace,
+        projection.direct_context().workspace_digest(),
+    )
     .with_optional_output_digest(Output::Basis, projection.basis_digest())
     .with_optional_output_digest(
         Output::Remask,
         projection.direct_context().remask_posture().remask_digest(),
     )
     .with_output_digest(Output::Policy, projection.policy_digest())
-    .with_output_digest(Output::FactReceipt, projection.fact_receipt().receipt_digest())
+    .with_output_digest(
+        Output::FactReceipt,
+        projection.fact_receipt().receipt_digest(),
+    )
     .with_output_digest(
         Output::Materialization,
         projection.materialization_digest().as_str(),

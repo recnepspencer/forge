@@ -1,7 +1,9 @@
+use std::collections::BTreeMap;
+
 use crate::domain_artifacts::core_artifact::require_non_empty;
 use crate::domain_artifacts::HadwigerArtifactShapeError;
 
-use super::{ScreeningRational, ScreeningSolverTranscript};
+use super::ScreeningRational;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PeriodicMeasureCell {
@@ -87,6 +89,7 @@ pub struct PeriodicColorClassMeasureModel {
     period_width: ScreeningRational,
     period_height: ScreeningRational,
     cells: Vec<PeriodicMeasureCell>,
+    color_cell_index: BTreeMap<String, Vec<usize>>,
 }
 
 impl PeriodicColorClassMeasureModel {
@@ -117,16 +120,14 @@ impl PeriodicColorClassMeasureModel {
                 });
             }
         }
+        let color_cell_index = color_cell_index(&cells);
         Ok(Self {
             model_id: require_non_empty(model_id, "model_id")?,
             period_width,
             period_height,
             cells,
+            color_cell_index,
         })
-    }
-
-    pub(crate) fn cells(&self) -> &[PeriodicMeasureCell] {
-        &self.cells
     }
 
     pub(crate) fn period_area(&self) -> ScreeningRational {
@@ -134,12 +135,47 @@ impl PeriodicColorClassMeasureModel {
     }
 
     pub(crate) fn color_area(&self, color_id: &str) -> ScreeningRational {
-        self.cells
-            .iter()
-            .filter(|cell| cell.color_id() == color_id)
+        self.cells_for_color(color_id)
             .fold(ScreeningRational::integer(0), |sum, cell| {
                 sum.add(&cell.area())
             })
+    }
+
+    pub(crate) fn color_area_in_window(
+        &self,
+        color_id: &str,
+        window: &PeriodicMeasureWindow,
+    ) -> ScreeningRational {
+        self.cells_for_color(color_id)
+            .fold(ScreeningRational::integer(0), |sum, cell| {
+                sum.add(&window.overlap_area(cell))
+            })
+    }
+
+    pub(crate) fn same_color_translated_overlap_area(
+        &self,
+        color_id: &str,
+        dx: &ScreeningRational,
+        dy: &ScreeningRational,
+    ) -> ScreeningRational {
+        let same_color = self.cells_for_color(color_id).collect::<Vec<_>>();
+        same_color
+            .iter()
+            .flat_map(|left| same_color.iter().map(move |right| (*left, *right)))
+            .fold(ScreeningRational::integer(0), |sum, (left, right)| {
+                sum.add(&left.overlap_area_after_translation(right, dx, dy))
+            })
+    }
+
+    fn cells_for_color<'a>(
+        &'a self,
+        color_id: &'a str,
+    ) -> impl Iterator<Item = &'a PeriodicMeasureCell> + 'a {
+        self.color_cell_index
+            .get(color_id)
+            .into_iter()
+            .flatten()
+            .map(|index| &self.cells[*index])
     }
 
     pub fn stable_token(&self) -> String {
@@ -154,6 +190,17 @@ impl PeriodicColorClassMeasureModel {
         }
         token
     }
+}
+
+fn color_cell_index(cells: &[PeriodicMeasureCell]) -> BTreeMap<String, Vec<usize>> {
+    let mut index: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+    for (cell_index, cell) in cells.iter().enumerate() {
+        index
+            .entry(cell.color_id().to_string())
+            .or_default()
+            .push(cell_index);
+    }
+    index
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -206,152 +253,6 @@ impl PeriodicMeasureWindow {
             self.x_max.stable_token(),
             self.y_min.stable_token(),
             self.y_max.stable_token()
-        )
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AutocorrelationOverlapCertificate {
-    color_id: String,
-    dx: ScreeningRational,
-    dy: ScreeningRational,
-    claimed_overlap_area: ScreeningRational,
-    solver_transcript: ScreeningSolverTranscript,
-}
-
-impl AutocorrelationOverlapCertificate {
-    pub fn new(
-        color_id: impl Into<String>,
-        dx: ScreeningRational,
-        dy: ScreeningRational,
-        claimed_overlap_area: ScreeningRational,
-        solver_transcript: ScreeningSolverTranscript,
-    ) -> Result<Self, HadwigerArtifactShapeError> {
-        Ok(Self {
-            color_id: require_non_empty(color_id, "color_id")?,
-            dx,
-            dy,
-            claimed_overlap_area,
-            solver_transcript,
-        })
-    }
-
-    pub(crate) fn color_id(&self) -> &str {
-        &self.color_id
-    }
-
-    pub(crate) fn dx(&self) -> &ScreeningRational {
-        &self.dx
-    }
-
-    pub(crate) fn dy(&self) -> &ScreeningRational {
-        &self.dy
-    }
-
-    pub(crate) fn claimed_overlap_area(&self) -> &ScreeningRational {
-        &self.claimed_overlap_area
-    }
-
-    pub fn stable_token(&self) -> String {
-        format!(
-            "{}:{}:{}:{}:{}",
-            self.color_id,
-            self.dx.stable_token(),
-            self.dy.stable_token(),
-            self.claimed_overlap_area.stable_token(),
-            self.solver_transcript.stable_token()
-        )
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DensityCapCertificate {
-    color_id: String,
-    density_cap: ScreeningRational,
-    theorem_source: String,
-    solver_transcript: ScreeningSolverTranscript,
-}
-
-impl DensityCapCertificate {
-    pub fn new(
-        color_id: impl Into<String>,
-        density_cap: ScreeningRational,
-        theorem_source: impl Into<String>,
-        solver_transcript: ScreeningSolverTranscript,
-    ) -> Result<Self, HadwigerArtifactShapeError> {
-        Ok(Self {
-            color_id: require_non_empty(color_id, "color_id")?,
-            density_cap,
-            theorem_source: require_non_empty(theorem_source, "density_theorem_source")?,
-            solver_transcript,
-        })
-    }
-
-    pub(crate) fn color_id(&self) -> &str {
-        &self.color_id
-    }
-
-    pub(crate) fn density_cap(&self) -> &ScreeningRational {
-        &self.density_cap
-    }
-
-    pub fn stable_token(&self) -> String {
-        format!(
-            "{}:{}:{}:{}",
-            self.color_id,
-            self.density_cap.stable_token(),
-            self.theorem_source,
-            self.solver_transcript.stable_token()
-        )
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalDensityWindowCertificate {
-    color_id: String,
-    window: PeriodicMeasureWindow,
-    density_cap: ScreeningRational,
-    bound_source: String,
-    solver_transcript: ScreeningSolverTranscript,
-}
-
-impl LocalDensityWindowCertificate {
-    pub fn new(
-        color_id: impl Into<String>,
-        window: PeriodicMeasureWindow,
-        density_cap: ScreeningRational,
-        bound_source: impl Into<String>,
-        solver_transcript: ScreeningSolverTranscript,
-    ) -> Result<Self, HadwigerArtifactShapeError> {
-        Ok(Self {
-            color_id: require_non_empty(color_id, "color_id")?,
-            window,
-            density_cap,
-            bound_source: require_non_empty(bound_source, "window_bound_source")?,
-            solver_transcript,
-        })
-    }
-
-    pub(crate) fn color_id(&self) -> &str {
-        &self.color_id
-    }
-
-    pub(crate) fn window(&self) -> &PeriodicMeasureWindow {
-        &self.window
-    }
-
-    pub(crate) fn density_cap(&self) -> &ScreeningRational {
-        &self.density_cap
-    }
-
-    pub fn stable_token(&self) -> String {
-        format!(
-            "{}:{}:{}:{}:{}",
-            self.color_id,
-            self.window.stable_token(),
-            self.density_cap.stable_token(),
-            self.bound_source,
-            self.solver_transcript.stable_token()
         )
     }
 }

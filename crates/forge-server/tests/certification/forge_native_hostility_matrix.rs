@@ -89,7 +89,11 @@ fn forge_native_hostility_matrix_preserves_canonical_direct_digests_across_press
             Field::Output(Output::ViewShape),
         ],
     );
-    assert_not_equal_on(&control_lane, &forensic_lane, &[Field::RequestContextDigest]);
+    assert_not_equal_on(
+        &control_lane,
+        &forensic_lane,
+        &[Field::RequestContextDigest],
+    );
     assert_not_equal_on(
         &control_lane,
         &compatibility_lane,
@@ -128,7 +132,10 @@ fn forge_native_hostility_matrix_preserves_canonical_direct_digests_across_press
     assert_not_equal_on(
         &detail_lane,
         &table_lane,
-        &[Field::Output(Output::Declaration), Field::Output(Output::ViewShape)],
+        &[
+            Field::Output(Output::Declaration),
+            Field::Output(Output::ViewShape),
+        ],
     );
     assert_not_equal_on(
         &control_lane,
@@ -218,7 +225,11 @@ fn forge_native_hostility_matrix_preserves_canonical_direct_digests_across_press
     assert_counter_exact(&detail_lane, "response.success.count", 1);
     assert_counter_exact(&table_lane, "response.success.count", 1);
     assert_counter_exact(&runtime_backed_lane, "response.success.count", 1);
-    assert_counter_exact(&compatibility_runtime_backed_lane, "response.success.count", 1);
+    assert_counter_exact(
+        &compatibility_runtime_backed_lane,
+        "response.success.count",
+        1,
+    );
     assert_counter_exact(&remask_lane, "response.success.count", 1);
     assert_counter_exact(
         &durable_later_lane,
@@ -241,5 +252,8 @@ fn forge_native_hostility_matrix_preserves_canonical_direct_digests_across_press
         &[Field::ResponseDigest, Field::FailureDigest],
     );
     assert!(remask_lane.output_digest(Output::Remask).is_some());
-    assert_eq!(remask_lane.output_digest(Output::Policy), Some("policy:test"));
+    assert_eq!(
+        remask_lane.output_digest(Output::Policy),
+        Some("policy:test")
+    );
 }
