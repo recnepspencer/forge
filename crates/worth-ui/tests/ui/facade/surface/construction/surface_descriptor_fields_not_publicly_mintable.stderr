@@ -1,0 +1,21 @@
+error[E0451]: fields `id`, `kind`, `component_id`, `placement_class`, `state_class`, `command_slots`, `label` and `view_binding` of struct `SurfaceDescriptor` are private
+  --> tests/ui/facade/surface/construction/surface_descriptor_fields_not_publicly_mintable.rs:8:9
+   |
+ 7 |     let _descriptor = SurfaceDescriptor {
+   |                       ----------------- in this type
+ 8 |         id: SurfaceId::new("workspace.surface.editor").expect("valid surface id"),
+   |         ^^ private field
+ 9 |         kind: SurfaceKind::primary_content(),
+   |         ^^^^ private field
+10 |         component_id: ComponentId::new("workspace.component.editor").expect("valid component id"),
+   |         ^^^^^^^^^^^^ private field
+11 |         placement_class: SurfacePlacementClass::primary_region(),
+   |         ^^^^^^^^^^^^^^^ private field
+12 |         state_class: SurfaceStateClass::restorable(),
+   |         ^^^^^^^^^^^ private field
+13 |         command_slots: Vec::<CommandId>::new(),
+   |         ^^^^^^^^^^^^^ private field
+14 |         label: None,
+   |         ^^^^^ private field
+15 |         view_binding: None,
+   |         ^^^^^^^^^^^^ private field
