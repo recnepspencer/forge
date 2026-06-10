@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
-use sha2::{Digest, Sha256};
-
 use crate::{
     ForgeServerMultipartUpload, ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffDenialCode,
 };
+
+use super::super::binary_digest::stable_byte_digest;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeServerIngressIntegrityDigest {
@@ -89,9 +89,4 @@ fn ensure_declared_digest_matches(
         }
     }
     Ok(())
-}
-
-pub(crate) fn stable_byte_digest(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    format!("sha256:{}:{digest:x}", bytes.len())
 }

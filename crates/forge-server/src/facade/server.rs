@@ -81,6 +81,7 @@ impl ForgeServer {
             ),
             self.query_handoff(),
             self.responses(),
+            self.operator_evidence(),
             self.runtime
                 .assembly()
                 .compat_http_mutation_replay_store()

@@ -40,6 +40,10 @@ impl ForgeServerDirectProvenance {
         self.artifact.locality()
     }
 
+    pub fn artifact(&self) -> &FoundationalBoundaryEvidenceProvenanceArtifact {
+        &self.artifact
+    }
+
     pub fn freshness_posture(&self) -> FoundationalBoundaryEvidenceFreshnessPosture {
         self.artifact.freshness_posture()
     }
