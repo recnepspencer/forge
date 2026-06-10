@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use forge_proof::TransitionOutcome;
 use forge_server::{
     request_context::DiagnosticRichnessProfile,

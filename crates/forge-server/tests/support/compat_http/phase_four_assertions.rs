@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use forge_server::{
     ForgeServerCompatibilityExport, ForgeServerCompatibilityRead, ForgeServerCompatibilityStream,
     ForgeServerStreamCancellationKind, ForgeServerStreamCancellationReceipt,

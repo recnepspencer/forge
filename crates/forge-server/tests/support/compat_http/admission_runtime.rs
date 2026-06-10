@@ -21,7 +21,7 @@ pub(crate) fn compat_http_admission_test_server() -> ForgeServer {
                 )
                 .with_middleware_config(
                     ForgeServerMiddlewareConfig::builder()
-                        .with_query_mutation_enabled(false)
+                        .with_query_mutation_enabled(true)
                         .build()
                         .expect("middleware config should validate"),
                 )

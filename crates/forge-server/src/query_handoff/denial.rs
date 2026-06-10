@@ -5,6 +5,7 @@ pub struct ForgeServerQueryHandoffDenial {
     code: ForgeServerQueryHandoffDenialCode,
     diagnostics_profile: DiagnosticRichnessProfile,
     detail: String,
+    pub(crate) abuse_budget_receipt: Option<crate::ForgeServerAbuseBudgetReceipt>,
 }
 
 impl ForgeServerQueryHandoffDenial {
@@ -17,7 +18,16 @@ impl ForgeServerQueryHandoffDenial {
             code,
             diagnostics_profile,
             detail: detail.into(),
+            abuse_budget_receipt: None,
         }
+    }
+
+    pub(crate) fn with_abuse_budget_receipt(
+        mut self,
+        abuse_budget_receipt: crate::ForgeServerAbuseBudgetReceipt,
+    ) -> Self {
+        self.abuse_budget_receipt = Some(abuse_budget_receipt);
+        self
     }
 
     pub fn code(&self) -> ForgeServerQueryHandoffDenialCode {
@@ -30,6 +40,10 @@ impl ForgeServerQueryHandoffDenial {
 
     pub fn detail(&self) -> &str {
         &self.detail
+    }
+
+    pub fn abuse_budget_receipt(&self) -> Option<&crate::ForgeServerAbuseBudgetReceipt> {
+        self.abuse_budget_receipt.as_ref()
     }
 }
 
@@ -45,7 +59,9 @@ pub enum ForgeServerQueryHandoffDenialCode {
     CompatibilityConditionalRequestInvalid,
     CompatibilityConditionalReadNotModified,
     CompatibilityConditionalReadPreconditionFailed,
+    CompatibilityDownloadRequestInvalid,
     CompatibilityStreamingRequestInvalid,
+    CompatibilityUploadRequestInvalid,
     CompatibilityMutationRequestInvalid,
     CompatibilityMutationFamilyUnsupported,
     CompatibilityMutationFamilyForbidden,

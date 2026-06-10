@@ -4,6 +4,7 @@ mod conditional;
 mod execution;
 mod inspection;
 mod query_execution;
+mod query_support;
 mod read;
 mod state;
 
