@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, AtomicUsize, Ordering},
+    Arc,
+};
 
 use crate::runtime::shared_read::SharedReadDerivedViewState;
 
@@ -55,52 +58,91 @@ impl ForgeQuerySharedReadPinnedSnapshot {
 }
 
 #[derive(Debug)]
-pub(in crate::runtime) struct ForgeQuerySharedReadGenerationLease {
-    registry: ForgeQuerySharedReadPinRegistry,
-    snapshot: Arc<ForgeQuerySharedReadPinnedSnapshot>,
+pub(in crate::runtime) struct ForgeQuerySharedReadGenerationEntry {
+    snapshot: ForgeQuerySharedReadPinnedSnapshot,
+    pin_count: AtomicUsize,
+    retired: AtomicBool,
 }
 
-impl PartialEq for ForgeQuerySharedReadGenerationLease {
-    fn eq(&self, other: &Self) -> bool {
-        self.snapshot == other.snapshot
-    }
-}
-
-impl ForgeQuerySharedReadGenerationLease {
-    pub(in crate::runtime) fn new(
-        registry: ForgeQuerySharedReadPinRegistry,
-        snapshot: Arc<ForgeQuerySharedReadPinnedSnapshot>,
-    ) -> Self {
-        Self { registry, snapshot }
+impl ForgeQuerySharedReadGenerationEntry {
+    pub(in crate::runtime) fn new(snapshot: ForgeQuerySharedReadPinnedSnapshot) -> Self {
+        Self {
+            snapshot,
+            pin_count: AtomicUsize::new(0),
+            retired: AtomicBool::new(false),
+        }
     }
 
     pub(in crate::runtime) fn snapshot(&self) -> &ForgeQuerySharedReadPinnedSnapshot {
         &self.snapshot
     }
 
+    pub(in crate::runtime) fn pin(&self) {
+        self.pin_count.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(in crate::runtime) fn release_pin(&self) -> usize {
+        self.pin_count.fetch_sub(1, Ordering::SeqCst).saturating_sub(1)
+    }
+
+    pub(in crate::runtime) fn pin_count(&self) -> usize {
+        self.pin_count.load(Ordering::SeqCst)
+    }
+
+    pub(in crate::runtime) fn retire(&self) {
+        self.retired.store(true, Ordering::SeqCst);
+    }
+
+    pub(in crate::runtime) fn is_retired(&self) -> bool {
+        self.retired.load(Ordering::SeqCst)
+    }
+}
+
+#[derive(Debug)]
+pub(in crate::runtime) struct ForgeQuerySharedReadGenerationLease {
+    registry: ForgeQuerySharedReadPinRegistry,
+    entry: Arc<ForgeQuerySharedReadGenerationEntry>,
+}
+
+impl PartialEq for ForgeQuerySharedReadGenerationLease {
+    fn eq(&self, other: &Self) -> bool {
+        self.entry.snapshot() == other.entry.snapshot()
+    }
+}
+
+impl ForgeQuerySharedReadGenerationLease {
+    pub(in crate::runtime) fn new(
+        registry: ForgeQuerySharedReadPinRegistry,
+        entry: Arc<ForgeQuerySharedReadGenerationEntry>,
+    ) -> Self {
+        Self { registry, entry }
+    }
+
+    pub(in crate::runtime) fn snapshot(&self) -> &ForgeQuerySharedReadPinnedSnapshot {
+        self.entry.snapshot()
+    }
+
     pub(in crate::runtime) fn generation(&self) -> &ForgeQuerySharedReadGenerationId {
-        self.snapshot.generation()
+        self.entry.snapshot().generation()
     }
 
     pub(in crate::runtime) fn is_generation_live(&self) -> bool {
-        self.registry
-            .contains_generation(self.snapshot.generation().ordinal())
+        !self.entry.is_retired()
     }
 }
 
 impl Clone for ForgeQuerySharedReadGenerationLease {
     fn clone(&self) -> Self {
-        self.registry.pin_generation(self.snapshot.generation().ordinal());
+        self.entry.pin();
         Self {
             registry: self.registry.clone(),
-            snapshot: Arc::clone(&self.snapshot),
+            entry: Arc::clone(&self.entry),
         }
     }
 }
 
 impl Drop for ForgeQuerySharedReadGenerationLease {
     fn drop(&mut self) {
-        self.registry
-            .release_generation(self.snapshot.generation().ordinal());
+        self.registry.release_generation(Arc::clone(&self.entry));
     }
 }

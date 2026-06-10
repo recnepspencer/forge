@@ -233,7 +233,7 @@ impl ForgeQueryRuntime {
         &self,
     ) -> Result<ForgeQuerySharedReadContext, ForgeQueryRuntimeError> {
         let snapshot_token = self.backend.snapshot_token();
-        if self.shared_read_pins.pin_current_generation().is_none() {
+        if !self.shared_read_pins.has_current_generation() {
             let derived_views = self
                 .derived_views
                 .iter()

@@ -105,7 +105,9 @@ impl RuntimeHostileCertificationCounters {
 }
 
 fn shared_read_structural_lock_acquisition_count(_runtime: &ForgeQueryRuntime) -> usize {
-    0
+    _runtime
+        .shared_read_counters()
+        .committed_read_hot_path_lock_count()
 }
 
 fn shared_read_structural_orphaned_generation_count(_runtime: &ForgeQueryRuntime) -> usize {
