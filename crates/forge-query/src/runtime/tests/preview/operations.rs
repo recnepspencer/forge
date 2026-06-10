@@ -17,7 +17,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     let preview_run = {
         let mut preview = runtime
             .preview_with_options(
-                "draft create",
+                test_session_label("draft create"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -50,7 +50,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     {
         let mut preview = runtime
             .preview_with_options(
-                "promote create",
+                test_session_label("promote create"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -105,7 +105,7 @@ fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
     {
         let mut preview = runtime
             .preview_with_options(
-                "discard create",
+                test_session_label("discard create"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -142,7 +142,7 @@ fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
 
     let mut preview = runtime
         .preview_with_options(
-            "deny declaration effects",
+            test_session_label("deny declaration effects"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview session should be admitted");

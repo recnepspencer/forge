@@ -54,7 +54,7 @@ fn routed_surface_scan_targets_reconcile_remaining_phase_six_seam_files() {
         ),
         ("crates/forge-query/src/historical/bridge_lowering.rs", true),
         (
-            "crates/forge-query/src/projection_consumption/source.rs",
+            "crates/forge-query/src/projection_consumption/source/mod.rs",
             true,
         ),
         (

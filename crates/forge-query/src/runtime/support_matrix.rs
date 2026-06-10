@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 use super::{
     ForgeQueryRuntime, ForgeQueryRuntimeBackendPosture,
@@ -18,7 +21,7 @@ pub struct ForgeQueryRuntimePublicSupportMatrixRow {
     parallel_api_forbidden: bool,
     admission_fail_closed: bool,
     support_contract_digest: Option<String>,
-    row_digest: String,
+    row_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimePublicSupportMatrixRow {
@@ -37,25 +40,41 @@ impl ForgeQueryRuntimePublicSupportMatrixRow {
         let owner_milestone = owner_milestone.into();
         let extension_rule = extension_rule.into();
         let support_contract_digest = support_contract_digest.map(Into::into);
-        let mut parts = vec![
-            format!("surface:{surface}"),
-            format!(
-                "family:{}",
-                facade_family
-                    .map(ForgeQueryRuntimeFacadeFamily::as_str)
-                    .unwrap_or("matrix-only")
-            ),
-            format!("status:{}", status.as_str()),
-            format!("teaching:{}", teaching_posture.as_str()),
-            format!("owner:{owner_milestone}"),
-            format!("extension:{extension_rule}"),
-            format!("parallel_forbidden:{parallel_api_forbidden}"),
-            format!("fail_closed:{admission_fail_closed}"),
-        ];
-        if let Some(digest) = &support_contract_digest {
-            parts.push(format!("support:{digest}"));
-        }
-        let row_digest = hash_parts(&parts);
+        let row_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicSupportMatrixRow)
+                .field_shape(ForgeQueryEvidenceTag::new("surface"), surface.clone())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("facade_family"),
+                    facade_family
+                        .map(ForgeQueryRuntimeFacadeFamily::as_str)
+                        .unwrap_or("matrix-only"),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("teaching_posture"),
+                    teaching_posture.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("owner_milestone"),
+                    owner_milestone.clone(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("extension_rule"),
+                    extension_rule.clone(),
+                )
+                .field_bool(
+                    ForgeQueryEvidenceTag::new("parallel_api_forbidden"),
+                    parallel_api_forbidden,
+                )
+                .field_bool(
+                    ForgeQueryEvidenceTag::new("admission_fail_closed"),
+                    admission_fail_closed,
+                )
+                .optional_identity(
+                    ForgeQueryEvidenceTag::new("support_contract_digest"),
+                    support_contract_digest.as_deref(),
+                )
+                .seal();
         Self {
             surface,
             facade_family,
@@ -110,7 +129,7 @@ impl ForgeQueryRuntimePublicSupportMatrixRow {
         self.support_contract_digest.as_deref()
     }
 
-    pub fn row_digest(&self) -> &str {
+    pub fn row_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.row_digest
     }
 }
@@ -124,7 +143,7 @@ pub struct ForgeQueryRuntimePublicSupportMatrix {
     unsupported_row_count: usize,
     fail_closed_row_count: usize,
     parallel_api_forbidden_row_count: usize,
-    matrix_digest: String,
+    matrix_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimePublicSupportMatrix {
@@ -229,17 +248,38 @@ impl ForgeQueryRuntimePublicSupportMatrix {
             .iter()
             .filter(|row| row.parallel_api_forbidden())
             .count();
-        let mut parts = vec![
-            "forge_query_runtime_public_support_matrix_v1".to_string(),
-            format!("posture:{}", contract.backend_posture().as_str()),
-            format!("stable:{stable_row_count}"),
-            format!("deferred:{deferred_row_count}"),
-            format!("unsupported:{unsupported_row_count}"),
-            format!("fail_closed:{fail_closed_row_count}"),
-            format!("parallel_forbidden:{parallel_api_forbidden_row_count}"),
-        ];
-        parts.extend(rows.iter().map(|row| row.row_digest().to_string()));
-        let matrix_digest = hash_parts(&parts);
+        let matrix_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicSupportMatrix)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("backend_posture"),
+                    contract.backend_posture().as_str(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("stable_row_count"),
+                    stable_row_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("deferred_row_count"),
+                    deferred_row_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("unsupported_row_count"),
+                    unsupported_row_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("fail_closed_row_count"),
+                    fail_closed_row_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("parallel_api_forbidden_row_count"),
+                    parallel_api_forbidden_row_count,
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("row_digest"),
+                    rows.iter()
+                        .map(|row| row.row_digest().as_str()),
+                )
+                .seal();
         Self {
             backend_posture: contract.backend_posture(),
             rows,
@@ -280,7 +320,7 @@ impl ForgeQueryRuntimePublicSupportMatrix {
         self.parallel_api_forbidden_row_count
     }
 
-    pub fn matrix_digest(&self) -> &str {
+    pub fn matrix_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.matrix_digest
     }
 

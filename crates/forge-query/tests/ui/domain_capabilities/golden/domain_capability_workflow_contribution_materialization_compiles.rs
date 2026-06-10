@@ -1,4 +1,6 @@
-use forge_query::facade::runtime::{forge_query_domain, ForgeQueryIntentDeclaration};
+use forge_query::facade::runtime::{
+    forge_query_domain, BridgePreviewSessionIdentity, ForgeQueryIntentDeclaration,
+};
 use serde_json::json;
 
 fn workflow_common_lane() {
@@ -12,7 +14,10 @@ fn workflow_common_lane() {
 
     let _plan = forge_query_domain("worth.spatial")
         .for_intent(&declaration)
-        .plans_preview_mutation("topology.preview_mutation", "preview-session:77")
+        .plans_preview_mutation(
+            "topology.preview_mutation",
+            BridgePreviewSessionIdentity::new("preview-session:77"),
+        )
         .because("promotion-eligible preview can plan a bounded mutation workflow")
         .materialize();
 }

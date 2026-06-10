@@ -177,7 +177,12 @@ pub fn forge_query_domain_capability_representative_report(
     )));
     let workflow_common = forge_query_domain("worth.spatial")
         .for_intent(&declaration)
-        .plans_preview_mutation("workflow.preview_mutation", "preview-session:certification")
+        .plans_preview_mutation(
+            "workflow.preview_mutation",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                "preview-session:certification",
+            ),
+        )
         .because("preview mutation planning should preserve canonical workflow semantics")
         .materialize()
         .expect("common workflow lane should materialize");

@@ -3,7 +3,7 @@ use super::*;
 impl<'a> ForgeQueryPreviewSession<'a> {
     pub fn compare_to_authoritative(&self) -> ForgeQueryPreviewDiff {
         ForgeQueryPreviewDiff {
-            label: self.label.clone(),
+            label: self.label.to_string(),
             write_count: self.writes.len(),
             changed_entity_count: self
                 .writes
@@ -28,7 +28,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         if promotion_snapshot_token != self.basis_snapshot_token {
             return Err(ForgeQueryRuntimeError::PreviewPromotionStaleBasis(
                 ForgeQueryPreviewPromotionDenialEvidence::stale_basis(
-                    &self.label,
+                    self.label.display(),
                     self.effect_policy,
                     &self.basis_admission,
                     &self.basis_snapshot_token,
@@ -42,7 +42,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             return Err(
                 ForgeQueryRuntimeError::PreviewPromotionAtomicBatchUnsupported(
                     ForgeQueryPreviewPromotionDenialEvidence::atomic_batch_unsupported(
-                        &self.label,
+                        self.label.display(),
                         self.effect_policy,
                         &self.basis_admission,
                         &self.basis_snapshot_token,
@@ -57,7 +57,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             residue_snapshot.crossed_authoritative_residue_count;
         let promotion_rebinding_digest = hash_parts(&[
             "forge_query_preview_promotion_rebinding_v1".to_string(),
-            format!("label:{}", self.label),
+            format!("label:{}", self.label.display()),
             format!("basis_snapshot:{}", self.basis_snapshot_token),
             format!("promotion_snapshot:{}", promotion_snapshot_token),
             format!(
@@ -69,7 +69,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         if crossed_authoritative_residue_count > 0 {
             return Err(ForgeQueryRuntimeError::PreviewPromotionRebindingRequired(
                 ForgeQueryPreviewPromotionDenialEvidence::rebinding_required(
-                    &self.label,
+                    self.label.display(),
                     self.effect_policy,
                     &self.basis_admission,
                     &self.basis_snapshot_token,
@@ -94,7 +94,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 Err(error) => {
                     return Err(ForgeQueryRuntimeError::PreviewPromotionWriteFailed {
                         evidence: ForgeQueryPreviewPromotionDenialEvidence::write_failed(
-                            &self.label,
+                            self.label.display(),
                             self.effect_policy,
                             &self.basis_admission,
                             &self.basis_snapshot_token,
@@ -124,7 +124,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             Some(promotion_rebinding_digest),
         );
         Ok(ForgeQueryPreviewOutcome {
-            label: self.label,
+            label: self.label.to_string(),
             effect_policy: self.effect_policy,
             promoted: self.promoted,
             discarded: self.discarded,
@@ -158,7 +158,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             None,
         );
         ForgeQueryPreviewOutcome {
-            label: self.label,
+            label: self.label.to_string(),
             effect_policy: self.effect_policy,
             promoted: self.promoted,
             discarded: self.discarded,
@@ -204,12 +204,12 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         self.intent_receipts.push(receipt.clone());
         self.execution_evidence
             .push(ForgeQueryPreviewExecutionEvidence::new(
-                &self.label,
+                self.label.display(),
                 ForgeQueryPreviewExecutionKind::PendingWriteIntent,
                 declaration.name(),
                 ForgeQueryAuthorityLane::PendingWriteIntent,
                 ForgeQueryAuthorityLane::PreviewTruth,
-                receipt.receipt_digest(),
+                receipt.receipt_digest().as_str(),
                 vec![declaration.strategy_name().to_string()],
             ));
         Ok(receipt)
@@ -222,7 +222,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         match effect {
             ForgeQueryProgramEffect::DeclareLiveView { name, .. } => {
                 Err(ForgeQueryRuntimeError::PreviewOperationEffectDenied {
-                    label: self.label.clone(),
+                    label: self.label.to_string(),
                     stage: "effect-admission",
                     message: format!(
                         "preview operations cannot install live view `{name}` into authoritative runtime state; declare the live surface before entering preview or add preview-scoped declaration support"
@@ -231,7 +231,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             }
             ForgeQueryProgramEffect::DeclareDerivedView(view) => {
                 Err(ForgeQueryRuntimeError::PreviewOperationEffectDenied {
-                    label: self.label.clone(),
+                    label: self.label.to_string(),
                     stage: "effect-admission",
                     message: format!(
                         "preview operations cannot install computed view `{}` into authoritative runtime state; declare the computed surface before entering preview or add preview-scoped declaration support",

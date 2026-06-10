@@ -1,9 +1,19 @@
-error[E0451]: fields `report` and `snapshot_digest` of struct `ForgeQueryDomainEntrySupportSnapshot` are private
- --> tests/ui/domain_entry/boundaries/domain_entry_support_snapshot_constructor_private.rs:6:9
+error: cannot construct `ForgeQueryDomainEntrySupportSnapshot` with struct literal syntax due to private fields
+ --> tests/ui/domain_entry/boundaries/domain_entry_support_snapshot_constructor_private.rs:5:13
   |
 5 |     let _ = ForgeQueryDomainEntrySupportSnapshot {
-  |             ------------------------------------ in this type
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 6 |         report: query.support_report(),
-  |         ^^^^^^ private field
+  |         ------------------------------ private field
 7 |         snapshot_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^ private field
+  |         ------------------------------ private field
+  |
+  = note: ...and other private field `runtime_support_matrix` that was not provided
+help: you might have meant to use the `from_support_report` associated function
+  |
+5 -     let _ = ForgeQueryDomainEntrySupportSnapshot {
+6 -         report: query.support_report(),
+7 -         snapshot_digest: String::new(),
+8 -     };
+5 +     let _ = ForgeQueryDomainEntrySupportSnapshot::from_support_report(_);
+  |

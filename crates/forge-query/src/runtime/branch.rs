@@ -4,9 +4,10 @@ use super::{
     ForgeQueryIntentDenialEvidence, ForgeQueryIntentSourceLane, ForgeQueryRuntime,
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
 };
+use crate::session_label::ForgeQuerySessionLabel;
 
 pub struct ForgeQueryBranchSession<'a> {
-    label: String,
+    label: ForgeQuerySessionLabel,
     runtime: &'a mut ForgeQueryRuntime,
     effect_policy: ForgeQueryEffectPolicy,
     basis_admission: ForgeQueryBranchBasisAdmission,
@@ -16,14 +17,14 @@ pub struct ForgeQueryBranchSession<'a> {
 
 impl<'a> ForgeQueryBranchSession<'a> {
     pub(super) fn new(
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         runtime: &'a mut ForgeQueryRuntime,
         options: ForgeQueryBranchOptions,
         basis_admission: ForgeQueryBranchBasisAdmission,
     ) -> Self {
         let basis_snapshot_token = runtime.snapshot_token();
         Self {
-            label: label.into(),
+            label,
             runtime,
             effect_policy: options.effect_policy(),
             basis_admission,
@@ -33,6 +34,10 @@ impl<'a> ForgeQueryBranchSession<'a> {
     }
 
     pub fn label(&self) -> &str {
+        self.label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
         &self.label
     }
 

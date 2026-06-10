@@ -1,4 +1,5 @@
 use forge_proof::TransitionOutcome;
+use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 use forge_relational::facade::runtime::InvariantCatalog;
 use serde_json::json;
 
@@ -227,7 +228,7 @@ pub(super) fn workflow_requested(
     crate::domain_capabilities::ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
         "worth.spatial.workflow.preview_mutation",
         "preview mutation planning should preserve canonical workflow semantics",
-        "preview-session:certification",
+        BridgePreviewSessionIdentity::new("preview-session:certification"),
     )
     .for_intent_declaration(declaration)
 }

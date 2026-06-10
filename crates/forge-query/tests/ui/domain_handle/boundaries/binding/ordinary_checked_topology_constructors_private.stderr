@@ -22,18 +22,3 @@ error[E0624]: associated function `binding` is private
   | |         linked_artifacts: ForgeQueryBindingLinkedArtifacts,
   | |     ) -> Self {
   | |_____________- private associated function defined here
-
-error[E0624]: associated function `orchestration` is private
-  --> tests/ui/domain_handle/boundaries/binding/ordinary_checked_topology_constructors_private.rs:12:48
-   |
-12 |       let _ = ForgeQueryOrdinaryCheckedTopology::orchestration(
-   |                                                  ^^^^^^^^^^^^^ private associated function
-   |
-  ::: src/ordinary_outcome/topology.rs
-   |
-   | /     pub(crate) fn orchestration(
-   | |         stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
-   | |         retained_digest: Option<String>,
-   | |         refusal_class: Option<ForgeQueryDeclarationEntryOrchestrationRefusalClass>,
-   | |     ) -> Self {
-   | |_____________- private associated function defined here

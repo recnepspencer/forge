@@ -1,11 +1,13 @@
 error[E0599]: no method named `materialize` found for struct `ForgeQueryIntentPreviewInspectionDraft` in the current scope
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_preview_inspection_requires_because.rs:16:10
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_preview_inspection_requires_because.rs:21:10
    |
-13 |       let _ = forge_query_domain("worth.spatial")
+15 |       let _ = forge_query_domain("worth.spatial")
    |  _____________-
-14 | |         .for_intent(&declaration)
-15 | |         .inspects_query_preview("topology.preview_conflict", "preview-session:42")
-16 | |         .materialize();
+16 | |         .for_intent(&declaration)
+17 | |         .inspects_query_preview(
+18 | |             "topology.preview_conflict",
+...  |
+21 | |         .materialize();
    | |         -^^^^^^^^^^^ method not found in `ForgeQueryIntentPreviewInspectionDraft`
    | |_________|
    |

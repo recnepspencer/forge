@@ -73,12 +73,16 @@ fn public_future_signal_posture_still_stops_before_preparation_under_orchestrati
         ),
     );
 
-    assert!(matches!(
-        temporal,
-        ForgeQuerySignalCompatibilityOrchestrationOutcome::Deferred(_)
-    ));
-    assert!(matches!(
-        async_signal,
-        ForgeQuerySignalCompatibilityOrchestrationOutcome::Deferred(_)
-    ));
+    match temporal {
+        ForgeQuerySignalCompatibilityOrchestrationOutcome::Bound(value) => {
+            assert_eq!(value.future_projection().class().as_str(), "temporal");
+        }
+        _ => panic!("temporal orchestration should bind under the public runtime"),
+    }
+    match async_signal {
+        ForgeQuerySignalCompatibilityOrchestrationOutcome::Bound(value) => {
+            assert_eq!(value.future_projection().class().as_str(), "async_resource");
+        }
+        _ => panic!("async orchestration should bind under the public runtime"),
+    }
 }

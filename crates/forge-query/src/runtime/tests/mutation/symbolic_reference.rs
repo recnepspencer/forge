@@ -137,7 +137,7 @@ fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
         .expect("live view should declare");
 
     let mut preview = workspace
-        .preview("symbolic-preview")
+        .preview(test_session_label("symbolic-preview"))
         .expect("preview should open");
     let receipt = preview
         .batch(|batch| {

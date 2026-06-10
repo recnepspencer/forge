@@ -1,35 +1,77 @@
-error[E0451]: fields `effect_name`, `trigger_source_kind`, `trigger_commit_identity`, `source_lane`, `terminal_lane`, `effect_policy`, `loop_prevention`, `idempotence`, `termination`, `phase_nodes`, `resubscribed_live_view_count`, `resubscribed_derived_view_count`, `pending_write_intent_count`, `graph_digest` and `inspection_digest` of struct `ForgeQueryFeedbackPhaseGraphInspection` are private
-  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:8:9
+error: cannot construct `ForgeQueryFeedbackPhaseGraphInspection` with struct literal syntax due to private fields
+  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:7:13
    |
  7 |     let _ = ForgeQueryFeedbackPhaseGraphInspection {
-   |             -------------------------------------- in this type
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  8 |         effect_name: String::new(),
-   |         ^^^^^^^^^^^ private field
+   |         -------------------------- private field
  9 |         trigger_source_kind: forge_query::facade::ForgeQueryEffectTriggerSourceKind::LiveView,
-   |         ^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------------------------------------- private field
 10 |         trigger_commit_identity: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------------- private field
 11 |         source_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         ^^^^^^^^^^^ private field
+   |         -------------------------------------------------------- private field
 12 |         terminal_lane: ForgeQueryAuthorityLane::EffectDeliveryState,
-   |         ^^^^^^^^^^^^^ private field
+   |         ----------------------------------------------------------- private field
 13 |         effect_policy: Some(ForgeQueryEffectPolicy::AuthoritativeAllowed),
-   |         ^^^^^^^^^^^^^ private field
+   |         ----------------------------------------------------------------- private field
 14 |         loop_prevention: forge_query::facade::ForgeQueryEffectLoopPrevention::SingleCommitBoundary,
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------------------------------------------ private field
 15 |         idempotence: forge_query::facade::ForgeQueryEffectIdempotence::DeliveryReceiptIdentity,
-   |         ^^^^^^^^^^^ private field
+   |         -------------------------------------------------------------------------------------- private field
 16 |         termination: ForgeQueryFeedbackTermination::Delivered,
-   |         ^^^^^^^^^^^ private field
+   |         ----------------------------------------------------- private field
 17 |         phase_nodes: vec![ForgeQueryFeedbackPhaseNode::TruthRead],
-   |         ^^^^^^^^^^^ private field
+   |         --------------------------------------------------------- private field
 18 |         resubscribed_live_view_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------- private field
 19 |         resubscribed_derived_view_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ---------------------------------- private field
 20 |         pending_write_intent_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------- private field
 21 |         graph_digest: String::new(),
-   |         ^^^^^^^^^^^^ private field
+   |         --------------------------- private field
 22 |         inspection_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------- private field
+   |
+   = note: ...and other private fields `write_adjacent_trigger_class` and `write_adjacent_trigger_origin_identity` that were not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 7 -     let _ = ForgeQueryFeedbackPhaseGraphInspection {
+ 8 -         effect_name: String::new(),
+ 9 -         trigger_source_kind: forge_query::facade::ForgeQueryEffectTriggerSourceKind::LiveView,
+10 -         trigger_commit_identity: String::new(),
+11 -         source_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+12 -         terminal_lane: ForgeQueryAuthorityLane::EffectDeliveryState,
+13 -         effect_policy: Some(ForgeQueryEffectPolicy::AuthoritativeAllowed),
+14 -         loop_prevention: forge_query::facade::ForgeQueryEffectLoopPrevention::SingleCommitBoundary,
+15 -         idempotence: forge_query::facade::ForgeQueryEffectIdempotence::DeliveryReceiptIdentity,
+16 -         termination: ForgeQueryFeedbackTermination::Delivered,
+17 -         phase_nodes: vec![ForgeQueryFeedbackPhaseNode::TruthRead],
+18 -         resubscribed_live_view_count: 0,
+19 -         resubscribed_derived_view_count: 0,
+20 -         pending_write_intent_count: 0,
+21 -         graph_digest: String::new(),
+22 -         inspection_digest: String::new(),
+23 -     };
+ 7 +     let _ = ForgeQueryFeedbackPhaseGraphInspection::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _);
+   |
+ 7 -     let _ = ForgeQueryFeedbackPhaseGraphInspection {
+ 8 -         effect_name: String::new(),
+ 9 -         trigger_source_kind: forge_query::facade::ForgeQueryEffectTriggerSourceKind::LiveView,
+10 -         trigger_commit_identity: String::new(),
+11 -         source_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+12 -         terminal_lane: ForgeQueryAuthorityLane::EffectDeliveryState,
+13 -         effect_policy: Some(ForgeQueryEffectPolicy::AuthoritativeAllowed),
+14 -         loop_prevention: forge_query::facade::ForgeQueryEffectLoopPrevention::SingleCommitBoundary,
+15 -         idempotence: forge_query::facade::ForgeQueryEffectIdempotence::DeliveryReceiptIdentity,
+16 -         termination: ForgeQueryFeedbackTermination::Delivered,
+17 -         phase_nodes: vec![ForgeQueryFeedbackPhaseNode::TruthRead],
+18 -         resubscribed_live_view_count: 0,
+19 -         resubscribed_derived_view_count: 0,
+20 -         pending_write_intent_count: 0,
+21 -         graph_digest: String::new(),
+22 -         inspection_digest: String::new(),
+23 -     };
+ 7 +     let _ = ForgeQueryFeedbackPhaseGraphInspection::from_effect_intent_receipt(_);
+   |

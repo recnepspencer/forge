@@ -28,6 +28,7 @@ use crate::facade::{
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
+use crate::ForgeQuerySessionLabel;
 
 mod transcript_authority;
 
@@ -207,13 +208,13 @@ struct TranscriptPreviewBasis;
 impl ForgeQueryRuntimePreviewBasisAdapter for TranscriptPreviewBasis {
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
         Ok(ForgeQueryPreviewBasisAdmission::new(
             authority,
-            label,
+            label.clone(),
             effect_policy,
             ["transcript-preview-basis"],
         ))

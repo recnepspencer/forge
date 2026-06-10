@@ -51,7 +51,7 @@ fn runtime_surfaces_authority_lanes_on_public_handles_and_receipts() {
 fn preview_defaults_to_derive_only_effect_policy_but_keeps_explicit_writes_preview_local() {
     let mut runtime = stateful_bridge_task_runtime();
     let mut preview = runtime
-        .preview("default policy")
+        .preview(test_session_label("default policy"))
         .expect("preview session should be admitted");
 
     assert_eq!(preview.effect_policy(), ForgeQueryEffectPolicy::DeriveOnly);
@@ -109,7 +109,7 @@ fn sandboxed_preview_policy_admits_only_sandboxed_write_intents() {
     let mut runtime = stateful_bridge_task_runtime();
     let preview = runtime
         .preview_with_options(
-            "sandboxed writes",
+            test_session_label("sandboxed writes"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview session should be admitted");
@@ -157,7 +157,7 @@ fn derive_only_preview_denies_operation_write_effects() {
         .expect("operation ref should build");
 
     let mut preview = runtime
-        .preview("derive-only operation")
+        .preview(test_session_label("derive-only operation"))
         .expect("preview session should be admitted");
     let error = preview
         .run_operation(

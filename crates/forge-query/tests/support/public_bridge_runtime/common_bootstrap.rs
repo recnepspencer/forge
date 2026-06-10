@@ -54,12 +54,14 @@ impl PublicBridgeRuntimeHarness {
     }
 }
 
+#[allow(dead_code)]
 pub fn reset_public_bridge_runtime_bootstrap_invocations() {
     BOOTSTRAP_INVOCATIONS.with(|counts| {
         *counts.borrow_mut() = [0; 2];
     });
 }
 
+#[allow(dead_code)]
 pub fn public_bridge_runtime_bootstrap_invocation_count(
     path: PublicBridgeRuntimeBootstrapPath,
 ) -> usize {

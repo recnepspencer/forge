@@ -4,21 +4,21 @@ use crate::subscription::SubscriptionActivationInput;
 impl ForgeQueryRuntime {
     pub fn preview<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
     ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
         self.preview_with_options(label, ForgeQueryPreviewOptions::default())
     }
 
     pub fn branch<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
     ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
         self.branch_with_options(label, ForgeQueryBranchOptions::default())
     }
 
     pub fn branch_with_options<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         options: ForgeQueryBranchOptions,
     ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
         self.try_branch_with_options(label, options)
@@ -26,18 +26,18 @@ impl ForgeQueryRuntime {
 
     pub fn try_branch<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
     ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
         self.try_branch_with_options(label, ForgeQueryBranchOptions::default())
     }
 
     pub fn try_branch_with_options<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         options: ForgeQueryBranchOptions,
     ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
-        let label = label.into();
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::BranchPreview)?;
+        self.admit_branch_session_label(&label)?;
         let branch_support_evidence = self
             .backend
             .support_profile()
@@ -48,7 +48,7 @@ impl ForgeQueryRuntime {
         evidence.extend(branch_support_evidence);
         let basis_admission = ForgeQueryBranchBasisAdmission::new(
             &self.evidence_authority,
-            &label,
+            label.clone(),
             options.effect_policy(),
             evidence,
         );
@@ -62,7 +62,7 @@ impl ForgeQueryRuntime {
 
     pub fn preview_with_options<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         options: ForgeQueryPreviewOptions,
     ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
         self.try_preview_with_options(label, options)
@@ -70,18 +70,18 @@ impl ForgeQueryRuntime {
 
     pub fn try_preview<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
     ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
         self.try_preview_with_options(label, ForgeQueryPreviewOptions::default())
     }
 
     pub fn try_preview_with_options<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         options: ForgeQueryPreviewOptions,
     ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
-        let label = label.into();
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::BranchPreview)?;
+        self.admit_preview_session_label(&label)?;
         let basis_admission = self.backend.admit_preview_basis(
             &label,
             options.effect_policy(),
@@ -118,7 +118,7 @@ impl ForgeQueryRuntime {
         let support_profile = self.backend.support_profile();
         let Some(row) = support_profile.support_for(family) else {
             return Err(ForgeQueryRuntimeError::UnsupportedFacadeFamily(
-                ForgeQueryRuntimeSupportDenial::new(
+                ForgeQueryRuntimeSupportDenial::unsupported(
                     family,
                     "backend support profile does not declare this facade family",
                 ),
@@ -130,6 +130,8 @@ impl ForgeQueryRuntime {
             Err(ForgeQueryRuntimeError::UnsupportedFacadeFamily(
                 ForgeQueryRuntimeSupportDenial::new(
                     family,
+                    row.status(),
+                    Some(row.teaching_posture()),
                     format!(
                         "backend support profile does not admit `{}` lane for `{}` facade family",
                         authority_lane, family
@@ -137,6 +139,28 @@ impl ForgeQueryRuntime {
                 ),
             ))
         }
+    }
+
+    fn admit_preview_session_label(
+        &mut self,
+        label: &ForgeQuerySessionLabel,
+    ) -> Result<(), ForgeQueryRuntimeError> {
+        admit_session_label_for_lane(
+            &mut self.preview_session_labels,
+            ForgeQueryAuthorityLane::PreviewTruth,
+            label,
+        )
+    }
+
+    fn admit_branch_session_label(
+        &mut self,
+        label: &ForgeQuerySessionLabel,
+    ) -> Result<(), ForgeQueryRuntimeError> {
+        admit_session_label_for_lane(
+            &mut self.branch_session_labels,
+            ForgeQueryAuthorityLane::BranchLocalTruth,
+            label,
+        )
     }
 
     pub(super) fn install_live_subscription_for_request(
@@ -352,4 +376,20 @@ fn install_live_subscription_activation(
         });
     }
     Ok(activation_receipt)
+}
+
+fn admit_session_label_for_lane(
+    admitted_labels: &mut std::collections::BTreeMap<String, ForgeQuerySessionLabel>,
+    authority_lane: ForgeQueryAuthorityLane,
+    label: &ForgeQuerySessionLabel,
+) -> Result<(), ForgeQueryRuntimeError> {
+    let identity = label.identity_digest().to_string();
+    if admitted_labels.contains_key(&identity) {
+        return Err(ForgeQueryRuntimeError::SessionLabelCollision {
+            authority_lane,
+            label: label.clone(),
+        });
+    }
+    admitted_labels.insert(identity, label.clone());
+    Ok(())
 }

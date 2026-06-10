@@ -29,7 +29,7 @@ error: cannot construct `PreviewSubscriptionPromotionHandoff` with struct litera
 11 |         handoff_digest: "handoff".to_string(),
    |         ------------------------------------- private field
    |
-   = note: ...and other private fields `residue_report_digest` and `performance_receipt` that were not provided
+   = note: ...and other private fields that were not provided
 help: you might have meant to use the `new` associated function
    |
  4 -     let _ = PreviewSubscriptionPromotionHandoff {

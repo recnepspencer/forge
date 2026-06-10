@@ -263,6 +263,361 @@ early.
 
 ## Milestone 9.6 Named Certification Suites
 
+### 9.6. Phase 1 Canonical Evidence Identity Stability Test
+
+Purpose
+
+Prove that the first public runtime-backed evidence-identity surfaces stop
+teaching caller-owned string folklore and instead emit one Query-owned,
+scheme-versioned canonical evidence identity with typed same-scheme comparison
+semantics.
+
+Scenario
+
+- exercise the first covered runtime-backed evidence surfaces for:
+  - runtime public support matrix row identity
+  - runtime public support matrix aggregate identity
+  - runtime state snapshot identity
+  - preview intent admission identity
+  - preview intent receipt identity
+  - intent denial evidence identity
+- compare:
+  - runtime-emitted evidence identities
+  - independently composed evidence identities through the public
+    `ForgeQueryEvidenceIdentity::compose(...)` surface
+- vary:
+  - punctuation-heavy field values including pipe, colon, and tag-shaped text
+  - equivalent semantic fields across different surface scopes
+  - hostile sequence layouts that would collide under joined-string folklore
+  - alternate evidence-identity scheme versions for typed mismatch behavior
+
+Required concrete lanes
+
+- support-matrix parity lane where runtime-emitted row and matrix identities
+  are scheme-versioned canonical tokens
+- state-snapshot parity lane where basis, result-shape, lane, and explanation
+  identity remain canonical under punctuation-heavy values
+- preview admission/receipt lane where Query-owned preview evidence identity is
+  emitted without caller-owned digest assembly
+- intent denial lane where invariant evidence with hostile delimiter content
+  does not collapse distinct evidence sets
+- cross-scheme comparison lane where same-scope identities with different
+  scheme versions fail typed rather than comparing raw bytes
+
+Must verify
+
+- every covered phase-1 surface emits a Query-owned evidence identity token
+  rather than an unversioned raw digest string
+- the evidence identity token carries scheme identity in the value itself so
+  scheme drift is detectable from the emitted token alone
+- the public constructor surface is real and parity-capable from birth rather
+  than being runtime-internal helper plumbing
+- hostile delimiter and separator content cannot collapse distinct field sets
+  into one identity
+- same-scheme comparison is explicit and cross-scheme comparison fails typed
+  rather than degrading into byte comparison
+- the covered runtime-backed product surfaces no longer require caller-owned
+  `hash_parts(...)`, `Debug`, `Display`, or joined-string identity folklore to
+  produce machine-checkable evidence identity
+
+Required verification output
+
+- `evidence_scope_digest`
+- `evidence_identity_token`
+- `scheme_version_token`
+- `support_matrix_digest`
+- `state_digest`
+- `preview_admission_digest`
+- `preview_receipt_digest`
+- `intent_denial_digest`
+- `failure_digest`
+
+Pass condition
+
+Phase 1 closes only when the first ordinary runtime-backed evidence surfaces
+emit scheme-versioned canonical evidence identity through a public,
+proof-carrying constructor lane, and hostile delimiter or scheme drift
+pressure cannot silently collapse or miscompare identities.
+
+### 9.6. Phase 2 Query Digest Surface Migration Closure Test
+
+Purpose
+
+Prove that the covered Query-owned digest surfaces stop teaching string-joined
+digest folklore and instead lower through the runtime-owned canonical
+evidence-identity primitive introduced in Phase 1.
+
+Scenario
+
+- exercise the covered Query-owned digest surfaces for:
+  - runtime public API family contract digest
+  - runtime public API aggregate contract digest
+  - runtime public support matrix row and aggregate digests
+  - runtime state snapshot digest
+  - runtime public API transcript digest
+  - application support report digest
+- compare:
+  - runtime-emitted digests from the ordinary product surfaces
+  - independently recomposed digests through the public
+    `ForgeQueryEvidenceIdentity::compose(...)` surface
+- vary:
+  - punctuation-heavy identity fields, including pipe, colon, and tag-shaped
+    values
+  - supported, deferred, and unsupported public API family rows
+  - optional support report profile publication presence and absence
+  - support-gated transcript denial digest sequences
+
+Required concrete lanes
+
+- public-api-contract parity lane where family-contract and aggregate-contract
+  digests recompose exactly from the same typed evidence
+- support-matrix parity lane where the runtime-emitted public support matrix
+  row and aggregate digests lower through canonical evidence identity
+- state-snapshot parity lane where state digests recompose exactly from typed
+  lane, basis, result-shape, explanation, and optional posture inputs
+- transcript parity lane where runtime public API transcript evidence lowers
+  through canonical identity even under punctuation-heavy neighbor-denial
+  digest sequences
+- support-report parity lane where support report publication posture changes
+  only the declared support-report identity fields while preserving canonical
+  recomposition
+- residue-audit lane where the covered Query source surfaces prove zero
+  remaining `hash_parts(...)` digest construction through an exact structural
+  assertion
+
+Must verify
+
+- every covered Phase 2 digest surface emits a scheme-versioned canonical
+  evidence identity token rather than a format-string digest
+- independently recomposing the same typed evidence reproduces each covered
+  digest exactly
+- no covered surface preserves the old string-joined digest value by
+  re-encoding old separator folklore inside the new primitive
+- optional publication surfaces such as support-report profiles participate in
+  digest identity through explicit optional identity fields rather than ad hoc
+  string placeholders
+- the covered Query surfaces contain zero remaining `hash_parts(...)`,
+  `Debug`, `Display`, or joined-string digest construction for the covered
+  identity lane
+
+Required verification output
+
+- `public_api_family_contract_digest`
+- `public_api_contract_digest`
+- `support_matrix_digest`
+- `state_digest`
+- `public_api_transcript_digest`
+- `support_report_digest`
+- `scheme_version_token`
+- `failure_digest`
+
+Pass condition
+
+Phase 2 closes only when every covered Query-owned digest surface lowers
+through the canonical evidence-identity primitive, independently recomposes
+exactly from typed evidence, and leaves zero format-string digest residue in
+the covered source surfaces.
+
+### 9.6. Phase 3 Typed Stop Class Taxonomy Test
+
+Purpose
+
+Prove that the existing `ForgeQueryRuntimeError` topology exposes one
+runtime-owned typed stop-class accessor for covered denial and stop paths, so
+consumer control flow can match on typed semantics instead of message text.
+
+Scenario
+
+- classify covered runtime stop paths for:
+  - runtime bootstrap/component-missing failures
+  - support/admission denials
+  - existing-truth assertion, probe, binding, continuity, naming, and symbolic
+    reference denials
+  - graph composition and graph-composition domain-invariant denials
+  - read composition and read domain-invariant denials
+  - runtime lookup, missing-artifact, declaration-failure, and preview-promotion
+    failures
+  - effect-policy, unsupported-authority, and intent failure paths
+- compare:
+  - the original `ForgeQueryRuntimeError` payload
+  - the typed `error.stop_class()` projection
+- vary:
+  - multiple denial kinds inside the same family
+  - message rewording on message-bearing variants
+  - future-variant drift pressure on the runtime error enum
+
+Required concrete lanes
+
+- denial-payload preservation lane where rich denial payloads remain reachable
+  through the stop-class context rather than being flattened into generic tags
+- unsupported-family lane where support posture, denied family, and reason stay
+  typed across the stop-class boundary
+- preview-promotion lane where all promotion failure variants converge on one
+  typed promotion stop class carrying the original denial evidence
+- unsupported-authority lane where authority denial becomes a named stop-class
+  variant instead of caller-owned message probing
+- completeness lane where the stop-class classifier matches the full covered
+  runtime error enum with no wildcard escape hatch
+
+Must verify
+
+- every covered runtime stop path classifies to exactly one stop class
+- the stop-class accessor is an accessor over `ForgeQueryRuntimeError`, not a
+  second parallel error family
+- rich denial payloads remain available through typed context on the stop class
+- preview-promotion variants classify through one typed promotion class keyed by
+  `ForgeQueryPreviewPromotionDenialKind`
+- support/admission denials carry their denied facade family through typed
+  payload access, not through message text
+- changing message wording on message-bearing variants does not change the stop
+  class
+- adding a new covered runtime error variant requires an explicit stop-class
+  mapping rather than silently falling into `Other`/`Unknown`
+
+Required verification output
+
+- `stop_class_digest`
+- `support_denial_digest`
+- `preview_promotion_digest`
+- `intent_denial_digest`
+- `failure_digest`
+
+Pass condition
+
+Phase 3 closes only when the covered runtime stop paths classify through one
+typed stop-class accessor with payload-preserving context, zero catch-all
+escape hatches, and zero control-flow dependence on message text.
+
+### 9.6. Phase 5 Canonical Session Label Artifact Test
+
+Purpose
+
+Prove that the session-label identity surface is a real typed artifact rather
+than a validated display string: namespace, ordered name segments, and
+canonical evidence-identity participation must determine identity under hostile
+construction and collision pressure.
+
+Scenario
+
+- construct session labels through:
+  - typed namespace plus typed segment construction
+  - convenience string-based construction through the public surface
+- compare:
+  - artifact equality
+  - independently recomposed canonical evidence identity
+  - display rendering as a non-authoritative projection
+- vary:
+  - equivalent semantic labels across different construction paths
+  - ordered segment permutations
+  - namespace changes with identical name segments
+  - render-collision cases where distinct typed labels produce the same dotted
+    display string
+  - empty namespace, empty name-segment, and missing-segment invalid inputs
+
+Required concrete lanes
+
+- construction-path parity lane where typed and convenience construction
+  produce the same label identity and canonical digest participation
+- ordered-segment drift lane where the same segment set in a different order
+  produces a distinct label identity and distinct digest
+- namespace drift lane where identical name segments under a different
+  namespace remain a distinct label identity and digest
+- render-collision lane where two distinct typed labels render to the same
+  display string but remain distinct artifacts with distinct digests
+- invalid-input lane where empty namespace, empty segment, and missing segment
+  inputs fail typed and early
+
+Must verify
+
+- session label identity is determined by typed namespace plus ordered typed
+  name segments rather than by display rendering
+- equivalent semantic labels produce the same canonical evidence identity
+  regardless of construction path
+- display rendering is a projection over the artifact and does not participate
+  in equality
+- namespace and segment ordering both participate in identity and digest
+  derivation
+- render-collision pressure cannot collapse distinct label identities
+- invalid label parts fail typed and early through the public constructor
+  surface
+
+Required verification output
+
+- `session_label_identity_digest`
+- `session_label_scope_token`
+- `session_label_display`
+- `failure_digest`
+
+Pass condition
+
+Phase 5 closes only when session labels behave as canonical typed identity
+artifacts whose equality and digest participation survive hostile construction,
+ordering drift, namespace drift, render-collision pressure, and invalid input
+attempts.
+
+### 9.6. Phase 6 Canonical Session Label Intake Test
+
+Purpose
+
+Prove that preview and branch session entry admit only canonical typed session
+labels, record label identity through basis-admission evidence, and stop
+equivalent label replay with a typed collision class instead of silently
+merging on rendered strings.
+
+Scenario
+
+- admit preview and branch sessions through the ordinary public workspace and
+  runtime entrypoints using typed session labels
+- compare basis-admission evidence against independently recomposed canonical
+  evidence identities built from the admitted session-label identity
+- replay equivalent session-label identities within the same session family
+- replay the same session-label identity across different session families
+- admit distinct typed labels that render to the same dotted display string
+
+Required concrete lanes
+
+- preview-admission identity lane where preview basis admission stores the
+  canonical session-label identity and recomposes to the same digest
+- branch-admission identity lane where branch basis admission stores the
+  canonical session-label identity and recomposes to the same digest
+- same-family replay collision lane where re-admitting an equivalent preview or
+  branch label stops with `ForgeQueryStopClass::SessionLabelCollision`
+- cross-family coexistence lane where the same session-label identity may be
+  admitted once in preview and once in branch without a fake global collision
+- render-collision lane where two distinct typed labels with the same display
+  string admit independently because collision scope is identity-based, not
+  display-based
+- raw-string eradication lane where ordinary-path preview and branch entry call
+  sites no longer pass free-form strings
+
+Must verify
+
+- ordinary-path preview and branch entry requires `ForgeQuerySessionLabel`
+  rather than `impl Into<String>`
+- preview and branch basis-admission digests record
+  `session_label_identity` rather than rendered string folklore
+- equivalent label replay within the same session family stops with a typed
+  session-label collision class
+- collision posture is scoped per session family rather than enforced through a
+  global workspace registry
+- display-colliding but identity-distinct labels do not silently merge or
+  falsely collide
+
+Required verification output
+
+- `preview_session_basis_digest`
+- `branch_session_basis_digest`
+- `session_label_collision_stop_class`
+- `render_collision_admission_digest`
+- `raw_string_entrypoint_audit`
+
+Pass condition
+
+Phase 6 closes only when preview and branch session entry are typed-label
+boundaries, basis admission evidence records canonical session-label identity,
+same-family replay collisions stop through a typed class, and no ordinary-path
+entrypoint remains on raw strings.
+
 ### 9.6. Mixed Truth Time Async Query Delivery Ordering Test
 
 Purpose

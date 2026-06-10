@@ -1,4 +1,4 @@
-error[E0451]: fields `fixture_size`, `artifact_digest`, `evidence_reference_width`, `anchor_derivation_slope_counter`, `reference_resolution_slope_counter`, `admission_slope_counter`, `bridge_envelope_slope_counter`, `materialization_slope_counter`, `artifact_serialization_slope_counter`, `bridge_scan_fallback_count`, `bridge_readmission_proof_digest` and `snapshot_digest` of struct `CausalInspectionScaleCounterSnapshot` are private
+error[E0451]: fields `fixture_size`, `artifact_digest`, `evidence_reference_width`, `anchor_derivation_slope_counter`, `reference_resolution_slope_counter`, `admission_slope_counter`, `bridge_envelope_slope_counter`, `materialization_slope_counter`, `artifact_serialization_slope_counter`, `bridge_unindexed_scan_count`, `bridge_readmission_proof_digest` and `snapshot_digest` of struct `CausalInspectionScaleCounterSnapshot` are private
   --> tests/ui/causal_inspection_scale_counter_snapshot_constructor_private.rs:5:9
    |
  4 |     let _ = CausalInspectionScaleCounterSnapshot {
@@ -21,8 +21,8 @@ error[E0451]: fields `fixture_size`, `artifact_digest`, `evidence_reference_widt
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 13 |         artifact_serialization_slope_counter: 0,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         bridge_scan_fallback_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         bridge_unindexed_scan_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 15 |         bridge_readmission_proof_digest: None,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 16 |         snapshot_digest: String::new(),

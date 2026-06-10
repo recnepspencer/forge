@@ -61,12 +61,21 @@ fn temporal_and_async_signal_debt_stop_before_prepared_continuation_exists() {
     .into_checked()
     .into_outcome();
 
-    assert!(matches!(
-        temporal,
-        ForgeQueryPreparedContinuationOutcome::Deferred(_)
-    ));
-    assert!(matches!(
-        async_signal,
-        ForgeQueryPreparedContinuationOutcome::Deferred(_)
-    ));
+    match temporal {
+        ForgeQueryPreparedContinuationOutcome::Prepared(prepared) => {
+            assert_eq!(prepared.future_projection().class().as_str(), "temporal");
+            assert!(prepared.signal_compatibility_digest().is_some());
+        }
+        _ => panic!("temporal future signal posture should prepare under the public runtime"),
+    }
+    match async_signal {
+        ForgeQueryPreparedContinuationOutcome::Prepared(prepared) => {
+            assert_eq!(
+                prepared.future_projection().class().as_str(),
+                "async_resource"
+            );
+            assert!(prepared.signal_compatibility_digest().is_some());
+        }
+        _ => panic!("async future signal posture should prepare under the public runtime"),
+    }
 }

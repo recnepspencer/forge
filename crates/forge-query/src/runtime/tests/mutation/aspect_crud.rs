@@ -302,7 +302,7 @@ fn preview_insert_uses_aspect_native_authoring_and_stays_preview_local() {
         .expect("task runtime should open a named workspace");
     let mut preview = workspace
         .preview_with_options(
-            "task-preview",
+            test_session_label("task-preview"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview should open");

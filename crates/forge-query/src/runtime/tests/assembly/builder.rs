@@ -259,7 +259,7 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
     }
     {
         let preview = runtime
-            .try_preview("external preview")
+            .try_preview(test_session_label("external preview"))
             .expect("preview basis adapter should admit preview basis");
         assert_eq!(preview.basis_admission().label(), "external preview");
         assert_eq!(

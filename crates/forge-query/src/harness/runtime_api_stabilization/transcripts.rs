@@ -9,6 +9,7 @@ use crate::facade::{
     ForgeQueryWorkspace,
 };
 use crate::identity::hash_parts;
+use crate::ForgeQuerySessionLabel;
 
 use super::transcript_runtime::transcript_runtime;
 
@@ -328,7 +329,11 @@ fn preview_proof(
 ) -> (String, usize) {
     let mut preview = workspace
         .preview_with_options(
-            format!("{}.preview", spec.family),
+            ForgeQuerySessionLabel::scoped_strs(
+                "runtime-api-stabilization",
+                [format!("{}.preview", spec.family)],
+            )
+            .expect("preview label should build"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("transcript preview should open");
@@ -405,7 +410,11 @@ fn binding_digest(binding: &crate::facade::ForgeQueryPreviewHandleBindingEvidenc
 fn branch_proof(workspace: &mut ForgeQueryWorkspace, spec: &TranscriptSpec) -> String {
     let mut branch = workspace
         .branch_with_options(
-            format!("{}.branch", spec.family),
+            ForgeQuerySessionLabel::scoped_strs(
+                "runtime-api-stabilization",
+                [format!("{}.branch", spec.family)],
+            )
+            .expect("branch label should build"),
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .expect("transcript branch should open");

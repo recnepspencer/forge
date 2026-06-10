@@ -43,19 +43,25 @@ fn future_signal_subjects_stay_typed_under_public_runtime_posture() {
         &handle,
         Input::<TemporalRuntimeFamily>::new("edge:42"),
     ) {
-        ForgeQueryDeclarationSignalCompatibilityChecked::Deferred(_) => {}
-        _ => panic!(
-            "temporal signal compatibility should remain deferred on the public runtime posture"
-        ),
+        ForgeQueryDeclarationSignalCompatibilityChecked::Compatible(compatibility) => {
+            assert_eq!(
+                compatibility.future_projection().class().as_str(),
+                "temporal"
+            );
+        }
+        _ => panic!("temporal signal compatibility should stay typed and compatible"),
     }
 
     match checked_from_future_public_runtime_signal_posture(
         &handle,
         Input::<AsyncRuntimeFamily>::new("edge:42"),
     ) {
-        ForgeQueryDeclarationSignalCompatibilityChecked::Deferred(_) => {}
-        _ => panic!(
-            "async signal compatibility should remain deferred on the public runtime posture"
-        ),
+        ForgeQueryDeclarationSignalCompatibilityChecked::Compatible(compatibility) => {
+            assert_eq!(
+                compatibility.future_projection().class().as_str(),
+                "async_resource"
+            );
+        }
+        _ => panic!("async signal compatibility should stay typed and compatible"),
     }
 }

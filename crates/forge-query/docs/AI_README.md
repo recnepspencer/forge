@@ -195,6 +195,28 @@ later milestones can extend the same model, but not every visible concept is
 already admitted as a stable production lane. That is why support posture and
 admission belong beside the facade instead of after it.
 
+The ordinary runtime-backed product lane also has four hard boundary rules:
+
+- canonical machine identity comes from `ForgeQueryEvidenceIdentity::compose(...)`,
+  not from caller-owned string hashing, `Debug`, `Display`, or joined delimiters
+- `error.stop_class()` is the machine lane for runtime denials; messages are presentation and may change wording without changing the contract
+- preview and branch entry take `ForgeQuerySessionLabel`, not raw strings, so
+  label identity, replay collision posture, and basis-admission evidence stay
+  runtime-owned
+- workflow preview capability authoring takes
+  `BridgePreviewSessionIdentity`, not ad hoc preview-session strings, so
+  preview-planning evidence stays on the typed artifact lane too
+
+Those last two bullets are intentionally different:
+
+- `ForgeQuerySessionLabel` names an opened preview or branch session on the
+  workspace runtime surface
+- `BridgePreviewSessionIdentity` names the retained preview foundation artifact
+  that declaration-bound workflow evidence binds against
+
+Do not collapse them into one caller-owned string just because both refer to
+"the preview."
+
 Reach for this category when the task sounds like ordinary runtime-backed
 product behavior: declaring retained surfaces, reading them, mutating truth,
 opening preview or branch sessions, inspecting retained handles, or deciding
@@ -249,6 +271,16 @@ anything that looks like a future extension point.
 The mistake to avoid here is assuming that visibility implies support. Query
 wants support posture to be machine-checkable, not guessed from API surface
 shape.
+
+That same machine-checkable posture applies to identity and denial handling.
+If a caller is matching runtime denial text, formatting values into digests, or
+passing raw strings into preview or branch entry, it is bypassing the
+supported ordinary path even if the surrounding surface compiles.
+The same warning applies to workflow preview contribution authoring: use the
+typed preview-session identity artifact instead of smuggling preview identity
+through free-form strings.
+If identity matters to support, replay, inspection, workflow binding, or
+recovery, prefer the Query-owned typed artifact over a caller-owned string.
 
 Read next:
 
@@ -948,6 +980,17 @@ writeback execution themselves. This is why workflow declarations, mutation
 lowering, merge inspection, and writeback declarations can be public Query
 surfaces without turning Query into the owner of all lower bridge semantics.
 
+There is also an important identity split inside this category:
+
+- preview session entry on the workspace runtime surface uses
+  `ForgeQuerySessionLabel`
+- preview-bound workflow inspection and mutation planning use
+  `BridgePreviewSessionIdentity`
+
+The first names the opened runtime session. The second names the retained
+preview foundation artifact used by workflow-capability binding. Treating them
+as interchangeable loses the exact distinction this milestone closed.
+
 Use this category when the job sounds like workflow declaration, preview-bound
 inspection, mutation lowering, merge analysis, or writeback planning.
 
@@ -1384,6 +1427,8 @@ Need public DX:
   layers.
 - Do not assume a public method is supported because it compiles.
 - Do not teach `workspace.write(...)` as the default runtime mutation story.
+- Do not smuggle identity through raw strings when Query ships a typed artifact
+  or typed label for that boundary.
 - Do not add sibling public APIs for future async or temporal work; check support
   matrix for admitted neighbors instead.
 - Do not replace Query async result-state with local `loading`, `retrying`, or
@@ -1398,6 +1443,8 @@ Before building on a Query category, answer these:
 1. What category am I actually in?
 2. What is the public entrypoint for that category?
 3. What is the canonical identity boundary?
+   If this is preview work: is it `ForgeQuerySessionLabel` or
+   `BridgePreviewSessionIdentity`?
 4. What Query artifact or outcome should be preserved instead of flattened?
 5. What support row or admission gate decides whether the surface is real now?
 6. Am I using Query to carry lower-runtime semantics, or am I bypassing Query

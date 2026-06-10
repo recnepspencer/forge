@@ -33,4 +33,4 @@ error: cannot construct `SubscriptionConsumerAttachment` with struct literal syn
 13 |         fanout_report: todo!(),
    |         ---------------------- private field
    |
-   = note: ...and other private field `performance_receipt` that was not provided
+   = note: ...and other private fields `future_selection`, `basis_binding_digest`, `checkpoint_identity_digest` and `performance_receipt` that were not provided

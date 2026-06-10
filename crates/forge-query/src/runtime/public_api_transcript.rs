@@ -1,5 +1,7 @@
 #[cfg(test)]
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimePublicApiTranscriptEvidence {
@@ -22,55 +24,91 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
     #[cfg(test)]
     pub(crate) fn new(
         transcript_family: impl Into<String>,
-        support_contract_digest: impl Into<String>,
-        state_digest: impl Into<String>,
-        live_surface_digest: impl Into<String>,
-        computed_surface_digest: impl Into<String>,
-        effect_surface_digest: impl Into<String>,
-        intent_receipt_digest: impl Into<String>,
-        inspection_digest: impl Into<String>,
-        support_gated_neighbor_denial_digests: impl IntoIterator<Item = impl Into<String>>,
+        support_contract_digest: impl AsRef<str>,
+        state_digest: impl AsRef<str>,
+        live_surface_digest: impl AsRef<str>,
+        computed_surface_digest: impl AsRef<str>,
+        effect_surface_digest: impl AsRef<str>,
+        intent_receipt_digest: impl AsRef<str>,
+        inspection_digest: impl AsRef<str>,
+        support_gated_neighbor_denial_digests: impl IntoIterator<Item = impl AsRef<str>>,
         delivery_residue_count: usize,
-        authority_lane_digest: impl Into<String>,
+        authority_lane_digest: impl AsRef<str>,
         meaningful_assertion_count: usize,
     ) -> Self {
         let transcript_family = transcript_family.into();
-        let support_contract_digest = support_contract_digest.into();
-        let state_digest = state_digest.into();
-        let live_surface_digest = live_surface_digest.into();
-        let computed_surface_digest = computed_surface_digest.into();
-        let effect_surface_digest = effect_surface_digest.into();
-        let intent_receipt_digest = intent_receipt_digest.into();
-        let inspection_digest = inspection_digest.into();
+        let support_contract_digest = support_contract_digest.as_ref().to_string();
+        let state_digest = state_digest.as_ref().to_string();
+        let live_surface_digest = live_surface_digest.as_ref().to_string();
+        let computed_surface_digest = computed_surface_digest.as_ref().to_string();
+        let effect_surface_digest = effect_surface_digest.as_ref().to_string();
+        let intent_receipt_digest = intent_receipt_digest.as_ref().to_string();
+        let inspection_digest = inspection_digest.as_ref().to_string();
         let support_gated_neighbor_denial_digests = support_gated_neighbor_denial_digests
             .into_iter()
-            .map(Into::into)
+            .map(|digest| digest.as_ref().to_string())
             .collect::<Vec<_>>();
-        let authority_lane_digest = authority_lane_digest.into();
+        let authority_lane_digest = authority_lane_digest.as_ref().to_string();
         assert!(
             !support_gated_neighbor_denial_digests.is_empty(),
             "runtime public API transcript evidence must prove at least one support-gated neighbor denial"
         );
-        let mut parts = vec![
-            "forge_query_runtime_public_api_transcript_evidence_v1".to_string(),
-            format!("family:{transcript_family}"),
-            format!("support:{support_contract_digest}"),
-            format!("state:{state_digest}"),
-            format!("live:{live_surface_digest}"),
-            format!("computed:{computed_surface_digest}"),
-            format!("effect:{effect_surface_digest}"),
-            format!("intent:{intent_receipt_digest}"),
-            format!("inspection:{inspection_digest}"),
-            format!("residue:{delivery_residue_count}"),
-            format!("lane:{authority_lane_digest}"),
-            format!("assertions:{meaningful_assertion_count}"),
-        ];
-        parts.extend(
+        let transcript_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::RuntimePublicApiTranscriptEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("transcript_family"),
+            transcript_family.clone(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("support_contract_digest"),
+            support_contract_digest.clone(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("state_digest"),
+            state_digest.clone(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("live_surface_digest"),
+            live_surface_digest.clone(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("computed_surface_digest"),
+            computed_surface_digest.clone(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("effect_surface_digest"),
+            effect_surface_digest.clone(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("intent_receipt_digest"),
+            intent_receipt_digest.clone(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("inspection_digest"),
+            inspection_digest.clone(),
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("support_gated_neighbor_denial_digest"),
             support_gated_neighbor_denial_digests
                 .iter()
-                .map(|digest| format!("denial:{digest}")),
-        );
-        let transcript_digest = hash_parts(&parts);
+                .map(String::as_str),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("delivery_residue_count"),
+            delivery_residue_count,
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("authority_lane_digest"),
+            authority_lane_digest.clone(),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("meaningful_assertion_count"),
+            meaningful_assertion_count,
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
             transcript_family,
             support_contract_digest,

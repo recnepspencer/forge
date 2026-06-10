@@ -30,6 +30,7 @@ mod declarative_live;
 mod diagnostics;
 mod domain_capabilities;
 mod effect_lifecycle;
+mod evidence_identity;
 mod execution;
 pub mod facade;
 mod family_helpers;
@@ -69,6 +70,7 @@ mod saved_query;
 mod schema_macro;
 mod relationship_proof;
 mod schema_view;
+mod session_label;
 mod signal_compatibility_orchestration;
 mod subscription;
 mod target_binding;
@@ -111,6 +113,11 @@ pub use contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestrationPosture,
     ForgeQueryContributionComposedOrchestrationTranscript, ForgeQueryContributionComposedStop,
     ForgeQueryContributionComposedSummary, ForgeQueryContributionIntent,
+};
+pub use evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityComparisonError,
+    ForgeQueryEvidenceIdentityEncoder, ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 pub use family_helpers::{
     ForgeQueryFamilyHelpers, ForgeQueryGeometryActiveFaceSelectionHelperFamily,
@@ -202,6 +209,10 @@ pub use recovery_boundary::{
     ForgeQueryRecoveryGroupedMemberContext, ForgeQueryRecoveryMaterialization,
     ForgeQueryRecoveryRequest, ForgeQueryRecoveryRequestKind, ForgeQueryRecoverySourceFamily,
     ForgeQueryRecoveryStopFamily, ForgeQueryRecoveryStopKind,
+};
+pub use session_label::{
+    ForgeQuerySessionLabel, ForgeQuerySessionLabelError, ForgeQuerySessionLabelSegment,
+    ForgeQuerySessionNamespace,
 };
 pub use signal_compatibility_orchestration::{
     ForgeQuerySignalCompatibilityOrchestration, ForgeQuerySignalCompatibilityOrchestrationChecked,

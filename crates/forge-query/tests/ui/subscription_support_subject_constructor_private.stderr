@@ -1,17 +1,62 @@
-error[E0451]: fields `support_class`, `family`, `declaration_digest`, `admission_digest`, `source_digest` and `digest` of struct `QuerySubscriptionSupportSubject` are private
-  --> tests/ui/subscription_support_subject_constructor_private.rs:7:9
+error: cannot construct `QuerySubscriptionSupportSubject` with struct literal syntax due to private fields
+  --> tests/ui/subscription_support_subject_constructor_private.rs:6:13
    |
  6 |     let _ = QuerySubscriptionSupportSubject {
-   |             ------------------------------- in this type
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  7 |         support_class: QuerySubscriptionSupportClass::Declaration,
-   |         ^^^^^^^^^^^^^ private field
+   |         --------------------------------------------------------- private field
  8 |         family: QuerySubscriptionFamily::DetailExact,
-   |         ^^^^^^ private field
+   |         -------------------------------------------- private field
  9 |         declaration_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------------- private field
 10 |         admission_digest: None,
-   |         ^^^^^^^^^^^^^^^^ private field
+   |         ---------------------- private field
 11 |         source_digest: String::new(),
-   |         ^^^^^^^^^^^^^ private field
+   |         ---------------------------- private field
 12 |         digest: String::new(),
-   |         ^^^^^^ private field
+   |         --------------------- private field
+   |
+   = note: ...and other private field `future_selection` that was not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 6 -     let _ = QuerySubscriptionSupportSubject {
+ 7 -         support_class: QuerySubscriptionSupportClass::Declaration,
+ 8 -         family: QuerySubscriptionFamily::DetailExact,
+ 9 -         declaration_digest: String::new(),
+10 -         admission_digest: None,
+11 -         source_digest: String::new(),
+12 -         digest: String::new(),
+13 -     };
+ 6 +     let _ = QuerySubscriptionSupportSubject::new(_, _, _, _, _, _);
+   |
+ 6 -     let _ = QuerySubscriptionSupportSubject {
+ 7 -         support_class: QuerySubscriptionSupportClass::Declaration,
+ 8 -         family: QuerySubscriptionFamily::DetailExact,
+ 9 -         declaration_digest: String::new(),
+10 -         admission_digest: None,
+11 -         source_digest: String::new(),
+12 -         digest: String::new(),
+13 -     };
+ 6 +     let _ = QuerySubscriptionSupportSubject::declaration(_);
+   |
+ 6 -     let _ = QuerySubscriptionSupportSubject {
+ 7 -         support_class: QuerySubscriptionSupportClass::Declaration,
+ 8 -         family: QuerySubscriptionFamily::DetailExact,
+ 9 -         declaration_digest: String::new(),
+10 -         admission_digest: None,
+11 -         source_digest: String::new(),
+12 -         digest: String::new(),
+13 -     };
+ 6 +     let _ = QuerySubscriptionSupportSubject::activation(_, _);
+   |
+ 6 -     let _ = QuerySubscriptionSupportSubject {
+ 7 -         support_class: QuerySubscriptionSupportClass::Declaration,
+ 8 -         family: QuerySubscriptionFamily::DetailExact,
+ 9 -         declaration_digest: String::new(),
+10 -         admission_digest: None,
+11 -         source_digest: String::new(),
+12 -         digest: String::new(),
+13 -     };
+ 6 +     let _ = QuerySubscriptionSupportSubject::active_lifecycle(_, _);
+   |
+   = and 4 other candidates

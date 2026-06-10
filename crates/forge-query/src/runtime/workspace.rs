@@ -17,6 +17,7 @@ use super::{
     QuerySchemaView,
 };
 use crate::program::ForgeQueryDerivedView;
+use crate::session_label::ForgeQuerySessionLabel;
 
 pub struct ForgeQueryWorkspace {
     pub(super) name: String,
@@ -178,14 +179,14 @@ impl ForgeQueryWorkspace {
 
     pub fn preview<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
     ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
         self.runtime.preview(label)
     }
 
     pub fn preview_with_options<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         options: ForgeQueryPreviewOptions,
     ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
         self.runtime.preview_with_options(label, options)
@@ -193,14 +194,14 @@ impl ForgeQueryWorkspace {
 
     pub fn branch<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
     ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
         self.runtime.branch(label)
     }
 
     pub fn branch_with_options<'a>(
         &'a mut self,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         options: ForgeQueryBranchOptions,
     ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
         self.runtime.branch_with_options(label, options)

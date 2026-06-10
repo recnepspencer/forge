@@ -28,7 +28,7 @@ Stable runtime-backed entry points:
 - `workspace.live_view(...)`
 - `workspace.computed(...)`
 - `workspace.effect(...)`
-- `workspace.preview(...)` / `workspace.branch(...)`
+- `workspace.preview(ForgeQuerySessionLabel, ...)` / `workspace.branch(ForgeQuerySessionLabel, ...)`
 - `workspace.insert(...)`
 - `workspace.update(...)`
 - `workspace.delete(...)`
@@ -66,6 +66,12 @@ Good to know:
 
 - covered intent families are real now, but they are concrete named families,
   not blanket facade-family support.
+- preview and branch entry use `ForgeQuerySessionLabel` as the ordinary typed
+  identity lane; callers should not mint free-form string labels
+- workflow capability authoring that targets preview inspection or preview
+  mutation uses `BridgePreviewSessionIdentity`; session labels name the opened
+  preview or branch context, while preview-session identities name the retained
+  preview artifact that workflow evidence binds against
 - Method presence is not a support claim. Use the support matrix and admission
   gate when you are near deferred or unsupported families.
 - Use the mutation surface report when you need explicit preferred versus

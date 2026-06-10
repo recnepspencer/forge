@@ -1,4 +1,8 @@
 use super::*;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBranchIntentReceipt {
@@ -11,8 +15,8 @@ pub struct ForgeQueryBranchIntentReceipt {
     effect_policy: ForgeQueryEffectPolicy,
     basis_evidence: Vec<String>,
     basis_snapshot_token: String,
-    admission_digest: String,
-    receipt_digest: String,
+    admission_digest: ForgeQueryEvidenceIdentity,
+    receipt_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryBranchIntentReceipt {
@@ -25,27 +29,64 @@ impl ForgeQueryBranchIntentReceipt {
     ) -> Self {
         let basis_evidence = basis_admission.evidence().to_vec();
         let canonical_input_digest = declaration.input_digest();
-        let admission_digest = hash_parts(&[
-            "forge_query_branch_intent_admission_v1".to_string(),
-            format!("intent:{}", declaration.name()),
-            format!("strategy:{}", declaration.strategy_name()),
-            format!("version:{}", declaration.strategy_version()),
-            format!("input:{canonical_input_digest}"),
-            format!("source:{}", declaration.source_lane().as_str()),
-            format!("target:{}", declaration.target_lane()),
-            format!("policy:{}", effect_policy.as_str()),
-            format!("admitted_action:{}", admission.action()),
-            format!("admitted_lane:{}", admission.target_lane()),
-            format!("basis_label:{}", basis_admission.label()),
-            format!("basis_lane:{}", basis_admission.authority_lane()),
-            format!("basis_snapshot:{basis_snapshot_token}"),
-            format!("basis_evidence:{}", basis_evidence.join("|")),
-        ]);
-        let receipt_digest = hash_parts(&[
-            "forge_query_branch_intent_receipt_v1".to_string(),
-            admission_digest.clone(),
-            "posture:branch-local-staged-no-authoritative-execution".to_string(),
-        ]);
+        let admission_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::BranchIntentAdmission)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("intent_name"),
+                    declaration.name(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("strategy_identity"),
+                    declaration.strategy_name(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("strategy_version"),
+                    declaration.strategy_version(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("canonical_input_digest"),
+                    &canonical_input_digest,
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("source_lane"),
+                    declaration.source_lane().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("target_lane"),
+                    declaration.target_lane().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("effect_policy"),
+                    effect_policy.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("admitted_action"),
+                    admission.action().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("admitted_lane"),
+                    admission.target_lane().as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("basis_admission_digest"),
+                    basis_admission.admission_digest().as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("basis_snapshot_token"),
+                    basis_snapshot_token,
+                )
+                .seal();
+        let receipt_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::BranchIntentReceipt)
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("admission_digest"),
+                    admission_digest.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("posture"),
+                    "branch-local-staged-no-authoritative-execution",
+                )
+                .seal();
         Self {
             intent_name: declaration.name().to_string(),
             strategy_identity: declaration.strategy_name().to_string(),
@@ -97,11 +138,11 @@ impl ForgeQueryBranchIntentReceipt {
         &self.basis_snapshot_token
     }
 
-    pub fn admission_digest(&self) -> &str {
+    pub fn admission_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.admission_digest
     }
 
-    pub fn receipt_digest(&self) -> &str {
+    pub fn receipt_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.receipt_digest
     }
 }

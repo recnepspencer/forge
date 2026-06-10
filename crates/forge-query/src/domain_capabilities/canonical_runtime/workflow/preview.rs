@@ -1,7 +1,5 @@
 use forge_proof::TransitionOutcome;
-use forge_runtime_bridge::facade::{
-    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity,
-};
+use forge_runtime_bridge::facade::BridgePreviewSessionDeclarationIdentity;
 
 use crate::domain_capabilities::denials::{
     ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
@@ -175,7 +173,6 @@ where
     };
 
     let source_label = workflow_source_label(target, payload);
-    let preview_session_identity = BridgePreviewSessionIdentity::new(preview_session_identity);
     let request_family = preview_request_family(payload.posture());
     let request_family_label = request_family.as_str();
     let binding_digest = target.binding_digest().to_string();
@@ -208,7 +205,7 @@ where
         canonical_query_digest,
         validated_query_digest,
         request_family,
-        preview_session_identity,
+        preview_session_identity.clone(),
         declaration_identity,
         declaration_digest,
         preview_evaluation_class(evaluation_class),

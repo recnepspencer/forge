@@ -1,5 +1,13 @@
 use super::*;
 
+mod stop_class;
+mod stop_classify;
+
+pub use stop_class::{
+    ForgeQueryRuntimeDeclarationFailureKind, ForgeQueryRuntimeLookupFailureKind,
+    ForgeQueryRuntimeMissingArtifactKind, ForgeQueryRuntimeMissingComponent, ForgeQueryStopClass,
+};
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ForgeQueryRuntimeError {
@@ -79,6 +87,10 @@ pub enum ForgeQueryRuntimeError {
     InvariantRegistration {
         stage: &'static str,
         message: String,
+    },
+    SessionLabelCollision {
+        authority_lane: ForgeQueryAuthorityLane,
+        label: ForgeQuerySessionLabel,
     },
     PreviewOperationEffectDenied {
         label: String,
@@ -255,6 +267,14 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 f,
                 "runtime invariant registration failed during {stage}: {message}"
             ),
+            Self::SessionLabelCollision {
+                authority_lane,
+                label,
+            } => write!(
+                f,
+                "session label `{label}` is already admitted for `{}` authority lane",
+                authority_lane.as_str()
+            ),
             Self::PreviewOperationEffectDenied {
                 label,
                 stage,
@@ -274,6 +294,12 @@ impl std::error::Error for ForgeQueryRuntimeError {
             Self::IntentExecutionRoutingFailed { source, .. } => Some(source.as_ref()),
             _ => None,
         }
+    }
+}
+
+impl ForgeQueryRuntimeError {
+    pub fn stop_class(&self) -> ForgeQueryStopClass<'_> {
+        stop_classify::classify_stop_class(self)
     }
 }
 

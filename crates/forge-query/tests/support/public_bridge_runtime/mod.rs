@@ -24,6 +24,7 @@ use self::state::PublicBridgeRuntimeState;
 type SharedRuntimeState = Rc<RefCell<PublicBridgeRuntimeState>>;
 
 pub use self::profiles::public_graph_support_profile;
+#[allow(unused_imports)]
 pub use common_bootstrap::{
     public_bridge_runtime_bootstrap_invocation_count,
     reset_public_bridge_runtime_bootstrap_invocations,

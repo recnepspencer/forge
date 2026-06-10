@@ -259,10 +259,12 @@ workspace
     .unwrap();
 
 let effect_inspection = workspace.inspect(&effect).unwrap();
+let preview_label =
+    ForgeQuerySessionLabel::scoped_strs("inspection", ["rollup-preview"]).unwrap();
 
 let mut preview = workspace
     .preview_with_options(
-        "rollup preview",
+        preview_label.clone(),
         ForgeQueryPreviewOptions::redirected_delivery(),
     )
     .unwrap();
@@ -283,7 +285,7 @@ match effect_inspection {
 
 match binding_inspection {
     ForgeQueryInspection::PreviewBinding(binding) => {
-        assert_eq!(binding.label(), "rollup preview");
+        assert_eq!(binding.label(), preview_label.display());
         assert_eq!(binding.effect_policy().as_str(), "redirected");
     }
     other => panic!("expected preview binding inspection, got {other:?}"),

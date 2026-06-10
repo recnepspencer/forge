@@ -42,4 +42,4 @@ error: cannot construct `ActiveSubscriptionLane` with struct literal syntax due 
 18 |         allocation_policy: ActiveSubscriptionAllocationPolicy::LifecycleArena,
    |         --------------------------------------------------------------------- private field
    |
-   = note: ...and other private field `attachment_count` that was not provided
+   = note: ...and other private fields `future_selection`, `checkpoint_identity_digest` and `attachment_count` that were not provided

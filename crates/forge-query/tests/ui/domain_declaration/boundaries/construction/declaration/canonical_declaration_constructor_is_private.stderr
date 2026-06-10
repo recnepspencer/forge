@@ -20,7 +20,7 @@ error: cannot construct `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, 
 69 |         _marker: std::marker::PhantomData,
    |         --------------------------------- private field
    |
-   = note: ...and other private field `declaration_entry_loci` that was not provided
+   = note: ...and other private fields `async_resource_clauses`, `temporal_clauses` and `declaration_entry_loci` that were not provided
 help: you might have meant to use the `new` associated function
    |
 61 -     let _ = ForgeQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
@@ -33,5 +33,5 @@ help: you might have meant to use the `new` associated function
 68 -         version: fake(),
 69 -         _marker: std::marker::PhantomData,
 70 -     };
-61 +     let _ = ForgeQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration>::new(_, _, _, _, _, _, _, _);
+61 +     let _ = ForgeQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration>::new(_, _, _, _, _, _, _, _, _, _);
    |

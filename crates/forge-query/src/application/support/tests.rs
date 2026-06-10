@@ -5,6 +5,8 @@ use crate::application::{
 };
 use crate::composition::runtime_backed_query_composition_support_profile;
 
+mod identity_boundary_support_report;
+
 fn query_disabled_application_facade() -> ForgeQueryApplicationFacade {
     ForgeQueryApplicationFacade::new(
         ForgeQueryConfig::runtime_backed_default()

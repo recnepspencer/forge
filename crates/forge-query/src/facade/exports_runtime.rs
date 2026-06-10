@@ -149,6 +149,11 @@ pub use crate::domain_capabilities::{
     ForgeQueryWorkflowInspectionSemantics, ForgeQueryWorkflowLoweringSemantics,
     ForgeQueryWorkflowRuntimeBindingSemantics, ForgeQueryWorkflowRuntimeSemantics,
 };
+pub use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityComparisonError,
+    ForgeQueryEvidenceIdentityEncoder, ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 pub use crate::intent_admission::{
     ForgeQueryIntentAdmissionSlopeLane, ForgeQueryIntentAdmissionWidthRunRow,
     ForgeQueryIntentAdmissionWidthRunScale, ForgeQueryIntentDecisionTraceEvidence,
@@ -491,6 +496,11 @@ pub use crate::saved_query::{
 };
 pub use crate::schema_view::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+};
+pub use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
+pub use crate::session_label::{
+    ForgeQuerySessionLabel, ForgeQuerySessionLabelError, ForgeQuerySessionLabelSegment,
+    ForgeQuerySessionNamespace,
 };
 pub use crate::subscription::{
     admit_active_subscription_lane, admit_preview_subscription_isolation, admit_query_subscription,

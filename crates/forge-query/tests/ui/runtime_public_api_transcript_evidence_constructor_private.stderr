@@ -1,31 +1,7 @@
-error[E0451]: fields `transcript_family`, `support_contract_digest`, `state_digest`, `live_surface_digest`, `computed_surface_digest`, `effect_surface_digest`, `intent_receipt_digest`, `inspection_digest`, `unsupported_neighbor_denial_digests`, `delivery_residue_count`, `authority_lane_digest`, `meaningful_assertion_count` and `transcript_digest` of struct `ForgeQueryRuntimePublicApiTranscriptEvidence` are private
-  --> tests/ui/runtime_public_api_transcript_evidence_constructor_private.rs:5:9
+error[E0560]: struct `ForgeQueryRuntimePublicApiTranscriptEvidence` has no field named `unsupported_neighbor_denial_digests`
+  --> tests/ui/runtime_public_api_transcript_evidence_constructor_private.rs:13:9
    |
- 4 |     let _evidence = ForgeQueryRuntimePublicApiTranscriptEvidence {
-   |                     -------------------------------------------- in this type
- 5 |         transcript_family: String::new(),
-   |         ^^^^^^^^^^^^^^^^^ private field
- 6 |         support_contract_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
- 7 |         state_digest: String::new(),
-   |         ^^^^^^^^^^^^ private field
- 8 |         live_surface_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^ private field
- 9 |         computed_surface_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         effect_surface_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         intent_receipt_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         inspection_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^ private field
 13 |         unsupported_neighbor_denial_digests: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         delivery_residue_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-15 |         authority_lane_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
-16 |         meaningful_assertion_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-17 |         transcript_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryRuntimePublicApiTranscriptEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned

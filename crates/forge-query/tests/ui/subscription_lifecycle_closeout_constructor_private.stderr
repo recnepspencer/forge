@@ -30,7 +30,7 @@ error: cannot construct `SubscriptionLifecycleCloseout` with struct literal synt
 16 |         closeout_digest: String::new(),
    |         ------------------------------ private field
    |
-   = note: ...and other private field `source_digest` that was not provided
+   = note: ...and other private fields `future_selection`, `basis_binding_digest`, `checkpoint_identity_digest` and `source_digest` that were not provided
 help: you might have meant to use the `new` associated function
    |
  8 -     let _ = SubscriptionLifecycleCloseout {

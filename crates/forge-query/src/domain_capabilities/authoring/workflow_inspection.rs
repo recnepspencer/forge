@@ -27,7 +27,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
             .expect(
                 "promotion-eligible merge conflict inspection requires preview foundation binding",
             )
-            .to_string();
+            .clone();
         Self::with_runtime_and_inspection_semantics(
             ForgeQueryWorkflowContributionPosture::PromotionEligible,
             semantic_code,

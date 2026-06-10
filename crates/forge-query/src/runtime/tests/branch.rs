@@ -24,7 +24,7 @@ fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
 
     let mut branch = runtime
         .branch_with_options(
-            "branch local intent",
+            test_session_label("branch local intent"),
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .expect("branch session should be admitted");
@@ -60,8 +60,8 @@ fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
     );
     assert!(!receipt.basis_evidence().is_empty());
     assert!(!receipt.basis_snapshot_token().is_empty());
-    assert!(!receipt.admission_digest().is_empty());
-    assert!(!receipt.receipt_digest().is_empty());
+    assert!(!receipt.admission_digest().as_str().is_empty());
+    assert!(!receipt.receipt_digest().as_str().is_empty());
     assert_eq!(branch.branch_intent_receipts(), [receipt.clone()]);
     assert_eq!(
         attempted.get(),
@@ -100,7 +100,7 @@ fn derive_only_branch_intent_denies_before_authoritative_execution() {
 
     let error = {
         let mut branch = runtime
-            .branch("derive-only branch intent")
+            .branch(test_session_label("derive-only branch intent"))
             .expect("branch session should be admitted");
         branch
             .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
@@ -169,7 +169,7 @@ fn branch_local_intent_requires_intent_support_for_branch_lane() {
     let error = {
         let mut branch = runtime
             .branch_with_options(
-                "branch lane unsupported",
+                test_session_label("branch lane unsupported"),
                 ForgeQueryBranchOptions::sandboxed_write_intent(),
             )
             .expect("branch session should be admitted");

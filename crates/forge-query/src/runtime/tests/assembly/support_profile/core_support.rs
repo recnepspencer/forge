@@ -316,22 +316,16 @@ fn runtime_public_support_gate_denies_deferred_and_unsupported_families_before_u
         ForgeQueryRuntimeFamilySupportStatus::Supported
     );
 
-    for family in [
-        ForgeQueryRuntimeFacadeFamily::Temporal,
-        ForgeQueryRuntimeFacadeFamily::AsyncResource,
-        ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-    ] {
-        let admitted = workspace
-            .admit_public_api_family(family)
-            .expect("runtime-backed family should now admit");
-        assert_eq!(admitted.family(), family);
-        assert_eq!(
-            admitted.status(),
-            ForgeQueryRuntimeFamilySupportStatus::Supported
-        );
-    }
-
     for (family, expected_reason) in [
+        (ForgeQueryRuntimeFacadeFamily::Temporal, "support-gated"),
+        (
+            ForgeQueryRuntimeFacadeFamily::AsyncResource,
+            "support-gated",
+        ),
+        (
+            ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
+            "support-gated",
+        ),
         (
             ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
             "Milestone 10",

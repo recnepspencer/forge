@@ -27,8 +27,6 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
     .expect("binding should build")
     .in_target_collection("Task")
     .expect("binding collection should build");
-    let binding_digest = binding.binding_digest();
-
     let receipt = workspace
         .update_existing(binding, |task| {
             task.continuity_rebind_existing_target("authority:task-1", "authority:task-1-successor")
@@ -58,10 +56,10 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
         continuity.successor_authoritative_identity(),
         Some("authority:task-1-successor")
     );
-    assert_eq!(
-        continuity.basis_binding_digest(),
-        Some(binding_digest.as_str())
-    );
+    let basis_binding_digest = continuity
+        .basis_binding_digest()
+        .expect("continuity evidence should retain a bridge-derived binding basis digest");
+    assert!(basis_binding_digest.starts_with("bridge-continuity-mutation-binding-basis:sha256:"));
     assert_eq!(
         continuity.resolved_target_entity_identity(),
         Some(seed.deltas()[0].entity_identity.as_str())
@@ -85,7 +83,7 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
             );
             assert_eq!(
                 continuity.basis_binding_digest(),
-                Some(binding_digest.as_str())
+                Some(basis_binding_digest)
             );
             assert_eq!(
                 continuity.lineage_digest(),
@@ -289,7 +287,7 @@ fn preview_update_existing_denies_continuity_without_authoritative_lane() {
     .expect("binding collection should build");
     let binding_digest = binding.binding_digest();
     let mut preview = workspace
-        .preview("continuity denial")
+        .preview(test_session_label("continuity denial"))
         .expect("preview should open");
 
     let error = preview
@@ -343,7 +341,7 @@ fn preview_batch_denies_continuity_without_authoritative_lane() {
     .expect("binding collection should build");
     let binding_digest = binding.binding_digest();
     let mut preview = workspace
-        .preview("continuity batch denial")
+        .preview(test_session_label("continuity batch denial"))
         .expect("preview should open");
 
     let error = preview

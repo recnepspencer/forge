@@ -229,6 +229,8 @@ impl ForgeQueryRuntimeBuilder {
         Ok(ForgeQueryRuntime {
             backend,
             evidence_authority: ForgeQueryRuntimeEvidenceAuthority::new(),
+            preview_session_labels: BTreeMap::new(),
+            branch_session_labels: BTreeMap::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),
             live_subscriptions: BTreeMap::new(),
             materialized_read_views: BTreeMap::new(),

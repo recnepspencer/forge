@@ -12,7 +12,7 @@ error[E0308]: arguments to this function are incorrect
   |                                                  expected `PreviewResidueWidth`, found integer
   |
 note: function defined here
- --> src/subscription/preview_isolation.rs
+ --> src/subscription/preview_residue.rs
   |
   | pub fn measure_preview_subscription_residue(
   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
