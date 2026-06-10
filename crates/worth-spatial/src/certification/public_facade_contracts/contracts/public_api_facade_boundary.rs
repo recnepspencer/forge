@@ -12,6 +12,10 @@ fn spatial_facade_is_namespaced_and_no_longer_flat() {
     assert!(facade.contains("pub mod continuation;"));
     assert!(facade.contains("pub mod inspection;"));
     assert!(facade.contains("pub mod neighborhood;"));
+    assert!(facade.contains("pub mod planar_contracts;"));
+    assert!(facade.contains("pub mod planar_overlap;"));
+    assert!(facade.contains("pub mod planar_signed_area;"));
+    assert!(facade.contains("pub mod planar_predicates;"));
     assert!(facade.contains("pub mod placement;"));
     assert!(facade.contains("pub mod projection;"));
     assert!(facade.contains("pub mod rebinding;"));

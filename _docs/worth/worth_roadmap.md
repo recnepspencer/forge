@@ -1099,6 +1099,13 @@ consuming the resulting contracts rather than reimplementing geometric logic,
 and `worth-kernel` assembling boolean-readiness proof without becoming a second
 planar predicate or identity runtime.
 
+The certified predicate machinery itself already lives in `worth-math`
+(`orient2d`, `orient3d`, `incircle`, `in_sphere`, `CertifiedTriSign`,
+`PrecisionEscalation`, `PrecisionMode`, and exact-rational budget tracking).
+Milestone 6 must route admitted planar predicate authority through that existing
+math substrate and use Query-native spatial facts to retain the local basis,
+tolerance policy, movement/rotation posture, and certification context.
+
 ### Excluded Surface
 
 - full hostile boolean certification
@@ -1126,16 +1133,29 @@ generically over:
 ### Operator Closure
 
 - exact-planar classification operators for admitted cases
+- `PlanarLocalFrameCertificate`
+- `ProjectPointToCertifiedPlane2D`
+- `CertifiedSegmentSegment2D`
+- `CertifiedPolygonWinding2D`
+- `CertifiedSignedArea2D`
+- `CoplanarOverlapContractExtractor`
 - planar structural-identity and fingerprint lookup operators
 - typed clean-fail outcomes for impossible or policy-gated planar cases
 - Query-native retained/projection/recovery operators for admitted planar facts
   where those surfaces are relevant
+- `PlanarContractBundleValidator`
+- `PredicateCertificateConsumptionValidator`
 - boolean-readiness certification operators that prove M7 can consume the
   planar substrate without inventing identity or predicate shortcuts
 
 ### Validator Closure
 
-- predicate-pipeline validators for admitted planar cases
+- predicate-pipeline validators for admitted planar cases, including proof that
+  they consume `worth-math` certified signs and precision metadata rather than a
+  local kernel or spatial substitute
+- local-frame, certified projection, certified segment-contact,
+  winding/containment, signed-area/degeneracy, and coplanar-overlap contract
+  validators for admitted planar cases
 - degeneracy classification consistency for admitted planar cases
 - topology-to-spatial contract completeness validators
 - structural identity separation from naming, lineage, topology identity, and

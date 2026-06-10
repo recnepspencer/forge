@@ -72,6 +72,10 @@ impl TopologyPrimitiveConstructionQueryReceipt {
                 loop_memberships,
             ),
             TopologyConstructionQueryFactRow::new(
+                TopologyConstructionQueryFactKind::LoopClosure,
+                loop_memberships,
+            ),
+            TopologyConstructionQueryFactRow::new(
                 TopologyConstructionQueryFactKind::WireMembership,
                 wire_memberships,
             ),
@@ -80,12 +84,28 @@ impl TopologyPrimitiveConstructionQueryReceipt {
                 face_memberships,
             ),
             TopologyConstructionQueryFactRow::new(
+                TopologyConstructionQueryFactKind::FaceOrientation,
+                face_memberships,
+            ),
+            TopologyConstructionQueryFactRow::new(
                 TopologyConstructionQueryFactKind::ShellMembership,
+                shell_memberships,
+            ),
+            TopologyConstructionQueryFactRow::new(
+                TopologyConstructionQueryFactKind::ShellClosure,
                 shell_memberships,
             ),
             TopologyConstructionQueryFactRow::new(
                 TopologyConstructionQueryFactKind::BodyMembership,
                 body_memberships,
+            ),
+            TopologyConstructionQueryFactRow::new(
+                TopologyConstructionQueryFactKind::PlanarNeighborhoodBasis,
+                body_memberships,
+            ),
+            TopologyConstructionQueryFactRow::new(
+                TopologyConstructionQueryFactKind::ValidationSurface,
+                1,
             ),
         ];
         let fact_digest = super::digest_parts(

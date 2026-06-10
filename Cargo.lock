@@ -5934,11 +5934,14 @@ dependencies = [
  "forge-foundational",
  "forge-proof",
  "forge-query",
+ "forge-relational",
+ "forge-runtime-bridge",
  "serde_json",
  "trybuild",
  "worth-geom",
  "worth-math",
  "worth-primitives",
+ "worth-topo",
 ]
 
 [[package]]

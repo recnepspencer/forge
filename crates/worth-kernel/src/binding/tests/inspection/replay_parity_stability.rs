@@ -75,9 +75,9 @@ fn replay_parity_does_not_depend_on_live_runtime_memory_or_host_order_accident()
             ),
         ),
     );
-    let mutated_live = rebinding_receipt_for_entry(&mutated_live, "phase-fifteen-mutated-live")
+    let mutated_live = rebinding_receipt_for_entry(&mutated_live, "replay-stability-mutated-live")
         .expect("mutated live decision");
-    let handle = admitted_rebinding_handle("phase-fifteen-live-independence");
+    let handle = admitted_rebinding_handle("replay-stability-live-independence");
 
     let parity = left
         .replay_parity_with_query(
@@ -106,9 +106,9 @@ fn replay_parity_does_not_depend_on_live_runtime_memory_or_host_order_accident()
         )
         .expect("replay parity");
     let left_decision =
-        rebinding_receipt_for_entry(&left, "phase-fifteen-left").expect("left decision");
+        rebinding_receipt_for_entry(&left, "replay-stability-left").expect("left decision");
     let right_decision =
-        rebinding_receipt_for_entry(&right, "phase-fifteen-right").expect("right decision");
+        rebinding_receipt_for_entry(&right, "replay-stability-right").expect("right decision");
 
     assert_eq!(
         parity.binding_identity(),

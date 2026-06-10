@@ -1,0 +1,26 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/planar_local_frame/receipt_not_forgeable.rs:4:49
+  |
+4 |       let _ = PlanarLocalFrameCertificateReceipt::new(
+  |                                                   ^^^ private associated function
+  |
+ ::: src/planar_contracts/local_frame/certificate.rs
+  |
+  | /     pub(crate) fn new(
+  | |         basis: PlanarLocalFrameBasis,
+  | |         declaration_digest: String,
+  | |         envelope_digest: String,
+  | |         fact_digest: String,
+  | |         counters: PlanarLocalFramePerformanceCounters,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/planar_local_frame/receipt_not_forgeable.rs:6:9
+  |
+5 |         todo!(),
+  |         ------- any code following this expression is unreachable
+6 |         String::new(),
+  |         ^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

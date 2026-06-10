@@ -15,6 +15,19 @@ projection-consumed planar facts, recovery posture, movement/rotation posture,
 and clean-fail diagnostics survive the same hostile planar conditions that later
 booleans will consume.
 
+The certified predicate machinery already exists in `worth-math`: Shewchuk
+adaptive predicates, `CertifiedTriSign`, `PrecisionEscalation`,
+`PrecisionMode`, and exact-rational budget tracking. These tests must prove
+that M6 routes planar authority through that machinery and retains its proof
+basis; they must not require or permit a second local predicate engine.
+
+M6 also owns the planar contract support layer around that math substrate:
+`PlanarLocalFrameCertificate`, `ProjectPointToCertifiedPlane2D`,
+`CertifiedSegmentSegment2D`, `CertifiedPolygonWinding2D`,
+`CertifiedSignedArea2D`, `CoplanarOverlapContractExtractor`,
+`PlanarContractBundleValidator`, and
+`PredicateCertificateConsumptionValidator`.
+
 Every test below must either:
 
 - produce a stable, machine-checkable planar contract bundle suitable for later
@@ -52,6 +65,13 @@ Every `MB-M6-*` test must assert all applicable rows below.
 - Counters expose precision escalation breadth, identity lookup breadth,
   retained basis breadth, projection-consumption breadth, movement/rotation
   posture breadth, and clean-fail localization breadth.
+- Predicate assertions expose the consumed `worth-math` certified sign and
+  precision metadata, plus the spatial local-basis and Query declaration context
+  that made that predicate meaningful for the Worth planar workload.
+- Every applicable test asserts the relevant local-frame, certified projection,
+  segment-contact, winding/containment, signed-area/degeneracy,
+  coplanar-overlap, bundle-validation, and predicate-consumption certificates
+  rather than accepting boolean-side recomputation.
 
 ## MB-M6-1: Coplanar Overlap Contract Storm
 

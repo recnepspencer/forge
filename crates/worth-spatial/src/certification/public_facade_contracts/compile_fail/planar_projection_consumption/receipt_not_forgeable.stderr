@@ -1,0 +1,43 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/planar_projection_consumption/receipt_not_forgeable.rs:9:30
+  |
+8 |         basis: panic!("private basis"),
+  |                ----------------------- any code following this expression is unreachable
+9 |         projected_fact_kind: ProjectionConsumedPlanarFactKind::RetainedPlanarClassification,
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `basis`, `projected_fact_kind`, `declaration_digest`, `progression_digest`, `route_plan_digest`, `query_receipt_digest`, `envelope_digest`, `retained_planar_fact_digest`, `structural_identity_digest`, `motion_posture_digest`, `topology_contract_digest`, `materialization_digest`, `projection_consumption_digest` and `counters` of struct `ProjectionConsumedPlanarFactsReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_projection_consumption/receipt_not_forgeable.rs:8:9
+   |
+ 7 |     let _receipt = ProjectionConsumedPlanarFactsReceipt {
+   |                    ------------------------------------ in this type
+ 8 |         basis: panic!("private basis"),
+   |         ^^^^^ private field
+ 9 |         projected_fact_kind: ProjectionConsumedPlanarFactKind::RetainedPlanarClassification,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+10 |         declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+11 |         progression_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+12 |         route_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+13 |         query_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+14 |         envelope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+15 |         retained_planar_fact_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         structural_identity_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         motion_posture_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         topology_contract_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         materialization_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         projection_consumption_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |         counters: ProjectionConsumedPlanarFactsCounters::default(),
+   |         ^^^^^^^^ private field

@@ -1,6 +1,6 @@
+use crate::bindings::query_native_geometry_applicability_planar::classify_planar_contract_surface;
 use crate::bindings::query_native_geometry_inventory::GeometryPublicSurface;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum GeometryRuntimeConcern {
     GroupedNeighborhoodWorkflow,
@@ -13,10 +13,11 @@ pub enum GeometryRuntimeConcern {
     HistoricalInspection,
     BranchLocalInspection,
     ReplayParity,
+    BooleanReadinessCertification,
 }
 
 impl GeometryRuntimeConcern {
-    pub const fn all() -> [Self; 10] {
+    pub const fn all() -> [Self; 11] {
         [
             Self::GroupedNeighborhoodWorkflow,
             Self::ContributionComposition,
@@ -28,6 +29,7 @@ impl GeometryRuntimeConcern {
             Self::HistoricalInspection,
             Self::BranchLocalInspection,
             Self::ReplayParity,
+            Self::BooleanReadinessCertification,
         ]
     }
 
@@ -43,17 +45,16 @@ impl GeometryRuntimeConcern {
             Self::HistoricalInspection => "historical-inspection",
             Self::BranchLocalInspection => "branch-local-inspection",
             Self::ReplayParity => "replay-parity",
+            Self::BooleanReadinessCertification => "boolean-readiness-certification",
         }
     }
 }
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GeometryApplicabilityStatus {
     RequiredNow,
     NotApplicable,
     DeniedForThisRuntime,
 }
-
 impl GeometryApplicabilityStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -63,7 +64,6 @@ impl GeometryApplicabilityStatus {
         }
     }
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GeometryApplicabilityRow {
     surface: GeometryPublicSurface,
@@ -72,7 +72,6 @@ pub struct GeometryApplicabilityRow {
     rationale: &'static str,
     row_digest: String,
 }
-
 impl GeometryApplicabilityRow {
     fn new(surface: GeometryPublicSurface, concern: GeometryRuntimeConcern) -> Self {
         let (status, rationale) = classify(surface, concern);
@@ -111,7 +110,6 @@ impl GeometryApplicabilityRow {
         &self.row_digest
     }
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GeometryApplicabilityMatrix {
     rows: Vec<GeometryApplicabilityRow>,
@@ -137,7 +135,6 @@ impl GeometryApplicabilityMatrix {
             .find(|row| row.surface() == surface && row.concern() == concern)
     }
 }
-
 pub fn geometry_applicability_matrix() -> GeometryApplicabilityMatrix {
     let rows = GeometryPublicSurface::all()
         .into_iter()
@@ -158,7 +155,6 @@ pub fn geometry_applicability_matrix() -> GeometryApplicabilityMatrix {
         matrix_digest,
     }
 }
-
 fn classify(
     surface: GeometryPublicSurface,
     concern: GeometryRuntimeConcern,
@@ -168,6 +164,10 @@ fn classify(
     };
     use GeometryPublicSurface as Surface;
     use GeometryRuntimeConcern as Concern;
+
+    if let Some(classification) = classify_planar_contract_surface(surface, concern) {
+        return classification;
+    }
 
     match (surface, concern) {
         (Surface::GeometryTargetIdentity, Concern::HistoricalInspection)
@@ -251,6 +251,7 @@ fn classify(
         | (_, Concern::HistoricalInspection)
         | (_, Concern::BranchLocalInspection)
         | (_, Concern::ReplayParity)
+        | (_, Concern::BooleanReadinessCertification)
         | (_, Concern::LowerRuntimeRouting) => (
             NA,
             "this runtime concern is not part of the admitted responsibility of this public geometry surface today",
