@@ -1,6 +1,8 @@
+mod evidence_bundle;
 mod exploration_loop;
 mod motif_mining;
 
+pub use evidence_bundle::{FrontierExplorationEvidenceBundle, FrontierExplorationEvidencePosture};
 pub use exploration_loop::{
     run_frontier_seed_exploration_iterations_checked, FrontierExplorationIterationReport,
     FrontierExplorationRunReport, FrontierExplorationRunRequest, FrontierMutationPolicy,

@@ -13,9 +13,10 @@ pub use exact_unit_distance::{
     ExactPoint2, ExactRational, HadwigerExactGeometryError, UnitDistanceVerificationChecked,
 };
 pub use finite_colorability::{
-    verify_k_colorability_checked, verify_k_colorability_with_certificate_checked,
-    ColoringProofCertificate, ColoringProofCertificateFormat, ColoringRefutationReplayReport,
-    HadwigerColorabilityError, KColorabilityVerificationChecked,
+    generate_k_colorability_certificate_with_varisat_checked, verify_k_colorability_checked,
+    verify_k_colorability_with_certificate_checked, ColoringProofCertificate,
+    ColoringProofCertificateFormat, ColoringRefutationReplayReport, HadwigerColorabilityError,
+    KColorabilityVerificationChecked,
 };
 pub use hexagonal_plane_coloring::{
     verify_hexagonal_seven_coloring_checked, HadwigerPlaneColoringError,

@@ -177,15 +177,17 @@ pub use crate::explanations::{
 };
 pub use crate::frontier_exploration::{
     mine_virtual_edge_motifs_checked, run_frontier_seed_exploration_iterations_checked,
-    BichromaticVirtualEdgeMotif, FrontierExplorationIterationReport, FrontierExplorationRunReport,
-    FrontierExplorationRunRequest, FrontierMotifMiningReport, FrontierMutationPolicy,
-    TerminalColorForcingMotif, VirtualEdgeMotif,
+    BichromaticVirtualEdgeMotif, FrontierExplorationEvidenceBundle,
+    FrontierExplorationEvidencePosture, FrontierExplorationIterationReport,
+    FrontierExplorationRunReport, FrontierExplorationRunRequest, FrontierMotifMiningReport,
+    FrontierMutationPolicy, TerminalColorForcingMotif, VirtualEdgeMotif,
 };
 pub use crate::frontier_seeds::{
     import_frontier_graph_seed_checked, FrontierGraphSeedArtifact, FrontierGraphSeedImport,
     FrontierGraphSeedImportReport, FrontierSeedError, FrontierSeedFormat,
 };
 pub use crate::mathematical_verification::{
+    generate_k_colorability_certificate_with_varisat_checked,
     verify_algebraic_unit_distance_embedding_checked, verify_hexagonal_seven_coloring_checked,
     verify_k_colorability_checked, verify_k_colorability_with_certificate_checked,
     verify_unit_distance_embedding_checked, AlgebraicGraphEmbedding,

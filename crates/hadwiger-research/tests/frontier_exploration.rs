@@ -1,9 +1,10 @@
 use hadwiger_research::facade::{
-    admit_hadwiger_research_handle, import_frontier_graph_seed_checked,
-    run_frontier_seed_exploration_iterations_checked,
+    admit_hadwiger_research_handle, generate_k_colorability_certificate_with_varisat_checked,
+    import_frontier_graph_seed_checked, run_frontier_seed_exploration_iterations_checked,
     verify_algebraic_unit_distance_embedding_checked, verify_k_colorability_checked,
     verify_k_colorability_with_certificate_checked, AlgebraicGraphEmbedding, AlgebraicPoint2,
     ColorabilityVerificationPosture, ColoringProofCertificate, ExactRational,
+    FrontierExplorationEvidenceBundle, FrontierExplorationEvidencePosture,
     FrontierExplorationRunRequest, FrontierGraphSeedImport, FrontierMutationPolicy,
     HadwigerAlgebraicGeometryError, HadwigerCanonicalArtifact, HadwigerColorabilityError,
     HadwigerResearchHandle, HadwigerResearchOperatingContext, QuadraticFieldElement,
@@ -190,6 +191,106 @@ fn certificate_replay_admits_non_one_colorability_and_rejects_bad_digest() {
             .unwrap_err(),
         HadwigerColorabilityError::CertificateDigestMismatch
     );
+}
+
+#[test]
+fn varisat_native_certificate_generation_is_retained_and_replayed() {
+    let handle = handle();
+    let imported =
+        import_frontier_graph_seed_checked(&handle, unit_edge_seed()).expect("seed imports");
+    let certificate =
+        generate_k_colorability_certificate_with_varisat_checked(imported.graph_version(), 1)
+            .expect("native proof generated");
+
+    assert_eq!(
+        certificate.format(),
+        hadwiger_research::facade::ColoringProofCertificateFormat::VarisatNative
+    );
+    assert!(!certificate.proof_bytes().is_empty());
+
+    let checked = verify_k_colorability_with_certificate_checked(
+        &handle,
+        imported.graph_version(),
+        1,
+        certificate,
+    )
+    .expect("native proof replays");
+
+    assert_eq!(
+        checked.colorability_verification().posture(),
+        ColorabilityVerificationPosture::UnsatVerified
+    );
+}
+
+#[test]
+fn varisat_native_certificate_generation_refuses_satisfiable_graphs() {
+    let handle = handle();
+    let imported =
+        import_frontier_graph_seed_checked(&handle, unit_edge_seed()).expect("seed imports");
+
+    assert_eq!(
+        generate_k_colorability_certificate_with_varisat_checked(imported.graph_version(), 2)
+            .unwrap_err(),
+        HadwigerColorabilityError::SatisfiableFormula
+    );
+}
+
+#[test]
+fn frontier_evidence_bundle_reports_missing_and_ready_evidence() {
+    let handle = handle();
+    let imported =
+        import_frontier_graph_seed_checked(&handle, unit_edge_seed()).expect("seed imports");
+    let candidate = FrontierExplorationEvidenceBundle::new(imported.seed_artifact());
+
+    assert_eq!(
+        candidate.posture(),
+        FrontierExplorationEvidencePosture::CandidateOnly
+    );
+    assert_eq!(candidate.missing_evidence().len(), 2);
+
+    let embedding = AlgebraicGraphEmbedding::builder(imported.graph_version().reference(), "edge")
+        .with_vertex("1", AlgebraicPoint2::rational_integer(0, 0))
+        .expect("left")
+        .with_vertex("2", AlgebraicPoint2::rational_integer(1, 0))
+        .expect("right")
+        .finish()
+        .expect("embedding");
+    let unit = verify_algebraic_unit_distance_embedding_checked(
+        &handle,
+        imported.graph_version(),
+        embedding,
+    )
+    .expect("unit distance admits");
+    let certificate =
+        generate_k_colorability_certificate_with_varisat_checked(imported.graph_version(), 1)
+            .expect("native proof generated");
+    let color = verify_k_colorability_with_certificate_checked(
+        &handle,
+        imported.graph_version(),
+        1,
+        certificate,
+    )
+    .expect("native proof replays");
+
+    let ready = candidate
+        .with_unit_distance_verification(&unit)
+        .with_colorability_verification(&color);
+    assert_eq!(
+        ready.posture(),
+        FrontierExplorationEvidencePosture::TerminalForcingReady
+    );
+    assert!(ready.missing_evidence().is_empty());
+
+    let request = FrontierExplorationRunRequest::from_evidence_bundle("bundle-loop", &ready)
+        .with_iteration_count(5)
+        .expect("iteration count admits");
+    let run = run_frontier_seed_exploration_iterations_checked(&handle, request)
+        .expect("bundle-backed loop runs");
+
+    assert!(run
+        .motif_reports()
+        .iter()
+        .all(|report| report.terminal_forcing_motif().is_some()));
 }
 
 #[test]

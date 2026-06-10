@@ -3,6 +3,7 @@ mod model_replay;
 mod proof_certificate;
 mod refutation_replay;
 mod varisat_execution;
+mod varisat_proof;
 
 use crate::aspect_authority::{ColorabilityAspectRecord, HadwigerAspectAuthorityError};
 use crate::domain_artifacts::{
@@ -24,6 +25,7 @@ pub enum HadwigerColorabilityError {
     EmptyGraph,
     ZeroColorCount,
     Solver(String),
+    SatisfiableFormula,
     CorruptModel,
     CorruptRefutationCertificate,
     CertificateDigestMismatch,
@@ -180,6 +182,7 @@ pub fn verify_k_colorability_checked(
 }
 
 pub use proof_certificate::{
+    generate_k_colorability_certificate_with_varisat_checked,
     verify_k_colorability_with_certificate_checked, ColoringProofCertificate,
     ColoringProofCertificateFormat, ColoringRefutationReplayReport,
 };

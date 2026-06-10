@@ -9,17 +9,20 @@ use crate::domain_declarations::ColorabilityDeclaration;
 use crate::query_entry::HadwigerResearchHandle;
 
 use super::cnf_encoding::encode_graph_coloring;
+use super::varisat_proof::{generate_varisat_native_proof, replay_varisat_native_proof};
 use super::{checker_evidence, HadwigerColorabilityError};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ColoringProofCertificateFormat {
     Lrat,
+    VarisatNative,
 }
 
 impl ColoringProofCertificateFormat {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Lrat => "lrat",
+            Self::VarisatNative => "varisat_native",
         }
     }
 }
@@ -29,6 +32,7 @@ pub struct ColoringProofCertificate {
     format: ColoringProofCertificateFormat,
     cnf_digest: String,
     added_clauses: Vec<Vec<i32>>,
+    proof_bytes: Vec<u8>,
 }
 
 impl ColoringProofCertificate {
@@ -57,6 +61,7 @@ impl ColoringProofCertificate {
             format: ColoringProofCertificateFormat::Lrat,
             cnf_digest,
             added_clauses,
+            proof_bytes: Vec::new(),
         })
     }
 
@@ -72,6 +77,23 @@ impl ColoringProofCertificate {
             format: ColoringProofCertificateFormat::Lrat,
             cnf_digest,
             added_clauses,
+            proof_bytes: Vec::new(),
+        })
+    }
+
+    pub fn varisat_native_from_bytes(
+        cnf_digest: impl Into<String>,
+        proof_bytes: Vec<u8>,
+    ) -> Result<Self, HadwigerColorabilityError> {
+        let cnf_digest = cnf_digest.into();
+        if cnf_digest.trim().is_empty() || proof_bytes.is_empty() {
+            return Err(HadwigerColorabilityError::CorruptRefutationCertificate);
+        }
+        Ok(Self {
+            format: ColoringProofCertificateFormat::VarisatNative,
+            cnf_digest,
+            added_clauses: Vec::new(),
+            proof_bytes,
         })
     }
 
@@ -85,6 +107,10 @@ impl ColoringProofCertificate {
 
     pub fn added_clauses(&self) -> &[Vec<i32>] {
         &self.added_clauses
+    }
+
+    pub fn proof_bytes(&self) -> &[u8] {
+        &self.proof_bytes
     }
 }
 
@@ -107,6 +133,28 @@ impl ColoringRefutationReplayReport {
     pub fn ended_in_empty_clause(&self) -> bool {
         self.ended_in_empty_clause
     }
+}
+
+pub fn generate_k_colorability_certificate_with_varisat_checked(
+    graph_version: &GraphVersion,
+    color_count: u32,
+) -> Result<ColoringProofCertificate, HadwigerColorabilityError> {
+    if color_count == 0 {
+        return Err(HadwigerColorabilityError::ZeroColorCount);
+    }
+    if graph_version.vertices().is_empty() {
+        return Err(HadwigerColorabilityError::EmptyGraph);
+    }
+    let (variable_map, clauses) = encode_graph_coloring(graph_version, color_count);
+    let encoding = ColorabilityEncoding::checked(
+        graph_version.reference(),
+        color_count,
+        variable_map,
+        clauses.clone(),
+    )?;
+    let proof_bytes = generate_varisat_native_proof(&clauses)?;
+    replay_varisat_native_proof(&clauses, &proof_bytes)?;
+    ColoringProofCertificate::varisat_native_from_bytes(encoding.cnf_digest_token(), proof_bytes)
 }
 
 pub fn verify_k_colorability_with_certificate_checked(
@@ -134,7 +182,8 @@ pub fn verify_k_colorability_with_certificate_checked(
         variable_map,
         clauses.clone(),
     )?;
-    let replay = replay_rup_refutation(&clauses, encoding.cnf_digest_token(), &certificate)?;
+    let replay =
+        replay_refutation_certificate(&clauses, encoding.cnf_digest_token(), &certificate)?;
     let query_identity = format!(
         "{}:{}:{}",
         handle.handle_identity_digest(),
@@ -174,6 +223,29 @@ pub fn verify_k_colorability_with_certificate_checked(
         verification,
         aspect,
     ))
+}
+
+fn replay_refutation_certificate(
+    clauses: &[Vec<i32>],
+    cnf_digest: &str,
+    certificate: &ColoringProofCertificate,
+) -> Result<ColoringRefutationReplayReport, HadwigerColorabilityError> {
+    match certificate.format() {
+        ColoringProofCertificateFormat::Lrat => {
+            replay_rup_refutation(clauses, cnf_digest, certificate)
+        }
+        ColoringProofCertificateFormat::VarisatNative => {
+            if certificate.cnf_digest() != cnf_digest {
+                return Err(HadwigerColorabilityError::CertificateDigestMismatch);
+            }
+            replay_varisat_native_proof(clauses, certificate.proof_bytes())?;
+            Ok(ColoringRefutationReplayReport {
+                cnf_digest: cnf_digest.to_string(),
+                replayed_clause_count: clauses.len(),
+                ended_in_empty_clause: true,
+            })
+        }
+    }
 }
 
 fn replay_rup_refutation(

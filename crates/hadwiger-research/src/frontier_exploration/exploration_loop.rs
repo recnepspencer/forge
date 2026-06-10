@@ -18,6 +18,7 @@ use super::motif_mining::{
     mine_virtual_edge_motif_candidates_checked, mine_virtual_edge_motifs_checked,
     FrontierMotifMiningReport,
 };
+use super::FrontierExplorationEvidenceBundle;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FrontierMutationPolicy {
@@ -52,6 +53,20 @@ impl FrontierExplorationRunRequest {
             mutation_policy: FrontierMutationPolicy::CoreMinimizationAndVirtualEdges,
             iteration_count: 1,
         }
+    }
+
+    pub fn from_evidence_bundle(
+        run_id: impl Into<String>,
+        bundle: &FrontierExplorationEvidenceBundle,
+    ) -> Self {
+        let mut request = Self::new(run_id, bundle.seed());
+        if let Some(unit_checked) = bundle.unit_checked() {
+            request = request.with_unit_distance_verification(unit_checked);
+        }
+        if let Some(color_checked) = bundle.color_checked() {
+            request = request.with_colorability_verification(color_checked);
+        }
+        request
     }
 
     pub fn with_unit_distance_verification(
