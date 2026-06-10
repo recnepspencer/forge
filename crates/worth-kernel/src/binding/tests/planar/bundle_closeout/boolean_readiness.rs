@@ -1,6 +1,7 @@
 use forge_query::facade::ForgeQueryApplicationFacade;
 use worth_spatial::facade::planar_contract_bundle::{
-    PlanarM7ReadinessBundle, PlanarM7ReadinessFamily, PlanarM7ReadinessSupportPosture,
+    PlanarM7ReadinessBundle, PlanarM7ReadinessFamily, PlanarM7ReadinessReceipt,
+    PlanarM7ReadinessSupportPosture,
 };
 use worth_spatial::facade::planar_diagnostics::{
     PlanarDiagnosticBundle, PlanarDiagnosticBundleContracts, PlanarDiagnosticBundleQueryDomain,
@@ -19,6 +20,23 @@ use super::runtime_handles::bundle_handle;
 
 #[test]
 fn kernel_consumes_m7_readiness_bundle_without_boolean_execution_synthesis() {
+    let receipt = m7_readiness_receipt();
+
+    assert!(receipt.is_acceptable_m7_input());
+    assert_eq!(receipt.boolean_result(), None);
+    assert_eq!(receipt.imprint_action(), None);
+    assert!(receipt
+        .family_rows()
+        .iter()
+        .any(|row| { row.family() == PlanarM7ReadinessFamily::PredicateAuthority }));
+    assert!(receipt
+        .family_rows()
+        .iter()
+        .any(|row| { row.family() == PlanarM7ReadinessFamily::SupportPosture }));
+    assert_eq!(receipt.counters().support_posture_rows(), 1);
+}
+
+pub(crate) fn m7_readiness_receipt() -> PlanarM7ReadinessReceipt {
     let readiness = super::contract_bundle::readiness_receipt();
     let readiness_declaration_digest = readiness.declaration_digest().to_string();
     let readiness_envelope_digest = readiness.envelope_digest().to_string();
@@ -72,20 +90,9 @@ fn kernel_consumes_m7_readiness_bundle_without_boolean_execution_synthesis() {
         .certify()
         .expect("kernel M7 readiness receipt");
 
-    assert!(receipt.is_acceptable_m7_input());
-    assert_eq!(receipt.boolean_result(), None);
-    assert_eq!(receipt.imprint_action(), None);
     assert_eq!(receipt.declaration_digest(), readiness_declaration_digest);
     assert_eq!(receipt.envelope_digest(), readiness_envelope_digest);
-    assert!(receipt
-        .family_rows()
-        .iter()
-        .any(|row| { row.family() == PlanarM7ReadinessFamily::PredicateAuthority }));
-    assert!(receipt
-        .family_rows()
-        .iter()
-        .any(|row| { row.family() == PlanarM7ReadinessFamily::SupportPosture }));
-    assert_eq!(receipt.counters().support_posture_rows(), 1);
+    receipt
 }
 
 fn recovery_handle() -> forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<

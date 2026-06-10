@@ -42,6 +42,7 @@ pub(crate) mod query_native_planar_contract_bundle;
 pub(crate) mod query_native_planar_diagnostics;
 pub(crate) mod query_native_planar_local_frame;
 pub(crate) mod query_native_planar_local_rebuild_parity;
+pub(crate) mod query_native_planar_m6_closeout;
 pub(crate) mod query_native_planar_motion_posture;
 pub(crate) mod query_native_planar_overlap;
 pub(crate) mod query_native_planar_precision;

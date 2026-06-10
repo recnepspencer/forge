@@ -143,4 +143,7 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
     t.compile_fail(format!(
         "{compile_fail}/planar_clean_fail_boundary/receipt_not_forgeable.rs"
     ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_m6_closeout/receipt_not_forgeable.rs"
+    ));
 }

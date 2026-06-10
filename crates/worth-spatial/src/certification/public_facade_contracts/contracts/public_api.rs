@@ -20,6 +20,8 @@ mod public_api_planar_diagnostics;
 mod public_api_planar_local_frame;
 #[path = "planar_local_rebuild_parity/mod.rs"]
 mod public_api_planar_local_rebuild_parity;
+#[path = "planar_m6_closeout/mod.rs"]
+mod public_api_planar_m6_closeout;
 #[path = "planar_motion_posture/mod.rs"]
 mod public_api_planar_motion_posture;
 #[path = "planar_overlap/mod.rs"]

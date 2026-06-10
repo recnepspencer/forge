@@ -65,9 +65,15 @@ impl M6ShortcutDeletionFamily {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::KernelLocalPredicateRuntime => "kernel-local-predicate-runtime",
-            Self::KernelLocalStructuralIdentityRuntime => "kernel-local-structural-identity-runtime",
-            Self::KernelLocalRetainedPlanarFactsRuntime => "kernel-local-retained-planar-facts-runtime",
-            Self::KernelLocalProjectionConsumptionRuntime => "kernel-local-projection-consumption-runtime",
+            Self::KernelLocalStructuralIdentityRuntime => {
+                "kernel-local-structural-identity-runtime"
+            }
+            Self::KernelLocalRetainedPlanarFactsRuntime => {
+                "kernel-local-retained-planar-facts-runtime"
+            }
+            Self::KernelLocalProjectionConsumptionRuntime => {
+                "kernel-local-projection-consumption-runtime"
+            }
             Self::KernelLocalRecoveryRuntime => "kernel-local-recovery-runtime",
             Self::KernelLocalPseudoQueryRuntime => "kernel-local-pseudo-query-runtime",
         }
@@ -236,9 +242,7 @@ impl M6PlanarCloseoutBasis {
     }
 }
 
-fn validate_m6_closeout_basis(
-    basis: &M6PlanarCloseoutBasis,
-) -> Result<(), M6PlanarCloseoutDenial> {
+fn validate_m6_closeout_basis(basis: &M6PlanarCloseoutBasis) -> Result<(), M6PlanarCloseoutDenial> {
     if basis.readiness.boolean_result().is_some() || basis.readiness.imprint_action().is_some() {
         return Err(denial(
             M6PlanarCloseoutDenialKind::BooleanExecutionAlreadyPresent,
@@ -266,7 +270,10 @@ fn require_exact_premetaboss_families(
         if !seen.insert(row.family()) {
             return Err(denial(
                 M6PlanarCloseoutDenialKind::DuplicatePremetabossFamily,
-                format!("duplicate pre-MetaBoss closeout row: {}", row.family().as_str()),
+                format!(
+                    "duplicate pre-MetaBoss closeout row: {}",
+                    row.family().as_str()
+                ),
             ));
         }
     }
@@ -289,7 +296,10 @@ fn require_exact_legacy_deletion_families(
         if !seen.insert(row.family()) {
             return Err(denial(
                 M6PlanarCloseoutDenialKind::DuplicateLegacyDeletionFamily,
-                format!("duplicate legacy deletion closeout row: {}", row.family().as_str()),
+                format!(
+                    "duplicate legacy deletion closeout row: {}",
+                    row.family().as_str()
+                ),
             ));
         }
     }
@@ -304,9 +314,6 @@ fn require_exact_legacy_deletion_families(
     Ok(())
 }
 
-fn denial(
-    kind: M6PlanarCloseoutDenialKind,
-    reason: impl Into<String>,
-) -> M6PlanarCloseoutDenial {
+fn denial(kind: M6PlanarCloseoutDenialKind, reason: impl Into<String>) -> M6PlanarCloseoutDenial {
     M6PlanarCloseoutDenial::new(kind, reason)
 }

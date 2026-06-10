@@ -1,6 +1,6 @@
 pub(crate) mod complete_bundle;
 mod denial_cases;
-mod m7_readiness;
+pub(crate) mod m7_readiness;
 pub(crate) mod proof_fixture;
 pub(crate) mod runtime_handles;
 mod support_posture;

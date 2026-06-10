@@ -1,6 +1,5 @@
 use super::{
-    M6PlanarCloseoutBasis, M6PlanarCloseoutCounters, M6PremetabossFamily,
-    M6ShortcutDeletionFamily,
+    M6PlanarCloseoutBasis, M6PlanarCloseoutCounters, M6PremetabossFamily, M6ShortcutDeletionFamily,
 };
 use crate::planar_contracts::contract_bundle::PlanarContractBundleBooleanResult;
 use crate::planar_contracts::contract_bundle::{
@@ -50,8 +49,10 @@ impl M6PlanarCloseoutReceipt {
     }
 
     pub fn proves_query_owned_runtime_lanes(&self) -> bool {
-        self.basis.query_boundary().declaration_digest() == self.basis.readiness().declaration_digest()
-            && self.basis.query_boundary().envelope_digest() == self.basis.readiness().envelope_digest()
+        self.basis.query_boundary().declaration_digest()
+            == self.basis.readiness().declaration_digest()
+            && self.basis.query_boundary().envelope_digest()
+                == self.basis.readiness().envelope_digest()
     }
 
     pub fn boolean_result(&self) -> Option<PlanarContractBundleBooleanResult> {

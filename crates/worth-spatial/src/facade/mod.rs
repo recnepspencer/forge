@@ -14,6 +14,7 @@ pub mod planar_contracts;
 pub mod planar_diagnostics;
 pub mod planar_local_frame;
 pub mod planar_local_rebuild_parity;
+pub mod planar_m6_closeout;
 pub mod planar_motion_posture;
 pub mod planar_overlap;
 pub mod planar_precision;
