@@ -86,6 +86,7 @@ pub enum HadwigerArtifactKind {
     FrontierGraphSeedArtifact,
     FrontierMotifMiningReport,
     FrontierExplorationRunReport,
+    FrontierResearchProjectionGraph,
 }
 
 impl HadwigerArtifactKind {
@@ -185,6 +186,7 @@ impl HadwigerArtifactKind {
             Self::FrontierGraphSeedArtifact => "frontier_graph_seed_artifact",
             Self::FrontierMotifMiningReport => "frontier_motif_mining_report",
             Self::FrontierExplorationRunReport => "frontier_exploration_run_report",
+            Self::FrontierResearchProjectionGraph => "frontier_research_projection_graph",
         }
     }
 }

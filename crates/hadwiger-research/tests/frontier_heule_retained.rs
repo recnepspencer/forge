@@ -1,10 +1,11 @@
 use hadwiger_research::facade::{
-    admit_hadwiger_research_handle, import_frontier_graph_seed_checked,
-    run_frontier_seed_exploration_iterations_checked,
+    admit_hadwiger_research_handle, build_frontier_research_projection_graph_checked,
+    import_frontier_graph_seed_checked, run_frontier_seed_exploration_iterations_checked,
     verify_algebraic_unit_distance_embedding_checked,
     verify_k_colorability_with_certificate_checked, AlgebraicGraphEmbedding,
     ColorabilityVerificationPosture, FrontierExplorationRunRequest, FrontierGraphSeedImport,
-    HadwigerResearchHandle, HadwigerResearchOperatingContext, RetainedFrontierColoringProof,
+    FrontierResearchProjectionRequest, HadwigerResearchHandle, HadwigerResearchOperatingContext,
+    RetainedFrontierColoringProof,
 };
 
 fn handle() -> HadwigerResearchHandle {
@@ -83,6 +84,44 @@ fn heule_510_retained_proof_manifest_is_available_without_loading_large_payload(
         "a7aaea46876f67c0fc0ee04e94e03550f16343589a500825da6bd3f94f6af62f"
     );
     assert_eq!(proof.proof_byte_length(), 801_960_073);
+}
+
+#[test]
+fn heule_510_projection_graph_exposes_pressure_halo_motif() {
+    let handle = handle();
+    let imported =
+        import_frontier_graph_seed_checked(&handle, FrontierGraphSeedImport::heule_510_exact())
+            .expect("public exact 510 seed imports");
+
+    let projection = build_frontier_research_projection_graph_checked(
+        &handle,
+        FrontierResearchProjectionRequest::new(
+            "heule-510-agent-projection",
+            imported.seed_artifact(),
+            imported.graph_version(),
+        ),
+    )
+    .expect("projection graph builds");
+    let top = projection.top_pressure_vertices(1);
+    let motif = projection
+        .best_pressure_halo_motif()
+        .expect("pressure halo motif exists");
+    let satellites = motif
+        .satellites()
+        .iter()
+        .map(|row| row.vertex_label().to_string())
+        .collect::<Vec<_>>();
+
+    assert_eq!(top[0].vertex_label(), "1");
+    assert_eq!(top[0].degree(), 36);
+    assert_eq!(top[0].triangle_count(), 30);
+    assert_eq!(motif.hub_vertex(), "1");
+    assert_eq!(satellites, ["100", "85", "88", "91", "94", "97"]);
+    assert!(motif
+        .satellites()
+        .iter()
+        .all(|row| row.degree() == 24 && row.common_spokes().len() == 2));
+    assert!(!projection.admits_theorem_authority());
 }
 
 #[test]

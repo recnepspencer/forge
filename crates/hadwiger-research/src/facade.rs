@@ -176,11 +176,14 @@ pub use crate::explanations::{
     HadwigerSurvivingEvidenceReport,
 };
 pub use crate::frontier_exploration::{
-    mine_virtual_edge_motifs_checked, run_frontier_seed_exploration_iterations_checked,
-    BichromaticVirtualEdgeMotif, FrontierExplorationEvidenceBundle,
-    FrontierExplorationEvidencePosture, FrontierExplorationIterationReport,
-    FrontierExplorationRunReport, FrontierExplorationRunRequest, FrontierMotifMiningReport,
-    FrontierMutationPolicy, TerminalColorForcingMotif, VirtualEdgeMotif,
+    build_frontier_research_projection_graph_checked, mine_virtual_edge_motifs_checked,
+    run_frontier_seed_exploration_iterations_checked, BichromaticVirtualEdgeMotif,
+    FrontierDegreeBucket, FrontierExplorationEvidenceBundle, FrontierExplorationEvidencePosture,
+    FrontierExplorationIterationReport, FrontierExplorationRunReport,
+    FrontierExplorationRunRequest, FrontierMotifMiningReport, FrontierMutationPolicy,
+    FrontierPressureHaloMotif, FrontierPressureSatellite, FrontierPressureVertex,
+    FrontierProjectionEdge, FrontierProjectionNode, FrontierResearchProjectionGraph,
+    FrontierResearchProjectionRequest, TerminalColorForcingMotif, VirtualEdgeMotif,
 };
 pub use crate::frontier_seeds::{
     import_frontier_graph_seed_checked, load_heule_510_not_four_colorability_certificate_checked,
