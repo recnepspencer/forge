@@ -12,6 +12,7 @@ pub enum ForgeServerCompatibilityVersion {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeServerNegotiatedRepresentation {
     Json,
+    Binary,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

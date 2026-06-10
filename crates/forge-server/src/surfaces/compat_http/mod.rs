@@ -1,6 +1,12 @@
+mod abuse_accounting;
 mod admission;
+mod binary_digest;
+mod download_execution;
 mod entry;
+mod external_evidence;
 mod facade;
+mod file_identity;
+mod file_linkage;
 mod mutation_execution;
 mod read_execution;
 mod registration;
@@ -9,6 +15,10 @@ mod root;
 mod streaming_execution;
 mod upload_execution;
 
+pub use abuse_accounting::{
+    ForgeServerAbuseBudgetReceipt, ForgeServerTransferByteClass,
+    ForgeServerTransferCleanupEvidence, ForgeServerTransferCleanupReason,
+};
 pub use admission::{
     ForgeServerCompatibilityDeferred, ForgeServerCompatibilityDenial,
     ForgeServerCompatibilityDenialCode, ForgeServerCompatibilityFailure,
@@ -16,7 +26,40 @@ pub use admission::{
     ForgeServerCompatibilityRequest, ForgeServerCompatibilityRequestOutcome,
     ForgeServerCompatibilityStale,
 };
+pub use download_execution::{
+    ForgeServerBinaryDownload, ForgeServerBinaryDownloadAuthorization,
+    ForgeServerBinaryDownloadExecutionInput, ForgeServerBinaryDownloadOutcome,
+    ForgeServerBinaryDownloadRequest, ForgeServerBinaryEgressPerformanceReceipt,
+    ForgeServerBinaryEgressSession, ForgeServerBinaryIntegrityDigest,
+    ForgeServerBinaryResumeRequest, ForgeServerBinaryRetryPosture, ForgeServerBinarySessionResume,
+    ForgeServerConditionalRangeRequest, ForgeServerRangeRequest,
+};
+pub(crate) use external_evidence::{
+    build_background_export_certification_bundle, build_buffered_export_certification_bundle,
+    build_download_certification_bundle, build_inspection_certification_bundle,
+    build_read_certification_bundle, build_streaming_export_certification_bundle,
+    build_upload_certification_bundle,
+};
+pub use external_evidence::{
+    ForgeServerBinaryCertificationBundle, ForgeServerBinaryCounterSet,
+    ForgeServerCompatibilityCertificationBundle, ForgeServerExternalCounterSet,
+    ForgeServerExternalEvidenceRecord,
+};
 pub use facade::ForgeServerCompatibilityFacade;
+pub(crate) use file_identity::{
+    project_binary_egress_envelope, project_metadata_inspection_envelope,
+    project_metadata_read_envelope, project_upload_envelope, validate_canonical_filename,
+    validate_manifest_metadata_normalization, validate_operation_name_binding,
+};
+pub use file_identity::{
+    ForgeServerCacheabilityPolicy, ForgeServerCanonicalFilename,
+    ForgeServerMetadataNormalizationReceipt,
+};
+pub use file_linkage::{
+    ForgeServerBinaryPolicyDecision, ForgeServerCompatibilityFileEnvelope,
+    ForgeServerFileMetadataReceipt, ForgeServerFileMetadataTruthKind,
+    ForgeServerFileTransferDisposition, ForgeServerFileTransferProvenance,
+};
 pub(crate) use mutation_execution::ForgeServerStoredCompatibilityMutation;
 pub use mutation_execution::{
     ForgeServerCompatibilityMutation, ForgeServerCompatibilityMutationCommand,

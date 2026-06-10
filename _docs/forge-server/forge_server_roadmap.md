@@ -9,8 +9,10 @@ server does not yet have an execution sequence that says what must be built
 first, what can safely wait, and which dependency contracts from Query,
 Runtime Bridge, Relational, and Store are stable enough to build on now.
 
-There is not yet a `forge_server` test-requirements document. Until one exists,
-the acceptance sections in this roadmap are the authoritative server proof bar.
+The server now has a dedicated certification bar in
+[`test-requirements.md`](./test-requirements.md). The acceptance sections in
+this roadmap still matter, but the detailed hostile-suite and narrow-artifact
+requirements now live there.
 
 This roadmap is not a compressed summary of the vision. It is the execution
 outline of the vision. If a meaningful capability appears in the vision, this
@@ -44,8 +46,9 @@ that is a roadmap defect.
   regulated industries and Forge-native ergonomics.
 - existing `forge_server_roadmap.md`: the previous roadmap had the right
   backbone but compressed too much vision nuance into broad milestones.
-- no `forge-server` test requirements doc exists yet: this roadmap must carry
-  the proof burden directly until a dedicated certification document exists.
+- [`test-requirements.md`](./test-requirements.md): the detailed certification
+  burden now lives in the dedicated server test-requirements document; this
+  roadmap names capability sequencing and milestone acceptance scope.
 - `milestone-17-closeout.md`: temporal/async basis, mixed-cause ordering,
   shared delivery, restart/resume basis, and bridge certification are already
   closed upstream and must be consumed rather than recreated.
@@ -284,6 +287,7 @@ contracts directly without rebuilding their product meaning as endpoint glue.
 ### Milestone 3: External HTTP, Streaming, Binary, And Blob Surface
 
 Spec: [milestone-3.md](./milestone-3.md)
+Closeout: [milestone-3-closeout.md](./milestone-3-closeout.md)
 
 ### Goal
 

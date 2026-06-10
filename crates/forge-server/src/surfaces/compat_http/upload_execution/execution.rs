@@ -1,9 +1,18 @@
 use forge_proof::TransitionOutcome;
 
 use crate::{
-    ForgeServerCompatibilityFacade, ForgeServerCompatibilityPreparedRequest,
+    ForgeServerBinaryCertificationBundle, ForgeServerCompatibilityFacade,
+    ForgeServerCompatibilityFileEnvelope, ForgeServerCompatibilityPreparedRequest,
     ForgeServerQueryHandoffDeferred, ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffFailure,
     ForgeServerQueryHandoffRebindRequired, ForgeServerQueryHandoffStale,
+};
+
+use super::super::{
+    abuse_accounting::{
+        denied_budget_receipt_for_prepared_request, ForgeServerAbuseBudgetDenialClass,
+        ForgeServerTransferByteClass,
+    },
+    build_upload_certification_bundle, project_upload_envelope,
 };
 
 use super::{
@@ -137,7 +146,17 @@ impl ForgeServerCompatibilityFacade {
             .diagnostics_profile();
         let metrics = match admit_binary_ingress(&upload, diagnostics_profile) {
             Ok(value) => value,
-            Err(denial) => return TransitionOutcome::Denied(denial),
+            Err(denial) => {
+                let detail = denial.detail().to_string();
+                return TransitionOutcome::Denied(denial.with_abuse_budget_receipt(
+                    denied_budget_receipt_for_prepared_request(
+                        &prepared_request,
+                        ForgeServerTransferByteClass::BinaryWire,
+                        detail,
+                        ForgeServerAbuseBudgetDenialClass::SlowlorisCutoff,
+                    ),
+                ));
+            }
         };
         let performance_receipt = match ForgeServerIngressPerformanceReceipt::build(
             metrics,
@@ -215,11 +234,21 @@ impl ForgeServerCompatibilityFacade {
                 mutation_request,
             )
             .map_success(|mutation| {
+                let file_envelope = project_upload_envelope(&session, &mutation);
+                let certification_bundle = build_upload_certification_bundle(
+                    &self.operator_evidence,
+                    mutation.envelope().support_posture(),
+                    &file_envelope,
+                    mutation.envelope().response_envelope(),
+                    &performance_receipt,
+                );
                 ForgeServerCompatibilityUpload::new(
                     upload,
                     integrity_digest,
                     performance_receipt,
                     mutation,
+                    file_envelope,
+                    certification_bundle,
                 )
             });
         if matches!(outcome, TransitionOutcome::Success(_)) {
@@ -324,6 +353,8 @@ pub struct ForgeServerCompatibilityUpload {
     ingress_integrity: ForgeServerIngressIntegrityDigest,
     ingress_performance: ForgeServerIngressPerformanceReceipt,
     mutation: crate::ForgeServerCompatibilityMutation,
+    file_envelope: ForgeServerCompatibilityFileEnvelope,
+    certification_bundle: ForgeServerBinaryCertificationBundle,
     canonical_digest: String,
 }
 
@@ -333,19 +364,25 @@ impl ForgeServerCompatibilityUpload {
         ingress_integrity: ForgeServerIngressIntegrityDigest,
         ingress_performance: ForgeServerIngressPerformanceReceipt,
         mutation: crate::ForgeServerCompatibilityMutation,
+        file_envelope: ForgeServerCompatibilityFileEnvelope,
+        certification_bundle: ForgeServerBinaryCertificationBundle,
     ) -> Self {
         let canonical_digest = format!(
-            "forge-server-compat-upload-v2|upload={}|integrity={}|ingress_performance={}|mutation={}",
+            "forge-server-compat-upload-v4|upload={}|integrity={}|ingress_performance={}|mutation={}|file_envelope={}|certification={}",
             upload.canonical_digest(),
             ingress_integrity.canonical_digest(),
             ingress_performance_digest(&ingress_performance),
             mutation.canonical_digest(),
+            file_envelope.canonical_digest(),
+            certification_bundle.canonical_digest(),
         );
         Self {
             upload,
             ingress_integrity,
             ingress_performance,
             mutation,
+            file_envelope,
+            certification_bundle,
             canonical_digest,
         }
     }
@@ -364,6 +401,14 @@ impl ForgeServerCompatibilityUpload {
 
     pub fn mutation(&self) -> &crate::ForgeServerCompatibilityMutation {
         &self.mutation
+    }
+
+    pub fn file_envelope(&self) -> &ForgeServerCompatibilityFileEnvelope {
+        &self.file_envelope
+    }
+
+    pub fn certification_bundle(&self) -> &ForgeServerBinaryCertificationBundle {
+        &self.certification_bundle
     }
 
     pub fn canonical_digest(&self) -> &str {

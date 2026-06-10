@@ -5,6 +5,10 @@ use crate::{
     ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffDenialCode,
 };
 
+use super::super::{
+    validate_canonical_filename, validate_manifest_metadata_normalization,
+    validate_operation_name_binding,
+};
 use super::request::{ForgeServerMultipartUpload, ForgeServerUploadExpectation};
 
 const MAX_DECLARED_UPLOAD_PART_BYTES: u64 = 8 * 1024 * 1024;
@@ -16,6 +20,15 @@ pub(crate) fn validate_upload_admission(
 ) -> Result<(), ForgeServerQueryHandoffDenial> {
     validate_upload_route_family(prepared_request)?;
     validate_upload_request_contract(prepared_request, upload.expectation())?;
+    validate_operation_name_binding(
+        prepared_request.request_contract(),
+        operation_name,
+        ForgeServerQueryHandoffDenialCode::CompatibilityUploadRequestInvalid,
+        prepared_request
+            .admission()
+            .request_context()
+            .diagnostics_profile(),
+    )?;
     validate_upload_shape(prepared_request, upload, operation_name)?;
     Ok(())
 }
@@ -108,6 +121,11 @@ fn validate_upload_shape(
             "compatibility upload operation name may not be blank",
         ));
     }
+    validate_canonical_filename(
+        operation_name,
+        diagnostics_profile,
+        ForgeServerQueryHandoffDenialCode::CompatibilityUploadRequestInvalid,
+    )?;
     let metadata_body = upload.manifest().metadata_body();
     if !metadata_body.is_object() {
         return Err(ForgeServerQueryHandoffDenial::new(
@@ -116,6 +134,7 @@ fn validate_upload_shape(
             "compatibility upload manifest metadata must be a JSON object carrying the canonical mutation body",
         ));
     }
+    validate_manifest_metadata_normalization(metadata_body, diagnostics_profile)?;
     let declared_parts = normalized_part_names(
         upload.manifest().declared_file_parts(),
         diagnostics_profile,
