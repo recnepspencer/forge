@@ -1,7 +1,8 @@
 use hadwiger_research::facade::{
     admit_hadwiger_research_handle, build_frontier_research_projection_graph_checked,
-    import_frontier_graph_seed_checked, FrontierGraphSeedImport, FrontierResearchProjectionRequest,
-    HadwigerCanonicalArtifact, HadwigerResearchOperatingContext, RetainedFrontierColoringProof,
+    import_frontier_graph_seed_checked, propose_frontier_pressure_halo_hypotheses_checked,
+    FrontierGraphSeedImport, FrontierResearchProjectionRequest, HadwigerCanonicalArtifact,
+    HadwigerResearchOperatingContext, RetainedFrontierColoringProof,
 };
 
 fn main() {
@@ -63,5 +64,14 @@ fn main() {
                 satellite.common_spokes().join("|")
             );
         }
+    }
+    for hypothesis in propose_frontier_pressure_halo_hypotheses_checked(&projection) {
+        println!("hypothesis={}", hypothesis.hypothesis_id());
+        println!("hypothesis_statement={}", hypothesis.hypothesis_statement());
+        println!("mutation_test_plan={}", hypothesis.mutation_test_plan());
+        println!(
+            "required_evidence={}",
+            hypothesis.required_evidence().join("|")
+        );
     }
 }

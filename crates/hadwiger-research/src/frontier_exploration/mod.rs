@@ -13,8 +13,9 @@ pub use motif_mining::{
     TerminalColorForcingMotif, VirtualEdgeMotif,
 };
 pub use research_projection::{
-    build_frontier_research_projection_graph_checked, FrontierDegreeBucket,
-    FrontierPressureHaloMotif, FrontierPressureSatellite, FrontierPressureVertex,
-    FrontierProjectionEdge, FrontierProjectionNode, FrontierResearchProjectionGraph,
-    FrontierResearchProjectionRequest,
+    build_frontier_research_projection_graph_checked,
+    propose_frontier_pressure_halo_hypotheses_checked, FrontierDegreeBucket,
+    FrontierPressureHaloHypothesis, FrontierPressureHaloMotif, FrontierPressureSatellite,
+    FrontierPressureVertex, FrontierProjectionEdge, FrontierProjectionNode,
+    FrontierResearchProjectionGraph, FrontierResearchProjectionRequest,
 };

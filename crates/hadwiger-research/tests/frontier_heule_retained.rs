@@ -1,6 +1,7 @@
 use hadwiger_research::facade::{
     admit_hadwiger_research_handle, build_frontier_research_projection_graph_checked,
-    import_frontier_graph_seed_checked, run_frontier_seed_exploration_iterations_checked,
+    import_frontier_graph_seed_checked, propose_frontier_pressure_halo_hypotheses_checked,
+    run_frontier_seed_exploration_iterations_checked,
     verify_algebraic_unit_distance_embedding_checked,
     verify_k_colorability_with_certificate_checked, AlgebraicGraphEmbedding,
     ColorabilityVerificationPosture, FrontierExplorationRunRequest, FrontierGraphSeedImport,
@@ -122,6 +123,33 @@ fn heule_510_projection_graph_exposes_pressure_halo_motif() {
         .iter()
         .all(|row| row.degree() == 24 && row.common_spokes().len() == 2));
     assert!(!projection.admits_theorem_authority());
+}
+
+#[test]
+fn heule_510_pressure_halo_projection_generates_non_authoritative_hypothesis() {
+    let handle = handle();
+    let imported =
+        import_frontier_graph_seed_checked(&handle, FrontierGraphSeedImport::heule_510_exact())
+            .expect("public exact 510 seed imports");
+    let projection = build_frontier_research_projection_graph_checked(
+        &handle,
+        FrontierResearchProjectionRequest::new(
+            "heule-510-agent-projection",
+            imported.seed_artifact(),
+            imported.graph_version(),
+        ),
+    )
+    .expect("projection graph builds");
+
+    let hypotheses = propose_frontier_pressure_halo_hypotheses_checked(&projection);
+
+    assert_eq!(hypotheses.len(), 1);
+    assert_eq!(hypotheses[0].motif_signature(), "pressure-halo:1:degree-36");
+    assert!(hypotheses[0].mutation_test_plan().contains("100:[29|33]"));
+    assert!(hypotheses[0]
+        .required_evidence()
+        .contains(&"colorability_refutation_replay".to_string()));
+    assert!(!hypotheses[0].admits_theorem_authority());
 }
 
 #[test]
