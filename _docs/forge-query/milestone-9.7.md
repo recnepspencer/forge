@@ -657,10 +657,171 @@ lanes simultaneously and proves the adversarial constraint end to end.
   zero delivery residue, each as an exact counter assertion.
 
 **Engineering decisions**
-- This milestone closes on the certification matrix, not on the lanes
-  individually passing their phase tests.
+- This phase is necessary but not sufficient: the hostile certification matrix
+  must exist before the end-cap closure phases can certify that the underlying
+  counters, pinning substrate, journal identity, replay lane, and public-bridge
+  consumer proofs are runtime-owned rather than modeled.
 - Certification artifacts lower through the `9.6` evidence primitive so the
   matrix itself is replay-comparable.
+
+**Open questions**
+- None.
+
+### Phase 11: Runtime-Owned Shared Read Pinning And Retirement Closure Boundary
+
+Replace the current snapshot-copy shared-read implementation with the runtime-
+owned substrate the milestone actually promised: generation-indexed pinning,
+explicit retirement, typed stale-basis denial, and mechanically observable
+residue counters so shared read authority is backed by structural runtime state
+rather than copied materialization snapshots.
+
+**Relevant subsystems**
+- runtime shared-read substrate
+- snapshot generation pinning and retirement
+- basis capability lifecycle
+
+**Relevant Query source surfaces**
+- [runtime/shared_read.rs](../../crates/forge-query/src/runtime/shared_read.rs)
+- [runtime/state.rs](../../crates/forge-query/src/runtime/state.rs)
+- [runtime/workspace_shared_read.rs](../../crates/forge-query/src/runtime/workspace_shared_read.rs)
+
+**Relevant APIs and product surfaces**
+- `ForgeQuerySharedReadContext` as a sealed, basis-bound, `Send + Sync`,
+  runtime-backed read authority
+- runtime-owned shared-read pin / retire counters and stale-basis denial
+  surfaces consumed by hostile certification
+
+**Warnings**
+- Do not satisfy this phase by copying more runtime state into the shared-read
+  context; copied snapshots are not pinning.
+- Do not model pin retirement through `Drop` heuristics alone; retirement must
+  be explicit, observable, and certifiable.
+- Do not silently rebind an old shared-read context to a newer committed
+  snapshot when its pinned generation is retired; stale basis must fail typed.
+
+**Test requirements**
+- Add a `Runtime-Owned Shared Read Pinning Closure Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- Adversarial equivalence: a pinned shared-read context under sustained commit
+  pressure continues to observe the exact pinned basis and produces
+  byte-identical receipts and facts for its full legal lifetime.
+- Adversarial denial: once the pinned generation is retired, the same context
+  fails closed with a typed stale-basis stop and never silently refreshes.
+- Adversarial residue: hostile pin / retire schedules prove exact-zero orphaned
+  generations and exact-zero unretired pins through runtime-owned counters,
+  not inferred or hard-coded values.
+
+**Engineering decisions**
+- Pin identity is a real runtime artifact with explicit generation semantics,
+  not a formatted `snapshot_token` convention.
+- Shared-read contexts remain cheap consumer artifacts, but the thing they hold
+  is runtime-owned structural authority rather than copied derived rows.
+
+**Open questions**
+- None.
+
+### Phase 12: Typed Submission Journal Identity And Consumer Replay Closure Boundary
+
+Close the submission seam as a real journaled authority lane: typed journal
+position identity on committed receipts, typed journal-segment identity for
+consumer replay requests, and a public replay surface that re-derives through
+the runtime instead of asking consumers or tests to infer replay from commit
+string conventions.
+
+**Relevant subsystems**
+- submission intake and receipt identity
+- journal segment identity
+- consumer-facing replay surface
+
+**Relevant Query source surfaces**
+- [runtime/workspace_submission.rs](../../crates/forge-query/src/runtime/workspace_submission.rs)
+- [runtime/backend/receipts.rs](../../crates/forge-query/src/runtime/backend/receipts.rs)
+- [runtime/public_api.rs](../../crates/forge-query/src/runtime/public_api.rs)
+
+**Relevant APIs and product surfaces**
+- typed journal-position accessors on submission receipts
+- typed journal-segment / replay-request product surfaces on the workspace
+  facade
+- consumer replay results returned through the ordinary receipt / envelope
+  vocabulary
+
+**Warnings**
+- Do not keep treating `commit_identity` string suffixes as journal order;
+  journal order must be a typed product surface.
+- Do not expose raw journal internals when the consumer need is replay outcome.
+- Do not build a second replay semantics path beside ordinary submission,
+  admission, execution, and receipt lowering.
+
+**Test requirements**
+- Add a `Typed Journal Identity And Consumer Replay Closure Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- Adversarial equivalence: a multi-producer submission schedule records typed
+  journal positions whose replay reconstructs identical truth, receipts,
+  published artifacts, and digests.
+- Adversarial rejection: stale-basis replay, unknown journal segment identity,
+  and cross-scheme replay identity requests all fail typed and leave zero
+  journal residue.
+- Adversarial localization: no certification or support proof may derive
+  journal order by parsing `commit_identity` text.
+
+**Engineering decisions**
+- Journal order is represented as a Query-owned typed artifact, not as a naming
+  convention emergent from mutation receipts.
+- Consumer replay is a first-class public Query lane because downstream refolds
+  are precisely the folklore this milestone is supposed to eliminate.
+
+**Open questions**
+- None.
+
+### Phase 13: Certification Honesty And Public-Bridge Reader-Lane Closure Boundary
+
+Close the milestone honestly by forcing every remaining proof to run through
+the real product lanes: exact-zero hostile counters must be runtime-observed,
+public-bridge certification must consume published artifacts through typed
+projection consumption rather than row spelunking, and the milestone may not
+claim closure until modeled proofs are gone.
+
+**Relevant subsystems**
+- hostile certification harness
+- public-bridge runtime certification harness
+- projection-consumption product lane
+
+**Relevant Query source surfaces**
+- [runtime/tests/support/bridge/hostile_certification.rs](../../crates/forge-query/src/runtime/tests/support/bridge/hostile_certification.rs)
+- [runtime/tests/support/bridge/hostile_certification_schedule.rs](../../crates/forge-query/src/runtime/tests/support/bridge/hostile_certification_schedule.rs)
+- [tests/support/public_bridge_runtime/hostile_certification.rs](../../crates/forge-query/tests/support/public_bridge_runtime/hostile_certification.rs)
+
+**Relevant APIs and product surfaces**
+- hostile exact-zero counter evidence
+- public-bridge hostile certification artifact
+- published-artifact consumption through projection-consumption receipts
+
+**Warnings**
+- Do not leave hard-coded zero helpers in the certification path; that is a
+  fake proof.
+- Do not let public-bridge certification read materialization rows directly
+  from bindings when the milestone claims projection-consumption isolation.
+- Do not count a phase test as sufficient if it can still pass after the
+  underlying runtime guarantee regresses.
+
+**Test requirements**
+- Add a `Certification Honesty Closure Test` to
+  [test-requirements.md](./test-requirements.md) and close it in this phase.
+- Adversarial equivalence: the runtime hostile matrix and the public-bridge
+  hostile matrix both produce replay-stable artifacts while consuming published
+  derived facts only through the typed reader lane.
+- Adversarial proof integrity: each exact-zero hostile counter is sourced from
+  runtime-owned measurement state, and sabotage tests prove the certification
+  fails when those counters are intentionally perturbed.
+- Adversarial boundary localization: public-bridge hostile certification loses
+  compile access to any direct internal materialization-reading shortcuts that
+  would bypass projection consumption.
+
+**Engineering decisions**
+- The milestone closes on proof honesty, not merely on feature-shaped surface
+  availability.
+- A certification artifact that does not become false under the targeted
+  regression is not acceptance evidence.
 
 **Open questions**
 - None.
@@ -669,15 +830,16 @@ lanes simultaneously and proves the adversarial constraint end to end.
 
 - authority-lane-decomposed backend contracts with `Send + Sync` read lanes
 - sealed basis-bound shared read contexts with generation-pinned snapshots
-  and lock-free committed reads
+  and lock-free committed reads backed by runtime-owned pin / retire substrate
 - the deterministic submission seam with journal-ordered receipts over the
-  existing admission lattice, including the consumer-facing journal-segment
-  replay surface
+  existing admission lattice, including typed journal identity and the
+  consumer-facing journal-segment replay surface
 - the published derived-artifact rule with reader evaluation structurally
   impossible
 - the re-expressed workspace facade with unchanged existing consumer surface
   and fail-closed admission for the new families
-- the hostile concurrency/determinism certification matrix
+- the hostile concurrency/determinism certification matrix with runtime-owned
+  exact-zero counters and public-bridge reader-lane honesty
 
 ## Must Preserve
 
@@ -700,12 +862,17 @@ This milestone is complete only when `forge-query` can prove:
 - N concurrent readers under write pressure produce byte-identical receipts
   and results to serialized execution, with exact-zero lock and
   reader-evaluation counters
+- shared-read authority is backed by runtime-owned generation pinning and
+  retirement, with typed stale-basis denial and exact-zero residue counters
 - journal replay reconstructs identical truth, receipts, and published
-  artifacts
+  artifacts through typed journal identity rather than parsed receipt strings
 - existing downstream consumers compile unchanged against the re-expressed
   facade
 - the new facade families carry honest support/admission rows that fail
   closed where unbacked
+- public-bridge hostile certification consumes published derived artifacts
+  through the typed projection-consumption lane rather than direct
+  materialization reads
 
 ## Sequencing Notes
 

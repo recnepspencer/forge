@@ -12,17 +12,17 @@ pub(in super::super) fn compose_support_report_identity(
         crate::ForgeQueryEvidenceTag::new("validated_config_digest"),
         report.validated_config_digest(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("admitted_capability_count"),
-        report.admitted_capability_count().to_string(),
+        report.admitted_capability_count(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("deferred_capability_count"),
-        report.deferred_capability_count().to_string(),
+        report.deferred_capability_count(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("unsupported_capability_count"),
-        report.unsupported_capability_count().to_string(),
+        report.unsupported_capability_count(),
     )
     .field_identity_sequence(
         crate::ForgeQueryEvidenceTag::new("admitted_capability_family"),
@@ -74,19 +74,27 @@ pub(in super::super) fn compose_support_report_identity(
         crate::ForgeQueryEvidenceTag::new("identity_boundary_closure_digest"),
         report.identity_boundary_closure().closure_digest(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("support_report_generation_count"),
-        report
-            .counters()
-            .support_report_generation_count()
-            .to_string(),
+        report.counters().support_report_generation_count(),
     )
     .seal()
 }
 
-pub(in super::super) fn assert_phase_two_surface_has_no_hash_parts(source: &str) {
-    assert!(
-        !source.contains("hash_parts("),
-        "phase-2-covered surface must not retain hash_parts folklore"
-    );
+pub(in super::super) fn assert_phase_two_surface_has_no_digest_folklore(source: &str) {
+    for forbidden in [
+        "hash_parts(",
+        "digest_owned_parts(",
+        ".join(\"|\")",
+        "format!(\"{}|",
+        "format!(\"{:?}\"",
+        "format!(\"{:?}|",
+        "format!(\"{:#?}\"",
+        "format!(\"{:#?}|",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "phase-2-covered surface must not retain digest folklore pattern {forbidden}"
+        );
+    }
 }

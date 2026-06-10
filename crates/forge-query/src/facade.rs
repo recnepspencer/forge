@@ -6,6 +6,7 @@ mod exports_application;
 mod exports_foundation;
 mod exports_policy;
 mod exports_runtime;
+mod exports_runtime_phase_nine;
 
 pub mod foundation {
     pub use super::exports_application::*;
@@ -26,9 +27,11 @@ pub mod policy {
 
 pub mod runtime {
     pub use super::exports_runtime::*;
+    pub use super::exports_runtime_phase_nine::*;
 }
 
 pub use exports_application::*;
 pub use exports_foundation::*;
 pub use exports_policy::*;
 pub use exports_runtime::*;
+pub use exports_runtime_phase_nine::*;

@@ -1,5 +1,6 @@
 mod authority_artifacts;
 mod bridge_backed_verification_profile;
+mod denial;
 mod facade_families;
 mod graph_composition;
 mod profile;
@@ -8,6 +9,7 @@ pub use authority_artifacts::{
     ForgeQueryBranchBasisAdmission, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
 };
+pub use denial::ForgeQueryRuntimeSupportDenial;
 pub use facade_families::{
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
     ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeFamilyTeachingPosture,
@@ -21,4 +23,4 @@ pub use graph_composition::{
     ForgeQueryGraphCompositionExtensionHookBoundary,
     ForgeQueryGraphCompositionExtensionHookSupportRow,
 };
-pub use profile::{ForgeQueryRuntimeSupportDenial, ForgeQueryRuntimeSupportProfile};
+pub use profile::ForgeQueryRuntimeSupportProfile;

@@ -41,6 +41,9 @@ pub enum ForgeQueryRuntimeError {
     MissingLiveView(String),
     MissingLiveSubscription(String),
     MissingDerivedView(String),
+    SharedReadStaleBasis {
+        snapshot_token: String,
+    },
     MissingEffect(String),
     MissingPendingWriteIntent(String),
     RetainedRowDecode {
@@ -173,6 +176,10 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 )
             }
             Self::MissingDerivedView(view) => write!(f, "unknown computed view `{view}`"),
+            Self::SharedReadStaleBasis { snapshot_token } => write!(
+                f,
+                "shared read basis `{snapshot_token}` is stale and can no longer serve published artifacts"
+            ),
             Self::MissingEffect(effect) => write!(f, "unknown effect `{effect}`"),
             Self::MissingPendingWriteIntent(effect) => {
                 write!(f, "effect `{effect}` has no pending write intent delivery")

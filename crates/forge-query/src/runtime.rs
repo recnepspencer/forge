@@ -268,6 +268,8 @@ mod runtime_sessions;
 mod runtime_unified_inspection_intents;
 mod runtime_write_intents;
 mod runtime_writes;
+mod shared_read;
+mod shared_read_pins;
 mod state;
 mod state_basis;
 mod state_basis_classification;
@@ -282,6 +284,8 @@ mod workspace_declaration;
 mod workspace_graph;
 mod workspace_queries;
 mod workspace_read_composition_support;
+mod workspace_shared_read;
+mod workspace_submission;
 
 const RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY: &str =
     "runtime-live-subscription-family:scratch_buffer_only:canonical=64:relationship=64:policy=64:projection=512:tenant=1";
@@ -531,6 +535,16 @@ use runtime_helpers::{
     runtime_subscription_budget_policy, subscription_dimensions_for_request,
     synthetic_existing_assertion_receipt,
 };
+#[allow(unused_imports)]
+pub use shared_read::{
+    ForgeQueryPublishedDerivedArtifactHandle, ForgeQueryPublishedProjectionConsumption,
+    ForgeQueryPublishedProjectionInspection, ForgeQuerySharedReadContext,
+};
+pub(in crate::runtime) use shared_read_pins::{
+    forge_query_shared_read_stale_basis_error, ForgeQuerySharedReadGenerationLease,
+};
+#[cfg(test)]
+pub(in crate::runtime) use shared_read_pins::ForgeQuerySharedReadCounters;
 pub use state::ForgeQueryRuntimeStateTarget;
 pub use state_snapshot::{ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot};
 pub use support::{
@@ -595,12 +609,13 @@ pub use workspace_declaration::{
     ForgeQueryComputedBuilder, ForgeQueryEffectBuilder, ForgeQueryLiveViewBuilder,
     ForgeQueryWorkspaceLiveViewDeclaration,
 };
+pub use workspace_submission::ForgeQueryWorkspaceSubmissionLane;
 
 pub struct ForgeQueryRuntime {
     backend: Box<dyn ForgeQueryRuntimeBackend>,
     evidence_authority: ForgeQueryRuntimeEvidenceAuthority,
-    preview_session_labels: BTreeMap<String, ForgeQuerySessionLabel>,
-    branch_session_labels: BTreeMap<String, ForgeQuerySessionLabel>,
+    preview_session_labels: BTreeSet<ForgeQuerySessionLabel>,
+    branch_session_labels: BTreeSet<ForgeQuerySessionLabel>,
     active_subscriptions: ActiveSubscriptionRuntime,
     live_subscriptions: BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>,
     materialized_read_views: BTreeMap<String, DeclarativeLiveQueryRequest>,
@@ -608,6 +623,7 @@ pub struct ForgeQueryRuntime {
     installed_programs: BTreeMap<String, ForgeQueryProgram>,
     run_traces: BTreeMap<String, ForgeQueryProgramTrace>,
     derived_views: BTreeMap<String, ForgeQueryDerivedViewRuntime>,
+    shared_read_pins: shared_read_pins::ForgeQuerySharedReadPinRegistry,
     derived_dependency_index: ForgeQueryComputedDependencyIndex,
     effects: BTreeMap<String, ForgeQueryEffectRuntime>,
     effect_index: ForgeQueryEffectIndex,

@@ -9,6 +9,7 @@ mod computed;
 #[allow(deprecated)]
 mod effect;
 mod evidence_identity;
+mod hostile_certification;
 mod hostile_read_bootstrap;
 mod identity_boundary;
 #[allow(deprecated)]
@@ -28,4 +29,5 @@ mod preview;
 mod program;
 mod read_composition;
 mod session_label;
+mod shared_read;
 mod stop_class;

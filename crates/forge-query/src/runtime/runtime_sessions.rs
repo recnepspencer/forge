@@ -379,17 +379,16 @@ fn install_live_subscription_activation(
 }
 
 fn admit_session_label_for_lane(
-    admitted_labels: &mut std::collections::BTreeMap<String, ForgeQuerySessionLabel>,
+    admitted_labels: &mut std::collections::BTreeSet<ForgeQuerySessionLabel>,
     authority_lane: ForgeQueryAuthorityLane,
     label: &ForgeQuerySessionLabel,
 ) -> Result<(), ForgeQueryRuntimeError> {
-    let identity = label.identity_digest().to_string();
-    if admitted_labels.contains_key(&identity) {
+    if admitted_labels.contains(label) {
         return Err(ForgeQueryRuntimeError::SessionLabelCollision {
             authority_lane,
             label: label.clone(),
         });
     }
-    admitted_labels.insert(identity, label.clone());
+    admitted_labels.insert(label.clone());
     Ok(())
 }

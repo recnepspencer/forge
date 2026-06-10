@@ -1,21 +1,12 @@
-use super::{
-    ForgeQuerySessionLabel, ForgeQuerySessionLabelError, ForgeQuerySessionLabelSegment,
-    ForgeQuerySessionNamespace,
-};
+use super::{render_collision_labels, typed_temporal_preview_label};
 use crate::facade::runtime::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    ForgeQuerySessionLabel, ForgeQuerySessionLabelSegment, ForgeQuerySessionNamespace,
 };
 
 #[test]
 fn artifact_is_exported_through_runtime_facade_and_recomposes_from_typed_parts() {
-    let label = ForgeQuerySessionLabel::scoped(
-        ForgeQuerySessionNamespace::new("worth-kernel").expect("namespace should build"),
-        [
-            ForgeQuerySessionLabelSegment::new("temporal").expect("segment should build"),
-            ForgeQuerySessionLabelSegment::new("preview").expect("segment should build"),
-        ],
-    )
-    .expect("label should build");
+    let label = typed_temporal_preview_label();
     let recomposed =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SessionLabelIdentity)
             .field_identity(
@@ -42,14 +33,7 @@ fn artifact_is_exported_through_runtime_facade_and_recomposes_from_typed_parts()
 
 #[test]
 fn scoped_and_string_construction_paths_share_identity() {
-    let typed = ForgeQuerySessionLabel::scoped(
-        ForgeQuerySessionNamespace::new("worth-kernel").expect("namespace should build"),
-        [
-            ForgeQuerySessionLabelSegment::new("temporal").expect("segment should build"),
-            ForgeQuerySessionLabelSegment::new("preview").expect("segment should build"),
-        ],
-    )
-    .expect("label should build");
+    let typed = typed_temporal_preview_label();
     let strings = ForgeQuerySessionLabel::scoped_strs("worth-kernel", ["temporal", "preview"])
         .expect("string label should build");
 
@@ -63,14 +47,7 @@ fn scoped_and_string_construction_paths_share_identity() {
 
 #[test]
 fn display_is_projection_over_typed_parts() {
-    let label = ForgeQuerySessionLabel::scoped(
-        ForgeQuerySessionNamespace::new("worth-kernel").expect("namespace should build"),
-        [
-            ForgeQuerySessionLabelSegment::new("temporal").expect("segment should build"),
-            ForgeQuerySessionLabelSegment::new("preview").expect("segment should build"),
-        ],
-    )
-    .expect("label should build");
+    let label = typed_temporal_preview_label();
 
     assert_eq!(label.namespace().as_str(), "worth-kernel");
     assert_eq!(
@@ -87,23 +64,46 @@ fn display_is_projection_over_typed_parts() {
 
 #[test]
 fn render_collisions_do_not_collapse_identity() {
-    let left = ForgeQuerySessionLabel::scoped(
-        ForgeQuerySessionNamespace::new("worth.kernel").expect("namespace should build"),
-        [ForgeQuerySessionLabelSegment::new("preview").expect("segment should build")],
-    )
-    .expect("label should build");
-    let right = ForgeQuerySessionLabel::scoped(
-        ForgeQuerySessionNamespace::new("worth").expect("namespace should build"),
-        [
-            ForgeQuerySessionLabelSegment::new("kernel").expect("segment should build"),
-            ForgeQuerySessionLabelSegment::new("preview").expect("segment should build"),
-        ],
-    )
-    .expect("label should build");
+    let (left, right) = render_collision_labels();
 
     assert_eq!(left.display(), right.display());
     assert_ne!(left, right);
     assert_ne!(left.identity_digest(), right.identity_digest());
+}
+
+#[test]
+fn dotted_segment_formatting_accidents_do_not_collapse_into_multiple_segments() {
+    let dotted_segment = ForgeQuerySessionLabel::scoped(
+        ForgeQuerySessionNamespace::new("worth-kernel").expect("namespace should build"),
+        [ForgeQuerySessionLabelSegment::new("temporal.preview").expect("segment should build")],
+    )
+    .expect("label should build");
+    let split_segments =
+        ForgeQuerySessionLabel::scoped_strs("worth-kernel", ["temporal", "preview"])
+            .expect("label should build");
+
+    assert_eq!(dotted_segment.display(), split_segments.display());
+    assert_eq!(
+        dotted_segment
+            .name_segments()
+            .iter()
+            .map(ForgeQuerySessionLabelSegment::as_str)
+            .collect::<Vec<_>>(),
+        vec!["temporal.preview"]
+    );
+    assert_eq!(
+        split_segments
+            .name_segments()
+            .iter()
+            .map(ForgeQuerySessionLabelSegment::as_str)
+            .collect::<Vec<_>>(),
+        vec!["temporal", "preview"]
+    );
+    assert_ne!(dotted_segment, split_segments);
+    assert_ne!(
+        dotted_segment.identity_digest(),
+        split_segments.identity_digest()
+    );
 }
 
 #[test]
@@ -129,24 +129,19 @@ fn namespace_changes_identity_and_digest_even_with_same_segments() {
 }
 
 #[test]
-fn rejects_empty_namespace_segments_and_name_lists() {
-    assert_eq!(
-        ForgeQuerySessionNamespace::new("   "),
-        Err(ForgeQuerySessionLabelError::EmptyNamespace)
-    );
-    assert_eq!(
-        ForgeQuerySessionLabelSegment::new(" "),
-        Err(ForgeQuerySessionLabelError::EmptyNameSegment)
-    );
-    assert_eq!(
-        ForgeQuerySessionLabel::scoped(
-            ForgeQuerySessionNamespace::new("worth-kernel").expect("namespace should build"),
-            std::iter::empty::<ForgeQuerySessionLabelSegment>(),
-        ),
-        Err(ForgeQuerySessionLabelError::MissingNameSegments)
-    );
-    assert_eq!(
-        ForgeQuerySessionLabel::scoped_strs("worth-kernel", ["preview", " "]),
-        Err(ForgeQuerySessionLabelError::EmptyNameSegment)
-    );
+fn typed_namespace_and_segment_parts_carry_identity_before_rendering() {
+    let namespace =
+        ForgeQuerySessionNamespace::new("worth-kernel").expect("namespace should build");
+    let first_segment =
+        ForgeQuerySessionLabelSegment::new("temporal").expect("segment should build");
+    let second_segment =
+        ForgeQuerySessionLabelSegment::new("preview").expect("segment should build");
+    let label = ForgeQuerySessionLabel::scoped(
+        namespace.clone(),
+        [first_segment.clone(), second_segment.clone()],
+    )
+    .expect("label should build");
+
+    assert_eq!(label.namespace(), &namespace);
+    assert_eq!(label.name_segments(), &[first_segment, second_segment]);
 }

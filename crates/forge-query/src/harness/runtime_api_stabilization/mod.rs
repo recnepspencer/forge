@@ -161,4 +161,9 @@ impl RuntimeApiStabilizationAdapter {
             rejection_rows: builders::rejection_rows(),
         }
     }
+
+    pub(crate) fn composed_runtime_hostile_transcript_evidence(
+    ) -> crate::runtime::ForgeQueryRuntimePublicApiTranscriptEvidence {
+        transcripts::composed_runtime_hostile_transcript()
+    }
 }

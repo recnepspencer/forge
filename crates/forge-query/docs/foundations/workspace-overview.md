@@ -66,8 +66,12 @@ Good to know:
 
 - covered intent families are real now, but they are concrete named families,
   not blanket facade-family support.
+- canonical machine identity comes from
+  `ForgeQueryEvidenceIdentity::compose(...)`, not caller-owned string hashing
 - preview and branch entry use `ForgeQuerySessionLabel` as the ordinary typed
   identity lane; callers should not mint free-form string labels
+- `error.stop_class()` is the machine lane for runtime denials; messages are
+  presentation and may change wording without changing the contract
 - workflow capability authoring that targets preview inspection or preview
   mutation uses `BridgePreviewSessionIdentity`; session labels name the opened
   preview or branch context, while preview-session identities name the retained

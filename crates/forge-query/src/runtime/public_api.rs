@@ -58,13 +58,13 @@ impl ForgeQueryRuntimePublicApiFamilyContract {
                     ForgeQueryEvidenceTag::new("extension_rule"),
                     extension_rule.clone(),
                 )
-                .field_value(
+                .field_bool(
                     ForgeQueryEvidenceTag::new("parallel_api_forbidden"),
-                    parallel_api_forbidden.to_string(),
+                    parallel_api_forbidden,
                 )
-                .field_value(
+                .field_bool(
                     ForgeQueryEvidenceTag::new("admission_fail_closed"),
-                    admission_fail_closed.to_string(),
+                    admission_fail_closed,
                 )
                 .field_identity_sequence(
                     ForgeQueryEvidenceTag::new("authority_lanes"),
@@ -182,17 +182,17 @@ impl ForgeQueryRuntimePublicApiContract {
                         .iter()
                         .map(ForgeQueryRuntimePublicApiFamilyContract::contract_digest),
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("stable_family_count"),
-                    stable_family_count.to_string(),
+                    stable_family_count,
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("deferred_family_count"),
-                    deferred_family_count.to_string(),
+                    deferred_family_count,
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("unsupported_family_count"),
-                    unsupported_family_count.to_string(),
+                    unsupported_family_count,
                 )
                 .seal()
                 .as_str()

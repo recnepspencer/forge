@@ -126,7 +126,10 @@ fn basis_admissions_emit_canonical_evidence_tokens() {
         ForgeQueryAuthorityLane::PreviewTruth,
         ["basis|one", "basis:two"],
     );
-    assert_eq!(preview.admission_digest().as_str(), manual_preview_identity.as_str());
+    assert_eq!(
+        preview.admission_digest().as_str(),
+        manual_preview_identity.as_str()
+    );
 }
 
 #[test]
@@ -356,4 +359,12 @@ fn runtime_surface_evidence_identities_resist_joined_string_folklore_collisions(
 
     assert_ne!(left.admission_digest(), right.admission_digest());
     assert_ne!(left.admission_digest(), branch.admission_digest());
+}
+
+#[test]
+fn phase_one_covered_surfaces_have_no_digest_folklore_residue() {
+    assert_phase_one_surface_has_no_digest_folklore(include_str!("../../support_matrix.rs"));
+    assert_phase_one_surface_has_no_digest_folklore(include_str!("../../state_snapshot.rs"));
+    assert_phase_one_surface_has_no_digest_folklore(include_str!("../../intent/preview.rs"));
+    assert_phase_one_surface_has_no_digest_folklore(include_str!("../../intent/denial.rs"));
 }

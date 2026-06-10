@@ -61,19 +61,22 @@ pub(in super::super) fn compose_public_api_contract_identity(
     )
     .field_identity_sequence(
         crate::ForgeQueryEvidenceTag::new("family_contract_digest"),
-        contract.families().iter().map(|family| family.contract_digest()),
+        contract
+            .families()
+            .iter()
+            .map(|family| family.contract_digest()),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("stable_family_count"),
-        contract.stable_family_count().to_string(),
+        contract.stable_family_count(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("deferred_family_count"),
-        contract.deferred_family_count().to_string(),
+        contract.deferred_family_count(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("unsupported_family_count"),
-        contract.unsupported_family_count().to_string(),
+        contract.unsupported_family_count(),
     )
     .seal()
 }
@@ -154,10 +157,7 @@ pub(in super::super) fn compose_public_support_matrix_identity(
     )
     .field_identity_sequence(
         crate::ForgeQueryEvidenceTag::new("row_digest"),
-        matrix
-            .rows()
-            .iter()
-            .map(|row| row.row_digest().as_str()),
+        matrix.rows().iter().map(|row| row.row_digest().as_str()),
     )
     .seal()
 }

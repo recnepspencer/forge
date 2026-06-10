@@ -3,6 +3,51 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceTag,
 };
 
+const EVIDENCE_IDENTITY_COVERED_SURFACES: &[&str] = &[
+    "runtime_public_support_matrix_row",
+    "runtime_public_support_matrix",
+    "runtime_public_api_family_contract",
+    "runtime_public_api_contract",
+    "runtime_public_api_transcript_evidence",
+    "runtime_state_snapshot",
+    "preview_basis_admission",
+    "branch_basis_admission",
+    "preview_intent_admission",
+    "preview_intent_receipt",
+    "branch_intent_admission",
+    "branch_intent_receipt",
+    "intent_denial_evidence",
+    "application_support_report",
+];
+
+const STOP_CLASS_COVERED_CONTRACTS: &[&str] = &[
+    "typed-family-admission-denial",
+    "typed-preview-promotion-stop",
+    "typed-session-label-collision-stop",
+];
+
+const SESSION_LABEL_ORDINARY_ENTRYPOINTS: &[&str] = &[
+    "runtime.preview",
+    "runtime.branch",
+    "runtime.try_preview",
+    "runtime.try_branch",
+    "workspace.preview",
+    "workspace.branch",
+];
+
+const EXACT_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
+    "application/support/report.rs",
+    "runtime/support_matrix.rs",
+    "runtime/state_snapshot.rs",
+    "runtime/public_api_transcript.rs",
+];
+
+const EXACT_ZERO_STRING_MATCHING_PATHS: &[&str] =
+    &["runtime/tests/stop_class/consumer_support/routing.rs"];
+
+const EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS: &[&str] =
+    &["runtime/runtime_sessions.rs", "runtime/workspace.rs"];
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryMilestoneClosureStatus {
     Closed,
@@ -51,22 +96,7 @@ impl ForgeQueryEvidenceIdentityBoundaryClosure {
         )
         .field_identity_sequence(
             ForgeQueryEvidenceTag::new("covered_surface"),
-            [
-                ForgeQueryEvidenceScope::RuntimePublicSupportMatrixRow.as_str(),
-                ForgeQueryEvidenceScope::RuntimePublicSupportMatrix.as_str(),
-                ForgeQueryEvidenceScope::RuntimePublicApiFamilyContract.as_str(),
-                ForgeQueryEvidenceScope::RuntimePublicApiContract.as_str(),
-                ForgeQueryEvidenceScope::RuntimePublicApiTranscriptEvidence.as_str(),
-                ForgeQueryEvidenceScope::RuntimeStateSnapshot.as_str(),
-                ForgeQueryEvidenceScope::PreviewBasisAdmission.as_str(),
-                ForgeQueryEvidenceScope::BranchBasisAdmission.as_str(),
-                ForgeQueryEvidenceScope::PreviewIntentAdmission.as_str(),
-                ForgeQueryEvidenceScope::PreviewIntentReceipt.as_str(),
-                ForgeQueryEvidenceScope::BranchIntentAdmission.as_str(),
-                ForgeQueryEvidenceScope::BranchIntentReceipt.as_str(),
-                ForgeQueryEvidenceScope::IntentDenialEvidence.as_str(),
-                ForgeQueryEvidenceScope::ApplicationSupportReport.as_str(),
-            ],
+            EVIDENCE_IDENTITY_COVERED_SURFACES.iter().copied(),
         )
         .seal()
         .as_str()
@@ -89,6 +119,10 @@ impl ForgeQueryEvidenceIdentityBoundaryClosure {
     pub fn closure_digest(&self) -> &str {
         &self.closure_digest
     }
+
+    pub fn covered_surfaces(&self) -> &'static [&'static str] {
+        EVIDENCE_IDENTITY_COVERED_SURFACES
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -109,11 +143,7 @@ impl ForgeQueryStopClassBoundaryClosure {
         .field_shape(ForgeQueryEvidenceTag::new("accessor"), accessor)
         .field_identity_sequence(
             ForgeQueryEvidenceTag::new("covered_contract"),
-            [
-                "typed-family-admission-denial",
-                "typed-preview-promotion-stop",
-                "typed-session-label-collision-stop",
-            ],
+            STOP_CLASS_COVERED_CONTRACTS.iter().copied(),
         )
         .seal()
         .as_str()
@@ -135,6 +165,10 @@ impl ForgeQueryStopClassBoundaryClosure {
 
     pub fn closure_digest(&self) -> &str {
         &self.closure_digest
+    }
+
+    pub fn covered_contracts(&self) -> &'static [&'static str] {
+        STOP_CLASS_COVERED_CONTRACTS
     }
 }
 
@@ -163,6 +197,10 @@ impl ForgeQuerySessionLabelBoundaryClosure {
             ForgeQueryEvidenceTag::new("collision_stop_class"),
             collision_stop_class,
         )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("ordinary_entrypoint"),
+            SESSION_LABEL_ORDINARY_ENTRYPOINTS.iter().copied(),
+        )
         .seal()
         .as_str()
         .to_string();
@@ -188,6 +226,10 @@ impl ForgeQuerySessionLabelBoundaryClosure {
 
     pub fn closure_digest(&self) -> &str {
         &self.closure_digest
+    }
+
+    pub fn ordinary_entrypoints(&self) -> &'static [&'static str] {
+        SESSION_LABEL_ORDINARY_ENTRYPOINTS
     }
 }
 
@@ -226,6 +268,18 @@ impl ForgeQueryIdentityBoundaryClosure {
             ForgeQueryEvidenceTag::new("residue_status"),
             residue_status.as_str(),
         )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("exact_zero_format_digest_path"),
+            EXACT_ZERO_FORMAT_DIGEST_PATHS.iter().copied(),
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("exact_zero_string_matching_path"),
+            EXACT_ZERO_STRING_MATCHING_PATHS.iter().copied(),
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("exact_zero_raw_session_admission_path"),
+            EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS.iter().copied(),
+        )
         .seal()
         .as_str()
         .to_string();
@@ -252,6 +306,18 @@ impl ForgeQueryIdentityBoundaryClosure {
 
     pub fn residue_status(&self) -> ForgeQueryFolkloreResidueStatus {
         self.residue_status
+    }
+
+    pub fn exact_zero_format_digest_paths(&self) -> &'static [&'static str] {
+        EXACT_ZERO_FORMAT_DIGEST_PATHS
+    }
+
+    pub fn exact_zero_string_matching_paths(&self) -> &'static [&'static str] {
+        EXACT_ZERO_STRING_MATCHING_PATHS
+    }
+
+    pub fn exact_zero_raw_session_admission_paths(&self) -> &'static [&'static str] {
+        EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS
     }
 
     pub fn closure_digest(&self) -> &str {

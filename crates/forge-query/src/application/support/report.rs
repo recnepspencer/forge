@@ -60,7 +60,7 @@ impl ForgeQuerySupportSectionPosture {
         )
         .field_shape(ForgeQueryEvidenceTag::new("section"), section.as_str())
         .field_shape(ForgeQueryEvidenceTag::new("owner"), owner.as_str())
-        .field_value(ForgeQueryEvidenceTag::new("enabled"), enabled.to_string())
+        .field_bool(ForgeQueryEvidenceTag::new("enabled"), enabled)
         .field_identity(
             ForgeQueryEvidenceTag::new("config_digest"),
             config_digest.clone(),
@@ -189,17 +189,17 @@ impl ForgeQuerySupportReport {
                     ForgeQueryEvidenceTag::new("validated_config_digest"),
                     validated_config_digest.clone(),
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("admitted_capability_count"),
-                    admitted_capability_count.to_string(),
+                    admitted_capability_count,
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("deferred_capability_count"),
-                    deferred_capability_count.to_string(),
+                    deferred_capability_count,
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("unsupported_capability_count"),
-                    unsupported_capability_count.to_string(),
+                    unsupported_capability_count,
                 )
                 .field_identity_sequence(
                     ForgeQueryEvidenceTag::new("admitted_capability_family"),
@@ -247,9 +247,9 @@ impl ForgeQuerySupportReport {
                     ForgeQueryEvidenceTag::new("identity_boundary_closure_digest"),
                     identity_boundary_closure.closure_digest(),
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("support_report_generation_count"),
-                    counters.support_report_generation_count().to_string(),
+                    counters.support_report_generation_count(),
                 )
                 .seal()
                 .as_str()

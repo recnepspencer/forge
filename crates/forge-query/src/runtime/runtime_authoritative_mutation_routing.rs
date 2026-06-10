@@ -26,6 +26,7 @@ impl ForgeQueryRuntime {
             target_entity_identity = Some(binding.resolved_target_identity().to_string());
         }
         let summary = self.route_authoritative_mutation_summary(&receipt, &mutation_metadata)?;
+        self.capture_shared_read_generation(&receipt.snapshot_token);
         Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
             receipt,
             mutation_family,

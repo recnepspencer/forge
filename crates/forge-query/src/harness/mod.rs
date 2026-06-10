@@ -79,3 +79,5 @@ mod workflow_certification;
 
 #[cfg(test)]
 pub(crate) use preview_certification::MilestoneFivePointTwoPreviewCertificationAdapter;
+#[cfg(test)]
+pub(crate) use runtime_api_stabilization::RuntimeApiStabilizationAdapter;

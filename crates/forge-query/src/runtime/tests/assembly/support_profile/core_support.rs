@@ -20,6 +20,8 @@ fn runtime_support_profiles_expose_facade_family_posture() {
         ForgeQueryRuntimeFacadeFamily::Read,
         ForgeQueryRuntimeFacadeFamily::Live,
         ForgeQueryRuntimeFacadeFamily::Computed,
+        ForgeQueryRuntimeFacadeFamily::SharedRead,
+        ForgeQueryRuntimeFacadeFamily::Submission,
         ForgeQueryRuntimeFacadeFamily::Effect,
         ForgeQueryRuntimeFacadeFamily::BranchPreview,
         ForgeQueryRuntimeFacadeFamily::Write,

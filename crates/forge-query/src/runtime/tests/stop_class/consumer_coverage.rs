@@ -1,5 +1,6 @@
 use super::super::support::*;
-use super::consumer_support::{existing_binding, route_consumer_stop_class, ConsumerStopRoute};
+use super::completeness_support::existing_binding;
+use super::consumer_support::routing::{route_consumer_stop_class, ConsumerStopRoute};
 
 #[test]
 fn consumer_router_handles_manually_constructed_stop_classes_without_string_matching() {
@@ -153,6 +154,12 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
             ),
         ),
         (
+            ForgeQueryRuntimeError::SharedReadStaleBasis {
+                snapshot_token: "shared-read-stale".to_string(),
+            },
+            ConsumerStopRoute::SharedReadStaleBasis,
+        ),
+        (
             ForgeQueryRuntimeError::ComputedDeclaration {
                 view_name: "view.computed".to_string(),
                 stage: "declare",
@@ -169,6 +176,13 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
         (
             ForgeQueryRuntimeError::EffectPolicyDenied(effect_policy_denial),
             ConsumerStopRoute::EffectPolicyDenied,
+        ),
+        (
+            ForgeQueryRuntimeError::SessionLabelCollision {
+                authority_lane: ForgeQueryAuthorityLane::PreviewTruth,
+                label: test_session_label("consumer-stop-class-collision"),
+            },
+            ConsumerStopRoute::SessionLabelCollision(ForgeQueryAuthorityLane::PreviewTruth),
         ),
         (
             ForgeQueryRuntimeError::UnsupportedFacadeFamily(ForgeQueryRuntimeSupportDenial::new(

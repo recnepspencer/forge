@@ -117,6 +117,9 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
                 name: view_name,
             }
         }
+        ForgeQueryRuntimeError::SharedReadStaleBasis { snapshot_token } => {
+            ForgeQueryStopClass::SharedReadStaleBasis { snapshot_token }
+        }
         ForgeQueryRuntimeError::MissingEffect(effect_name) => {
             ForgeQueryStopClass::MissingRuntimeArtifact {
                 kind: ForgeQueryRuntimeMissingArtifactKind::Effect,

@@ -11,11 +11,15 @@ use std::collections::BTreeMap;
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedViewMaterialization {
     rows: Vec<Value>,
+    published: bool,
 }
 
 impl Default for ForgeQueryDerivedViewMaterialization {
     fn default() -> Self {
-        Self { rows: Vec::new() }
+        Self {
+            rows: Vec::new(),
+            published: false,
+        }
     }
 }
 
@@ -72,16 +76,23 @@ impl ForgeQueryDerivedViewMaterialization {
         &self.rows
     }
 
+    pub fn is_published(&self) -> bool {
+        self.published
+    }
+
     pub fn replace_rows(&mut self, rows: impl IntoIterator<Item = Value>) {
         self.rows = rows.into_iter().collect();
+        self.published = true;
     }
 
     pub fn push_row(&mut self, row: Value) {
         self.rows.push(row);
+        self.published = true;
     }
 
     pub fn retain_rows(&mut self, mut predicate: impl FnMut(&Value) -> bool) {
         self.rows.retain(|row| predicate(row));
+        self.published = true;
     }
 }
 

@@ -7,6 +7,7 @@ impl PublicBridgeRuntimeHarness {
         }
     }
 
+    #[allow(dead_code)]
     pub fn bridge_backed_runtime(&self) -> ForgeQueryRuntime {
         self.bridge_backed_runtime_with_support(public_graph_support_profile())
     }

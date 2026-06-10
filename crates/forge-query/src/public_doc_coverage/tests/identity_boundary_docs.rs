@@ -34,9 +34,15 @@ fn identity_boundary_docs_teach_canonical_identity_typed_stop_classes_and_typed_
     assert!(AI_README.contains("error.stop_class()"));
     assert!(AI_README.contains("messages are presentation"));
     assert!(AI_README.contains("ForgeQuerySessionLabel"));
+    assert!(WORKSPACE_OVERVIEW.contains("ForgeQueryEvidenceIdentity::compose"));
+    assert!(WORKSPACE_OVERVIEW.contains("error.stop_class()"));
+    assert!(WORKSPACE_OVERVIEW.contains("messages are"));
     assert!(WORKSPACE_OVERVIEW.contains("ForgeQuerySessionLabel"));
     assert!(BRANCHES_AND_PREVIEWS.contains("ForgeQuerySessionLabel"));
     assert!(BRANCHES_AND_PREVIEWS.contains("typed session labels"));
+    assert!(DOWNSTREAM_RUNTIME_INTEGRATION.contains("ForgeQueryEvidenceIdentity::compose"));
+    assert!(DOWNSTREAM_RUNTIME_INTEGRATION.contains("error.stop_class()"));
+    assert!(DOWNSTREAM_RUNTIME_INTEGRATION.contains("messages are"));
     assert!(DOWNSTREAM_RUNTIME_INTEGRATION.contains("ForgeQuerySessionLabel"));
     assert!(INSPECTION_DOC.contains("ForgeQuerySessionLabel"));
     assert!(ASPECTS_AND_AUTHORITY_LANES.contains("ForgeQuerySessionLabel"));

@@ -279,9 +279,13 @@ fn deferred_authority_lane(family: ForgeQueryRuntimeFacadeFamily) -> ForgeQueryA
         | ForgeQueryRuntimeFacadeFamily::DurableArtifacts => {
             ForgeQueryAuthorityLane::BridgeExternalState
         }
-        ForgeQueryRuntimeFacadeFamily::Computed => ForgeQueryAuthorityLane::DerivedRuntimeState,
+        ForgeQueryRuntimeFacadeFamily::Computed | ForgeQueryRuntimeFacadeFamily::SharedRead => {
+            ForgeQueryAuthorityLane::DerivedRuntimeState
+        }
         ForgeQueryRuntimeFacadeFamily::Effect => ForgeQueryAuthorityLane::EffectDeliveryState,
-        ForgeQueryRuntimeFacadeFamily::Intent => ForgeQueryAuthorityLane::PendingWriteIntent,
+        ForgeQueryRuntimeFacadeFamily::Intent | ForgeQueryRuntimeFacadeFamily::Submission => {
+            ForgeQueryAuthorityLane::PendingWriteIntent
+        }
         ForgeQueryRuntimeFacadeFamily::BranchPreview => ForgeQueryAuthorityLane::PreviewTruth,
         ForgeQueryRuntimeFacadeFamily::Read
         | ForgeQueryRuntimeFacadeFamily::Live

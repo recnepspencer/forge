@@ -89,6 +89,9 @@ pub enum ForgeQueryStopClass<'a> {
         kind: ForgeQueryRuntimeMissingArtifactKind,
         name: &'a str,
     },
+    SharedReadStaleBasis {
+        snapshot_token: &'a str,
+    },
     RuntimeDeclarationFailed {
         kind: ForgeQueryRuntimeDeclarationFailureKind,
         name: &'a str,

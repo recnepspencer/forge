@@ -488,6 +488,71 @@ Phase 3 closes only when the covered runtime stop paths classify through one
 typed stop-class accessor with payload-preserving context, zero catch-all
 escape hatches, and zero control-flow dependence on message text.
 
+### 9.6. Phase 4 Typed Stop Class Matching Closure Test
+
+Purpose
+
+Prove that real consumer-side control flow can handle every covered Query stop
+class through typed matching alone, including public family-admission denials,
+without string routing on denial presentation text.
+
+Scenario
+
+- route covered stop classes through a consumer-shaped matcher fed by:
+  - manually constructed representative runtime errors for broad taxonomy
+    coverage
+  - runtime-generated public family-admission denials
+  - runtime-generated read, intent, preview-promotion, and routing failures
+- compare:
+  - the runtime-owned `error.stop_class()` projection
+  - the consumer-owned typed route decision
+- vary:
+  - support-gated public family denials
+  - message wording on denial presentation text
+  - runtime-generated versus manually constructed stop paths
+
+Required concrete lanes
+
+- public-family admission lane where `workspace.admit_public_api_family(...)`
+  yields a typed denial carrying denied family, support status, teaching
+  posture, and reason
+- consumer-routing parity lane where a consumer-shaped router handles every
+  covered stop class with type-level matching and zero string operations
+- runtime-generated lane where preview-promotion, intent, routing, and read
+  invariant failures route through the same consumer matcher without special
+  message parsing
+- message-drift lane where denial wording changes while typed matching stays
+  stable and a prior wording probe fails
+- residue-audit lane where the covered consumer route helper proves zero
+  `error.to_string()` or substring routing in its ordinary control flow
+
+Must verify
+
+- public family-admission denials expose denied facade family, support status,
+  teaching posture, and reason through typed stop-class payload access
+- a consumer-shaped matcher can handle every covered stop class without calling
+  `to_string()` or probing message substrings
+- runtime-generated public/runtime entrypoints route through the same typed
+  consumer lane as manually constructed representative errors
+- changing denial wording does not break typed matching while a wording probe
+  demonstrably drifts
+- the covered consumer route helper contains zero string-matched control flow
+
+Required verification output
+
+- `consumer_stop_route_digest`
+- `public_family_admission_digest`
+- `runtime_generated_route_digest`
+- `message_drift_probe_digest`
+- `failure_digest`
+
+Pass condition
+
+Phase 4 closes only when a consumer-shaped typed matcher handles the covered
+stop classes end to end, public family-admission denials expose their typed
+payloads directly, message wording drift cannot break control flow, and the
+ordinary consumer route helper contains zero string-matched control flow.
+
 ### 9.6. Phase 5 Canonical Session Label Artifact Test
 
 Purpose
@@ -793,4 +858,160 @@ The temporal/async query surface is certified only when support claims,
 admission behavior, diagnostic bundles, bridge/signal lowering, hostile
 coverage, and reference workloads agree, while durable and store-backed claims
 remain explicit later-milestone debt.
+
+### 9.7. Published Artifact Reader Isolation Test
+
+Purpose
+
+Prove that the Phase 8 shared-read lane consumes only maintenance-owner
+published derived artifacts, preserves typed async posture for unpublished or
+republishing views, and never evaluates derived state from a reader path.
+
+Scenario
+
+- mint sealed shared read contexts from the workspace after declaration-only,
+  after first publication, and during republication pressure
+- compare:
+  - reader-side projection-consumption results through typed published-artifact
+    handles
+  - serialized maintenance-owner publication order and receipts for the same
+    schedule
+- probe:
+  - declared-but-unpublished derived handles
+  - foreign derived handles from another runtime
+  - republishing views with pending patches and refresh fallback posture
+
+Must verify
+
+- declared-but-unpublished derived handles surface typed `pending` async
+  result-state instead of materialized facts
+- foreign or unknown derived handles fail closed as missing runtime artifacts
+  rather than masquerading as unpublished publication posture
+- published derived artifacts consume through the projection-consumption lane
+  with receipt-backed fact content identical to a serialized consumer of the
+  same publication schedule
+- reader consumption observes either the old published artifact or the new one
+  during republication, never a blend
+- exact-zero reader-side evaluation counters prove no shared-read path triggers
+  derived reevaluation
+
+Required verification output
+
+- `shared_read_snapshot_token`
+- `published_artifact_binding_digest`
+- `publication_receipt_digest`
+- `async_result_state_digest`
+- `reader_isolation_counter_snapshot`
+- `failure_digest`
+
+Pass condition
+
+Phase 8 closes only when shared-read consumers are publication-bound,
+async-posture honest, fail closed for foreign handles, and unable to trigger
+derived evaluation from any reader-reachable path.
+
+### 9.7. Facade Lane Parity And Lifecycle Propagation Test
+
+Purpose
+
+Prove that `ForgeQueryWorkspace` remains the single-owner public convenience
+facade while the new shared-read and submission lanes stay support-honest,
+path-parity honest, and compile-time sealed against downstream topology leaks.
+
+Scenario
+
+- execute the same covered submission operation through:
+  - the existing workspace convenience write surface
+  - the new `workspace.submissions()` lane
+- mint shared-read artifacts through:
+  - the workspace-owned `shared_read_context()` mint point
+  - the runtime-owned decomposed shared-read context inside the runtime test
+    boundary
+- probe compile-fail boundaries for:
+  - direct construction of the submission lane
+  - direct access to the submission lane's decomposed runtime internals
+
+Must verify
+
+- the submission lane enters the public support matrix as an ordinary admitted
+  facade family rather than piggybacking on `Write` or `Intent` vocabulary
+- the shared-read lane enters the public support matrix as an ordinary admitted
+  facade family rather than piggybacking on `Computed`
+- equivalent submission work through the workspace convenience path and the
+  submission lane produces identical receipt identity and mutation-summary
+  digest
+- the workspace-owned shared-read mint point produces the same published
+  artifact handle as the decomposed runtime-owned mint point
+- shared-read minting parity does not trigger extra derived maintenance work
+- downstream callers cannot construct the submission lane or reach the runtime
+  hidden behind it
+
+Required verification output
+
+- `submission_receipt_digest`
+- `submission_mutation_summary_digest`
+- `shared_read_snapshot_token`
+- `shared_read_artifact_binding_digest`
+- `shared_read_recomputation_count`
+- `compile_fail_boundary_digest`
+
+Pass condition
+
+Phase 9 closes only when the workspace facade preserves existing call sites,
+the new shared-read and submission lanes are explicit public support rows,
+parity holds against the decomposed authorities, and downstream code cannot
+reach past the facade.
+
+### 9.7. Concurrency Determinism Hostile Certification Matrix
+
+Purpose
+
+Prove that the milestone closes on one hostile certification boundary rather
+than a bag of isolated lane tests: interleaved readers, submissions, preview
+churn, branch churn, derived republication, and replay must lower to one
+machine-checkable artifact with exact-zero residue counters.
+
+Scenario
+
+- drive one runtime-backed hostile schedule that includes:
+  - sealed shared-read consumption before publication, after publication, and
+    across republication
+  - repeated submission-lane writes under the same workspace
+  - preview discard and preview promotion churn
+  - repeated branch basis admission churn
+- replay the same hostile schedule on a fresh runtime and compare the lowered
+  certification artifacts byte-for-byte
+- replay the same hostile schedule through both supported public
+  runtime-bootstrap paths and prove the lowered certification artifact is
+  bootstrap-path invariant
+- repeat the hostile schedule again to prove run-to-run determinism
+
+Must verify
+
+- interleaved hostile execution and serialized replay produce identical
+  certification artifacts
+- repeated hostile runs produce the same certification artifact digest
+- reader consumption remains bound to published artifacts and never triggers
+  derived reevaluation
+- preview and branch churn do not perturb authoritative receipt or published
+  artifact identity
+- exact counters remain at zero for committed-read hot-path locks,
+  reader-triggered derived evaluation, orphaned snapshot generations,
+  unretired read pins, journal gaps, and delivery residue
+
+Required verification output
+
+- `hostile_certification_digest`
+- `receipt_digest`
+- `reader_result_digest`
+- `published_artifact_digest`
+- `preview_closeout_digest`
+- `branch_basis_digest`
+- `counter_digest`
+
+Pass condition
+
+Milestone 9.7 closes only when the hostile certification artifact proves that
+all covered lanes compose into one deterministic replay-stable boundary with
+exact-zero residue and exact-zero reader-side reevaluation.
 

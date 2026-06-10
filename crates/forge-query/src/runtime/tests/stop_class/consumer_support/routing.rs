@@ -1,8 +1,7 @@
-use super::super::support::*;
-use crate::schema_view::{QuerySchemaView, SchemaRelationView};
+use super::super::super::support::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) enum ConsumerStopRoute {
+pub(in super::super) enum ConsumerStopRoute {
     MissingRuntimeComponent(ForgeQueryRuntimeMissingComponent),
     ExistingTruthAssertionDenied(ForgeQueryExistingTruthAssertionDenialKind),
     ExistingTruthProbeDenied(ForgeQueryExistingTruthProbeDenialKind),
@@ -13,11 +12,15 @@ pub(super) enum ConsumerStopRoute {
     MutationNamingDenied(ForgeQueryNamingMutationDenialKind),
     MutationTargetReferenceDenied(ForgeQuerySymbolicTargetReferenceDenialKind),
     ReadCompositionDenied(ForgeQueryReadDenialKind),
-    ReadCompositionDomainInvariantDenied(&'static str),
+    ReadCompositionDomainInvariantDenied {
+        hook_family: String,
+        invariant_family: String,
+    },
     WorkspaceDenied,
     ProgramDenied,
     RuntimeLookupDenied(ForgeQueryRuntimeLookupFailureKind),
     MissingRuntimeArtifact(ForgeQueryRuntimeMissingArtifactKind),
+    SharedReadStaleBasis,
     RuntimeDeclarationDenied(ForgeQueryRuntimeDeclarationFailureKind),
     UnsupportedAuthority,
     IntentCommitDenied,
@@ -32,7 +35,9 @@ pub(super) enum ConsumerStopRoute {
     SessionLabelCollision(ForgeQueryAuthorityLane),
 }
 
-pub(super) fn route_consumer_stop_class(error: &ForgeQueryRuntimeError) -> ConsumerStopRoute {
+pub(in super::super) fn route_consumer_stop_class(
+    error: &ForgeQueryRuntimeError,
+) -> ConsumerStopRoute {
     match error.stop_class() {
         ForgeQueryStopClass::MissingRuntimeComponent { component } => {
             ConsumerStopRoute::MissingRuntimeComponent(component)
@@ -64,8 +69,11 @@ pub(super) fn route_consumer_stop_class(error: &ForgeQueryRuntimeError) -> Consu
         ForgeQueryStopClass::ReadCompositionDenied { denial } => {
             ConsumerStopRoute::ReadCompositionDenied(denial.kind().clone())
         }
-        ForgeQueryStopClass::ReadCompositionDomainInvariantDenied { .. } => {
-            ConsumerStopRoute::ReadCompositionDomainInvariantDenied("domain_invariant_pack_hook")
+        ForgeQueryStopClass::ReadCompositionDomainInvariantDenied { denial } => {
+            ConsumerStopRoute::ReadCompositionDomainInvariantDenied {
+                hook_family: denial.hook_family().to_string(),
+                invariant_family: denial.invariant_family().to_string(),
+            }
         }
         ForgeQueryStopClass::Workspace { .. } => ConsumerStopRoute::WorkspaceDenied,
         ForgeQueryStopClass::Program { .. } => ConsumerStopRoute::ProgramDenied,
@@ -75,6 +83,7 @@ pub(super) fn route_consumer_stop_class(error: &ForgeQueryRuntimeError) -> Consu
         ForgeQueryStopClass::MissingRuntimeArtifact { kind, .. } => {
             ConsumerStopRoute::MissingRuntimeArtifact(kind)
         }
+        ForgeQueryStopClass::SharedReadStaleBasis { .. } => ConsumerStopRoute::SharedReadStaleBasis,
         ForgeQueryStopClass::RuntimeDeclarationFailed { kind, .. } => {
             ConsumerStopRoute::RuntimeDeclarationDenied(kind)
         }
@@ -106,22 +115,4 @@ pub(super) fn route_consumer_stop_class(error: &ForgeQueryRuntimeError) -> Consu
             ConsumerStopRoute::SessionLabelCollision(authority_lane)
         }
     }
-}
-
-pub(super) fn existing_binding() -> ForgeQueryExistingTruthTargetBinding {
-    ForgeQueryExistingTruthTargetBinding::direct_entity("authority:task-1", "Task:1")
-        .expect("binding should build")
-        .in_target_collection("Task")
-        .expect("collection should build")
-}
-
-pub(super) fn expanded_manager_schema() -> QuerySchemaView {
-    QuerySchemaView::new(
-        "runtime-read-composition-expanded",
-        [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
-        ],
-        [SchemaRelationView::new("manager", 2)],
-    )
 }

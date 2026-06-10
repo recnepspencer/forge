@@ -3,6 +3,7 @@ mod authority_evidence;
 mod bridge_backed_verification_support;
 mod core_support;
 mod downstream_delivery;
+mod facade_phase_nine;
 mod graph_composition_capabilities;
 mod handle_and_workspace;
 mod mutation_surface;

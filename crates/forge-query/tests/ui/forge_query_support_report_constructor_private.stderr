@@ -36,7 +36,7 @@ error: cannot construct `ForgeQuerySupportReport` with struct literal syntax due
 15 |         report_digest: String::new(),
    |         ---------------------------- private field
    |
-   = note: ...and other private fields `query_context_support_profile`, `query_composition_support_profile` and `identity_evolution_support_profile` that were not provided
+   = note: ...and other private fields `query_context_support_profile`, `query_composition_support_profile`, `identity_evolution_support_profile` and `identity_boundary_closure` that were not provided
 help: you might have meant to use the `from_validated_config_and_matrix` associated function
    |
  4 -     let _ = ForgeQuerySupportReport {
