@@ -1,0 +1,11 @@
+error[E0603]: module `entry` is private
+ --> tests/ui/facade/topology/facade_reexports/facade_reexport_does_not_expose_internal_topology.rs:1:23
+  |
+1 | use worth_ui::facade::entry::WorthUi;
+  |                       ^^^^^ private module
+  |
+note: the module `entry` is defined here
+ --> src/facade/mod.rs
+  |
+  | mod entry;
+  | ^^^^^^^^^

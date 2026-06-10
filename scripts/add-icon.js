@@ -10,7 +10,7 @@
  *
  * What it does:
  *   1. Downloads each icon as an SVG from the Lucide CDN
- *   2. Saves to crates/forge-ui/icons/<name>.svg
+ *   2. Saves to crates/forge-ui-components/icons/<name>.svg
  *   3. Appends new variants to the FgIcon enum in icons.rs
  *   4. Appends new match arms to the FgIcon::path() function
  */
@@ -193,7 +193,7 @@ async function main() {
   console.log(
     `\n✅ Registered ${newIcons.length} new icon(s): ${newIcons.map((i) => `FgIcon::${i.variant}`).join(", ")}`,
   );
-  console.log(`\nSVG files are in: crates/forge-ui/icons/`);
+  console.log(`\nSVG files are in: crates/forge-ui-components/icons/`);
   console.log(`Enum updated in:  crates/forge-ui-components/src/icons.rs`);
   console.log(
     `\nNext: call icon_store.load() at app start, then draw with draw_icon(ui, FgIcon::${newIcons[0].variant}, 20.0)`,

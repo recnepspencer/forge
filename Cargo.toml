@@ -34,7 +34,7 @@ members = [
     "crates/forge-ui-components",
     "crates/forge-ui-adapters",
     "crates/forge-ui-state",
-    "crates/forge-ui", "crates/forge-relational",
+    "crates/worth-ui", "crates/forge-relational",
 ]
 
 [workspace.package]
@@ -78,7 +78,7 @@ forge-ui-theme      = { path = "crates/forge-ui-theme" }
 forge-ui-components = { path = "crates/forge-ui-components" }
 forge-ui-adapters   = { path = "crates/forge-ui-adapters" }
 forge-ui-state      = { path = "crates/forge-ui-state" }
-forge-ui            = { path = "crates/forge-ui" }
+worth-ui            = { path = "crates/worth-ui" }
 
 # Benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }

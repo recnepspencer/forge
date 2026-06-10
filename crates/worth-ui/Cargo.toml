@@ -1,0 +1,18 @@
+[package]
+name = "worth-ui"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "worth_ui"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+forge-query = { workspace = true }
+
+[dev-dependencies]
+trybuild = { workspace = true }

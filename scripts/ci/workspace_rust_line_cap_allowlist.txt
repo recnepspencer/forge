@@ -258,7 +258,6 @@ crates/forge-topo/src/transactions/logic/structural_signature.rs
 crates/forge-topo/src/transactions/tests.rs
 crates/forge-topo/src/validators/group_policy_runtime_tests.rs
 crates/forge-topo/src/validators/validate.rs
-crates/forge-ui/src/ui.rs
 crates/worth-geom/src/algorithms/boundary_cert/eval.rs
 crates/worth-geom/src/algorithms/boundary_cert/exact_intersect.rs
 crates/worth-geom/src/algorithms/triangulation/cdt.rs
