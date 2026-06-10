@@ -183,8 +183,10 @@ pub use crate::frontier_exploration::{
     FrontierMutationPolicy, TerminalColorForcingMotif, VirtualEdgeMotif,
 };
 pub use crate::frontier_seeds::{
-    import_frontier_graph_seed_checked, FrontierGraphSeedArtifact, FrontierGraphSeedImport,
-    FrontierGraphSeedImportReport, FrontierSeedError, FrontierSeedFormat,
+    import_frontier_graph_seed_checked, load_heule_510_not_four_colorability_certificate_checked,
+    FrontierGraphSeedArtifact, FrontierGraphSeedImport, FrontierGraphSeedImportReport,
+    FrontierSeedError, FrontierSeedFormat, RetainedFrontierColoringProof,
+    RetainedFrontierProofError,
 };
 pub use crate::mathematical_verification::{
     generate_k_colorability_certificate_with_varisat_checked,

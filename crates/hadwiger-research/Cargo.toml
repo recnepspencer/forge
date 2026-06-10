@@ -12,6 +12,7 @@ forge-query.workspace = true
 forge-relational.workspace = true
 worth-math.workspace = true
 varisat.workspace = true
+sha2.workspace = true
 good_lp.workspace = true
 clarabel.workspace = true
 

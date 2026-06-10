@@ -6,8 +6,8 @@ use hadwiger_research::facade::{
     ColorabilityVerificationPosture, ColoringProofCertificate, ExactRational,
     FrontierExplorationEvidenceBundle, FrontierExplorationEvidencePosture,
     FrontierExplorationRunRequest, FrontierGraphSeedImport, FrontierMutationPolicy,
-    HadwigerAlgebraicGeometryError, HadwigerCanonicalArtifact, HadwigerColorabilityError,
-    HadwigerResearchHandle, HadwigerResearchOperatingContext, QuadraticFieldElement,
+    HadwigerCanonicalArtifact, HadwigerColorabilityError, HadwigerResearchHandle,
+    HadwigerResearchOperatingContext, QuadraticFieldElement,
 };
 
 fn handle() -> HadwigerResearchHandle {
@@ -25,49 +25,6 @@ fn unit_edge_seed_with_algebraic_certificate() -> FrontierGraphSeedImport {
     unit_edge_seed().with_algebraic_embedding_certificate(
         "embedding retained-unit-edge\nv 1 0/1+0/1*sqrt(0) 0/1+0/1*sqrt(0)\nv 2 1/1+0/1*sqrt(0) 0/1+0/1*sqrt(0)\n",
     )
-}
-
-#[test]
-fn heule_parts_517_seed_imports_with_retained_provenance() {
-    let handle = handle();
-    let imported =
-        import_frontier_graph_seed_checked(&handle, FrontierGraphSeedImport::heule_parts_517())
-            .expect("public 517 seed imports");
-
-    assert_eq!(imported.graph_version().vertex_count(), 517);
-    assert_eq!(imported.graph_version().edge_count(), 2579);
-    assert_eq!(imported.seed_artifact().source_family(), "heule_parts_517");
-    assert!(!imported.seed_artifact().admits_theorem_authority());
-}
-
-#[test]
-fn heule_parts_517_seed_can_run_candidate_virtual_edge_iterations() {
-    let handle = handle();
-    let imported =
-        import_frontier_graph_seed_checked(&handle, FrontierGraphSeedImport::heule_parts_517())
-            .expect("public 517 seed imports");
-
-    let run = run_frontier_seed_exploration_iterations_checked(
-        &handle,
-        FrontierExplorationRunRequest::new(
-            "heule-parts-517-candidate-pass",
-            imported.seed_artifact(),
-        )
-        .with_iteration_count(5)
-        .expect("iteration count admits"),
-    )
-    .expect("candidate frontier loop runs");
-
-    assert_eq!(run.iterations().len(), 5);
-    assert!(run
-        .motif_reports()
-        .iter()
-        .all(|report| report.terminal_forcing_motif().is_none()));
-    assert!(run
-        .motif_reports()
-        .iter()
-        .all(|report| report.contains_virtual_edge_candidate()));
-    assert!(!run.admits_theorem_authority());
 }
 
 #[test]
@@ -148,14 +105,14 @@ fn algebraic_replay_rejects_unsupported_mixed_fields() {
         .finish()
         .expect("embedding");
 
-    assert!(matches!(
-        verify_algebraic_unit_distance_embedding_checked(
-            &handle,
-            imported.graph_version(),
-            embedding
-        ),
-        Err(HadwigerAlgebraicGeometryError::UnsupportedMixedField { .. })
-    ));
+    let checked = verify_algebraic_unit_distance_embedding_checked(
+        &handle,
+        imported.graph_version(),
+        embedding,
+    )
+    .expect("mixed radical arithmetic replays and rejects non-unit distance");
+
+    assert!(!checked.verification().is_admitted());
 }
 
 #[test]

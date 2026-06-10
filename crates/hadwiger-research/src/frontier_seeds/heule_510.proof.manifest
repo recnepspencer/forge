@@ -1,0 +1,10 @@
+proof_id heule-510-not-4-colorable-varisat-native
+seed_id heule-510-exact
+proof_format varisat_native
+color_count 4
+cnf_digest 006adc4a1a31cb89ea248074fb8af7b5d087d280dad15d86839e5f0e72b69692
+proof_sha256 a7aaea46876f67c0fc0ee04e94e03550f16343589a500825da6bd3f94f6af62f
+proof_byte_length 801960073
+default_local_path crates/hadwiger-research/src/frontier_seeds/heule_510.varisat
+generated_by cargo run -p hadwiger-research --example generate_heule_510_proof
+source_seed_url https://github.com/vasnesterov/HadwigerNelson/blob/master/vtx/510_heule.vtx

@@ -8,14 +8,15 @@ use crate::domain_artifacts::{
 use crate::domain_declarations::UnitDistanceVerificationDeclaration;
 use crate::query_entry::HadwigerResearchHandle;
 
-use super::{admitted_declaration_reference, checker_evidence, ExactRational};
+use super::algebraic_numbers::{parse_algebraic_scalar, AlgebraicPoint2};
+use super::{admitted_declaration_reference, checker_evidence};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HadwigerAlgebraicGeometryError {
     EmptyField { field: &'static str },
     ZeroDenominator,
     NonSquarefreeRadicand { radicand: i128 },
-    UnsupportedMixedField { left: i128, right: i128 },
+    UnsupportedAlgebraicScalar { value: String },
     DuplicateCoordinate { vertex_label: String },
     MissingCoordinate { vertex_label: String },
     DuplicatePoint,
@@ -34,142 +35,6 @@ impl From<HadwigerArtifactShapeError> for HadwigerAlgebraicGeometryError {
 impl From<HadwigerAspectAuthorityError> for HadwigerAlgebraicGeometryError {
     fn from(value: HadwigerAspectAuthorityError) -> Self {
         Self::Aspect(value)
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct QuadraticFieldElement {
-    rational: ExactRational,
-    radical_coefficient: ExactRational,
-    squarefree_radicand: i128,
-}
-
-pub type AlgebraicScalar = QuadraticFieldElement;
-
-impl QuadraticFieldElement {
-    pub fn rational(value: ExactRational) -> Self {
-        Self {
-            rational: value,
-            radical_coefficient: ExactRational::zero(),
-            squarefree_radicand: 0,
-        }
-    }
-
-    pub fn integer(value: i128) -> Self {
-        Self::rational(ExactRational::integer(value))
-    }
-
-    pub fn quadratic(
-        rational: ExactRational,
-        radical_coefficient: ExactRational,
-        squarefree_radicand: i128,
-    ) -> Result<Self, HadwigerAlgebraicGeometryError> {
-        if squarefree_radicand <= 1 || !is_squarefree(squarefree_radicand as u128) {
-            return Err(HadwigerAlgebraicGeometryError::NonSquarefreeRadicand {
-                radicand: squarefree_radicand,
-            });
-        }
-        Ok(Self {
-            rational,
-            radical_coefficient,
-            squarefree_radicand,
-        })
-    }
-
-    fn add(&self, other: &Self) -> Result<Self, HadwigerAlgebraicGeometryError> {
-        self.require_compatible(other)?;
-        Ok(Self {
-            rational: self.rational.add(&other.rational),
-            radical_coefficient: self.radical_coefficient.add(&other.radical_coefficient),
-            squarefree_radicand: self.field_radicand(other),
-        })
-    }
-
-    fn sub(&self, other: &Self) -> Result<Self, HadwigerAlgebraicGeometryError> {
-        self.require_compatible(other)?;
-        Ok(Self {
-            rational: self.rational.sub(&other.rational),
-            radical_coefficient: self.radical_coefficient.sub(&other.radical_coefficient),
-            squarefree_radicand: self.field_radicand(other),
-        })
-    }
-
-    fn square(&self) -> Result<Self, HadwigerAlgebraicGeometryError> {
-        let radicand = self.squarefree_radicand;
-        let rational_square = self.rational.square();
-        let radical_square = self
-            .radical_coefficient
-            .square()
-            .mul(&ExactRational::integer(radicand));
-        let radical_coeff = self
-            .rational
-            .mul(&self.radical_coefficient)
-            .mul(&ExactRational::integer(2));
-        Ok(Self {
-            rational: rational_square.add(&radical_square),
-            radical_coefficient: radical_coeff,
-            squarefree_radicand: radicand,
-        })
-    }
-
-    fn is_one(&self) -> bool {
-        self.rational == ExactRational::integer(1) && self.radical_coefficient.is_zero()
-    }
-
-    fn stable_token(&self) -> String {
-        format!(
-            "{}+{}*sqrt({})",
-            self.rational.stable_token(),
-            self.radical_coefficient.stable_token(),
-            self.squarefree_radicand
-        )
-    }
-
-    fn require_compatible(&self, other: &Self) -> Result<(), HadwigerAlgebraicGeometryError> {
-        let left = self.squarefree_radicand;
-        let right = other.squarefree_radicand;
-        if left == 0 || right == 0 || left == right {
-            Ok(())
-        } else {
-            Err(HadwigerAlgebraicGeometryError::UnsupportedMixedField { left, right })
-        }
-    }
-
-    fn field_radicand(&self, other: &Self) -> i128 {
-        self.squarefree_radicand.max(other.squarefree_radicand)
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct AlgebraicPoint2 {
-    x: AlgebraicScalar,
-    y: AlgebraicScalar,
-}
-
-impl AlgebraicPoint2 {
-    pub fn rational_integer(x: i128, y: i128) -> Self {
-        Self {
-            x: AlgebraicScalar::integer(x),
-            y: AlgebraicScalar::integer(y),
-        }
-    }
-
-    pub fn new(x: AlgebraicScalar, y: AlgebraicScalar) -> Self {
-        Self { x, y }
-    }
-
-    fn squared_distance(
-        &self,
-        other: &Self,
-    ) -> Result<AlgebraicScalar, HadwigerAlgebraicGeometryError> {
-        self.x
-            .sub(&other.x)?
-            .square()?
-            .add(&self.y.sub(&other.y)?.square()?)
-    }
-
-    fn stable_token(&self) -> String {
-        format!("{},{}", self.x.stable_token(), self.y.stable_token())
     }
 }
 
@@ -292,7 +157,7 @@ pub fn verify_algebraic_unit_distance_embedding_checked(
                 vertex_label: right.to_string(),
             }
         })?;
-        if !left_point.squared_distance(right_point)?.is_one() {
+        if !left_point.squared_distance(right_point).is_one() {
             rejection = Some((left.to_string(), right.to_string()));
             break;
         }
@@ -343,17 +208,6 @@ fn empty(field: &'static str) -> HadwigerAlgebraicGeometryError {
     HadwigerAlgebraicGeometryError::EmptyField { field }
 }
 
-fn is_squarefree(value: u128) -> bool {
-    let mut divisor = 2;
-    while divisor * divisor <= value {
-        if value % (divisor * divisor) == 0 {
-            return false;
-        }
-        divisor += 1;
-    }
-    true
-}
-
 fn parse_seed_embedding_certificate(
     graph_version_reference: HadwigerArtifactReference,
     certificate: &str,
@@ -377,7 +231,7 @@ fn parse_seed_embedding_certificate(
                 let current = builder.take().ok_or(empty("embedding_header"))?;
                 builder = Some(current.with_vertex(
                     *label,
-                    AlgebraicPoint2::new(parse_scalar(x)?, parse_scalar(y)?),
+                    AlgebraicPoint2::new(parse_algebraic_scalar(x)?, parse_algebraic_scalar(y)?),
                 )?);
             }
             _ => return Err(empty("algebraic_seed_certificate_row")),
@@ -387,31 +241,4 @@ fn parse_seed_embedding_certificate(
         return Err(empty("embedding_id"));
     }
     builder.ok_or(empty("embedding_builder"))?.finish()
-}
-
-fn parse_scalar(value: &str) -> Result<AlgebraicScalar, HadwigerAlgebraicGeometryError> {
-    let (rational, radical) = value.split_once('+').ok_or(empty("algebraic_scalar"))?;
-    let (coefficient, radicand) = radical.split_once("*sqrt(").ok_or(empty("radical_term"))?;
-    let radicand = radicand
-        .strip_suffix(')')
-        .ok_or(empty("radicand"))?
-        .parse::<i128>()
-        .map_err(|_| empty("radicand"))?;
-    let rational = parse_rational(rational)?;
-    let coefficient = parse_rational(coefficient)?;
-    if radicand == 0 && coefficient.is_zero() {
-        Ok(AlgebraicScalar::rational(rational))
-    } else {
-        AlgebraicScalar::quadratic(rational, coefficient, radicand)
-    }
-}
-
-fn parse_rational(value: &str) -> Result<ExactRational, HadwigerAlgebraicGeometryError> {
-    let (numerator, denominator) = value.split_once('/').ok_or(empty("rational"))?;
-    let numerator = numerator.parse::<i128>().map_err(|_| empty("numerator"))?;
-    let denominator = denominator
-        .parse::<i128>()
-        .map_err(|_| empty("denominator"))?;
-    ExactRational::fraction(numerator, denominator)
-        .map_err(|_| HadwigerAlgebraicGeometryError::ZeroDenominator)
 }

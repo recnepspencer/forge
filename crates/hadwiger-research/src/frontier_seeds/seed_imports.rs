@@ -5,6 +5,14 @@ const HEULE_PARTS_517_DIGEST: &str =
     "sha256:dc5085db9682aa246c3fc56efed9767e2a294a43e621a3e67a690d0489bdadc9";
 const HEULE_PARTS_517_URL: &str =
     "https://github.com/simon-tiger/Hadwiger-Nelson-Project-Data/blob/master/517.edge";
+const HEULE_510_EDGE_LIST: &str = include_str!("heule_510.edge");
+const HEULE_510_ALGEBRAIC_CERTIFICATE: &str = include_str!("heule_510.alg");
+const HEULE_510_EDGE_DIGEST: &str =
+    "sha256:a6ac512bb50d6c9e380b6b0eedb7236b916a6010b54b4adc0ca171a1bf7f3272";
+const HEULE_510_COORDINATE_DIGEST: &str =
+    "sha256:f6aba3ec7158445875229ff1bf52b68a9a709cd871bdfe468ca65ad865b8622a";
+const HEULE_510_URL: &str =
+    "https://github.com/vasnesterov/HadwigerNelson/blob/master/vtx/510_heule.vtx";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FrontierSeedFormat {
@@ -42,6 +50,19 @@ impl FrontierGraphSeedImport {
             format: FrontierSeedFormat::DimacsEdgeList,
             edge_list: HEULE_PARTS_517_EDGE_LIST.to_string(),
             algebraic_embedding_certificate: None,
+        }
+    }
+
+    pub fn heule_510_exact() -> Self {
+        Self {
+            seed_id: "heule-510-exact".to_string(),
+            version_id: "510.heule.exact".to_string(),
+            source_url: HEULE_510_URL.to_string(),
+            source_digest: format!("{HEULE_510_EDGE_DIGEST};{HEULE_510_COORDINATE_DIGEST}"),
+            source_family: "heule_510_exact_algebraic".to_string(),
+            format: FrontierSeedFormat::DimacsEdgeList,
+            edge_list: HEULE_510_EDGE_LIST.to_string(),
+            algebraic_embedding_certificate: Some(HEULE_510_ALGEBRAIC_CERTIFICATE.to_string()),
         }
     }
 

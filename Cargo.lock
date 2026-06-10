@@ -2110,6 +2110,7 @@ dependencies = [
  "forge-relational",
  "forge-runtime-bridge",
  "good_lp",
+ "sha2",
  "trybuild",
  "varisat",
  "worth-math",

@@ -38,3 +38,6 @@ compile_errors.txt
 
 # Scratch / one-off files
 mb_n4_log.txt
+
+# Large retained proof payloads are kept locally and pinned by committed manifests.
+crates/hadwiger-research/src/frontier_seeds/*.varisat

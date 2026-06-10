@@ -1,12 +1,14 @@
+mod algebraic_numbers;
 mod algebraic_unit_distance;
 mod exact_unit_distance;
 mod finite_colorability;
 mod hexagonal_plane_coloring;
 
+pub use algebraic_numbers::{AlgebraicPoint2, AlgebraicScalar, QuadraticFieldElement};
 pub use algebraic_unit_distance::{
     verify_algebraic_unit_distance_embedding_checked, AlgebraicGraphEmbedding,
-    AlgebraicGraphEmbeddingBuilder, AlgebraicPoint2, AlgebraicScalar,
-    AlgebraicUnitDistanceCertificate, HadwigerAlgebraicGeometryError, QuadraticFieldElement,
+    AlgebraicGraphEmbeddingBuilder, AlgebraicUnitDistanceCertificate,
+    HadwigerAlgebraicGeometryError,
 };
 pub use exact_unit_distance::{
     verify_unit_distance_embedding_checked, ExactGraphEmbedding, ExactGraphEmbeddingBuilder,
