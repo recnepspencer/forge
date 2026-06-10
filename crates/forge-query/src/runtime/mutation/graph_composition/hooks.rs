@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::runtime::{
     ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionDomainInvariantSummary,
     ForgeQueryGraphCompositionProgram, ForgeQueryWriteCommand,
@@ -15,11 +17,16 @@ impl ForgeQueryGraphCompositionInvariantPackViolation {
     pub fn new(invariant_family: impl Into<String>, message: impl Into<String>) -> Self {
         let invariant_family = invariant_family.into();
         let message = message.into();
-        let violation_digest = hash_parts(&[
-            "forge_query_graph_composition_invariant_pack_violation_v1".to_string(),
-            format!("invariant:{invariant_family}"),
-            format!("message:{message}"),
-        ]);
+        let violation_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::GraphCompositionInvariantViolation,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("invariant_family"),
+            invariant_family.as_str(),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
             invariant_family,
             message,

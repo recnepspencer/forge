@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimePublicApiNamingRow {
@@ -22,17 +25,25 @@ impl ForgeQueryRuntimePublicApiNamingRow {
             .into_iter()
             .map(Into::into)
             .collect::<Vec<_>>();
-        let mut parts = vec![
-            format!("concept:{concept}"),
-            format!("preferred:{preferred_name}"),
-            format!("boundary:{boundary_crossing}"),
-        ];
-        parts.extend(
-            alternate_names
-                .iter()
-                .map(|name| format!("alternate:{name}")),
-        );
-        let naming_digest = hash_parts(&parts);
+        let naming_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::RuntimePublicApiNamingRow,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("concept"), concept.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("preferred_name"),
+            preferred_name.as_str(),
+        )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("boundary_crossing"),
+            boundary_crossing,
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("alternate_name"),
+            alternate_names.iter().map(String::as_str),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
             concept,
             preferred_name,
@@ -186,17 +197,28 @@ impl ForgeQueryRuntimePublicApiNamingContract {
         let alternate_name_count = rows.iter().map(|row| row.alternate_names().len()).sum();
         let boundary_crossing_name_count =
             rows.iter().filter(|row| row.boundary_crossing()).count();
-        let mut parts = vec![
-            "forge_query_runtime_public_api_naming_contract_v1".to_string(),
-            format!("preferred:{preferred_entrypoint_count}"),
-            format!("alternate:{alternate_name_count}"),
-            format!("boundary:{boundary_crossing_name_count}"),
-        ];
-        parts.extend(
-            rows.iter()
-                .map(|row| format!("row:{}", row.naming_digest())),
-        );
-        let contract_digest = hash_parts(&parts);
+        let contract_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::RuntimePublicApiNamingContract,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("preferred_entrypoint_count"),
+            preferred_entrypoint_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("alternate_name_count"),
+            alternate_name_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("boundary_crossing_name_count"),
+            boundary_crossing_name_count,
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("row_digest"),
+            rows.iter().map(ForgeQueryRuntimePublicApiNamingRow::naming_digest),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
             rows,
             preferred_entrypoint_count,
@@ -232,4 +254,47 @@ impl ForgeQueryRuntimePublicApiNamingContract {
     pub fn contract_digest(&self) -> &str {
         &self.contract_digest
     }
+}
+
+pub(crate) fn compose_public_api_naming_row_identity(
+    row: &ForgeQueryRuntimePublicApiNamingRow,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicApiNamingRow)
+        .field_shape(ForgeQueryEvidenceTag::new("concept"), row.concept())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("preferred_name"),
+            row.preferred_name(),
+        )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("boundary_crossing"),
+            row.boundary_crossing(),
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("alternate_name"),
+            row.alternate_names().iter().map(String::as_str),
+        )
+        .seal()
+}
+
+pub(crate) fn compose_public_api_naming_contract_identity(
+    contract: &ForgeQueryRuntimePublicApiNamingContract,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicApiNamingContract)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("preferred_entrypoint_count"),
+            contract.preferred_entrypoint_count(),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("alternate_name_count"),
+            contract.alternate_name_count(),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("boundary_crossing_name_count"),
+            contract.boundary_crossing_name_count(),
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("row_digest"),
+            contract.rows().iter().map(ForgeQueryRuntimePublicApiNamingRow::naming_digest),
+        )
+        .seal()
 }

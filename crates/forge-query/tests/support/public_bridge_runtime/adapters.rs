@@ -7,8 +7,8 @@ use forge_query::facade::{
     ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthProbeDenialKind,
     ForgeQueryExistingTruthProbeRequest, ForgeQueryExistingTruthTargetBinding, ForgeQueryLivePatch,
     ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
-    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryMutationReceipt, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
     ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
     ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
@@ -357,7 +357,7 @@ impl ForgeQueryRuntimePreviewBasisAdapter for PublicPreviewBasisAdapter {
             authority,
             label.clone(),
             effect_policy,
-            ["public-graph-preview-basis"],
+            ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["public-graph-preview-basis"]),
         ))
     }
 }

@@ -6,6 +6,17 @@ use super::completeness_support::{
 use super::consumer_support::routing::{route_consumer_stop_class, ConsumerStopRoute};
 use super::consumer_support::runtime_errors::temporal_public_family_admission_error;
 
+fn compose_certification_sequence_digest(
+    tag: &'static str,
+    values: impl IntoIterator<Item = impl AsRef<str>>,
+) -> String {
+    crate::ForgeQueryEvidenceIdentity::compose(crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact)
+        .field_identity_sequence(crate::ForgeQueryEvidenceTag::new(tag), values)
+        .seal()
+        .as_str()
+        .to_string()
+}
+
 #[test]
 fn typed_stop_class_taxonomy_phase_three_outputs_are_non_empty_and_stable() {
     let representative_errors = representative_runtime_stop_errors();
@@ -67,17 +78,15 @@ fn typed_stop_class_matching_phase_four_outputs_are_non_empty_and_stable() {
 }
 
 fn digest_stop_class_outputs(errors: &[ForgeQueryRuntimeError]) -> String {
-    crate::identity::hash_parts(
-        &errors
-            .iter()
-            .map(|error| {
-                format!(
-                    "{}:{}",
-                    runtime_error_variant_key(error),
-                    stop_class_variant_key(error.stop_class())
-                )
-            })
-            .collect::<Vec<_>>(),
+    compose_certification_sequence_digest(
+        "stop_class_output",
+        errors.iter().map(|error| {
+            format!(
+                "{}:{}",
+                runtime_error_variant_key(error),
+                stop_class_variant_key(error.stop_class())
+            )
+        }),
     )
 }
 
@@ -90,17 +99,23 @@ fn digest_support_denial_output(errors: &[ForgeQueryRuntimeError]) -> String {
                 status,
                 teaching_posture,
                 reason,
-            } => Some(crate::identity::hash_parts(&[
-                format!("family:{}", family.as_str()),
-                format!("status:{}", status.as_str()),
-                format!(
-                    "teaching_posture:{}",
+            } => Some(
+                crate::ForgeQueryEvidenceIdentity::compose(
+                    crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
+                )
+                .field_shape(crate::ForgeQueryEvidenceTag::new("family"), family.as_str())
+                .field_shape(crate::ForgeQueryEvidenceTag::new("status"), status.as_str())
+                .field_shape(
+                    crate::ForgeQueryEvidenceTag::new("teaching_posture"),
                     teaching_posture
                         .map(ForgeQueryRuntimeFamilyTeachingPosture::as_str)
-                        .unwrap_or("none")
-                ),
-                format!("reason:{reason}"),
-            ])),
+                        .unwrap_or("none"),
+                )
+                .field_value(crate::ForgeQueryEvidenceTag::new("reason"), reason)
+                .seal()
+                .as_str()
+                .to_string(),
+            ),
             _ => None,
         })
         .expect("phase-3 representatives should contain a family admission denial");
@@ -126,7 +141,7 @@ fn digest_preview_promotion_output(errors: &[ForgeQueryRuntimeError]) -> String 
         "phase-3 representatives should cover every preview-promotion denial kind"
     );
 
-    crate::identity::hash_parts(&preview_digests)
+    compose_certification_sequence_digest("preview_promotion_output", preview_digests)
 }
 
 fn digest_intent_denial_output(errors: &[ForgeQueryRuntimeError]) -> String {
@@ -153,7 +168,7 @@ fn digest_intent_denial_output(errors: &[ForgeQueryRuntimeError]) -> String {
         "phase-3 representatives should cover both intent stop paths"
     );
 
-    crate::identity::hash_parts(&intent_digests)
+    compose_certification_sequence_digest("intent_denial_output", intent_digests)
 }
 
 fn digest_failure_output(errors: &[ForgeQueryRuntimeError]) -> String {
@@ -181,15 +196,15 @@ fn digest_failure_output(errors: &[ForgeQueryRuntimeError]) -> String {
         })
         .collect::<Vec<_>>();
 
-    crate::identity::hash_parts(&representative_failures)
+    compose_certification_sequence_digest("failure_output", representative_failures)
 }
 
 fn digest_consumer_stop_routes(errors: &[ForgeQueryRuntimeError]) -> String {
-    crate::identity::hash_parts(
-        &errors
+    compose_certification_sequence_digest(
+        "consumer_stop_route",
+        errors
             .iter()
-            .map(|error| consumer_stop_route_key(&route_consumer_stop_class(error)))
-            .collect::<Vec<_>>(),
+            .map(|error| consumer_stop_route_key(&route_consumer_stop_class(error))),
     )
 }
 
@@ -200,17 +215,21 @@ fn digest_public_family_admission(error: &ForgeQueryRuntimeError) -> String {
             status,
             teaching_posture,
             reason,
-        } => crate::identity::hash_parts(&[
-            format!("family:{}", family.as_str()),
-            format!("status:{}", status.as_str()),
-            format!(
-                "teaching_posture:{}",
-                teaching_posture
-                    .map(ForgeQueryRuntimeFamilyTeachingPosture::as_str)
-                    .unwrap_or("none")
-            ),
-            format!("reason:{reason}"),
-        ]),
+        } => crate::ForgeQueryEvidenceIdentity::compose(
+            crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
+        )
+        .field_shape(crate::ForgeQueryEvidenceTag::new("family"), family.as_str())
+        .field_shape(crate::ForgeQueryEvidenceTag::new("status"), status.as_str())
+        .field_shape(
+            crate::ForgeQueryEvidenceTag::new("teaching_posture"),
+            teaching_posture
+                .map(ForgeQueryRuntimeFamilyTeachingPosture::as_str)
+                .unwrap_or("none"),
+        )
+        .field_value(crate::ForgeQueryEvidenceTag::new("reason"), reason)
+        .seal()
+        .as_str()
+        .to_string(),
         other => panic!("expected public family admission denial, got {other:?}"),
     }
 }
@@ -230,18 +249,20 @@ fn digest_message_drift_probe(
         "the first wording probe should fail after presentation drift"
     );
 
-    crate::identity::hash_parts(&[
-        format!(
-            "typed_first:{}",
-            consumer_stop_route_key(&route_consumer_stop_class(first_error))
-        ),
-        format!(
-            "typed_second:{}",
-            consumer_stop_route_key(&route_consumer_stop_class(second_error))
-        ),
-        format!("probe_first:{first_probe}"),
-        format!("probe_second:{second_probe}"),
-    ])
+    crate::ForgeQueryEvidenceIdentity::compose(crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact)
+        .field_identity(
+            crate::ForgeQueryEvidenceTag::new("typed_first_route"),
+            consumer_stop_route_key(&route_consumer_stop_class(first_error)),
+        )
+        .field_identity(
+            crate::ForgeQueryEvidenceTag::new("typed_second_route"),
+            consumer_stop_route_key(&route_consumer_stop_class(second_error)),
+        )
+        .field_bool(crate::ForgeQueryEvidenceTag::new("probe_first"), first_probe)
+        .field_bool(crate::ForgeQueryEvidenceTag::new("probe_second"), second_probe)
+        .seal()
+        .as_str()
+        .to_string()
 }
 
 fn consumer_stop_route_key(route: &ConsumerStopRoute) -> String {
@@ -267,9 +288,10 @@ fn consumer_stop_route_key(route: &ConsumerStopRoute) -> String {
         ConsumerStopRoute::GraphCompositionDenied(kind) => {
             format!("graph_composition_denied:{kind:?}")
         }
-        ConsumerStopRoute::GraphCompositionDomainInvariantDenied => {
-            "graph_composition_domain_invariant_denied".to_string()
-        }
+        ConsumerStopRoute::GraphCompositionDomainInvariantDenied {
+            hook_family,
+            invariant_family,
+        } => format!("graph_composition_domain_invariant_denied:{hook_family}:{invariant_family}"),
         ConsumerStopRoute::MutationNamingDenied(kind) => {
             format!("mutation_naming_denied:{kind:?}")
         }

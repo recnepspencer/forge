@@ -1,7 +1,7 @@
 use super::support::*;
 use crate::facade::runtime::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-    ForgeQuerySessionLabel,
+    ForgeQueryAuthorityLane, ForgeQueryEffectPolicy, ForgeQueryEvidenceIdentity,
+    ForgeQueryEvidenceScope, ForgeQueryEvidenceTag, ForgeQuerySessionLabel,
 };
 
 fn session_entry_runtime() -> ForgeQueryRuntime {
@@ -32,7 +32,7 @@ fn basis_digest(
     label: &ForgeQuerySessionLabel,
     effect_policy: ForgeQueryEffectPolicy,
     authority_lane: ForgeQueryAuthorityLane,
-    evidence: &[String],
+    evidence_rows: &[crate::runtime::ForgeQueryBasisAdmissionEvidenceRow],
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(scope)
         .field_identity(
@@ -48,8 +48,10 @@ fn basis_digest(
             authority_lane.as_str(),
         )
         .field_identity_sequence(
-            ForgeQueryEvidenceTag::new("evidence"),
-            evidence.iter().map(String::as_str),
+            ForgeQueryEvidenceTag::new("evidence_row"),
+            evidence_rows
+                .iter()
+                .map(|row| row.row_digest().as_str()),
         )
         .seal()
 }
@@ -87,7 +89,7 @@ fn preview_and_branch_basis_admissions_record_canonical_session_label_identity()
         &label,
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         ForgeQueryAuthorityLane::PreviewTruth,
-        preview.basis_admission().evidence(),
+        preview.basis_admission().evidence_rows(),
     );
     assert_eq!(preview.basis_admission().session_label(), &label);
     assert_eq!(
@@ -111,7 +113,7 @@ fn preview_and_branch_basis_admissions_record_canonical_session_label_identity()
         &label,
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         ForgeQueryAuthorityLane::BranchLocalTruth,
-        branch.basis_admission().evidence(),
+        branch.basis_admission().evidence_rows(),
     );
     assert_eq!(branch.basis_admission().session_label(), &label);
     assert_eq!(
@@ -137,7 +139,7 @@ fn workspace_entrypoints_preserve_typed_session_label_identity_and_collision_pos
         &label,
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         ForgeQueryAuthorityLane::PreviewTruth,
-        preview.basis_admission().evidence(),
+        preview.basis_admission().evidence_rows(),
     );
     assert_eq!(preview.basis_admission().session_label(), &label);
     assert_eq!(
@@ -161,7 +163,7 @@ fn workspace_entrypoints_preserve_typed_session_label_identity_and_collision_pos
         &label,
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         ForgeQueryAuthorityLane::BranchLocalTruth,
-        branch.basis_admission().evidence(),
+        branch.basis_admission().evidence_rows(),
     );
     assert_eq!(branch.basis_admission().session_label(), &label);
     assert_eq!(
@@ -292,46 +294,94 @@ fn display_colliding_preview_labels_produce_distinct_closeout_digests() {
 }
 
 #[test]
+fn display_colliding_preview_labels_produce_distinct_execution_digests() {
+    let mut runtime = stateful_bridge_task_runtime();
+    let live = runtime
+        .declare_live_view::<Value>(
+            "tasks.render-collision-execution",
+            task_live_request(),
+            task_schema(),
+        )
+        .expect("live view should declare");
+    let left = ForgeQuerySessionLabel::scoped_strs("worth.kernel", ["preview"]).expect("label");
+    let right = ForgeQuerySessionLabel::scoped_strs("worth", ["kernel", "preview"]).expect("label");
+
+    let left_execution = {
+        let mut preview = runtime
+            .preview_with_options(left.clone(), ForgeQueryPreviewOptions::redirected_delivery())
+            .expect("left preview should admit");
+        preview.use_view(&live);
+        preview
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("left-render-collision")),
+                    ("title.value", json!("Left render collision")),
+                ],
+            ))
+            .expect("left preview write should stage");
+        preview
+            .preview_execution_evidence()
+            .iter()
+            .find(|evidence| evidence.kind() == ForgeQueryPreviewExecutionKind::LivePatch)
+            .map(|evidence| evidence.execution_digest().to_string())
+            .expect("left preview should record live-patch execution evidence")
+    };
+    let right_execution = {
+        let mut preview = runtime
+            .preview_with_options(
+                right.clone(),
+                ForgeQueryPreviewOptions::redirected_delivery(),
+            )
+            .expect("right preview should admit");
+        preview.use_view(&live);
+        preview
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("right-render-collision")),
+                    ("title.value", json!("Right render collision")),
+                ],
+            ))
+            .expect("right preview write should stage");
+        preview
+            .preview_execution_evidence()
+            .iter()
+            .find(|evidence| evidence.kind() == ForgeQueryPreviewExecutionKind::LivePatch)
+            .map(|evidence| evidence.execution_digest().to_string())
+            .expect("right preview should record live-patch execution evidence")
+    };
+
+    assert_eq!(left.display(), right.display());
+    assert_ne!(left.identity_digest(), right.identity_digest());
+    assert_ne!(
+        left_execution, right_execution,
+        "preview execution evidence must preserve canonical label identity"
+    );
+}
+
+#[test]
 fn ordinary_runtime_entrypoints_require_typed_session_labels() {
-    let runtime_sessions = include_str!("../runtime_sessions.rs");
-    let workspace = include_str!("../workspace.rs");
+    use crate::application::{
+        normalize_source_text, ordinary_session_entrypoint_audit_violations,
+    };
 
-    for required_signature in [
-        "pub fn preview<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn branch<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn preview_with_options<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn branch_with_options<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn try_preview<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn try_branch<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn try_preview_with_options<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn try_branch_with_options<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-    ] {
-        assert!(
-            runtime_sessions.contains(required_signature)
-                || workspace.contains(required_signature),
-            "ordinary runtime session entrypoint must require ForgeQuerySessionLabel: {required_signature}"
-        );
-    }
-
-    for forbidden_signature in [
-        "pub fn preview<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn branch<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn preview_with_options<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn branch_with_options<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn try_preview<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn try_branch<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn try_preview_with_options<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn try_branch_with_options<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-    ] {
-        assert!(
-            !runtime_sessions.contains(forbidden_signature) && !workspace.contains(forbidden_signature),
-            "raw-string ordinary session entrypoint survived: {forbidden_signature}"
-        );
-    }
+    let runtime_sessions = normalize_source_text(include_str!("../runtime_sessions.rs"));
+    let workspace = normalize_source_text(include_str!("../workspace.rs"));
+    let violations =
+        ordinary_session_entrypoint_audit_violations(&runtime_sessions, &workspace);
+    assert!(
+        violations.is_empty(),
+        "ordinary runtime session entrypoint audit failed: {violations:?}"
+    );
 }
 
 #[test]
 fn canonical_session_label_intake_phase_six_outputs_are_non_empty_and_stable() {
+    use crate::application::{
+        normalize_source_text, ordinary_session_entrypoint_audit_violations,
+    };
+
     let mut runtime = session_entry_runtime();
     let preview_label = test_session_label("phase-six-preview");
     let branch_label = test_session_label("phase-six-branch");
@@ -387,51 +437,18 @@ fn canonical_session_label_intake_phase_six_outputs_are_non_empty_and_stable() {
         other => panic!("expected session-label collision stop class, got {other:?}"),
     };
 
-    let runtime_sessions = include_str!("../runtime_sessions.rs");
-    let workspace = include_str!("../workspace.rs");
-    let raw_string_entrypoint_audit = crate::identity::hash_parts(&[
-        format!(
-            "runtime_preview_typed:{}",
-            runtime_sessions.contains(
-                "pub fn preview<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,"
-            )
-        ),
-        format!(
-            "runtime_branch_typed:{}",
-            runtime_sessions.contains(
-                "pub fn branch<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,"
-            )
-        ),
-        format!(
-            "runtime_try_preview_typed:{}",
-            runtime_sessions.contains(
-                "pub fn try_preview<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,"
-            )
-        ),
-        format!(
-            "runtime_try_branch_typed:{}",
-            runtime_sessions.contains(
-                "pub fn try_branch<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,"
-            )
-        ),
-        format!(
-            "workspace_preview_typed:{}",
-            workspace.contains(
-                "pub fn preview<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,"
-            )
-        ),
-        format!(
-            "workspace_branch_typed:{}",
-            workspace.contains(
-                "pub fn branch<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,"
-            )
-        ),
-        format!(
-            "no_into_string:{}",
-            !runtime_sessions.contains("label: impl Into<String>")
-                && !workspace.contains("label: impl Into<String>")
-        ),
-    ]);
+    let runtime_sessions = normalize_source_text(include_str!("../runtime_sessions.rs"));
+    let workspace = normalize_source_text(include_str!("../workspace.rs"));
+    let raw_string_entrypoint_audit = crate::ForgeQueryEvidenceIdentity::compose(
+        crate::ForgeQueryEvidenceScope::ApplicationSessionLabelBoundaryClosure,
+    )
+    .field_identity_sequence(
+        crate::ForgeQueryEvidenceTag::new("entrypoint_audit_violation"),
+        ordinary_session_entrypoint_audit_violations(&runtime_sessions, &workspace),
+    )
+    .seal()
+    .as_str()
+    .to_string();
 
     assert!(!preview_session_basis_digest.is_empty());
     assert!(!branch_session_basis_digest.is_empty());

@@ -1,4 +1,7 @@
 use super::super::*;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryPreviewExecutionKind {
@@ -23,7 +26,7 @@ impl ForgeQueryPreviewExecutionKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryPreviewExecutionEvidence {
-    label: String,
+    session_label: ForgeQuerySessionLabel,
     pub(in crate::runtime::preview) kind: ForgeQueryPreviewExecutionKind,
     handle_name: String,
     source_lane: ForgeQueryAuthorityLane,
@@ -35,7 +38,7 @@ pub struct ForgeQueryPreviewExecutionEvidence {
 
 impl ForgeQueryPreviewExecutionEvidence {
     pub(in crate::runtime::preview) fn new(
-        label: &str,
+        basis_admission: &ForgeQueryPreviewBasisAdmission,
         kind: ForgeQueryPreviewExecutionKind,
         handle_name: &str,
         source_lane: ForgeQueryAuthorityLane,
@@ -43,18 +46,36 @@ impl ForgeQueryPreviewExecutionEvidence {
         commit_identity: &str,
         aspect_paths: Vec<String>,
     ) -> Self {
-        let execution_digest = hash_parts(&[
-            "forge_query_preview_execution_evidence_v1".to_string(),
-            format!("label:{label}"),
-            format!("kind:{}", kind.as_str()),
-            format!("handle:{handle_name}"),
-            format!("source_lane:{source_lane}"),
-            format!("preview_lane:{preview_lane}"),
-            format!("commit:{commit_identity}"),
-            format!("aspects:{}", aspect_paths.join("|")),
-        ]);
+        let execution_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::PreviewExecutionEvidence,
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            basis_admission.label_identity().as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("handle_name"), handle_name)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source_lane"),
+            source_lane.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("preview_lane"),
+            preview_lane.as_str(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("commit_identity"),
+            commit_identity,
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("aspect_path"),
+            aspect_paths.iter().map(String::as_str),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
-            label: label.to_string(),
+            session_label: basis_admission.session_label().clone(),
             kind,
             handle_name: handle_name.to_string(),
             source_lane,
@@ -66,7 +87,15 @@ impl ForgeQueryPreviewExecutionEvidence {
     }
 
     pub fn label(&self) -> &str {
-        &self.label
+        self.session_label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
+        &self.session_label
+    }
+
+    pub fn label_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        self.session_label.identity_digest()
     }
 
     pub fn kind(&self) -> ForgeQueryPreviewExecutionKind {

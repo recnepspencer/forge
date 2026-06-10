@@ -8,7 +8,10 @@ pub(in super::super) enum ConsumerStopRoute {
     MutationBindingDenied(ForgeQueryExistingTruthBindingDenialKind),
     MutationContinuityDenied(ForgeQueryContinuityMutationDenialKind),
     GraphCompositionDenied(ForgeQueryGraphCompositionDenialKind),
-    GraphCompositionDomainInvariantDenied,
+    GraphCompositionDomainInvariantDenied {
+        hook_family: String,
+        invariant_family: String,
+    },
     MutationNamingDenied(ForgeQueryNamingMutationDenialKind),
     MutationTargetReferenceDenied(ForgeQuerySymbolicTargetReferenceDenialKind),
     ReadCompositionDenied(ForgeQueryReadDenialKind),
@@ -57,8 +60,11 @@ pub(in super::super) fn route_consumer_stop_class(
         ForgeQueryStopClass::GraphCompositionDenied { denial } => {
             ConsumerStopRoute::GraphCompositionDenied(denial.kind())
         }
-        ForgeQueryStopClass::GraphCompositionDomainInvariantDenied { .. } => {
-            ConsumerStopRoute::GraphCompositionDomainInvariantDenied
+        ForgeQueryStopClass::GraphCompositionDomainInvariantDenied { denial } => {
+            ConsumerStopRoute::GraphCompositionDomainInvariantDenied {
+                hook_family: denial.hook_family().to_string(),
+                invariant_family: denial.invariant_family().to_string(),
+            }
         }
         ForgeQueryStopClass::MutationNamingDenied { denial } => {
             ConsumerStopRoute::MutationNamingDenied(denial.kind())

@@ -98,7 +98,10 @@ impl ForgeQueryRuntimePreviewBasisAdapter for TestPreviewBasis {
             authority,
             label.clone(),
             effect_policy,
-            ["test-preview-basis"],
+            [ForgeQueryBasisAdmissionEvidenceRow::tagged(
+                "preview-basis-admission",
+                "test-preview-basis",
+            )],
         ))
     }
 }

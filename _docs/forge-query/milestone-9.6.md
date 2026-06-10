@@ -2,6 +2,55 @@
 
 > **Status:** Draft
 >
+> **Handoff note (2026-06-10):** Runtime identity fix pass is largely landed on
+> branch `query-repair`. The five runtime workstreams from the closure plan are
+> implemented in code; milestone remains **Draft** until the workstation handoff
+> gate below is re-run and any remaining optional polish is closed.
+>
+> **Done in this pass**
+>
+> - **Basis admission evidence rows:** `ForgeQueryBasisAdmissionEvidenceRow`,
+>   typed `evidence_rows()` on preview/branch basis admission, digest uses row
+>   digests not raw strings; call sites migrated across runtime adapters,
+>   harness/fixtures, and tests.
+> - **Execution digest collision fix:** `ForgeQueryPreviewExecutionEvidence`
+>   keys on `session_label_identity` from basis admission; call sites in
+>   `session_execution.rs` / `workflow_ops.rs` updated.
+> - **Preview artifact API:** closeout, promotion, execution, outcome, and diff
+>   store `ForgeQuerySessionLabel`; expose `session_label()` / `label_identity()`.
+> - **Domain-invariant chain:** graph/read violation hooks migrated off
+>   `hash_parts`; denial digests exclude message text; hook paths added to
+>   `identity_boundary_inventory.rs`.
+> - **Tests / inventory:** render-collision parity for closeout **and** execution
+>   digests; denial digest stable under message rewording; identity-boundary
+>   hostile matrix + residue inventory wired through support report.
+>
+> **Verification (re-run on next workstation)**
+>
+> ```text
+> cargo test -p forge-query session_label --lib
+> cargo test -p forge-query evidence_identity --lib
+> cargo test -p forge-query stop_class --lib
+> cargo test -p forge-query identity_boundary --lib
+> cargo test -p forge-query --lib
+> ```
+>
+> Targeted 9.6 suites (`session_label`, `evidence_identity`, `stop_class`,
+> `identity_boundary`) were green during this pass. Full `--lib` had a handful of
+> stale label-display assertions and one domain-capability manifest drift; those
+> fixes are in the working tree but **not re-verified here** before handoff.
+>
+> **Still open / next workstation**
+>
+> - Optional: `preview/binding.rs` still stores display string for handle-binding
+>   evidence (same class of bug; out of scope unless a test forces it).
+> - Optional: AI_README paragraph on `session_label()` / `label_identity()` if
+>   doc gate is tightened beyond existing identity-boundary doc tests.
+> - Re-run full `cargo test -p forge-query --lib` and certification harness after
+>   merge/rebase on the other machine.
+> - Flip status to **Closed** only when acceptance evidence in this spec passes
+>   end-to-end on the target branch.
+>
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
 > **Primary predecessors:** [milestone-9.5.md](./milestone-9.5.md), [milestone-9.4.md](./milestone-9.4.md)

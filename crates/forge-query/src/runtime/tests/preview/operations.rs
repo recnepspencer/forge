@@ -32,9 +32,10 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
             .expect("preview operation should run");
 
         assert_eq!(run.write_receipts().len(), 1);
+        let draft_label = test_session_label("draft create");
         assert!(run.write_receipts()[0]
             .commit_identity()
-            .starts_with("preview:draft create"));
+            .starts_with(&format!("preview:{}:", draft_label.display())));
         assert_eq!(
             run.write_receipts()[0].authority_lane(),
             ForgeQueryAuthorityLane::PreviewTruth
@@ -162,7 +163,10 @@ fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
             stage,
             message,
         } => {
-            assert_eq!(label, "deny declaration effects");
+            assert_eq!(
+                label,
+                test_session_label("deny declaration effects").display()
+            );
             assert_eq!(stage, "effect-admission");
             assert!(message.contains("cannot install live view `tasks.table`"));
         }

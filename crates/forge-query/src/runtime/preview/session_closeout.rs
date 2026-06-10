@@ -59,7 +59,6 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         rebinding_digest: Option<String>,
     ) -> ForgeQueryPreviewCloseoutEvidence {
         ForgeQueryPreviewCloseoutEvidence::new(
-            self.label.display(),
             kind,
             self.effect_policy,
             &self.basis_admission,

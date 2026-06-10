@@ -15,7 +15,8 @@ use crate::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryAuthorityLane, ForgeQueryEffectPolicy,
     ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
     ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
-    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
+    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryBasisAdmissionEvidenceRow,
+    ForgeQueryRuntime,
     ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeFacadeFamily,
     ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
@@ -216,7 +217,7 @@ impl ForgeQueryRuntimePreviewBasisAdapter for TranscriptPreviewBasis {
             authority,
             label.clone(),
             effect_policy,
-            ["transcript-preview-basis"],
+            ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["transcript-preview-basis"]),
         ))
     }
 }

@@ -6,7 +6,7 @@ use crate::facade::{
     ForgeQueryExistingTruthProbeDenialKind, ForgeQueryIntentAuthorityAdapter,
     ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLiveViewHandle,
     ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryRuntime, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeFacadeFamily,
     ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
@@ -382,7 +382,7 @@ impl ForgeQueryRuntimePreviewBasisAdapter for CertificationPreviewBasis {
             authority,
             label.clone(),
             effect_policy,
-            ["certification-preview-basis"],
+            ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["certification-preview-basis"]),
         ))
     }
 }

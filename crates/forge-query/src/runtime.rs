@@ -548,7 +548,8 @@ pub(in crate::runtime) use shared_read_pins::ForgeQuerySharedReadCounters;
 pub use state::ForgeQueryRuntimeStateTarget;
 pub use state_snapshot::{ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot};
 pub use support::{
-    ForgeQueryBranchBasisAdmission, ForgeQueryGraphCompositionCapabilityClass,
+    ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryBranchBasisAdmission,
+    ForgeQueryGraphCompositionCapabilityClass,
     ForgeQueryGraphCompositionCapabilitySupportRow,
     ForgeQueryGraphCompositionExtensionHookBoundary,
     ForgeQueryGraphCompositionExtensionHookSupportRow, ForgeQueryPreviewBasisAdmission,

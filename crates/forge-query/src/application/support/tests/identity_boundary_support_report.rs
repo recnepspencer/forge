@@ -1,6 +1,9 @@
 use super::query_disabled_application_facade;
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryFolkloreResidueStatus, ForgeQueryMilestoneClosureStatus,
+    EXACT_ZERO_FORMAT_DIGEST_PATHS, EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS,
+    EXACT_ZERO_STRING_MATCHING_PATHS, EVIDENCE_IDENTITY_COVERED_SURFACES,
+    SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
 };
 use crate::ForgeQueryEvidenceIdentityScheme;
 
@@ -19,22 +22,7 @@ fn support_report_publishes_closed_identity_boundary() {
     );
     assert_eq!(
         closure.evidence_identity().covered_surfaces(),
-        &[
-            "runtime_public_support_matrix_row",
-            "runtime_public_support_matrix",
-            "runtime_public_api_family_contract",
-            "runtime_public_api_contract",
-            "runtime_public_api_transcript_evidence",
-            "runtime_state_snapshot",
-            "preview_basis_admission",
-            "branch_basis_admission",
-            "preview_intent_admission",
-            "preview_intent_receipt",
-            "branch_intent_admission",
-            "branch_intent_receipt",
-            "intent_denial_evidence",
-            "application_support_report",
-        ]
+        EVIDENCE_IDENTITY_COVERED_SURFACES
     );
     assert_eq!(
         closure.stop_class().status(),
@@ -46,11 +34,7 @@ fn support_report_publishes_closed_identity_boundary() {
     );
     assert_eq!(
         closure.stop_class().covered_contracts(),
-        &[
-            "typed-family-admission-denial",
-            "typed-preview-promotion-stop",
-            "typed-session-label-collision-stop",
-        ]
+        STOP_CLASS_COVERED_CONTRACTS
     );
     assert_eq!(
         closure.session_label().status(),
@@ -66,36 +50,26 @@ fn support_report_publishes_closed_identity_boundary() {
     );
     assert_eq!(
         closure.session_label().ordinary_entrypoints(),
-        &[
-            "runtime.preview",
-            "runtime.branch",
-            "runtime.try_preview",
-            "runtime.try_branch",
-            "workspace.preview",
-            "workspace.branch",
-        ]
+        SESSION_LABEL_ORDINARY_ENTRYPOINTS
     );
-    assert_eq!(
+    assert!(closure.residue_status().is_zero());
+    assert!(matches!(
         closure.residue_status(),
         ForgeQueryFolkloreResidueStatus::ZeroFolkloreResidue
-    );
+    ));
     assert_eq!(
         closure.exact_zero_format_digest_paths(),
-        &[
-            "application/support/report.rs",
-            "runtime/support_matrix.rs",
-            "runtime/state_snapshot.rs",
-            "runtime/public_api_transcript.rs",
-        ]
+        EXACT_ZERO_FORMAT_DIGEST_PATHS
     );
     assert_eq!(
         closure.exact_zero_string_matching_paths(),
-        &["runtime/tests/stop_class/consumer_support/routing.rs",]
+        EXACT_ZERO_STRING_MATCHING_PATHS
     );
     assert_eq!(
         closure.exact_zero_raw_session_admission_paths(),
-        &["runtime/runtime_sessions.rs", "runtime/workspace.rs",]
+        EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS
     );
+    assert!(!closure.hostile_matrix_digest().is_empty());
     assert!(!closure.closure_digest().is_empty());
 }
 

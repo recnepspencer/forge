@@ -1,12 +1,13 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::{
-    DeclarativeLiveQueryRequest, ForgeQueryEffectPolicy, ForgeQueryEntity, ForgeQueryLivePatch,
-    ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
-    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
-    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    DeclarativeLiveQueryRequest, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy,
+    ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
+    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQuerySessionLabel,
     ForgeQueryWorkspaceError, ForgeQueryWriteReceipt, QuerySchemaView, SubscriptionActivationInput,
 };
 use forge_runtime_bridge::facade::{
@@ -206,16 +207,16 @@ impl TopologyPreviewBasis {
 impl ForgeQueryRuntimePreviewBasisAdapter for TopologyPreviewBasis {
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
         match self {
             Self::Supported { support_evidence } => Ok(ForgeQueryPreviewBasisAdmission::new(
                 authority,
-                label,
+                label.clone(),
                 effect_policy,
-                [*support_evidence],
+                ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([*support_evidence]),
             )),
             Self::Denied { denial_reason } => Err(ForgeQueryWorkspaceError::new(*denial_reason)),
         }

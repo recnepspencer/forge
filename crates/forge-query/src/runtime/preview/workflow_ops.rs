@@ -1,9 +1,12 @@
 use super::*;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 impl<'a> ForgeQueryPreviewSession<'a> {
     pub fn compare_to_authoritative(&self) -> ForgeQueryPreviewDiff {
         ForgeQueryPreviewDiff {
-            label: self.label.to_string(),
+            session_label: self.label.clone(),
             write_count: self.writes.len(),
             changed_entity_count: self
                 .writes
@@ -28,7 +31,6 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         if promotion_snapshot_token != self.basis_snapshot_token {
             return Err(ForgeQueryRuntimeError::PreviewPromotionStaleBasis(
                 ForgeQueryPreviewPromotionDenialEvidence::stale_basis(
-                    self.label.display(),
                     self.effect_policy,
                     &self.basis_admission,
                     &self.basis_snapshot_token,
@@ -42,7 +44,6 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             return Err(
                 ForgeQueryRuntimeError::PreviewPromotionAtomicBatchUnsupported(
                     ForgeQueryPreviewPromotionDenialEvidence::atomic_batch_unsupported(
-                        self.label.display(),
                         self.effect_policy,
                         &self.basis_admission,
                         &self.basis_snapshot_token,
@@ -55,21 +56,35 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         }
         let crossed_authoritative_residue_count =
             residue_snapshot.crossed_authoritative_residue_count;
-        let promotion_rebinding_digest = hash_parts(&[
-            "forge_query_preview_promotion_rebinding_v1".to_string(),
-            format!("label:{}", self.label.display()),
-            format!("basis_snapshot:{}", self.basis_snapshot_token),
-            format!("promotion_snapshot:{}", promotion_snapshot_token),
-            format!(
-                "crossed_authoritative_residue:{}",
-                crossed_authoritative_residue_count
-            ),
-            format!("preview_bindings:{}", self.handle_bindings.len()),
-        ]);
+        let promotion_rebinding_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::PreviewPromotionRebinding,
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            self.basis_admission.label_identity().as_str(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("basis_snapshot_token"),
+            self.basis_snapshot_token.as_str(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("promotion_snapshot_token"),
+            promotion_snapshot_token.as_str(),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("crossed_authoritative_residue_count"),
+            crossed_authoritative_residue_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("preview_binding_count"),
+            self.handle_bindings.len(),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         if crossed_authoritative_residue_count > 0 {
             return Err(ForgeQueryRuntimeError::PreviewPromotionRebindingRequired(
                 ForgeQueryPreviewPromotionDenialEvidence::rebinding_required(
-                    self.label.display(),
                     self.effect_policy,
                     &self.basis_admission,
                     &self.basis_snapshot_token,
@@ -94,7 +109,6 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 Err(error) => {
                     return Err(ForgeQueryRuntimeError::PreviewPromotionWriteFailed {
                         evidence: ForgeQueryPreviewPromotionDenialEvidence::write_failed(
-                            self.label.display(),
                             self.effect_policy,
                             &self.basis_admission,
                             &self.basis_snapshot_token,
@@ -124,7 +138,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             Some(promotion_rebinding_digest),
         );
         Ok(ForgeQueryPreviewOutcome {
-            label: self.label.to_string(),
+            session_label: self.label.clone(),
             effect_policy: self.effect_policy,
             promoted: self.promoted,
             discarded: self.discarded,
@@ -158,7 +172,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             None,
         );
         ForgeQueryPreviewOutcome {
-            label: self.label.to_string(),
+            session_label: self.label.clone(),
             effect_policy: self.effect_policy,
             promoted: self.promoted,
             discarded: self.discarded,
@@ -204,7 +218,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         self.intent_receipts.push(receipt.clone());
         self.execution_evidence
             .push(ForgeQueryPreviewExecutionEvidence::new(
-                self.label.display(),
+                &self.basis_admission,
                 ForgeQueryPreviewExecutionKind::PendingWriteIntent,
                 declaration.name(),
                 ForgeQueryAuthorityLane::PendingWriteIntent,

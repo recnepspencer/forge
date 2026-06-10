@@ -146,12 +146,16 @@ fn public_api_contract_transcript_and_support_report_emit_canonical_evidence_tok
 
 #[test]
 fn phase_two_covered_surfaces_have_no_digest_folklore_residue() {
-    assert_phase_two_surface_has_no_digest_folklore(include_str!("../../public_api.rs"));
-    assert_phase_two_surface_has_no_digest_folklore(include_str!("../../public_api_transcript.rs"));
-    assert_phase_two_surface_has_no_digest_folklore(include_str!("../../support/profile.rs"));
-    assert_phase_two_surface_has_no_digest_folklore(include_str!(
-        "../../../application/support/report.rs"
-    ));
-    assert_phase_two_surface_has_no_digest_folklore(include_str!("../../support_matrix.rs"));
-    assert_phase_two_surface_has_no_digest_folklore(include_str!("../../state_snapshot.rs"));
+    use crate::application::{
+        format_digest_folklore_pattern_in, source_for_format_digest_path,
+        EXACT_ZERO_FORMAT_DIGEST_PATHS,
+    };
+
+    for path in EXACT_ZERO_FORMAT_DIGEST_PATHS {
+        let source = source_for_format_digest_path(path).expect("embedded source");
+        assert!(
+            format_digest_folklore_pattern_in(source).is_none(),
+            "phase-2-covered surface must not retain digest folklore: {path}"
+        );
+    }
 }

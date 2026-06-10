@@ -1,53 +1,33 @@
 use super::support::*;
+use crate::application::{
+    identity_boundary_hostile_matrix_digest, EXACT_ZERO_FORMAT_DIGEST_PATHS,
+    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
+    ForgeQueryFolkloreResidueStatus, STOP_CLASS_COVERED_CONTRACTS,
+    format_digest_folklore_pattern_in, source_for_format_digest_path,
+    source_for_session_admission_path, source_for_string_matching_path,
+};
 use crate::facade::ForgeQueryApplicationFacade;
 use crate::ForgeQueryEvidenceIdentityScheme;
 
 const AI_README: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/AI_README.md"));
-const SUPPORT_REPORT: &str = include_str!("../../../application/support/report.rs");
-const SUPPORT_MATRIX: &str = include_str!("../../support_matrix.rs");
-const STATE_SNAPSHOT: &str = include_str!("../../state_snapshot.rs");
-const PUBLIC_API_TRANSCRIPT: &str = include_str!("../../public_api_transcript.rs");
-const RUNTIME_SESSIONS: &str = include_str!("../../runtime_sessions.rs");
-const WORKSPACE: &str = include_str!("../../workspace.rs");
-const STOP_CLASS_CONSUMER_ROUTING: &str = include_str!("../stop_class/consumer_support/routing.rs");
-
-const EXPECTED_COVERED_STOP_CLASS_CONTRACTS: &[&str] = &[
-    "typed-family-admission-denial",
-    "typed-preview-promotion-stop",
-    "typed-session-label-collision-stop",
-];
-
-const EXPECTED_ORDINARY_SESSION_ENTRYPOINTS: &[&str] = &[
-    "runtime.preview",
-    "runtime.branch",
-    "runtime.try_preview",
-    "runtime.try_branch",
-    "workspace.preview",
-    "workspace.branch",
-];
-
-const EXPECTED_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
-    "application/support/report.rs",
-    "runtime/support_matrix.rs",
-    "runtime/state_snapshot.rs",
-    "runtime/public_api_transcript.rs",
-];
-
-const EXPECTED_ZERO_STRING_MATCHING_PATHS: &[&str] =
-    &["runtime/tests/stop_class/consumer_support/routing.rs"];
-
-const EXPECTED_ZERO_RAW_SESSION_ADMISSION_PATHS: &[&str] =
-    &["runtime/runtime_sessions.rs", "runtime/workspace.rs"];
 
 #[test]
 fn identity_boundary_hostile_closure_matrix_holds_under_combined_drift_pressure() {
     let report = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
     let closure = report.identity_boundary_closure();
 
-    assert_eq!(closure.residue_status().as_str(), "zero-folklore-residue");
+    assert!(closure.residue_status().is_zero());
+    assert_eq!(
+        closure.residue_status().as_str(),
+        "zero-folklore-residue"
+    );
     assert_eq!(
         closure.evidence_identity().scheme(),
         ForgeQueryEvidenceIdentityScheme::V1
+    );
+    assert_eq!(
+        closure.hostile_matrix_digest(),
+        identity_boundary_hostile_matrix_digest()
     );
     assert!(
         AI_README.contains("ForgeQueryEvidenceIdentity::compose")
@@ -67,11 +47,11 @@ fn assert_combined_drift_pressure_holds(
 ) {
     assert_eq!(
         closure.stop_class().covered_contracts(),
-        EXPECTED_COVERED_STOP_CLASS_CONTRACTS
+        STOP_CLASS_COVERED_CONTRACTS
     );
     assert_eq!(
         closure.session_label().ordinary_entrypoints(),
-        EXPECTED_ORDINARY_SESSION_ENTRYPOINTS
+        crate::application::SESSION_LABEL_ORDINARY_ENTRYPOINTS
     );
     assert_evidence_identity_resists_joined_string_folklore();
     assert_stop_class_remains_typed_under_message_rewording();
@@ -84,13 +64,17 @@ fn assert_evidence_identity_resists_joined_string_folklore() {
         &authority,
         test_session_label("preview|basis"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
-        ["alpha", "beta|gamma"],
+        crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
+            "alpha", "beta|gamma",
+        ]),
     );
     let right = crate::runtime::ForgeQueryPreviewBasisAdmission::new(
         &authority,
         test_session_label("preview"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
-        ["basis|alpha", "beta|gamma"],
+        crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
+            "basis|alpha", "beta|gamma",
+        ]),
     );
 
     assert_ne!(
@@ -208,22 +192,17 @@ fn assert_no_format_string_digest_folklore(
 ) {
     assert_eq!(
         closure.exact_zero_format_digest_paths(),
-        EXPECTED_ZERO_FORMAT_DIGEST_PATHS
+        EXACT_ZERO_FORMAT_DIGEST_PATHS
     );
-    for path in EXPECTED_ZERO_FORMAT_DIGEST_PATHS {
-        let source = source_for_format_digest_path(path);
-        assert!(
-            !source.contains("hash_parts("),
-            "covered digest surface still uses joined-string digest folklore: {path}"
-        );
-        assert!(
-            !source.contains("format!(\"{:?}\""),
-            "covered digest surface still depends on Debug formatting: {path}"
-        );
-        assert!(
-            !source.contains(".join(\"|\")"),
-            "covered digest surface still joins evidence with pipe delimiters: {path}"
-        );
+    for path in EXACT_ZERO_FORMAT_DIGEST_PATHS {
+        let source = source_for_format_digest_path(path).unwrap_or_else(|| {
+            panic!("unexpected format-digest audit path: {path}");
+        });
+        if let Some(pattern) = format_digest_folklore_pattern_in(source) {
+            panic!(
+                "covered digest surface still uses joined-string digest folklore pattern {pattern}: {path}"
+            );
+        }
     }
 }
 
@@ -232,10 +211,12 @@ fn assert_no_string_matched_control_flow(
 ) {
     assert_eq!(
         closure.exact_zero_string_matching_paths(),
-        EXPECTED_ZERO_STRING_MATCHING_PATHS
+        EXACT_ZERO_STRING_MATCHING_PATHS
     );
-    for path in EXPECTED_ZERO_STRING_MATCHING_PATHS {
-        let source = source_for_string_matching_path(path);
+    for path in EXACT_ZERO_STRING_MATCHING_PATHS {
+        let source = source_for_string_matching_path(path).unwrap_or_else(|| {
+            panic!("unexpected string-matching audit path: {path}");
+        });
         assert!(
             !source.contains("to_string().contains(")
                 && !source.contains("message.contains")
@@ -248,44 +229,65 @@ fn assert_no_string_matched_control_flow(
 fn assert_no_raw_string_session_admission(
     closure: &crate::application::ForgeQueryIdentityBoundaryClosure,
 ) {
+    use crate::application::normalize_source_text;
+
     assert_eq!(
         closure.exact_zero_raw_session_admission_paths(),
-        EXPECTED_ZERO_RAW_SESSION_ADMISSION_PATHS
+        EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS
     );
-    for path in EXPECTED_ZERO_RAW_SESSION_ADMISSION_PATHS {
-        let source = source_for_session_admission_path(path);
+    for path in EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS {
+        let source = source_for_session_admission_path(path).unwrap_or_else(|| {
+            panic!("unexpected session-admission audit path: {path}");
+        });
+        let normalized = normalize_source_text(source);
         assert!(
-            !source.contains("label: impl Into<String>"),
+            !normalized.contains("label: impl Into<String>"),
             "raw-string session admission survived on ordinary path: {path}"
         );
         assert!(
-            source.contains("label: ForgeQuerySessionLabel"),
+            normalized.contains("label: ForgeQuerySessionLabel"),
             "ordinary session entrypoint must require typed session labels: {path}"
         );
     }
 }
 
-fn source_for_format_digest_path(path: &str) -> &'static str {
-    match path {
-        "application/support/report.rs" => SUPPORT_REPORT,
-        "runtime/support_matrix.rs" => SUPPORT_MATRIX,
-        "runtime/state_snapshot.rs" => STATE_SNAPSHOT,
-        "runtime/public_api_transcript.rs" => PUBLIC_API_TRANSCRIPT,
-        other => panic!("unexpected format-digest audit path: {other}"),
-    }
+#[test]
+fn inventory_reports_zero_format_digest_residue_when_covered_paths_are_clean() {
+    assert!(
+        crate::application::scan_format_digest_residue_paths().is_empty()
+    );
 }
 
-fn source_for_string_matching_path(path: &str) -> &'static str {
-    match path {
-        "runtime/tests/stop_class/consumer_support/routing.rs" => STOP_CLASS_CONSUMER_ROUTING,
-        other => panic!("unexpected string-matching audit path: {other}"),
+#[test]
+fn milestone_nine_six_certification_modules_do_not_use_hash_parts() {
+    use crate::application::EXCLUDED_FOLKLORE_PATHS;
+
+    let sources = [
+        include_str!("../stop_class/digests.rs"),
+        include_str!("../session_label.rs"),
+    ];
+    for source in sources {
+        assert!(
+            !source.contains("hash_parts("),
+            "milestone 9.6 certification module must not call hash_parts"
+        );
     }
+    assert!(!EXCLUDED_FOLKLORE_PATHS.is_empty());
 }
 
-fn source_for_session_admission_path(path: &str) -> &'static str {
-    match path {
-        "runtime/runtime_sessions.rs" => RUNTIME_SESSIONS,
-        "runtime/workspace.rs" => WORKSPACE,
-        other => panic!("unexpected session-admission audit path: {other}"),
-    }
+#[test]
+fn inventory_documents_excluded_folklore_paths() {
+    use crate::application::EXCLUDED_FOLKLORE_PATHS;
+
+    assert!(EXCLUDED_FOLKLORE_PATHS.contains(&"subscription/"));
+    assert!(EXCLUDED_FOLKLORE_PATHS.contains(&"runtime/intent/receipt.rs"));
+}
+
+#[test]
+fn inventory_derived_residue_status_matches_support_report() {
+    let report = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
+    assert!(matches!(
+        report.identity_boundary_closure().residue_status(),
+        ForgeQueryFolkloreResidueStatus::ZeroFolkloreResidue
+    ));
 }

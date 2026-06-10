@@ -16,9 +16,9 @@ use crate::memory_workspace::{
     ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
 };
 use crate::runtime::{
-    ForgeQueryEffectPolicy, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeSourceAdapter, ForgeQueryWriteCommand, LiveViewDeclarationAdmissionReceipt,
-    SignalInvalidationRoutingReceipt,
+    ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeSourceAdapter, ForgeQueryWriteCommand,
+    LiveViewDeclarationAdmissionReceipt, SignalInvalidationRoutingReceipt,
 };
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
 use crate::session_label::ForgeQuerySessionLabel;
@@ -182,7 +182,10 @@ pub(crate) fn representative_preview_basis_row() -> RepresentativeArtifacts {
         ForgeQuerySessionLabel::scoped_strs("lower-runtime-routing", ["preview.tasks.certified"])
             .expect("fixture label should build"),
         ForgeQueryEffectPolicy::DeriveOnly,
-        ["preview-basis-evidence-a", "preview-basis-evidence-b"],
+        ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
+            "preview-basis-evidence-a",
+            "preview-basis-evidence-b",
+        ]),
     );
     let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
         ForgeQueryLowerRuntimeSeamKey::PreviewBasisAdmission,
@@ -199,7 +202,7 @@ pub(crate) fn representative_preview_basis_row() -> RepresentativeArtifacts {
     );
     let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
         request.clone(),
-        hash_parts(admission.evidence()),
+        hash_parts(&admission.evidence()),
     );
     let handoff = ForgeQueryLowerRuntimeReadmissionReceipt::new(
         eligibility.clone(),

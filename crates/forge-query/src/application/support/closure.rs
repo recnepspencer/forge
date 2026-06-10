@@ -3,50 +3,13 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceTag,
 };
 
-const EVIDENCE_IDENTITY_COVERED_SURFACES: &[&str] = &[
-    "runtime_public_support_matrix_row",
-    "runtime_public_support_matrix",
-    "runtime_public_api_family_contract",
-    "runtime_public_api_contract",
-    "runtime_public_api_transcript_evidence",
-    "runtime_state_snapshot",
-    "preview_basis_admission",
-    "branch_basis_admission",
-    "preview_intent_admission",
-    "preview_intent_receipt",
-    "branch_intent_admission",
-    "branch_intent_receipt",
-    "intent_denial_evidence",
-    "application_support_report",
-];
-
-const STOP_CLASS_COVERED_CONTRACTS: &[&str] = &[
-    "typed-family-admission-denial",
-    "typed-preview-promotion-stop",
-    "typed-session-label-collision-stop",
-];
-
-const SESSION_LABEL_ORDINARY_ENTRYPOINTS: &[&str] = &[
-    "runtime.preview",
-    "runtime.branch",
-    "runtime.try_preview",
-    "runtime.try_branch",
-    "workspace.preview",
-    "workspace.branch",
-];
-
-const EXACT_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
-    "application/support/report.rs",
-    "runtime/support_matrix.rs",
-    "runtime/state_snapshot.rs",
-    "runtime/public_api_transcript.rs",
-];
-
-const EXACT_ZERO_STRING_MATCHING_PATHS: &[&str] =
-    &["runtime/tests/stop_class/consumer_support/routing.rs"];
-
-const EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS: &[&str] =
-    &["runtime/runtime_sessions.rs", "runtime/workspace.rs"];
+use super::identity_boundary_inventory::{
+    scan_format_digest_residue_paths, scan_raw_session_admission_residue_paths,
+    scan_string_matching_residue_paths, EXACT_ZERO_FORMAT_DIGEST_PATHS,
+    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
+    EVIDENCE_IDENTITY_COVERED_SURFACES, SESSION_LABEL_ORDINARY_ENTRYPOINTS,
+    STOP_CLASS_COVERED_CONTRACTS,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryMilestoneClosureStatus {
@@ -61,15 +24,53 @@ impl ForgeQueryMilestoneClosureStatus {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryFolkloreResidueStatus {
     ZeroFolkloreResidue,
+    FolkloreResidueRemaining(Vec<String>),
 }
 
 impl ForgeQueryFolkloreResidueStatus {
-    pub fn as_str(self) -> &'static str {
+    pub fn as_str(&self) -> &str {
         match self {
             Self::ZeroFolkloreResidue => "zero-folklore-residue",
+            Self::FolkloreResidueRemaining(paths) if paths.is_empty() => "zero-folklore-residue",
+            Self::FolkloreResidueRemaining(_) => "folklore-residue-remaining",
+        }
+    }
+
+    pub fn remaining_paths(&self) -> &[String] {
+        match self {
+            Self::ZeroFolkloreResidue => &[],
+            Self::FolkloreResidueRemaining(paths) => paths.as_slice(),
+        }
+    }
+
+    pub fn is_zero(&self) -> bool {
+        matches!(self, Self::ZeroFolkloreResidue)
+    }
+
+    pub(crate) fn derived() -> Self {
+        let mut remaining = scan_format_digest_residue_paths()
+            .into_iter()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+        remaining.extend(
+            scan_string_matching_residue_paths()
+                .into_iter()
+                .map(str::to_string),
+        );
+        remaining.extend(
+            scan_raw_session_admission_residue_paths()
+                .into_iter()
+                .map(str::to_string),
+        );
+        remaining.sort();
+        remaining.dedup();
+        if remaining.is_empty() {
+            Self::ZeroFolkloreResidue
+        } else {
+            Self::FolkloreResidueRemaining(remaining)
         }
     }
 }
@@ -239,17 +240,18 @@ pub struct ForgeQueryIdentityBoundaryClosure {
     stop_class: ForgeQueryStopClassBoundaryClosure,
     session_label: ForgeQuerySessionLabelBoundaryClosure,
     residue_status: ForgeQueryFolkloreResidueStatus,
+    hostile_matrix_digest: String,
     closure_digest: String,
 }
 
 impl ForgeQueryIdentityBoundaryClosure {
-    pub(crate) fn closed(support_matrix_digest: &str) -> Self {
+    pub(crate) fn closed(support_matrix_digest: &str, hostile_matrix_digest: &str) -> Self {
         let evidence_identity =
             ForgeQueryEvidenceIdentityBoundaryClosure::closed(support_matrix_digest);
         let stop_class = ForgeQueryStopClassBoundaryClosure::closed();
         let session_label = ForgeQuerySessionLabelBoundaryClosure::closed();
-        let residue_status = ForgeQueryFolkloreResidueStatus::ZeroFolkloreResidue;
-        let closure_digest = forge_query_evidence_identity(
+        let residue_status = ForgeQueryFolkloreResidueStatus::derived();
+        let mut closure_builder = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::ApplicationIdentityBoundaryClosure,
         )
         .field_identity(
@@ -268,6 +270,10 @@ impl ForgeQueryIdentityBoundaryClosure {
             ForgeQueryEvidenceTag::new("residue_status"),
             residue_status.as_str(),
         )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("hostile_matrix_digest"),
+            hostile_matrix_digest,
+        )
         .field_identity_sequence(
             ForgeQueryEvidenceTag::new("exact_zero_format_digest_path"),
             EXACT_ZERO_FORMAT_DIGEST_PATHS.iter().copied(),
@@ -279,15 +285,20 @@ impl ForgeQueryIdentityBoundaryClosure {
         .field_identity_sequence(
             ForgeQueryEvidenceTag::new("exact_zero_raw_session_admission_path"),
             EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS.iter().copied(),
-        )
-        .seal()
-        .as_str()
-        .to_string();
+        );
+        if let ForgeQueryFolkloreResidueStatus::FolkloreResidueRemaining(paths) = &residue_status {
+            closure_builder = closure_builder.field_identity_sequence(
+                ForgeQueryEvidenceTag::new("folklore_residue_path"),
+                paths.iter().map(String::as_str),
+            );
+        }
+        let closure_digest = closure_builder.seal().as_str().to_string();
         Self {
             evidence_identity,
             stop_class,
             session_label,
             residue_status,
+            hostile_matrix_digest: hostile_matrix_digest.to_string(),
             closure_digest,
         }
     }
@@ -304,8 +315,12 @@ impl ForgeQueryIdentityBoundaryClosure {
         &self.session_label
     }
 
-    pub fn residue_status(&self) -> ForgeQueryFolkloreResidueStatus {
-        self.residue_status
+    pub fn residue_status(&self) -> &ForgeQueryFolkloreResidueStatus {
+        &self.residue_status
+    }
+
+    pub fn hostile_matrix_digest(&self) -> &str {
+        &self.hostile_matrix_digest
     }
 
     pub fn exact_zero_format_digest_paths(&self) -> &'static [&'static str] {

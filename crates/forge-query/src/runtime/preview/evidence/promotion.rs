@@ -1,4 +1,7 @@
 use super::super::*;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryPreviewPromotionDenialKind {
@@ -21,7 +24,7 @@ impl ForgeQueryPreviewPromotionDenialKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryPreviewPromotionDenialEvidence {
-    label: String,
+    session_label: ForgeQuerySessionLabel,
     kind: ForgeQueryPreviewPromotionDenialKind,
     effect_policy: ForgeQueryEffectPolicy,
     basis_evidence: Vec<String>,
@@ -41,7 +44,6 @@ pub struct ForgeQueryPreviewPromotionDenialEvidence {
 impl ForgeQueryPreviewPromotionDenialEvidence {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::runtime::preview) fn new(
-        label: &str,
         kind: ForgeQueryPreviewPromotionDenialKind,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
@@ -56,39 +58,74 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         rebinding_digest: Option<String>,
         reason: String,
     ) -> Self {
-        let basis_evidence = basis_admission.evidence().to_vec();
-        let denial_digest = hash_parts(&[
-            "forge_query_preview_promotion_denial_evidence_v1".to_string(),
-            format!("label:{label}"),
-            format!("kind:{}", kind.as_str()),
-            format!("policy:{}", effect_policy.as_str()),
-            format!(
-                "basis_label_identity:{}",
-                basis_admission.label_identity().as_str()
-            ),
-            format!("basis_lane:{}", basis_admission.authority_lane()),
-            format!("basis_snapshot:{basis_snapshot_token}"),
-            format!("promotion_snapshot:{promotion_snapshot_token}"),
-            format!("basis_evidence:{}", basis_evidence.join("|")),
-            format!("staged_preview_writes:{staged_preview_write_count}"),
-            format!("promoted_writes:{promoted_write_count}"),
-            format!(
-                "failed_write_sequence:{}",
-                failed_write_sequence
-                    .map(|sequence| sequence.to_string())
-                    .unwrap_or_else(|| "none".to_string())
-            ),
-            format!("preview_bindings:{preview_binding_count}"),
-            format!("crossed_authoritative_residue:{crossed_authoritative_residue_count}"),
-            format!("recovery_posture:{recovery_posture}"),
-            format!(
-                "rebinding:{}",
-                rebinding_digest.as_deref().unwrap_or("none")
-            ),
-            format!("reason:{reason}"),
-        ]);
+        let basis_evidence_rows = basis_admission.evidence_rows();
+        let mut denial_builder = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::PreviewPromotionDenialEvidence,
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            basis_admission.label_identity().as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("effect_policy"),
+            effect_policy.as_str(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("basis_admission_digest"),
+            basis_admission.admission_digest().as_str(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("basis_snapshot_token"),
+            basis_snapshot_token,
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("promotion_snapshot_token"),
+            promotion_snapshot_token,
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("basis_evidence_row"),
+            basis_evidence_rows
+                .iter()
+                .map(|row| row.row_digest().as_str()),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("staged_preview_write_count"),
+            staged_preview_write_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("promoted_write_count"),
+            promoted_write_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("preview_binding_count"),
+            preview_binding_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("crossed_authoritative_residue_count"),
+            crossed_authoritative_residue_count,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("recovery_posture"),
+            recovery_posture.as_str(),
+        )
+        .field_value(ForgeQueryEvidenceTag::new("reason"), reason.as_str());
+        if let Some(failed_write_sequence) = failed_write_sequence {
+            denial_builder = denial_builder.field_usize(
+                ForgeQueryEvidenceTag::new("failed_write_sequence"),
+                failed_write_sequence,
+            );
+        }
+        if let Some(rebinding_digest) = rebinding_digest.as_deref() {
+            denial_builder = denial_builder.field_identity(
+                ForgeQueryEvidenceTag::new("rebinding_digest"),
+                rebinding_digest,
+            );
+        }
+        let denial_digest = denial_builder.seal().as_str().to_string();
+        let basis_evidence = basis_admission.evidence();
         Self {
-            label: label.to_string(),
+            session_label: basis_admission.session_label().clone(),
             kind,
             effect_policy,
             basis_evidence,
@@ -107,7 +144,6 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
     }
 
     pub(in crate::runtime::preview) fn stale_basis(
-        label: &str,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
         basis_snapshot_token: &str,
@@ -116,7 +152,6 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         preview_binding_count: usize,
     ) -> Self {
         Self::new(
-            label,
             ForgeQueryPreviewPromotionDenialKind::StaleBasis,
             effect_policy,
             basis_admission,
@@ -136,7 +171,6 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
 
     #[allow(clippy::too_many_arguments)]
     pub(in crate::runtime::preview) fn write_failed(
-        label: &str,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
         basis_snapshot_token: &str,
@@ -148,7 +182,6 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         reason: String,
     ) -> Self {
         Self::new(
-            label,
             ForgeQueryPreviewPromotionDenialKind::WriteFailed,
             effect_policy,
             basis_admission,
@@ -166,7 +199,6 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
     }
 
     pub(in crate::runtime::preview) fn atomic_batch_unsupported(
-        label: &str,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
         basis_snapshot_token: &str,
@@ -175,7 +207,6 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         preview_binding_count: usize,
     ) -> Self {
         Self::new(
-            label,
             ForgeQueryPreviewPromotionDenialKind::AtomicBatchUnsupported,
             effect_policy,
             basis_admission,
@@ -195,7 +226,6 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
 
     #[allow(clippy::too_many_arguments)]
     pub(in crate::runtime::preview) fn rebinding_required(
-        label: &str,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
         basis_snapshot_token: &str,
@@ -206,7 +236,6 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         rebinding_digest: String,
     ) -> Self {
         Self::new(
-            label,
             ForgeQueryPreviewPromotionDenialKind::RebindingRequired,
             effect_policy,
             basis_admission,
@@ -225,7 +254,15 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
     }
 
     pub fn label(&self) -> &str {
-        &self.label
+        self.session_label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
+        &self.session_label
+    }
+
+    pub fn label_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        self.session_label.identity_digest()
     }
 
     pub fn kind(&self) -> ForgeQueryPreviewPromotionDenialKind {

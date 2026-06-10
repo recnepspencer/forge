@@ -5,6 +5,10 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         self.label.display()
     }
 
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
+        &self.label
+    }
+
     pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {
         self.effect_policy
     }
@@ -31,7 +35,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             self.label.display(),
             view.name(),
             self.effect_policy,
-            self.basis_admission.evidence(),
+            &self.basis_admission.evidence(),
         );
         self.handle_bindings.push(evidence.clone());
         evidence
@@ -45,7 +49,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             self.label.display(),
             computed.name(),
             self.effect_policy,
-            self.basis_admission.evidence(),
+            &self.basis_admission.evidence(),
         );
         self.handle_bindings.push(evidence.clone());
         evidence
@@ -67,7 +71,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             inspected.target_lane(),
             self.effect_policy,
             disposition,
-            self.basis_admission.evidence(),
+            &self.basis_admission.evidence(),
         );
         self.handle_bindings.push(evidence.clone());
         Ok(evidence)

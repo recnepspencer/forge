@@ -107,13 +107,17 @@ fn basis_admissions_emit_canonical_evidence_tokens() {
         &authority,
         test_session_label("preview basis | punctuation"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
-        ["basis|one", "basis:two"],
+        crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
+            "basis|one", "basis:two",
+        ]),
     );
     let branch = crate::runtime::ForgeQueryBranchBasisAdmission::new(
         &authority,
         test_session_label("branch basis | punctuation"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
-        ["branch|one", "branch:two"],
+        crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
+            "branch|one", "branch:two",
+        ]),
     );
 
     assert_canonical_evidence_identity_token(preview.admission_digest());
@@ -342,19 +346,25 @@ fn runtime_surface_evidence_identities_resist_joined_string_folklore_collisions(
         &authority,
         test_session_label("preview|basis"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
-        ["alpha", "beta|gamma"],
+        crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
+            "alpha", "beta|gamma",
+        ]),
     );
     let right = crate::runtime::ForgeQueryPreviewBasisAdmission::new(
         &authority,
         test_session_label("preview"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
-        ["basis|alpha", "beta|gamma"],
+        crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
+            "basis|alpha", "beta|gamma",
+        ]),
     );
     let branch = crate::runtime::ForgeQueryBranchBasisAdmission::new(
         &authority,
         test_session_label("preview|basis"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
-        ["alpha", "beta|gamma"],
+        crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
+            "alpha", "beta|gamma",
+        ]),
     );
 
     assert_ne!(left.admission_digest(), right.admission_digest());
@@ -363,8 +373,20 @@ fn runtime_surface_evidence_identities_resist_joined_string_folklore_collisions(
 
 #[test]
 fn phase_one_covered_surfaces_have_no_digest_folklore_residue() {
-    assert_phase_one_surface_has_no_digest_folklore(include_str!("../../support_matrix.rs"));
-    assert_phase_one_surface_has_no_digest_folklore(include_str!("../../state_snapshot.rs"));
-    assert_phase_one_surface_has_no_digest_folklore(include_str!("../../intent/preview.rs"));
-    assert_phase_one_surface_has_no_digest_folklore(include_str!("../../intent/denial.rs"));
+    use crate::application::{
+        format_digest_folklore_pattern_in, source_for_format_digest_path,
+    };
+
+    for path in [
+        "runtime/support_matrix.rs",
+        "runtime/state_snapshot.rs",
+        "runtime/intent/preview.rs",
+        "runtime/intent/denial.rs",
+    ] {
+        let source = source_for_format_digest_path(path).expect("embedded source");
+        assert!(
+            format_digest_folklore_pattern_in(source).is_none(),
+            "phase-1-covered surface must not retain digest folklore: {path}"
+        );
+    }
 }

@@ -51,7 +51,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             live_affected.insert(binding.handle_name().to_string(), affected_aspects.clone());
             self.execution_evidence
                 .push(ForgeQueryPreviewExecutionEvidence::new(
-                    self.label.display(),
+                    &self.basis_admission,
                     ForgeQueryPreviewExecutionKind::LivePatch,
                     binding.handle_name(),
                     binding.source_lane(),
@@ -77,7 +77,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             computed_affected.insert(binding.handle_name().to_string(), affected_aspects.clone());
             self.execution_evidence
                 .push(ForgeQueryPreviewExecutionEvidence::new(
-                    self.label.display(),
+                    &self.basis_admission,
                     ForgeQueryPreviewExecutionKind::ComputedPatch,
                     binding.handle_name(),
                     binding.source_lane(),
@@ -118,7 +118,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 }
             };
             pending_effect_evidence.push(ForgeQueryPreviewExecutionEvidence::new(
-                self.label.display(),
+                &self.basis_admission,
                 kind,
                 binding.handle_name(),
                 binding.source_lane(),

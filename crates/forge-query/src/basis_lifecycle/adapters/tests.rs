@@ -1,8 +1,8 @@
 use crate::historical::HistoricalMaterializationDescriptor;
 use crate::query_context::QueryBasisContextRequest;
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryBranchBasisAdmission, ForgeQueryEffectPolicy,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryAuthorityLane, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryBranchBasisAdmission,
+    ForgeQueryEffectPolicy, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeInspectionEvidence,
 };
 use crate::session_label::ForgeQuerySessionLabel;
@@ -24,14 +24,14 @@ fn branch_and_preview_admissions_lower_into_scoped_lifecycle_proofs() {
         ForgeQuerySessionLabel::scoped_strs("basis-lifecycle-tests", ["branch:adapter"])
             .expect("branch label should build"),
         ForgeQueryEffectPolicy::AuthoritativeAllowed,
-        ["relational-head"],
+        ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["relational-head"]),
     );
     let preview = ForgeQueryPreviewBasisAdmission::new(
         &authority,
         ForgeQuerySessionLabel::scoped_strs("basis-lifecycle-tests", ["preview:adapter"])
             .expect("preview label should build"),
         ForgeQueryEffectPolicy::DeriveOnly,
-        ["bridge-preview"],
+        ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["bridge-preview"]),
     );
 
     let branch_proof = adapt_branch_admission_to_lifecycle(&branch).expect("branch adapts");
@@ -65,14 +65,14 @@ fn render_colliding_session_labels_remain_distinct_in_basis_lifecycle_adaptation
         ForgeQuerySessionLabel::scoped_strs("worth.kernel", ["preview"])
             .expect("left label should build"),
         ForgeQueryEffectPolicy::DeriveOnly,
-        ["bridge-preview"],
+        ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["bridge-preview"]),
     );
     let right = ForgeQueryPreviewBasisAdmission::new(
         &authority,
         ForgeQuerySessionLabel::scoped_strs("worth", ["kernel", "preview"])
             .expect("right label should build"),
         ForgeQueryEffectPolicy::DeriveOnly,
-        ["bridge-preview"],
+        ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["bridge-preview"]),
     );
 
     assert_eq!(

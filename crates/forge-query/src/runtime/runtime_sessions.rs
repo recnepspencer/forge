@@ -44,13 +44,23 @@ impl ForgeQueryRuntime {
             .support_for(ForgeQueryRuntimeFacadeFamily::BranchPreview)
             .map(|support| support.evidence().to_vec())
             .unwrap_or_default();
-        let mut evidence = vec!["runtime-branch-basis-admission".to_string()];
-        evidence.extend(branch_support_evidence);
+        let evidence_rows = std::iter::once(
+            ForgeQueryBasisAdmissionEvidenceRow::tagged(
+                "runtime-branch-basis-admission",
+                "runtime-branch-basis-admission",
+            ),
+        )
+        .chain(
+            branch_support_evidence
+                .into_iter()
+                .map(ForgeQueryBasisAdmissionEvidenceRow::support_profile_token),
+        )
+        .collect::<Vec<_>>();
         let basis_admission = ForgeQueryBranchBasisAdmission::new(
             &self.evidence_authority,
             label.clone(),
             options.effect_policy(),
-            evidence,
+            evidence_rows,
         );
         Ok(ForgeQueryBranchSession::new(
             label,

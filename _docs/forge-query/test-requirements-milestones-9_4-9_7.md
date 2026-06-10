@@ -683,6 +683,61 @@ boundaries, basis admission evidence records canonical session-label identity,
 same-family replay collisions stop through a typed class, and no ordinary-path
 entrypoint remains on raw strings.
 
+### 9.6. Phase 7 Milestone 9.6 Identity And Stop-Class Hostile Certification Matrix
+
+Purpose
+
+Prove that evidence identity, typed stop-class matching, and session-label
+identity boundaries hold together under combined drift pressure and that the
+support report publishes derived zero-folklore residue only when the covered
+inventory scan is clean.
+
+Scenario
+
+- run the identity-boundary hostile closure matrix across:
+  - digest delimiter injection pressure on basis admissions
+  - message rewording on family-admission and domain-invariant denials
+  - session-label render collision and same-family replay collision
+- compare:
+  - support-report `identity_boundary_closure()` artifacts
+  - inventory-derived residue status
+  - hostile-matrix digest publication
+- verify:
+  - covered inventory paths contain zero `hash_parts(` digest folklore
+  - consumer route helper contains zero string-matched control flow
+  - ordinary session entrypoints require typed labels under CRLF-normalized audits
+
+Required concrete lanes
+
+- combined drift lane where digest, message, and label pressure run in one program
+- derived residue lane where `residue_status` is computed from inventory scans
+- hostile-matrix registration lane with canonical and rejection row names
+- certification-output hygiene lane where milestone 9.6 certification modules do
+  not call `hash_parts`
+
+Must verify
+
+- named suite **"Milestone 9.6 Identity And Stop-Class Hostile Certification Matrix"**
+  is registered in certification requirements
+- support report publishes `hostile_matrix_digest` alongside closure digests
+- inventory module is the single owner of covered path lists
+- excluded folklore paths are documented explicitly outside milestone scope
+
+Required verification output
+
+- `identity_boundary_closure_digest`
+- `hostile_matrix_digest`
+- `residue_status_token`
+- `consumer_stop_route_digest`
+- `session_label_identity_digest`
+- `failure_digest`
+
+Pass condition
+
+Phase 7 closes only when the hostile certification matrix, derived residue
+reporting, and inventory-backed exact-zero audits agree the three identity
+boundaries are closed ordinary product surfaces.
+
 ### 9.6. Mixed Truth Time Async Query Delivery Ordering Test
 
 Purpose

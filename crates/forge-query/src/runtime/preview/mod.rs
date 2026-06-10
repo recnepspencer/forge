@@ -18,8 +18,8 @@ use super::{
     ForgeQuerySymbolicTargetReferenceDenial, ForgeQuerySymbolicTargetReferenceDenialKind,
     ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
+
 use crate::declarative_live::DeclarativeLiveQueryRequest;
-use crate::identity::hash_parts;
 use crate::memory_workspace::{ForgeQueryMutationDelta, ForgeQueryMutationKind};
 use crate::session_label::ForgeQuerySessionLabel;
 mod aspects;
@@ -84,7 +84,4 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         }
     }
 
-    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
-        &self.label
-    }
 }

@@ -38,7 +38,7 @@ fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
         ))
         .expect("sandboxed branch intent should be admitted");
 
-    assert_eq!(branch.label(), "branch local intent");
+    assert_eq!(branch.label(), test_session_label("branch local intent").display());
     assert_eq!(
         branch.basis_admission().authority_lane(),
         ForgeQueryAuthorityLane::BranchLocalTruth

@@ -6,8 +6,9 @@ mod graph_composition;
 mod profile;
 
 pub use authority_artifacts::{
-    ForgeQueryBranchBasisAdmission, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryBranchBasisAdmission,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeInspectionEvidence,
 };
 pub use denial::ForgeQueryRuntimeSupportDenial;
 pub use facade_families::{

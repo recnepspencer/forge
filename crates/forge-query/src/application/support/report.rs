@@ -1,4 +1,5 @@
 use super::closure::ForgeQueryIdentityBoundaryClosure;
+use super::identity_boundary_hostile_matrix::identity_boundary_hostile_matrix_digest;
 use super::registry::{
     ForgeQueryCapabilityFamily, ForgeQueryCapabilityStatus, ForgeQuerySupportMatrix,
 };
@@ -175,8 +176,10 @@ impl ForgeQuerySupportReport {
             .descriptor(ForgeQueryCapabilityFamily::IdentityEvolution)
             .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted)
             .map(|_| runtime_backed_direct_identity_evolution_support_profile());
-        let identity_boundary_closure =
-            ForgeQueryIdentityBoundaryClosure::closed(support_matrix.support_matrix_digest());
+        let identity_boundary_closure = ForgeQueryIdentityBoundaryClosure::closed(
+            support_matrix.support_matrix_digest(),
+            &identity_boundary_hostile_matrix_digest(),
+        );
         let validated_config_digest = config.validated_digest().to_string();
         let counters = ForgeQuerySupportReportCounters::generated_once();
         let report_digest =

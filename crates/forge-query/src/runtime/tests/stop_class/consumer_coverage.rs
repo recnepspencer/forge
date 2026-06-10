@@ -3,6 +3,15 @@ use super::completeness_support::existing_binding;
 use super::consumer_support::routing::{route_consumer_stop_class, ConsumerStopRoute};
 
 #[test]
+fn consumer_router_handles_all_representative_runtime_stop_errors() {
+    use super::completeness_support::representative_runtime_stop_errors;
+
+    for error in representative_runtime_stop_errors() {
+        let _route = route_consumer_stop_class(&error);
+    }
+}
+
+#[test]
 fn consumer_router_handles_manually_constructed_stop_classes_without_string_matching() {
     let binding = existing_binding();
     let continuity_intent =
@@ -102,7 +111,10 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
                     ),
                 ),
             ),
-            ConsumerStopRoute::GraphCompositionDomainInvariantDenied,
+            ConsumerStopRoute::GraphCompositionDomainInvariantDenied {
+                hook_family: "domain_invariant_pack_hook".to_string(),
+                invariant_family: "graph.family".to_string(),
+            },
         ),
         (
             ForgeQueryRuntimeError::MutationNamingDenied(ForgeQueryNamingMutationDenial::new(

@@ -1,7 +1,9 @@
-use crate::identity::hash_parts;
 use crate::runtime::{
     ForgeQueryGraphCompositionAdmissionTrace, ForgeQueryGraphCompositionAdmissionTraceStage,
     ForgeQueryGraphCompositionDomainInvariantSummary,
+};
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 
 use super::hooks::{
@@ -101,15 +103,32 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
             ],
             Stage::DomainInvariantEvaluated,
         );
-        let denial_digest = hash_parts(&[
-            "forge_query_graph_composition_domain_invariant_denial_v1".to_string(),
-            format!("hook:{DOMAIN_INVARIANT_PACK_HOOK_FAMILY}"),
-            format!("invariant:{invariant_family}"),
-            format!("message:{message}"),
-            format!("summary:{}", domain_invariant_summary.summary_digest()),
-            format!("trace:{}", admission_trace.admission_trace_digest()),
-            format!("violation:{violation_digest}"),
-        ]);
+        let denial_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::GraphCompositionDomainInvariantDenial,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("hook_family"),
+            DOMAIN_INVARIANT_PACK_HOOK_FAMILY,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("invariant_family"),
+            invariant_family.as_str(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("summary_digest"),
+            domain_invariant_summary.summary_digest(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("admission_trace_digest"),
+            admission_trace.admission_trace_digest(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("violation_digest"),
+            violation_digest.as_str(),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
             hook_family: DOMAIN_INVARIANT_PACK_HOOK_FAMILY.to_string(),
             invariant_family,

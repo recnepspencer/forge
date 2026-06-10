@@ -20,7 +20,7 @@ impl ForgeQueryDomainCapabilityCompileFailBoundary {
     }
 }
 
-const COMPILE_FAIL_BOUNDARIES: [ForgeQueryDomainCapabilityCompileFailBoundary; 40] = [
+const COMPILE_FAIL_BOUNDARIES: [ForgeQueryDomainCapabilityCompileFailBoundary; 41] = [
     ForgeQueryDomainCapabilityCompileFailBoundary::new(
         "checked_outcome_constructor_private",
         "tests/ui/domain_capabilities/dx_boundaries/domain_capability_checked_outcome_constructor_private.rs",
@@ -64,6 +64,10 @@ const COMPILE_FAIL_BOUNDARIES: [ForgeQueryDomainCapabilityCompileFailBoundary; 4
     ForgeQueryDomainCapabilityCompileFailBoundary::new(
         "workflow_draft_has_no_workflow_declaration",
         "tests/ui/domain_capabilities/dx_boundaries/domain_capability_workflow_draft_has_no_workflow_declaration.rs",
+    ),
+    ForgeQueryDomainCapabilityCompileFailBoundary::new(
+        "workflow_rejects_raw_preview_identity",
+        "tests/ui/domain_capabilities/dx_boundaries/domain_capability_workflow_rejects_raw_preview_identity.rs",
     ),
     ForgeQueryDomainCapabilityCompileFailBoundary::new(
         "aftermath_draft_has_no_review",
@@ -244,7 +248,7 @@ mod tests {
         let labels = rows.iter().map(|row| row.label()).collect::<Vec<_>>();
         let paths = rows.iter().map(|row| row.path()).collect::<Vec<_>>();
 
-        assert_eq!(rows.len(), 40);
+        assert_eq!(rows.len(), 41);
         assert_eq!(
             labels.len(),
             labels.iter().copied().collect::<BTreeSet<_>>().len()

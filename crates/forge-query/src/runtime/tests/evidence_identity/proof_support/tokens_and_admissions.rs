@@ -31,8 +31,9 @@ pub(in super::super) fn compose_basis_admission_identity(
     label: &ForgeQuerySessionLabel,
     effect_policy: ForgeQueryEffectPolicy,
     authority_lane: ForgeQueryAuthorityLane,
-    evidence: impl IntoIterator<Item = &'static str>,
+    evidence: impl IntoIterator<Item = impl Into<String>>,
 ) -> crate::ForgeQueryEvidenceIdentity {
+    let evidence_rows = ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(evidence);
     crate::ForgeQueryEvidenceIdentity::compose(scope)
         .field_identity(
             crate::ForgeQueryEvidenceTag::new("session_label_identity"),
@@ -46,7 +47,12 @@ pub(in super::super) fn compose_basis_admission_identity(
             crate::ForgeQueryEvidenceTag::new("authority_lane"),
             authority_lane.as_str(),
         )
-        .field_identity_sequence(crate::ForgeQueryEvidenceTag::new("evidence"), evidence)
+        .field_identity_sequence(
+            crate::ForgeQueryEvidenceTag::new("evidence_row"),
+            evidence_rows
+                .iter()
+                .map(|row| row.row_digest().as_str()),
+        )
         .seal()
 }
 
