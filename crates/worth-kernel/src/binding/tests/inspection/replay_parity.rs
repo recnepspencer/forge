@@ -68,7 +68,7 @@ fn binding_and_rebinding_replay_is_identical_across_equivalent_retained_historie
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-fifteen-equivalent");
+    let handle = admitted_rebinding_handle("replay-parity-equivalent");
     let historical = historical_entry
         .historical_inspection_with_query(
             &handle,
@@ -218,7 +218,7 @@ fn replay_parity_fails_loudly_when_retained_identity_or_explanation_basis_is_sem
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-fifteen-mismatch");
+    let handle = admitted_rebinding_handle("replay-parity-mismatch");
 
     let retained_identity_result =
         retained_identity_entry.replay_parity_with_query(

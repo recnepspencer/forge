@@ -45,7 +45,7 @@ fn historical_binding_inspection_reconstructs_transition_truth_without_live_stat
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-thirteen-history");
+    let handle = admitted_rebinding_handle("historical-inspection-history");
     let progression = progress_rebinding_entry(&historical_entry, &handle);
     let retained_subject = handle.orchestrate_envelope_from_progressed_checked(progression.clone());
     let historical = historical_entry
@@ -149,7 +149,7 @@ fn historical_binding_inspection_rejects_wrong_handle_or_truncated_basis_before_
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-thirteen-basis");
+    let handle = admitted_rebinding_handle("historical-inspection-basis");
     let progression = progress_rebinding_entry(&canonical_entry, &handle);
     let retained_subject = handle.orchestrate_envelope_from_progressed_checked(progression.clone());
     let canonical = canonical_entry
@@ -175,7 +175,7 @@ fn historical_binding_inspection_rejects_wrong_handle_or_truncated_basis_before_
         Err(PrimitiveRebindingHistoricalInspectionError::TruncatedRetainedBasis { .. })
     ));
 
-    let source_handle = admitted_rebinding_handle("phase-thirteen-source");
+    let source_handle = admitted_rebinding_handle("historical-inspection-source");
     let source_progression = progress_rebinding_entry(&canonical_entry, &source_handle);
     let wrong_handle_subject =
         source_handle.orchestrate_envelope_from_progressed_checked(source_progression);
@@ -242,7 +242,7 @@ fn historical_inspection_digest_is_stable_under_equivalent_retained_artifact_ord
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-thirteen-ordering");
+    let handle = admitted_rebinding_handle("historical-inspection-ordering");
     let left_historical = left
         .historical_inspection_with_query(
             &handle,
@@ -301,7 +301,7 @@ fn historical_binding_inspection_truth_is_not_perturbed_by_admitted_explanation_
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-thirteen-richness");
+    let handle = admitted_rebinding_handle("historical-inspection-richness");
     let baseline = entry
         .historical_inspection_with_query(
             &handle,

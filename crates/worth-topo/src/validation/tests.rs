@@ -19,10 +19,10 @@ mod validator_tests {
         commit_topology_mutation_set_through_schema_execution,
         seed_minimal_topology_through_schema_execution,
     };
+    use crate::validation::facade::validate_topology_view;
     use crate::validation::{
         validate_interpreted_topology, validate_named_topology_truth, TopologyValidationPhase,
     };
-    use crate::validation::facade::validate_topology_view;
     #[test]
     fn seeded_topology_view_passes_milestone_one_validators() {
         let mut runtime = RelationalRuntimeApi::builder()

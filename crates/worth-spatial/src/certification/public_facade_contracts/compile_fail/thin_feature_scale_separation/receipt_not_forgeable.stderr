@@ -1,0 +1,51 @@
+error[E0451]: fields `thin_feature_digest`, `workload_identity`, `precision_identity`, `local_frame_identity`, `projection_consumption_identity`, `projection_consumed_local_frame_identity`, `local_scale_orders`, `required_world_magnitude_order` and `counters` of struct `ThinFeatureScaleSeparationReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/thin_feature_scale_separation/receipt_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = ThinFeatureScaleSeparationReceipt {
+   |             --------------------------------- in this type
+ 7 |         thin_feature_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         workload_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 9 |         precision_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+10 |         local_frame_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         projection_consumption_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         projection_consumed_local_frame_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         local_scale_orders: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+14 |         required_world_magnitude_order: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         counters: ThinFeatureScaleSeparationCounters {
+   |         ^^^^^^^^ private field
+
+error[E0451]: fields `thin_feature_count`, `local_scale_order_count`, `world_magnitude_order_count`, `precision_escalation_count`, `local_basis_part_count`, `projected_entity_count`, `transform_step_count`, `tiny_rotation_pressure_count`, `projection_consumed_basis_count`, `diagnostic_count` and `user_outcome_count` of struct `ThinFeatureScaleSeparationCounters` are private
+  --> src/certification/public_facade_contracts/compile_fail/thin_feature_scale_separation/receipt_not_forgeable.rs:16:13
+   |
+15 |         counters: ThinFeatureScaleSeparationCounters {
+   |                   ---------------------------------- in this type
+16 |             thin_feature_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^ private field
+17 |             local_scale_order_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |             world_magnitude_order_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |             precision_escalation_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |             local_basis_part_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |             projected_entity_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^ private field
+22 |             transform_step_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^ private field
+23 |             tiny_rotation_pressure_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+24 |             projection_consumed_basis_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+25 |             diagnostic_count: 0,
+   |             ^^^^^^^^^^^^^^^^ private field
+26 |             user_outcome_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^ private field

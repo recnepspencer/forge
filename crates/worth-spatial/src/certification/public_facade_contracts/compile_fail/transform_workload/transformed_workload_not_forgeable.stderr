@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/transform_workload/transformed_workload_not_forgeable.rs:4:34
+  |
+4 |       let _ = TransformedWorkload::new(
+  |                                    ^^^ private associated function
+  |
+ ::: src/workload_platform/transform_workload/transform_workload.rs
+  |
+  | /     pub(crate) fn new(
+  | |         transformed_faces: Vec<TransformedFace>,
+  | |         transformed_edges: Vec<TransformedEdge>,
+  | |         transformed_loops: Vec<TransformedLoop>,
+... |
+  | |         receipts: TransformReceiptSet,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

@@ -9,6 +9,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod workload_composition;
+
 #[cfg(test)]
 mod binding;
 #[cfg(test)]

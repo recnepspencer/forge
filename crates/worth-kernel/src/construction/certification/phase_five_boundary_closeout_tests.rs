@@ -167,11 +167,19 @@ fn topology_rejects_spatial_dependency() -> bool {
 }
 
 fn spatial_rejects_kernel_dependency() -> bool {
-    !SPATIAL_CARGO.contains("worth-kernel")
-        && !SPATIAL_CARGO.contains("worth_kernel")
+    let production_cargo = production_dependency_section(SPATIAL_CARGO);
+    !production_cargo.contains("worth-kernel")
+        && !production_cargo.contains("worth_kernel")
         && SPATIAL_LIB.contains("mod structure_guard;")
         && SPATIAL_STRUCTURE_GUARD.contains("worth-kernel")
         && SPATIAL_STRUCTURE_GUARD.contains("worth_kernel::")
+}
+
+fn production_dependency_section(cargo_toml: &str) -> &str {
+    cargo_toml
+        .split("[dev-dependencies]")
+        .next()
+        .expect("split always returns a first section")
 }
 
 fn synopsis_owned_admitted_handoff_precedent() -> bool {

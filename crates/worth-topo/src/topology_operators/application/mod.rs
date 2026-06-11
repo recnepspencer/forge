@@ -6,6 +6,7 @@ mod declaration_entry;
 mod declared_mutation_artifact;
 mod dependency_paths;
 mod error;
+mod error_display;
 mod existing_truth;
 pub(crate) use crate::projection::runtime_boundary::query_runtime::TopologyPostWriteQueryArtifact;
 pub(crate) use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
