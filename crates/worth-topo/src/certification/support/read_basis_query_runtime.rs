@@ -17,6 +17,7 @@ use crate::projection::runtime_boundary::declared_query_surfaces::{
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::validation::validate_named_topology_truth;
 
 pub(crate) struct HistoricalReadBasisQueryRuntime {
     read_basis: DerivedTopologyReadBasis,
@@ -77,7 +78,7 @@ impl HistoricalReadBasisQueryRuntime {
                     read_basis.snapshot()
                 ))
             })?;
-        crate::facade::validate_named_topology_truth(&read_view)?;
+        validate_named_topology_truth(&read_view)?;
         let adapters =
             TopologyRuntimeAdapters::snapshot_historical_basis(read_view, read_basis.clone());
         let mut workspace = topology_runtime(adapters, workspace_name)

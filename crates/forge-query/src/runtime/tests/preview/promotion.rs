@@ -9,7 +9,7 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
 
     let outcome = {
         let mut preview = runtime
-            .preview("discard closeout")
+            .preview(test_session_label("discard closeout"))
             .expect("preview session should be admitted");
         preview.use_view(&live);
         preview
@@ -70,7 +70,7 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
     let outcome = {
         let mut preview = runtime
             .preview_with_options(
-                "promotion closeout",
+                test_session_label("promotion closeout"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -134,7 +134,7 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
 
     let error = {
         let mut preview = runtime
-            .preview("stale basis")
+            .preview(test_session_label("stale basis"))
             .expect("preview session should be admitted");
         preview
             .write(insert_command(
@@ -185,7 +185,7 @@ fn preview_promotion_write_failure_is_typed_and_not_silently_dropped() {
 
     let error = {
         let mut preview = runtime
-            .preview("write failure")
+            .preview(test_session_label("write failure"))
             .expect("preview session should be admitted");
         preview
             .write(insert_command(
@@ -237,7 +237,7 @@ fn preview_promotion_rejects_multi_write_batch_before_partial_authority_executio
 
     let error = {
         let mut preview = runtime
-            .preview("multi write promotion")
+            .preview(test_session_label("multi write promotion"))
             .expect("preview session should be admitted");
         preview
             .write(insert_command(

@@ -1,23 +1,15 @@
-//! `worth-kernel` owns primitive-construction semantics and the Query-facing
-//! authoring boundary over Worth topology and spatial authority surfaces.
+//! `worth-kernel` no longer ships a public primitive-construction runtime or
+//! authoring facade.
 //!
-//! The public surface is intentionally narrow:
-//!
-//! - [`facade::authoring`] for authored entry
-//! - [`facade::outcome`] for prepared result and accepted/rejected outcome truth
-//! - [`facade::diagnostics`] for the intentionally public family, witness,
-//!   preview, arbitration, policy, continuity, motion, and rejection
-//!   diagnostics
-//!
-//! It does not export a public certification bucket, a public query-proof /
-//! realization-proof report warehouse, public replay / branch-preview-runtime /
-//! hostility-suite proof products, or a second local runtime.
+//! The kernel does not export a public geometry runtime facade, a public
+//! certification bucket, a public query-proof / realization-proof report
+//! warehouse, public replay / branch-preview-runtime / hostility-suite proof
+//! products, a public primitive-construction lane, a public `facade` namespace,
+//! or a second local runtime.
 
 #![forbid(unsafe_code)]
 
+#[cfg(test)]
 mod binding;
+#[cfg(test)]
 mod construction;
-mod spatial_intent;
-mod test_support;
-
-pub mod facade;

@@ -5,7 +5,7 @@ use crate::brep::topology_graph::{
     TopologyBody, TopologyFace, TopologyLoop, TopologyLump, TopologyModel, TopologyRegion,
     TopologyShell, TopologyView,
 };
-use crate::facade::TopologyMaterializer;
+use crate::derived_topology::materialized_graph::TopologyMaterializer;
 use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 
 use super::primitives::*;

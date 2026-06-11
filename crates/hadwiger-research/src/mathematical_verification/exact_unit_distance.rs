@@ -70,7 +70,11 @@ impl ExactRational {
         })
     }
 
-    fn sub(&self, other: &Self) -> Self {
+    pub(crate) fn zero() -> Self {
+        Self::integer(0)
+    }
+
+    pub(crate) fn sub(&self, other: &Self) -> Self {
         Self::fraction(
             self.numerator * other.denominator - other.numerator * self.denominator,
             self.denominator * other.denominator,
@@ -78,7 +82,7 @@ impl ExactRational {
         .expect("normalized rational subtraction keeps non-zero denominator")
     }
 
-    fn square(&self) -> Self {
+    pub(crate) fn square(&self) -> Self {
         Self::fraction(
             self.numerator * self.numerator,
             self.denominator * self.denominator,
@@ -86,7 +90,7 @@ impl ExactRational {
         .expect("normalized rational square keeps non-zero denominator")
     }
 
-    fn add(&self, other: &Self) -> Self {
+    pub(crate) fn add(&self, other: &Self) -> Self {
         Self::fraction(
             self.numerator * other.denominator + other.numerator * self.denominator,
             self.denominator * other.denominator,
@@ -94,7 +98,31 @@ impl ExactRational {
         .expect("normalized rational addition keeps non-zero denominator")
     }
 
-    fn stable_token(&self) -> String {
+    pub(crate) fn mul(&self, other: &Self) -> Self {
+        Self::fraction(
+            self.numerator * other.numerator,
+            self.denominator * other.denominator,
+        )
+        .expect("normalized rational multiplication keeps non-zero denominator")
+    }
+
+    pub(crate) fn div(&self, other: &Self) -> Option<Self> {
+        if other.is_zero() {
+            None
+        } else {
+            Self::fraction(
+                self.numerator * other.denominator,
+                self.denominator * other.numerator,
+            )
+            .ok()
+        }
+    }
+
+    pub(crate) fn is_zero(&self) -> bool {
+        self.numerator == 0
+    }
+
+    pub(crate) fn stable_token(&self) -> String {
         format!("{}/{}", self.numerator, self.denominator)
     }
 }
@@ -125,14 +153,22 @@ impl ExactPoint2 {
         })
     }
 
-    fn squared_distance(&self, other: &Self) -> ExactRational {
+    pub(crate) fn squared_distance(&self, other: &Self) -> ExactRational {
         self.x
             .sub(&other.x)
             .square()
             .add(&self.y.sub(&other.y).square())
     }
 
-    fn stable_token(&self) -> String {
+    pub(crate) fn x(&self) -> &ExactRational {
+        &self.x
+    }
+
+    pub(crate) fn y(&self) -> &ExactRational {
+        &self.y
+    }
+
+    pub(crate) fn stable_token(&self) -> String {
         format!("{},{}", self.x.stable_token(), self.y.stable_token())
     }
 }
@@ -158,6 +194,14 @@ impl ExactGraphEmbedding {
 
     pub fn coordinate(&self, vertex_label: &str) -> Option<&ExactPoint2> {
         self.coordinates.get(vertex_label)
+    }
+
+    pub(crate) fn coordinates(&self) -> &BTreeMap<String, ExactPoint2> {
+        &self.coordinates
+    }
+
+    pub(crate) fn embedding_id(&self) -> &str {
+        &self.embedding_id
     }
 
     pub fn reference(&self) -> HadwigerArtifactReference {

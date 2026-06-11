@@ -92,104 +92,531 @@ clock or raw signal timing can leak into query results.
 
 ## Milestone 9.5 Named Certification Suites
 
-### 9.5. Async Resource Query Family And Completion Causality Test
+### 9.5. Phase 1 Named Scope Expansion Productization Closure Test
 
 Purpose
 
-Prove that async/resource-backed query families preserve typed result-state
-meaning and reject stale, superseded, cancelled, policy-invalid, or
-tenant-invalid completions before they can mutate query results.
+Prove that runtime-backed named scope expansion is a verified composition lane:
+equivalent direct construction and admitted scope-composed construction must
+produce the same canonical query meaning while preserving explicit scope
+lineage, typed basis evidence, and honest support-profile posture.
 
 Scenario
 
-- declare async/resource-backed query families for admitted detail,
-  collection, grouped, and bounded-materialization query shapes
-- exercise resource result states:
-  - pending
-  - fulfilled
-  - failed
-  - stale
-  - cancelled
-  - retried
-  - revalidating
-  - superseded
+- construct equivalent detail and collection queries through:
+  - direct canonical authoring
+  - named predicate scope expansion
+  - named ordering scope expansion
+  - named projection scope expansion
+  - named traversal-bound scope expansion
+  - basis-aware scope expansion where admitted
+  - admitted multi-scope composition combining projection, ordering, and
+    traversal-bound scopes in one path
 - vary:
-  - resource source family
-  - async generation
-  - retry generation
-  - branch and preview basis
-  - policy and tenant basis
-  - completion order
-  - cancellation timing
-  - bridge-supported and bridge-unsupported resource lifecycle classes
+  - detail and collection query families
+  - single-scope and multi-scope expansion
+  - current-basis evidence on basis-aware scope paths
+  - illegal traversal widening
+  - unsupported scope-family admission
 
 Required concrete lanes
 
-- fulfilled-current lane where completion generation, query basis, policy
-  basis, tenant basis, and result shape all match and delivery is admitted
-- stale-completion denial lane where an older async completion arrives after a
-  newer truth or query basis has already superseded it
-- policy-remask lane where a resource completion becomes invalid because the
-  policy context changed before materialization
-- retry-revalidation lane where retry preserves query identity but changes
-  resource generation and emits explicit retry evidence
-- cancellation race lane where cancellation wins before completion delivery
-  and no result mutation occurs
-- unsupported-resource-family lane where Query denies the resource family
-  before bridge lifecycle activation
+- predicate-scope parity lane where direct and scope-composed detail queries
+  converge on the same canonical query digest
+- multi-scope collection parity lane where projection, ordering, and
+  traversal-bound scopes converge on the same canonical query and result-shape
+  digests as equivalent direct construction
+- basis-aware parity lane where admitted basis evidence preserves canonical
+  query meaning while emitting explicit basis metadata
+- basis-aware mismatch denial lane where evidence bound to a different canonical
+  query fails typed and early
+- traversal-widening denial lane where a traversal-bound scope attempts to
+  exceed its declared depth bound
+- unsupported-scope denial lane where non-admitted scope families fail before
+  authored-request lowering
 
 Must verify
 
-- async result states are typed query result states, not host-local strings or
-  optional UI metadata
-- completion causality binds query digest, result shape digest, truth basis,
-  policy digest, tenant digest, resource source identity, and async generation
-- stale, cancelled, denied, and superseded completions cannot emit fulfilled
-  query results
-- retry and revalidation preserve canonical query identity unless the declared
-  query basis intentionally changes
-- policy and tenant masking apply before async result materialization
-- failure taxonomy distinguishes source failure, cancellation, supersession,
-  retry exhaustion, policy denial, tenant drift, bridge denial, and unsupported
-  family denial
-- diagnostics localize whether failure occurred during query declaration,
-  source admission, bridge resource lifecycle, signal async generation,
-  completion causality, materialization, or support certification
-- compile-fail boundaries prove external callers cannot forge async resource
-  state, completion-causality artifacts, supersession witnesses, or fulfilled
-  delivery from raw completion payloads
-- small/medium/larger fixture runs prove async completion checks are bounded by
-  declared inflight generation width, completion batch width, retry width, and
-  affected result width rather than unrelated resource or row count
+- named scope expansion is canonical declaration composition rather than string
+  substitution or caller-owned rewrite folklore
+- equivalent direct and scope-composed declarations produce the same canonical
+  `query_digest`
+- result-shape parity holds for admitted scope families on the covered paths
+- `scope_lineage_digest` is explicit and non-empty on admitted named-scope
+  expansion artifacts
+- basis-aware scope evidence stays typed, query-bound, and fail-closed
+- admitted named-scope paths keep `scope_rediscovery_count == 0`
+- support/profile publication reports `named_scope_expansion:verified`
+- diagnostics localize denial to unsupported scope family, illegal widening, or
+  basis-evidence query mismatch rather than broad composition failure
+- small/medium/larger fixture runs prove scope expansion cost stays bounded by
+  declared scope count and scope width rather than unrelated row or schema
+  breadth
 
 Required verification output
 
 - `query_digest`
 - `result_shape_digest`
+- `composition_digest`
+- `scope_lineage_digest`
 - `basis_digest`
-- `policy_digest`
-- `tenant_basis_digest`
-- `async_resource_digest`
-- `async_generation_digest`
-- `completion_causality_digest`
-- `supersession_digest`
-- `retry_digest`
-- `cancellation_digest`
-- `result_digest`
-- `delivery_digest`
+- `support_profile_digest`
 - `failure_digest`
-- `diagnostic_trace_digest`
 - `counter_snapshot`
-- `async_resource_scale_slope_digest`
+- `scope_expansion_scale_slope_digest`
 - `compile_fail_boundary_digest`
 
 Pass condition
 
-Async/resource query families remain basis-bound, causally ordered,
-policy-safe, and fail-closed before stale or unsupported completions can affect
-query-shaped results.
+Named scope expansion is certified only when admitted scope families preserve
+canonical query meaning, typed basis evidence, explicit lineage, zero
+rediscovery on the ordinary path, and a public `verified` support posture while
+unsupported or widening neighbors fail typed and early.
+
+### 9.5. Phase 2 Template Instantiation Productization Closure Test
+
+Purpose
+
+Prove that runtime-backed template instantiation is a verified composition
+lane: equivalent direct construction and admitted template-instantiated
+construction must produce the same canonical query meaning while preserving
+explicit typed binding artifacts, exact binding counters, and honest
+support-profile posture.
+
+Scenario
+
+- construct equivalent detail and collection queries through:
+  - direct canonical authoring
+  - detail template instantiation with typed predicate binding
+  - collection template instantiation with typed traversal binding
+  - basis-aware template instantiation where admitted
+- vary:
+  - detail and collection query families
+  - binding kinds across predicate, ordering, projection, and traversal slots
+  - missing, duplicate, undeclared, and kind-mismatched bindings
+  - duplicate slot declaration
+  - deferred template-family admission for observed inspector, focused
+    inspector, and grouped collection template families
+
+Required concrete lanes
+
+- detail-template parity lane where direct and template-instantiated detail
+  queries converge on the same canonical query and result-shape digests
+- collection-template parity lane where direct and template-instantiated
+  collection queries converge on the same canonical query and result-shape
+  digests
+- basis-aware template parity lane where admitted basis evidence remains bound
+  to the fully instantiated canonical query and emits explicit basis metadata
+- missing-binding denial lane where a declared slot lacks a bound value
+- duplicate-binding denial lane where one slot receives multiple bindings
+- undeclared-slot denial lane where a binding targets a slot the template did
+  not declare
+- binding-kind mismatch lane where slot kind and binding kind diverge
+- duplicate-slot declaration lane where the same slot is declared twice on one
+  template
+- deferred-template-family lane where observed inspector, focused inspector,
+  and grouped collection template families remain typed-and-early deferred
+
+Must verify
+
+- template instantiation is canonical declaration composition rather than
+  caller-owned rewrite folklore
+- equivalent direct and template-instantiated declarations produce the same
+  canonical `query_digest`
+- result-shape parity holds for admitted template families on the covered
+  paths
+- `template_binding_digest` is explicit and non-empty on admitted
+  template-instantiation artifacts
+- composition reports preserve the same binding digest as the emitted
+  instantiation artifact
+- admitted template-instantiated paths keep `template_rediscovery_count == 0`
+- basis-aware template evidence stays typed, canonical-query-bound, and
+  fail-closed
+- diagnostics localize denial to missing binding, duplicate binding, undeclared
+  slot, binding-kind mismatch, duplicate slot declaration, or deferred
+  template-family posture rather than broad composition failure
+- support/profile publication reports `template_instantiation:verified`
+- small/medium/larger fixture runs prove template instantiation cost stays
+  bounded by declared slot count and binding width rather than unrelated row or
+  schema breadth
+
+Required verification output
+
+- `query_digest`
+- `result_shape_digest`
+- `composition_digest`
+- `template_binding_digest`
+- `basis_digest`
+- `support_profile_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `template_instantiation_scale_slope_digest`
+- `compile_fail_boundary_digest`
+
+Pass condition
+
+Template instantiation is certified only when admitted template families
+preserve canonical query meaning, typed binding identity, exact slot and
+binding counters, zero rediscovery on the ordinary path, and a public
+`verified` support posture while malformed or deferred neighbors fail typed and
+early.
 
 ## Milestone 9.6 Named Certification Suites
+
+### 9.6. Phase 1 Canonical Evidence Identity Stability Test
+
+Purpose
+
+Prove that the first public runtime-backed evidence-identity surfaces stop
+teaching caller-owned string folklore and instead emit one Query-owned,
+scheme-versioned canonical evidence identity with typed same-scheme comparison
+semantics.
+
+Scenario
+
+- exercise the first covered runtime-backed evidence surfaces for:
+  - runtime public support matrix row identity
+  - runtime public support matrix aggregate identity
+  - runtime state snapshot identity
+  - preview intent admission identity
+  - preview intent receipt identity
+  - intent denial evidence identity
+- compare:
+  - runtime-emitted evidence identities
+  - independently composed evidence identities through the public
+    `ForgeQueryEvidenceIdentity::compose(...)` surface
+- vary:
+  - punctuation-heavy field values including pipe, colon, and tag-shaped text
+  - equivalent semantic fields across different surface scopes
+  - hostile sequence layouts that would collide under joined-string folklore
+  - alternate evidence-identity scheme versions for typed mismatch behavior
+
+Required concrete lanes
+
+- support-matrix parity lane where runtime-emitted row and matrix identities
+  are scheme-versioned canonical tokens
+- state-snapshot parity lane where basis, result-shape, lane, and explanation
+  identity remain canonical under punctuation-heavy values
+- preview admission/receipt lane where Query-owned preview evidence identity is
+  emitted without caller-owned digest assembly
+- intent denial lane where invariant evidence with hostile delimiter content
+  does not collapse distinct evidence sets
+- cross-scheme comparison lane where same-scope identities with different
+  scheme versions fail typed rather than comparing raw bytes
+
+Must verify
+
+- every covered phase-1 surface emits a Query-owned evidence identity token
+  rather than an unversioned raw digest string
+- the evidence identity token carries scheme identity in the value itself so
+  scheme drift is detectable from the emitted token alone
+- the public constructor surface is real and parity-capable from birth rather
+  than being runtime-internal helper plumbing
+- hostile delimiter and separator content cannot collapse distinct field sets
+  into one identity
+- same-scheme comparison is explicit and cross-scheme comparison fails typed
+  rather than degrading into byte comparison
+- the covered runtime-backed product surfaces no longer require caller-owned
+  `hash_parts(...)`, `Debug`, `Display`, or joined-string identity folklore to
+  produce machine-checkable evidence identity
+
+Required verification output
+
+- `evidence_scope_digest`
+- `evidence_identity_token`
+- `scheme_version_token`
+- `support_matrix_digest`
+- `state_digest`
+- `preview_admission_digest`
+- `preview_receipt_digest`
+- `intent_denial_digest`
+- `failure_digest`
+
+Pass condition
+
+Phase 1 closes only when the first ordinary runtime-backed evidence surfaces
+emit scheme-versioned canonical evidence identity through a public,
+proof-carrying constructor lane, and hostile delimiter or scheme drift
+pressure cannot silently collapse or miscompare identities.
+
+### 9.6. Phase 2 Query Digest Surface Migration Closure Test
+
+Purpose
+
+Prove that the covered Query-owned digest surfaces stop teaching string-joined
+digest folklore and instead lower through the runtime-owned canonical
+evidence-identity primitive introduced in Phase 1.
+
+Scenario
+
+- exercise the covered Query-owned digest surfaces for:
+  - runtime public API family contract digest
+  - runtime public API aggregate contract digest
+  - runtime public support matrix row and aggregate digests
+  - runtime state snapshot digest
+  - runtime public API transcript digest
+  - application support report digest
+- compare:
+  - runtime-emitted digests from the ordinary product surfaces
+  - independently recomposed digests through the public
+    `ForgeQueryEvidenceIdentity::compose(...)` surface
+- vary:
+  - punctuation-heavy identity fields, including pipe, colon, and tag-shaped
+    values
+  - supported, deferred, and unsupported public API family rows
+  - optional support report profile publication presence and absence
+  - support-gated transcript denial digest sequences
+
+Required concrete lanes
+
+- public-api-contract parity lane where family-contract and aggregate-contract
+  digests recompose exactly from the same typed evidence
+- support-matrix parity lane where the runtime-emitted public support matrix
+  row and aggregate digests lower through canonical evidence identity
+- state-snapshot parity lane where state digests recompose exactly from typed
+  lane, basis, result-shape, explanation, and optional posture inputs
+- transcript parity lane where runtime public API transcript evidence lowers
+  through canonical identity even under punctuation-heavy neighbor-denial
+  digest sequences
+- support-report parity lane where support report publication posture changes
+  only the declared support-report identity fields while preserving canonical
+  recomposition
+- residue-audit lane where the covered Query source surfaces prove zero
+  remaining `hash_parts(...)` digest construction through an exact structural
+  assertion
+
+Must verify
+
+- every covered Phase 2 digest surface emits a scheme-versioned canonical
+  evidence identity token rather than a format-string digest
+- independently recomposing the same typed evidence reproduces each covered
+  digest exactly
+- no covered surface preserves the old string-joined digest value by
+  re-encoding old separator folklore inside the new primitive
+- optional publication surfaces such as support-report profiles participate in
+  digest identity through explicit optional identity fields rather than ad hoc
+  string placeholders
+- the covered Query surfaces contain zero remaining `hash_parts(...)`,
+  `Debug`, `Display`, or joined-string digest construction for the covered
+  identity lane
+
+Required verification output
+
+- `public_api_family_contract_digest`
+- `public_api_contract_digest`
+- `support_matrix_digest`
+- `state_digest`
+- `public_api_transcript_digest`
+- `support_report_digest`
+- `scheme_version_token`
+- `failure_digest`
+
+Pass condition
+
+Phase 2 closes only when every covered Query-owned digest surface lowers
+through the canonical evidence-identity primitive, independently recomposes
+exactly from typed evidence, and leaves zero format-string digest residue in
+the covered source surfaces.
+
+### 9.6. Phase 3 Typed Stop Class Taxonomy Test
+
+Purpose
+
+Prove that the existing `ForgeQueryRuntimeError` topology exposes one
+runtime-owned typed stop-class accessor for covered denial and stop paths, so
+consumer control flow can match on typed semantics instead of message text.
+
+Scenario
+
+- classify covered runtime stop paths for:
+  - runtime bootstrap/component-missing failures
+  - support/admission denials
+  - existing-truth assertion, probe, binding, continuity, naming, and symbolic
+    reference denials
+  - graph composition and graph-composition domain-invariant denials
+  - read composition and read domain-invariant denials
+  - runtime lookup, missing-artifact, declaration-failure, and preview-promotion
+    failures
+  - effect-policy, unsupported-authority, and intent failure paths
+- compare:
+  - the original `ForgeQueryRuntimeError` payload
+  - the typed `error.stop_class()` projection
+- vary:
+  - multiple denial kinds inside the same family
+  - message rewording on message-bearing variants
+  - future-variant drift pressure on the runtime error enum
+
+Required concrete lanes
+
+- denial-payload preservation lane where rich denial payloads remain reachable
+  through the stop-class context rather than being flattened into generic tags
+- unsupported-family lane where support posture, denied family, and reason stay
+  typed across the stop-class boundary
+- preview-promotion lane where all promotion failure variants converge on one
+  typed promotion stop class carrying the original denial evidence
+- unsupported-authority lane where authority denial becomes a named stop-class
+  variant instead of caller-owned message probing
+- completeness lane where the stop-class classifier matches the full covered
+  runtime error enum with no wildcard escape hatch
+
+Must verify
+
+- every covered runtime stop path classifies to exactly one stop class
+- the stop-class accessor is an accessor over `ForgeQueryRuntimeError`, not a
+  second parallel error family
+- rich denial payloads remain available through typed context on the stop class
+- preview-promotion variants classify through one typed promotion class keyed by
+  `ForgeQueryPreviewPromotionDenialKind`
+- support/admission denials carry their denied facade family through typed
+  payload access, not through message text
+- changing message wording on message-bearing variants does not change the stop
+  class
+- adding a new covered runtime error variant requires an explicit stop-class
+  mapping rather than silently falling into `Other`/`Unknown`
+
+Required verification output
+
+- `stop_class_digest`
+- `support_denial_digest`
+- `preview_promotion_digest`
+- `intent_denial_digest`
+- `failure_digest`
+
+Pass condition
+
+Phase 3 closes only when the covered runtime stop paths classify through one
+typed stop-class accessor with payload-preserving context, zero catch-all
+escape hatches, and zero control-flow dependence on message text.
+
+### 9.6. Phase 5 Canonical Session Label Artifact Test
+
+Purpose
+
+Prove that the session-label identity surface is a real typed artifact rather
+than a validated display string: namespace, ordered name segments, and
+canonical evidence-identity participation must determine identity under hostile
+construction and collision pressure.
+
+Scenario
+
+- construct session labels through:
+  - typed namespace plus typed segment construction
+  - convenience string-based construction through the public surface
+- compare:
+  - artifact equality
+  - independently recomposed canonical evidence identity
+  - display rendering as a non-authoritative projection
+- vary:
+  - equivalent semantic labels across different construction paths
+  - ordered segment permutations
+  - namespace changes with identical name segments
+  - render-collision cases where distinct typed labels produce the same dotted
+    display string
+  - empty namespace, empty name-segment, and missing-segment invalid inputs
+
+Required concrete lanes
+
+- construction-path parity lane where typed and convenience construction
+  produce the same label identity and canonical digest participation
+- ordered-segment drift lane where the same segment set in a different order
+  produces a distinct label identity and distinct digest
+- namespace drift lane where identical name segments under a different
+  namespace remain a distinct label identity and digest
+- render-collision lane where two distinct typed labels render to the same
+  display string but remain distinct artifacts with distinct digests
+- invalid-input lane where empty namespace, empty segment, and missing segment
+  inputs fail typed and early
+
+Must verify
+
+- session label identity is determined by typed namespace plus ordered typed
+  name segments rather than by display rendering
+- equivalent semantic labels produce the same canonical evidence identity
+  regardless of construction path
+- display rendering is a projection over the artifact and does not participate
+  in equality
+- namespace and segment ordering both participate in identity and digest
+  derivation
+- render-collision pressure cannot collapse distinct label identities
+- invalid label parts fail typed and early through the public constructor
+  surface
+
+Required verification output
+
+- `session_label_identity_digest`
+- `session_label_scope_token`
+- `session_label_display`
+- `failure_digest`
+
+Pass condition
+
+Phase 5 closes only when session labels behave as canonical typed identity
+artifacts whose equality and digest participation survive hostile construction,
+ordering drift, namespace drift, render-collision pressure, and invalid input
+attempts.
+
+### 9.6. Phase 6 Canonical Session Label Intake Test
+
+Purpose
+
+Prove that preview and branch session entry admit only canonical typed session
+labels, record label identity through basis-admission evidence, and stop
+equivalent label replay with a typed collision class instead of silently
+merging on rendered strings.
+
+Scenario
+
+- admit preview and branch sessions through the ordinary public workspace and
+  runtime entrypoints using typed session labels
+- compare basis-admission evidence against independently recomposed canonical
+  evidence identities built from the admitted session-label identity
+- replay equivalent session-label identities within the same session family
+- replay the same session-label identity across different session families
+- admit distinct typed labels that render to the same dotted display string
+
+Required concrete lanes
+
+- preview-admission identity lane where preview basis admission stores the
+  canonical session-label identity and recomposes to the same digest
+- branch-admission identity lane where branch basis admission stores the
+  canonical session-label identity and recomposes to the same digest
+- same-family replay collision lane where re-admitting an equivalent preview or
+  branch label stops with `ForgeQueryStopClass::SessionLabelCollision`
+- cross-family coexistence lane where the same session-label identity may be
+  admitted once in preview and once in branch without a fake global collision
+- render-collision lane where two distinct typed labels with the same display
+  string admit independently because collision scope is identity-based, not
+  display-based
+- raw-string eradication lane where ordinary-path preview and branch entry call
+  sites no longer pass free-form strings
+
+Must verify
+
+- ordinary-path preview and branch entry requires `ForgeQuerySessionLabel`
+  rather than `impl Into<String>`
+- preview and branch basis-admission digests record
+  `session_label_identity` rather than rendered string folklore
+- equivalent label replay within the same session family stops with a typed
+  session-label collision class
+- collision posture is scoped per session family rather than enforced through a
+  global workspace registry
+- display-colliding but identity-distinct labels do not silently merge or
+  falsely collide
+
+Required verification output
+
+- `preview_session_basis_digest`
+- `branch_session_basis_digest`
+- `session_label_collision_stop_class`
+- `render_collision_admission_digest`
+- `raw_string_entrypoint_audit`
+
+Pass condition
+
+Phase 6 closes only when preview and branch session entry are typed-label
+boundaries, basis admission evidence records canonical session-label identity,
+same-family replay collisions stop through a typed class, and no ordinary-path
+entrypoint remains on raw strings.
 
 ### 9.6. Mixed Truth Time Async Query Delivery Ordering Test
 

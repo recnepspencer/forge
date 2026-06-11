@@ -21,6 +21,7 @@ use crate::runtime::{
     SignalInvalidationRoutingReceipt,
 };
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::session_label::ForgeQuerySessionLabel;
 
 use super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts};
 
@@ -178,7 +179,8 @@ pub(crate) fn representative_preview_basis_row() -> RepresentativeArtifacts {
     let authority = ForgeQueryRuntimeEvidenceAuthority::new();
     let admission = ForgeQueryPreviewBasisAdmission::new(
         &authority,
-        "preview.tasks.certified",
+        ForgeQuerySessionLabel::scoped_strs("lower-runtime-routing", ["preview.tasks.certified"])
+            .expect("fixture label should build"),
         ForgeQueryEffectPolicy::DeriveOnly,
         ["preview-basis-evidence-a", "preview-basis-evidence-b"],
     );

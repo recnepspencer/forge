@@ -1,7 +1,3 @@
-use std::marker::PhantomData;
-
-use forge_foundational::FoundationalProfileSet;
-
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 use crate::contribution_composed_orchestration::{
     orchestrate_progressed_declaration_with_contributions_checked_on_handle,
@@ -9,152 +5,21 @@ use crate::contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestration,
     ForgeQueryContributionComposedOrchestrationChecked, ForgeQueryContributionIntent,
 };
-use crate::domain_capabilities::{
-    ForgeQueryExplanationContributionAuthoring, ForgeQuerySupportContributionAuthoring,
-    ForgeQueryWorkflowContributionAuthoring,
-};
+use forge_foundational::FoundationalProfileSet;
 
 use super::artifact::{
     ForgeQueryGroupedDeclarationArtifact, ForgeQueryGroupedDeclarationAspectRecord,
+};
+use super::contribution_input::{
+    ForgeQueryGroupedContributionAssignment, ForgeQueryGroupedContributionInput,
+    ForgeQueryGroupedContributionSource,
 };
 use super::declaration::{
     forge_query_grouped_declaration_checked_on_handle, ForgeQueryGroupedDeclarationChecked,
     ForgeQueryGroupedDeclarationStop,
 };
-use super::input::ForgeQueryGroupedDeclarationInput;
+use super::orchestration::ForgeQueryGroupedOrchestrationAlignmentStop;
 use super::posture::ForgeQueryGroupedMemberRole;
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryGroupedContributionAssignment {
-    member_index: usize,
-    contribution: ForgeQueryContributionIntent,
-}
-
-impl ForgeQueryGroupedContributionAssignment {
-    fn new(member_index: usize, contribution: ForgeQueryContributionIntent) -> Self {
-        Self {
-            member_index,
-            contribution,
-        }
-    }
-
-    pub fn member_index(&self) -> usize {
-        self.member_index
-    }
-
-    pub fn contribution(&self) -> &ForgeQueryContributionIntent {
-        &self.contribution
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryGroupedContributionInput<
-    D: ForgeQueryDomainEntryMarker,
-    I: ForgeQueryDeclarationInput<D>,
-> {
-    declaration_input: ForgeQueryGroupedDeclarationInput<D, I>,
-    shared_contributions: Vec<ForgeQueryContributionIntent>,
-    member_contributions: Vec<ForgeQueryGroupedContributionAssignment>,
-    materialization_profile: Option<FoundationalProfileSet>,
-    _marker: PhantomData<D>,
-}
-
-impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
-    ForgeQueryGroupedContributionInput<D, I>
-{
-    pub fn new(declaration_input: ForgeQueryGroupedDeclarationInput<D, I>) -> Self {
-        Self {
-            declaration_input,
-            shared_contributions: Vec::new(),
-            member_contributions: Vec::new(),
-            materialization_profile: None,
-            _marker: PhantomData,
-        }
-    }
-
-    pub fn with_shared_contribution(mut self, contribution: ForgeQueryContributionIntent) -> Self {
-        self.shared_contributions.push(contribution);
-        self
-    }
-
-    pub fn with_shared_support_contribution(
-        self,
-        contribution: ForgeQuerySupportContributionAuthoring,
-    ) -> Self {
-        self.with_shared_contribution(ForgeQueryContributionIntent::support(contribution))
-    }
-
-    pub fn with_shared_explanation_contribution(
-        self,
-        contribution: ForgeQueryExplanationContributionAuthoring,
-    ) -> Self {
-        self.with_shared_contribution(ForgeQueryContributionIntent::explanation(contribution))
-    }
-
-    pub fn with_shared_workflow_contribution(
-        self,
-        contribution: ForgeQueryWorkflowContributionAuthoring,
-    ) -> Self {
-        self.with_shared_contribution(ForgeQueryContributionIntent::workflow(contribution))
-    }
-
-    pub fn with_member_contribution(
-        mut self,
-        member_index: usize,
-        contribution: ForgeQueryContributionIntent,
-    ) -> Self {
-        self.member_contributions
-            .push(ForgeQueryGroupedContributionAssignment::new(
-                member_index,
-                contribution,
-            ));
-        self
-    }
-
-    pub fn materialize_summaries_with_profile(mut self, profile: FoundationalProfileSet) -> Self {
-        self.materialization_profile = Some(profile);
-        self
-    }
-
-    pub fn declaration_input(&self) -> &ForgeQueryGroupedDeclarationInput<D, I> {
-        &self.declaration_input
-    }
-}
-
-impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
-    ForgeQueryGroupedDeclarationInput<D, I>
-{
-    pub fn with_shared_contribution(
-        self,
-        contribution: ForgeQueryContributionIntent,
-    ) -> ForgeQueryGroupedContributionInput<D, I> {
-        ForgeQueryGroupedContributionInput::new(self).with_shared_contribution(contribution)
-    }
-
-    pub fn with_shared_explanation_contribution(
-        self,
-        contribution: ForgeQueryExplanationContributionAuthoring,
-    ) -> ForgeQueryGroupedContributionInput<D, I> {
-        ForgeQueryGroupedContributionInput::new(self)
-            .with_shared_explanation_contribution(contribution)
-    }
-
-    pub fn with_shared_support_contribution(
-        self,
-        contribution: ForgeQuerySupportContributionAuthoring,
-    ) -> ForgeQueryGroupedContributionInput<D, I> {
-        ForgeQueryGroupedContributionInput::new(self).with_shared_support_contribution(contribution)
-    }
-
-    pub fn with_member_contribution(
-        self,
-        member_index: usize,
-        contribution: ForgeQueryContributionIntent,
-    ) -> ForgeQueryGroupedContributionInput<D, I> {
-        ForgeQueryGroupedContributionInput::new(self)
-            .with_member_contribution(member_index, contribution)
-    }
-}
 
 #[derive(Clone)]
 pub struct ForgeQueryGroupedContributionMemberContext {
@@ -249,6 +114,8 @@ pub enum ForgeQueryGroupedContributionStop<
     I: ForgeQueryDeclarationInput<D>,
 > {
     DeclarationStopped(ForgeQueryGroupedDeclarationStop),
+    WrongWorld(ForgeQueryGroupedOrchestrationAlignmentStop<D, I>),
+    WrongHandle(ForgeQueryGroupedOrchestrationAlignmentStop<D, I>),
     MemberStopped(
         ForgeQueryGroupedContributionMemberContext,
         ForgeQueryContributionComposedOrchestrationChecked<D, I>,
@@ -264,16 +131,43 @@ pub(crate) fn forge_query_grouped_contribution_checked_on_handle<
     input: ForgeQueryGroupedContributionInput<D, I>,
 ) -> Result<ForgeQueryGroupedContributionComposition<D, I>, ForgeQueryGroupedContributionStop<D, I>>
 {
-    let declaration = match forge_query_grouped_declaration_checked_on_handle(
-        handle,
-        input.declaration_input.clone(),
-    ) {
-        ForgeQueryGroupedDeclarationChecked::Bound(value) => value,
-        ForgeQueryGroupedDeclarationChecked::MemberStopped(stop) => {
-            return Err(ForgeQueryGroupedContributionStop::DeclarationStopped(stop));
+    let (source, shared_contributions, member_contributions, materialization_profile) =
+        input.into_parts();
+    let declaration = match source {
+        ForgeQueryGroupedContributionSource::DeclarationInput(declaration_input) => {
+            match forge_query_grouped_declaration_checked_on_handle(handle, declaration_input) {
+                ForgeQueryGroupedDeclarationChecked::Bound(value) => value,
+                ForgeQueryGroupedDeclarationChecked::MemberStopped(stop) => {
+                    return Err(ForgeQueryGroupedContributionStop::DeclarationStopped(stop));
+                }
+            }
         }
+        ForgeQueryGroupedContributionSource::DeclarationArtifact(declaration) => declaration,
     };
-    lower_grouped_contributions_on_handle(handle, declaration, input)
+    if declaration.operating_context_identity_digest() != handle.operating_context_identity_digest()
+    {
+        return Err(ForgeQueryGroupedContributionStop::WrongWorld(
+            ForgeQueryGroupedOrchestrationAlignmentStop::new(
+                declaration,
+                "the grouped declaration was admitted in a different operating context",
+            ),
+        ));
+    }
+    if declaration.handle_identity_digest() != handle.handle_identity_digest() {
+        return Err(ForgeQueryGroupedContributionStop::WrongHandle(
+            ForgeQueryGroupedOrchestrationAlignmentStop::new(
+                declaration,
+                "the grouped declaration was admitted on a different configured domain handle",
+            ),
+        ));
+    }
+    lower_grouped_contributions_on_handle(
+        handle,
+        declaration,
+        shared_contributions,
+        member_contributions,
+        materialization_profile,
+    )
 }
 
 fn lower_grouped_contributions_on_handle<
@@ -283,13 +177,14 @@ fn lower_grouped_contributions_on_handle<
 >(
     handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
     declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
-    input: ForgeQueryGroupedContributionInput<D, I>,
+    shared_contributions: Vec<ForgeQueryContributionIntent>,
+    member_contributions: Vec<ForgeQueryGroupedContributionAssignment>,
+    materialization_profile: Option<FoundationalProfileSet>,
 ) -> Result<ForgeQueryGroupedContributionComposition<D, I>, ForgeQueryGroupedContributionStop<D, I>>
 {
     let mut members = Vec::with_capacity(declaration.members().len());
     for member in declaration.members() {
-        let member_specific = input
-            .member_contributions
+        let member_specific = member_contributions
             .iter()
             .filter(|value| value.member_index() == member.member_index())
             .map(|value| value.contribution().clone())
@@ -297,14 +192,14 @@ fn lower_grouped_contributions_on_handle<
         let checked = orchestrate_progressed_declaration_with_contributions_checked_on_handle(
             handle,
             member.progression().clone(),
-            member_contributions(&input.shared_contributions, &member_specific),
-            materialization_policy(input.materialization_profile.clone()),
+            member_contributions_for_member(&shared_contributions, &member_specific),
+            materialization_policy(materialization_profile.clone()),
         );
         let context = ForgeQueryGroupedContributionMemberContext::new(
             member.member_index(),
             member.role(),
             member.aspect_record().clone(),
-            input.shared_contributions.len(),
+            shared_contributions.len(),
             member_specific.len(),
         );
         match checked {
@@ -324,7 +219,7 @@ fn lower_grouped_contributions_on_handle<
     ))
 }
 
-fn member_contributions(
+fn member_contributions_for_member(
     shared: &[ForgeQueryContributionIntent],
     member_specific: &[ForgeQueryContributionIntent],
 ) -> Vec<ForgeQueryContributionIntent> {

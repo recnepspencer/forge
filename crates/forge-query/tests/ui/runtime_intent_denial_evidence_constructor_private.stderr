@@ -79,3 +79,9 @@ help: you might have meant to use an associated function to build this type
 24 -     };
  7 +     let _forged = ForgeQueryIntentDenialEvidence::new_with_trace(_, _, _, _, _);
    |
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_intent_denial_evidence_constructor_private.rs:23:24
+   |
+23 |         denial_digest: String::new(),
+   |                        ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`

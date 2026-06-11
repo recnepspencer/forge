@@ -213,7 +213,7 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
             > 0
     );
     assert_eq!(
-        serde_json::from_value::<crate::facade::DerivedEquivalenceContractReport>(
+        serde_json::from_value::<crate::certification::DerivedEquivalenceContractReport>(
             equivalence_rows[0].clone()
         )
         .expect("equivalence row should decode"),

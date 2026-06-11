@@ -220,12 +220,13 @@ Use readiness when you need to know:
   existed broadly but did not map cleanly into the narrower continuation slice
 - whether the narrower support helpers still match the shared seam ledger
 - whether a temporal-capable family is blocked because the temporal runtime
-  facade is still deferred or because a preview or historical truth basis is
-  structurally invalid for that temporal seam
+  support row is still gated for sibling-root DX, because the declaration
+  family itself remains deferred, or because a preview or historical truth
+  basis is structurally invalid for that temporal seam
 - whether an async-capable family is blocked because the async-resource runtime
-  facade is still deferred, because the retained async declaration uses an
-  unsupported source or lifecycle regime, or because a preview or historical
-  basis is structurally invalid for that async seam
+  support row is still gated for sibling-root DX, because the retained async
+  declaration uses an unsupported source or lifecycle regime, or because a
+  preview or historical basis is structurally invalid for that async seam
 - whether explicit declaration-scoped contribution evidence should travel with
   the family-level readiness answer
 - whether attached contribution evidence actually matches one retained

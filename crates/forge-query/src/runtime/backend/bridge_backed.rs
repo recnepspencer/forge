@@ -7,9 +7,9 @@ use crate::memory_workspace::{
     ForgeQueryWorkspaceError,
 };
 use crate::schema_view::QuerySchemaView;
+use crate::session_label::ForgeQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
 
-use super::ForgeQueryRuntimeBackendParts;
 use crate::runtime::{
     ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
     ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthProbe,
@@ -19,6 +19,8 @@ use crate::runtime::{
     ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile,
     ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
+
+use super::bootstrap::BridgeBackedRuntimeBootstrap;
 
 pub struct ForgeQueryBridgeBackedRuntimeBackend {
     relational_runtime: Option<RelationalRuntime>,
@@ -39,64 +41,33 @@ pub struct ForgeQueryBridgeBackedRuntimeBackend {
 }
 
 impl ForgeQueryBridgeBackedRuntimeBackend {
-    pub fn from_parts(
-        parts: ForgeQueryRuntimeBackendParts,
+    #[cfg(test)]
+    pub(crate) fn from_parts(
+        parts: super::ForgeQueryRuntimeBackendParts,
     ) -> Result<Self, ForgeQueryRuntimeError> {
-        let relational_runtime = parts.relational_runtime;
-        let runtime_bridge = parts
-            .runtime_bridge
-            .ok_or(ForgeQueryRuntimeError::MissingRuntimeBridge)?;
-        let schema_adapter = parts
-            .schema_adapter
-            .ok_or(ForgeQueryRuntimeError::MissingSchemaAdapter)?;
-        let source_adapter = parts
-            .source_adapter
-            .ok_or(ForgeQueryRuntimeError::MissingSourceAdapter)?;
-        let existing_truth_verification = parts.existing_truth_verification;
-        let write_authority = parts
-            .write_authority
-            .ok_or(ForgeQueryRuntimeError::MissingWriteAuthority)?;
-        let signal_sink = parts
-            .signal_sink
-            .ok_or(ForgeQueryRuntimeError::MissingSignalSink)?;
-        let subscription_activation = parts
-            .subscription_activation
-            .ok_or(ForgeQueryRuntimeError::MissingSubscriptionActivation)?;
-        let preview_basis = parts
-            .preview_basis
-            .ok_or(ForgeQueryRuntimeError::MissingPreviewBasis)?;
-        let inspector_evidence = parts
-            .inspector_evidence
-            .ok_or(ForgeQueryRuntimeError::MissingInspectorEvidence)?;
-        let declaration_initialization = parts.declaration_initialization;
-        let intent_authority = parts.intent_authority;
-        let support_profile = parts.support_profile.unwrap_or_else(|| {
-            ForgeQueryRuntimeSupportProfile::bridge_backed(
-                subscription_activation.support_evidence(),
-                "preview-basis-admission",
-                "inspector-evidence-adapter",
-            )
-        });
+        Ok(Self::from_validated_bootstrap(
+            parts.lower_bridge_backed_bootstrap()?,
+        ))
+    }
 
-        support_profile
-            .validate_backend_claims(intent_authority.is_some())
-            .map_err(ForgeQueryRuntimeError::UnsupportedFacadeFamily)?;
-
-        Ok(Self {
-            relational_runtime,
-            runtime_bridge,
-            schema_adapter,
-            source_adapter,
-            existing_truth_verification,
-            write_authority,
-            signal_sink,
-            subscription_activation,
-            preview_basis,
-            inspector_evidence,
-            declaration_initialization,
-            intent_authority,
-            support_profile,
-        })
+    pub(in crate::runtime) fn from_validated_bootstrap(
+        bootstrap: BridgeBackedRuntimeBootstrap,
+    ) -> Self {
+        Self {
+            relational_runtime: bootstrap.relational_runtime,
+            runtime_bridge: bootstrap.runtime_bridge,
+            schema_adapter: bootstrap.schema_adapter,
+            source_adapter: bootstrap.source_adapter,
+            existing_truth_verification: bootstrap.existing_truth_verification,
+            write_authority: bootstrap.write_authority,
+            signal_sink: bootstrap.signal_sink,
+            subscription_activation: bootstrap.subscription_activation,
+            preview_basis: bootstrap.preview_basis,
+            inspector_evidence: bootstrap.inspector_evidence,
+            declaration_initialization: bootstrap.declaration_initialization,
+            intent_authority: bootstrap.intent_authority,
+            support_profile: bootstrap.support_profile,
+        }
     }
 }
 
@@ -283,7 +254,7 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
 
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {

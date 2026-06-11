@@ -14,27 +14,30 @@ use backend::StatefulBridgeRuntimeBackend;
 use state::StatefulBridgeState;
 
 pub(crate) fn stateful_bridge_task_runtime() -> ForgeQueryRuntime {
-    stateful_bridge_runtime(["Task"], graph_test_support_profile())
+    stateful_bridge_runtime_via_custom_backend(["Task"], graph_test_support_profile())
 }
 
 pub(crate) fn stateful_bridge_task_issue_runtime() -> ForgeQueryRuntime {
-    stateful_bridge_runtime(["Task", "Issue"], graph_test_support_profile())
+    stateful_bridge_runtime_via_custom_backend(["Task", "Issue"], graph_test_support_profile())
 }
 
 pub(crate) fn stateful_bridge_grouped_task_runtime() -> ForgeQueryRuntime {
-    stateful_bridge_runtime(["Task"], graph_test_support_profile())
+    stateful_bridge_runtime_via_custom_backend(["Task"], graph_test_support_profile())
 }
 
 pub(in crate::runtime::tests) fn stateful_bridge_task_edge_runtime() -> ForgeQueryRuntime {
-    stateful_bridge_runtime(["Task", "TaskEdge"], graph_test_support_profile())
+    stateful_bridge_runtime_via_custom_backend(["Task", "TaskEdge"], graph_test_support_profile())
 }
 
 pub(in crate::runtime::tests) fn stateful_bridge_task_relation_runtime() -> ForgeQueryRuntime {
-    stateful_bridge_runtime(["Task", "TaskRelation"], graph_test_support_profile())
+    stateful_bridge_runtime_via_custom_backend(
+        ["Task", "TaskRelation"],
+        graph_test_support_profile(),
+    )
 }
 
 pub(in crate::runtime::tests) fn stateful_bridge_vertex_runtime() -> ForgeQueryRuntime {
-    stateful_bridge_runtime(["Vertex"], graph_test_support_profile())
+    stateful_bridge_runtime_via_custom_backend(["Vertex"], graph_test_support_profile())
 }
 
 pub(in crate::runtime::tests) fn stateful_bridge_runtime_with_collections(
@@ -47,10 +50,10 @@ pub(in crate::runtime::tests) fn stateful_bridge_runtime_with_support(
     collections: &[&'static str],
     support_profile: ForgeQueryRuntimeSupportProfile,
 ) -> ForgeQueryRuntime {
-    stateful_bridge_runtime(collections.iter().copied(), support_profile)
+    stateful_bridge_runtime_via_custom_backend(collections.iter().copied(), support_profile)
 }
 
-fn stateful_bridge_runtime(
+fn stateful_bridge_runtime_via_custom_backend(
     collections: impl IntoIterator<Item = &'static str>,
     support_profile: ForgeQueryRuntimeSupportProfile,
 ) -> ForgeQueryRuntime {

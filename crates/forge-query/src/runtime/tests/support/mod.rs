@@ -47,6 +47,13 @@ pub(in crate::runtime::tests) use program::*;
 pub(in crate::runtime::tests) use schema::*;
 pub(crate) use stateful_bridge_runtime::*;
 
+pub(in crate::runtime::tests) fn test_session_label(
+    label: impl AsRef<str>,
+) -> ForgeQuerySessionLabel {
+    ForgeQuerySessionLabel::scoped_strs("forge-query-runtime-tests", [label.as_ref()])
+        .expect("test session label should build")
+}
+
 pub(in crate::runtime::tests) fn live_subscription_async_identity(
     runtime: &ForgeQueryRuntime,
     view_name: &str,

@@ -1,36 +1,60 @@
-use crate::construction::admitted_scaffold::PreparedPrimitiveConstructionAdmittedArtifact;
-use crate::construction::digest::digest_owned_parts;
-use crate::construction::request::PrimitiveConstructionFamily;
+#[cfg(test)]
+use super::admitted_scaffold::PreparedPrimitiveConstructionAdmittedArtifact;
+#[cfg(test)]
+use super::digest::digest_owned_parts;
+#[cfg(test)]
+use super::request::PrimitiveConstructionFamily;
+#[cfg(test)]
 use topology::facade::{
-    TopologyConstructionQueryInspectionSurface, TopologyConstructionQueryMutationSurface,
+    TopologyConstructionQueryFactProvenance, TopologyConstructionQueryInspectionSurface,
+    TopologyConstructionQueryMutationSurface, TopologyConstructionQueryReadSurface,
     TopologyPrimitiveConstructionQueryAdmittedHandoff,
 };
+#[cfg(test)]
+use worth_geom::facade::{
+    PrimitiveConditioningWitness, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
+};
+#[cfg(test)]
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
-    PrimitiveRealizationReport, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
     PrimitiveSupportNormalClass,
 };
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct CanonicalPrimitiveConstructionArtifact {
     family: PrimitiveConstructionFamily,
     topology_birth_class: String,
-    realization_report: PrimitiveRealizationReport,
+    conditioning_witness: PrimitiveConditioningWitness,
+    realization_strategy: PrimitiveRealizationStrategy,
+    attempted_realization_strategies: Vec<PrimitiveRealizationStrategy>,
+    stability_class: PrimitiveStabilityClass,
+    realization_digest: String,
+    realization_geometry_digest: String,
     birth_digest: String,
     birth_completeness_digest: String,
     topology_fact_digest: String,
     mutation_surface: TopologyConstructionQueryMutationSurface,
+    read_surface: TopologyConstructionQueryReadSurface,
     inspection_surface: TopologyConstructionQueryInspectionSurface,
+    fact_provenance: TopologyConstructionQueryFactProvenance,
+    projection_receipt_digest: String,
     supported_loop_count: usize,
     supported_body_count: usize,
     artifact_digest: String,
 }
 
+#[cfg(test)]
 impl CanonicalPrimitiveConstructionArtifact {
     fn new(
         family: PrimitiveConstructionFamily,
         scaffold_digest: &str,
-        realization_report: &PrimitiveRealizationReport,
+        conditioning_witness: PrimitiveConditioningWitness,
+        realization_strategy: PrimitiveRealizationStrategy,
+        attempted_realization_strategies: Vec<PrimitiveRealizationStrategy>,
+        stability_class: PrimitiveStabilityClass,
+        realization_digest: &str,
+        realization_geometry_digest: &str,
         topology_query_admitted_handoff: &TopologyPrimitiveConstructionQueryAdmittedHandoff,
         admitted_handoff_digest: &str,
     ) -> Self {
@@ -46,27 +70,42 @@ impl CanonicalPrimitiveConstructionArtifact {
             topology_query_envelope.fact_digest().to_string(),
             topology_query_handoff.handoff_digest().to_string(),
             admitted_handoff_digest.to_string(),
-            realization_report.report_digest().to_string(),
+            topology_query_envelope.receipt_digest().to_string(),
+            realization_digest.to_string(),
+            realization_geometry_digest.to_string(),
             topology_query_envelope
                 .mutation_surface()
                 .as_str()
                 .to_string(),
+            topology_query_envelope.read_surface().as_str().to_string(),
             topology_query_envelope
                 .inspection_surface()
+                .as_str()
+                .to_string(),
+            topology_query_envelope
+                .fact_provenance()
                 .as_str()
                 .to_string(),
         ];
         Self {
             family,
             topology_birth_class: topology_query_envelope.topology_birth_class().to_string(),
-            realization_report: realization_report.clone(),
+            conditioning_witness,
+            realization_strategy,
+            attempted_realization_strategies,
+            stability_class,
+            realization_digest: realization_digest.to_string(),
+            realization_geometry_digest: realization_geometry_digest.to_string(),
             birth_digest: topology_query_handoff.source_birth_digest().to_string(),
             birth_completeness_digest: topology_query_admitted_handoff
                 .birth_completeness_digest()
                 .to_string(),
             topology_fact_digest: topology_query_envelope.fact_digest().to_string(),
             mutation_surface: topology_query_envelope.mutation_surface(),
+            read_surface: topology_query_envelope.read_surface(),
             inspection_surface: topology_query_envelope.inspection_surface(),
+            fact_provenance: topology_query_envelope.fact_provenance(),
+            projection_receipt_digest: topology_query_envelope.receipt_digest().to_string(),
             supported_loop_count: topology_query_admitted_handoff.supported_loop_count(),
             supported_body_count: topology_query_admitted_handoff.supported_body_count(),
             artifact_digest: digest_owned_parts(&parts),
@@ -79,7 +118,14 @@ impl CanonicalPrimitiveConstructionArtifact {
         Self::new(
             admitted_artifact.family(),
             admitted_artifact.scaffold_digest(),
-            admitted_artifact.realization_report(),
+            admitted_artifact.conditioning_witness().clone(),
+            admitted_artifact.realization_strategy(),
+            admitted_artifact
+                .attempted_realization_strategies()
+                .to_vec(),
+            admitted_artifact.stability_class(),
+            admitted_artifact.realization_digest(),
+            admitted_artifact.realization_geometry_digest(),
             admitted_artifact.topology_query_admitted_handoff(),
             admitted_artifact.admitted_handoff_digest(),
         )
@@ -89,76 +135,103 @@ impl CanonicalPrimitiveConstructionArtifact {
         self.family
     }
 
+    #[cfg(test)]
     pub fn topology_birth_class(&self) -> &str {
         &self.topology_birth_class
     }
 
-    pub fn realization_report(&self) -> &PrimitiveRealizationReport {
-        &self.realization_report
+    pub fn conditioning_witness(&self) -> &PrimitiveConditioningWitness {
+        &self.conditioning_witness
     }
 
     pub fn realization_strategy(&self) -> PrimitiveRealizationStrategy {
-        self.realization_report.strategy()
+        self.realization_strategy
     }
 
     pub fn attempted_realization_strategies(&self) -> &[PrimitiveRealizationStrategy] {
-        self.realization_report.attempted_strategies()
-    }
-
-    pub fn attempted_realization_strategy_count(&self) -> usize {
-        self.realization_report.attempted_strategies().len()
+        &self.attempted_realization_strategies
     }
 
     pub fn stability_class(&self) -> PrimitiveStabilityClass {
-        self.realization_report.stability_class()
+        self.stability_class
     }
 
+    #[cfg(test)]
+    pub fn realization_digest(&self) -> &str {
+        &self.realization_digest
+    }
+
+    #[cfg(test)]
+    pub fn realization_geometry_digest(&self) -> &str {
+        &self.realization_geometry_digest
+    }
+
+    #[cfg(test)]
     pub fn feature_conditioning_class(&self) -> PrimitiveFeatureConditioningClass {
-        self.realization_report()
-            .conditioning_witness()
-            .feature_conditioning_class()
+        self.conditioning_witness().feature_conditioning_class()
     }
 
+    #[cfg(test)]
     pub fn support_normal_class(&self) -> PrimitiveSupportNormalClass {
-        self.realization_report()
-            .conditioning_witness()
-            .support_normal_class()
+        self.conditioning_witness().support_normal_class()
     }
 
+    #[cfg(test)]
     pub fn normalization_disposition(&self) -> PrimitiveNormalizationDisposition {
-        self.realization_report()
-            .conditioning_witness()
-            .normalization_disposition()
+        self.conditioning_witness().normalization_disposition()
     }
 
+    #[cfg(test)]
     pub fn birth_truth_digest(&self) -> &str {
         &self.birth_digest
     }
 
+    #[cfg(test)]
     pub fn birth_completeness_digest(&self) -> &str {
         &self.birth_completeness_digest
     }
 
+    #[cfg(test)]
     pub fn topology_fact_digest(&self) -> &str {
         &self.topology_fact_digest
     }
 
+    #[cfg(test)]
     pub fn mutation_surface(&self) -> TopologyConstructionQueryMutationSurface {
         self.mutation_surface
     }
 
+    #[cfg(test)]
+    pub fn read_surface(&self) -> TopologyConstructionQueryReadSurface {
+        self.read_surface
+    }
+
+    #[cfg(test)]
     pub fn inspection_surface(&self) -> TopologyConstructionQueryInspectionSurface {
         self.inspection_surface
     }
 
+    #[cfg(test)]
+    pub fn fact_provenance(&self) -> TopologyConstructionQueryFactProvenance {
+        self.fact_provenance
+    }
+
+    #[cfg(test)]
+    pub fn projection_receipt_digest(&self) -> &str {
+        &self.projection_receipt_digest
+    }
+
+    #[cfg(test)]
     pub fn supported_loop_count(&self) -> usize {
         self.supported_loop_count
     }
 
+    #[cfg(test)]
     pub fn supported_body_count(&self) -> usize {
         self.supported_body_count
     }
 
+    #[cfg(test)]
     pub fn artifact_digest(&self) -> &str {
         &self.artifact_digest
     }
@@ -173,11 +246,11 @@ pub(crate) fn build_canonical_primitive_construction_artifact(
 
 #[cfg(test)]
 mod tests {
+    use super::super::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
+    use super::super::intent::PrimitiveConstructionIntent;
+    use super::super::request::PrimitiveConstructionFamily;
+    use super::super::specs::ShellWithHoleSpec;
     use super::build_canonical_primitive_construction_artifact;
-    use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
-    use crate::construction::intent::PrimitiveConstructionIntent;
-    use crate::construction::request::PrimitiveConstructionFamily;
-    use crate::construction::specs::ShellWithHoleSpec;
     use topology::facade::TopologyConstructionQueryInspectionSurface;
 
     #[test]
@@ -213,7 +286,16 @@ mod tests {
             artifact.inspection_surface(),
             TopologyConstructionQueryInspectionSurface::InspectReceipt
         );
+        assert_eq!(
+            artifact.read_surface(),
+            topology::facade::TopologyConstructionQueryReadSurface::ProjectionConsumptionFromInspectionReceipt
+        );
+        assert_eq!(
+            artifact.fact_provenance(),
+            topology::facade::TopologyConstructionQueryFactProvenance::InspectionBackedProjectionConsumption
+        );
         assert!(!artifact.birth_completeness_digest().is_empty());
+        assert!(!artifact.projection_receipt_digest().is_empty());
         assert!(!artifact.artifact_digest().is_empty());
     }
 }

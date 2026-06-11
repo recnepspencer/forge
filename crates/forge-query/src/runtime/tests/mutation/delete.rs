@@ -182,7 +182,7 @@ fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning()
         .expect("seed insert should execute");
     let mut preview = workspace
         .preview_with_options(
-            "task-preview-delete-with",
+            test_session_label("task-preview-delete-with"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview should open");

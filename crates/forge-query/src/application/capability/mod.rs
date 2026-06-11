@@ -1,6 +1,8 @@
 mod errors;
 mod facade;
 mod resolution;
+#[cfg(test)]
+mod tests;
 mod witnesses;
 
 pub use errors::{

@@ -4,6 +4,8 @@ use crate::authoring::{
 };
 use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
 
+mod saved_reuse;
+
 use super::{
     admit_policy_tenant_context, classify_saved_query_policy_tenant_reuse,
     runtime_backed_policy_tenant_admission_support_profile, BranchAccessGrant,

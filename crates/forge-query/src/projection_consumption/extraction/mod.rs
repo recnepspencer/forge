@@ -1,17 +1,21 @@
 mod aspect_value_projection;
 mod grouped;
+mod live_binding;
 mod query_context;
+mod retained_binding;
 mod row_like;
+mod write_receipt;
 
-use super::consumed::{
-    ConsumedEffectContinuityFact, ConsumedProjectionFactSet, ConsumedRelationEndpointFact,
-    ConsumedSourceReferenceFact, ConsumedTargetIdentityFact, ProjectionFactExtractionCounters,
-};
+use super::consumed::{ConsumedProjectionFactSet, ConsumedSourceReferenceFact};
 use super::contracts::MaterializedProjectionContract;
 use super::facts::ProjectionFactKind;
 use super::source::ProjectionSourceFamily;
+use super::source::ProjectionSourceReferenceIdentity;
 use crate::query_context::QueryContextExecutionArtifact;
-use crate::runtime::{ForgeQueryLiveReadResult, ForgeQueryReadResult, ForgeQueryWriteReceipt};
+use crate::runtime::{
+    ForgeQueryDerivedArtifactBinding, ForgeQueryLiveArtifactBinding, ForgeQueryLiveReadResult,
+    ForgeQueryReadResult, ForgeQueryWriteReceipt,
+};
 use forge_relational::facade::grouped_truth::{
     RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
@@ -162,115 +166,25 @@ impl MaterializedProjectionContract {
         query_context::extract_query_context_facts(self, execution)
     }
 
+    pub fn extract_from_retained_derived_artifact_binding(
+        &self,
+        binding: &ForgeQueryDerivedArtifactBinding,
+    ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
+        retained_binding::extract_retained_binding_facts(self, binding)
+    }
+
+    pub fn extract_from_live_artifact_binding(
+        &self,
+        binding: &ForgeQueryLiveArtifactBinding,
+    ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
+        live_binding::extract_live_binding_facts(self, binding)
+    }
+
     pub fn extract_from_write_receipt(
         &self,
         receipt: &ForgeQueryWriteReceipt,
     ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
-        ensure_contract_family(self, ProjectionSourceFamily::QueryWriteReceipt)?;
-        ensure_source_identity(self.source_identity(), receipt.commit_identity())?;
-
-        let mut target_identities = Vec::new();
-        let mut source_references = Vec::new();
-        let mut effect_continuity_facts = Vec::new();
-        let mut relation_endpoints = Vec::new();
-        let mut evidence_lookup_width = 0;
-
-        for fact_family in self.fact_families() {
-            match fact_family.kind() {
-                ProjectionFactKind::TargetIdentity => {
-                    evidence_lookup_width += 1;
-                    let Some(identity) = receipt.target_entity_identity() else {
-                        return Err(ProjectionFactExtractionError::MissingWriteReceiptEvidence {
-                            source_identity: receipt.commit_identity().to_string(),
-                            fact_kind: ProjectionFactKind::TargetIdentity,
-                        });
-                    };
-                    target_identities.push(ConsumedTargetIdentityFact::new(identity));
-                }
-                ProjectionFactKind::SourceReference => {
-                    evidence_lookup_width += 1;
-                    source_references = write_receipt_source_references(receipt);
-                }
-                ProjectionFactKind::EffectContinuity => {
-                    evidence_lookup_width += 1;
-                    let Some(continuity) = receipt.continuity_mutation_evidence() else {
-                        return Err(ProjectionFactExtractionError::MissingWriteReceiptEvidence {
-                            source_identity: receipt.commit_identity().to_string(),
-                            fact_kind: ProjectionFactKind::EffectContinuity,
-                        });
-                    };
-                    effect_continuity_facts.push(ConsumedEffectContinuityFact::new(
-                        continuity.family(),
-                        continuity.outcome_class(),
-                        continuity.prior_authoritative_identity(),
-                        continuity.successor_authoritative_identities().to_vec(),
-                        continuity
-                            .resolved_target_entity_identity()
-                            .map(str::to_string),
-                        continuity.target_collection().map(str::to_string),
-                        continuity.lineage_digest(),
-                        continuity.continuity_resolution_digest(),
-                    ));
-                }
-                ProjectionFactKind::RelationEndpoint => {
-                    evidence_lookup_width += 1;
-                    let resolved = receipt.target_evidence().resolved();
-                    if resolved.collection().is_none() || resolved.entity_identity().is_none() {
-                        return Err(ProjectionFactExtractionError::MissingWriteReceiptEvidence {
-                            source_identity: receipt.commit_identity().to_string(),
-                            fact_kind: ProjectionFactKind::RelationEndpoint,
-                        });
-                    }
-                    relation_endpoints.push(ConsumedRelationEndpointFact::new(
-                        resolved.target_class(),
-                        resolved.collection().map(str::to_string),
-                        resolved.entity_identity().map(str::to_string),
-                    ));
-                }
-                ProjectionFactKind::EntityIdentity
-                | ProjectionFactKind::ViewLocalIdentity
-                | ProjectionFactKind::Membership
-                | ProjectionFactKind::DisplayField
-                | ProjectionFactKind::DerivedScalarField => {}
-            }
-        }
-
-        if !source_reference_inventory_matches(self, &source_references) {
-            return Err(
-                ProjectionFactExtractionError::SourceReferenceEvidenceMismatch {
-                    expected_count: self.source_reference_identities().len(),
-                    actual_count: source_references.len(),
-                },
-            );
-        }
-
-        Ok(ConsumedProjectionFactSet::new(
-            self.declaration_digest(),
-            self.contract_digest(),
-            self.source_family(),
-            self.source_identity(),
-            self.support_posture().clone(),
-            self.materialized_fact_posture().cloned(),
-            ProjectionFactExtractionCounters::new(
-                self.fact_families().len(),
-                self.fact_families().len(),
-                target_identities.len()
-                    + source_references.len()
-                    + effect_continuity_facts.len()
-                    + relation_endpoints.len(),
-                0,
-                evidence_lookup_width,
-            ),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            target_identities,
-            source_references,
-            effect_continuity_facts,
-            relation_endpoints,
-        ))
+        write_receipt::extract_write_receipt_facts(self, receipt)
     }
 }
 
@@ -336,32 +250,12 @@ pub(super) fn ensure_source_identity(
     }
 }
 
-fn write_receipt_source_references(
-    receipt: &ForgeQueryWriteReceipt,
-) -> Vec<ConsumedSourceReferenceFact> {
-    let mut references = Vec::new();
-    if let Some(provenance) = receipt.provenance_evidence() {
-        references.push(ConsumedSourceReferenceFact::new(
-            "bridge_provenance_execution_record",
-            provenance.execution_record_digest(),
-        ));
-    }
-    if let Some(symbolic) = receipt.symbolic_target_reference_evidence() {
-        references.push(ConsumedSourceReferenceFact::new(
-            "symbolic_target_reference",
-            symbolic.symbol(),
-        ));
-    }
-    references
-}
-
-fn source_reference_inventory_matches(
-    contract: &MaterializedProjectionContract,
+pub(super) fn source_reference_inventory_matches(
+    expected: &[ProjectionSourceReferenceIdentity],
     actual: &[ConsumedSourceReferenceFact],
 ) -> bool {
-    contract.source_reference_identities().len() == actual.len()
-        && contract
-            .source_reference_identities()
+    expected.len() == actual.len()
+        && expected
             .iter()
             .zip(actual.iter())
             .all(|(expected, actual)| {

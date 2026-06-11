@@ -1,37 +1,61 @@
-error[E0451]: fields `label`, `kind`, `effect_policy`, `basis_evidence`, `preview_binding_count`, `live_binding_count`, `computed_binding_count`, `effect_binding_count`, `subscription_residue_count`, `derived_runtime_residue_count`, `effect_delivery_residue_count`, `pending_write_intent_residue_count`, `preview_write_staging_count`, `promoted_write_count`, `authoritative_residue_count` and `closeout_digest` of struct `ForgeQueryPreviewCloseoutEvidence` are private
-  --> tests/ui/runtime_preview_closeout_evidence_constructor_private.rs:7:9
+error: cannot construct `ForgeQueryPreviewCloseoutEvidence` with struct literal syntax due to private fields
+  --> tests/ui/runtime_preview_closeout_evidence_constructor_private.rs:6:19
    |
  6 |     let _forged = ForgeQueryPreviewCloseoutEvidence {
-   |                   --------------------------------- in this type
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  7 |         label: "preview".to_string(),
-   |         ^^^^^ private field
+   |         ---------------------------- private field
  8 |         kind: ForgeQueryPreviewCloseoutKind::Discarded,
-   |         ^^^^ private field
+   |         ---------------------------------------------- private field
  9 |         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-   |         ^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------- private field
 10 |         basis_evidence: Vec::new(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         -------------------------- private field
 11 |         preview_binding_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------ private field
 12 |         live_binding_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------- private field
 13 |         computed_binding_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------- private field
 14 |         effect_binding_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------- private field
 15 |         subscription_residue_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------- private field
 16 |         derived_runtime_residue_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------- private field
 17 |         effect_delivery_residue_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------- private field
 18 |         pending_write_intent_residue_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------- private field
 19 |         preview_write_staging_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------ private field
 20 |         promoted_write_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------- private field
 21 |         authoritative_residue_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------ private field
 22 |         closeout_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ------------------------------ private field
+   |
+   = note: ...and other private fields that were not provided
+help: you might have meant to use the `new` associated function
+   |
+ 6 -     let _forged = ForgeQueryPreviewCloseoutEvidence {
+ 7 -         label: "preview".to_string(),
+ 8 -         kind: ForgeQueryPreviewCloseoutKind::Discarded,
+ 9 -         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
+10 -         basis_evidence: Vec::new(),
+11 -         preview_binding_count: 0,
+12 -         live_binding_count: 0,
+13 -         computed_binding_count: 0,
+14 -         effect_binding_count: 0,
+15 -         subscription_residue_count: 0,
+16 -         derived_runtime_residue_count: 0,
+17 -         effect_delivery_residue_count: 0,
+18 -         pending_write_intent_residue_count: 0,
+19 -         preview_write_staging_count: 0,
+20 -         promoted_write_count: 0,
+21 -         authoritative_residue_count: 0,
+22 -         closeout_digest: String::new(),
+23 -     };
+ 6 +     let _forged = ForgeQueryPreviewCloseoutEvidence::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _);
+   |

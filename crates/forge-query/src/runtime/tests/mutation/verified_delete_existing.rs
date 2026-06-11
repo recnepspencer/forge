@@ -309,7 +309,7 @@ fn preview_delete_existing_verified_requires_authoritative_lane() {
         })
         .expect("seed insert should execute");
     let mut preview = workspace
-        .preview("delete-existing-verified-preview")
+        .preview(test_session_label("delete-existing-verified-preview"))
         .expect("preview should open");
     let binding = preview
         .bind_existing_entity(
@@ -331,10 +331,13 @@ fn preview_delete_existing_verified_requires_authoritative_lane() {
         )
         .expect_err("preview verified delete should require authoritative lane");
 
-    match error {
-        ForgeQueryRuntimeError::UnsupportedAuthority(message) => {
-            assert!(message.contains("authoritative lane"));
+    match error.stop_class() {
+        ForgeQueryStopClass::UnsupportedAuthority { authority } => {
+            assert_eq!(
+                authority,
+                "existing-truth assertion currently requires the authoritative lane"
+            );
         }
-        other => panic!("expected unsupported authority denial, got {other:?}"),
+        other => panic!("expected unsupported authority stop class, got {other:?}"),
     }
 }

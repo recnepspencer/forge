@@ -316,6 +316,34 @@ What this enables:
 - UI source gets normal repository benefits: version control, code review,
   formatting, search, and branch comparison
 
+#### Rust-native composition escape hatch
+
+Technical role:
+Worth UI should also expose a pure Rust composition path for teams that want
+native Rust authoring, macro-backed composition, generated UI structures, or
+advanced cases where an external source format would add friction. This path
+must produce the same canonical UI source or artifact meaning as file-authored
+UI, pass through the same capability registries, and lower into the same
+runtime plans.
+
+This is an escape hatch for UI structure, not arbitrary Rust-code hot patching.
+New behavior, custom widgets, native integrations, Query declarations, and
+performance-sensitive rendering still belong in compiled Rust capability
+registration. The Rust-authored composition path is hot-reload-compatible only
+where it produces replaceable artifact input for the running Worth runtime.
+
+What this enables:
+
+- Rust-first teams can stay entirely inside Rust without giving up canonical
+  artifacts, inspection, diagnostics, stable identity, or plan swaps
+- generated UI and advanced app shells can use ordinary Rust tooling while
+  remaining visible to Worth UI as platform-owned artifacts
+- the easiest path for serious apps is the Worth runtime path, where UI
+  composition, Query bindings, shell state, diagnostics, and plan swaps share
+  one coherent host
+- external or adapter-hosted usage can remain possible without becoming the
+  primary development story or weakening runtime-owned hot reload
+
 #### Capability registries
 
 Technical role:
@@ -342,6 +370,11 @@ artifact before rendering. That artifact carries stable IDs, component
 references, command bindings, Query/view bindings, accessibility metadata,
 theme-token references, layout intent, plugin contribution references, and
 diagnostics.
+
+Both file-authored UI and Rust-authored composition must converge here. The
+runtime should not need to know whether artifact input came from a `.worth-ui`
+source file, a Rust builder, generated Rust, or a macro expansion once lowering
+has produced canonical meaning.
 
 What this enables:
 
@@ -396,6 +429,12 @@ lower, plan, and atomic-swap pipeline. Reload work happens off the ordinary
 frame path where possible. A valid new execution plan replaces the old one only
 at a safe frame boundary; invalid reloads keep the previous plan active.
 
+The primary host for this pipeline is the running Worth runtime. The runtime
+owns the watched artifact inputs, active artifact, stable identity map,
+reconciliation state, diagnostics surface, and execution-plan swap boundary.
+This is what makes hot reload feel like product iteration instead of a build
+tool wrapped around `egui`.
+
 What this enables:
 
 - common UI changes appear in the running app within tens of milliseconds
@@ -408,7 +447,8 @@ What this enables:
 Technical role:
 Worth UI must separate high-churn composition from low-churn compiled behavior.
 The hot lane is runtime-reloadable UI composition. The cold lane is compiled
-Rust behavior.
+Rust behavior. The hot lane may be authored in a dedicated UI source format or
+through Rust APIs that emit the same canonical artifact input.
 
 Hot lane:
 
@@ -421,6 +461,7 @@ Hot lane:
 - forms and validation presentation
 - component props and variants
 - simple visibility and binding expressions
+- Rust-authored composition that produces replaceable canonical artifact input
 
 Cold lane:
 
@@ -438,6 +479,8 @@ What this enables:
 - Worth UI avoids using Rust compilation for the parts of UI work where compile
   time is pure iteration friction
 - compiled Rust remains the authority for behavior and capability definition
+- the Rust escape hatch strengthens the platform path instead of creating a
+  separate UI runtime
 - teams can tune visual and product structure quickly without weakening the
   platform's type and runtime discipline
 - granular crate topology still matters, but high-frequency UI shaping no

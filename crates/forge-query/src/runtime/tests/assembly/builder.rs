@@ -25,6 +25,8 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         error,
         ForgeQueryRuntimeError::MissingRuntimeBridge
     ));
+    assert!(error.to_string().contains("runtime_bridge(...)"));
+    assert!(error.to_string().contains("build_backend_from_parts()"));
 
     let error = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
@@ -38,6 +40,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         error,
         ForgeQueryRuntimeError::MissingSchemaAdapter
     ));
+    assert!(error.to_string().contains("schema_adapter(...)"));
 
     let error = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
@@ -52,6 +55,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         error,
         ForgeQueryRuntimeError::MissingSourceAdapter
     ));
+    assert!(error.to_string().contains("source_adapter(...)"));
 
     let error = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
@@ -67,6 +71,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         error,
         ForgeQueryRuntimeError::MissingWriteAuthority
     ));
+    assert!(error.to_string().contains("write_authority(...)"));
 
     let error = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
@@ -80,6 +85,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         Err(error) => error,
     };
     assert!(matches!(error, ForgeQueryRuntimeError::MissingSignalSink));
+    assert!(error.to_string().contains("signal_sink(...)"));
 
     let error = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
@@ -97,6 +103,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         error,
         ForgeQueryRuntimeError::MissingSubscriptionActivation
     ));
+    assert!(error.to_string().contains("subscription_activation(...)"));
 
     let error = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
@@ -112,6 +119,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         Err(error) => error,
     };
     assert!(matches!(error, ForgeQueryRuntimeError::MissingPreviewBasis));
+    assert!(error.to_string().contains("preview_basis(...)"));
 
     let error = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
@@ -131,6 +139,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         error,
         ForgeQueryRuntimeError::MissingInspectorEvidence
     ));
+    assert!(error.to_string().contains("inspector_evidence(...)"));
 }
 
 #[test]
@@ -250,7 +259,7 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
     }
     {
         let preview = runtime
-            .try_preview("external preview")
+            .try_preview(test_session_label("external preview"))
             .expect("preview basis adapter should admit preview basis");
         assert_eq!(preview.basis_admission().label(), "external preview");
         assert_eq!(

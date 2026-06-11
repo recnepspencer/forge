@@ -7,12 +7,16 @@ use worth_primitives::{
     PrimitiveWitnessDescriptor,
 };
 
-use crate::facade::bindings::{
-    attach_parameter_space_point_to_face, evaluate_continuity, rebind_surface_on_face,
-    AnchorCarrierOwnership, BindingContinuityClass, CarrierOwnedParameterPointAnchorSpec,
-    FaceBindingSite, FaceSurfaceBindingSpec, LocalTopologyReplacementNeighborhood,
-    NeighborhoodBindingFamily, RebindingOutcomeClass, ReplacementCandidate,
-    ReplacementCandidateSet, SpatialAdmittedPrimitiveBinding,
+use crate::bindings::anchors::{AnchorCarrierOwnership, CarrierOwnedParameterPointAnchorSpec};
+use crate::bindings::authority::{FaceBindingSite, FaceSurfaceBindingSpec};
+use crate::bindings::query_native_anchor_binding_authoring::{
+    author_primitive_anchor_binding_declaration, AuthorPrimitiveAnchorBindingIntent,
+};
+use crate::bindings::query_native_declared_target_identity_fact::anchor_binding_declaration_fact;
+use crate::bindings::rebinding::{
+    evaluate_continuity_internal as evaluate_continuity, BindingContinuityClass,
+    LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily, RebindingOutcomeClass,
+    ReplacementCandidateSet,
 };
 
 fn triaxial_ellipsoid_geometry(
@@ -41,15 +45,16 @@ fn triaxial_ellipsoid_geometry(
     )
 }
 
-fn anchored_face_binding(
+fn anchored_face_binding_declaration(
     face_id: &str,
     geometry_identity: PrimitiveGeometryIdentityBundle,
-) -> SpatialAdmittedPrimitiveBinding {
+) -> crate::bindings::query_native_anchor_binding_authoring::PrimitiveAnchorBindingDeclarationEntry
+{
     let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
         &PrimitiveWitnessDescriptor::Orthotope,
     );
-    SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(
-        attach_parameter_space_point_to_face(
+    author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_face(
             FaceSurfaceBindingSpec::new(FaceBindingSite::new(face_id), contract, geometry_identity),
             CarrierOwnedParameterPointAnchorSpec::new(
                 AnchorCarrierOwnership::for_face_surface(
@@ -60,14 +65,13 @@ fn anchored_face_binding(
                 ParameterSpacePoint::try_new([0.25, 0.4]).expect("parameter"),
             )
             .expect("anchor spec"),
-        )
-        .expect("anchored face binding"),
+        ),
     )
 }
 
 #[test]
 fn triaxial_ellipsoid_breaks_symmetry_dependent_binding_identity_and_anchor_reuse() {
-    let canonical = anchored_face_binding(
+    let canonical_declaration = anchored_face_binding_declaration(
         "face-ellipsoid",
         triaxial_ellipsoid_geometry(
             [1.0, 0.0, 0.0],
@@ -76,7 +80,9 @@ fn triaxial_ellipsoid_breaks_symmetry_dependent_binding_identity_and_anchor_reus
             [5.0, 3.0, 2.0],
         ),
     );
-    let axis_swapped = anchored_face_binding(
+    let canonical_fact =
+        anchor_binding_declaration_fact(&canonical_declaration).expect("canonical fact");
+    let axis_swapped_declaration = anchored_face_binding_declaration(
         "face-ellipsoid",
         triaxial_ellipsoid_geometry(
             [1.0, 0.0, 0.0],
@@ -85,32 +91,44 @@ fn triaxial_ellipsoid_breaks_symmetry_dependent_binding_identity_and_anchor_reus
             [5.0, 2.0, 3.0],
         ),
     );
+    let axis_swapped_fact =
+        anchor_binding_declaration_fact(&axis_swapped_declaration).expect("axis-swapped fact");
     let neighborhood = LocalTopologyReplacementNeighborhood::new(
         NeighborhoodBindingFamily::FaceSurfacePointAnchor,
         "face-ellipsoid",
-        ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+        ReplacementCandidateSet::new(vec![super::rebinding_candidate_from_anchor_declaration(
             "axis-swapped",
-            axis_swapped.clone(),
+            &axis_swapped_declaration,
+            "asymmetric-pressure-axis-swapped-candidate",
         )
         .expect("candidate")])
         .expect("candidate set"),
     )
     .expect("neighborhood");
 
-    assert_eq!(canonical.completeness().is_complete(), true);
-    assert_eq!(axis_swapped.completeness().is_complete(), true);
-    assert_ne!(canonical.identity(), axis_swapped.identity());
+    assert!(canonical_fact.completeness().is_complete());
+    assert!(axis_swapped_fact.completeness().is_complete());
+    assert_ne!(
+        canonical_fact.binding_identity().as_str(),
+        axis_swapped_fact.binding_identity().as_str()
+    );
     assert_eq!(
-        evaluate_continuity(&canonical, &neighborhood)
-            .expect("continuity")
-            .continuity_class(),
+        evaluate_continuity(
+            &super::rebinding_prior_fact_from_anchor_declaration(
+                &canonical_declaration,
+                "asymmetric-pressure-canonical-prior",
+            ),
+            &neighborhood,
+        )
+        .expect("continuity")
+        .continuity_class(),
         BindingContinuityClass::CorrespondenceOnly
     );
 }
 
 #[test]
 fn triaxial_ellipsoid_rebinding_and_continuity_do_not_reuse_axis_interchange_shortcuts() {
-    let prior = anchored_face_binding(
+    let prior_declaration = anchored_face_binding_declaration(
         "face-ellipsoid",
         triaxial_ellipsoid_geometry(
             [1.0, 0.0, 0.0],
@@ -119,7 +137,7 @@ fn triaxial_ellipsoid_rebinding_and_continuity_do_not_reuse_axis_interchange_sho
             [5.0, 3.0, 2.0],
         ),
     );
-    let exact = anchored_face_binding(
+    let exact_declaration = anchored_face_binding_declaration(
         "face-ellipsoid",
         triaxial_ellipsoid_geometry(
             [1.0, 0.0, 0.0],
@@ -128,7 +146,7 @@ fn triaxial_ellipsoid_rebinding_and_continuity_do_not_reuse_axis_interchange_sho
             [5.0, 3.0, 2.0],
         ),
     );
-    let axis_swapped = anchored_face_binding(
+    let axis_swapped_declaration = anchored_face_binding_declaration(
         "face-ellipsoid",
         triaxial_ellipsoid_geometry(
             [1.0, 0.0, 0.0],
@@ -137,28 +155,43 @@ fn triaxial_ellipsoid_rebinding_and_continuity_do_not_reuse_axis_interchange_sho
             [5.0, 2.0, 3.0],
         ),
     );
+    let prior_identity = anchor_binding_declaration_fact(&prior_declaration)
+        .expect("prior fact")
+        .binding_identity()
+        .as_str()
+        .to_string();
 
-    let exact_decision = rebind_surface_on_face(
-        prior.clone(),
+    let exact_decision = super::rebind_surface_on_face_from_fact(
+        super::rebinding_prior_fact_from_anchor_declaration(
+            &prior_declaration,
+            "asymmetric-pressure-exact-prior",
+        ),
         LocalTopologyReplacementNeighborhood::new(
             NeighborhoodBindingFamily::FaceSurfacePointAnchor,
             "face-ellipsoid",
-            ReplacementCandidateSet::new(vec![
-                ReplacementCandidate::new("exact", exact.clone()).expect("candidate")
-            ])
+            ReplacementCandidateSet::new(vec![super::rebinding_candidate_from_anchor_declaration(
+                "exact",
+                &exact_declaration,
+                "asymmetric-pressure-exact-candidate",
+            )
+            .expect("candidate")])
             .expect("candidate set"),
         )
         .expect("exact neighborhood"),
     )
     .expect("exact decision");
-    let axis_swapped_decision = rebind_surface_on_face(
-        prior.clone(),
+    let axis_swapped_decision = super::rebind_surface_on_face_from_fact(
+        super::rebinding_prior_fact_from_anchor_declaration(
+            &prior_declaration,
+            "asymmetric-pressure-swapped-prior",
+        ),
         LocalTopologyReplacementNeighborhood::new(
             NeighborhoodBindingFamily::FaceSurfacePointAnchor,
             "face-ellipsoid",
-            ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+            ReplacementCandidateSet::new(vec![super::rebinding_candidate_from_anchor_declaration(
                 "axis-swapped",
-                axis_swapped.clone(),
+                &axis_swapped_declaration,
+                "asymmetric-pressure-swapped-candidate",
             )
             .expect("candidate")])
             .expect("candidate set"),
@@ -176,11 +209,11 @@ fn triaxial_ellipsoid_rebinding_and_continuity_do_not_reuse_axis_interchange_sho
         RebindingOutcomeClass::CorrespondenceOnly
     );
     assert_eq!(
-        axis_swapped_decision.explanation().continuity_class(),
+        axis_swapped_decision.continuity_class(),
         BindingContinuityClass::CorrespondenceOnly
     );
     assert_ne!(
-        prior.identity(),
-        axis_swapped_decision.selected_binding().unwrap().identity()
+        prior_identity.as_str(),
+        axis_swapped_decision.selected_candidate_identity().unwrap()
     );
 }

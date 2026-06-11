@@ -1,28 +1,29 @@
-use crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding;
-use crate::spatial_intent::{AdmittedSpatialMove, AdmittedSpatialReorient, AdmittedSpatialRotate};
+#[cfg(test)]
+use crate::bindings::query_native_rebinding_prior_fact::PrimitiveRebindingPriorBindingFact;
 
+#[cfg(test)]
 use super::SpatialRebindingAuthorityError;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum BindingMotionSemanticsInput<'a> {
-    Move(&'a AdmittedSpatialMove),
-    Rotate(&'a AdmittedSpatialRotate),
-    Reorient(&'a AdmittedSpatialReorient),
+pub enum BindingMotionSemanticsInput {
+    Move,
+    Rotate { angle_radians: f64 },
+    Reorient,
     InvalidatedByLocalTopologyReplacement,
     UnresolvedWithoutMotionWorkflow,
 }
 
-impl<'a> BindingMotionSemanticsInput<'a> {
-    pub fn for_move(motion: &'a AdmittedSpatialMove) -> Self {
-        Self::Move(motion)
+impl BindingMotionSemanticsInput {
+    pub fn moved_with_carrier() -> Self {
+        Self::Move
     }
 
-    pub fn for_rotate(motion: &'a AdmittedSpatialRotate) -> Self {
-        Self::Rotate(motion)
+    pub fn rotated_with_carrier(angle_radians: f64) -> Self {
+        Self::Rotate { angle_radians }
     }
 
-    pub fn for_reorient(motion: &'a AdmittedSpatialReorient) -> Self {
-        Self::Reorient(motion)
+    pub fn reoriented_with_carrier() -> Self {
+        Self::Reorient
     }
 
     pub fn invalidated_by_local_topology_replacement() -> Self {
@@ -42,47 +43,28 @@ pub enum MotionAwareBindingPosture {
     Unresolved,
 }
 
-pub fn evaluate_binding_motion_posture(
-    prior_binding: &SpatialAdmittedPrimitiveBinding,
-    motion: BindingMotionSemanticsInput<'_>,
+#[cfg(test)]
+pub(crate) fn evaluate_binding_motion_posture(
+    _prior_binding: &PrimitiveRebindingPriorBindingFact,
+    motion: BindingMotionSemanticsInput,
 ) -> Result<MotionAwareBindingPosture, SpatialRebindingAuthorityError> {
-    match prior_binding {
-        SpatialAdmittedPrimitiveBinding::FaceSurface(_)
-        | SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(_)
-        | SpatialAdmittedPrimitiveBinding::FaceSurfaceDirectionAnchor(_) => {
-            evaluate_carrier_bound_motion_posture(motion)
-        }
-        SpatialAdmittedPrimitiveBinding::EdgeCurve(_)
-        | SpatialAdmittedPrimitiveBinding::EdgeCurvePointAnchor(_)
-        | SpatialAdmittedPrimitiveBinding::EdgeCurveDirectionAnchor(_) => {
-            evaluate_carrier_bound_motion_posture(motion)
-        }
-        SpatialAdmittedPrimitiveBinding::CoedgePCurve(_)
-        | SpatialAdmittedPrimitiveBinding::CoedgePCurvePointAnchor(_)
-        | SpatialAdmittedPrimitiveBinding::CoedgePCurveDirectionAnchor(_) => {
-            evaluate_carrier_bound_motion_posture(motion)
-        }
-        SpatialAdmittedPrimitiveBinding::VertexGeometry(_) => {
-            evaluate_carrier_bound_motion_posture(motion)
-        }
-    }
+    evaluate_carrier_bound_motion_posture(motion)
 }
 
+#[cfg(test)]
 fn evaluate_carrier_bound_motion_posture(
-    motion: BindingMotionSemanticsInput<'_>,
+    motion: BindingMotionSemanticsInput,
 ) -> Result<MotionAwareBindingPosture, SpatialRebindingAuthorityError> {
     match motion {
-        BindingMotionSemanticsInput::Move(_) => {
-            Ok(MotionAwareBindingPosture::TransformedWithCarrier)
-        }
-        BindingMotionSemanticsInput::Rotate(motion) => {
-            if motion.spec().angle_radians().abs() <= f64::EPSILON {
+        BindingMotionSemanticsInput::Move => Ok(MotionAwareBindingPosture::TransformedWithCarrier),
+        BindingMotionSemanticsInput::Rotate { angle_radians } => {
+            if angle_radians.abs() <= f64::EPSILON {
                 Ok(MotionAwareBindingPosture::Preserved)
             } else {
                 Ok(MotionAwareBindingPosture::TransformedWithCarrier)
             }
         }
-        BindingMotionSemanticsInput::Reorient(_) => Ok(MotionAwareBindingPosture::Unresolved),
+        BindingMotionSemanticsInput::Reorient => Ok(MotionAwareBindingPosture::Unresolved),
         BindingMotionSemanticsInput::InvalidatedByLocalTopologyReplacement => {
             Ok(MotionAwareBindingPosture::Invalidated)
         }

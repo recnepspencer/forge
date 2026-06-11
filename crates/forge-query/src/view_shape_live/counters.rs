@@ -14,7 +14,6 @@ pub struct ViewShapeLiveCounters {
     grouped_delta_row_count: usize,
     grouped_membership_transition_count: usize,
     grouped_lane_count: usize,
-    grouped_full_regroup_denial_count: usize,
     observed_inspector_delivery_width: usize,
     focused_inspector_aspect_focus_width: usize,
     focused_inspector_projection_width: usize,
@@ -86,10 +85,6 @@ impl ViewShapeLiveCounters {
         self.grouped_lane_count = value;
     }
 
-    pub(crate) fn add_grouped_full_regroup_denial(&mut self) {
-        self.grouped_full_regroup_denial_count += 1;
-    }
-
     pub(crate) fn add_focused_inspector_widening_denial(&mut self) {
         self.focused_inspector_widening_denial_count += 1;
     }
@@ -148,10 +143,6 @@ impl ViewShapeLiveCounters {
 
     pub fn grouped_lane_count(&self) -> usize {
         self.grouped_lane_count
-    }
-
-    pub fn grouped_full_regroup_denial_count(&self) -> usize {
-        self.grouped_full_regroup_denial_count
     }
 
     pub fn observed_inspector_delivery_width(&self) -> usize {

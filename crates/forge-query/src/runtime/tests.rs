@@ -8,6 +8,9 @@ mod causal_inspection;
 mod computed;
 #[allow(deprecated)]
 mod effect;
+mod evidence_identity;
+mod hostile_read_bootstrap;
+mod identity_boundary;
 #[allow(deprecated)]
 mod intent;
 mod intent_admission;
@@ -24,3 +27,5 @@ mod mutation;
 mod preview;
 mod program;
 mod read_composition;
+mod session_label;
+mod stop_class;

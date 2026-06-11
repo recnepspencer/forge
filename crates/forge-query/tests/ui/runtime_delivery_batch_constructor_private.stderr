@@ -1,23 +1,40 @@
-error[E0451]: fields `view_name`, `authority_lane`, `delivery_batch_digest`, `delivery_window_digest`, `consumer_attachment_digest`, `sequence`, `patch_group_kind`, `patch_group_digest` and `patch_group_width` of struct `ForgeQueryRuntimeDeliveryBatch` are private
-  --> tests/ui/runtime_delivery_batch_constructor_private.rs:5:9
+error: cannot construct `ForgeQueryRuntimeDeliveryBatch` with struct literal syntax due to private fields
+  --> tests/ui/runtime_delivery_batch_constructor_private.rs:4:13
    |
  4 |     let _ = ForgeQueryRuntimeDeliveryBatch {
-   |             ------------------------------ in this type
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  5 |         view_name: String::new(),
-   |         ^^^^^^^^^ private field
+   |         ------------------------ private field
  6 |         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         ^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------------------------- private field
  7 |         delivery_batch_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------ private field
  8 |         delivery_window_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------- private field
  9 |         consumer_attachment_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------- private field
 10 |         sequence: 0,
-   |         ^^^^^^^^ private field
+   |         ----------- private field
 11 |         patch_group_kind: QueryPatchGroupKind::DetailFieldPatchGroup,
-   |         ^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------------ private field
 12 |         patch_group_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------------- private field
 13 |         patch_group_width: 0,
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         -------------------- private field
+   |
+   = note: ...and other private fields `delivery_cause_kind`, `delivery_cause_digest`, `has_relational_patch` and `mixed_cause_delivery` that were not provided
+help: you might have meant to use the `from_query_delivery` associated function
+   |
+ 4 -     let _ = ForgeQueryRuntimeDeliveryBatch {
+ 5 -         view_name: String::new(),
+ 6 -         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+ 7 -         delivery_batch_digest: String::new(),
+ 8 -         delivery_window_digest: String::new(),
+ 9 -         consumer_attachment_digest: String::new(),
+10 -         sequence: 0,
+11 -         patch_group_kind: QueryPatchGroupKind::DetailFieldPatchGroup,
+12 -         patch_group_digest: String::new(),
+13 -         patch_group_width: 0,
+14 -     };
+ 4 +     let _ = ForgeQueryRuntimeDeliveryBatch::from_query_delivery(_, _);
+   |

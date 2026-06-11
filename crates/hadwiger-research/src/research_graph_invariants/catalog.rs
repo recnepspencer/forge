@@ -74,7 +74,7 @@ pub struct ResearchGraphInvariantCounters {
     checked_rules: usize,
     violation_count: usize,
     denied_runtime_targets: usize,
-    registration_blocked_rules: usize,
+    registration_ready_rules: usize,
     breadth_inspected: usize,
 }
 
@@ -83,14 +83,14 @@ impl ResearchGraphInvariantCounters {
         checked_rules: usize,
         violation_count: usize,
         denied_runtime_targets: usize,
-        registration_blocked_rules: usize,
+        registration_ready_rules: usize,
         breadth_inspected: usize,
     ) -> Self {
         Self {
             checked_rules,
             violation_count,
             denied_runtime_targets,
-            registration_blocked_rules,
+            registration_ready_rules,
             breadth_inspected,
         }
     }
@@ -107,8 +107,8 @@ impl ResearchGraphInvariantCounters {
         self.denied_runtime_targets
     }
 
-    pub fn registration_blocked_rules(&self) -> usize {
-        self.registration_blocked_rules
+    pub fn registration_ready_rules(&self) -> usize {
+        self.registration_ready_rules
     }
 
     pub fn breadth_inspected(&self) -> usize {
@@ -117,11 +117,11 @@ impl ResearchGraphInvariantCounters {
 
     pub(crate) fn stable_token(&self) -> String {
         format!(
-            "checked={};violations={};denied={};blocked={};breadth={}",
+            "checked={};violations={};denied={};ready={};breadth={}",
             self.checked_rules,
             self.violation_count,
             self.denied_runtime_targets,
-            self.registration_blocked_rules,
+            self.registration_ready_rules,
             self.breadth_inspected
         )
     }
@@ -289,7 +289,7 @@ impl ResearchGraphInvariantCompatibilitySurfaces {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ResearchGraphInvariantRegistrationPosture {
-    BlockedDraft,
+    CustomInvariantRegistrationsReady,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -300,7 +300,7 @@ pub struct ResearchGraphInvariantRegistrationPlan {
 }
 
 impl ResearchGraphInvariantRegistrationPlan {
-    pub(crate) fn blocked_draft(
+    pub(crate) fn custom_invariant_registrations_ready(
         catalog: &HadwigerResearchInvariantCatalog,
     ) -> Result<Self, HadwigerArtifactShapeError> {
         let compatible_query_surfaces =
@@ -316,7 +316,7 @@ impl ResearchGraphInvariantRegistrationPlan {
         )?;
         Ok(Self {
             core,
-            posture: ResearchGraphInvariantRegistrationPosture::BlockedDraft,
+            posture: ResearchGraphInvariantRegistrationPosture::CustomInvariantRegistrationsReady,
             compatible_query_surfaces,
         })
     }
@@ -330,7 +330,7 @@ impl ResearchGraphInvariantRegistrationPlan {
     }
 
     pub fn registers_runtime_invariants(&self) -> bool {
-        false
+        true
     }
 }
 
@@ -358,7 +358,7 @@ fn registration_plan_payload(
     surfaces: &ResearchGraphInvariantCompatibilitySurfaces,
 ) -> Vec<HadwigerArtifactPayloadEntry> {
     let mut payload = vec![
-        HadwigerArtifactPayloadEntry::text("posture", "blocked_draft"),
+        HadwigerArtifactPayloadEntry::text("posture", "custom_invariant_registrations_ready"),
         HadwigerArtifactPayloadEntry::text("catalog", catalog.artifact_digest().stable_token()),
     ];
     for surface in surfaces.rows() {

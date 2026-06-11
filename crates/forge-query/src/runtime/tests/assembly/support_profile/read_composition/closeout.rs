@@ -20,7 +20,7 @@ fn runtime_public_read_composition_phase_one_closeout_answers_kernel_gate() {
     assert_eq!(closeout.read_support_digest(), support.support_digest());
     assert_eq!(
         closeout.support_matrix_digest(),
-        workspace.public_support_matrix().matrix_digest()
+        workspace.public_support_matrix().matrix_digest().as_str()
     );
     assert!(closeout
         .safe_to_build_now()

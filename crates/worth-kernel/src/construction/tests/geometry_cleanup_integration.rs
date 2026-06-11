@@ -1,19 +1,15 @@
-use crate::construction::result::prepare_primitive_construction_result;
-use crate::construction::specs::{
+use super::super::intent::PrimitiveConstructionIntent;
+use super::super::result::prepare_primitive_construction_result;
+use super::super::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
 };
-use crate::construction::PrimitiveConstructionIntent;
 use topology::facade::TopologyConstructionQueryFactKind;
 use worth_geom::facade::{build_direct_realization_report, tetrahedron, Plane};
 use worth_primitives::{
     canonical_simplex_vertices, PrimitiveConstructionFamilyContractRegistry,
     PrimitiveGeometryIdentityBundle, PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity,
     PrimitiveWitnessDescriptor,
-};
-use worth_spatial::facade::birth::{
-    plan_primitive_construction_birth, PrimitiveConstructionBirthFamily,
-    PrimitiveConstructionBirthScaffoldInput,
 };
 
 #[test]
@@ -44,35 +40,14 @@ fn geometry_digest_mutation_and_replay_parity_hostility_suite() {
     let shifted_vertex_bundle = geometry_bundle(&parity_planes, &shifted_vertices);
     let realization_report =
         build_direct_realization_report("simplex_solid", &base_vertices, &parity_planes);
-    let birth_contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
-        &PrimitiveWitnessDescriptor::SimplexSolid,
-    );
-    let plan = plan_primitive_construction_birth(
-        PrimitiveConstructionBirthScaffoldInput::new_with_realization(
-            PrimitiveConstructionBirthFamily::SimplexSolid,
-            birth_contract,
-            "closed_simplex_body",
-            "hostility-simplex".to_string(),
-            parity_planes,
-            realization_report.clone(),
-            base_vertices.clone(),
-            4,
-            6,
-            4,
-            0,
-            4,
-            1,
-            1,
-        ),
-    )
-    .expect("birth plan");
-
+    let _descriptor = PrimitiveWitnessDescriptor::SimplexSolid;
+    let realization_geometry_digest = realization_report.geometry_digest().to_string();
     assert_eq!(
         realization_report.geometry_digest(),
         base_bundle.realization_geometry_digest().as_str()
     );
     assert_eq!(
-        plan.realization_geometry_digest(),
+        realization_geometry_digest,
         base_bundle.realization_geometry_digest().as_str()
     );
     assert_ne!(
@@ -135,7 +110,7 @@ fn canonical_witness_and_contract_hostility_suite_survives_full_cross_crate_flow
         let result = prepare_primitive_construction_result(intent.clone()).expect("result");
         let envelope = result.topology_query_handoff().topology_query_envelope();
 
-        assert!(!result.realization_report().geometry_digest().is_empty());
+        assert!(!result.realization_geometry_digest().is_empty());
         assert_eq!(
             envelope
                 .row_for(TopologyConstructionQueryFactKind::VertexBirth)

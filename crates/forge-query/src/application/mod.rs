@@ -246,8 +246,11 @@ pub use domain_handle::{
 pub use support::{
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
     ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus,
-    ForgeQueryIdentityEvolutionSupportProfile, ForgeQueryQueryCompositionSupportProfile,
-    ForgeQueryQueryContextSupportProfile, ForgeQuerySupportMatrix, ForgeQuerySupportReport,
+    ForgeQueryEvidenceIdentityBoundaryClosure, ForgeQueryFolkloreResidueStatus,
+    ForgeQueryIdentityBoundaryClosure, ForgeQueryIdentityEvolutionSupportProfile,
+    ForgeQueryMilestoneClosureStatus, ForgeQueryQueryCompositionSupportProfile,
+    ForgeQueryQueryContextSupportProfile, ForgeQuerySessionLabelBoundaryClosure,
+    ForgeQueryStopClassBoundaryClosure, ForgeQuerySupportMatrix, ForgeQuerySupportReport,
     ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
     QueryContextDeferredScopeMarker,
 };

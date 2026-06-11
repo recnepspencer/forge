@@ -1,0 +1,14 @@
+error[E0432]: unresolved imports `topology::facade::build_milestone_one_runtime`, `topology::facade::configure_milestone_one_runtime_builder`, `topology::facade::milestone_one_runtime_builder`, `topology::facade::MilestoneOneRuntimeSetupError`
+ --> src/certification/public_facade_contracts/compile_fail/public_runtime_builder_not_exported_from_facade.rs:2:5
+  |
+2 |     build_milestone_one_runtime, configure_milestone_one_runtime_builder,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `configure_milestone_one_runtime_builder` in `facade`
+  |     |
+  |     no `build_milestone_one_runtime` in `facade`
+3 |     milestone_one_runtime_builder, MilestoneOneRuntimeSetupError,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `MilestoneOneRuntimeSetupError` in `facade`
+  |     |
+  |     no `milestone_one_runtime_builder` in `facade`
+  |
+  = help: consider importing this enum instead:
+          topology::certification::MilestoneOneRuntimeSetupError

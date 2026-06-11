@@ -31,6 +31,9 @@ pub enum CandidateScreeningError {
         family: CandidateScreeningInvariantFamily,
         reason: &'static str,
     },
+    QueryContributionDigestMissing {
+        advisory: &'static str,
+    },
 }
 
 impl From<HadwigerArtifactShapeError> for CandidateScreeningError {
@@ -98,17 +101,6 @@ pub fn evaluate_graph_screening_invariant_checked(
                     CandidateScreeningVerdict::Priority
                 },
                 format!("six_core_size={core_size}"),
-            )
-        }
-        CandidateScreeningInvariantFamily::MaximumDegreeSanityCheck => {
-            let max_degree = graph_view.maximum_degree();
-            (
-                if max_degree <= 6 {
-                    CandidateScreeningVerdict::Priority
-                } else {
-                    CandidateScreeningVerdict::Passed
-                },
-                format!("maximum_degree={max_degree};sanity_threshold=6"),
             )
         }
         CandidateScreeningInvariantFamily::PerfectGraphSanityCheck => {

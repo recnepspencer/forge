@@ -9,6 +9,7 @@ pub enum QueryCompositionAdmissionFailureClass {
     TemplateBindingMismatch,
     DuplicateTemplateBinding,
     MissingTemplateBinding,
+    DuplicateBasisAwareScope,
     IllegalScopeWidening,
     LoweredAuthoredBoundaryRejected,
     BasisEvidenceQueryMismatch,
@@ -23,6 +24,7 @@ impl QueryCompositionAdmissionFailureClass {
             Self::TemplateBindingMismatch => "template_binding_mismatch",
             Self::DuplicateTemplateBinding => "duplicate_template_binding",
             Self::MissingTemplateBinding => "missing_template_binding",
+            Self::DuplicateBasisAwareScope => "duplicate_basis_aware_scope",
             Self::IllegalScopeWidening => "illegal_scope_widening",
             Self::LoweredAuthoredBoundaryRejected => "lowered_authored_boundary_rejected",
             Self::BasisEvidenceQueryMismatch => "basis_evidence_query_mismatch",
@@ -78,6 +80,19 @@ impl QueryCompositionError {
         Self {
             failure_class: QueryCompositionAdmissionFailureClass::IllegalScopeWidening,
             scope_family: Some(family),
+            template_family: None,
+            counters,
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn duplicate_basis_aware_scope(
+        counters: CompositionCounters,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            failure_class: QueryCompositionAdmissionFailureClass::DuplicateBasisAwareScope,
+            scope_family: Some(ScopeFamily::BasisAwareScope),
             template_family: None,
             counters,
             message: message.into(),

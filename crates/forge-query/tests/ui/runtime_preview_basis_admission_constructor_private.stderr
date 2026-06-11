@@ -1,13 +1,25 @@
-error[E0451]: fields `label`, `effect_policy`, `authority_lane` and `evidence` of struct `ForgeQueryPreviewBasisAdmission` are private
-  --> tests/ui/runtime_preview_basis_admission_constructor_private.rs:7:9
+error: cannot construct `ForgeQueryPreviewBasisAdmission` with struct literal syntax due to private fields
+  --> tests/ui/runtime_preview_basis_admission_constructor_private.rs:6:13
    |
  6 |     let _ = ForgeQueryPreviewBasisAdmission {
-   |             ------------------------------- in this type
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  7 |         label: String::new(),
-   |         ^^^^^ private field
+   |         -------------------- private field
  8 |         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-   |         ^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------- private field
  9 |         authority_lane: ForgeQueryAuthorityLane::PreviewTruth,
-   |         ^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------------------- private field
 10 |         evidence: Vec::new(),
-   |         ^^^^^^^^ private field
+   |         -------------------- private field
+   |
+   = note: ...and other private field `admission_digest` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+ 6 -     let _ = ForgeQueryPreviewBasisAdmission {
+ 7 -         label: String::new(),
+ 8 -         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
+ 9 -         authority_lane: ForgeQueryAuthorityLane::PreviewTruth,
+10 -         evidence: Vec::new(),
+11 -     };
+ 6 +     let _ = ForgeQueryPreviewBasisAdmission::new(_, _, _, _);
+   |

@@ -105,10 +105,10 @@ This milestone fails if any covered path:
 
 ### Phase 1: Canonical Evidence Identity Primitive Boundary
 
-Freeze one runtime-owned structural digest contract that all Query evidence
-identity lowers through: field-tagged canonical encoding, explicit scheme
-version identity, and sealed construction so a digest value cannot exist
-without passing through the canonical encoder.
+Freeze one runtime-owned structural digest contract that all covered public
+Query evidence identity lowers through: field-tagged canonical encoding,
+explicit scheme version identity, and sealed construction so an evidence digest
+cannot exist without passing through the canonical encoder.
 
 **Relevant subsystems**
 - evidence identity primitive (new boundary home inside `forge-query`)
@@ -119,16 +119,24 @@ without passing through the canonical encoder.
 - [runtime/support_matrix.rs](../../crates/forge-query/src/runtime/support_matrix.rs)
 - [runtime/state_snapshot.rs](../../crates/forge-query/src/runtime/state_snapshot.rs)
 - [runtime/workspace_contracts.rs](../../crates/forge-query/src/runtime/workspace_contracts.rs)
+- [runtime/intent/preview.rs](../../crates/forge-query/src/runtime/intent/preview.rs)
+- [runtime/intent/denial.rs](../../crates/forge-query/src/runtime/intent/denial.rs)
 
 **Relevant APIs and product surfaces**
 - the new canonical evidence-identity constructor surface (sealed; the only
   legal digest producer for covered evidence)
 - digest scheme version identity carried inside every produced digest value
+- public runtime support posture and state posture surfaces that downstream
+  code already treats as product contracts
+- basis- and preview-admission evidence surfaces that must stop teaching
+  caller-owned digest assembly by example
 
 **Target shape (illustrative, not frozen API)**
 
 The consumer folklore this primitive replaces, as it exists today in
-`worth-kernel` (`crates/worth-kernel/src/construction/runtime_proof/runtime_basis.rs`):
+`worth-kernel` (`crates/worth-kernel/src/construction/runtime_proof/runtime_basis.rs`),
+is exactly the kind of caller-owned identity reconstruction the public Query
+platform contract should make unnecessary:
 
 ```rust
 // BEFORE: identity is whatever Debug/Display prints, joined with pipes
@@ -167,6 +175,10 @@ let admission_digest = ForgeQueryEvidenceIdentity::compose(EvidenceScope::BasisA
   `forge_foundational::facade` directly (for example `hadwiger-research`'s
   `forge.hadwiger.*` schema digests); two parallel canonical-digest
   authorities at adjacent layers is the drift this milestone exists to kill.
+- Do not frame this primitive as internal digest plumbing only. It is part of
+  the public product story because serious downstream runtimes need one stable
+  evidence identity lane for support posture, state posture, basis admission,
+  and receipt/report scaffolding.
 
 **Test requirements**
 - Add a `Canonical Evidence Identity Stability Test` to
@@ -180,6 +192,9 @@ let admission_digest = ForgeQueryEvidenceIdentity::compose(EvidenceScope::BasisA
 - Adversarial drift: prove a scheme-version bump is detectable from the
   digest value alone and that cross-version comparison fails typed rather
   than comparing raw bytes.
+- Product-surface parity: prove support-matrix/state/basis-admission examples
+  exposed through ordinary runtime-backed surfaces now carry Query-owned
+  evidence identity instead of caller-owned formatted digest folklore.
 
 **Engineering decisions**
 - The primitive is part of the public Query product surface from birth,
@@ -192,6 +207,10 @@ let admission_digest = ForgeQueryEvidenceIdentity::compose(EvidenceScope::BasisA
   top. A domain that today calls foundational digest surfaces directly must
   be expressible through this primitive without changing its digest
   authority story.
+- Phase 1 is allowed to migrate the first ordinary runtime-backed product
+  surfaces immediately so the public facade stops teaching folklore by
+  example; this is still Phase 1 work because the milestone's purpose is
+  platform-contract closure, not private helper introduction.
 
 **Open questions**
 - None.

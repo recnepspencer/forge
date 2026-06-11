@@ -1,10 +1,10 @@
 use forge_query::facade::{ForgeQueryDerivedArtifactBinding, ForgeQueryWorkspace};
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
-use crate::facade::{
-    DerivedEquivalenceContractReport, DerivedReadDiagnostics, DerivedTopologyValidationReport,
-    InterpretedTopologyView,
-};
+use crate::derived_topology::traversal_views::InterpretedTopologyView;
+use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
+use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
+use crate::validation::DerivedTopologyValidationReport;
 
 use super::{
     materialize_declared_query_surface_binding, TopologyDeclaredQuerySurfaces,

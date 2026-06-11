@@ -21,3 +21,21 @@ error: cannot construct `AdmittedProjectionConsumption` with struct literal synt
    |         --------------------------------- private field
    |
    = note: ...and other private fields `declaration` and `warning_kinds` that were not provided
+
+error: cannot construct `DeferredProjectionConsumption` with struct literal syntax due to private fields
+  --> tests/ui/projection_consumption/construction/projection_consumption_eligibility_artifacts_constructor_private.rs:36:13
+   |
+36 |     let _ = DeferredProjectionConsumption {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+37 |         declaration_digest: String::new(),
+   |         --------------------------------- private field
+38 |         reason: impossible(),
+   |         -------------------- private field
+39 |         counters: counters.clone(),
+   |         -------------------------- private field
+40 |         trace: trace.clone(),
+   |         -------------------- private field
+41 |         failure_digest: String::new(),
+   |         ----------------------------- private field
+   |
+   = note: ...and other private field `source_family` that was not provided

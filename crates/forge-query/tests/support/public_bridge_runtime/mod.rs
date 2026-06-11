@@ -1,5 +1,7 @@
 mod adapters;
 mod bridge;
+mod builder_bootstrap;
+mod common_bootstrap;
 mod external_row;
 mod profiles;
 mod state;
@@ -22,51 +24,46 @@ use self::state::PublicBridgeRuntimeState;
 type SharedRuntimeState = Rc<RefCell<PublicBridgeRuntimeState>>;
 
 pub use self::profiles::public_graph_support_profile;
+#[allow(unused_imports)]
+pub use common_bootstrap::{
+    public_bridge_runtime_bootstrap_invocation_count,
+    reset_public_bridge_runtime_bootstrap_invocations,
+};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PublicBridgeRuntimeBootstrapPath {
+    Common,
+    Builder,
+}
 
 pub struct PublicBridgeRuntimeHarness {
     state: SharedRuntimeState,
 }
 
-impl PublicBridgeRuntimeHarness {
-    pub fn new() -> Self {
-        Self {
-            state: Rc::new(RefCell::new(PublicBridgeRuntimeState::default())),
-        }
-    }
+#[allow(dead_code)]
+pub struct PublicBridgeRuntimeBootstrapBuilder {
+    state: SharedRuntimeState,
+}
 
-    pub fn runtime(&self, profile: ForgeQueryRuntimeSupportProfile) -> ForgeQueryRuntime {
-        ForgeQueryRuntime::builder()
-            .runtime_bridge(bridge::public_bridge())
-            .schema_adapter(PublicSchemaAdapter)
-            .source_adapter(PublicSourceAdapter::new(self.state.clone()))
-            .existing_truth_verification(PublicExistingTruthVerificationAdapter::new(
-                self.state.clone(),
-            ))
-            .write_authority(PublicWriteAuthorityAdapter::new(self.state.clone()))
-            .signal_sink(PublicSignalSinkAdapter)
-            .subscription_activation(PublicSubscriptionActivationAdapter)
-            .preview_basis(PublicPreviewBasisAdapter)
-            .inspector_evidence(PublicInspectorEvidenceAdapter)
-            .support_profile(profile)
-            .build_backend_from_parts()
-            .build()
-            .expect("public bridge-backed runtime should build")
-    }
+#[allow(dead_code)]
+pub struct PublicBridgeRuntimeBootstrapWithSupportProfile {
+    state: SharedRuntimeState,
+    support_profile: ForgeQueryRuntimeSupportProfile,
+}
 
-    pub fn seed_existing_truth_value(
-        &self,
-        binding: &ForgeQueryExistingTruthTargetBinding,
-        aspect_path: &str,
-        value: Value,
-    ) {
-        let mut state = self.state.borrow_mut();
-        state.existing_truth_values.insert(
-            (
-                binding.binding_digest(),
-                binding.target_collection().unwrap_or("none").to_string(),
-                aspect_path.to_string(),
-            ),
-            value,
-        );
+thread_local! {
+    static BOOTSTRAP_INVOCATIONS: RefCell<[usize; 2]> = const { RefCell::new([0; 2]) };
+}
+
+fn record_public_bridge_runtime_bootstrap_invocation(path: PublicBridgeRuntimeBootstrapPath) {
+    BOOTSTRAP_INVOCATIONS.with(|counts| {
+        counts.borrow_mut()[bootstrap_index(path)] += 1;
+    });
+}
+
+fn bootstrap_index(path: PublicBridgeRuntimeBootstrapPath) -> usize {
+    match path {
+        PublicBridgeRuntimeBootstrapPath::Common => 0,
+        PublicBridgeRuntimeBootstrapPath::Builder => 1,
     }
 }

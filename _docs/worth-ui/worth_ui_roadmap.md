@@ -15,6 +15,8 @@ The governing rules remain:
 
 - the canonical UI artifact is the source of runtime UI meaning
 - compiled Rust defines capabilities; hot-reloadable UI source composes them
+- file-authored UI and Rust-authored composition must converge on the same
+  canonical artifact and execution-plan pipeline
 - app-shell behavior, interaction semantics, and execution plans must be
   platform-owned rather than app-local folklore
 - semantic richness must lower before the hot path runs
@@ -50,6 +52,8 @@ Rules for every remaining Worth UI item:
 - each milestone must solve a structural problem before the dependent product features broaden
 - each milestone must preserve the ownership boundary between Worth UI, Worth Query, the runtime bridge, truth/runtime authority, and lower native adapters
 - each milestone must preserve hot-lowered composition, canonical UI artifacts, and no per-frame source interpretation
+- each milestone must treat the running Worth runtime as the primary host for
+  hot reload, diagnostics, stable identity reconciliation, and safe plan swaps
 - each milestone must preserve explicit accessibility, keyboard, focus, and diagnostics posture rather than treating them as polish
 - each milestone must preserve frame-cost honesty through named counters and execution-plan boundaries
 - each milestone must preserve a structurally explicit layout model rather than drifting back toward DOM-shaped percentage, overflow, and implicit-parent folklore
@@ -81,6 +85,8 @@ If this section is weak, everything above it inherits the same failure mode:
 
 ## Milestone 1: Platform Skeleton, Facade, and Capability Registries
 
+Detailed spec: [milestone-1.md](./milestone-1.md)
+
 ### Goal
 
 Define Worth UI as one subsystem with a clean facade, stable vocabulary, and
@@ -93,8 +99,11 @@ built on top of ad hoc app-local abstractions.
 - explicit public vocabulary for UI source, canonical artifact, execution
   plan, capability registry, shell surface, command surface, view surface, and
   render surface
-- capability registries for commands, components, Query views, settings,
-  theme tokens, icons, panels, and plugin contribution slots
+- capability registries for commands, components, domain-agnostic surfaces,
+  mosaic region kinds, mosaic placement policies, mosaic sizing contracts,
+  mosaic state slots, Query view bindings, runtime outcome projections,
+  settings, task presentations, theme tokens, icons, command projections,
+  plugin contribution slots, and native capability descriptors
 - visibility boundaries that keep lower implementation topology private behind
   the facade
 - typed registration contracts strong enough that later lowering can validate
@@ -135,6 +144,8 @@ growth broaden the surface area.
 
 - codebase-authored UI source format for shell composition, panels, menus,
   toolbars, tables, inspectors, forms, tokens, and bindings
+- Rust-native composition API or macro path that can emit the same canonical
+  artifact input as file-authored UI source
 - parser and validator that consume source and capability registries
 - one canonical UI artifact carrying stable IDs, component references, command
   bindings, Query/view bindings, layout intent, accessibility metadata, and
@@ -151,6 +162,8 @@ growth broaden the surface area.
 
 - the artifact remains the source of runtime UI meaning once lowering
   completes
+- file-authored source and Rust-authored composition do not fork artifact
+  meaning, diagnostics, or execution planning
 - source parsing and validation do not leak into the steady-state frame path
 - artifact meaning remains independent of diagnostics richness
 - the lowering pipeline does not bypass capability registries or app facade
@@ -166,6 +179,8 @@ growth broaden the surface area.
   valid artifact
 - artifact inspection can explain what source bound to what registered
   capabilities without reading Rust control flow
+- Rust-authored composition and file-authored source that declare the same UI
+  meaning lower to equivalent artifact identity and structure
 
 ## Milestone 3: Hot Reload, Stable Identity, and Plan Swap
 
@@ -178,6 +193,9 @@ during iteration.
 ### Must Ship
 
 - file-watch and debounce pipeline for UI source changes
+- runtime-hosted artifact-input watcher for file-authored UI and any
+  Rust-authored composition outputs that are admitted as replaceable artifact
+  input
 - reload pipeline that reparses, revalidates, relowers, replans, and atomically
   swaps only at safe frame boundaries
 - stable identity rules for lowered nodes that own durable interaction state
@@ -191,10 +209,14 @@ during iteration.
 ### Must Preserve
 
 - reload work stays off the normal frame path where possible
+- the running Worth runtime remains the ordinary owner of active artifacts,
+  diagnostics, reconciliation state, and plan swap boundaries
 - identity changes remain explicit replacement events rather than accidental
   state loss
 - invalid reloads never blank or corrupt the active app shell
 - hot reload remains composition reload, not arbitrary Rust-code hot patching
+- the Rust escape hatch feeds canonical artifact input rather than becoming a
+  second UI runtime or bypassing capability registration
 - state reconciliation remains compatible with nested layout structure rather
   than flattening regions into anonymous geometry
 
@@ -202,6 +224,8 @@ during iteration.
 
 - editing layout, tokens, labels, table columns, inspector sections, or command
   placement updates a running app without a Rust rebuild
+- the same running app can accept a valid replacement artifact produced from
+  file-authored UI or Rust-authored composition through the same swap pipeline
 - valid reloads preserve the declared stable state surfaces they should
 - invalid reloads preserve the previous running plan while surfacing typed
   diagnostics

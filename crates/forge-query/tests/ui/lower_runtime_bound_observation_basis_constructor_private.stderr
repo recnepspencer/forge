@@ -1,4 +1,4 @@
-error[E0451]: fields `capability`, `evidence`, `binding_digest` and `counters` of struct `LowerRuntimeBoundObservationBasis` are private
+error[E0451]: fields `capability`, `evidence`, `binding_digest` and `counters` of struct `forge_query::facade::LowerRuntimeBoundObservationBasis` are private
   --> tests/ui/lower_runtime_bound_observation_basis_constructor_private.rs:8:9
    |
  7 |     let _ = LowerRuntimeBoundObservationBasis {

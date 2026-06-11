@@ -15,15 +15,15 @@ fn phase_five_admitted_scaffold_birth_input_lane_no_longer_passes_parallel_famil
 }
 
 #[test]
-fn phase_five_placement_admission_seam_no_longer_owns_family_parameter_admission() {
+fn phase_five_shared_birth_scaffold_seam_no_longer_owns_family_parameter_admission() {
     let violations = collect_violations(
-        &AUDITED_PLACEMENT_ADMISSION_FILE,
+        &AUDITED_SHARED_BIRTH_SCAFFOLD_FILE,
         &FORBIDDEN_PLACEMENT_ADMISSION_FAMILY_PARAMETER_PATTERNS,
     );
     assert_eq!(
         violations,
         Vec::<String>::new(),
-        "placement-admission seam still owns family parameter admission instead of leaving that work to the admitted-family-request subtree: {violations:?}"
+        "shared birth-scaffold seam still owns family parameter admission instead of receiving already-admitted family-local geometry and placement truth: {violations:?}"
     );
 }
 
@@ -145,15 +145,15 @@ fn phase_five_family_birth_input_error_mapping_seam_no_longer_owns_request_admis
 }
 
 #[test]
-fn phase_five_spatial_family_bridge_seam_no_longer_mixes_error_mapping_helpers() {
+fn phase_five_lower_layer_family_translation_seam_no_longer_mixes_error_mapping_helpers() {
     let violations = collect_violations(
-        &AUDITED_FAMILY_BIRTH_INPUT_SPATIAL_FAMILY_BRIDGE_FILE,
+        &AUDITED_FAMILY_BIRTH_INPUT_LOWER_LAYER_FAMILY_TRANSLATION_FILE,
         &FORBIDDEN_SPATIAL_FAMILY_BRIDGE_ERROR_MAPPING_PATTERNS,
     );
     assert_eq!(
         violations,
         Vec::<String>::new(),
-        "family birth-input spatial-family bridge seam still mixes geometry error lowering instead of owning only lower-layer family translation: {violations:?}"
+        "family birth-input lower-layer family translation seam still mixes geometry error lowering instead of owning only lower-layer family translation: {violations:?}"
     );
 }
 

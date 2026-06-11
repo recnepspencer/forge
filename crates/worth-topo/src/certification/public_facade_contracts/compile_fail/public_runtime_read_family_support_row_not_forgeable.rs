@@ -1,4 +1,4 @@
-use topology::facade::{
+use topology::runtime_support::{
     TopologyQueryReadFamilySupportStatus, TopologyRuntimeReadFamilySupportRow,
 };
 use topology::query_domain::TopologyReadRequestFamily;

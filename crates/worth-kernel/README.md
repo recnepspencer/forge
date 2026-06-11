@@ -1,28 +1,20 @@
 # worth-kernel
 
-`worth-kernel` owns primitive-construction semantics over Worth topology and
-spatial authority surfaces.
+`worth-kernel` hosts primitive-construction certification and test semantics
+over Worth topology and spatial authority surfaces.
 
-Its public API is intentionally narrow and Query-first:
-
-- `worth_kernel::facade::authoring`
-  - authored primitive-construction vocabulary
-  - explicit Query-facing authoring entry
-- `worth_kernel::facade::outcome`
-  - prepared result truth
-  - accepted and rejected construction outcomes
-- `worth_kernel::facade::diagnostics`
-  - public family, witness, preview, arbitration, policy, continuity, motion,
-    and rejection diagnostics
+It no longer ships a public kernel-owned runtime or facade layer. Query-native
+authoring, outcome, retained-view, and support posture live in the lower owner
+crates instead of being mirrored here.
 
 ## Ownership Boundary
 
 `worth-kernel` owns:
 
-- primitive-construction authored grammar
-- primitive family semantics
-- kernel-local lowering and construction interpretation
-- selected kernel-local diagnostics that remain intentionally public
+- construction certification and hostility proofs
+- kernel-local composition over lower Query-native families
+- test and audit surfaces that verify the kernel does not regrow a second
+  runtime story
 
 `forge-query` owns:
 
@@ -31,16 +23,9 @@ Its public API is intentionally narrow and Query-first:
 - receipts, envelopes, and retained artifacts
 - inspection, workflow, and recovery lifecycle
 
-## Supported Public Flow
-
-1. Enter through `facade::authoring`
-2. Produce a prepared result or outcome through `facade::outcome`
-3. Use `facade::diagnostics` when you need witness, family, preview,
-   arbitration, policy, continuity, motion, or rejection diagnostic
-   explanation
-
 What is not part of the public operating API:
 
+- a public kernel `facade` namespace
 - a flat root happy path
 - a public certification bucket
 - public corpus or closeout proof products

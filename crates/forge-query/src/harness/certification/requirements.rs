@@ -358,6 +358,24 @@ pub fn milestone_nine_one_requirements() -> SuiteRequirements {
     }
 }
 
+pub fn milestone_nine_five_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Milestone 9.5 Debt-Close Hostile Certification Matrix",
+        required_canonical_rows: crate::harness::milestone_nine_five_hostile_matrix::
+            MILESTONE_NINE_FIVE_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows: crate::harness::milestone_nine_five_hostile_matrix::
+            MILESTONE_NINE_FIVE_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}
+
 pub fn milestone_nine_two_requirements() -> SuiteRequirements {
     SuiteRequirements {
         suite_name: "Subscription Lifecycle Sharing And Preview Parity Test",

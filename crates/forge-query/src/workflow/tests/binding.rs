@@ -53,7 +53,7 @@ fn preview_workflow_foundation_binding_preserves_preview_identity() {
 
     assert_eq!(
         workflow_binding.preview_session_identity(),
-        Some(foundation.preview_session_identity().as_str())
+        Some(foundation.preview_session_identity())
     );
     assert_eq!(
         workflow_binding.query_identity_digest(),

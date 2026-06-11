@@ -1,6 +1,5 @@
-use worth_primitives::{truth_digest_parts, TruthDigestScope};
-
 use crate::bindings::identity::identity_basis::SpatialBindingIdentityBasis;
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpatialBindingIdentity(String);

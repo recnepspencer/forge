@@ -1,7 +1,11 @@
-use crate::certification::support::parity::DerivedEquivalenceContractReport;
 use crate::certification::BridgeTraceAnchor;
+pub use crate::projection::diagnostic_surfaces::DeterministicDigest;
 use crate::projection::diagnostic_surfaces::{
-    DerivedFallbackReport, DerivedInvalidationReport, DerivedReadDiagnostics, DerivedRebuildReport,
+    DerivedEquivalenceContractReport, DerivedFallbackReport, DerivedInvalidationReport,
+    DerivedReadDiagnostics, DerivedRebuildReport,
+};
+pub use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{
+    NamingAttachmentReport, NamingAttachmentRow,
 };
 use crate::validation::TopologyValidationReport;
 use forge_relational::facade::diagnostics::DiagnosticCode;

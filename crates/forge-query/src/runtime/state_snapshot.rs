@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::ordinary_outcome::ForgeQueryOrdinaryRuntimePosture;
 
 use super::{
@@ -55,7 +58,7 @@ pub struct ForgeQueryRuntimeStateSnapshot {
     ordinary_runtime_posture: Option<ForgeQueryOrdinaryRuntimePosture>,
     async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
     remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
-    state_digest: String,
+    state_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimeStateSnapshot {
@@ -217,7 +220,7 @@ impl ForgeQueryRuntimeStateSnapshot {
         self.remask_posture.as_ref()
     }
 
-    pub fn state_digest(&self) -> &str {
+    pub fn state_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.state_digest
     }
 }
@@ -231,28 +234,30 @@ fn compute_state_digest(
     ordinary_runtime_posture: Option<&ForgeQueryOrdinaryRuntimePosture>,
     async_result_state: Option<&ForgeQueryRuntimeAsyncResultState>,
     remask_posture: Option<&ForgeQueryRuntimeRemaskPosture>,
-) -> String {
-    let mut parts = vec![
-        format!("kind:{}", kind.as_str()),
-        format!("basis:{basis_digest}"),
-        format!("result_shape:{result_shape_digest}"),
-        format!("lane:{}", authority_lane.as_str()),
-        format!("explanation:{explanation}"),
-    ];
-    if let Some(ordinary_runtime_posture) = ordinary_runtime_posture {
-        parts.push(format!(
-            "ordinary_runtime_posture:{}",
-            ordinary_runtime_posture.posture_digest()
-        ));
-    }
-    if let Some(async_result_state) = async_result_state {
-        parts.push(format!(
-            "async_result_state:{}",
-            async_result_state.result_state_digest()
-        ));
-    }
-    if let Some(remask_posture) = remask_posture {
-        parts.push(format!("remask_posture:{}", remask_posture.remask_digest()));
-    }
-    hash_parts(&parts)
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_identity(ForgeQueryEvidenceTag::new("basis_digest"), basis_digest)
+        .field_identity(
+            ForgeQueryEvidenceTag::new("result_shape_digest"),
+            result_shape_digest,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority_lane"),
+            authority_lane.as_str(),
+        )
+        .field_value(ForgeQueryEvidenceTag::new("explanation"), explanation)
+        .optional_identity(
+            ForgeQueryEvidenceTag::new("ordinary_runtime_posture"),
+            ordinary_runtime_posture.map(ForgeQueryOrdinaryRuntimePosture::posture_digest),
+        )
+        .optional_identity(
+            ForgeQueryEvidenceTag::new("async_result_state"),
+            async_result_state.map(ForgeQueryRuntimeAsyncResultState::result_state_digest),
+        )
+        .optional_identity(
+            ForgeQueryEvidenceTag::new("remask_posture"),
+            remask_posture.map(ForgeQueryRuntimeRemaskPosture::remask_digest),
+        )
+        .seal()
 }

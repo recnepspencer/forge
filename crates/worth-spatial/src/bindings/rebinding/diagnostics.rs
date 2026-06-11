@@ -5,7 +5,7 @@ use super::{
     neighborhood::{LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily},
     outcome_classification::UnsupportedRebindingReason,
 };
-use crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding;
+use crate::bindings::query_native_rebinding_prior_fact::PrimitiveRebindingPriorBindingFact;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RebindingExplanation {
@@ -49,7 +49,10 @@ impl RebindingExplanation {
             neighborhood_family: evaluation.neighborhood().family(),
             continuity_class,
             motion_posture,
-            prior_identity: evaluation.prior_binding().identity().to_string(),
+            prior_identity: evaluation
+                .prior_binding()
+                .prior_binding_identity()
+                .to_string(),
             prior_site_identity: evaluation.neighborhood().prior_site_identity().to_string(),
             candidate_labels: evaluation
                 .neighborhood()
@@ -61,7 +64,7 @@ impl RebindingExplanation {
                 .neighborhood()
                 .candidates()
                 .iter()
-                .map(|candidate| candidate.binding().identity().to_string())
+                .map(|candidate| candidate.binding_identity().to_string())
                 .collect(),
             candidate_site_identities: evaluation
                 .neighborhood()
@@ -76,7 +79,7 @@ impl RebindingExplanation {
     }
 
     pub(crate) fn unsupported(
-        prior_binding: &SpatialAdmittedPrimitiveBinding,
+        prior_binding: &PrimitiveRebindingPriorBindingFact,
         neighborhood: &LocalTopologyReplacementNeighborhood,
         reason: UnsupportedRebindingReason,
     ) -> Self {
@@ -84,7 +87,7 @@ impl RebindingExplanation {
             neighborhood_family: neighborhood.family(),
             continuity_class: BindingContinuityClass::None,
             motion_posture: MotionAwareBindingPosture::Unresolved,
-            prior_identity: prior_binding.identity().to_string(),
+            prior_identity: prior_binding.prior_binding_identity().to_string(),
             prior_site_identity: neighborhood.prior_site_identity().to_string(),
             candidate_labels: neighborhood
                 .candidates()
@@ -94,7 +97,7 @@ impl RebindingExplanation {
             candidate_identities: neighborhood
                 .candidates()
                 .iter()
-                .map(|candidate| candidate.binding().identity().to_string())
+                .map(|candidate| candidate.binding_identity().to_string())
                 .collect(),
             candidate_site_identities: neighborhood
                 .candidates()

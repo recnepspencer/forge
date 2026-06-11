@@ -1,7 +1,10 @@
 use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::canonicalization::CanonicalResultShapeArtifact;
 use crate::query_context::QueryContextExecutionArtifact;
-use crate::runtime::{ForgeQueryLiveReadResult, ForgeQueryReadResult, ForgeQueryWriteReceipt};
+use crate::runtime::{
+    ForgeQueryDerivedArtifactBinding, ForgeQueryLiveArtifactBinding, ForgeQueryLiveReadResult,
+    ForgeQueryReadResult, ForgeQueryWriteReceipt,
+};
 
 use super::contracts::MaterializedProjectionContract;
 use super::declaration::{ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError};
@@ -252,6 +255,62 @@ impl QueryContextExecutionArtifact {
     ) -> ProjectionConsumptionSupportReport {
         discover_projection_consumption_support(
             &ProjectionConsumptionSource::from_query_context_execution(self),
+        )
+    }
+}
+
+impl ForgeQueryDerivedArtifactBinding {
+    pub fn consume_projection_facts(
+        &self,
+        result_shape_digest: &str,
+        authorized_projection: &AuthorizedProjectionArtifact,
+        requested: ProjectMaterializedFacts,
+    ) -> Result<ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError> {
+        let declaration = self
+            .declare_projection_fact_consumption(
+                result_shape_digest,
+                authorized_projection,
+                requested,
+            )
+            .map_err(ProjectionFactConsumptionPathError::Declaration)?;
+        consume_attempt_from_declaration(declaration, |contract| {
+            contract.extract_from_retained_derived_artifact_binding(self)
+        })
+    }
+
+    pub fn discover_projection_fact_consumption_support(
+        &self,
+    ) -> ProjectionConsumptionSupportReport {
+        discover_projection_consumption_support(
+            &ProjectionConsumptionSource::from_retained_derived_artifact_binding(self),
+        )
+    }
+}
+
+impl ForgeQueryLiveArtifactBinding {
+    pub fn consume_projection_facts(
+        &self,
+        result_shape_digest: &str,
+        authorized_projection: &AuthorizedProjectionArtifact,
+        requested: ProjectMaterializedFacts,
+    ) -> Result<ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError> {
+        let declaration = self
+            .declare_projection_fact_consumption(
+                result_shape_digest,
+                authorized_projection,
+                requested,
+            )
+            .map_err(ProjectionFactConsumptionPathError::Declaration)?;
+        consume_attempt_from_declaration(declaration, |contract| {
+            contract.extract_from_live_artifact_binding(self)
+        })
+    }
+
+    pub fn discover_projection_fact_consumption_support(
+        &self,
+    ) -> ProjectionConsumptionSupportReport {
+        discover_projection_consumption_support(
+            &ProjectionConsumptionSource::from_live_artifact_binding(self),
         )
     }
 }

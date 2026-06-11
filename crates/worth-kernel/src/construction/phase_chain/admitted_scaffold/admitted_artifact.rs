@@ -1,40 +1,80 @@
-use super::topology_ready_birth::PreparedPrimitiveConstructionTopologyReadyBirth;
+use super::super::request::PrimitiveConstructionFamily;
 use topology::facade::TopologyPrimitiveConstructionQueryAdmittedHandoff;
-use worth_geom::facade::PrimitiveRealizationReport;
-use worth_spatial::facade::birth::AdmittedPrimitiveConstructionBirthConsequence;
-
-use crate::construction::request::PrimitiveConstructionFamily;
+use worth_geom::facade::{
+    PrimitiveConditioningWitness, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
+};
 
 #[derive(Clone, Debug)]
 pub(crate) struct PreparedPrimitiveConstructionAdmittedArtifact {
     topology_query_admitted_handoff: TopologyPrimitiveConstructionQueryAdmittedHandoff,
-    birth_consequence: AdmittedPrimitiveConstructionBirthConsequence,
-    realization_report: PrimitiveRealizationReport,
+    #[cfg(test)]
+    birth_consequence_digest: String,
+    #[cfg(test)]
+    birth_mapping_digest: String,
+    conditioning_witness: PrimitiveConditioningWitness,
+    realization_strategy: PrimitiveRealizationStrategy,
+    attempted_realization_strategies: Vec<PrimitiveRealizationStrategy>,
+    stability_class: PrimitiveStabilityClass,
+    #[cfg(test)]
+    realization_digest: String,
+    #[cfg(test)]
+    realization_geometry_digest: String,
 }
 
 impl PreparedPrimitiveConstructionAdmittedArtifact {
-    pub(super) fn from_topology_ready_birth(
-        topology_ready_birth: PreparedPrimitiveConstructionTopologyReadyBirth,
-        realization_report: PrimitiveRealizationReport,
+    pub(super) fn from_topology_query_admitted_handoff(
+        topology_query_admitted_handoff: TopologyPrimitiveConstructionQueryAdmittedHandoff,
+        #[cfg(test)] birth_consequence_digest: String,
+        #[cfg(test)] birth_mapping_digest: String,
+        conditioning_witness: PrimitiveConditioningWitness,
+        realization_strategy: PrimitiveRealizationStrategy,
+        attempted_realization_strategies: Vec<PrimitiveRealizationStrategy>,
+        stability_class: PrimitiveStabilityClass,
+        #[cfg(test)] realization_digest: String,
+        #[cfg(test)] realization_geometry_digest: String,
     ) -> Self {
-        let (topology_query_admitted_handoff, birth_consequence) =
-            topology_ready_birth.into_parts();
         Self::new(
             topology_query_admitted_handoff,
-            birth_consequence,
-            realization_report,
+            #[cfg(test)]
+            birth_consequence_digest,
+            #[cfg(test)]
+            birth_mapping_digest,
+            conditioning_witness,
+            realization_strategy,
+            attempted_realization_strategies,
+            stability_class,
+            #[cfg(test)]
+            realization_digest,
+            #[cfg(test)]
+            realization_geometry_digest,
         )
     }
 
     pub(crate) fn new(
         topology_query_admitted_handoff: TopologyPrimitiveConstructionQueryAdmittedHandoff,
-        birth_consequence: AdmittedPrimitiveConstructionBirthConsequence,
-        realization_report: PrimitiveRealizationReport,
+        #[cfg(test)] birth_consequence_digest: String,
+        #[cfg(test)] birth_mapping_digest: String,
+        conditioning_witness: PrimitiveConditioningWitness,
+        realization_strategy: PrimitiveRealizationStrategy,
+        attempted_realization_strategies: Vec<PrimitiveRealizationStrategy>,
+        stability_class: PrimitiveStabilityClass,
+        #[cfg(test)] realization_digest: String,
+        #[cfg(test)] realization_geometry_digest: String,
     ) -> Self {
         Self {
             topology_query_admitted_handoff,
-            birth_consequence,
-            realization_report,
+            #[cfg(test)]
+            birth_consequence_digest,
+            #[cfg(test)]
+            birth_mapping_digest,
+            conditioning_witness,
+            realization_strategy,
+            attempted_realization_strategies,
+            stability_class,
+            #[cfg(test)]
+            realization_digest,
+            #[cfg(test)]
+            realization_geometry_digest,
         }
     }
 
@@ -46,35 +86,57 @@ impl PreparedPrimitiveConstructionAdmittedArtifact {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn scaffold_digest(&self) -> &str {
         self.topology_query_admitted_handoff
             .topology_query_handoff()
             .scaffold_digest()
     }
 
-    pub(crate) fn realization_report(&self) -> &PrimitiveRealizationReport {
-        &self.realization_report
+    pub(crate) fn conditioning_witness(&self) -> &PrimitiveConditioningWitness {
+        &self.conditioning_witness
     }
 
-    pub(crate) fn birth_consequence(&self) -> &AdmittedPrimitiveConstructionBirthConsequence {
-        &self.birth_consequence
+    pub(crate) fn realization_strategy(&self) -> PrimitiveRealizationStrategy {
+        self.realization_strategy
     }
 
-    pub(crate) fn birth_mapping_digest(&self) -> String {
-        self.birth_consequence
-            .rows()
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>()
-            .join("|")
+    pub(crate) fn attempted_realization_strategies(&self) -> &[PrimitiveRealizationStrategy] {
+        &self.attempted_realization_strategies
     }
 
+    pub(crate) fn stability_class(&self) -> PrimitiveStabilityClass {
+        self.stability_class
+    }
+
+    #[cfg(test)]
+    pub(crate) fn realization_digest(&self) -> &str {
+        &self.realization_digest
+    }
+
+    #[cfg(test)]
+    pub(crate) fn realization_geometry_digest(&self) -> &str {
+        &self.realization_geometry_digest
+    }
+
+    #[cfg(test)]
+    pub(crate) fn birth_consequence_digest(&self) -> &str {
+        &self.birth_consequence_digest
+    }
+
+    #[cfg(test)]
+    pub(crate) fn birth_mapping_digest(&self) -> &str {
+        &self.birth_mapping_digest
+    }
+
+    #[cfg(test)]
     pub(crate) fn topology_query_admitted_handoff(
         &self,
     ) -> &TopologyPrimitiveConstructionQueryAdmittedHandoff {
         &self.topology_query_admitted_handoff
     }
 
+    #[cfg(test)]
     pub(crate) fn admitted_handoff_digest(&self) -> &str {
         self.topology_query_admitted_handoff
             .admitted_handoff_digest()

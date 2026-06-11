@@ -1,5 +1,5 @@
-use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionRequest};
-use crate::construction::specs::{
+use super::request::{PrimitiveConstructionFamily, PrimitiveConstructionRequest};
+use super::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
 };
@@ -43,10 +43,6 @@ impl PrimitiveConstructionIntent {
         self.request.family()
     }
 
-    pub fn request_digest(&self) -> &str {
-        self.request.request_digest()
-    }
-
     pub fn placement_spec(&self) -> SpatialPlacementSpec {
         self.request.placement_spec()
     }
@@ -55,10 +51,7 @@ impl PrimitiveConstructionIntent {
         Self::from_request(self.request.with_origin(origin))
     }
 
-    pub fn facing(self, facing: [f64; 3]) -> Self {
-        Self::from_request(self.request.with_facing(facing))
-    }
-
+    #[cfg(test)]
     pub(crate) fn with_placement_spec(self, placement: SpatialPlacementSpec) -> Self {
         Self::from_request(self.request.with_placement_spec(placement))
     }

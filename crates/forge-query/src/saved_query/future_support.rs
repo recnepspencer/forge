@@ -1,7 +1,10 @@
 use super::artifact::SavedQueryPersistenceFamily;
 use super::error::SavedQueryError;
 use crate::query_context::QueryContextFamily;
-use crate::view_shape::{ViewShapeFamily, ViewShapeTemporalAsyncSupportPosture};
+use crate::view_shape::{
+    runtime_backed_view_shape_temporal_async_support_posture, ViewShapeFamily,
+    ViewShapeTemporalAsyncSupportPosture,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum SavedQueryTemporalAsyncSurfacePosture {
@@ -61,7 +64,7 @@ pub(crate) fn derive_runtime_backed_saved_query_surface_posture(
         return SavedQueryTemporalAsyncSurfacePosture::OrdinaryOnly;
     }
 
-    match runtime_backed_view_shape_temporal_async_posture(view_shape_family) {
+    match runtime_backed_view_shape_temporal_async_support_posture(view_shape_family) {
         ViewShapeTemporalAsyncSupportPosture::FuturePreserving => {
             SavedQueryTemporalAsyncSurfacePosture::FuturePreservingRuntimeBacked
         }
@@ -85,21 +88,6 @@ pub(crate) fn admit_runtime_backed_future_surface_posture(
             Err(SavedQueryError::temporal_async_surface_deferred(
                 "saved query freeze denied because this temporal/async reuse surface remains visible but deferred in Milestone 9.4",
             ))
-        }
-    }
-}
-
-fn runtime_backed_view_shape_temporal_async_posture(
-    family: ViewShapeFamily,
-) -> ViewShapeTemporalAsyncSupportPosture {
-    match family {
-        ViewShapeFamily::Table | ViewShapeFamily::Detail => {
-            ViewShapeTemporalAsyncSupportPosture::FuturePreserving
-        }
-        ViewShapeFamily::InspectorDetailObserved
-        | ViewShapeFamily::InspectorDetailFocused
-        | ViewShapeFamily::KanbanGrouped => {
-            ViewShapeTemporalAsyncSupportPosture::VisibleButDeferred
         }
     }
 }

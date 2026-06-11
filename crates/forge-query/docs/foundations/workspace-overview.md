@@ -16,6 +16,9 @@ evidence.
   into lower-runtime plumbing
 - you want branch/preview/state/inspection surfaces to line up around one
   stable mental model
+- you want one simple public bridge-backed read-runtime bootstrap for hostile
+  tests, examples, or downstream runtime bring-up instead of custom minimal
+  assembly folklore
 
 ## Stable Entry Points
 
@@ -25,7 +28,7 @@ Stable runtime-backed entry points:
 - `workspace.live_view(...)`
 - `workspace.computed(...)`
 - `workspace.effect(...)`
-- `workspace.preview(...)` / `workspace.branch(...)`
+- `workspace.preview(ForgeQuerySessionLabel, ...)` / `workspace.branch(ForgeQuerySessionLabel, ...)`
 - `workspace.insert(...)`
 - `workspace.update(...)`
 - `workspace.delete(...)`
@@ -63,6 +66,12 @@ Good to know:
 
 - covered intent families are real now, but they are concrete named families,
   not blanket facade-family support.
+- preview and branch entry use `ForgeQuerySessionLabel` as the ordinary typed
+  identity lane; callers should not mint free-form string labels
+- workflow capability authoring that targets preview inspection or preview
+  mutation uses `BridgePreviewSessionIdentity`; session labels name the opened
+  preview or branch context, while preview-session identities name the retained
+  preview artifact that workflow evidence binds against
 - Method presence is not a support claim. Use the support matrix and admission
   gate when you are near deferred or unsupported families.
 - Use the mutation surface report when you need explicit preferred versus
@@ -70,6 +79,9 @@ Good to know:
 - `workspace.write(...)` stays available as an expert lower-level seam during
   the lower-crate rewrite, but ordinary downstream runtime APIs should not
   need it.
+- the ordinary public bridge-backed read-runtime bootstrap now lives on the
+  real runtime builder path, so hostile/runtime-backed read tests do not need a
+  separate custom scaffolding story just to obtain a valid raw read lane
 
 ## Core Mental Model
 
@@ -122,6 +134,12 @@ the place you should start from.
 If you are building a downstream runtime or domain crate, read
 [Downstream Runtime Integration](downstream-runtime-integration.md) before you
 invent local mutation, basis, or inspection patterns above Query.
+
+If you are bringing up a bridge-backed read runtime for examples, tests, or
+serious downstream integration, start from the public bridge-backed bootstrap
+support instead of rebuilding an ad hoc runtime out of one-off adapter
+fixtures. Phase 9.5 closed that raw read bootstrap gap on the ordinary builder
+lane.
 
 ## How It Executes
 

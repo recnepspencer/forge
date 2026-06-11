@@ -6,6 +6,7 @@ use crate::preview::{
     AdmittedPreviewWorkflowFoundation, PreviewEvaluationClass, PreviewWorkflowFoundationRequest,
     PromotionParityPreviewComparisonAdmission,
 };
+use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorkflowDeclarationFamily {
@@ -261,7 +262,7 @@ pub struct WorkflowContextBinding {
     runtime_snapshot_token: Option<String>,
     preview_evaluation_class: Option<WorkflowPreviewEvaluationClass>,
     preview_request_family: Option<PreviewWorkflowFoundationRequest>,
-    preview_session_identity: Option<String>,
+    preview_session_identity: Option<BridgePreviewSessionIdentity>,
     counters: WorkflowCounters,
 }
 
@@ -298,8 +299,8 @@ impl WorkflowContextBinding {
         self.preview_request_family.as_ref()
     }
 
-    pub fn preview_session_identity(&self) -> Option<&str> {
-        self.preview_session_identity.as_deref()
+    pub fn preview_session_identity(&self) -> Option<&BridgePreviewSessionIdentity> {
+        self.preview_session_identity.as_ref()
     }
 
     pub fn counters(&self) -> &WorkflowCounters {
@@ -388,7 +389,7 @@ pub(crate) fn scoped_runtime_preflight_workflow_binding(
 
 pub(crate) fn synthetic_preview_workflow_binding(
     source_label: &str,
-    preview_session_identity: impl Into<String>,
+    preview_session_identity: BridgePreviewSessionIdentity,
     evaluation_class: WorkflowPreviewEvaluationClass,
 ) -> WorkflowContextBinding {
     synthetic_preview_workflow_binding_scoped(
@@ -402,7 +403,7 @@ pub(crate) fn synthetic_preview_workflow_binding(
 pub(crate) fn synthetic_preview_workflow_binding_scoped(
     source_label: &str,
     binding_scope_digest: &str,
-    preview_session_identity: impl Into<String>,
+    preview_session_identity: BridgePreviewSessionIdentity,
     evaluation_class: WorkflowPreviewEvaluationClass,
 ) -> WorkflowContextBinding {
     synthetic_preview_workflow_binding_request_scoped(
@@ -417,26 +418,25 @@ pub(crate) fn synthetic_preview_workflow_binding_scoped(
 pub(crate) fn synthetic_preview_workflow_binding_request_scoped(
     source_label: &str,
     binding_scope_digest: &str,
-    preview_session_identity: impl Into<String>,
+    preview_session_identity: BridgePreviewSessionIdentity,
     evaluation_class: WorkflowPreviewEvaluationClass,
     request_family: PreviewWorkflowFoundationRequest,
 ) -> WorkflowContextBinding {
-    let preview_session_identity = preview_session_identity.into();
     let query_identity_digest = hash_parts(&[
         format!("synthetic_query:{source_label}"),
         format!("scope:{binding_scope_digest}"),
-        format!("preview_session:{preview_session_identity}"),
+        format!("preview_session:{}", preview_session_identity.as_str()),
     ]);
     let source_digest = hash_parts(&[
         format!("synthetic_source:{source_label}"),
         format!("scope:{binding_scope_digest}"),
         format!("evaluation:{}", evaluation_class.as_str()),
-        format!("preview_session:{preview_session_identity}"),
+        format!("preview_session:{}", preview_session_identity.as_str()),
     ]);
     let basis_digest = hash_parts(&[
         format!("synthetic_basis:{source_label}"),
         format!("scope:{binding_scope_digest}"),
-        format!("preview_session:{preview_session_identity}"),
+        format!("preview_session:{}", preview_session_identity.as_str()),
     ]);
     let digest = hash_parts(&[
         format!("source:{source_digest}"),
@@ -448,7 +448,7 @@ pub(crate) fn synthetic_preview_workflow_binding_request_scoped(
         format!("basis:{basis_digest}"),
         format!("evaluation:{}", evaluation_class.as_str()),
         format!("request_family:{}", request_family.as_str()),
-        format!("preview_session:{preview_session_identity}"),
+        format!("preview_session:{}", preview_session_identity.as_str()),
     ]);
     WorkflowContextBinding {
         digest,
@@ -722,7 +722,7 @@ fn bind_preview_foundation(
         runtime_snapshot_token: None,
         preview_evaluation_class: Some(evaluation_class),
         preview_request_family: Some(foundation.request_family().clone()),
-        preview_session_identity: Some(foundation.preview_session_identity().as_str().to_string()),
+        preview_session_identity: Some(foundation.preview_session_identity().clone()),
         counters: WorkflowCounters {
             workflow_basis_binding_count: 1,
             workflow_basis_binding_width: 1,

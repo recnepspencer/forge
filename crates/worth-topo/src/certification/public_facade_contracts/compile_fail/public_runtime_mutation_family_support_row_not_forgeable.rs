@@ -1,6 +1,9 @@
-use topology::facade::{
-    TopologyMutationFamily, TopologyQueryMutationFamilySupportStatus,
-    TopologyQueryMutationLane, TopologyRuntimeMutationFamilySupportRow,
+use topology::{
+    facade::TopologyMutationFamily,
+    runtime_support::{
+        TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
+        TopologyRuntimeMutationFamilySupportRow,
+    },
 };
 
 fn main() {

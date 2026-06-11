@@ -7,22 +7,6 @@ error[E0432]: unresolved imports `topology::facade::build_milestone_one_bridge`,
   |     no `build_milestone_one_bridge` in `facade`
 3 |     milestone_one_bridge_mapping_registrations,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `milestone_one_bridge_mapping_registrations` in `facade`
-  |
-help: a similar name exists in the module
-  |
-2 -     build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
-2 +     build_milestone_one_runtime, milestone_one_bridge_aspect_registrations,
-  |
-help: a similar name exists in the module
-  |
-2 -     build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
-2 +     build_milestone_one_bridge, milestone_one_invariant_registrations,
-  |
-help: a similar name exists in the module
-  |
-3 -     milestone_one_bridge_mapping_registrations,
-3 +     milestone_one_invariant_registrations,
-  |
 
 error[E0432]: unresolved imports `topology::runtime_support::build_runtime_bridge`, `topology::runtime_support::TopologyRuntimeBinding`
  --> src/certification/public_facade_contracts/compile_fail/public_bridge_registration_entry_not_exported.rs:5:33

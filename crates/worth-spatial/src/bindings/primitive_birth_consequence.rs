@@ -1,16 +1,17 @@
 use super::primitive_birth::{
-    PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
-    SpatialConstructionBirthPlan,
+    PrimitiveConstructionBirthScaffoldInput, SpatialConstructionBirthError,
 };
+use worth_primitives::PrimitiveConstructionFamilyKey;
 
 use super::primitive_birth::digest_parts;
 use super::primitive_birth_contract::{
     primitive_birth_contract_matches_counts, primitive_birth_contract_matches_support_planes,
     PrimitiveConstructionBirthContractCounts,
 };
+use super::primitive_birth_validation::validate_primitive_construction_birth_input;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SpatialConstructionBirthMappingKind {
+pub(crate) enum SpatialConstructionBirthMappingKind {
     Vertex,
     Edge,
     Loop,
@@ -21,7 +22,7 @@ pub enum SpatialConstructionBirthMappingKind {
 }
 
 impl SpatialConstructionBirthMappingKind {
-    pub fn as_str(self) -> &'static str {
+    pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::Vertex => "vertex",
             Self::Edge => "edge",
@@ -35,7 +36,7 @@ impl SpatialConstructionBirthMappingKind {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SpatialConstructionBirthRejectionKind {
+pub(crate) enum SpatialConstructionBirthRejectionKind {
     FamilyMismatch,
     ScaffoldDigestMismatch,
     TopologyBirthClassMismatch,
@@ -43,7 +44,7 @@ pub enum SpatialConstructionBirthRejectionKind {
 }
 
 impl SpatialConstructionBirthRejectionKind {
-    pub fn as_str(self) -> &'static str {
+    pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::FamilyMismatch => "family-mismatch",
             Self::ScaffoldDigestMismatch => "scaffold-digest-mismatch",
@@ -54,7 +55,7 @@ impl SpatialConstructionBirthRejectionKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SpatialConstructionBirthMappingRow {
+pub(crate) struct SpatialConstructionBirthMappingRow {
     kind: SpatialConstructionBirthMappingKind,
     mapped_count: usize,
     support_plane_count: usize,
@@ -84,87 +85,84 @@ impl SpatialConstructionBirthMappingRow {
         }
     }
 
-    pub fn kind(&self) -> SpatialConstructionBirthMappingKind {
+    #[cfg(test)]
+    pub(crate) fn kind(&self) -> SpatialConstructionBirthMappingKind {
         self.kind
     }
 
-    pub fn mapped_count(&self) -> usize {
+    #[cfg(test)]
+    pub(crate) fn mapped_count(&self) -> usize {
         self.mapped_count
     }
 
-    pub fn support_plane_count(&self) -> usize {
+    #[cfg(test)]
+    pub(crate) fn support_plane_count(&self) -> usize {
         self.support_plane_count
     }
 
-    pub fn row_digest(&self) -> &str {
+    pub(crate) fn row_digest(&self) -> &str {
         &self.row_digest
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AdmittedPrimitiveConstructionBirthConsequence {
-    family: PrimitiveConstructionBirthFamily,
-    topology_birth_class: String,
-    scaffold_digest: String,
-    birth_digest: String,
+pub(crate) struct AdmittedPrimitiveConstructionBirthConsequence {
     rows: Vec<SpatialConstructionBirthMappingRow>,
     consequence_digest: String,
 }
 
 impl AdmittedPrimitiveConstructionBirthConsequence {
-    fn new(
-        input: &PrimitiveConstructionBirthScaffoldInput,
-        plan: &SpatialConstructionBirthPlan,
-    ) -> Self {
+    pub(crate) fn from_scaffold_input(input: &PrimitiveConstructionBirthScaffoldInput) -> Self {
         let support_plane_count = input.support_planes().len();
+        let birth_digest = primitive_construction_birth_digest(input);
         let rows = vec![
             SpatialConstructionBirthMappingRow::new(
                 SpatialConstructionBirthMappingKind::Vertex,
-                plan.supported_vertex_count(),
+                input.expected_vertex_count(),
                 support_plane_count,
-                plan.birth_digest(),
+                &birth_digest,
                 input.topology_birth_class(),
             ),
             SpatialConstructionBirthMappingRow::new(
                 SpatialConstructionBirthMappingKind::Edge,
-                plan.supported_edge_count(),
+                input.expected_edge_count(),
                 support_plane_count,
-                plan.birth_digest(),
+                &birth_digest,
                 input.topology_birth_class(),
             ),
             SpatialConstructionBirthMappingRow::new(
                 SpatialConstructionBirthMappingKind::Loop,
-                plan.supported_loop_count(),
+                input.expected_loop_count(),
                 support_plane_count,
-                plan.birth_digest(),
+                &birth_digest,
                 input.topology_birth_class(),
             ),
             SpatialConstructionBirthMappingRow::new(
                 SpatialConstructionBirthMappingKind::Wire,
-                plan.supported_wire_count(),
+                input.expected_wire_count(),
                 support_plane_count,
-                plan.birth_digest(),
+                &birth_digest,
                 input.topology_birth_class(),
             ),
             SpatialConstructionBirthMappingRow::new(
                 SpatialConstructionBirthMappingKind::Face,
-                plan.supported_face_count(),
+                input.expected_face_count(),
                 support_plane_count,
-                plan.birth_digest(),
+                &birth_digest,
                 input.topology_birth_class(),
             ),
             SpatialConstructionBirthMappingRow::new(
                 SpatialConstructionBirthMappingKind::Shell,
-                plan.supported_shell_count(),
+                input.expected_shell_count(),
                 support_plane_count,
-                plan.birth_digest(),
+                &birth_digest,
                 input.topology_birth_class(),
             ),
             SpatialConstructionBirthMappingRow::new(
                 SpatialConstructionBirthMappingKind::Body,
-                plan.supported_body_count(),
+                input.expected_body_count(),
                 support_plane_count,
-                plan.birth_digest(),
+                &birth_digest,
                 input.topology_birth_class(),
             ),
         ];
@@ -172,39 +170,20 @@ impl AdmittedPrimitiveConstructionBirthConsequence {
             input.family().as_str().to_string(),
             input.topology_birth_class().to_string(),
             input.scaffold_digest().to_string(),
-            plan.birth_digest().to_string(),
+            birth_digest,
         ];
         parts.extend(rows.iter().map(|row| row.row_digest().to_string()));
         Self {
-            family: input.family(),
-            topology_birth_class: input.topology_birth_class().to_string(),
-            scaffold_digest: input.scaffold_digest().to_string(),
-            birth_digest: plan.birth_digest().to_string(),
             rows,
             consequence_digest: digest_parts(&parts),
         }
     }
 
-    pub fn family(&self) -> PrimitiveConstructionBirthFamily {
-        self.family
-    }
-
-    pub fn topology_birth_class(&self) -> &str {
-        &self.topology_birth_class
-    }
-
-    pub fn scaffold_digest(&self) -> &str {
-        &self.scaffold_digest
-    }
-
-    pub fn birth_digest(&self) -> &str {
-        &self.birth_digest
-    }
-
-    pub fn rows(&self) -> &[SpatialConstructionBirthMappingRow] {
+    pub(crate) fn rows(&self) -> &[SpatialConstructionBirthMappingRow] {
         &self.rows
     }
 
+    #[cfg(test)]
     pub fn row_for(
         &self,
         kind: SpatialConstructionBirthMappingKind,
@@ -212,15 +191,15 @@ impl AdmittedPrimitiveConstructionBirthConsequence {
         self.rows.iter().find(|row| row.kind() == kind)
     }
 
-    pub fn consequence_digest(&self) -> &str {
+    pub(crate) fn consequence_digest(&self) -> &str {
         &self.consequence_digest
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RejectedPrimitiveConstructionBirthConsequence {
+pub(crate) struct RejectedPrimitiveConstructionBirthConsequence {
     kind: SpatialConstructionBirthRejectionKind,
-    family: PrimitiveConstructionBirthFamily,
+    family: PrimitiveConstructionFamilyKey,
     topology_birth_class: String,
     scaffold_digest: String,
     reason: &'static str,
@@ -250,97 +229,106 @@ impl RejectedPrimitiveConstructionBirthConsequence {
         }
     }
 
-    pub fn kind(&self) -> SpatialConstructionBirthRejectionKind {
+    pub(crate) fn kind(&self) -> SpatialConstructionBirthRejectionKind {
         self.kind
     }
 
-    pub fn family(&self) -> PrimitiveConstructionBirthFamily {
-        self.family
-    }
-
-    pub fn topology_birth_class(&self) -> &str {
+    #[cfg(test)]
+    pub(crate) fn topology_birth_class(&self) -> &str {
         &self.topology_birth_class
     }
 
-    pub fn scaffold_digest(&self) -> &str {
-        &self.scaffold_digest
-    }
-
-    pub fn reason(&self) -> &'static str {
+    pub(crate) fn reason(&self) -> &'static str {
         self.reason
     }
 
-    pub fn consequence_digest(&self) -> &str {
+    pub(crate) fn consequence_digest(&self) -> &str {
         &self.consequence_digest
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SpatialConstructionBirthConsequence {
-    Admitted(AdmittedPrimitiveConstructionBirthConsequence),
-    Rejected(RejectedPrimitiveConstructionBirthConsequence),
+pub(crate) fn primitive_construction_birth_digest(
+    input: &PrimitiveConstructionBirthScaffoldInput,
+) -> String {
+    let parts = [
+        input.family().as_str().to_string(),
+        input.scaffold_digest().to_string(),
+        input.topology_birth_class().to_string(),
+        input.expected_vertex_count().to_string(),
+        input.expected_edge_count().to_string(),
+        input.expected_loop_count().to_string(),
+        input.expected_wire_count().to_string(),
+        input.expected_face_count().to_string(),
+        input.expected_shell_count().to_string(),
+        input.expected_body_count().to_string(),
+        input.realization_strategy().as_str().to_string(),
+        input
+            .attempted_realization_strategies()
+            .iter()
+            .map(|strategy| strategy.as_str())
+            .collect::<Vec<_>>()
+            .join("->"),
+        input.stability_class().as_str().to_string(),
+        input.feature_conditioning_class().as_str().to_string(),
+        input.support_normal_class().as_str().to_string(),
+        input.normalization_disposition().as_str().to_string(),
+        input.realization_geometry_digest().to_string(),
+        input.realization_fact_digest().to_string(),
+    ];
+    digest_parts(&parts)
 }
 
-fn reject_mismatched_birth_consequence(
-    input: &PrimitiveConstructionBirthScaffoldInput,
-    plan: &SpatialConstructionBirthPlan,
+pub(crate) fn reject_mismatched_primitive_construction_birth_consequence(
+    reference: &PrimitiveConstructionBirthScaffoldInput,
+    mismatched: &PrimitiveConstructionBirthScaffoldInput,
 ) -> Option<RejectedPrimitiveConstructionBirthConsequence> {
-    if input.family() != plan.family() {
+    if mismatched.family() != reference.family() {
         return Some(RejectedPrimitiveConstructionBirthConsequence::new(
             SpatialConstructionBirthRejectionKind::FamilyMismatch,
-            input,
+            mismatched,
             "primitive birth consequence requires the same admitted family across scaffold and plan",
         ));
     }
-    if input.scaffold_digest() != plan.scaffold_digest() {
+    if mismatched.scaffold_digest() != reference.scaffold_digest() {
         return Some(RejectedPrimitiveConstructionBirthConsequence::new(
             SpatialConstructionBirthRejectionKind::ScaffoldDigestMismatch,
-            input,
+            mismatched,
             "primitive birth consequence requires the same scaffold digest across scaffold and plan",
         ));
     }
-    if input.topology_birth_class() != plan.topology_birth_class() {
+    if mismatched.topology_birth_class() != reference.topology_birth_class() {
         return Some(RejectedPrimitiveConstructionBirthConsequence::new(
             SpatialConstructionBirthRejectionKind::TopologyBirthClassMismatch,
-            input,
+            mismatched,
             "primitive birth consequence requires the same topology birth class across scaffold and plan",
         ));
     }
-    if input.birth_contract() != plan.birth_contract() {
+    if mismatched.birth_contract() != reference.birth_contract() {
         return Some(RejectedPrimitiveConstructionBirthConsequence::new(
             SpatialConstructionBirthRejectionKind::ContractCountsOrSupportMismatch,
-            input,
+            mismatched,
             "primitive birth consequence requires the same canonical primitive family contract across scaffold and plan",
         ));
     }
     None
 }
 
-pub fn evaluate_primitive_construction_birth_consequence(
+pub(crate) fn admit_primitive_construction_birth_consequence(
     input: &PrimitiveConstructionBirthScaffoldInput,
-    plan: &SpatialConstructionBirthPlan,
-) -> SpatialConstructionBirthConsequence {
-    if let Some(rejected) = reject_mismatched_birth_consequence(input, plan) {
-        return SpatialConstructionBirthConsequence::Rejected(rejected);
-    }
-    let counts = PrimitiveConstructionBirthContractCounts::from_plan(plan);
-    if !primitive_birth_contract_matches_counts(plan.birth_contract(), counts)
+) -> Result<AdmittedPrimitiveConstructionBirthConsequence, SpatialConstructionBirthError> {
+    validate_primitive_construction_birth_input(input)?;
+    let counts = PrimitiveConstructionBirthContractCounts::from_input(input);
+    if !primitive_birth_contract_matches_counts(input.birth_contract(), counts)
         || !primitive_birth_contract_matches_support_planes(
-            plan.birth_contract(),
+            input.birth_contract(),
             input.support_planes().len(),
         )
     {
-        return SpatialConstructionBirthConsequence::Rejected(
-            RejectedPrimitiveConstructionBirthConsequence::new(
-                SpatialConstructionBirthRejectionKind::ContractCountsOrSupportMismatch,
-                input,
-                "primitive birth consequence requires admitted primitive family counts and support planes",
-            ),
-        );
+        return Err(SpatialConstructionBirthError::InvalidPrimitiveBirthScaffold(
+            "primitive birth consequence requires admitted primitive family counts and support planes",
+        ));
     }
-    SpatialConstructionBirthConsequence::Admitted(
-        AdmittedPrimitiveConstructionBirthConsequence::new(input, plan),
-    )
+    Ok(AdmittedPrimitiveConstructionBirthConsequence::from_scaffold_input(input))
 }
 
 #[cfg(test)]

@@ -365,7 +365,7 @@ fn mutating_intent_with_empty_delta_denies_before_signal_routing() {
                 Some(ForgeQueryIntentExecutionKind::Mutating)
             );
             assert!(evidence.attempt_digest().is_some());
-            assert!(!evidence.denial_digest().is_empty());
+            assert!(!evidence.denial_digest().as_str().is_empty());
         }
         other => panic!("expected mutation receipt admission denial, got {other:?}"),
     }
@@ -430,7 +430,10 @@ fn invariant_denial_inspection_explains_failed_invariants_without_commit_identit
     );
     assert!(inspection.attempt_digest().is_some());
     assert!(inspection.snapshot_token().is_some());
-    assert_eq!(inspection.denial_digest(), evidence.denial_digest());
+    assert_eq!(
+        inspection.denial_digest(),
+        evidence.denial_digest().as_str()
+    );
     assert!(!inspection.inspection_digest().is_empty());
 }
 
@@ -507,7 +510,7 @@ fn invariant_violation_intent_denies_with_evidence_without_partial_publication()
             );
             assert!(evidence.attempt_digest().is_some());
             assert!(evidence.snapshot_token().is_some());
-            assert!(!evidence.denial_digest().is_empty());
+            assert!(!evidence.denial_digest().as_str().is_empty());
         }
         other => panic!("expected invariant admission denial, got {other:?}"),
     }
@@ -728,7 +731,10 @@ fn strategy_drift_denial_inspection_keeps_declared_and_returned_strategy_separat
         inspection.execution_kind(),
         Some(ForgeQueryIntentExecutionKind::Mutating)
     );
-    assert_eq!(inspection.denial_digest(), evidence.denial_digest());
+    assert_eq!(
+        inspection.denial_digest(),
+        evidence.denial_digest().as_str()
+    );
     assert!(!inspection.inspection_digest().is_empty());
 }
 
@@ -936,7 +942,7 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
     let (preview_evidence, preview_outcome) = {
         let mut preview = runtime
             .preview_with_options(
-                "deep runtime preview",
+                test_session_label("deep runtime preview"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -1125,7 +1131,7 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
     let branch_receipt = {
         let mut branch = runtime
             .branch_with_options(
-                "deep runtime branch",
+                test_session_label("deep runtime branch"),
                 ForgeQueryBranchOptions::sandboxed_write_intent(),
             )
             .expect("branch session should be admitted");

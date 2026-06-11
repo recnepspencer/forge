@@ -226,7 +226,7 @@ fn preview_batch_stages_multiple_aspect_native_writes_in_preview_lane() {
         .expect("task runtime should open a named workspace");
     let mut preview = workspace
         .preview_with_options(
-            "task-preview-batch",
+            test_session_label("task-preview-batch"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview should open");
@@ -267,7 +267,7 @@ fn preview_batch_uses_batch_target_evidence_without_authority_bundles() {
         .expect("task runtime should open a named workspace");
     let mut preview = workspace
         .preview_with_options(
-            "task-preview-batch-evidence",
+            test_session_label("task-preview-batch-evidence"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview should open");

@@ -154,10 +154,13 @@ workspace
 
 let derived_state = workspace.state(&readiness).unwrap();
 let effect_inspection = workspace.inspect(&publish).unwrap();
+let preview_label =
+    forge_query::facade::ForgeQuerySessionLabel::scoped_strs("workflow", ["approval-preview"])
+        .unwrap();
 
 let mut preview = workspace
     .preview_with_options(
-        "approval-preview",
+        preview_label,
         ForgeQueryPreviewOptions::sandboxed_write_intent(),
     )
     .unwrap();

@@ -7,6 +7,8 @@ use super::{
 use crate::identity::hash_parts;
 use crate::runtime::computed::ForgeQueryDerivedViewHandle;
 use crate::runtime::ForgeQueryRuntimeError;
+#[cfg(test)]
+use crate::runtime::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedArtifactBinding {
@@ -122,6 +124,8 @@ impl ForgeQueryDerivedArtifactBinding {
         T1: DeserializeOwned,
         T2: DeserializeOwned,
     {
+        #[cfg(test)]
+        record_forbidden_fallback_seam_invocation(ForgeQueryForbiddenFallbackSeam::DecodeRowPair);
         Ok((
             self.decode_single_row(first)?,
             self.decode_single_row(second)?,
@@ -139,6 +143,8 @@ impl ForgeQueryDerivedArtifactBinding {
         T2: DeserializeOwned,
         T3: DeserializeOwned,
     {
+        #[cfg(test)]
+        record_forbidden_fallback_seam_invocation(ForgeQueryForbiddenFallbackSeam::DecodeRowTriple);
         Ok((
             self.decode_single_row(first)?,
             self.decode_single_row(second)?,

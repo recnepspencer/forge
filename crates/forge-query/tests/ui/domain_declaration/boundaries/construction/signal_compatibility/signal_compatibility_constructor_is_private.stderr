@@ -15,7 +15,7 @@ error[E0624]: associated function `new` is private
    | |     ) -> Self {
    | |_____________- private associated function defined here
 
-error[E0061]: this function takes 12 arguments but 6 arguments were supplied
+error[E0061]: this function takes 13 arguments but 6 arguments were supplied
   --> tests/ui/domain_declaration/boundaries/construction/signal_compatibility/signal_compatibility_constructor_is_private.rs:50:13
    |
 50 |       let _ = ForgeQueryDeclarationSignalCompatibility::<ExampleDomain, ExampleInput>::new(
@@ -43,6 +43,7 @@ help: provide the arguments
 57 +         /* ForgeQueryDeclarationAspectFit */,
 58 +         /* ForgeQueryDeclarationAspectContract */,
 59 +         /* ForgeQueryDeclarationAspectContract */,
-60 +         /* ForgeQueryDeclarationEnvelope<ExampleDomain, ExampleInput> */,
-61 ~         "digest".to_string(),
+60 +         /* forge_query::application::declaration::future_projection::ForgeQueryDeclarationFutureProjection */,
+61 +         /* ForgeQueryDeclarationEnvelope<ExampleDomain, ExampleInput> */,
+62 ~         "digest".to_string(),
    |

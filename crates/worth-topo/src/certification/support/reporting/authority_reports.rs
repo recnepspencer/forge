@@ -1,13 +1,6 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DeterministicDigest {
-    pub algorithm: String,
-    pub digest_hex: String,
-    pub row_count: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TopologyLocalizationEntityRow {
     pub entity_id: EntityId,
     pub kind_name: String,
@@ -43,20 +36,6 @@ pub struct TopologyLocalizationAggregateRelationRow {
 pub struct TopologyLocalizationAggregateReport {
     pub topology_entities: Vec<TopologyLocalizationAggregateEntityRow>,
     pub topology_relations: Vec<TopologyLocalizationAggregateRelationRow>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NamingAttachmentRow {
-    pub topology_entity_id: EntityId,
-    pub topology_kind_name: String,
-    pub attached_persistent_name_ids: Vec<EntityId>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NamingAttachmentReport {
-    pub fully_named: bool,
-    pub orphan_persistent_name_ids: Vec<EntityId>,
-    pub attachments: Vec<NamingAttachmentRow>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

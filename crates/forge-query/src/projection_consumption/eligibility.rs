@@ -158,6 +158,7 @@ impl DeniedProjectionConsumption {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeferredProjectionConsumption {
     declaration_digest: String,
+    source_family: ProjectionSourceFamily,
     reason: DeferredProjectionConsumptionReason,
     counters: ProjectionConsumptionEligibilityCounters,
     trace: ProjectionConsumptionEligibilityTrace,
@@ -165,6 +166,10 @@ pub struct DeferredProjectionConsumption {
 }
 
 impl DeferredProjectionConsumption {
+    pub fn source_family(&self) -> ProjectionSourceFamily {
+        self.source_family
+    }
+
     pub fn reason(&self) -> &DeferredProjectionConsumptionReason {
         &self.reason
     }
@@ -224,6 +229,7 @@ pub fn evaluate_projection_consumption_eligibility(
                 counters.deferred_count = 1;
                 return ProjectionConsumptionEligibility::Deferred(DeferredProjectionConsumption {
                     declaration_digest: declaration.declaration_digest().to_string(),
+                    source_family: declaration.source().family(),
                     reason,
                     counters,
                     trace: ProjectionConsumptionEligibilityTrace {

@@ -43,4 +43,4 @@ error: cannot construct `ProjectionConsumptionCertificationBundle` with struct l
 28 |           certification_bundle_digest: String::new(),
    |           ------------------------------------------ private field
    |
-   = note: ...and other private fields `oracle_report`, `seeded_report` and `slope_report` that were not provided
+   = note: ...and other private fields `forbidden_fallback_audit`, `oracle_report`, `seeded_report` and `slope_report` that were not provided

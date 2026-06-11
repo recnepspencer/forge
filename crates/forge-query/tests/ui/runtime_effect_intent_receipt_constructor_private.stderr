@@ -31,7 +31,7 @@ error: cannot construct `forge_query::facade::ForgeQueryEffectIntentReceipt` wit
 14 |         receipt_digest: String::new(),
    |         ----------------------------- private field
    |
-   = note: ...and other private fields `trigger_source_kind` and `effect_policy` that were not provided
+   = note: ...and other private fields `trigger_source_kind`, `write_adjacent_trigger` and `effect_policy` that were not provided
 help: you might have meant to use the `new` associated function
    |
  6 -     let _forged = ForgeQueryEffectIntentReceipt {

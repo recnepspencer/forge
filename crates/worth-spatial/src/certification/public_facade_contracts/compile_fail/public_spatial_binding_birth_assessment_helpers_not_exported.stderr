@@ -1,0 +1,13 @@
+error[E0432]: unresolved imports `worth_spatial::facade::bindings::assess_primitive_construction_birth`, `worth_spatial::facade::bindings::materialize_primitive_construction_birth_assessment`, `worth_spatial::facade::bindings::AdmittedPrimitiveConstructionBirthAssessment`, `worth_spatial::facade::bindings::PrimitiveConstructionBirthRealizationFacts`, `worth_spatial::facade::bindings::SpatialConstructionBirthAssessmentError`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_binding_birth_assessment_helpers_not_exported.rs:2:5
+  |
+2 |     assess_primitive_construction_birth, materialize_primitive_construction_birth_assessment,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `materialize_primitive_construction_birth_assessment` in `facade::bindings`
+  |     |
+  |     no `assess_primitive_construction_birth` in `facade::bindings`
+3 |     AdmittedPrimitiveConstructionBirthAssessment, PrimitiveConstructionBirthRealizationFacts,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionBirthRealizationFacts` in `facade::bindings`
+  |     |
+  |     no `AdmittedPrimitiveConstructionBirthAssessment` in `facade::bindings`
+4 |     SpatialConstructionBirthAssessmentError,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SpatialConstructionBirthAssessmentError` in `facade::bindings`

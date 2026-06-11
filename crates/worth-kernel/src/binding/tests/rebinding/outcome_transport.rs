@@ -1,35 +1,82 @@
 use forge_query::facade::ForgeQueryOrdinaryOutcome;
-use worth_primitives::{PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor};
-use worth_spatial::facade::bindings::{
-    attach_curve_to_edge, attach_pcurve_to_coedge, attach_surface_to_face, attach_vertex_geometry,
-    CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite, EdgeCurveBindingSpec,
-    FaceBindingSite, FaceSurfaceBindingSpec, LocalTopologyReplacementNeighborhood,
-    NeighborhoodBindingFamily, RebindingOutcomeClass, ReplacementCandidate,
-    ReplacementCandidateSet, SpatialAdmittedPrimitiveBinding, VertexBindingSite,
-    VertexGeometryBindingSpec, VertexGeometryProvenanceKind, VertexToleranceRegime,
+use worth_primitives::{
+    PrimitiveConstructionBirthSynopsisContract, PrimitiveConstructionFamilyContractRegistry,
+    PrimitiveWitnessDescriptor,
 };
-
-use crate::facade::authoring::binding::{
-    author_primitive_rebinding_declaration, AuthorPrimitiveRebindingIntent,
+use worth_spatial::facade::bindings::{
+    author_primitive_binding_declaration, author_primitive_rebinding_declaration,
+    AuthorPrimitiveBindingIntent, CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite,
+    EdgeCurveBindingSpec, FaceBindingSite, FaceSurfaceBindingSpec,
+    LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily,
+    PrimitiveBindingDeclarationEntry, RebindingOutcomeClass, ReplacementCandidateSet,
+    VertexBindingSite, VertexGeometryBindingSpec, VertexGeometryProvenanceKind,
+    VertexToleranceRegime,
 };
 
 use super::super::support::{
-    admitted_rebinding_handle, canonical_geometry, orthotope_contract, shell_with_hole_contract,
+    admitted_rebinding_handle, canonical_geometry, orthotope_contract,
+    rebinding_candidate_from_binding_declaration, rebinding_ordinary_outcome_for_entry,
+    rebinding_prior_fact_from_binding_declaration, rebinding_receipt_for_entry,
+    shell_with_hole_contract,
 };
 
-fn face_surface_binding(
+fn face_surface_binding_declaration(
     face_id: &str,
     persistent_name: &str,
     vertices: [[f64; 3]; 2],
-) -> SpatialAdmittedPrimitiveBinding {
-    SpatialAdmittedPrimitiveBinding::FaceSurface(
-        attach_surface_to_face(FaceSurfaceBindingSpec::new(
+) -> PrimitiveBindingDeclarationEntry {
+    author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_surface_to_face(
+        FaceSurfaceBindingSpec::new(
             FaceBindingSite::new(face_id).with_persistent_name(persistent_name),
             orthotope_contract(),
             canonical_geometry(vertices),
-        ))
-        .expect("face surface binding"),
-    )
+        ),
+    ))
+}
+
+fn edge_curve_binding_declaration(
+    edge_id: &str,
+    vertices: [[f64; 3]; 2],
+    contract: PrimitiveConstructionBirthSynopsisContract,
+) -> PrimitiveBindingDeclarationEntry {
+    author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_curve_to_edge(
+        EdgeCurveBindingSpec::new(
+            EdgeBindingSite::new(edge_id),
+            contract,
+            canonical_geometry(vertices),
+        ),
+    ))
+}
+
+fn coedge_pcurve_binding_declaration(
+    coedge_id: &str,
+    vertices: [[f64; 3]; 2],
+    contract: PrimitiveConstructionBirthSynopsisContract,
+) -> PrimitiveBindingDeclarationEntry {
+    author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_pcurve_to_coedge(
+        CoedgePCurveBindingSpec::new(
+            CoedgeBindingSite::new(coedge_id),
+            contract,
+            canonical_geometry(vertices),
+        ),
+    ))
+}
+
+fn vertex_geometry_binding_declaration(
+    vertex_id: &str,
+    vertices: [[f64; 3]; 2],
+) -> PrimitiveBindingDeclarationEntry {
+    author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_vertex_geometry(
+        VertexGeometryBindingSpec::new(
+            VertexBindingSite::new(vertex_id),
+            PrimitiveConstructionFamilyContractRegistry::contract_for(
+                &PrimitiveWitnessDescriptor::Orthotope,
+            ),
+            canonical_geometry(vertices),
+            VertexGeometryProvenanceKind::CanonicalWitness,
+            VertexToleranceRegime::ExactBits,
+        ),
+    ))
 }
 
 #[test]
@@ -37,22 +84,26 @@ fn rebinding_outcome_transport_through_kernel_and_query_does_not_collapse_denial
     let handle = admitted_rebinding_handle("rebinding-outcome-transport");
 
     let supported_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            face_surface_binding(
-                "face-old",
-                "surface-alpha",
-                [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+        crate::binding::tests::support::replace_surface_binding(
+            rebinding_prior_fact_from_binding_declaration(
+                &face_surface_binding_declaration(
+                    "face-old",
+                    "surface-alpha",
+                    [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+                ),
+                "rebinding-outcome-supported-prior",
             ),
             LocalTopologyReplacementNeighborhood::new(
                 NeighborhoodBindingFamily::FaceSurface,
                 "face-old",
-                ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+                ReplacementCandidateSet::new(vec![rebinding_candidate_from_binding_declaration(
                     "successor",
-                    face_surface_binding(
+                    &face_surface_binding_declaration(
                         "face-new",
                         "surface-beta",
                         [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
                     ),
+                    "rebinding-outcome-supported-candidate",
                 )
                 .expect("candidate")])
                 .expect("candidate set"),
@@ -60,45 +111,46 @@ fn rebinding_outcome_transport_through_kernel_and_query_does_not_collapse_denial
             .expect("neighborhood"),
         ),
     );
-    let supported = supported_entry.clone().ordinary_outcome_with_query(&handle);
-    let supported_decision = supported_entry.admit().expect("supported decision");
+    let supported = rebinding_ordinary_outcome_for_entry(&supported_entry, &handle);
+    let supported_decision =
+        rebinding_receipt_for_entry(&supported_entry, "rebinding-outcome-supported")
+            .expect("supported decision");
 
+    let ambiguous_prior = edge_curve_binding_declaration(
+        "edge-old",
+        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+        shell_with_hole_contract(),
+    );
+    let ambiguous_a = edge_curve_binding_declaration(
+        "edge-a",
+        [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
+        shell_with_hole_contract(),
+    );
+    let ambiguous_b = edge_curve_binding_declaration(
+        "edge-b",
+        [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
+        shell_with_hole_contract(),
+    );
     let ambiguous_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_curve_binding(
-            SpatialAdmittedPrimitiveBinding::EdgeCurve(
-                attach_curve_to_edge(EdgeCurveBindingSpec::new(
-                    EdgeBindingSite::new("edge-old"),
-                    shell_with_hole_contract(),
-                    canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-                ))
-                .expect("prior"),
+        crate::binding::tests::support::replace_curve_binding(
+            rebinding_prior_fact_from_binding_declaration(
+                &ambiguous_prior,
+                "rebinding-outcome-ambiguous-prior",
             ),
             LocalTopologyReplacementNeighborhood::new(
                 NeighborhoodBindingFamily::EdgeCurve,
                 "edge-old",
                 ReplacementCandidateSet::new(vec![
-                    ReplacementCandidate::new(
+                    rebinding_candidate_from_binding_declaration(
                         "a",
-                        SpatialAdmittedPrimitiveBinding::EdgeCurve(
-                            attach_curve_to_edge(EdgeCurveBindingSpec::new(
-                                EdgeBindingSite::new("edge-a"),
-                                shell_with_hole_contract(),
-                                canonical_geometry([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]]),
-                            ))
-                            .expect("a"),
-                        ),
+                        &ambiguous_a,
+                        "rebinding-outcome-ambiguous-a",
                     )
                     .expect("a"),
-                    ReplacementCandidate::new(
+                    rebinding_candidate_from_binding_declaration(
                         "b",
-                        SpatialAdmittedPrimitiveBinding::EdgeCurve(
-                            attach_curve_to_edge(EdgeCurveBindingSpec::new(
-                                EdgeBindingSite::new("edge-b"),
-                                shell_with_hole_contract(),
-                                canonical_geometry([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]]),
-                            ))
-                            .expect("b"),
-                        ),
+                        &ambiguous_b,
+                        "rebinding-outcome-ambiguous-b",
                     )
                     .expect("b"),
                 ])
@@ -107,32 +159,34 @@ fn rebinding_outcome_transport_through_kernel_and_query_does_not_collapse_denial
             .expect("neighborhood"),
         ),
     );
-    let ambiguous = ambiguous_entry.clone().ordinary_outcome_with_query(&handle);
-    let ambiguous_decision = ambiguous_entry.admit().expect("ambiguous decision");
+    let ambiguous = rebinding_ordinary_outcome_for_entry(&ambiguous_entry, &handle);
+    let ambiguous_decision =
+        rebinding_receipt_for_entry(&ambiguous_entry, "rebinding-outcome-ambiguous")
+            .expect("ambiguous decision");
 
+    let orphaned_prior = coedge_pcurve_binding_declaration(
+        "coedge-old",
+        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+        shell_with_hole_contract(),
+    );
+    let orphaned_candidate = coedge_pcurve_binding_declaration(
+        "coedge-new",
+        [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
+        orthotope_contract(),
+    );
     let orphaned_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_pcurve_binding(
-            SpatialAdmittedPrimitiveBinding::CoedgePCurve(
-                attach_pcurve_to_coedge(CoedgePCurveBindingSpec::new(
-                    CoedgeBindingSite::new("coedge-old"),
-                    shell_with_hole_contract(),
-                    canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-                ))
-                .expect("prior"),
+        crate::binding::tests::support::replace_pcurve_binding(
+            rebinding_prior_fact_from_binding_declaration(
+                &orphaned_prior,
+                "rebinding-outcome-orphaned-prior",
             ),
             LocalTopologyReplacementNeighborhood::new(
                 NeighborhoodBindingFamily::CoedgePCurve,
                 "coedge-old",
-                ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+                ReplacementCandidateSet::new(vec![rebinding_candidate_from_binding_declaration(
                     "weak",
-                    SpatialAdmittedPrimitiveBinding::CoedgePCurve(
-                        attach_pcurve_to_coedge(CoedgePCurveBindingSpec::new(
-                            CoedgeBindingSite::new("coedge-new"),
-                            orthotope_contract(),
-                            canonical_geometry([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]]),
-                        ))
-                        .expect("weak"),
-                    ),
+                    &orphaned_candidate,
+                    "rebinding-outcome-orphaned-candidate",
                 )
                 .expect("candidate")])
                 .expect("candidate set"),
@@ -140,40 +194,28 @@ fn rebinding_outcome_transport_through_kernel_and_query_does_not_collapse_denial
             .expect("neighborhood"),
         ),
     );
-    let orphaned = orphaned_entry.clone().ordinary_outcome_with_query(&handle);
-    let orphaned_decision = orphaned_entry.admit().expect("orphaned decision");
+    let orphaned = rebinding_ordinary_outcome_for_entry(&orphaned_entry, &handle);
+    let orphaned_decision =
+        rebinding_receipt_for_entry(&orphaned_entry, "rebinding-outcome-orphaned")
+            .expect("orphaned decision");
 
+    let unsupported_prior =
+        vertex_geometry_binding_declaration("vertex-old", [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]);
+    let unsupported_candidate =
+        vertex_geometry_binding_declaration("vertex-new", [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]);
     let unsupported_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::VertexGeometry(
-                attach_vertex_geometry(VertexGeometryBindingSpec::new(
-                    VertexBindingSite::new("vertex-old"),
-                    PrimitiveConstructionFamilyContractRegistry::contract_for(
-                        &PrimitiveWitnessDescriptor::Orthotope,
-                    ),
-                    canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-                    VertexGeometryProvenanceKind::CanonicalWitness,
-                    VertexToleranceRegime::ExactBits,
-                ))
-                .expect("prior"),
+        crate::binding::tests::support::replace_surface_binding(
+            rebinding_prior_fact_from_binding_declaration(
+                &unsupported_prior,
+                "rebinding-outcome-unsupported-prior",
             ),
             LocalTopologyReplacementNeighborhood::new(
                 NeighborhoodBindingFamily::VertexGeometry,
                 "vertex-old",
-                ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+                ReplacementCandidateSet::new(vec![rebinding_candidate_from_binding_declaration(
                     "vertex-successor",
-                    SpatialAdmittedPrimitiveBinding::VertexGeometry(
-                        attach_vertex_geometry(VertexGeometryBindingSpec::new(
-                            VertexBindingSite::new("vertex-new"),
-                            PrimitiveConstructionFamilyContractRegistry::contract_for(
-                                &PrimitiveWitnessDescriptor::Orthotope,
-                            ),
-                            canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-                            VertexGeometryProvenanceKind::CanonicalWitness,
-                            VertexToleranceRegime::ExactBits,
-                        ))
-                        .expect("successor"),
-                    ),
+                    &unsupported_candidate,
+                    "rebinding-outcome-unsupported-candidate",
                 )
                 .expect("candidate")])
                 .expect("candidate set"),
@@ -181,10 +223,10 @@ fn rebinding_outcome_transport_through_kernel_and_query_does_not_collapse_denial
             .expect("neighborhood"),
         ),
     );
-    let unsupported = unsupported_entry
-        .clone()
-        .ordinary_outcome_with_query(&handle);
-    let unsupported_decision = unsupported_entry.admit().expect("unsupported decision");
+    let unsupported = rebinding_ordinary_outcome_for_entry(&unsupported_entry, &handle);
+    let unsupported_decision =
+        rebinding_receipt_for_entry(&unsupported_entry, "rebinding-outcome-unsupported")
+            .expect("unsupported decision");
 
     assert_eq!(
         supported_decision.outcome_class(),

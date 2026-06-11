@@ -15,6 +15,7 @@ use crate::memory_workspace::{
 };
 use crate::program::ForgeQueryDerivedView;
 use crate::schema_view::QuerySchemaView;
+use crate::session_label::ForgeQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
 
 use crate::runtime::remask_posture::ForgeQueryRuntimeRemaskProjection;
@@ -111,7 +112,7 @@ pub trait ForgeQueryRuntimeBackend {
 
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError>;
@@ -304,7 +305,7 @@ pub trait ForgeQueryRuntimeSubscriptionActivationAdapter {
 pub trait ForgeQueryRuntimePreviewBasisAdapter {
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError>;

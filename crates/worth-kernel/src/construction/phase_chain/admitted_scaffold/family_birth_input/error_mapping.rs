@@ -1,8 +1,7 @@
-use crate::construction::request::{
+use super::super::super::request::{
     PrimitiveConstructionGeometryError, PrimitiveConstructionPhaseError,
 };
 use worth_geom::facade::PrimitiveRealizationError;
-use worth_spatial::facade::placement::SpatialPlacementError;
 
 pub(super) fn map_geometry(error: impl ToString) -> PrimitiveConstructionPhaseError {
     PrimitiveConstructionPhaseError::Geometry(PrimitiveConstructionGeometryError::GeometryFailure(
@@ -24,9 +23,8 @@ pub(super) fn map_support_plane(error: String) -> PrimitiveConstructionPhaseErro
     ))
 }
 
-pub(super) fn map_placement_geometry(
-    error: SpatialPlacementError,
-) -> PrimitiveConstructionPhaseError {
+#[cfg(test)]
+pub(super) fn map_placement_geometry(error: impl ToString) -> PrimitiveConstructionPhaseError {
     PrimitiveConstructionPhaseError::Geometry(PrimitiveConstructionGeometryError::GeometryFailure(
         error.to_string(),
     ))

@@ -19,7 +19,10 @@ fn runtime_public_aspect_api_finalization_closeout_answers_substrate_handoff_que
         closeout.backend_posture(),
         ForgeQueryRuntimeBackendPosture::Primary
     );
-    assert_eq!(closeout.support_matrix_digest(), matrix.matrix_digest());
+    assert_eq!(
+        closeout.support_matrix_digest(),
+        matrix.matrix_digest().as_str()
+    );
     assert_eq!(closeout.mutation_surface_digest(), report.report_digest());
     assert_eq!(closeout.naming_contract_digest(), naming.contract_digest());
     assert!(closeout

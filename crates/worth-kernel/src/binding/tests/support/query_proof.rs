@@ -8,14 +8,12 @@ use forge_query::facade::{
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
 };
 
-use crate::binding::rebinding::{
-    primitive_rebinding_workflow_transport, PrimitiveRebindingWorkflowTransport,
-};
-use crate::binding::workflow_boundary::{
+use crate::binding::tests::support::workflow_boundary::canonical_query_workflow_artifacts;
+use crate::binding::tests::support::workflow_boundary::{
     envelope_checked_summary, ordinary_outcome_shape, receipt_checked_summary,
     route_checked_summary, KernelCanonicalQueryWorkflowArtifactSet,
 };
-use crate::facade::authoring::binding::{
+use worth_spatial::facade::bindings::{
     PrimitiveBindingDeclarationEntry, PrimitiveBindingQueryDomain, PrimitiveBindingQueryWorld,
     PrimitiveRebindingDeclarationEntry, PrimitiveRebindingQueryDomain,
     PrimitiveRebindingQueryWorld,
@@ -61,8 +59,8 @@ pub(crate) fn progress_binding_entry(
     PrimitiveBindingQueryDomain,
     PrimitiveBindingDeclarationEntry,
 > {
-    entry
-        .progress_with_query(handle)
+    handle
+        .declare_review_and_progress(entry.clone())
         .unwrap_or_else(|_| panic!("binding declaration progression"))
 }
 
@@ -97,8 +95,7 @@ pub(crate) fn binding_workflow_artifacts(
     PrimitiveBindingQueryDomain,
     PrimitiveBindingDeclarationEntry,
 > {
-    entry
-        .canonical_workflow_artifacts_with_query(handle)
+    canonical_query_workflow_artifacts(handle, entry.clone())
         .unwrap_or_else(|_| panic!("binding workflow artifacts"))
 }
 
@@ -112,8 +109,8 @@ pub(crate) fn progress_rebinding_entry(
     PrimitiveRebindingQueryDomain,
     PrimitiveRebindingDeclarationEntry,
 > {
-    entry
-        .progress_with_query(handle)
+    handle
+        .declare_review_and_progress(entry.clone())
         .unwrap_or_else(|_| panic!("rebinding declaration progression"))
 }
 
@@ -147,20 +144,8 @@ pub(crate) fn rebinding_workflow_artifacts(
     PrimitiveRebindingQueryDomain,
     PrimitiveRebindingDeclarationEntry,
 > {
-    entry
-        .canonical_workflow_artifacts_with_query(handle)
+    canonical_query_workflow_artifacts(handle, entry.clone())
         .unwrap_or_else(|_| panic!("rebinding workflow artifacts"))
-}
-
-pub(crate) fn rebinding_workflow_transport(
-    entry: &PrimitiveRebindingDeclarationEntry,
-    handle: &forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
-        PrimitiveRebindingQueryDomain,
-        PrimitiveRebindingQueryWorld,
-    >,
-) -> PrimitiveRebindingWorkflowTransport {
-    primitive_rebinding_workflow_transport(entry, handle)
-        .unwrap_or_else(|_| panic!("rebinding workflow transport"))
 }
 
 pub(crate) fn assert_workflow_artifact_parity<

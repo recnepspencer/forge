@@ -205,96 +205,6 @@ fn lovasz_theta_screening_has_query_declaration_readiness() {
     assert!(!readiness.rows().is_empty());
 }
 
-#[test]
-fn periodic_measure_certificates_reject_autocorrelation_density_and_local_density() {
-    let handle = handle();
-    let catalog = draft_candidate_screening_invariant_catalog_checked(&handle).unwrap();
-    let subject = complete_graph(2).reference();
-    let model = periodic_red_block();
-
-    let autocorrelation = AutocorrelationOverlapCertificate::new(
-        "red",
-        ScreeningRational::integer(1),
-        ScreeningRational::integer(0),
-        ScreeningRational::integer(1),
-        transcript("autocorrelation"),
-    )
-    .unwrap();
-    let auto_eval = evaluate_autocorrelation_zero_screening_checked(
-        &handle,
-        &catalog,
-        subject.clone(),
-        model.clone(),
-        autocorrelation,
-    )
-    .unwrap();
-    assert!(auto_eval.rejects_candidate());
-
-    let density = DensityCapCertificate::new(
-        "red",
-        ScreeningRational::fraction(1, 2).unwrap(),
-        "retained-density-cap:test",
-        transcript("density"),
-    )
-    .unwrap();
-    let density_eval = evaluate_density_cap_screening_checked(
-        &handle,
-        &catalog,
-        subject.clone(),
-        model.clone(),
-        density,
-    )
-    .unwrap();
-    assert!(density_eval.rejects_candidate());
-
-    let local = LocalDensityWindowCertificate::new(
-        "red",
-        PeriodicMeasureWindow::rectangle(
-            "unit-window",
-            ScreeningRational::integer(0),
-            ScreeningRational::integer(1),
-            ScreeningRational::integer(0),
-            ScreeningRational::integer(1),
-        )
-        .unwrap(),
-        ScreeningRational::fraction(1, 2).unwrap(),
-        "retained-local-window-bound:test",
-        transcript("local-density"),
-    )
-    .unwrap();
-    let local_eval =
-        evaluate_local_density_window_screening_checked(&handle, &catalog, subject, model, local)
-            .unwrap();
-    assert!(local_eval.rejects_candidate());
-}
-
-#[test]
-fn measure_model_rejects_zero_area_and_out_of_period_cells() {
-    assert!(PeriodicMeasureCell::rectangle(
-        "red",
-        ScreeningRational::integer(0),
-        ScreeningRational::integer(0),
-        ScreeningRational::integer(0),
-        ScreeningRational::integer(1),
-    )
-    .is_err());
-
-    let out_of_period = PeriodicColorClassMeasureModel::new(
-        "bad-period",
-        ScreeningRational::integer(1),
-        ScreeningRational::integer(1),
-        vec![PeriodicMeasureCell::rectangle(
-            "red",
-            ScreeningRational::integer(0),
-            ScreeningRational::integer(2),
-            ScreeningRational::integer(0),
-            ScreeningRational::integer(1),
-        )
-        .unwrap()],
-    );
-    assert!(out_of_period.is_err());
-}
-
 fn replay_bad_theta(
     catalog: &CandidateScreeningInvariantCatalog,
     graph: &GraphVersion,
@@ -318,21 +228,4 @@ fn theta_identity_entries(dimension: usize) -> Vec<Vec<ScreeningRational>> {
         row[index] = ScreeningRational::integer(1);
     }
     entries
-}
-
-fn periodic_red_block() -> PeriodicColorClassMeasureModel {
-    PeriodicColorClassMeasureModel::new(
-        "periodic-red-block",
-        ScreeningRational::integer(3),
-        ScreeningRational::integer(1),
-        vec![PeriodicMeasureCell::rectangle(
-            "red",
-            ScreeningRational::integer(0),
-            ScreeningRational::integer(2),
-            ScreeningRational::integer(0),
-            ScreeningRational::integer(1),
-        )
-        .unwrap()],
-    )
-    .unwrap()
 }

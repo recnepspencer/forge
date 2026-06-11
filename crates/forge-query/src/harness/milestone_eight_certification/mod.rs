@@ -72,7 +72,7 @@ pub const MILESTONE_EIGHT_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "view-shape-non-cosmetic-planning-live",
     "kanban-desired-state-to-delta-parity",
     "kanban-delta-admission-boundary",
-    "grouped-refresh-honesty",
+    "grouped-delta-honesty",
     "grouped-bridge-truth-view-authority",
     "grouped-query-execution-surface-authority",
     "grouped-proof-chain-no-payload-rediscovery",
@@ -100,7 +100,7 @@ pub enum MilestoneEightPerturbationClass {
     ViewShapePlanningLiveSemantics,
     KanbanDesiredStateDeltaParity,
     KanbanDeltaAdmissionBoundary,
-    GroupedRefreshHonesty,
+    GroupedDeltaHonesty,
     GroupedBridgeTruthViewAuthority,
     GroupedExecutionSurfaceAuthority,
     GroupedProofChainNoPayloadRediscovery,
@@ -917,16 +917,24 @@ fn grouped_live_bundle(delta_bound: bool) -> MilestoneEightCertificationBundle {
         execution.patch_envelope().delivery_digest().to_string(),
         vec![
             format!(
-                "grouped_regroup_denial:{}",
-                execution.counters().grouped_full_regroup_denial_count()
+                "grouped_delta_rows:{}",
+                execution.counters().grouped_delta_row_count()
             ),
             format!(
-                "grouped_refresh_admission:{}",
-                execution.counters().view_family_refresh_admission_count()
+                "grouped_membership_transitions:{}",
+                execution.counters().grouped_membership_transition_count()
             ),
             format!(
                 "grouped_lane_count:{}",
                 execution.counters().grouped_lane_count()
+            ),
+            format!(
+                "view_family_refresh_admission_count:{}",
+                execution.counters().view_family_refresh_admission_count()
+            ),
+            format!(
+                "complexity_status_debt_count:{}",
+                execution.counters().complexity_status_debt_count()
             ),
         ],
         grouped_execution.digest().to_string(),
@@ -1531,8 +1539,8 @@ fn canonical_rows() -> Vec<MilestoneEightCertificationRow> {
             parity_lane: grouped_live_bundle(false),
         },
         MilestoneEightCertificationRow {
-            row_name: "grouped-refresh-honesty",
-            perturbation_class: MilestoneEightPerturbationClass::GroupedRefreshHonesty,
+            row_name: "grouped-delta-honesty",
+            perturbation_class: MilestoneEightPerturbationClass::GroupedDeltaHonesty,
             hostile_expectation: HostileExpectation::DistinctFromControl,
             parity_anchor: ParityAnchor::Hostile,
             control_lane: grouped_live_bundle(true),

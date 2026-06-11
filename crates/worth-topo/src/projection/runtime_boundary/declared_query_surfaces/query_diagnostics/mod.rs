@@ -11,15 +11,17 @@ use schema::facade::QueryAspectPath;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::certification::support::parity::build_derived_equivalence_contract_report;
-use crate::facade::{
-    DerivedEquivalenceContractReport, DerivedTopologyValidationReport, InterpretedTopologyView,
-    MaterializedTopologyView,
+use crate::derived_topology::materialized_graph::MaterializedTopologyView;
+use crate::derived_topology::traversal_views::InterpretedTopologyView;
+use crate::projection::diagnostic_surfaces::{
+    build_derived_equivalence_contract_report,
+    derived_read_diagnostics::{
+        build_derived_fallback_report_from_counts, build_derived_invalidation_report_from_aspects,
+        DerivedReadDiagnostics,
+    },
+    DerivedEquivalenceContractReport,
 };
-use crate::projection::diagnostic_surfaces::derived_read_diagnostics::{
-    build_derived_fallback_report_from_counts, build_derived_invalidation_report_from_aspects,
-    DerivedReadDiagnostics,
-};
+use crate::validation::DerivedTopologyValidationReport;
 
 use super::derived_surfaces::{decode_query_surface_row, TopologyQuerySurfaceError};
 use super::QUERY_SURFACE_FAILURE_ROW_KEY;

@@ -13,4 +13,4 @@ error[E0432]: unresolved imports `worth_kernel::facade::authoring::MoveSpatialIn
           worth_kernel::facade::authoring::construction::PrimitiveConstructionIntent
   = help: consider importing one of these structs instead:
           worth_kernel::facade::authoring::policy::SpatialIntentPolicyProfile
-          worth_spatial::facade::arbitration::SpatialIntentPolicyProfile
+          worth_spatial::certification::support::arbitration::SpatialIntentPolicyProfile

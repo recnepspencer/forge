@@ -1,58 +1,26 @@
+pub use super::family::{
+    primitive_construction_topology_birth_class, PrimitiveConstructionFamily,
+    PRIMITIVE_CONSTRUCTION_FAMILIES,
+};
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
 };
+#[cfg(test)]
+mod request_invalidity;
 mod request_placement;
+#[cfg(test)]
+pub(crate) use request_invalidity::primitive_construction_invalid_request_reason;
 pub(crate) use request_placement::placement_of;
 pub(crate) use request_placement::PrimitiveConstructionPlacement;
 use request_placement::{map_geometry_placement, request_digest_parts};
 use topology::facade::TopologyConstructionQueryAdmittedHandoffError;
-use worth_geom::facade::{PrimitiveRealizationError, PrimitiveRealizationExhaustionReport};
+use worth_geom::facade::{
+    PrimitiveConditioningWitness, PrimitiveRealizationError, PrimitiveRealizationExhaustionReason,
+    PrimitiveRealizationExhaustionReport, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
+};
 use worth_spatial::facade::placement::SpatialPlacementSpec;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub enum PrimitiveConstructionFamily {
-    SimplexSolid,
-    Orthotope,
-    RegularPrism,
-    RegularPyramid,
-    WireBody,
-    ShellWithHole,
-}
-
-impl PrimitiveConstructionFamily {
-    pub const ALL: [Self; 6] = [
-        Self::SimplexSolid,
-        Self::Orthotope,
-        Self::RegularPrism,
-        Self::RegularPyramid,
-        Self::WireBody,
-        Self::ShellWithHole,
-    ];
-
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::SimplexSolid => "simplex_solid",
-            Self::Orthotope => "orthotope",
-            Self::RegularPrism => "regular_prism",
-            Self::RegularPyramid => "regular_pyramid",
-            Self::WireBody => "wire_body",
-            Self::ShellWithHole => "shell_with_hole",
-        }
-    }
-
-    pub fn topology_birth_class(self) -> &'static str {
-        match self {
-            Self::SimplexSolid => "closed_simplex_body",
-            Self::Orthotope => "closed_orthotope_body",
-            Self::RegularPrism => "closed_regular_prism_body",
-            Self::RegularPyramid => "closed_regular_pyramid_body",
-            Self::WireBody => "planar_wire_body",
-            Self::ShellWithHole => "planar_shell_with_hole_body",
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum PrimitiveConstructionGeometry {
@@ -95,10 +63,6 @@ pub struct PrimitiveConstructionRequest {
 }
 
 impl PrimitiveConstructionRequest {
-    pub fn simplex_solid(center: [f64; 3], scale: f64) -> Self {
-        Self::simplex_solid_spec(SimplexSolidSpec::new(scale)).with_origin(center)
-    }
-
     pub fn simplex_solid_spec(spec: SimplexSolidSpec) -> Self {
         let geometry = PrimitiveConstructionGeometry::SimplexSolid {
             placement: PrimitiveConstructionPlacement::world(),
@@ -108,25 +72,12 @@ impl PrimitiveConstructionRequest {
         Self::new(geometry.clone(), request_digest_parts(&geometry))
     }
 
-    pub fn orthotope(center: [f64; 3], half_extents: [f64; 3]) -> Self {
-        Self::orthotope_spec(OrthotopeSpec { half_extents }).with_origin(center)
-    }
-
     pub fn orthotope_spec(spec: OrthotopeSpec) -> Self {
         let geometry = PrimitiveConstructionGeometry::Orthotope {
             placement: PrimitiveConstructionPlacement::world(),
             half_extents: spec.half_extents.map(f64::to_bits),
         };
         Self::new(geometry.clone(), request_digest_parts(&geometry))
-    }
-
-    pub fn regular_prism(center: [f64; 3], sides: u32, radius: f64, height: f64) -> Self {
-        Self::regular_prism_spec(RegularPrismSpec {
-            sides,
-            radius,
-            height,
-        })
-        .with_origin(center)
     }
 
     pub fn regular_prism_spec(spec: RegularPrismSpec) -> Self {
@@ -139,15 +90,6 @@ impl PrimitiveConstructionRequest {
         Self::new(geometry.clone(), request_digest_parts(&geometry))
     }
 
-    pub fn regular_pyramid(center: [f64; 3], sides: u32, radius: f64, height: f64) -> Self {
-        Self::regular_pyramid_spec(RegularPyramidSpec {
-            sides,
-            radius,
-            height,
-        })
-        .with_origin(center)
-    }
-
     pub fn regular_pyramid_spec(spec: RegularPyramidSpec) -> Self {
         let geometry = PrimitiveConstructionGeometry::RegularPyramid {
             placement: PrimitiveConstructionPlacement::world(),
@@ -158,23 +100,12 @@ impl PrimitiveConstructionRequest {
         Self::new(geometry.clone(), request_digest_parts(&geometry))
     }
 
-    pub fn wire_body(edge_count: u32) -> Self {
-        Self::wire_body_spec(WireBodySpec { edge_count })
-    }
-
     pub fn wire_body_spec(spec: WireBodySpec) -> Self {
         let geometry = PrimitiveConstructionGeometry::WireBody {
             placement: PrimitiveConstructionPlacement::world(),
             edge_count: spec.edge_count,
         };
         Self::new(geometry.clone(), request_digest_parts(&geometry))
-    }
-
-    pub fn shell_with_hole(outer_loop_edge_count: u32, hole_loop_edge_counts: Vec<u32>) -> Self {
-        Self::shell_with_hole_spec(ShellWithHoleSpec {
-            outer_loop_edge_count,
-            hole_loop_edge_counts,
-        })
     }
 
     pub fn shell_with_hole_spec(spec: ShellWithHoleSpec) -> Self {
@@ -209,11 +140,6 @@ impl PrimitiveConstructionRequest {
         let placement = self.placement_spec().at(origin);
         self.with_placement_spec(placement)
     }
-
-    pub fn with_facing(self, facing: [f64; 3]) -> Self {
-        let placement = self.placement_spec().facing(facing);
-        self.with_placement_spec(placement)
-    }
     pub(crate) fn with_placement_spec(self, placement: SpatialPlacementSpec) -> Self {
         let geometry = map_geometry_placement(
             self.geometry,
@@ -223,6 +149,7 @@ impl PrimitiveConstructionRequest {
         Self::new(geometry, parts)
     }
 
+    #[cfg(test)]
     pub(crate) fn geometry(&self) -> &PrimitiveConstructionGeometry {
         &self.geometry
     }
@@ -242,15 +169,75 @@ impl PrimitiveConstructionGeometry {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrimitiveConstructionRealizationExhaustionFact {
+    attempted_strategies: Vec<PrimitiveRealizationStrategy>,
+    conditioning_witness: PrimitiveConditioningWitness,
+    stability_class: PrimitiveStabilityClass,
+    exhaustion_reason: PrimitiveRealizationExhaustionReason,
+    fact_digest: String,
+}
+
+impl PrimitiveConstructionRealizationExhaustionFact {
+    fn from_realization_exhaustion_report(report: PrimitiveRealizationExhaustionReport) -> Self {
+        Self {
+            attempted_strategies: report.attempted_strategies().to_vec(),
+            conditioning_witness: report.conditioning_witness().clone(),
+            stability_class: report.stability_class(),
+            exhaustion_reason: report.exhaustion_reason(),
+            fact_digest: report.report_digest().to_string(),
+        }
+    }
+
+    pub fn attempted_strategies(&self) -> &[PrimitiveRealizationStrategy] {
+        &self.attempted_strategies
+    }
+
+    pub fn conditioning_witness(&self) -> &PrimitiveConditioningWitness {
+        &self.conditioning_witness
+    }
+
+    pub fn stability_class(&self) -> PrimitiveStabilityClass {
+        self.stability_class
+    }
+
+    pub fn exhaustion_reason(&self) -> PrimitiveRealizationExhaustionReason {
+        self.exhaustion_reason
+    }
+
+    pub fn fact_digest(&self) -> &str {
+        &self.fact_digest
+    }
+}
+
+impl std::fmt::Display for PrimitiveConstructionRealizationExhaustionFact {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "realization exhausted after {}: {}",
+            self.attempted_strategies
+                .iter()
+                .map(|strategy| strategy.as_str())
+                .collect::<Vec<_>>()
+                .join(" -> "),
+            self.exhaustion_reason.as_str()
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionGeometryError {
-    RealizationExhausted(PrimitiveRealizationExhaustionReport),
+    RealizationExhausted(PrimitiveConstructionRealizationExhaustionFact),
     GeometryFailure(String),
 }
 
 impl PrimitiveConstructionGeometryError {
     pub fn from_realization_error(error: PrimitiveRealizationError) -> Self {
         match error {
-            PrimitiveRealizationError::Exhausted(report) => Self::RealizationExhausted(report),
+            PrimitiveRealizationError::Exhausted(report) => Self::RealizationExhausted(
+                PrimitiveConstructionRealizationExhaustionFact::from_realization_exhaustion_report(
+                    report,
+                ),
+            ),
             PrimitiveRealizationError::Geometry(error) => Self::GeometryFailure(error.to_string()),
         }
     }

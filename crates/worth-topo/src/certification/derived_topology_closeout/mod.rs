@@ -12,6 +12,7 @@ use crate::certification::{
 
 use crate::certification::authority_closeout::read_view::certification_integrity_markers;
 use crate::certification::bridge::certify_milestone_one_bridge_proof;
+use crate::certification::compare_derived_equivalence_contracts;
 use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::primitive_corpus::certify_milestone_one_default_primitive_corpus_impl;
 use crate::certification::requirements::milestone_two_closeout_requirements;
@@ -27,11 +28,10 @@ use crate::certification::support::reporting::{
     MilestoneOneCertificationReport, MilestoneTwoBranchLocalParityReport,
     MilestoneTwoCloseoutReport, MilestoneTwoCounters, MilestoneTwoDerivedCorpusReport,
     MilestoneTwoDerivedReadReport, MilestoneTwoReplayParityReport, PrimitiveCorpusParityReport,
-    PrimitiveCorpusReport,
+    PrimitiveCorpusReport, ReplayParityStatus,
 };
-use crate::facade::{
-    build_topology_read_artifact, certify_topology_view, compare_derived_equivalence_contracts,
-    ReplayParityStatus,
+use crate::derived_topology::traversal_views::{
+    build_topology_read_artifact, certify_topology_view,
 };
 
 pub type TracedMilestoneTwoDerivedReadReport = BoundaryEnvelope<MilestoneTwoDerivedReadReport>;

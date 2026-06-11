@@ -1,5 +1,13 @@
 use super::*;
 
+mod stop_class;
+mod stop_classify;
+
+pub use stop_class::{
+    ForgeQueryRuntimeDeclarationFailureKind, ForgeQueryRuntimeLookupFailureKind,
+    ForgeQueryRuntimeMissingArtifactKind, ForgeQueryRuntimeMissingComponent, ForgeQueryStopClass,
+};
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ForgeQueryRuntimeError {
@@ -80,6 +88,10 @@ pub enum ForgeQueryRuntimeError {
         stage: &'static str,
         message: String,
     },
+    SessionLabelCollision {
+        authority_lane: ForgeQueryAuthorityLane,
+        label: ForgeQuerySessionLabel,
+    },
     PreviewOperationEffectDenied {
         label: String,
         stage: &'static str,
@@ -99,35 +111,35 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
             }
             Self::MissingRuntimeBridge => write!(
                 f,
-                "forge query runtime backend parts require a RuntimeBridge"
+                "forge query bridge-backed runtime bootstrap requires runtime_bridge(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingSchemaAdapter => write!(
                 f,
-                "forge query runtime backend parts require a schema adapter"
+                "forge query bridge-backed runtime bootstrap requires schema_adapter(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingSourceAdapter => write!(
                 f,
-                "forge query runtime backend parts require a source adapter"
+                "forge query bridge-backed runtime bootstrap requires source_adapter(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingWriteAuthority => write!(
                 f,
-                "forge query runtime backend parts require a write authority adapter"
+                "forge query bridge-backed runtime bootstrap requires write_authority(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingSignalSink => write!(
                 f,
-                "forge query runtime backend parts require a signal sink adapter"
+                "forge query bridge-backed runtime bootstrap requires signal_sink(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingSubscriptionActivation => write!(
                 f,
-                "forge query runtime backend parts require a subscription activation adapter"
+                "forge query bridge-backed runtime bootstrap requires subscription_activation(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingPreviewBasis => write!(
                 f,
-                "forge query runtime backend parts require a preview basis adapter"
+                "forge query bridge-backed runtime bootstrap requires preview_basis(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingInspectorEvidence => write!(
                 f,
-                "forge query runtime backend parts require an inspector evidence adapter"
+                "forge query bridge-backed runtime bootstrap requires inspector_evidence(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
             Self::MissingIntentAuthority => write!(
                 f,
@@ -255,6 +267,14 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 f,
                 "runtime invariant registration failed during {stage}: {message}"
             ),
+            Self::SessionLabelCollision {
+                authority_lane,
+                label,
+            } => write!(
+                f,
+                "session label `{label}` is already admitted for `{}` authority lane",
+                authority_lane.as_str()
+            ),
             Self::PreviewOperationEffectDenied {
                 label,
                 stage,
@@ -274,6 +294,12 @@ impl std::error::Error for ForgeQueryRuntimeError {
             Self::IntentExecutionRoutingFailed { source, .. } => Some(source.as_ref()),
             _ => None,
         }
+    }
+}
+
+impl ForgeQueryRuntimeError {
+    pub fn stop_class(&self) -> ForgeQueryStopClass<'_> {
+        stop_classify::classify_stop_class(self)
     }
 }
 

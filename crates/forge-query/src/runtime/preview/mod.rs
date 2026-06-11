@@ -21,6 +21,7 @@ use super::{
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::identity::hash_parts;
 use crate::memory_workspace::{ForgeQueryMutationDelta, ForgeQueryMutationKind};
+use crate::session_label::ForgeQuerySessionLabel;
 mod aspects;
 mod basics;
 mod binding;
@@ -45,7 +46,7 @@ pub use evidence::{
 pub use outcome::{ForgeQueryPreviewDiff, ForgeQueryPreviewOutcome};
 
 pub struct ForgeQueryPreviewSession<'a> {
-    label: String,
+    label: ForgeQuerySessionLabel,
     runtime: &'a mut ForgeQueryRuntime,
     effect_policy: ForgeQueryEffectPolicy,
     basis_admission: ForgeQueryPreviewBasisAdmission,
@@ -61,14 +62,14 @@ pub struct ForgeQueryPreviewSession<'a> {
 
 impl<'a> ForgeQueryPreviewSession<'a> {
     pub(super) fn new(
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         runtime: &'a mut ForgeQueryRuntime,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: ForgeQueryPreviewBasisAdmission,
     ) -> Self {
         let basis_snapshot_token = runtime.snapshot_token();
         Self {
-            label: label.into(),
+            label,
             runtime,
             effect_policy,
             basis_admission,
@@ -81,5 +82,9 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             promoted: false,
             discarded: false,
         }
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
+        &self.label
     }
 }

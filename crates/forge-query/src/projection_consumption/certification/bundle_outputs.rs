@@ -1,7 +1,11 @@
 use crate::identity::hash_parts;
 
 use super::super::receipt_transitions::ProjectionConsumptionTransitionRules;
-use super::boundary::ProjectionConsumptionPublicBoundaryAudit;
+use super::audits::{
+    ProjectionConsumptionFamilyInventory, ProjectionConsumptionForbiddenFallbackAudit,
+    ProjectionConsumptionProofShapeAudit, ProjectionConsumptionPublicBoundaryAudit,
+    ProjectionConsumptionSupportMatrix,
+};
 use super::bundle::{
     ProjectionConsumptionCertificationLane, ProjectionConsumptionCertificationRow,
 };
@@ -9,13 +13,9 @@ use super::fixtures::{
     denied_masked_field_failure_digest, source_digest, source_mismatch_failure_digest,
     source_receipt_digest, ProjectionConsumptionCertifiedLifecycle,
 };
-use super::oracles::ProjectionConsumptionOracleReport;
-use super::proof_shape::ProjectionConsumptionProofShapeAudit;
+use super::oracle::ProjectionConsumptionOracleReport;
 use super::seeded::ProjectionConsumptionSeededCertificationReport;
 use super::slopes::ProjectionConsumptionSlopeReport;
-use super::support_matrix::{
-    ProjectionConsumptionFamilyInventory, ProjectionConsumptionSupportMatrix,
-};
 
 pub struct ProjectionConsumptionBundleOutputs {
     pub rows: Vec<ProjectionConsumptionCertificationRow>,
@@ -28,6 +28,7 @@ pub fn assemble_closeout_bundle_outputs(
     support_matrix: &ProjectionConsumptionSupportMatrix,
     public_boundary_audit: &ProjectionConsumptionPublicBoundaryAudit,
     proof_shape_audit: &ProjectionConsumptionProofShapeAudit,
+    forbidden_fallback_audit: &ProjectionConsumptionForbiddenFallbackAudit,
     oracle_report: &ProjectionConsumptionOracleReport,
     seeded_report: &ProjectionConsumptionSeededCertificationReport,
     slope_report: &ProjectionConsumptionSlopeReport,
@@ -69,6 +70,14 @@ pub fn assemble_closeout_bundle_outputs(
                 "proof_shape:{}|phase_progression:{}",
                 proof_shape_audit.proof_shape_digest(),
                 proof_shape_audit.phase_progression_digest()
+            ),
+        ),
+        certification_row(
+            ProjectionConsumptionCertificationLane::ForbiddenFallbackSurface,
+            format!(
+                "forbidden_fallback:{}|total_occurrences:{}",
+                forbidden_fallback_audit.audit_digest(),
+                forbidden_fallback_audit.total_occurrence_count()
             ),
         ),
         certification_row(
@@ -184,6 +193,16 @@ pub fn assemble_closeout_bundle_outputs(
             proof_shape_audit.proof_shape_digest().to_string(),
         ),
         (
+            "projection_forbidden_fallback_digest",
+            forbidden_fallback_audit.audit_digest().to_string(),
+        ),
+        (
+            "projection_forbidden_fallback_total_occurrences",
+            forbidden_fallback_audit
+                .total_occurrence_count()
+                .to_string(),
+        ),
+        (
             "projection_phase_progression_digest",
             proof_shape_audit.phase_progression_digest().to_string(),
         ),
@@ -296,5 +315,6 @@ fn target_dx_digest() -> String {
         "support_discovery_before_consumption".to_string(),
         "typed_denial_and_deferred_handling".to_string(),
         "receipt_first_inspection_and_envelope_derivation".to_string(),
+        "retained_live_ordinary_projection_consumption".to_string(),
     ])
 }

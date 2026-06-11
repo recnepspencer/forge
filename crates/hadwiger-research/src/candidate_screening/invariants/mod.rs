@@ -40,7 +40,7 @@ pub(super) use super::{
     CandidateScreeningInvariantFamily as F,
 };
 
-pub(crate) const ALL_SCREENING_FAMILIES: [F; 35] = [
+pub(crate) const ALL_SCREENING_FAMILIES: [F; 34] = [
     F::ExactUnitDistanceConflict,
     F::TileDiameterSafety,
     F::SameColorSeparationDistanceSet,
@@ -54,7 +54,6 @@ pub(crate) const ALL_SCREENING_FAMILIES: [F; 35] = [
     F::LovaszThetaBound,
     F::SpectralHoffmanBound,
     F::DegeneracyKCoreFilter,
-    F::MaximumDegreeSanityCheck,
     F::PerfectGraphSanityCheck,
     F::SatIlpSixColorability,
     F::CriticalSubgraphExtraction,

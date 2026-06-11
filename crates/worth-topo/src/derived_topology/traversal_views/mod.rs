@@ -5,10 +5,5 @@ pub(crate) mod types;
 
 pub use facade::{
     build_topology_read_artifact, certify_topology_view, interpret_topology_view,
-    TopologyInterpreter,
 };
-pub use types::{
-    BoundaryInterpretationSummary, InterpretationReport, InterpretedTopologyView,
-    RadialInterpretationSummary, ShellInterpretation, TopologyInterpretationSet,
-    WireInterpretation,
-};
+pub use types::InterpretedTopologyView;

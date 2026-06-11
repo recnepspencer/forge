@@ -85,8 +85,7 @@ pub(crate) fn expand_scopes(
             QueryScopeDescriptor::BasisAware(descriptor) => {
                 width += 1;
                 if basis_evidence.is_some() {
-                    return Err(QueryCompositionError::invalid_scope(
-                        ScopeFamily::BasisAwareScope,
+                    return Err(QueryCompositionError::duplicate_basis_aware_scope(
                         CompositionCounters::for_scope_expansion(scopes.len(), width),
                         "basis-aware scope cannot be applied more than once in a single composition lane",
                     ));

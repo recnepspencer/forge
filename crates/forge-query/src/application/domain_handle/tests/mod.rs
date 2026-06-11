@@ -220,34 +220,32 @@ fn admit_returns_typed_denials_for_non_admitted_handles() {
 }
 
 #[test]
-fn deferred_temporal_and_async_operating_requirements_deny_before_declaration_authoring() {
+fn temporal_and_async_operating_requirements_admit_when_runtime_backed_support_is_closed() {
     let facade = ForgeQueryApplicationFacade::runtime_backed_default();
 
     match facade
         .domain_checked(GeometryDomainEntry)
         .with_operating_context(TemporalRequirementContext)
     {
-        ForgeQueryConfiguredDomainHandleChecked::Deferred(denial) => {
+        ForgeQueryConfiguredDomainHandleChecked::Admitted(handle) => {
             assert_eq!(
-                denial.blocking_operating_requirements(),
+                handle.required_operating_requirements(),
                 &[ForgeQueryDomainOperatingRequirement::TemporalQuery]
             );
-            assert!(denial.blocking_capability_families().is_empty());
         }
-        other => panic!("expected deferred temporal operating denial, got {other:?}"),
+        other => panic!("expected admitted temporal operating handle, got {other:?}"),
     }
 
     match facade
         .domain_checked(GeometryDomainEntry)
         .with_operating_context(AsyncRequirementContext)
     {
-        ForgeQueryConfiguredDomainHandleChecked::Deferred(denial) => {
+        ForgeQueryConfiguredDomainHandleChecked::Admitted(handle) => {
             assert_eq!(
-                denial.blocking_operating_requirements(),
+                handle.required_operating_requirements(),
                 &[ForgeQueryDomainOperatingRequirement::AsyncResourceQuery]
             );
-            assert!(denial.blocking_capability_families().is_empty());
         }
-        other => panic!("expected deferred async operating denial, got {other:?}"),
+        other => panic!("expected admitted async operating handle, got {other:?}"),
     }
 }

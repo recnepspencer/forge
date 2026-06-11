@@ -2,7 +2,7 @@
 
 ## What This Feature Is
 
-Collection planning covers **how validated query bundles become collection plans**: opaque cursors, ordering keys, CDC-shaped collection modes, and requested aggregate/derived-field families. Cursors are **basis-bound opaque** boundaries—not HTTP offset/limit pages. Grouped template and composition-profile **debts** are called out explicitly in support/composition reports.
+Collection planning covers **how validated query bundles become collection plans**: opaque cursors, ordering keys, CDC-shaped collection modes, and requested aggregate/derived-field families. Cursors are **basis-bound opaque** boundaries—not HTTP offset/limit pages. On the runtime-backed application support profile, core view-family support rows are already closed for `table`, `detail`, inspector-detail, and `kanban_grouped` surfaces, and grouped reusable composition/template support now ships as an admitted runtime-backed lane instead of explicit debt.
 
 ## Why You Use It
 
@@ -41,7 +41,7 @@ Cursors carry `CursorBoundaryDigest`—advance contracts are opaque strings tied
 2. `plan_validated_bundle` (or aggregate/derived specialized planner) with request context.
 3. Execute read composition with collection operators; receive cursor boundary in receipt.
 4. Advance with opaque cursor contract on next request—same basis binding required.
-5. For aggregates: use `RequestedAggregateFamily` path; check composition report for grouped-template debt.
+5. For aggregates: use `RequestedAggregateFamily` path; check the composition support profile for admitted grouped-template posture.
 
 ## How It Relates
 
@@ -54,7 +54,7 @@ Cursors carry `CursorBoundaryDigest`—advance contracts are opaque strings tied
 
 - Kanban/table view shapes call `plan_validated_bundle_for_collection_family` from `view_shape/planning.rs`.
 - Harness tests contrast ordinary vs CDC vs aggregate vs derived plans—use as behavior proof.
-- `composition/report.rs` lists deferred grouped-template neighbors—do not imply full grouped rollup support.
+- `composition/report.rs` and the application support report now publish grouped reusable composition/template support directly, so grouped collection planning no longer depends on a deferred composition neighbor.
 
 ## Anti-Patterns
 
@@ -68,7 +68,8 @@ Cursors carry `CursorBoundaryDigest`—advance contracts are opaque strings tied
 |---------|--------|
 | Basis-bound opaque cursors | **Verified** on ordinary paths |
 | CDC-shaped collection planning | **Verified** as query-shaped |
-| Grouped template / composition profile debts | **Debt** — see `composition/report.rs` |
+| Core view-family support rows (`table`, `detail`, inspector detail, `kanban_grouped`) | **Verified** — see application support/profile publication |
+| Grouped template / grouped composition support | **Verified** — see `composition/report.rs` and the application support report |
 | Store-backed cursor durability | **Deferred** (operating modes / matrix) |
 
 ## Related Docs

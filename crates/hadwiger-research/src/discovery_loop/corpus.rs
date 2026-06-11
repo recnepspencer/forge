@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::domain_artifacts::core_artifact::{
     impl_hadwiger_artifact, require_non_empty, HadwigerArtifactAuthorityOwner,
     HadwigerArtifactCore, HadwigerArtifactKind, HadwigerArtifactReference,
@@ -60,6 +62,7 @@ pub struct ResearchEvidenceCorpus {
     core: HadwigerArtifactCore,
     corpus_id: String,
     evidence_references: Vec<HadwigerDiscoveryEvidenceReference>,
+    evidence_reference_index: BTreeSet<String>,
     reusable_negative_evidence: Vec<HadwigerReusableNegativeEvidence>,
     graph_resident_failures: Vec<GraphResidentFailure>,
 }
@@ -95,9 +98,9 @@ impl ResearchEvidenceCorpus {
     }
 
     pub fn has_reference(&self, reference: &HadwigerArtifactReference) -> bool {
-        self.evidence_references.iter().any(|evidence| {
-            matches!(evidence, HadwigerDiscoveryEvidenceReference::Artifact { reference: stored } if stored == reference)
-        })
+        self.evidence_reference_index.contains(
+            &HadwigerDiscoveryEvidenceReference::artifact(reference.clone()).stable_token(),
+        )
     }
 
     pub fn rejected_evidence_available(&self) -> bool {
@@ -231,6 +234,10 @@ impl ResearchEvidenceCorpusBuilder {
         Ok(ResearchEvidenceCorpus {
             core,
             corpus_id,
+            evidence_reference_index: evidence_references
+                .iter()
+                .map(HadwigerDiscoveryEvidenceReference::stable_token)
+                .collect(),
             evidence_references,
             reusable_negative_evidence,
             graph_resident_failures,

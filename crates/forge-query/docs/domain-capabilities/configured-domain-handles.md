@@ -441,8 +441,8 @@ Admission checks current support posture:
 - deferred capability families
 - unsupported capability families
 - disabled required config sections
-- deferred or unsupported operating requirements such as temporal or
-  async-resource query posture
+- support-gated, deferred, or unsupported operating requirements such as
+  temporal or async-resource query posture
 
 ## Small Example
 

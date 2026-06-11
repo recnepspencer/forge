@@ -101,7 +101,7 @@ fn phase_five_query_backed_entry_surfaces_no_longer_call_direct_local_preparatio
     assert_eq!(
         violations,
         Vec::<String>::new(),
-        "query-backed runtime/public construction entry surfaces still call direct local preparation helpers instead of crossing the authoring-session query front door: {violations:?}"
+        "query-backed runtime/public construction entry surfaces still call direct local preparation helpers instead of crossing the declaration-authoring query front door: {violations:?}"
     );
 }
 

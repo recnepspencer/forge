@@ -2,7 +2,7 @@ use super::*;
 
 impl<'a> ForgeQueryPreviewSession<'a> {
     pub fn label(&self) -> &str {
-        &self.label
+        self.label.display()
     }
 
     pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {
@@ -28,7 +28,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         view: &ForgeQueryLiveView<T>,
     ) -> ForgeQueryPreviewHandleBindingEvidence {
         let evidence = ForgeQueryPreviewHandleBindingEvidence::live_view(
-            &self.label,
+            self.label.display(),
             view.name(),
             self.effect_policy,
             self.basis_admission.evidence(),
@@ -42,7 +42,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         computed: &ForgeQueryDerivedViewHandle<T>,
     ) -> ForgeQueryPreviewHandleBindingEvidence {
         let evidence = ForgeQueryPreviewHandleBindingEvidence::computed(
-            &self.label,
+            self.label.display(),
             computed.name(),
             self.effect_policy,
             self.basis_admission.evidence(),
@@ -62,7 +62,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             inspected.target_lane(),
         )?;
         let evidence = ForgeQueryPreviewHandleBindingEvidence::effect(
-            &self.label,
+            self.label.display(),
             effect.name(),
             inspected.target_lane(),
             self.effect_policy,
@@ -91,7 +91,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 .cloned()
                 .collect(),
         );
-        trace.record_replay_or_parity(format!("preview-session:{}", self.label));
+        trace.record_replay_or_parity(format!("preview-session:{}", self.label.display()));
         let mut outputs = Vec::new();
         let mut write_receipts = Vec::new();
         let mut patch_batches = Vec::new();
@@ -146,7 +146,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                         query_delivery_batches: Vec::new(),
                         derived_patch_notes: vec![format!(
                             "preview:{}:patch-drain-deferred",
-                            self.label
+                            self.label.display()
                         )],
                         derived_patches: Vec::new(),
                     });

@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_spatial::facade::frames`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_frame_admission_not_exported.rs:1:28
+  |
+1 | use worth_spatial::facade::frames::admit_spatial_frame;
+  |                            ^^^^^^ could not find `frames` in `facade`

@@ -1,3 +1,4 @@
+use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
     TopologyQueryMutationLaneSupportStatus, TopologyRuntimeAdapters,
@@ -141,7 +142,7 @@ fn current_head_runtime_writes_topology_through_real_runtime() {
 
     let entity_rows = workspace.read(surfaces.entities());
     let materialized_rows = workspace.materialize(surfaces.materialized());
-    let materialized: crate::facade::MaterializedTopologyView =
+    let materialized: MaterializedTopologyView =
         serde_json::from_value(materialized_rows[0].clone()).expect("materialized topology row");
     assert!(entity_rows.iter().any(|row| {
         row.external_row()

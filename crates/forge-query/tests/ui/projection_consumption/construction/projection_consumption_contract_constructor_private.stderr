@@ -1,39 +1,41 @@
-error[E0451]: fields `declaration_digest`, `eligibility_digest`, `query_digest`, `basis_digest`, `result_digest`, `canonical_result_shape_digest`, `narrowed_result_shape_digest`, `authorized_projection_identity`, `policy_digest`, `tenant_schema_basis_digest`, `source_family`, `source_posture`, `source_identity`, `source_reference_identities`, `fact_families`, `support_posture` and `contract_digest` of struct `forge_query::facade::MaterializedProjectionContract` are private
-  --> tests/ui/projection_consumption/construction/projection_consumption_contract_constructor_private.rs:12:9
+error: cannot construct `forge_query::facade::MaterializedProjectionContract` with struct literal syntax due to private fields
+  --> tests/ui/projection_consumption/construction/projection_consumption_contract_constructor_private.rs:11:13
    |
 11 |     let _ = MaterializedProjectionContract {
-   |             ------------------------------ in this type
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 12 |         declaration_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------------- private field
 13 |         eligibility_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------------- private field
 14 |         query_digest: None,
-   |         ^^^^^^^^^^^^ private field
+   |         ------------------ private field
 15 |         basis_digest: None,
-   |         ^^^^^^^^^^^^ private field
+   |         ------------------ private field
 16 |         result_digest: None,
-   |         ^^^^^^^^^^^^^ private field
+   |         ------------------- private field
 17 |         canonical_result_shape_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------------------- private field
 18 |         narrowed_result_shape_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------- private field
 19 |         authorized_projection_identity: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------------------------- private field
 20 |         policy_digest: String::new(),
-   |         ^^^^^^^^^^^^^ private field
+   |         ---------------------------- private field
 21 |         tenant_schema_basis_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------- private field
 22 |         source_family: ProjectionSourceFamily::QueryReadReceipt,
-   |         ^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------- private field
 23 |         source_posture: ProjectionContractSourcePosture::QueryOwnedReceiptSource,
-   |         ^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------------------------ private field
 24 |         source_identity: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ------------------------------ private field
 25 |         source_reference_identities: vec![impossible::<ProjectionSourceReferenceIdentity>()],
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------------------------------------ private field
 26 |         fact_families: vec![impossible::<BoundProjectionFactFamily>()],
-   |         ^^^^^^^^^^^^^ private field
+   |         -------------------------------------------------------------- private field
 27 |         support_posture: ProjectionContractSupportPosture::Admitted,
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------------------------- private field
 28 |         contract_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ------------------------------ private field
+   |
+   = note: ...and other private field `materialized_fact_posture` that was not provided

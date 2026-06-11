@@ -22,7 +22,7 @@ fn runtime_public_read_composition_phase_gate_freezes_completion_and_blockers() 
     assert_eq!(gate.phase_one_closeout_digest(), closeout.closeout_digest());
     assert_eq!(
         gate.support_matrix_digest(),
-        workspace.public_support_matrix().matrix_digest()
+        workspace.public_support_matrix().matrix_digest().as_str()
     );
     assert_eq!(gate.phase_two_start_family(), "loop_cycle_neighborhood");
     assert_gate_row(

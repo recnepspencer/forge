@@ -15,6 +15,7 @@ use crate::domain_capabilities::{
 };
 use crate::preview::PreviewWorkflowFoundationArtifact;
 use crate::workflow::QueryWorkflowDeclaration;
+use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
 use super::intent::ForgeQueryIntentDomainContributionSurface;
 use super::shared::{materialize_common_lane, qualify_semantic_code};
@@ -24,33 +25,33 @@ pub struct ForgeQueryIntentPreviewInspectionDraft {
     pub(crate) domain: String,
     pub(crate) target: ForgeQueryDeclarationBoundContributionTarget,
     pub(crate) semantic_code: String,
-    pub(crate) preview_session_identity: String,
+    pub(crate) preview_session_identity: BridgePreviewSessionIdentity,
 }
 
 impl ForgeQueryIntentDomainContributionSurface {
     pub fn inspects_query_preview(
         self,
         semantic_code: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> ForgeQueryIntentPreviewInspectionDraft {
         ForgeQueryIntentPreviewInspectionDraft {
             domain: self.domain,
             target: self.target,
             semantic_code: semantic_code.into(),
-            preview_session_identity: preview_session_identity.into(),
+            preview_session_identity,
         }
     }
 
     pub fn plans_preview_mutation(
         self,
         semantic_code: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> ForgeQueryIntentPreviewMutationDraft {
         ForgeQueryIntentPreviewMutationDraft {
             domain: self.domain,
             target: self.target,
             semantic_code: semantic_code.into(),
-            preview_session_identity: preview_session_identity.into(),
+            preview_session_identity,
         }
     }
 }
@@ -75,7 +76,7 @@ pub struct ForgeQueryIntentPreviewInspectionContribution {
     domain: String,
     target: ForgeQueryDeclarationBoundContributionTarget,
     semantic_code: String,
-    preview_session_identity: String,
+    preview_session_identity: BridgePreviewSessionIdentity,
     detail: String,
 }
 
@@ -121,7 +122,7 @@ pub struct ForgeQueryIntentPreviewMutationDraft {
     pub(crate) domain: String,
     pub(crate) target: ForgeQueryDeclarationBoundContributionTarget,
     pub(crate) semantic_code: String,
-    pub(crate) preview_session_identity: String,
+    pub(crate) preview_session_identity: BridgePreviewSessionIdentity,
 }
 
 impl ForgeQueryIntentPreviewMutationDraft {
@@ -141,7 +142,7 @@ pub struct ForgeQueryIntentPreviewMutationContribution {
     domain: String,
     target: ForgeQueryDeclarationBoundContributionTarget,
     semantic_code: String,
-    preview_session_identity: String,
+    preview_session_identity: BridgePreviewSessionIdentity,
     detail: String,
 }
 

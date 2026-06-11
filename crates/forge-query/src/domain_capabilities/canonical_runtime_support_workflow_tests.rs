@@ -117,7 +117,7 @@ fn workflow_materializer_builds_preview_and_runtime_declarations() {
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.only",
             "preview remains read-only",
-            "preview-session:42",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
         ),
     )));
     let confirmation = success(materialize_query_workflow_declaration(ready_workflow(
@@ -157,7 +157,7 @@ fn workflow_materializer_accepts_admitted_plan_targets() {
         ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
             "spatial.preview.lowering",
             "promotion-eligible preview can lower a bounded mutation workflow",
-            "preview-session:77",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
         ),
         admitted_plan_target_parts(
             "plan-workflow-preview",
@@ -208,7 +208,9 @@ fn discard_required_workflow_materializer_uses_promotion_eligible_preview_bindin
         ForgeQueryWorkflowContributionAuthoring::discard_required_query_inspection(
             "spatial.preview.discard",
             "discard-required preview semantics should now carry promotable preview authority at the workflow seam",
-            "preview-session:discard",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                "preview-session:discard",
+            ),
         ),
     )));
 
@@ -241,7 +243,9 @@ fn workflow_materialization_digest_changes_when_declaration_scope_changes() {
                 "preview remains read-only",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        "preview-session:42",
+                        crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                            "preview-session:42",
+                        ),
                         crate::workflow::WorkflowPreviewEvaluationClass::ReadOnly,
                     ),
                     crate::workflow::WorkflowDeclarationFamily::ConflictInspectionNarrow,
@@ -262,7 +266,9 @@ fn workflow_materialization_digest_changes_when_declaration_scope_changes() {
                 "preview remains read-only",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        "preview-session:42",
+                        crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                            "preview-session:42",
+                        ),
                         crate::workflow::WorkflowPreviewEvaluationClass::ReadOnly,
                     ),
                     crate::workflow::WorkflowDeclarationFamily::ConflictInspectionNarrow,
@@ -288,7 +294,7 @@ fn workflow_materialization_digest_changes_when_admitted_plan_scope_changes() {
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.only",
             "preview remains read-only",
-            "preview-session:42",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
         ),
         admitted_plan_target_parts(
             "plan-workflow-left",
@@ -301,7 +307,7 @@ fn workflow_materialization_digest_changes_when_admitted_plan_scope_changes() {
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.only",
             "preview remains read-only",
-            "preview-session:42",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
         ),
         admitted_plan_target_parts(
             "plan-workflow-right",
@@ -339,7 +345,9 @@ fn workflow_materializer_denies_missing_or_inconsistent_runtime_semantics() {
                 "preview remains read-only",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        "preview-session:42",
+                        crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                            "preview-session:42",
+                        ),
                         crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                     ),
                     crate::workflow::WorkflowDeclarationFamily::MutationLoweringNarrow,

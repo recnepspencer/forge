@@ -34,6 +34,14 @@ Stable option constructors:
 - `ForgeQueryBranchOptions::redirected_delivery()`
 - `ForgeQueryBranchOptions::sandboxed_write_intent()`
 
+Ordinary preview and branch entry uses typed session labels:
+
+- pass `ForgeQuerySessionLabel`, not raw strings
+- equivalent label identity re-entry stops through
+  `ForgeQueryStopClass::SessionLabelCollision`
+- display rendering is presentation; basis admission and closeout identity use
+  canonical label identity instead
+
 Stable preview-local operations:
 
 - bind live/computed/effect handles into a preview
@@ -96,13 +104,14 @@ muted unless you explicitly choose a broader policy.
 ## Small Example
 
 ```rust
-use forge_query::facade::ForgeQueryPreviewOptions;
+use forge_query::facade::{ForgeQueryPreviewOptions, ForgeQuerySessionLabel};
 
 let mut workspace = runtime.workspace("preview").unwrap();
+let label = ForgeQuerySessionLabel::scoped_strs("workflow", ["draft-create"]).unwrap();
 
 let mut preview = workspace
     .preview_with_options(
-        "draft create",
+        label,
         ForgeQueryPreviewOptions::sandboxed_write_intent(),
     )
     .unwrap();
@@ -125,11 +134,16 @@ truth writes.
 
 ```rust
 use forge_query::facade::{
-    ForgeQueryBranchOptions, ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryPreviewOptions,
+    ForgeQueryBranchOptions, ForgeQueryInspection, ForgeQueryLiveView,
+    ForgeQueryPreviewOptions, ForgeQuerySessionLabel,
 };
 use serde_json::{json, Value};
 
 let mut workspace = runtime.workspace("workflow").unwrap();
+let preview_label =
+    ForgeQuerySessionLabel::scoped_strs("workflow", ["preview-execution"]).unwrap();
+let branch_label =
+    ForgeQuerySessionLabel::scoped_strs("workflow", ["branch-local-intent"]).unwrap();
 
 let live: ForgeQueryLiveView<Value> = workspace
     .live_view("tasks.preview-bind", |q| {
@@ -142,7 +156,7 @@ let live: ForgeQueryLiveView<Value> = workspace
 let preview_outcome = {
     let mut preview = workspace
         .preview_with_options(
-            "preview execution",
+            preview_label,
             ForgeQueryPreviewOptions::redirected_delivery(),
         )
         .unwrap();
@@ -159,7 +173,7 @@ let preview_outcome = {
 let branch_result = {
     let mut branch = workspace
         .branch_with_options(
-            "branch local intent",
+            branch_label,
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .unwrap();
@@ -172,6 +186,12 @@ let branch_result = {
     ))
 };
 ```
+
+If you are authoring workflow capability evidence about a preview session, that
+is a separate typed identity lane. Opening the preview uses
+`ForgeQuerySessionLabel`; binding workflow preview inspection or mutation
+planning uses `forge_query::facade::runtime::BridgePreviewSessionIdentity`.
+Do not collapse those two roles into one raw string.
 
 What is authoritative:
 

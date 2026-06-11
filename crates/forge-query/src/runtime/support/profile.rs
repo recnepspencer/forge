@@ -9,7 +9,8 @@ use super::{
     ForgeQueryGraphCompositionCapabilitySupportRow, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
-    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeFamilyTeachingPosture,
+    ForgeQueryRuntimeInspectionEvidence,
 };
 use crate::runtime::{ForgeQueryAuthorityLane, ForgeQueryEffectPolicy};
 
@@ -98,17 +99,26 @@ impl ForgeQueryRuntimeSupportProfile {
                 [],
                 ["retained-runtime-artifact-inspection"],
             ),
-            ForgeQueryRuntimeFamilySupport::deferred(
+            ForgeQueryRuntimeFamilySupport::supported_with_teaching_posture(
                 ForgeQueryRuntimeFacadeFamily::Temporal,
-                "temporal query basis is deferred to Milestone 9.4",
+                super::ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+                [ForgeQueryAuthorityLane::TemporalExecutionState],
+                [],
+                ["runtime-backed-temporal-basis-state-inspection"],
             ),
-            ForgeQueryRuntimeFamilySupport::deferred(
+            ForgeQueryRuntimeFamilySupport::supported_with_teaching_posture(
                 ForgeQueryRuntimeFacadeFamily::AsyncResource,
-                "async/resource query families are deferred to Milestone 9.4",
+                super::ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+                [ForgeQueryAuthorityLane::AsyncResourceState],
+                [],
+                ["runtime-backed-async-resource-state-inspection"],
             ),
-            ForgeQueryRuntimeFamilySupport::deferred(
+            ForgeQueryRuntimeFamilySupport::supported_with_teaching_posture(
                 ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-                "mixed truth/time/async delivery is deferred to Milestone 9.4",
+                super::ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+                [ForgeQueryAuthorityLane::BridgeExternalState],
+                [],
+                ["runtime-backed-mixed-cause-delivery-state-inspection"],
             ),
             ForgeQueryRuntimeFamilySupport::deferred(
                 ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
@@ -273,31 +283,31 @@ impl ForgeQueryRuntimeSupportProfile {
         family: ForgeQueryRuntimeFacadeFamily,
     ) -> Result<(), ForgeQueryRuntimeSupportDenial> {
         let Some(row) = self.support_for(family) else {
-            return Err(ForgeQueryRuntimeSupportDenial {
+            return Err(ForgeQueryRuntimeSupportDenial::unsupported(
                 family,
-                reason: "backend support profile does not declare this facade family".to_string(),
-            });
+                "backend support profile does not declare this facade family",
+            ));
         };
 
         match row.status() {
             ForgeQueryRuntimeFamilySupportStatus::Supported => Ok(()),
             ForgeQueryRuntimeFamilySupportStatus::DeferredDebt => {
-                Err(ForgeQueryRuntimeSupportDenial {
+                Err(ForgeQueryRuntimeSupportDenial::new(
                     family,
-                    reason: row
-                        .denial_reason()
-                        .unwrap_or("backend support profile marks this facade family deferred")
-                        .to_string(),
-                })
+                    ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
+                    Some(row.teaching_posture()),
+                    row.denial_reason()
+                        .unwrap_or("backend support profile marks this facade family deferred"),
+                ))
             }
             ForgeQueryRuntimeFamilySupportStatus::Unsupported => {
-                Err(ForgeQueryRuntimeSupportDenial {
+                Err(ForgeQueryRuntimeSupportDenial::new(
                     family,
-                    reason: row
-                        .denial_reason()
-                        .unwrap_or("backend support profile marks this facade family unsupported")
-                        .to_string(),
-                })
+                    ForgeQueryRuntimeFamilySupportStatus::Unsupported,
+                    Some(row.teaching_posture()),
+                    row.denial_reason()
+                        .unwrap_or("backend support profile marks this facade family unsupported"),
+                ))
             }
         }
     }
@@ -313,6 +323,9 @@ impl ForgeQueryRuntimeSupportProfile {
         {
             return Err(ForgeQueryRuntimeSupportDenial::new(
                 ForgeQueryRuntimeFacadeFamily::Intent,
+                ForgeQueryRuntimeFamilySupportStatus::Supported,
+                self.support_for(ForgeQueryRuntimeFacadeFamily::Intent)
+                    .map(ForgeQueryRuntimeFamilySupport::teaching_posture),
                 "intent support requires an executable intent authority adapter",
             ));
         }
@@ -324,19 +337,48 @@ impl ForgeQueryRuntimeSupportProfile {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeSupportDenial {
     family: ForgeQueryRuntimeFacadeFamily,
+    status: ForgeQueryRuntimeFamilySupportStatus,
+    teaching_posture: Option<ForgeQueryRuntimeFamilyTeachingPosture>,
     reason: String,
 }
 
 impl ForgeQueryRuntimeSupportDenial {
-    pub(crate) fn new(family: ForgeQueryRuntimeFacadeFamily, reason: impl Into<String>) -> Self {
+    pub(crate) fn new(
+        family: ForgeQueryRuntimeFacadeFamily,
+        status: ForgeQueryRuntimeFamilySupportStatus,
+        teaching_posture: Option<ForgeQueryRuntimeFamilyTeachingPosture>,
+        reason: impl Into<String>,
+    ) -> Self {
         Self {
             family,
+            status,
+            teaching_posture,
             reason: reason.into(),
         }
     }
 
+    pub(crate) fn unsupported(
+        family: ForgeQueryRuntimeFacadeFamily,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            family,
+            ForgeQueryRuntimeFamilySupportStatus::Unsupported,
+            None,
+            reason,
+        )
+    }
+
     pub fn family(&self) -> ForgeQueryRuntimeFacadeFamily {
         self.family
+    }
+
+    pub fn status(&self) -> ForgeQueryRuntimeFamilySupportStatus {
+        self.status
+    }
+
+    pub fn teaching_posture(&self) -> Option<ForgeQueryRuntimeFamilyTeachingPosture> {
+        self.teaching_posture
     }
 
     pub fn reason(&self) -> &str {

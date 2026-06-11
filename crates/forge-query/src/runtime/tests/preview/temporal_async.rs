@@ -89,7 +89,7 @@ fn preview_discard_closeout_tracks_temporal_async_and_mixed_residue_parity() {
 
     let outcome = {
         let mut preview = runtime
-            .preview("preview temporal-async discard")
+            .preview(test_session_label("preview temporal-async discard"))
             .expect("preview session should admit");
         preview.use_view(&temporal_view);
         preview.use_view(&async_view);
@@ -149,7 +149,7 @@ fn preview_promotion_closeout_records_rebinding_for_temporal_async_and_mixed_han
     let outcome = {
         let mut preview = runtime
             .preview_with_options(
-                "preview temporal-async promote",
+                test_session_label("preview temporal-async promote"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should admit");
@@ -227,7 +227,7 @@ fn preview_discard_retains_crossed_preview_completion_residue_typed() {
 
     let outcome = {
         let mut preview = runtime
-            .preview("preview crossed completion discard")
+            .preview(test_session_label("preview crossed completion discard"))
             .expect("preview session should admit");
         preview.use_view(&view);
         preview.discard()
@@ -276,7 +276,7 @@ fn preview_promotion_denies_with_typed_rebinding_recovery_posture() {
     let error = {
         let mut preview = runtime
             .preview_with_options(
-                "preview promotion mismatch",
+                test_session_label("preview promotion mismatch"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should admit");

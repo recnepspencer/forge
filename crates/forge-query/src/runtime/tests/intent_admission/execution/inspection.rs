@@ -312,7 +312,7 @@ fn runtime_specific_effect_and_preview_wrappers_delegate_to_unified_inspection_e
 
     let outcome = {
         let mut preview = runtime
-            .preview("wrapper delegation preview")
+            .preview(test_session_label("wrapper delegation preview"))
             .expect("preview session should be admitted");
         preview.use_view(&live);
         preview.discard()

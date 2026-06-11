@@ -13,7 +13,7 @@ error[E0432]: unresolved imports `worth_spatial::facade::EmptySpatialWitnessCata
   |     no `SpatialPointWitnessRef` in `facade`
   |
   = help: consider importing this struct instead:
-          worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog
+          worth_spatial::facade::refs::EmptySpatialWitnessCatalog
   = help: consider importing this enum instead:
           worth_spatial::facade::refs::SpatialAnchorRef
   = help: consider importing this enum instead:
@@ -23,4 +23,4 @@ error[E0432]: unresolved imports `worth_spatial::facade::EmptySpatialWitnessCata
   = help: consider importing this enum instead:
           worth_spatial::facade::refs::SpatialPointWitnessRef
   = help: consider importing this trait instead:
-          worth_spatial::facade::witness_catalog::SpatialWitnessCatalog
+          worth_spatial::facade::refs::SpatialWitnessCatalog

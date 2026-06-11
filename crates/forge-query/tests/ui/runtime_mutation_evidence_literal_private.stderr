@@ -1,33 +1,15 @@
-error: cannot construct `ForgeQueryBatchMutationEvidence` with struct literal syntax due to private fields
-  --> tests/ui/runtime_mutation_evidence_literal_private.rs:40:13
+error[E0560]: struct `ForgeQueryBatchMutationEvidence` has no field named `request_digest_count`
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:50:9
    |
-40 |     let _ = ForgeQueryBatchMutationEvidence {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-41 |         component_count: 0,
-   |         ------------------ private field
-42 |         target_evidence_count: 0,
-   |         ------------------------ private field
-43 |         resolved_target_count: 0,
-   |         ------------------------ private field
-44 |         target_collection_count: 0,
-   |         -------------------------- private field
-45 |         target_entity_count: 0,
-   |         ---------------------- private field
-46 |         causality_bundle_count: 0,
-   |         ------------------------- private field
-47 |         provenance_bundle_count: 0,
-   |         -------------------------- private field
-48 |         outcome_class_count: 0,
-   |         ---------------------- private field
-49 |         request_digest_count: 0,
-   |         ----------------------- private field
-50 |         receipt_digest_count: 0,
-   |         ----------------------- private field
-51 |         aggregate_target_digest: String::new(),
-   |         -------------------------------------- private field
-52 |         aggregate_causality_digest: None,
-   |         -------------------------------- private field
-53 |         aggregate_provenance_digest: None,
-   |         --------------------------------- private field
+50 |         request_digest_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ `ForgeQueryBatchMutationEvidence` does not have this field
    |
-   = note: ...and other private fields that were not provided
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryBatchMutationEvidence` has no field named `receipt_digest_count`
+  --> tests/ui/runtime_mutation_evidence_literal_private.rs:51:9
+   |
+51 |         receipt_digest_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ `ForgeQueryBatchMutationEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned

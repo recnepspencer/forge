@@ -24,30 +24,37 @@ impl PrimitiveConstructionTopologyCounts {
         }
     }
 
+    #[cfg(test)]
     pub fn vertex_count(&self) -> usize {
         self.vertex_count
     }
 
+    #[cfg(test)]
     pub fn edge_count(&self) -> usize {
         self.edge_count
     }
 
+    #[cfg(test)]
     pub fn loop_count(&self) -> usize {
         self.loop_count
     }
 
+    #[cfg(test)]
     pub fn wire_count(&self) -> usize {
         self.wire_count
     }
 
+    #[cfg(test)]
     pub fn face_count(&self) -> usize {
         self.face_count
     }
 
+    #[cfg(test)]
     pub fn shell_count(&self) -> usize {
         self.shell_count
     }
 
+    #[cfg(test)]
     pub fn body_count(&self) -> usize {
         self.body_count
     }

@@ -1,4 +1,9 @@
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::runtime::{ForgeQueryAuthorityLane, ForgeQueryEffectPolicy};
+use crate::session_label::ForgeQuerySessionLabel;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeEvidenceAuthority {
@@ -13,29 +18,48 @@ impl ForgeQueryRuntimeEvidenceAuthority {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryPreviewBasisAdmission {
-    label: String,
+    label: ForgeQuerySessionLabel,
     effect_policy: ForgeQueryEffectPolicy,
     authority_lane: ForgeQueryAuthorityLane,
     evidence: Vec<String>,
+    admission_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryPreviewBasisAdmission {
     pub fn new(
         _authority: &ForgeQueryRuntimeEvidenceAuthority,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         evidence: impl IntoIterator<Item = impl Into<String>>,
     ) -> Self {
-        Self {
-            label: label.into(),
+        let evidence = evidence.into_iter().map(Into::into).collect::<Vec<_>>();
+        let authority_lane = ForgeQueryAuthorityLane::PreviewTruth;
+        let admission_digest = basis_admission_digest(
+            ForgeQueryEvidenceScope::PreviewBasisAdmission,
+            &label,
             effect_policy,
-            authority_lane: ForgeQueryAuthorityLane::PreviewTruth,
-            evidence: evidence.into_iter().map(Into::into).collect(),
+            authority_lane,
+            &evidence,
+        );
+        Self {
+            label,
+            effect_policy,
+            authority_lane,
+            evidence,
+            admission_digest,
         }
     }
 
     pub fn label(&self) -> &str {
+        self.label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
         &self.label
+    }
+
+    pub fn label_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        self.label.identity_digest()
     }
 
     pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {
@@ -48,34 +72,57 @@ impl ForgeQueryPreviewBasisAdmission {
 
     pub fn evidence(&self) -> &[String] {
         &self.evidence
+    }
+
+    pub fn admission_digest(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_digest
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBranchBasisAdmission {
-    label: String,
+    label: ForgeQuerySessionLabel,
     effect_policy: ForgeQueryEffectPolicy,
     authority_lane: ForgeQueryAuthorityLane,
     evidence: Vec<String>,
+    admission_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryBranchBasisAdmission {
     pub fn new(
         _authority: &ForgeQueryRuntimeEvidenceAuthority,
-        label: impl Into<String>,
+        label: ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         evidence: impl IntoIterator<Item = impl Into<String>>,
     ) -> Self {
-        Self {
-            label: label.into(),
+        let evidence = evidence.into_iter().map(Into::into).collect::<Vec<_>>();
+        let authority_lane = ForgeQueryAuthorityLane::BranchLocalTruth;
+        let admission_digest = basis_admission_digest(
+            ForgeQueryEvidenceScope::BranchBasisAdmission,
+            &label,
             effect_policy,
-            authority_lane: ForgeQueryAuthorityLane::BranchLocalTruth,
-            evidence: evidence.into_iter().map(Into::into).collect(),
+            authority_lane,
+            &evidence,
+        );
+        Self {
+            label,
+            effect_policy,
+            authority_lane,
+            evidence,
+            admission_digest,
         }
     }
 
     pub fn label(&self) -> &str {
+        self.label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
         &self.label
+    }
+
+    pub fn label_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        self.label.identity_digest()
     }
 
     pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {
@@ -88,6 +135,10 @@ impl ForgeQueryBranchBasisAdmission {
 
     pub fn evidence(&self) -> &[String] {
         &self.evidence
+    }
+
+    pub fn admission_digest(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_digest
     }
 }
 
@@ -123,4 +174,31 @@ impl ForgeQueryRuntimeInspectionEvidence {
     pub fn evidence(&self) -> &[String] {
         &self.evidence
     }
+}
+
+fn basis_admission_digest(
+    scope: ForgeQueryEvidenceScope,
+    label: &ForgeQuerySessionLabel,
+    effect_policy: ForgeQueryEffectPolicy,
+    authority_lane: ForgeQueryAuthorityLane,
+    evidence: &[String],
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(scope)
+        .field_identity(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            label.identity_digest().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("effect_policy"),
+            effect_policy.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority_lane"),
+            authority_lane.as_str(),
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("evidence"),
+            evidence.iter().map(String::as_str),
+        )
+        .seal()
 }

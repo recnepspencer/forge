@@ -152,7 +152,9 @@ fn workflow_post_merge_inspection_denies_preview_bound_outcomes() {
                 "preview merge artifacts should not admit post-merge inspection declarations",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        "preview-session:invalid-post-merge",
+                        crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                            "preview-session:invalid-post-merge",
+                        ),
                         crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                     ),
                     WorkflowDeclarationFamily::PostMergeInspectionNarrow,

@@ -100,7 +100,7 @@ fn domain_entry_support_snapshot_matches_support_report_truth() {
             .row_for_family(ForgeQueryRuntimeFacadeFamily::Temporal)
             .expect("temporal runtime row should exist")
             .status(),
-        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+        ForgeQueryRuntimeFamilySupportStatus::Supported
     );
     assert_eq!(
         snapshot
@@ -108,7 +108,7 @@ fn domain_entry_support_snapshot_matches_support_report_truth() {
             .row_for_family(ForgeQueryRuntimeFacadeFamily::AsyncResource)
             .expect("async runtime row should exist")
             .status(),
-        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+        ForgeQueryRuntimeFamilySupportStatus::Supported
     );
 }
 

@@ -1,0 +1,18 @@
+mod artifact;
+mod encoder;
+mod foundational;
+mod scheme;
+mod scope;
+mod sealed;
+mod tag;
+
+#[cfg(test)]
+mod tests;
+
+pub use artifact::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityComparisonError};
+pub use encoder::ForgeQueryEvidenceIdentityEncoder;
+pub use scheme::ForgeQueryEvidenceIdentityScheme;
+pub use scope::ForgeQueryEvidenceScope;
+pub use tag::ForgeQueryEvidenceTag;
+
+pub(crate) use encoder::forge_query_evidence_identity;

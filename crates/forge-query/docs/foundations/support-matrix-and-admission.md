@@ -3,7 +3,7 @@
 ## What This Feature Is
 
 The public support matrix is Forge Query's explicit contract for what the
-runtime facade supports now, what is intentionally deferred, and what must
+runtime facade supports now, what remains intentionally deferred, and what must
 fail closed until a real implementation exists.
 
 Admission is the executable form of that contract. It lets callers ask the
@@ -18,7 +18,7 @@ runtime whether a public family is actually available before they build on it.
 - you want one machine-checkable way to teach support posture in docs, product
   code, and certification
 - you need to distinguish shipped runtime-backed temporal/async behavior on
-  ordinary live handles from intentionally deferred sibling facade-family roots
+  ordinary live handles from support-gated sibling facade-family roots
 
 ## Stable Entry Points
 
@@ -48,8 +48,8 @@ Each row tells you:
 
 - the surface or facade family
 - whether it is `Supported`, `DeferredDebt`, or `Unsupported`
-- whether it is ordinary runtime DX, visible but deferred, or visible
-  vocabulary only
+- whether it is ordinary runtime DX, support-gated, visible but deferred, or
+  visible vocabulary only
 - the owning roadmap closure or runtime gate
 - whether it must fail closed
 - whether future work is forbidden from creating a sibling API instead
@@ -74,15 +74,26 @@ Good to know:
   posture: composition, view-shape admission, and saved-query freeze/reuse must
   preserve that meaning, defer it, require a fresh freeze, or deny it instead
   of silently degrading to ordinary-only reuse
+- composition closure is also published through the application support report:
+  when `QueryComposition` is admitted, the query-composition support profile now
+  exposes `named_scope_expansion:verified` and `template_instantiation:verified`
+  while observed-inspector and focused-inspector template neighbors stay
+  visible-but-deferred and grouped collection templates are admitted directly
+- that same published profile also closes the core runtime-backed view-family
+  rows honestly: `table`, `detail`, `inspector_detail_observed`, and
+  `inspector_detail_focused` are verified support rows, and `kanban_grouped`
+  is now verified too. Remaining grouped follow-on work belongs to later
+  durable/store-backed neighbors rather than runtime-backed grouped reusable
+  composition/template closure or the grouped view-family row
 
 ## How It Executes
 
 1. the runtime derives a public API contract from its support profile
-2. the public support matrix freezes that into supported, deferred, and
-   unsupported rows
+2. the public support matrix freezes that into supported, support-gated,
+   deferred, and unsupported rows
 3. your code calls `workspace.admit_public_api_family(...)` before depending on
-   a family that may be deferred or unsupported
-4. supported families return a sealed family contract
+   a family that may be support-gated, deferred, or unsupported
+4. admitted families return a sealed family contract
 5. deferred or unsupported families deny typed and early
 
 ## Small Example
@@ -121,13 +132,13 @@ let intent = matrix
     .row_for_family(ForgeQueryRuntimeFacadeFamily::Intent)
     .unwrap();
 
-assert_eq!(temporal.status().as_str(), "deferred-debt");
-assert_eq!(temporal.teaching_posture().as_str(), "visible-but-deferred");
+assert_eq!(temporal.status().as_str(), "supported");
+assert_eq!(temporal.teaching_posture().as_str(), "support-gate-only");
 assert!(temporal.admission_fail_closed());
 assert!(!temporal.ordinary_downstream_dx());
 
-assert_eq!(async_resource.status().as_str(), "deferred-debt");
-assert_eq!(async_resource.teaching_posture().as_str(), "visible-but-deferred");
+assert_eq!(async_resource.status().as_str(), "supported");
+assert_eq!(async_resource.teaching_posture().as_str(), "support-gate-only");
 assert!(async_resource.parallel_api_forbidden());
 
 assert_eq!(downstream_delivery.status().as_str(), "supported");
@@ -140,9 +151,9 @@ assert!(intent.admission_fail_closed());
 assert!(!intent.ordinary_downstream_dx());
 
 for family in [
-    ForgeQueryRuntimeFacadeFamily::Temporal,
-    ForgeQueryRuntimeFacadeFamily::AsyncResource,
     ForgeQueryRuntimeFacadeFamily::Intent,
+    ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
+    ForgeQueryRuntimeFacadeFamily::DurableArtifacts,
 ] {
     let error = workspace
         .admit_public_api_family(family)
@@ -162,11 +173,11 @@ Read that `Intent` row carefully. It means "do not teach blanket facade-family
 intent support here." It does not erase the concrete covered intent
 families described in [Intent Admission](../execution/intent-admission.md).
 
-Also read the deferred temporal and async family rows carefully. They no longer
-mean "temporal or async semantics are absent." They mean Query still refuses to
-publish sibling `workspace.temporal(...)`-style runtime roots. The shipped
-runtime-backed temporal/async surface lives on ordinary live handles, retained
-state/inspection, remask posture, and downstream delivery instead.
+Also read the support-gated temporal and async family rows carefully. They no
+longer mean "temporal or async semantics are absent." They mean Query has
+shipped runtime-backed temporal/async meaning through ordinary live handles,
+retained state/inspection, remask posture, and downstream delivery, while still
+refusing to publish sibling `workspace.temporal(...)`-style runtime roots.
 
 What is supported now:
 
@@ -177,15 +188,22 @@ What is supported now:
 - `BranchPreview`
 - `Write`
 - `Inspect`
+- `Temporal`
+- `AsyncResource`
+- `MixedCauseDelivery`
+- `temporal-async-certification`
 - `temporal-async-remask`
 - `downstream-delivery-contract`
 
+What is support-gated:
+
+- `Temporal` -> separate facade-family root is published as a support-gated extension marker; shipped runtime-backed temporal meaning extends ordinary live handles in Milestone `9.4`
+- `AsyncResource` -> separate facade-family root is published as a support-gated extension marker; shipped runtime-backed async/resource meaning extends ordinary live handles in Milestone `9.4`
+- `MixedCauseDelivery` -> separate facade-family root is published as a support-gated extension marker; shipped mixed-cause delivery meaning projects through retained live and downstream delivery surfaces in Milestone `9.4`
+- `temporal-async-certification` -> temporal/async certification closure in Milestone `9.4`
+
 What is visible but deferred:
 
-- `Temporal` -> separate facade-family root remains deferred; shipped runtime-backed temporal meaning extends ordinary live handles in Milestone `9.4`
-- `AsyncResource` -> separate facade-family root remains deferred; shipped runtime-backed async/resource meaning extends ordinary live handles in Milestone `9.4`
-- `MixedCauseDelivery` -> separate facade-family root remains deferred; shipped mixed-cause delivery meaning projects through retained live and downstream delivery surfaces in Milestone `9.4`
-- `temporal-async-certification` -> temporal/async certification closure in Milestone `9.4`
 - `StoreBackedExecution` -> store-backed execution parity
 - `DurableArtifacts` -> durable artifact reload and continuation
 
@@ -197,14 +215,14 @@ Teaching posture is the quickest honest summary:
 
 - `ordinary-runtime-dx` means downstream code can teach the family as part of
   the normal runtime surface
+- `support-gate-only` means the row is shipped and machine-checkable, but it is
+  a support or extension marker rather than a parallel runtime family you call
+  directly
 - `visible-but-deferred` means the family name is published now, but admission
-  must fail closed because Query is refusing a sibling runtime root even when
-  the underlying runtime-backed semantics now ship through the ordinary handle
-  world
+  must fail closed because the underlying store-backed or durable neighbor is
+  still roadmap debt
 - `visible-vocabulary-only` means the public vocabulary exists, but normal
   runtime DX must not imply blanket family support
-- `support-gate-only` means the row is a support or certification gate, not a
-  runtime family you call directly
 
 ## How It Relates To Other Features
 

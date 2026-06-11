@@ -5,6 +5,8 @@ mod hostile;
 mod parity;
 mod surface;
 
+#[cfg(test)]
+pub(crate) use alignment::docs_coverage_alignment_audit_from_audit;
 pub use alignment::ForgeQueryPlatformEntryAlignmentAudit;
 pub use bundle::{
     certify_platform_entry_closeout, ForgeQueryPlatformEntryCloseoutBundle,

@@ -1,81 +1,87 @@
-use worth_geom::facade::{ParameterDomain, ParameterSpacePoint};
 use worth_primitives::{
-    PrimitiveConstructionFamilyContractRegistry, PrimitiveGeometryIdentityBundle,
-    PrimitiveVertexIdentity, PrimitiveWitnessDescriptor,
+    PrimitiveConstructionBirthSynopsisContract, PrimitiveConstructionFamilyContractRegistry,
+    PrimitiveGeometryIdentityBundle, PrimitiveVertexIdentity, PrimitiveWitnessDescriptor,
 };
 use worth_spatial::facade::bindings::{
-    attach_curve_to_edge, attach_parameter_space_point_to_face, attach_surface_to_face,
-    evaluate_continuity, AnchorCarrierOwnership, BindingContinuityClass,
-    CarrierOwnedParameterPointAnchorSpec, EdgeBindingSite, EdgeCurveBindingSpec, FaceBindingSite,
-    FaceSurfaceBindingSpec, LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily,
-    ReplacementCandidate, ReplacementCandidateSet, SpatialAdmittedPrimitiveBinding,
+    author_primitive_anchor_binding_declaration, author_primitive_binding_declaration,
+    author_primitive_rebinding_declaration, AuthorPrimitiveAnchorBindingIntent,
+    AuthorPrimitiveBindingIntent, AuthorPrimitiveRebindingIntent, BindingContinuityClass,
+    EdgeBindingSite, EdgeCurveBindingSpec, FaceBindingSite, FaceSurfaceBindingSpec,
+    LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily,
+    PrimitiveAnchorBindingDeclarationEntry, PrimitiveBindingDeclarationEntry,
+    PrimitiveRebindingPriorBindingFact, ReplacementCandidateSet,
 };
 
-use crate::facade::authoring::binding::{
-    author_primitive_rebinding_declaration, AuthorPrimitiveRebindingIntent,
+use super::super::support::{
+    canonical_geometry, orthotope_contract, rebinding_candidate_from_anchor_declaration,
+    rebinding_candidate_from_binding_declaration, rebinding_prior_fact_from_anchor_declaration,
+    rebinding_prior_fact_from_binding_declaration, rebinding_receipt_for_entry,
+    shell_with_hole_contract,
 };
 
-use super::super::support::{canonical_geometry, orthotope_contract, shell_with_hole_contract};
-
-fn face_surface_binding(
+fn face_surface_binding_declaration(
     face_id: &str,
     persistent_name: &str,
     vertices: [[f64; 3]; 2],
-) -> SpatialAdmittedPrimitiveBinding {
-    SpatialAdmittedPrimitiveBinding::FaceSurface(
-        attach_surface_to_face(FaceSurfaceBindingSpec::new(
+) -> PrimitiveBindingDeclarationEntry {
+    author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_surface_to_face(
+        FaceSurfaceBindingSpec::new(
             FaceBindingSite::new(face_id).with_persistent_name(persistent_name),
             orthotope_contract(),
             canonical_geometry(vertices),
-        ))
-        .expect("face surface binding"),
-    )
+        ),
+    ))
 }
 
-fn face_point_binding(
+fn face_point_binding_declaration(
     face_id: &str,
     persistent_name: &str,
     vertices: [[f64; 3]; 2],
     point: [f64; 2],
-) -> SpatialAdmittedPrimitiveBinding {
-    SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(
-        attach_parameter_space_point_to_face(
+) -> PrimitiveAnchorBindingDeclarationEntry {
+    author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_face(
             FaceSurfaceBindingSpec::new(
                 FaceBindingSite::new(face_id).with_persistent_name(persistent_name),
                 orthotope_contract(),
                 canonical_geometry(vertices),
             ),
-            CarrierOwnedParameterPointAnchorSpec::new(
-                AnchorCarrierOwnership::for_face_surface(face_id, ParameterDomain::plane())
-                    .expect("ownership"),
-                ParameterSpacePoint::try_new(point).expect("parameter"),
+            worth_spatial::facade::bindings::CarrierOwnedParameterPointAnchorSpec::new(
+                worth_spatial::facade::bindings::AnchorCarrierOwnership::for_face_surface(
+                    face_id,
+                    worth_geom::facade::ParameterDomain::plane(),
+                )
+                .expect("ownership"),
+                worth_geom::facade::ParameterSpacePoint::try_new(point).expect("parameter"),
             )
             .expect("anchor spec"),
-        )
-        .expect("point anchor binding"),
+        ),
     )
 }
 
-fn edge_curve_binding(edge_id: &str, vertices: [[f64; 3]; 2]) -> SpatialAdmittedPrimitiveBinding {
-    SpatialAdmittedPrimitiveBinding::EdgeCurve(
-        attach_curve_to_edge(EdgeCurveBindingSpec::new(
+fn edge_curve_binding_declaration(
+    edge_id: &str,
+    vertices: [[f64; 3]; 2],
+    contract: PrimitiveConstructionBirthSynopsisContract,
+) -> PrimitiveBindingDeclarationEntry {
+    author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_curve_to_edge(
+        EdgeCurveBindingSpec::new(
             EdgeBindingSite::new(edge_id),
-            shell_with_hole_contract(),
+            contract,
             canonical_geometry(vertices),
-        ))
-        .expect("edge curve binding"),
-    )
+        ),
+    ))
 }
 
 #[test]
 fn continuity_classification_distinguishes_authoritative_successor_correspondence_and_insufficient_evidence(
 ) {
-    let prior_surface = face_surface_binding(
+    let prior_surface = face_surface_binding_declaration(
         "face-old",
         "surface-alpha",
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
     );
-    let successor_surface = face_surface_binding(
+    let successor_surface = face_surface_binding_declaration(
         "face-successor",
         "surface-beta",
         [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
@@ -83,32 +89,39 @@ fn continuity_classification_distinguishes_authoritative_successor_correspondenc
     let successor_neighborhood = LocalTopologyReplacementNeighborhood::new(
         NeighborhoodBindingFamily::FaceSurface,
         "face-old",
-        ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+        ReplacementCandidateSet::new(vec![rebinding_candidate_from_binding_declaration(
             "successor",
-            successor_surface.clone(),
+            &successor_surface,
+            "continuity-successor-candidate",
         )
-        .expect("candidate")])
+        .expect("successor candidate")])
         .expect("candidate set"),
     )
     .expect("successor neighborhood");
-    let successor_continuity =
-        evaluate_continuity(&prior_surface, &successor_neighborhood).expect("successor continuity");
+    let successor_continuity = continuity_class_for_surface_rebinding(
+        rebinding_prior_fact_from_binding_declaration(&prior_surface, "continuity-successor-prior"),
+        successor_neighborhood.clone(),
+    );
     let kernel_successor = author_primitive_rebinding_declaration(
         AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            prior_surface.clone(),
+            rebinding_prior_fact_from_binding_declaration(
+                &prior_surface,
+                "continuity-kernel-successor-prior",
+            ),
             successor_neighborhood,
         ),
-    )
-    .admit()
-    .expect("kernel successor");
+    );
+    let kernel_successor =
+        rebinding_receipt_for_entry(&kernel_successor, "continuity-kernel-successor")
+            .expect("kernel successor");
 
-    let prior_anchor = face_point_binding(
+    let prior_anchor = face_point_binding_declaration(
         "face-anchor-old",
         "surface-anchor-alpha",
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
         [0.25, 0.5],
     );
-    let correspondence_anchor = face_point_binding(
+    let correspondence_anchor = face_point_binding_declaration(
         "face-anchor-new",
         "surface-anchor-beta",
         [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
@@ -117,29 +130,42 @@ fn continuity_classification_distinguishes_authoritative_successor_correspondenc
     let correspondence_neighborhood = LocalTopologyReplacementNeighborhood::new(
         NeighborhoodBindingFamily::FaceSurfacePointAnchor,
         "face-anchor-old",
-        ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+        ReplacementCandidateSet::new(vec![rebinding_candidate_from_anchor_declaration(
             "correspondence",
-            correspondence_anchor,
+            &correspondence_anchor,
+            "continuity-correspondence-candidate",
         )
-        .expect("candidate")])
+        .expect("correspondence candidate")])
         .expect("candidate set"),
     )
     .expect("correspondence neighborhood");
-    let correspondence_continuity =
-        evaluate_continuity(&prior_anchor, &correspondence_neighborhood)
-            .expect("correspondence continuity");
+    let correspondence_continuity = continuity_class_for_surface_rebinding(
+        rebinding_prior_fact_from_anchor_declaration(
+            &prior_anchor,
+            "continuity-correspondence-prior",
+        ),
+        correspondence_neighborhood.clone(),
+    );
     let kernel_correspondence = author_primitive_rebinding_declaration(
         AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            prior_anchor,
+            rebinding_prior_fact_from_anchor_declaration(
+                &prior_anchor,
+                "continuity-kernel-correspondence-prior",
+            ),
             correspondence_neighborhood,
         ),
-    )
-    .admit()
-    .expect("kernel correspondence");
+    );
+    let kernel_correspondence =
+        rebinding_receipt_for_entry(&kernel_correspondence, "continuity-kernel-correspondence")
+            .expect("kernel correspondence");
 
-    let prior_edge = edge_curve_binding("edge-old", [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]);
-    let partial_edge = SpatialAdmittedPrimitiveBinding::EdgeCurve(
-        attach_curve_to_edge(EdgeCurveBindingSpec::new(
+    let prior_edge = edge_curve_binding_declaration(
+        "edge-old",
+        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+        shell_with_hole_contract(),
+    );
+    let partial_edge = author_primitive_binding_declaration(
+        AuthorPrimitiveBindingIntent::attach_curve_to_edge(EdgeCurveBindingSpec::new(
             EdgeBindingSite::new("edge-partial"),
             PrimitiveConstructionFamilyContractRegistry::contract_for(
                 &PrimitiveWitnessDescriptor::Orthotope,
@@ -148,92 +174,133 @@ fn continuity_classification_distinguishes_authoritative_successor_correspondenc
                 vec![],
                 vec![PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0])],
             ),
-        ))
-        .expect("partial edge"),
+        )),
     );
     let admitted_partial_neighborhood = LocalTopologyReplacementNeighborhood::new(
         NeighborhoodBindingFamily::EdgeCurve,
         "edge-old",
-        ReplacementCandidateSet::new(vec![
-            ReplacementCandidate::new("partial", partial_edge).expect("candidate")
-        ])
+        ReplacementCandidateSet::new(vec![rebinding_candidate_from_binding_declaration(
+            "partial",
+            &partial_edge,
+            "continuity-partial-candidate",
+        )
+        .expect("partial candidate")])
         .expect("candidate set"),
     )
     .expect("partial neighborhood");
-    let admitted_partial_continuity =
-        evaluate_continuity(&prior_edge, &admitted_partial_neighborhood)
-            .expect("admitted partial continuity");
+    let admitted_partial_continuity = continuity_class_for_curve_rebinding(
+        rebinding_prior_fact_from_binding_declaration(&prior_edge, "continuity-partial-prior"),
+        admitted_partial_neighborhood,
+    );
 
-    let denied_edge = SpatialAdmittedPrimitiveBinding::EdgeCurve(
-        attach_curve_to_edge(EdgeCurveBindingSpec::new(
+    let denied_edge = author_primitive_binding_declaration(
+        AuthorPrimitiveBindingIntent::attach_curve_to_edge(EdgeCurveBindingSpec::new(
             EdgeBindingSite::new("edge-denied"),
             PrimitiveConstructionFamilyContractRegistry::contract_for(
                 &PrimitiveWitnessDescriptor::Orthotope,
             ),
             PrimitiveGeometryIdentityBundle::new(vec![], vec![]),
-        ))
-        .expect("denied edge"),
+        )),
     );
     let denied_incomplete_neighborhood = LocalTopologyReplacementNeighborhood::new(
         NeighborhoodBindingFamily::EdgeCurve,
         "edge-old",
-        ReplacementCandidateSet::new(vec![
-            ReplacementCandidate::new("denied", denied_edge).expect("candidate")
-        ])
+        ReplacementCandidateSet::new(vec![rebinding_candidate_from_binding_declaration(
+            "denied",
+            &denied_edge,
+            "continuity-denied-candidate",
+        )
+        .expect("denied candidate")])
         .expect("candidate set"),
     )
     .expect("denied neighborhood");
-    let denied_incomplete_continuity =
-        evaluate_continuity(&prior_edge, &denied_incomplete_neighborhood)
-            .expect("denied incomplete continuity");
+    let denied_incomplete_continuity = continuity_class_for_curve_rebinding(
+        rebinding_prior_fact_from_binding_declaration(&prior_edge, "continuity-denied-prior"),
+        denied_incomplete_neighborhood,
+    );
 
+    let ambiguous_a = edge_curve_binding_declaration(
+        "edge-a",
+        [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
+        shell_with_hole_contract(),
+    );
+    let ambiguous_b = edge_curve_binding_declaration(
+        "edge-b",
+        [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
+        shell_with_hole_contract(),
+    );
     let ambiguous_neighborhood = LocalTopologyReplacementNeighborhood::new(
         NeighborhoodBindingFamily::EdgeCurve,
         "edge-old",
         ReplacementCandidateSet::new(vec![
-            ReplacementCandidate::new(
+            rebinding_candidate_from_binding_declaration(
                 "a",
-                edge_curve_binding("edge-a", [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]]),
+                &ambiguous_a,
+                "continuity-ambiguous-a",
             )
             .expect("candidate a"),
-            ReplacementCandidate::new(
+            rebinding_candidate_from_binding_declaration(
                 "b",
-                edge_curve_binding("edge-b", [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]]),
+                &ambiguous_b,
+                "continuity-ambiguous-b",
             )
             .expect("candidate b"),
         ])
         .expect("candidate set"),
     )
     .expect("ambiguous neighborhood");
-    let ambiguous_continuity =
-        evaluate_continuity(&prior_edge, &ambiguous_neighborhood).expect("ambiguous continuity");
+    let ambiguous_continuity = continuity_class_for_curve_rebinding(
+        rebinding_prior_fact_from_binding_declaration(&prior_edge, "continuity-ambiguous-prior"),
+        ambiguous_neighborhood,
+    );
 
     assert_eq!(
-        successor_continuity.continuity_class(),
+        successor_continuity,
         BindingContinuityClass::AuthoritativeSuccessor
     );
     assert_eq!(
-        kernel_successor.explanation().continuity_class(),
+        kernel_successor.continuity_class(),
         BindingContinuityClass::AuthoritativeSuccessor
     );
     assert_eq!(
-        correspondence_continuity.continuity_class(),
+        correspondence_continuity,
         BindingContinuityClass::CorrespondenceOnly
     );
     assert_eq!(
-        kernel_correspondence.explanation().continuity_class(),
+        kernel_correspondence.continuity_class(),
         BindingContinuityClass::CorrespondenceOnly
     );
     assert_eq!(
-        admitted_partial_continuity.continuity_class(),
+        admitted_partial_continuity,
         BindingContinuityClass::InsufficientEvidenceFromAdmittedPartial
     );
     assert_eq!(
-        denied_incomplete_continuity.continuity_class(),
+        denied_incomplete_continuity,
         BindingContinuityClass::InsufficientEvidenceFromDeniedIncomplete
     );
-    assert_eq!(
-        ambiguous_continuity.continuity_class(),
-        BindingContinuityClass::Ambiguous
+    assert_eq!(ambiguous_continuity, BindingContinuityClass::Ambiguous);
+}
+
+fn continuity_class_for_surface_rebinding(
+    prior_binding: PrimitiveRebindingPriorBindingFact,
+    neighborhood: LocalTopologyReplacementNeighborhood,
+) -> BindingContinuityClass {
+    let entry = author_primitive_rebinding_declaration(
+        AuthorPrimitiveRebindingIntent::replace_surface_binding(prior_binding, neighborhood),
     );
+    rebinding_receipt_for_entry(&entry, "continuity-surface")
+        .expect("surface rebinding receipt")
+        .continuity_class()
+}
+
+fn continuity_class_for_curve_rebinding(
+    prior_binding: PrimitiveRebindingPriorBindingFact,
+    neighborhood: LocalTopologyReplacementNeighborhood,
+) -> BindingContinuityClass {
+    let entry = author_primitive_rebinding_declaration(
+        AuthorPrimitiveRebindingIntent::replace_curve_binding(prior_binding, neighborhood),
+    );
+    rebinding_receipt_for_entry(&entry, "continuity-curve")
+        .expect("curve rebinding receipt")
+        .continuity_class()
 }

@@ -6,16 +6,13 @@ use schema::facade::platform::authority::{
 };
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
-#[cfg(not(test))]
-use crate::certification::support::parity::DerivedEquivalenceContractReport;
-#[cfg(test)]
-use crate::certification::support::parity::{
-    build_derived_equivalence_contract, DerivedEquivalenceContractReport,
-};
 use crate::derived_topology::materialized_graph::{
     MaterializationFallbackClass, MaterializedTopologyView,
 };
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
+#[cfg(test)]
+use crate::projection::diagnostic_surfaces::build_derived_equivalence_contract;
+use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
 use crate::validation::DerivedTopologyValidationReport;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

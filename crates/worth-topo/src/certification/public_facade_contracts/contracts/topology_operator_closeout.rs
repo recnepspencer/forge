@@ -1,5 +1,5 @@
 use forge_relational::facade::runtime::RelationalRuntime;
-use topology::facade::{
+use topology::certification::{
     certify_milestone_three_closeout, MilestoneThreeChangedScopeCoverageRow,
     MilestoneThreeDerivedFallbackPolicyDenialRow, MilestoneThreeDerivedRegionCoverageRow,
     MilestoneThreeDerivedReuseLegalityRow, MilestoneThreeDerivedWorkBreadthRow,
@@ -60,7 +60,7 @@ fn _milestone_three_side_quest_report_contract(report: &MilestoneThreeHostileSui
         report.naming_continuity_breadth_rows.as_slice();
     let _: &[MilestoneThreeRejectedMutationScopeReportRow] =
         report.rejected_mutation_scope_report_rows.as_slice();
-    let _: &[topology::facade::MilestoneThreeMutationReplayParityRow] =
+    let _: &[topology::certification::MilestoneThreeMutationReplayParityRow] =
         report.mutation_replay_parity_rows.as_slice();
     let _: &[MilestoneThreeMutationBranchLocalParityRow] =
         report.mutation_branch_local_parity_rows.as_slice();
@@ -117,7 +117,7 @@ fn _milestone_three_direct_acceptance_row_contracts(
     naming_row: &MilestoneThreeNamingContinuityMatrixRow,
     naming_breadth_row: &MilestoneThreeNamingContinuityBreadthRow,
     rejection_row: &MilestoneThreeRejectedMutationScopeReportRow,
-    replay_row: &topology::facade::MilestoneThreeMutationReplayParityRow,
+    replay_row: &topology::certification::MilestoneThreeMutationReplayParityRow,
     branch_row: &MilestoneThreeMutationBranchLocalParityRow,
     replay_branch_breadth_row: &MilestoneThreeReplayBranchBreadthRow,
     traversal_row: &MilestoneThreeMutationTopologyQueryTraversalRow,
@@ -125,8 +125,10 @@ fn _milestone_three_direct_acceptance_row_contracts(
     primitive_row: &MilestoneThreePrimitiveFamilyClosureRow,
     scale_row: &MilestoneThreeScalePressureRow,
 ) {
-    let _: topology::facade::MilestoneThreeHostileCertificationCategory = category_row.category();
-    let _: topology::facade::MilestoneThreeHostileCertificationStatus = category_row.status();
+    let _: topology::certification::MilestoneThreeHostileCertificationCategory =
+        category_row.category();
+    let _: topology::certification::MilestoneThreeHostileCertificationStatus =
+        category_row.status();
     let _: usize = category_row.scenario_count();
     let _: usize = category_row.evidence_count();
     let _: usize = category_row.replay_verified_count();
@@ -134,7 +136,7 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: &[String] = category_row.evidence_labels();
     let _: &[String] = category_row.gap_labels();
     let _: &str = category_row.row_digest();
-    let _: topology::facade::MilestoneThreeHostileScenario = digest_row.scenario();
+    let _: topology::certification::MilestoneThreeHostileScenario = digest_row.scenario();
     let _: &topology::facade::TopologyMutationDigest = digest_row.topology_mutation_digest();
     let _: usize = digest_row.topology_mutation_digest().fallback_policy_count;
     let _: usize = digest_row
@@ -146,7 +148,7 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: topology::facade::TopologyMutationNamingOutcome = naming_row.continuity_outcome_class();
     let _: Option<topology::facade::TopologyMutationRejectionClass> =
         naming_row.continuity_rejection_class();
-    let _: topology::facade::MilestoneThreeHostileScenario = naming_breadth_row.scenario();
+    let _: topology::certification::MilestoneThreeHostileScenario = naming_breadth_row.scenario();
     let _: usize = naming_breadth_row.continuity_row_count();
     let _: usize = naming_breadth_row.preserved_count();
     let _: usize = naming_breadth_row.ambiguous_count();
@@ -160,15 +162,15 @@ fn _milestone_three_direct_acceptance_row_contracts(
         rejection_row.rejected_mutation_scope_report();
     let _: topology::facade::TopologyMutationRejectionClass = rejection_row.rejection_class();
     let _: bool = replay_row.replay_checked();
-    let _: topology::facade::ReplayParityStatus = replay_row.parity_status();
+    let _: topology::certification::ReplayParityStatus = replay_row.parity_status();
     let _: usize = replay_row.mismatch_count();
     let _: &str = replay_row.row_digest();
-    let _: Option<topology::facade::MilestoneThreeHostileScenario> = branch_row.scenario();
+    let _: Option<topology::certification::MilestoneThreeHostileScenario> = branch_row.scenario();
     let _: &str = branch_row.branch_label();
     let _: &str = branch_row.branch_id();
     let _: &str = branch_row.mutation_origin();
     let _: TopologyBranchAuthoringBoundary = branch_row.branch_authoring_boundary();
-    let _: topology::facade::MilestoneThreeHostileOutcomeClass = branch_row.outcome_class();
+    let _: topology::certification::MilestoneThreeHostileOutcomeClass = branch_row.outcome_class();
     let _: Option<topology::facade::TopologyMutationRejectionClass> = branch_row.rejection_class();
     let _: &[topology::facade::TopologyMutationFamily] = branch_row.mutation_families();
     let _: &topology::facade::TopologyMutationDigest = branch_row.topology_mutation_digest();
@@ -178,7 +180,7 @@ fn _milestone_three_direct_acceptance_row_contracts(
         branch_row.derived_fallback_policy();
     let _: bool = branch_row.branch_head_diverged_from_main();
     let _: bool = branch_row.branch_head_unchanged_after_rejection();
-    let _: Option<&topology::facade::DeterministicDigest> = branch_row.branch_truth_digest();
+    let _: Option<&topology::certification::DeterministicDigest> = branch_row.branch_truth_digest();
     let _: &str = branch_row.row_digest();
     let _: usize = replay_branch_breadth_row.required_scenario_count();
     let _: usize = replay_branch_breadth_row.replay_checked_scenario_count();
@@ -193,8 +195,8 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: usize = replay_branch_breadth_row.branch_truth_digest_count();
     let _: usize = replay_branch_breadth_row.unchanged_rejected_branch_count();
     let _: &str = replay_branch_breadth_row.row_digest();
-    let _: topology::facade::MilestoneThreeHostileScenario = traversal_row.scenario();
-    let _: topology::facade::MilestoneThreeMutationTopologyQueryTraversalView =
+    let _: topology::certification::MilestoneThreeHostileScenario = traversal_row.scenario();
+    let _: topology::certification::MilestoneThreeMutationTopologyQueryTraversalView =
         traversal_row.view();
     let _: &str = traversal_row.left_view_digest();
     let _: &str = traversal_row.replay_view_digest();
@@ -226,13 +228,13 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: &[topology::facade::TopologyMutationFamily] = primitive_row.mutation_families();
     let _: &topology::facade::TopologyMutationDigest = primitive_row.topology_mutation_digest();
     let _: bool = primitive_row.replay_verified();
-    let _: &topology::facade::DeterministicDigest =
+    let _: &topology::certification::DeterministicDigest =
         primitive_row.final_materialized_topology_digest();
-    let _: &topology::facade::DeterministicDigest =
+    let _: &topology::certification::DeterministicDigest =
         primitive_row.replay_final_materialized_topology_digest();
     let _: usize = primitive_row.derived_validation_row_count();
     let _: &str = primitive_row.row_digest();
-    let _: topology::facade::MilestoneThreeScalePressureSweep = scale_row.sweep();
+    let _: topology::certification::MilestoneThreeScalePressureSweep = scale_row.sweep();
     let _: &str = scale_row.sweep_label();
     let _: &str = scale_row.primitive_family();
     let _: &schema::facade::topology_authoring::MilestoneOnePrimitiveCase = scale_row.primitive();
@@ -266,39 +268,41 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
 ) {
     let _: topology::facade::TopologyMutationFamily = family_row.family();
     let _: usize = family_row.scenario_count();
-    let _: &[topology::facade::MilestoneThreeHostileScenario] = family_row.scenarios();
+    let _: &[topology::certification::MilestoneThreeHostileScenario] = family_row.scenarios();
     let _: &str = family_row.row_digest();
     let _: topology::facade::TopologyMutationRejectionClass =
         rejection_distribution_row.rejection_class();
     let _: usize = rejection_distribution_row.case_count();
-    let _: &[topology::facade::MilestoneThreeHostileScenario] =
+    let _: &[topology::certification::MilestoneThreeHostileScenario] =
         rejection_distribution_row.scenarios();
     let _: &str = rejection_distribution_row.row_digest();
     let _: topology::facade::TopologyMutationNamingOutcome =
         naming_distribution_row.continuity_outcome_class();
     let _: usize = naming_distribution_row.case_count();
-    let _: &[topology::facade::MilestoneThreeHostileScenario] = naming_distribution_row.scenarios();
+    let _: &[topology::certification::MilestoneThreeHostileScenario] =
+        naming_distribution_row.scenarios();
     let _: &str = naming_distribution_row.row_digest();
     let _: topology::facade::TopologyMutationChangedScope = scope_row.changed_scope();
     let _: usize = scope_row.scenario_count();
-    let _: &[topology::facade::MilestoneThreeHostileScenario] = scope_row.scenarios();
+    let _: &[topology::certification::MilestoneThreeHostileScenario] = scope_row.scenarios();
     let _: &str = scope_row.row_digest();
     let _: topology::facade::TopologyDerivedRegion = region_row.derived_region();
     let _: usize = region_row.scenario_count();
-    let _: &[topology::facade::MilestoneThreeHostileScenario] = region_row.scenarios();
-    let _: topology::facade::MilestoneThreeHostileScenario = determinism_row.scenario();
-    let _: topology::facade::MilestoneThreeDeterminismRuleKind = determinism_row.rule_kind();
+    let _: &[topology::certification::MilestoneThreeHostileScenario] = region_row.scenarios();
+    let _: topology::certification::MilestoneThreeHostileScenario = determinism_row.scenario();
+    let _: topology::certification::MilestoneThreeDeterminismRuleKind = determinism_row.rule_kind();
     let _: usize = determinism_row.evidence_count();
     let _: bool = determinism_row.replay_verified();
     let _: bool = determinism_row.diagnostic_classification_stable();
     let _: bool = determinism_row.tie_break_evidence_stable();
     let _: &str = determinism_row.row_digest();
-    let _: topology::facade::MilestoneThreeHostileScenario = breadth_row.scenario();
+    let _: topology::certification::MilestoneThreeHostileScenario = breadth_row.scenario();
     let _: usize = breadth_row.mutation_record_count();
     let _: usize = breadth_row.changed_scope_count();
     let _: bool = breadth_row.replay_checked();
-    let _: topology::facade::MilestoneThreeMutationFalloutClass = fallout_row.fallout_class();
-    let _: topology::facade::MilestoneThreeHostileScenario = fallout_row.scenario();
+    let _: topology::certification::MilestoneThreeMutationFalloutClass =
+        fallout_row.fallout_class();
+    let _: topology::certification::MilestoneThreeHostileScenario = fallout_row.scenario();
     let _: topology::facade::TopologyMutationDerivedFallbackPolicy = fallout_row.fallback_policy();
     let _: bool = fallout_row.fallback_policy_exceeded();
     let _: Option<topology::facade::TopologyMutationRejectionClass> =
@@ -308,28 +312,29 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
     let _: usize = fallout_row.fallback_count();
     let _: bool = fallout_row.locality_claim_mismatch();
     let _: &str = fallout_row.row_digest();
-    let _: topology::facade::MilestoneThreeHostileScenario = fallback_denial_row.scenario();
+    let _: topology::certification::MilestoneThreeHostileScenario = fallback_denial_row.scenario();
     let _: topology::facade::TopologyMutationDerivedFallbackPolicy =
         fallback_denial_row.strict_fallback_policy();
-    let _: topology::facade::MilestoneThreeMutationFalloutClass =
+    let _: topology::certification::MilestoneThreeMutationFalloutClass =
         fallback_denial_row.observed_fallout_class();
     let _: usize = fallback_denial_row.observed_fallback_count();
     let _: topology::facade::TopologyMutationRejectionClass =
         fallback_denial_row.denied_rejection_class();
     let _: bool = fallback_denial_row.policy_exceeded();
     let _: &str = fallback_denial_row.row_digest();
-    let _: topology::facade::MilestoneThreeHostileScenario = reuse_row.scenario();
+    let _: topology::certification::MilestoneThreeHostileScenario = reuse_row.scenario();
     let _: bool = reuse_row.recompute_suppression_claimed();
     let _: bool = reuse_row.equivalence_contract_required();
     let _: bool = reuse_row.replay_materialized_topology_equivalent();
     let _: usize = reuse_row.fallback_count();
-    let _: topology::facade::MilestoneThreeMutationFalloutClass = reuse_row.fallout_class();
-    let _: Option<&topology::facade::DeterministicDigest> = reuse_row.derived_validation_digest();
+    let _: topology::certification::MilestoneThreeMutationFalloutClass = reuse_row.fallout_class();
+    let _: Option<&topology::certification::DeterministicDigest> =
+        reuse_row.derived_validation_digest();
     let _: &str = reuse_row.row_digest();
-    let _: topology::facade::MilestoneThreeHostileScenario = derived_work_row.scenario();
-    let _: topology::facade::MilestoneThreeDerivedWorkBreadthClass =
+    let _: topology::certification::MilestoneThreeHostileScenario = derived_work_row.scenario();
+    let _: topology::certification::MilestoneThreeDerivedWorkBreadthClass =
         derived_work_row.invalidation_breadth_class();
-    let _: topology::facade::MilestoneThreeDerivedWorkBreadthClass =
+    let _: topology::certification::MilestoneThreeDerivedWorkBreadthClass =
         derived_work_row.rebuild_breadth_class();
     let _: usize = derived_work_row.declared_changed_scope_count();
     let _: usize = derived_work_row.declared_derived_region_count();
@@ -342,8 +347,9 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
     let _: &[topology::facade::TopologyMutationFamily] = locality_row.families();
     let _: &[topology::facade::TopologyMutationChangedScope] = locality_row.changed_scopes();
     let _: &[topology::facade::TopologyDerivedRegion] = locality_row.derived_regions();
-    let _: topology::facade::MilestoneThreeHostileScenario = validator_row.scenario();
-    let _: topology::facade::MilestoneThreeValidatorFamily = validator_row.validator_family();
+    let _: topology::certification::MilestoneThreeHostileScenario = validator_row.scenario();
+    let _: topology::certification::MilestoneThreeValidatorFamily =
+        validator_row.validator_family();
     let _: &[String] = validator_row.validator_names();
     let _: usize = validator_row.mutation_family_count();
     let _: usize = validator_row.changed_scope_count();
@@ -352,8 +358,9 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
     let _: usize = validator_row.derived_validation_row_count();
     let _: bool = validator_row.localized_rejection_boundary();
     let _: &str = validator_row.row_digest();
-    let _: topology::facade::MilestoneThreeHostileScenario = validation_breadth_row.scenario();
-    let _: topology::facade::MilestoneThreeHostileOutcomeClass =
+    let _: topology::certification::MilestoneThreeHostileScenario =
+        validation_breadth_row.scenario();
+    let _: topology::certification::MilestoneThreeHostileOutcomeClass =
         validation_breadth_row.outcome_class();
     let _: usize = validation_breadth_row.validator_family_count();
     let _: usize = validation_breadth_row.validator_name_count();

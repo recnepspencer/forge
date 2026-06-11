@@ -1,22 +1,26 @@
 use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
-use crate::facade::NamingAttachmentReport;
+use crate::certification::{DerivedEquivalenceContractReport, NamingAttachmentReport};
+use crate::derived_topology::materialized_graph::MaterializedTopologyView;
+use crate::derived_topology::traversal_views::InterpretedTopologyView;
+use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
 use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{
     naming_attachment_report_from_query_input, TopologyNamingAttachmentInput,
 };
 use crate::projection::runtime_boundary::declared_query_surfaces::{
     read_declared_query_surface_binding, TopologyDeclaredQuerySurfaces, TopologyQuerySurfaceError,
 };
+use crate::validation::DerivedTopologyValidationReport;
 
 use super::derived_snapshot::historical_derived_surface_snapshot_for_read_basis;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct HistoricalTopologyQuerySnapshot {
     naming_attachments: NamingAttachmentReport,
-    materialized: crate::facade::MaterializedTopologyView,
-    interpreted: crate::facade::InterpretedTopologyView,
-    validation: crate::facade::DerivedTopologyValidationReport,
-    diagnostics: crate::facade::DerivedReadDiagnostics,
-    equivalence_contract: crate::facade::DerivedEquivalenceContractReport,
+    materialized: MaterializedTopologyView,
+    interpreted: InterpretedTopologyView,
+    validation: DerivedTopologyValidationReport,
+    diagnostics: DerivedReadDiagnostics,
+    equivalence_contract: DerivedEquivalenceContractReport,
 }
 
 impl HistoricalTopologyQuerySnapshot {
@@ -24,23 +28,23 @@ impl HistoricalTopologyQuerySnapshot {
         &self.naming_attachments
     }
 
-    pub(crate) fn materialized(&self) -> &crate::facade::MaterializedTopologyView {
+    pub(crate) fn materialized(&self) -> &MaterializedTopologyView {
         &self.materialized
     }
 
-    pub(crate) fn interpreted(&self) -> &crate::facade::InterpretedTopologyView {
+    pub(crate) fn interpreted(&self) -> &InterpretedTopologyView {
         &self.interpreted
     }
 
-    pub(crate) fn validation(&self) -> &crate::facade::DerivedTopologyValidationReport {
+    pub(crate) fn validation(&self) -> &DerivedTopologyValidationReport {
         &self.validation
     }
 
-    pub(crate) fn diagnostics(&self) -> &crate::facade::DerivedReadDiagnostics {
+    pub(crate) fn diagnostics(&self) -> &DerivedReadDiagnostics {
         &self.diagnostics
     }
 
-    pub(crate) fn equivalence_contract(&self) -> &crate::facade::DerivedEquivalenceContractReport {
+    pub(crate) fn equivalence_contract(&self) -> &DerivedEquivalenceContractReport {
         &self.equivalence_contract
     }
 }

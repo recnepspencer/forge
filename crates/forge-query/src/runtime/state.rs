@@ -173,10 +173,12 @@ impl ForgeQueryRuntimeStateTarget for ForgeQueryRuntimeFacadeFamily {
     ) -> Result<ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
         let contract = runtime.public_api_contract();
         let row = contract.family(self).ok_or_else(|| {
-            ForgeQueryRuntimeError::UnsupportedFacadeFamily(ForgeQueryRuntimeSupportDenial::new(
-                self,
-                "runtime public API contract does not declare this facade family",
-            ))
+            ForgeQueryRuntimeError::UnsupportedFacadeFamily(
+                ForgeQueryRuntimeSupportDenial::unsupported(
+                    self,
+                    "runtime public API contract does not declare this facade family",
+                ),
+            )
         })?;
         let explanation = row.reason().unwrap_or_else(|| match row.status() {
             ForgeQueryRuntimeFamilySupportStatus::Supported => {

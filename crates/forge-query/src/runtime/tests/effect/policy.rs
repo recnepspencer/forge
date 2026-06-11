@@ -24,7 +24,7 @@ fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
     let muted = {
         let mut preview = runtime
             .preview_with_options(
-                "muted effect",
+                test_session_label("muted effect"),
                 ForgeQueryPreviewOptions::derive_only()
                     .with_effect_policy(ForgeQueryEffectPolicy::Muted),
             )
@@ -42,7 +42,7 @@ fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
     let redirected = {
         let mut preview = runtime
             .preview_with_options(
-                "redirected effect",
+                test_session_label("redirected effect"),
                 ForgeQueryPreviewOptions::derive_only()
                     .with_effect_policy(ForgeQueryEffectPolicy::Redirected),
             )
@@ -60,7 +60,7 @@ fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
     let sandboxed = {
         let mut preview = runtime
             .preview_with_options(
-                "sandboxed effect",
+                test_session_label("sandboxed effect"),
                 ForgeQueryPreviewOptions::derive_only()
                     .with_effect_policy(ForgeQueryEffectPolicy::SandboxedWriteIntent),
             )
@@ -78,7 +78,7 @@ fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
     let denied = {
         let mut preview = runtime
             .preview_with_options(
-                "sandboxed delivery denial",
+                test_session_label("sandboxed delivery denial"),
                 ForgeQueryPreviewOptions::derive_only()
                     .with_effect_policy(ForgeQueryEffectPolicy::SandboxedWriteIntent),
             )

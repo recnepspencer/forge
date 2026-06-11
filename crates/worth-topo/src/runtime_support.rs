@@ -5,7 +5,13 @@
 //! helpers in `validation::reference_integrity` are crate-private support code.
 
 pub use crate::projection::runtime_boundary::query_runtime::{
-    topology_runtime, TopologyRuntimeAdapters, TopologyRuntimeFailure,
+    topology_runtime, TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
+    TopologyQueryMutationLaneExecutionShape, TopologyQueryMutationLaneSupportStatus,
+    TopologyQueryReadFamilySupportStatus, TopologyRuntimeAdapters, TopologyRuntimeCloseout,
+    TopologyRuntimeCloseoutFamily, TopologyRuntimeCloseoutRow, TopologyRuntimeCloseoutStatus,
+    TopologyRuntimeFailure, TopologyRuntimeMutationFamilySupportRow,
+    TopologyRuntimeMutationLaneSupportRow, TopologyRuntimePostureCapability,
+    TopologyRuntimePostureRow, TopologyRuntimePostureStatus, TopologyRuntimeReadFamilySupportRow,
     TopologyRuntimeSchemaAdapter, TopologyRuntimeSupport, TopologyRuntimeWriteAuthority,
 };
 pub use crate::validation::reference_integrity::milestone_one_invariant_registrations;

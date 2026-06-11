@@ -300,7 +300,7 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
         .expect("live view should declare");
 
     let mut preview = workspace
-        .preview("naming-preview")
+        .preview(test_session_label("naming-preview"))
         .expect("preview should open");
     let receipt = preview
         .batch(|batch| {

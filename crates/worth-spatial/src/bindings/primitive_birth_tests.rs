@@ -1,7 +1,8 @@
-use super::{
-    plan_primitive_construction_birth, PrimitiveConstructionBirthFamily,
-    PrimitiveConstructionBirthScaffoldInput,
-};
+use worth_primitives::PrimitiveConstructionFamilyKey;
+
+use super::PrimitiveConstructionBirthScaffoldInput;
+use crate::bindings::primitive_birth_assessment::assess_primitive_construction_birth;
+use crate::bindings::primitive_birth_runtime::PrimitiveConstructionBirthRealizationFacts;
 use worth_geom::facade::{
     block, prism, pyramid, realize_pyramid_support, tetrahedron, Plane,
     PrimitiveNormalizationDisposition, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -14,26 +15,27 @@ use worth_primitives::{
 
 #[test]
 fn primitive_birth_admits_closed_and_planar_phase_three_families() {
-    let simplex = plan_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
-        PrimitiveConstructionBirthFamily::SimplexSolid,
-        "closed_simplex_body",
-        "simplex".to_string(),
-        tetrahedron([0.0, 0.0, 0.0], 1.0).expect("planes"),
-        canonical_simplex_vertices(1.0, 0.0)
-            .local_vertices()
-            .to_vec(),
-        4,
-        6,
-        4,
-        0,
-        4,
-        1,
-        1,
-    ))
-    .expect("simplex birth");
+    let simplex =
+        assess_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
+            PrimitiveConstructionFamilyKey::SimplexSolid,
+            "closed_simplex_body",
+            "simplex".to_string(),
+            tetrahedron([0.0, 0.0, 0.0], 1.0).expect("planes"),
+            canonical_simplex_vertices(1.0, 0.0)
+                .local_vertices()
+                .to_vec(),
+            4,
+            6,
+            4,
+            0,
+            4,
+            1,
+            1,
+        ))
+        .expect("simplex birth");
     let orthotope =
-        plan_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
-            PrimitiveConstructionBirthFamily::Orthotope,
+        assess_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
+            PrimitiveConstructionFamilyKey::Orthotope,
             "closed_orthotope_body",
             "orthotope".to_string(),
             block([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]).expect("planes"),
@@ -56,8 +58,8 @@ fn primitive_birth_admits_closed_and_planar_phase_three_families() {
             1,
         ))
         .expect("orthotope birth");
-    let prism = plan_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
-        PrimitiveConstructionBirthFamily::RegularPrism,
+    let prism = assess_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
+        PrimitiveConstructionFamilyKey::RegularPrism,
         "closed_regular_prism_body",
         "prism".to_string(),
         prism([0.0, 0.0, 0.0], 6, 1.0, 2.0).expect("planes"),
@@ -79,32 +81,33 @@ fn primitive_birth_admits_closed_and_planar_phase_three_families() {
         1,
     ))
     .expect("prism birth");
-    let pyramid = plan_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
-        PrimitiveConstructionBirthFamily::RegularPyramid,
-        "closed_regular_pyramid_body",
-        "pyramid".to_string(),
-        pyramid([0.0, 0.0, 0.0], 5, 1.0, 2.0).expect("planes"),
-        {
-            let mut vertices = (0..5)
-                .map(|index| {
-                    let angle = std::f64::consts::TAU * index as f64 / 5.0;
-                    [angle.cos(), angle.sin(), 0.0]
-                })
-                .collect::<Vec<_>>();
-            vertices.push([0.0, 0.0, 2.0]);
-            vertices
-        },
-        6,
-        10,
-        6,
-        0,
-        6,
-        1,
-        1,
-    ))
-    .expect("pyramid birth");
-    let wire = plan_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
-        PrimitiveConstructionBirthFamily::WireBody,
+    let pyramid =
+        assess_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
+            PrimitiveConstructionFamilyKey::RegularPyramid,
+            "closed_regular_pyramid_body",
+            "pyramid".to_string(),
+            pyramid([0.0, 0.0, 0.0], 5, 1.0, 2.0).expect("planes"),
+            {
+                let mut vertices = (0..5)
+                    .map(|index| {
+                        let angle = std::f64::consts::TAU * index as f64 / 5.0;
+                        [angle.cos(), angle.sin(), 0.0]
+                    })
+                    .collect::<Vec<_>>();
+                vertices.push([0.0, 0.0, 2.0]);
+                vertices
+            },
+            6,
+            10,
+            6,
+            0,
+            6,
+            1,
+            1,
+        ))
+        .expect("pyramid birth");
+    let wire = assess_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
+        PrimitiveConstructionFamilyKey::WireBody,
         "planar_wire_body",
         "wire".to_string(),
         vec![plane()],
@@ -123,8 +126,8 @@ fn primitive_birth_admits_closed_and_planar_phase_three_families() {
         1,
     ))
     .expect("wire birth");
-    let shell = plan_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
-        PrimitiveConstructionBirthFamily::ShellWithHole,
+    let shell = assess_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
+        PrimitiveConstructionFamilyKey::ShellWithHole,
         "planar_shell_with_hole_body",
         "shell".to_string(),
         vec![plane()],
@@ -169,8 +172,8 @@ fn primitive_birth_admits_closed_and_planar_phase_three_families() {
 
 #[test]
 fn primitive_birth_rejects_wrong_wire_counts() {
-    let error = plan_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
-        PrimitiveConstructionBirthFamily::WireBody,
+    let error = assess_primitive_construction_birth(PrimitiveConstructionBirthScaffoldInput::new(
+        PrimitiveConstructionFamilyKey::WireBody,
         "planar_wire_body",
         "wire".to_string(),
         vec![plane()],
@@ -194,15 +197,17 @@ fn primitive_birth_rejects_wrong_wire_counts() {
 fn primitive_birth_preserves_escalated_realization_provenance() {
     let realization =
         realize_pyramid_support([0.0, 0.0, 0.0], 3, 1.0e-200, 1.0e-200).expect("realization");
-    let input = PrimitiveConstructionBirthScaffoldInput::new_with_realization(
-        PrimitiveConstructionBirthFamily::RegularPyramid,
+    let input = PrimitiveConstructionBirthScaffoldInput::new_with_realization_facts(
+        PrimitiveConstructionFamilyKey::RegularPyramid,
         PrimitiveConstructionFamilyContractRegistry::contract_for(
             &PrimitiveWitnessDescriptor::RegularPyramid { side_count: 3 },
         ),
         "closed_regular_pyramid_body",
         "tiny-pyramid".to_string(),
         realization.planes().to_vec(),
-        realization.report().clone(),
+        PrimitiveConstructionBirthRealizationFacts::from_realization_report(
+            realization.report().clone(),
+        ),
         vec![
             [1.0e-200, 0.0, 0.0],
             [-5.0e-201, 8.660254037844386e-201, 0.0],
@@ -217,7 +222,7 @@ fn primitive_birth_preserves_escalated_realization_provenance() {
         1,
         1,
     );
-    let plan = plan_primitive_construction_birth(input).expect("birth plan");
+    let plan = assess_primitive_construction_birth(input).expect("birth assessment");
 
     assert_eq!(
         plan.realization_strategy(),
@@ -235,7 +240,7 @@ fn primitive_birth_preserves_escalated_realization_provenance() {
         plan.normalization_disposition(),
         PrimitiveNormalizationDisposition::LocalTransformationApplied
     );
-    assert!(!plan.realization_report_digest().is_empty());
+    assert!(!plan.realization_fact_digest().is_empty());
 }
 
 fn plane() -> Plane {

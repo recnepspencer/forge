@@ -1,3 +1,6 @@
+use super::super::super::super::request::{
+    PrimitiveConstructionFamily, PrimitiveConstructionPhaseError,
+};
 use super::super::birth_scaffold::{
     lower_family_birth_scaffold_plan, PrimitiveConstructionBirthScaffoldPlan,
 };
@@ -5,13 +8,12 @@ use super::super::error_mapping::map_support_plane;
 use super::super::geometry::{planar_support_plane, shell_with_hole_vertices};
 use super::super::scalar_admission::admit_polygon_edge_count;
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
-use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
+use super::super::PrimitiveConstructionAdmittedBirthInput;
 use worth_primitives::{
     derive_shell_with_hole_layout, PrimitiveConstructionFamilyContractRegistry,
     PrimitiveWitnessDescriptor, ShellWithHoleWitnessLayoutPolicy,
 };
-use worth_spatial::facade::birth::PrimitiveConstructionBirthScaffoldInput;
-use worth_spatial::facade::placement::AdmittedSpatialPlacement;
+use worth_spatial::facade::placement::SpatialPlacementSpec;
 
 struct AdmittedShellWithHoleBirthParameters {
     outer_loop_edge_count: u32,
@@ -19,11 +21,11 @@ struct AdmittedShellWithHoleBirthParameters {
 }
 
 pub(in super::super) fn build_shell_with_hole_birth_input(
-    placement: &AdmittedSpatialPlacement,
+    placement_spec: SpatialPlacementSpec,
     intent_digest: &str,
     outer_loop_edge_count: u32,
     hole_loop_edge_counts: &[u32],
-) -> Result<PrimitiveConstructionBirthScaffoldInput, PrimitiveConstructionPhaseError> {
+) -> Result<PrimitiveConstructionAdmittedBirthInput, PrimitiveConstructionPhaseError> {
     let admitted =
         admit_shell_with_hole_birth_parameters(outer_loop_edge_count, hole_loop_edge_counts)?;
     derive_shell_with_hole_layout(
@@ -41,7 +43,7 @@ pub(in super::super) fn build_shell_with_hole_birth_input(
     );
     lower_family_birth_scaffold_plan(
         intent_digest,
-        placement,
+        placement_spec,
         PrimitiveConstructionBirthScaffoldPlan::from_direct_planar_support(
             PrimitiveConstructionFamily::ShellWithHole,
             birth_contract,

@@ -2,14 +2,6 @@ use worth_primitives::{
     PrimitiveConstructionBirthSynopsisContract, PrimitiveGeometryIdentityBundle,
 };
 
-use crate::bindings::identity::{vertex_geometry_basis, SpatialBindingIdentity};
-
-use super::{
-    evaluate_vertex_geometry_completeness, SpatialBindingAuthorityError,
-    SpatialBindingCompleteness, SpatialBindingIllegalityReason, SpatialBindingKind,
-    SpatialBindingUnsupportedReason,
-};
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum VertexGeometryProvenanceKind {
     CanonicalWitness,
@@ -112,81 +104,5 @@ impl VertexGeometryBindingSpec {
 
     pub fn tolerance_regime(&self) -> VertexToleranceRegime {
         self.tolerance_regime
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AdmittedVertexGeometryBinding {
-    spec: VertexGeometryBindingSpec,
-    identity: SpatialBindingIdentity,
-    completeness: SpatialBindingCompleteness,
-}
-
-impl AdmittedVertexGeometryBinding {
-    pub(crate) fn admit(
-        spec: VertexGeometryBindingSpec,
-    ) -> Result<Self, SpatialBindingAuthorityError> {
-        if spec.site().topology_vertex_identity().is_empty() {
-            return Err(SpatialBindingAuthorityError::Illegal(
-                SpatialBindingIllegalityReason::MissingTopologyIdentity(
-                    SpatialBindingKind::VertexGeometry,
-                ),
-            ));
-        }
-        if spec.birth_contract().topology_contract().vertex_count() == 0 {
-            return Err(SpatialBindingAuthorityError::Unsupported(
-                SpatialBindingUnsupportedReason::TopologyBirthClassDoesNotAdmitBindingKind {
-                    binding_kind: SpatialBindingKind::VertexGeometry,
-                    topology_birth_class: spec.birth_contract().topology_birth_class(),
-                },
-            ));
-        }
-
-        let completeness = evaluate_vertex_geometry_completeness(spec.geometry_identity());
-        let identity = SpatialBindingIdentity::from_basis(vertex_geometry_basis(
-            spec.site().topology_vertex_identity(),
-            spec.birth_contract(),
-            spec.geometry_identity(),
-            spec.provenance().as_str(),
-            spec.tolerance_regime().as_str(),
-        ));
-
-        Ok(Self {
-            spec,
-            identity,
-            completeness,
-        })
-    }
-
-    pub fn kind(&self) -> SpatialBindingKind {
-        SpatialBindingKind::VertexGeometry
-    }
-
-    pub fn site(&self) -> &VertexBindingSite {
-        self.spec.site()
-    }
-
-    pub fn birth_contract(&self) -> PrimitiveConstructionBirthSynopsisContract {
-        self.spec.birth_contract()
-    }
-
-    pub fn geometry_identity(&self) -> &PrimitiveGeometryIdentityBundle {
-        self.spec.geometry_identity()
-    }
-
-    pub fn provenance(&self) -> VertexGeometryProvenanceKind {
-        self.spec.provenance()
-    }
-
-    pub fn tolerance_regime(&self) -> VertexToleranceRegime {
-        self.spec.tolerance_regime()
-    }
-
-    pub fn identity(&self) -> &SpatialBindingIdentity {
-        &self.identity
-    }
-
-    pub fn completeness(&self) -> &SpatialBindingCompleteness {
-        &self.completeness
     }
 }

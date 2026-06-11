@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_spatial::facade::policy`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_policy_namespace_not_exported.rs:1:28
+  |
+1 | use worth_spatial::facade::policy::{
+  |                            ^^^^^^ could not find `policy` in `facade`

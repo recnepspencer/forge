@@ -74,24 +74,6 @@ pub(super) fn rejection_rows() -> Vec<
 > {
     vec![
         rejection_row(
-            "temporal-basis-deferred-gate",
-            RuntimeApiStabilizationPerturbationClass::TemporalBasisDeferredGate,
-            ForgeQueryRuntimeFacadeFamily::Temporal,
-            RuntimeApiStabilizationFailureClass::DeferredTemporalAsyncGate,
-        ),
-        rejection_row(
-            "async-resource-deferred-gate",
-            RuntimeApiStabilizationPerturbationClass::AsyncResourceDeferredGate,
-            ForgeQueryRuntimeFacadeFamily::AsyncResource,
-            RuntimeApiStabilizationFailureClass::DeferredTemporalAsyncGate,
-        ),
-        rejection_row(
-            "mixed-cause-delivery-deferred-gate",
-            RuntimeApiStabilizationPerturbationClass::MixedCauseDeliveryDeferredGate,
-            ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-            RuntimeApiStabilizationFailureClass::DeferredTemporalAsyncGate,
-        ),
-        rejection_row(
             "store-backed-parity-deferred-gate",
             RuntimeApiStabilizationPerturbationClass::StoreBackedParityDeferredGate,
             ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
@@ -320,7 +302,7 @@ fn bundle(
             support_matrix.parallel_api_forbidden_row_count(),
             naming_contract.preferred_entrypoint_count(),
             naming_contract.alternate_name_count(),
-            transcript_evidence.unsupported_neighbor_denial_digests().len(),
+            transcript_evidence.support_gated_neighbor_denial_digests().len(),
             transcript_evidence.delivery_residue_count()
         ),
         compile_fail_boundary_digest: compile_fail_boundary_digest(),
@@ -329,8 +311,8 @@ fn bundle(
         lower_runtime_plumbing_count: 0,
         meaningful_assertion_count: meaningful_assertion_count
             .max(transcript_evidence.meaningful_assertion_count()),
-        unsupported_neighbor_denial_count: transcript_evidence
-            .unsupported_neighbor_denial_digests()
+        support_gated_neighbor_denial_count: transcript_evidence
+            .support_gated_neighbor_denial_digests()
             .len(),
         delivery_residue_count: transcript_evidence.delivery_residue_count(),
         stable_family_count: contract.stable_family_count(),

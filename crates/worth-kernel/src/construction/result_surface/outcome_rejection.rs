@@ -1,15 +1,22 @@
-use crate::construction::digest::digest_owned_parts;
-use crate::construction::request::{
+#[cfg(test)]
+use super::super::digest::digest_owned_parts;
+#[cfg(test)]
+use super::super::request::{
     PrimitiveConstructionFamily, PrimitiveConstructionGeometryError,
     PrimitiveConstructionPhaseError,
 };
-use crate::construction::result::PrimitiveConstructionResultError;
-use worth_geom::facade::{
-    PrimitiveConditioningWitness, PrimitiveFeatureConditioningClass,
-    PrimitiveNormalizationDisposition, PrimitiveRealizationExhaustionReason,
-    PrimitiveRealizationStrategy, PrimitiveStabilityClass, PrimitiveSupportNormalClass,
+#[cfg(test)]
+use super::super::result::PrimitiveConstructionResultError;
+#[cfg(test)]
+use super::geometry_recovery::{
+    geometry_recovery_actions_for_rejection_class, geometry_recovery_receipts_for_rejection_class,
+    GeometryRecoveryActionFactReceipt, PrimitiveConstructionRecoveryAction,
 };
-
+#[cfg(test)]
+use worth_geom::facade::{
+    PrimitiveConditioningWitness, PrimitiveRealizationExhaustionReason,
+    PrimitiveRealizationStrategy, PrimitiveStabilityClass,
+};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionRejectionClass {
     InvalidRequest,
@@ -52,6 +59,7 @@ impl PrimitiveConstructionRejectionLocality {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionRejectedOutcome {
     family: PrimitiveConstructionFamily,
@@ -61,11 +69,13 @@ pub struct PrimitiveConstructionRejectedOutcome {
     conditioning_witness: Option<PrimitiveConditioningWitness>,
     exhaustion_reason: Option<PrimitiveRealizationExhaustionReason>,
     stability_class: Option<PrimitiveStabilityClass>,
-    exhaustion_report_digest: Option<String>,
+    exhaustion_fact_digest: Option<String>,
+    recovery_fact_receipts: Vec<GeometryRecoveryActionFactReceipt>,
     reason: String,
     failure_digest: String,
 }
 
+#[cfg(test)]
 impl PrimitiveConstructionRejectedOutcome {
     pub(crate) fn new(
         family: PrimitiveConstructionFamily,
@@ -75,9 +85,11 @@ impl PrimitiveConstructionRejectedOutcome {
         conditioning_witness: Option<PrimitiveConditioningWitness>,
         exhaustion_reason: Option<PrimitiveRealizationExhaustionReason>,
         stability_class: Option<PrimitiveStabilityClass>,
-        exhaustion_report_digest: Option<String>,
+        exhaustion_fact_digest: Option<String>,
         reason: String,
     ) -> Self {
+        let recovery_fact_receipts =
+            geometry_recovery_receipts_for_rejection_class(family, rejection_class);
         let failure_digest = digest_owned_parts(&[
             family.as_str().to_string(),
             rejection_class.as_str().to_string(),
@@ -157,7 +169,7 @@ impl PrimitiveConstructionRejectedOutcome {
                 .map(PrimitiveStabilityClass::as_str)
                 .unwrap_or("none")
                 .to_string(),
-            exhaustion_report_digest.clone().unwrap_or_default(),
+            exhaustion_fact_digest.clone().unwrap_or_default(),
             reason.clone(),
         ]);
         Self {
@@ -168,12 +180,14 @@ impl PrimitiveConstructionRejectedOutcome {
             conditioning_witness,
             exhaustion_reason,
             stability_class,
-            exhaustion_report_digest,
+            exhaustion_fact_digest,
+            recovery_fact_receipts,
             reason,
             failure_digest,
         }
     }
 
+    #[cfg(test)]
     pub fn family(&self) -> PrimitiveConstructionFamily {
         self.family
     }
@@ -190,57 +204,22 @@ impl PrimitiveConstructionRejectedOutcome {
         &self.reason
     }
 
-    pub fn attempted_realization_strategy_count(&self) -> usize {
-        self.attempted_realization_strategies.len()
-    }
-
-    pub fn attempted_realization_strategies(&self) -> &[PrimitiveRealizationStrategy] {
-        &self.attempted_realization_strategies
-    }
-
-    pub fn selected_realization_strategy(&self) -> Option<PrimitiveRealizationStrategy> {
-        self.attempted_realization_strategies.last().copied()
-    }
-
-    pub fn conditioning_witness(&self) -> Option<&PrimitiveConditioningWitness> {
-        self.conditioning_witness.as_ref()
-    }
-
-    pub fn feature_conditioning_class(&self) -> Option<PrimitiveFeatureConditioningClass> {
-        self.conditioning_witness
-            .as_ref()
-            .map(|witness| witness.feature_conditioning_class())
-    }
-
-    pub fn support_normal_class(&self) -> Option<PrimitiveSupportNormalClass> {
-        self.conditioning_witness
-            .as_ref()
-            .map(|witness| witness.support_normal_class())
-    }
-
-    pub fn normalization_disposition(&self) -> Option<PrimitiveNormalizationDisposition> {
-        self.conditioning_witness
-            .as_ref()
-            .map(|witness| witness.normalization_disposition())
-    }
-
-    pub fn exhaustion_reason(&self) -> Option<PrimitiveRealizationExhaustionReason> {
-        self.exhaustion_reason
-    }
-
-    pub fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
-        self.stability_class
-    }
-
-    pub fn exhaustion_report_digest(&self) -> Option<&str> {
-        self.exhaustion_report_digest.as_deref()
-    }
-
+    #[cfg(test)]
     pub fn failure_digest(&self) -> &str {
         &self.failure_digest
     }
+
+    pub fn recovery_actions(&self) -> &'static [PrimitiveConstructionRecoveryAction] {
+        geometry_recovery_actions_for_rejection_class(self.rejection_class)
+    }
+
+    #[cfg(test)]
+    pub fn recovery_fact_receipts(&self) -> &[GeometryRecoveryActionFactReceipt] {
+        &self.recovery_fact_receipts
+    }
 }
 
+#[cfg(test)]
 pub(crate) fn rejected_outcome(
     family: PrimitiveConstructionFamily,
     error: &PrimitiveConstructionResultError,
@@ -270,7 +249,7 @@ pub(crate) fn rejected_outcome(
                         Some(report.conditioning_witness().clone()),
                         Some(report.exhaustion_reason()),
                         Some(report.stability_class()),
-                        Some(report.report_digest().to_string()),
+                        Some(report.fact_digest().to_string()),
                         phase.to_string(),
                     )
                 }
