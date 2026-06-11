@@ -10,6 +10,7 @@ define_capability_id_family!(MosaicRegionKindId, MosaicRegionKindIdFamily);
 define_capability_id_family!(MosaicPlacementPolicyId, MosaicPlacementPolicyIdFamily);
 define_capability_id_family!(MosaicSizingContractId, MosaicSizingContractIdFamily);
 define_capability_id_family!(MosaicStateSlotId, MosaicStateSlotIdFamily);
+define_capability_id_family!(MosaicStateOwnerScopeId, MosaicStateOwnerScopeIdFamily);
 define_capability_id_family!(ViewBindingId, ViewBindingIdFamily);
 define_capability_id_family!(RuntimeOutcomeProjectionId, RuntimeOutcomeProjectionIdFamily);
 define_capability_id_family!(SettingId, SettingIdFamily);

@@ -1,0 +1,4 @@
+mod setting_accepted_registration_proof;
+mod setting_registration;
+
+pub(crate) use setting_accepted_registration_proof::SettingAcceptedRegistrationProof;

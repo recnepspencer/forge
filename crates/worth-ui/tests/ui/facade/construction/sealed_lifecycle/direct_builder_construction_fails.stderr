@@ -4,7 +4,7 @@ error: cannot construct `WorthUiAppBuilder` with struct literal syntax due to pr
 4 |     let _ = WorthUiAppBuilder {};
   |             ^^^^^^^^^^^^^^^^^
   |
-  = note: private fields `registration_candidates`, `command_registry`, `component_registry`, `surface_registry`, `mosaic_region_registry` and `diagnostic_richness` that were not provided
+  = note: private fields that were not provided
 help: you might have meant to use the `new` associated function
   |
 4 -     let _ = WorthUiAppBuilder {};

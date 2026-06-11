@@ -1,6 +1,6 @@
 use crate::capability::{
     CapabilitySupportKind, CommandDescriptor, RegistrationCandidate, RegistrationDependency,
-    COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME,
+    COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, ICON_FAMILY_NAME,
 };
 
 impl CommandDescriptor {
@@ -11,11 +11,20 @@ impl CommandDescriptor {
             CapabilitySupportKind::Admitted,
         );
 
-        match self.projection_eligibility() {
+        let candidate = match self.projection_eligibility() {
             Some(projection_id) => candidate.with_dependency(RegistrationDependency::new(
                 COMMAND_PROJECTION_FAMILY_NAME,
                 COMMAND_PROJECTION_FAMILY_NAME,
                 projection_id.as_str(),
+            )),
+            None => candidate,
+        };
+
+        match self.icon() {
+            Some(icon) => candidate.with_dependency(RegistrationDependency::new(
+                ICON_FAMILY_NAME,
+                ICON_FAMILY_NAME,
+                icon.as_str(),
             )),
             None => candidate,
         }

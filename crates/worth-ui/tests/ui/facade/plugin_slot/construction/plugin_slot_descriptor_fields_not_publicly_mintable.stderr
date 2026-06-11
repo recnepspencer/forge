@@ -1,0 +1,21 @@
+error[E0451]: fields `id`, `allowed_families`, `permission`, `ordering`, `diagnostics`, `support`, `contribution_reference` and `global_mutation_hooks` of struct `PluginSlotDescriptor` are private
+  --> tests/ui/facade/plugin_slot/construction/plugin_slot_descriptor_fields_not_publicly_mintable.rs:8:9
+   |
+ 7 |     let _ = PluginSlotDescriptor {
+   |             -------------------- in this type
+ 8 |         id: PluginSlotId::new("workspace.plugin_slot.commands").expect("valid slot id"),
+   |         ^^ private field
+ 9 |         allowed_families: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         permission: Some(PluginCapabilityPermission::host_granted()),
+   |         ^^^^^^^^^^ private field
+11 |         ordering: Some(PluginSlotOrdering::stable_by_plugin_then_declaration()),
+   |         ^^^^^^^^ private field
+12 |         diagnostics: Some(PluginSlotDiagnostics::explain_contributions()),
+   |         ^^^^^^^^^^^ private field
+13 |         support: Some(PluginSlotSupportPosture::supported()),
+   |         ^^^^^^^ private field
+14 |         contribution_reference: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         global_mutation_hooks: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field

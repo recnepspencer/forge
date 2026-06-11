@@ -1,4 +1,4 @@
-use crate::capability::{CommandId, ComponentId, SurfaceId, ViewBindingId};
+use crate::capability::{CommandId, ComponentId, IconId, SurfaceId, ViewBindingId};
 
 use super::{SurfaceKind, SurfacePlacementClass, SurfaceStateClass};
 
@@ -12,6 +12,7 @@ pub struct SurfaceDescriptor {
     state_class: SurfaceStateClass,
     command_slots: Vec<CommandId>,
     label: Option<String>,
+    icon: Option<IconId>,
     view_binding: Option<ViewBindingId>,
 }
 
@@ -31,6 +32,7 @@ impl SurfaceDescriptor {
             state_class,
             command_slots: Vec::new(),
             label: None,
+            icon: None,
             view_binding: None,
         }
     }
@@ -42,6 +44,11 @@ impl SurfaceDescriptor {
 
     pub fn with_label(mut self, label: impl Into<String>) -> Self {
         self.label = Some(label.into());
+        self
+    }
+
+    pub fn with_icon(mut self, icon: IconId) -> Self {
+        self.icon = Some(icon);
         self
     }
 
@@ -76,6 +83,10 @@ impl SurfaceDescriptor {
 
     pub fn label(&self) -> Option<&str> {
         self.label.as_deref()
+    }
+
+    pub fn icon(&self) -> Option<&IconId> {
+        self.icon.as_ref()
     }
 
     pub fn view_binding(&self) -> Option<&ViewBindingId> {

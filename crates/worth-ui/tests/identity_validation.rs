@@ -3,9 +3,9 @@ use std::str::FromStr;
 
 use worth_ui::facade::{
     CapabilityIdError, CommandId, CommandProjectionId, ComponentId, IconId,
-    MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId, MosaicStateSlotId,
-    NativeCapabilityId, PluginSlotId, RuntimeOutcomeProjectionId, SettingId, SurfaceId,
-    TaskPresentationId, ThemeTokenId, ViewBindingId,
+    MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId, MosaicStateOwnerScopeId,
+    MosaicStateSlotId, NativeCapabilityId, PluginSlotId, RuntimeOutcomeProjectionId, SettingId,
+    SurfaceId, TaskPresentationId, ThemeTokenId, ViewBindingId,
 };
 
 #[test]
@@ -68,6 +68,12 @@ fn every_registry_family_accepts_valid_identity_text() {
             .expect("valid mosaic state slot id")
             .as_str(),
         "app.mosaic_state.editor_tabs"
+    );
+    assert_eq!(
+        MosaicStateOwnerScopeId::new("app.mosaic_state_owner.workspace")
+            .expect("valid mosaic state owner scope id")
+            .as_str(),
+        "app.mosaic_state_owner.workspace"
     );
     assert_eq!(
         ViewBindingId::new("app.view_binding.tasks")

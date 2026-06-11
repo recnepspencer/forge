@@ -1,0 +1,23 @@
+error[E0451]: fields `id`, `scope`, `value_schema`, `default_posture`, `validation_posture`, `migration_posture`, `editor_hint`, `ownership_metadata` and `arbitrary_key_value_bag` of struct `SettingDescriptor` are private
+  --> tests/ui/facade/settings/construction/setting_descriptor_fields_not_publicly_mintable.rs:9:9
+   |
+ 8 |     let _descriptor = SettingDescriptor {
+   |                       ----------------- in this type
+ 9 |         id: SettingId::new("workspace.setting.raw").unwrap(),
+   |         ^^ private field
+10 |         scope: Some(SettingScope::workspace()),
+   |         ^^^^^ private field
+11 |         value_schema: Some(SettingValueSchema::boolean()),
+   |         ^^^^^^^^^^^^ private field
+12 |         default_posture: Some(SettingDefaultPosture::runtime_computed()),
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         validation_posture: Some(SettingValidationPosture::schema_checked()),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+14 |         migration_posture: Some(SettingMigrationPosture::not_runtime_migrated()),
+   |         ^^^^^^^^^^^^^^^^^ private field
+15 |         editor_hint: Some(SettingEditorHint::toggle()),
+   |         ^^^^^^^^^^^ private field
+16 |         ownership_metadata: Some(SettingOwnershipMetadata::platform_runtime_config()),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+17 |         arbitrary_key_value_bag: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
