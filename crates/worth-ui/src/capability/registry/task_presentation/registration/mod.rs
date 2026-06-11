@@ -1,0 +1,4 @@
+mod task_presentation_accepted_registration_proof;
+mod task_presentation_registration;
+
+pub(crate) use task_presentation_accepted_registration_proof::TaskPresentationAcceptedRegistrationProof;

@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use crate::capability::{CapabilityRegistrationDiagnostic, RegisteredCapabilitySet};
+use crate::capability::{
+    CapabilityRegistrationDiagnostic, RegisteredCapabilitySet, RegistryFamily,
+};
 
 pub(crate) type AcceptedRegistrationKey = (&'static str, String);
 
@@ -43,6 +45,13 @@ impl RegistrationValidationReport {
             .filter(|(accepted_family_name, _)| *accepted_family_name == family_name)
             .map(|(_, identity_text)| identity_text.clone())
             .collect()
+    }
+
+    pub(crate) fn accepted_identity_texts_for_registry_family(
+        &self,
+        registry_family: RegistryFamily,
+    ) -> BTreeSet<String> {
+        self.accepted_identity_texts_for_family(registry_family.name())
     }
 
     pub(crate) fn into_parts(

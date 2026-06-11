@@ -1,0 +1,28 @@
+use crate::capability::{
+    FrozenCommandCapabilities, FrozenCommandProjectionCapabilities, FrozenComponentCapabilities,
+    FrozenIconCapabilities, FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
+    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
+    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
+    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
+    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
+};
+
+pub(crate) struct CapabilitySnapshotFreezeInput {
+    pub(crate) registered_capabilities: RegisteredCapabilitySet,
+    pub(crate) commands: FrozenCommandCapabilities,
+    pub(crate) command_projections: FrozenCommandProjectionCapabilities,
+    pub(crate) components: FrozenComponentCapabilities,
+    pub(crate) icons: FrozenIconCapabilities,
+    pub(crate) surfaces: FrozenSurfaceCapabilities,
+    pub(crate) mosaic_regions: FrozenMosaicRegionCapabilities,
+    pub(crate) mosaic_placement_policies: FrozenMosaicPlacementCapabilities,
+    pub(crate) mosaic_sizing_contracts: FrozenMosaicSizingCapabilities,
+    pub(crate) mosaic_state_slots: FrozenMosaicStateCapabilities,
+    pub(crate) native_capabilities: FrozenNativeCapabilities,
+    pub(crate) plugin_slots: FrozenPluginSlotCapabilities,
+    pub(crate) view_bindings: FrozenViewBindingCapabilities,
+    pub(crate) runtime_outcome_projections: FrozenRuntimeOutcomeProjectionCapabilities,
+    pub(crate) settings: FrozenSettingCapabilities,
+    pub(crate) task_presentations: FrozenTaskPresentationCapabilities,
+    pub(crate) theme_tokens: FrozenThemeTokenCapabilities,
+}

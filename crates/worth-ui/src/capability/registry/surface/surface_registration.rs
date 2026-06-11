@@ -1,7 +1,7 @@
 use crate::capability::{
     CapabilityDiagnosticCode, CapabilitySupportKind, RegistrationCandidate,
     RegistrationCandidateDiagnostic, RegistrationDependency, COMMAND_FAMILY_NAME,
-    COMPONENT_FAMILY_NAME, SURFACE_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
+    COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME, SURFACE_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
 };
 
 use super::SurfaceDescriptor;
@@ -69,6 +69,14 @@ fn add_surface_dependencies(
             VIEW_BINDING_FAMILY_NAME,
             VIEW_BINDING_FAMILY_NAME,
             view_binding.as_str(),
+        ));
+    }
+
+    if let Some(icon) = descriptor.icon() {
+        candidate = candidate.with_dependency(RegistrationDependency::new(
+            ICON_FAMILY_NAME,
+            ICON_FAMILY_NAME,
+            icon.as_str(),
         ));
     }
 

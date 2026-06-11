@@ -13,7 +13,7 @@ error: cannot construct `CapabilitySnapshot` with struct literal syntax due to p
 12 |           metrics: metrics(),
    |           ------------------ private field
    |
-   = note: ...and other private fields `commands`, `components`, `surfaces` and `mosaic_regions` that were not provided
+   = note: ...and other private fields that were not provided
 help: you might have meant to use an associated function to build this type
    |
  6 -     let _ = CapabilitySnapshot {
@@ -54,6 +54,6 @@ help: you might have meant to use an associated function to build this type
 11 -         digest: digest(),
 12 -         metrics: metrics(),
 13 -     };
- 6 +     let _ = CapabilitySnapshot::from_registered_capabilities_commands_components_and_surfaces(_, _, _, _);
+ 6 +     let _ = CapabilitySnapshot::from_registered_capabilities_commands_command_projections_and_components(_, _, _, _);
    |
-   = and 1 other candidate
+   = and 8 other candidates
