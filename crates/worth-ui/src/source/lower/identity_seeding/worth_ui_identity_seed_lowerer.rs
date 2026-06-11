@@ -1,11 +1,14 @@
+use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 
 use crate::source::{
-    WorthUiBoundArtifactInput, WorthUiBoundArtifactInputNode, WorthUiIdentitySeededArtifactInput,
-    WorthUiIdentitySeededArtifactInputBindingNode, WorthUiIdentitySeededArtifactInputComponentNode,
-    WorthUiIdentitySeededArtifactInputImportNode, WorthUiIdentitySeededArtifactInputModule,
-    WorthUiIdentitySeededArtifactInputNode, WorthUiIdentitySeededArtifactInputSurfaceNode,
-    WorthUiIdentitySeededArtifactInputThemeTokenNode,
+    WorthUiArtifactIdentitySeedKind, WorthUiBoundArtifactInput, WorthUiBoundArtifactInputNode,
+    WorthUiIdentitySeededArtifactInput, WorthUiIdentitySeededArtifactInputBindingNode,
+    WorthUiIdentitySeededArtifactInputComponentNode, WorthUiIdentitySeededArtifactInputImportNode,
+    WorthUiIdentitySeededArtifactInputModule, WorthUiIdentitySeededArtifactInputNode,
+    WorthUiIdentitySeededArtifactInputSurfaceNode,
+    WorthUiIdentitySeededArtifactInputThemeTokenNode, WorthUiIdentitySeedingDiagnostic,
+    WorthUiIdentitySeedingReport,
 };
 
 use super::worth_ui_identity_seed_basis::{
@@ -20,12 +23,17 @@ pub(crate) struct WorthUiIdentitySeedLowerer;
 impl WorthUiIdentitySeedLowerer {
     pub(crate) fn lower(
         bound_artifact_input: &WorthUiBoundArtifactInput,
-    ) -> (
-        WorthUiIdentitySeededArtifactInput,
-        WorthUiIdentitySeedingMetrics,
-    ) {
+    ) -> Result<
+        (
+            WorthUiIdentitySeededArtifactInput,
+            WorthUiIdentitySeedingMetrics,
+        ),
+        WorthUiIdentitySeedingReport,
+    > {
         let mut modules = BTreeMap::new();
         let mut metrics = WorthUiIdentitySeedingMetrics::default();
+        let mut diagnostics = Vec::new();
+        let mut authored_seed_registry = BTreeMap::<String, String>::new();
 
         for module_id in bound_artifact_input.module_ids() {
             let module = bound_artifact_input
@@ -34,7 +42,15 @@ impl WorthUiIdentitySeedLowerer {
             let nodes = module
                 .nodes()
                 .iter()
-                .map(|node| lower_node(module_id, node, &mut metrics))
+                .map(|node| {
+                    lower_node(
+                        module_id,
+                        node,
+                        &mut metrics,
+                        &mut authored_seed_registry,
+                        &mut diagnostics,
+                    )
+                })
                 .collect();
             modules.insert(
                 module_id.clone(),
@@ -42,13 +58,16 @@ impl WorthUiIdentitySeedLowerer {
             );
         }
 
-        (
-            WorthUiIdentitySeededArtifactInput::new(
-                modules,
-                bound_artifact_input.module_ids().to_vec(),
-            ),
-            metrics,
-        )
+        let identity_seeded_artifact_input = WorthUiIdentitySeededArtifactInput::new(
+            modules,
+            bound_artifact_input.module_ids().to_vec(),
+        );
+
+        if !diagnostics.is_empty() {
+            return Err(WorthUiIdentitySeedingReport::new(diagnostics, metrics));
+        }
+
+        Ok((identity_seeded_artifact_input, metrics))
     }
 }
 
@@ -56,8 +75,10 @@ fn lower_node(
     module_id: &crate::source::WorthUiSourceModuleId,
     node: &WorthUiBoundArtifactInputNode,
     metrics: &mut WorthUiIdentitySeedingMetrics,
+    authored_seed_registry: &mut BTreeMap<String, String>,
+    diagnostics: &mut Vec<WorthUiIdentitySeedingDiagnostic>,
 ) -> WorthUiIdentitySeededArtifactInputNode {
-    match node {
+    let identity_seeded_node = match node {
         WorthUiBoundArtifactInputNode::Import(import_node) => {
             let seed = import_seed(module_id, import_node);
             let durable = no_durable_state_surface();
@@ -130,5 +151,95 @@ fn lower_node(
                 ),
             )
         }
+    };
+
+    register_authored_seed_collision(
+        module_id,
+        authored_seed_registry,
+        diagnostics,
+        &identity_seeded_node,
+    );
+
+    identity_seeded_node
+}
+
+fn register_authored_seed_collision(
+    module_id: &crate::source::WorthUiSourceModuleId,
+    authored_seed_registry: &mut BTreeMap<String, String>,
+    diagnostics: &mut Vec<WorthUiIdentitySeedingDiagnostic>,
+    node: &WorthUiIdentitySeededArtifactInputNode,
+) {
+    let Some((seed_basis, semantic_locus, authored_identity)) = authored_seed_details(node) else {
+        return;
+    };
+
+    match authored_seed_registry.entry(seed_basis.to_owned()) {
+        Entry::Vacant(entry) => {
+            entry.insert(semantic_locus.to_owned());
+        }
+        Entry::Occupied(entry) => {
+            diagnostics.push(
+                WorthUiIdentitySeedingDiagnostic::duplicate_authored_identity_seed(
+                    module_id.clone(),
+                    semantic_locus,
+                    authored_identity,
+                    entry.get().clone(),
+                ),
+            );
+        }
     }
+}
+
+fn authored_seed_details(
+    node: &WorthUiIdentitySeededArtifactInputNode,
+) -> Option<(&str, String, &str)> {
+    match node {
+        WorthUiIdentitySeededArtifactInputNode::Import(_) => None,
+        WorthUiIdentitySeededArtifactInputNode::Component(node) => authored_seed_details_for_kind(
+            node.identity_seed().kind(),
+            node.identity_seed().basis(),
+            format!("component:{}", node.component().id().as_str()),
+        ),
+        WorthUiIdentitySeededArtifactInputNode::Surface(node) => authored_seed_details_for_kind(
+            node.identity_seed().kind(),
+            node.identity_seed().basis(),
+            format!("surface:{}", node.surface().id().as_str()),
+        ),
+        WorthUiIdentitySeededArtifactInputNode::Binding(node) => authored_seed_details_for_kind(
+            node.identity_seed().kind(),
+            node.identity_seed().basis(),
+            format!(
+                "binding:{}",
+                node.view_binding_reference().view_binding().id().as_str()
+            ),
+        ),
+        WorthUiIdentitySeededArtifactInputNode::Token(node) => authored_seed_details_for_kind(
+            node.identity_seed().kind(),
+            node.identity_seed().basis(),
+            format!("token:{}", node.theme_token().id().as_str()),
+        ),
+    }
+}
+
+fn authored_seed_details_for_kind<'a>(
+    seed_kind: &WorthUiArtifactIdentitySeedKind,
+    seed_basis: &'a str,
+    semantic_locus: String,
+) -> Option<(&'a str, String, &'a str)> {
+    if seed_kind != &WorthUiArtifactIdentitySeedKind::Authored {
+        return None;
+    }
+
+    Some((
+        seed_basis,
+        semantic_locus,
+        trailing_authored_identity(seed_basis),
+    ))
+}
+
+fn trailing_authored_identity(seed_basis: &str) -> &str {
+    seed_basis
+        .split_once("|authored:")
+        .map(|(_, authored_identity)| authored_identity)
+        .expect("authored seed basis should include authored marker")
 }

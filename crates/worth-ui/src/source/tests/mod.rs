@@ -1,3 +1,4 @@
+mod phase10_artifact_digest_tests;
 mod phase1_source_package_tests;
 mod phase2_parse_tests;
 mod phase3_artifact_input_tests;
@@ -5,3 +6,5 @@ mod phase4_snapshot_resolution_tests;
 mod phase5_structural_legality_tests;
 mod phase6_binding_semantics_tests;
 mod phase7_identity_seeding_tests;
+mod phase8_canonical_artifact_tests;
+mod phase9_artifact_inspection_tests;

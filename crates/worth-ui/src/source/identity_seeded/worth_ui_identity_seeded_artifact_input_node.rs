@@ -116,6 +116,10 @@ impl WorthUiIdentitySeededArtifactInputImportNode {
     pub(crate) fn target(&self) -> &crate::source::WorthUiArtifactInputReference {
         self.node.target()
     }
+
+    pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
+        self.node.provenance()
+    }
 }
 
 impl WorthUiIdentitySeededArtifactInputComponentNode {
@@ -127,6 +131,10 @@ impl WorthUiIdentitySeededArtifactInputComponentNode {
 
     pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
         self.node.provenance()
+    }
+
+    pub(crate) fn bound_node(&self) -> &WorthUiBoundArtifactInputComponentNode {
+        &self.node
     }
 }
 
@@ -140,11 +148,23 @@ impl WorthUiIdentitySeededArtifactInputSurfaceNode {
     pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
         self.node.provenance()
     }
+
+    pub(crate) fn bound_node(&self) -> &WorthUiBoundArtifactInputSurfaceNode {
+        &self.node
+    }
 }
 
 impl WorthUiIdentitySeededArtifactInputBindingNode {
     pub(crate) fn view_binding_reference(&self) -> &WorthUiBoundViewBindingReference {
         self.node.view_binding_reference()
+    }
+
+    pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
+        self.node.provenance()
+    }
+
+    pub(crate) fn bound_node(&self) -> &WorthUiBoundArtifactInputBindingNode {
+        &self.node
     }
 }
 
@@ -153,5 +173,13 @@ impl WorthUiIdentitySeededArtifactInputThemeTokenNode {
         &self,
     ) -> &crate::capability::AdmittedCapability<crate::capability::ThemeTokenId> {
         self.node.theme_token()
+    }
+
+    pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
+        self.node.provenance()
+    }
+
+    pub(crate) fn bound_node(&self) -> &WorthUiBoundArtifactInputThemeTokenNode {
+        &self.node
     }
 }

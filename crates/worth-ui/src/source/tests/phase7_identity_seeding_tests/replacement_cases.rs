@@ -4,7 +4,11 @@ use crate::source::{
 };
 
 use super::identity_fixture_support::{
-    component_node, identity_seeded_from_modules, primary_only_component_body_atoms,
+    assert_duplicate_authored_identity_report,
+    assert_multi_family_duplicate_authored_identity_report, component_node,
+    duplicate_component_authored_identity_modules,
+    duplicate_surface_binding_and_token_identity_modules, identity_seeded_from_modules,
+    identity_seeding_report_from_modules, primary_only_component_body_atoms,
     standard_component_body_atoms, structural_component_module,
 };
 
@@ -40,4 +44,25 @@ fn meaningful_identity_change_is_classified_as_replacement() {
         ),
         WorthUiIdentityReplacementClass::Replacement
     );
+}
+
+#[test]
+fn duplicate_authored_component_identities_are_rejected_at_identity_boundary() {
+    let report =
+        identity_seeding_report_from_modules(duplicate_component_authored_identity_modules());
+
+    assert_duplicate_authored_identity_report(
+        &report,
+        "component:workspace.component.inspector_panel",
+        "component:workspace.component.dashboard",
+    );
+}
+
+#[test]
+fn duplicate_authored_surface_binding_and_token_ids_report_deterministically() {
+    let report = identity_seeding_report_from_modules(
+        duplicate_surface_binding_and_token_identity_modules(),
+    );
+
+    assert_multi_family_duplicate_authored_identity_report(&report);
 }

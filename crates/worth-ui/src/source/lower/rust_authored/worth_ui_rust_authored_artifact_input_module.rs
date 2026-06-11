@@ -126,21 +126,6 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_surface_body_atoms_and_authored_identity(
-        mut self,
-        name_text: impl Into<String>,
-        authored_identity: impl Into<String>,
-        body_atoms: impl IntoIterator<Item = WorthUiArtifactInputBodyAtom>,
-    ) -> Self {
-        self.declarations
-            .push(WorthUiRustAuthoredDeclaration::Surface {
-                name_text: name_text.into(),
-                authored_identity: Some(authored_identity.into()),
-                body_atoms: body_atoms.into_iter().collect(),
-            });
-        self
-    }
-
     pub(crate) fn with_binding(mut self, name_text: impl Into<String>) -> Self {
         self.declarations
             .push(WorthUiRustAuthoredDeclaration::Binding {
@@ -174,21 +159,6 @@ impl WorthUiRustAuthoredArtifactInputModule {
             .push(WorthUiRustAuthoredDeclaration::Binding {
                 name_text: name_text.into(),
                 authored_identity: None,
-                body_atoms: body_atoms.into_iter().collect(),
-            });
-        self
-    }
-
-    pub(crate) fn with_binding_body_atoms_and_authored_identity(
-        mut self,
-        name_text: impl Into<String>,
-        authored_identity: impl Into<String>,
-        body_atoms: impl IntoIterator<Item = WorthUiArtifactInputBodyAtom>,
-    ) -> Self {
-        self.declarations
-            .push(WorthUiRustAuthoredDeclaration::Binding {
-                name_text: name_text.into(),
-                authored_identity: Some(authored_identity.into()),
                 body_atoms: body_atoms.into_iter().collect(),
             });
         self

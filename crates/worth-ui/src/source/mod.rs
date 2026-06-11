@@ -1,10 +1,13 @@
 #![cfg_attr(not(test), allow(dead_code))]
 
+mod artifact;
 mod artifact_input;
 mod bound;
 mod canonical;
+mod equivalence;
 mod identity_seeded;
 mod import_graph;
+mod inspection;
 mod lower;
 mod module;
 mod package;
@@ -12,6 +15,15 @@ mod parse;
 mod resolved;
 mod structured;
 
+#[allow(unused_imports)]
+pub(crate) use artifact::{
+    WorthUiArtifact, WorthUiArtifactBindingHandle, WorthUiArtifactBindingNode,
+    WorthUiArtifactComponentHandle, WorthUiArtifactComponentNode, WorthUiArtifactEquivalentShape,
+    WorthUiArtifactHandle, WorthUiArtifactImportHandle, WorthUiArtifactImportNode,
+    WorthUiArtifactModule, WorthUiArtifactNode, WorthUiArtifactNodeKind,
+    WorthUiArtifactSurfaceHandle, WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle,
+    WorthUiArtifactThemeTokenNode,
+};
 pub(crate) use artifact_input::{
     WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputBodyAtom,
     WorthUiArtifactInputEquivalentShape, WorthUiArtifactInputImportNode,
@@ -30,6 +42,10 @@ pub(crate) use bound::{
     WorthUiBoundViewBindingReference,
 };
 pub(crate) use canonical::WorthUiCanonicalModuleOrder;
+pub(crate) use equivalence::{
+    WorthUiArtifactDifference, WorthUiArtifactDigest, WorthUiArtifactDigestReport,
+    WorthUiArtifactEquivalence, WorthUiArtifactEquivalenceBasis,
+};
 #[allow(unused_imports)]
 pub(crate) use identity_seeded::{
     WorthUiArtifactIdentitySeed, WorthUiArtifactIdentitySeedKind, WorthUiDurableStateEligibility,
@@ -42,18 +58,32 @@ pub(crate) use identity_seeded::{
     WorthUiIdentitySeededArtifactInputThemeTokenNode,
 };
 pub(crate) use import_graph::{WorthUiSourceImport, WorthUiSourceImportGraph};
+pub(crate) use inspection::{
+    WorthUiArtifactCapabilityReference, WorthUiArtifactCapabilityReferenceInspection,
+    WorthUiArtifactCapabilityReferenceRole, WorthUiArtifactInspection,
+    WorthUiArtifactNodeInspection, WorthUiArtifactProvenanceMap, WorthUiArtifactSourceOrigin,
+    WorthUiQueryInspectionLink, WorthUiQueryInspectionLinkRole,
+};
 #[allow(unused_imports)]
 pub(crate) use lower::{
-    WorthUiArtifactInputResolver, WorthUiBindingDiagnostic, WorthUiBindingDiagnosticCode,
-    WorthUiBindingSemanticsLowerer, WorthUiBindingSemanticsMetrics, WorthUiBindingSemanticsReport,
+    WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyDiagnosticCode,
+    WorthUiArtifactAssemblyMetrics, WorthUiArtifactAssemblyReport, WorthUiArtifactDigestor,
+    WorthUiArtifactEquivalenceComparator, WorthUiArtifactEquivalenceMetrics,
+    WorthUiArtifactInputResolver, WorthUiArtifactInspectionBasis,
+    WorthUiArtifactInspectionBasisBuilder, WorthUiArtifactInspectionDeriver,
+    WorthUiArtifactInspectionDiagnostic, WorthUiArtifactInspectionDiagnosticCode,
+    WorthUiArtifactInspectionMetrics, WorthUiArtifactInspectionReport, WorthUiBindingDiagnostic,
+    WorthUiBindingDiagnosticCode, WorthUiBindingSemanticsLowerer, WorthUiBindingSemanticsMetrics,
+    WorthUiBindingSemanticsReport, WorthUiCanonicalArtifactAssembler,
     WorthUiIdentityReplacementClassifier, WorthUiIdentitySeedLowerer,
-    WorthUiIdentitySeedingMetrics, WorthUiParsedSourceToArtifactInputLowerer,
-    WorthUiResolutionDiagnostic, WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics,
-    WorthUiResolutionReport, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiStructuralLegalityDiagnostic, WorthUiStructuralLegalityDiagnosticCode,
-    WorthUiStructuralLegalityLowerer, WorthUiStructuralLegalityMetrics,
-    WorthUiStructuralLegalityReport,
+    WorthUiIdentitySeedingDiagnostic, WorthUiIdentitySeedingDiagnosticCode,
+    WorthUiIdentitySeedingMetrics, WorthUiIdentitySeedingReport,
+    WorthUiParsedSourceToArtifactInputLowerer, WorthUiResolutionDiagnostic,
+    WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics, WorthUiResolutionReport,
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
+    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityDiagnostic,
+    WorthUiStructuralLegalityDiagnosticCode, WorthUiStructuralLegalityLowerer,
+    WorthUiStructuralLegalityMetrics, WorthUiStructuralLegalityReport,
 };
 pub(crate) use module::{WorthUiSourceModuleId, WorthUiSourceModuleRecord};
 #[allow(unused_imports)]

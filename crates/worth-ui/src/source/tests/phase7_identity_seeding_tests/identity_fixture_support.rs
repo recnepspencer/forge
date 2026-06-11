@@ -5,9 +5,10 @@ use crate::source::{
     WorthUiIdentitySeededArtifactInput, WorthUiIdentitySeededArtifactInputBindingNode,
     WorthUiIdentitySeededArtifactInputComponentNode, WorthUiIdentitySeededArtifactInputImportNode,
     WorthUiIdentitySeededArtifactInputNode, WorthUiIdentitySeededArtifactInputSurfaceNode,
-    WorthUiIdentitySeededArtifactInputThemeTokenNode, WorthUiIdentitySeedingMetrics,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityLowerer,
+    WorthUiIdentitySeededArtifactInputThemeTokenNode, WorthUiIdentitySeedingDiagnosticCode,
+    WorthUiIdentitySeedingMetrics, WorthUiIdentitySeedingReport, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
+    WorthUiStructuralLegalityLowerer,
 };
 
 use super::identity_app_fixture::identity_test_app;
@@ -29,7 +30,24 @@ pub(super) fn identity_seeded_from_modules<const N: usize>(
         WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot).expect("phase 5 legality");
     let bound =
         WorthUiBindingSemanticsLowerer::lower(&structured, snapshot).expect("phase 6 binding");
-    WorthUiIdentitySeedLowerer::lower(&bound)
+    WorthUiIdentitySeedLowerer::lower(&bound).expect("phase 7 identity seeding")
+}
+
+pub(super) fn identity_seeding_report_from_modules<const N: usize>(
+    modules: [WorthUiRustAuthoredArtifactInputModule; N],
+) -> WorthUiIdentitySeedingReport {
+    let app = identity_test_app();
+    let snapshot = app.capabilities();
+    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+        &WorthUiRustAuthoredArtifactInput::from_modules(modules),
+    );
+    let resolved = WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
+        .expect("phase 4 resolution");
+    let structured =
+        WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot).expect("phase 5 legality");
+    let bound =
+        WorthUiBindingSemanticsLowerer::lower(&structured, snapshot).expect("phase 6 binding");
+    WorthUiIdentitySeedLowerer::lower(&bound).expect_err("phase 7 identity seeding should fail")
 }
 
 pub(super) fn authored_component_module(
@@ -43,14 +61,14 @@ pub(super) fn authored_component_module(
         )
 }
 
-pub(super) fn structural_component_module(
+pub(crate) fn structural_component_module(
     body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
 ) -> WorthUiRustAuthoredArtifactInputModule {
     WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
         .with_component_body_atoms("workspace.component.dashboard", body_atoms)
 }
 
-pub(super) fn primary_only_component_body_atoms() -> Vec<WorthUiArtifactInputBodyAtom> {
+pub(crate) fn primary_only_component_body_atoms() -> Vec<WorthUiArtifactInputBodyAtom> {
     vec![
         ident("region"),
         ident("workspace.region.primary"),
@@ -72,7 +90,7 @@ pub(super) fn primary_only_component_body_atoms() -> Vec<WorthUiArtifactInputBod
     ]
 }
 
-pub(super) fn standard_component_body_atoms() -> Vec<WorthUiArtifactInputBodyAtom> {
+pub(crate) fn standard_component_body_atoms() -> Vec<WorthUiArtifactInputBodyAtom> {
     vec![
         ident("region"),
         ident("workspace.region.primary"),
@@ -109,7 +127,7 @@ pub(super) fn standard_component_body_atoms() -> Vec<WorthUiArtifactInputBodyAto
     ]
 }
 
-pub(super) fn imported_identity_modules() -> [WorthUiRustAuthoredArtifactInputModule; 2] {
+pub(crate) fn imported_identity_modules() -> [WorthUiRustAuthoredArtifactInputModule; 2] {
     [
         WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
             .with_import("app/panels/inspector.wui")
@@ -122,9 +140,46 @@ pub(super) fn imported_identity_modules() -> [WorthUiRustAuthoredArtifactInputMo
     ]
 }
 
-pub(super) fn reordered_imported_identity_modules() -> [WorthUiRustAuthoredArtifactInputModule; 2] {
+pub(crate) fn reordered_imported_identity_modules() -> [WorthUiRustAuthoredArtifactInputModule; 2] {
     let [main, inspector] = imported_identity_modules();
     [inspector, main]
+}
+
+pub(super) fn authored_surface_binding_and_token_module() -> WorthUiRustAuthoredArtifactInputModule
+{
+    WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+        .with_surface_authored_identity("workspace.surface.inspector", "surface.identity")
+        .with_binding_authored_identity("workspace.view_binding.selection", "binding.identity")
+        .with_token_authored_identity("theme.text.default", "token.identity", "theme.text.primary")
+}
+
+pub(super) fn duplicate_component_authored_identity_modules(
+) -> [WorthUiRustAuthoredArtifactInputModule; 1] {
+    [WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+        .with_component_authored_identity("workspace.component.dashboard", "duplicate.identity")
+        .with_component_authored_identity(
+            "workspace.component.inspector_panel",
+            "duplicate.identity",
+        )]
+}
+
+pub(super) fn duplicate_surface_binding_and_token_identity_modules(
+) -> [WorthUiRustAuthoredArtifactInputModule; 1] {
+    [WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+        .with_surface_authored_identity("workspace.surface.main", "surface.duplicate")
+        .with_surface_authored_identity("workspace.surface.inspector", "surface.duplicate")
+        .with_binding_authored_identity("workspace.view_binding.selection", "binding.duplicate")
+        .with_binding_authored_identity("workspace.view_binding.selection", "binding.duplicate")
+        .with_token_authored_identity(
+            "theme.text.primary",
+            "token.duplicate",
+            "theme.text.primary",
+        )
+        .with_token_authored_identity(
+            "theme.text.default",
+            "token.duplicate",
+            "theme.text.primary",
+        )]
 }
 
 pub(super) fn component_node<'a>(
@@ -256,6 +311,58 @@ pub(super) fn assert_ineligible_reason(
         &WorthUiDurableStateEligibility::Ineligible {
             reason: expected_reason,
         }
+    );
+}
+
+pub(super) fn assert_duplicate_authored_identity_report(
+    report: &WorthUiIdentitySeedingReport,
+    semantic_locus: &str,
+    conflicting_locus: &str,
+) {
+    assert_eq!(report.metrics().authored_seed_count(), 2);
+    assert_eq!(report.diagnostics().len(), 1);
+    let diagnostic = &report.diagnostics()[0];
+    assert_eq!(
+        diagnostic.code(),
+        WorthUiIdentitySeedingDiagnosticCode::DuplicateAuthoredIdentitySeed
+    );
+    assert_eq!(diagnostic.authored_identity(), "duplicate.identity");
+    assert_eq!(diagnostic.semantic_locus(), semantic_locus);
+    assert_eq!(diagnostic.conflicting_locus(), conflicting_locus);
+}
+
+pub(super) fn assert_multi_family_duplicate_authored_identity_report(
+    report: &WorthUiIdentitySeedingReport,
+) {
+    assert_eq!(report.metrics().authored_seed_count(), 6);
+    assert_eq!(report.diagnostics().len(), 3);
+
+    let diagnostics = report.diagnostics();
+    assert_eq!(diagnostics[0].authored_identity(), "binding.duplicate");
+    assert_eq!(
+        diagnostics[0].semantic_locus(),
+        "binding:workspace.view_binding.selection"
+    );
+    assert_eq!(
+        diagnostics[0].conflicting_locus(),
+        "binding:workspace.view_binding.selection"
+    );
+
+    assert_eq!(diagnostics[1].authored_identity(), "surface.duplicate");
+    assert_eq!(
+        diagnostics[1].semantic_locus(),
+        "surface:workspace.surface.main"
+    );
+    assert_eq!(
+        diagnostics[1].conflicting_locus(),
+        "surface:workspace.surface.inspector"
+    );
+
+    assert_eq!(diagnostics[2].authored_identity(), "token.duplicate");
+    assert_eq!(diagnostics[2].semantic_locus(), "token:theme.text.primary");
+    assert_eq!(
+        diagnostics[2].conflicting_locus(),
+        "token:theme.text.default"
     );
 }
 

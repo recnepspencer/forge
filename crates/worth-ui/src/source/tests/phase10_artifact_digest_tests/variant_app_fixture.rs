@@ -1,8 +1,8 @@
 use crate::capability::{
     CommandDescriptor, CommandId, CommandProjectionCommandReference, CommandProjectionDescriptor,
     CommandProjectionId, CommandProjectionSurface, CommandReadinessBinding,
-    CommandRuntimeIntentBinding, ComponentChildPolicy, ComponentDescriptor, ComponentId,
-    ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
+    CommandRuntimeIntentBinding, ComponentChildPolicy, ComponentDescriptor, ComponentExecutionLane,
+    ComponentId, ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
     IconSourceDescriptor, MeasurementConstraint, MeasurementValue, MosaicChildRule,
     MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority,
     MosaicOverflowBehavior, MosaicParentGrowthBehavior, MosaicPlacementAction,
@@ -25,8 +25,43 @@ use forge_query::facade::{
     ForgeQueryCapabilityFamily, QuerySubscriptionFamily, ResultShapeFamily, ViewShapeDescriptor,
 };
 
-pub(crate) fn identity_test_app() -> WorthUiApp {
-    WorthUi::app()
+pub(super) fn component_descriptor_variant_app() -> WorthUiApp {
+    phase10_test_app(Phase10AppVariant::ComponentDescriptor)
+}
+
+pub(super) fn surface_descriptor_variant_app() -> WorthUiApp {
+    phase10_test_app(Phase10AppVariant::SurfaceDescriptor)
+}
+
+pub(super) fn theme_token_alias_chain_variant_app() -> WorthUiApp {
+    phase10_test_app(Phase10AppVariant::ThemeTokenAliasChain)
+}
+
+#[derive(Clone, Copy)]
+enum Phase10AppVariant {
+    ComponentDescriptor,
+    SurfaceDescriptor,
+    ThemeTokenAliasChain,
+}
+
+fn phase10_test_app(variant: Phase10AppVariant) -> WorthUiApp {
+    let dashboard_component = match variant {
+        Phase10AppVariant::ComponentDescriptor => component("workspace.component.dashboard")
+            .with_execution_lane(ComponentExecutionLane::Interactive),
+        _ => component("workspace.component.dashboard"),
+    };
+    let inspector_surface = match variant {
+        Phase10AppVariant::SurfaceDescriptor => surface(
+            "workspace.surface.inspector",
+            "workspace.component.dashboard",
+            SurfacePlacementClass::overlay_layer(),
+        )
+        .with_command_slot(CommandId::new("workspace.command.inspect").unwrap())
+        .with_icon(IconId::new("workspace.icon.surface.inspector").unwrap())
+        .with_view_binding(ViewBindingId::new("workspace.view_binding.selection").unwrap()),
+        _ => default_inspector_surface(),
+    };
+    let mut app = WorthUi::app()
         .register_command(
             CommandDescriptor::new(
                 CommandId::new("workspace.command.inspect").unwrap(),
@@ -43,7 +78,7 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
                 CommandProjectionId::new("workspace.command_projection.inspect_actions").unwrap(),
             ),
         )
-        .register_component(component("workspace.component.dashboard"))
+        .register_component(dashboard_component)
         .register_component(component("workspace.component.inspector_panel"))
         .register_surface(surface(
             "workspace.surface.main",
@@ -55,16 +90,7 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
             "workspace.component.inspector_panel",
             SurfacePlacementClass::overlay_layer(),
         ))
-        .register_surface(
-            surface(
-                "workspace.surface.inspector",
-                "workspace.component.dashboard",
-                SurfacePlacementClass::primary_region(),
-            )
-            .with_command_slot(CommandId::new("workspace.command.inspect").unwrap())
-            .with_icon(IconId::new("workspace.icon.surface.inspector").unwrap())
-            .with_view_binding(ViewBindingId::new("workspace.view_binding.selection").unwrap()),
-        )
+        .register_surface(inspector_surface)
         .register_icon(IconDescriptor::new(
             IconId::new("workspace.icon.inspect").unwrap(),
             IconFamily::command(),
@@ -91,12 +117,6 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
             ThemeTokenSource::application(),
             ThemeTokenValue::color(ThemeColorValue::hex("#101820").unwrap()),
         ))
-        .register_theme_token(ThemeTokenDescriptor::alias(
-            ThemeTokenId::new("theme.text.default").unwrap(),
-            ThemeTokenFamily::text(),
-            ThemeTokenSource::application(),
-            ThemeTokenAlias::to(ThemeTokenId::new("theme.text.primary").unwrap()),
-        ))
         .register_mosaic_region_kind(primary_region())
         .register_mosaic_region_kind(overlay_region())
         .register_mosaic_placement_policy(primary_placement())
@@ -105,8 +125,42 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
         .register_mosaic_sizing_contract(overlay_sizing())
         .register_mosaic_state_slot(region_scroll_state())
         .register_mosaic_state_slot(overlay_pinned_state())
-        .register_mosaic_state_slot(primary_surface_state())
-        .freeze()
+        .register_mosaic_state_slot(primary_surface_state());
+
+    if matches!(variant, Phase10AppVariant::ThemeTokenAliasChain) {
+        app = app.register_theme_token(ThemeTokenDescriptor::alias(
+            ThemeTokenId::new("theme.text.secondary").unwrap(),
+            ThemeTokenFamily::text(),
+            ThemeTokenSource::application(),
+            ThemeTokenAlias::to(ThemeTokenId::new("theme.text.primary").unwrap()),
+        ));
+        app = app.register_theme_token(ThemeTokenDescriptor::alias(
+            ThemeTokenId::new("theme.text.default").unwrap(),
+            ThemeTokenFamily::text(),
+            ThemeTokenSource::application(),
+            ThemeTokenAlias::to(ThemeTokenId::new("theme.text.secondary").unwrap()),
+        ));
+    } else {
+        app = app.register_theme_token(ThemeTokenDescriptor::alias(
+            ThemeTokenId::new("theme.text.default").unwrap(),
+            ThemeTokenFamily::text(),
+            ThemeTokenSource::application(),
+            ThemeTokenAlias::to(ThemeTokenId::new("theme.text.primary").unwrap()),
+        ));
+    }
+
+    app.freeze()
+}
+
+fn default_inspector_surface() -> SurfaceDescriptor {
+    surface(
+        "workspace.surface.inspector",
+        "workspace.component.dashboard",
+        SurfacePlacementClass::primary_region(),
+    )
+    .with_command_slot(CommandId::new("workspace.command.inspect").unwrap())
+    .with_icon(IconId::new("workspace.icon.surface.inspector").unwrap())
+    .with_view_binding(ViewBindingId::new("workspace.view_binding.selection").unwrap())
 }
 
 fn query_owned_view_binding_descriptor() -> ViewBindingDescriptor {

@@ -2,9 +2,9 @@ use crate::source::{WorthUiIdentityReplacementClass, WorthUiIdentityReplacementC
 
 use super::identity_fixture_support::{
     assert_authored_seed_kind, assert_durable_eligible_count, assert_ineligible_reason,
-    authored_component_module, binding_node, component_node, identity_seeded_from_modules,
-    import_node, imported_identity_modules, reordered_imported_identity_modules, surface_node,
-    token_node,
+    authored_component_module, authored_surface_binding_and_token_module, binding_node,
+    component_node, identity_seeded_from_modules, import_node, imported_identity_modules,
+    reordered_imported_identity_modules, surface_node, token_node,
 };
 
 #[test]
@@ -76,7 +76,7 @@ fn durable_state_eligibility_is_explicit_and_conservative() {
 }
 
 #[test]
-fn structural_identity_change_is_classified_as_replacement() {
+fn same_authored_identity_is_classified_as_carry_forward() {
     let (baseline, _) = identity_seeded_from_modules([authored_component_module("dashboard.root")]);
     let (replayed, _) = identity_seeded_from_modules([authored_component_module("dashboard.root")]);
 
@@ -87,4 +87,28 @@ fn structural_identity_change_is_classified_as_replacement() {
         WorthUiIdentityReplacementClassifier::classify(baseline_seed, replayed_seed),
         WorthUiIdentityReplacementClass::CarryForward
     );
+}
+
+#[test]
+fn authored_surface_binding_and_token_ids_produce_stable_authored_seeds() {
+    let modules = [authored_surface_binding_and_token_module()];
+
+    let (left, left_metrics) = identity_seeded_from_modules(modules.clone());
+    let (right, right_metrics) = identity_seeded_from_modules(modules);
+
+    assert_eq!(
+        surface_node(&left, "workspace.surface.inspector").identity_seed(),
+        surface_node(&right, "workspace.surface.inspector").identity_seed()
+    );
+    assert_eq!(
+        binding_node(&left, "workspace.view_binding.selection").identity_seed(),
+        binding_node(&right, "workspace.view_binding.selection").identity_seed()
+    );
+    assert_eq!(
+        token_node(&left, "theme.text.default").identity_seed(),
+        token_node(&right, "theme.text.default").identity_seed()
+    );
+    assert_eq!(left_metrics.authored_seed_count(), 3);
+    assert_eq!(left_metrics.structural_fallback_count(), 0);
+    assert_eq!(left_metrics, right_metrics);
 }
