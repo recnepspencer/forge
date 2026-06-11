@@ -5,8 +5,10 @@ pub use crate::bindings::query_native_planar_m6_closeout::{
     M6PlanarCloseoutQueryDomain, M6PlanarCloseoutQueryWorld,
 };
 pub use crate::planar_contracts::m6_closeout::{
-    M6LegacyDeletionEvidenceRow, M6PlanarCloseoutBasis, M6PlanarCloseoutCertification,
+    M6LegacyDeletionEvidenceRow, M6LegacyFixtureFence, M6LegacyFixtureFencePosture,
+    M6LegacyFixtureFenceRow, M6PlanarCloseoutBasis, M6PlanarCloseoutCertification,
     M6PlanarCloseoutCounters, M6PlanarCloseoutDenial, M6PlanarCloseoutDenialKind,
-    M6PlanarCloseoutReceipt, M6PremetabossEvidenceRow, M6PremetabossFamily,
-    M6QueryBoundaryEvidenceRow, M6ShortcutDeletionFamily,
+    M6PlanarCloseoutReceipt, M6PremetabossEvidencePosture, M6PremetabossEvidenceRow,
+    M6PremetabossFamily, M6PremetabossPlatformTarget, M6QueryBoundaryEvidenceRow,
+    M6ShortcutDeletionFamily,
 };

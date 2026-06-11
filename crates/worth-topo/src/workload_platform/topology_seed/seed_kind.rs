@@ -9,6 +9,8 @@ pub enum TopologySeedKind {
     HighValenceVertex,
     SelfIntersectingLoop,
     NonManifoldWire,
+    ThinWallLocalBasis,
+    OrientationInconsistency,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +32,8 @@ impl TopologySeedKind {
             Self::HighValenceVertex => "high-valence-vertex",
             Self::SelfIntersectingLoop => "self-intersecting-loop",
             Self::NonManifoldWire => "non-manifold-wire",
+            Self::ThinWallLocalBasis => "thin-wall-local-basis",
+            Self::OrientationInconsistency => "orientation-inconsistency",
         }
     }
 
@@ -42,9 +46,10 @@ impl TopologySeedKind {
             Self::OpenSheet | Self::OpenWire | Self::HighValenceVertex => {
                 TopologySeedTopologyPosture::OpenValid
             }
-            Self::SelfIntersectingLoop | Self::NonManifoldWire => {
-                TopologySeedTopologyPosture::Dirty
-            }
+            Self::SelfIntersectingLoop
+            | Self::NonManifoldWire
+            | Self::ThinWallLocalBasis
+            | Self::OrientationInconsistency => TopologySeedTopologyPosture::Dirty,
             Self::Cube | Self::Tetrahedron | Self::SingleFaceLoop | Self::MultiFaceShell => {
                 TopologySeedTopologyPosture::ClosedValid
             }

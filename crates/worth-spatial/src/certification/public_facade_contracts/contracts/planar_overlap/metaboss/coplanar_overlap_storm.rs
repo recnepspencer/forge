@@ -1,53 +1,53 @@
 use super::diagnostics::{assert_tiny_rotation_diagnostic, certify_tiny_rotation_diagnostic};
 use super::outcome_matrix::assert_mb_m6_outcome_matrix;
-use super::proof::{
-    certify_storm, certify_storm_reversed_host_order, certify_storm_with_retained_replay,
-    deny_tiny_rotation,
+use super::platform_storm_subject::{
+    certify_platform_storm, certify_platform_storm_with_transform, manual_stage_substitution_error,
+    mismatched_operator_stage_link_error,
 };
-use super::scenario::{
-    coplanar_equivalence_regions, coplanar_storm_regions, near_graze_region, StormTransform,
+use super::scenario::near_graze_region;
+use super::storm_extraction_subject::deny_storm_tiny_rotation;
+use worth_kernel::workload_composition::{TransformRecipe, WorkloadTopologyBreadth};
+use worth_spatial::facade::coplanar_overlap_storm::CoplanarOverlapStormWorkloadError;
+use worth_spatial::facade::planar_overlap::CoplanarOverlapUserOutcomeKind;
+use worth_spatial::facade::workload_vocabulary::{
+    WorkloadEvidenceLedgerError, WorkloadEvidenceStage,
 };
 
 #[test]
 fn mb_m6_1_coplanar_overlap_storm_end_to_end_receipts() {
-    let regions = coplanar_storm_regions();
-    let identity = certify_storm_with_retained_replay(
-        "mb-real-coplanar-storm-identity",
-        StormTransform::Identity,
-        &regions,
-    );
-    assert_eq!(identity.signature.face_count, 216);
-    assert_eq!(identity.signature.region_count, 12);
-    assert!(identity.signature.partial_flush_regions >= 24);
-    assert!(identity.signature.nested_hole_regions >= 24);
-    assert!(identity.signature.boundary_touch_regions >= 24);
-    assert!(identity.signature.collinear_run_regions >= 24);
-    assert!(identity.signature.shared_intervals >= 54);
-    assert!(identity.signature.ambiguous_contacts >= 27);
-    assert!(identity.signature.containment_relations >= 27);
-    assert_eq!(identity.signature.policy_required_exits, 0);
+    let subject = certify_platform_storm("mb-real-coplanar-storm-identity");
+    let counters = subject.storm_receipt.counters();
 
-    assert!(!identity.retained_replay_digest.is_empty());
-
-    for region in &identity.regions {
-        assert_eq!(region.live_fact_digest, region.retained_replay_fact_digest);
-        assert_eq!(
-            region.projection_basis_digest,
-            region.retained_projection_basis_digest
-        );
-        assert!(
-            region.candidate_pair_breadth <= identity.max_candidate_pair_breadth,
-            "region {} exceeded declared local breadth",
-            region.region_identity
-        );
-    }
-    assert!(
-        identity.max_candidate_pair_breadth <= 220,
-        "storm extraction must stay bounded per affected region, not scan the whole workload"
+    assert_eq!(counters.topology_face_count(), 64);
+    assert!(counters.topology_entity_count() > 64);
+    assert!(counters.topology_relation_count() > counters.topology_face_count());
+    assert!(counters.projected_entity_count() > 64);
+    assert!(counters.transform_step_count() > 0);
+    assert!(counters.transform_cancellation_step_count() > 0);
+    assert!(counters.retained_artifact_count() > 0);
+    assert!(counters.replay_checkpoint_count() > 0);
+    assert_eq!(counters.operator_input_count(), 44);
+    assert!(counters.operator_receipt_count() > 0);
+    assert_eq!(counters.overlap_extraction_receipt_count(), 36);
+    assert!(counters.overlap_candidate_pair_breadth() >= 576);
+    assert!(counters.overlap_segment_contacts_certified() >= 192);
+    assert!(counters.overlap_shared_intervals() >= 12);
+    assert!(counters.overlap_islands() >= 12);
+    assert!(counters.overlap_ambiguous_contacts() >= 12);
+    assert!(!subject.storm_receipt.storm_digest().is_empty());
+    assert!(!subject.storm_receipt.workload_identity().is_empty());
+    assert_eq!(
+        subject.storm_receipt.operator_identity(),
+        subject.operator_receipt.operator_digest()
     );
+    assert_eq!(
+        subject.user_outcome.kind(),
+        CoplanarOverlapUserOutcomeKind::ContractsCertified
+    );
+    assert!(!subject.user_outcome.message().contains('_'));
 
     let tiny_rotation_denial =
-        deny_tiny_rotation("mb-real-coplanar-storm-tiny-rotation", &near_graze_region());
+        deny_storm_tiny_rotation("mb-real-coplanar-storm-tiny-rotation", &near_graze_region());
     assert_eq!(
         tiny_rotation_denial.reason(),
         "movement and rotation posture must match before coplanar overlap extraction"
@@ -58,60 +58,134 @@ fn mb_m6_1_coplanar_overlap_storm_end_to_end_receipts() {
 
 #[test]
 fn mb_m6_1_equivalent_motion_subset_converges_without_full_storm_replay() {
-    let regions = coplanar_equivalence_regions();
-    let identity = certify_storm(
-        "mb-real-coplanar-subset-identity",
-        StormTransform::Identity,
-        &regions,
+    let movement_stack = certify_platform_storm_with_transform(
+        "mb-real-coplanar-subset-movement-stack",
+        WorkloadTopologyBreadth::MultiFaceShell { face_count: 8 },
+        TransformRecipe::MovementRotationStack,
     );
-    let translated = certify_storm(
-        "mb-real-coplanar-subset-translated",
-        StormTransform::Translated,
-        &regions,
-    );
-    let half_turn = certify_storm(
-        "mb-real-coplanar-subset-half-turn",
-        StormTransform::HalfTurn,
-        &regions,
-    );
-    let move_then_rotate = certify_storm(
-        "mb-real-coplanar-subset-move-rotate",
-        StormTransform::MoveThenRotate,
-        &regions,
-    );
-    let rotate_then_move = certify_storm(
-        "mb-real-coplanar-subset-rotate-move",
-        StormTransform::RotateThenMove,
-        &regions,
-    );
-    let reversed_host_order = certify_storm_reversed_host_order(
-        "mb-real-coplanar-subset-reversed",
-        StormTransform::Identity,
-        &regions,
+    let hostile_cancellation = certify_platform_storm_with_transform(
+        "mb-real-coplanar-subset-hostile-cancellation",
+        WorkloadTopologyBreadth::MultiFaceShell { face_count: 8 },
+        TransformRecipe::HostileCancellation,
     );
 
-    assert_eq!(identity.signature, translated.signature);
-    assert_eq!(identity.signature, half_turn.signature);
-    assert_eq!(identity.signature, move_then_rotate.signature);
-    assert_eq!(identity.signature, rotate_then_move.signature);
-    assert_eq!(identity.signature, reversed_host_order.signature);
-    assert_eq!(identity.structural_digest, translated.structural_digest);
-    assert_eq!(identity.structural_digest, half_turn.structural_digest);
     assert_eq!(
-        move_then_rotate.structural_digest,
-        rotate_then_move.structural_digest
+        movement_stack
+            .storm_receipt
+            .counters()
+            .topology_face_count(),
+        8
     );
     assert_eq!(
-        identity.structural_digest,
-        reversed_host_order.structural_digest
+        movement_stack
+            .storm_receipt
+            .counters()
+            .topology_face_count(),
+        hostile_cancellation
+            .storm_receipt
+            .counters()
+            .topology_face_count()
+    );
+    assert_eq!(
+        movement_stack
+            .storm_receipt
+            .counters()
+            .topology_relation_count(),
+        hostile_cancellation
+            .storm_receipt
+            .counters()
+            .topology_relation_count()
+    );
+    assert_eq!(
+        movement_stack
+            .storm_receipt
+            .counters()
+            .projected_entity_count(),
+        hostile_cancellation
+            .storm_receipt
+            .counters()
+            .projected_entity_count()
+    );
+    assert_ne!(
+        movement_stack
+            .storm_receipt
+            .counters()
+            .transform_cancellation_step_count(),
+        hostile_cancellation
+            .storm_receipt
+            .counters()
+            .transform_cancellation_step_count(),
+        "movement and hostile cancellation branches must prove different replay breadth"
+    );
+    assert_eq!(
+        movement_stack
+            .storm_receipt
+            .counters()
+            .operator_input_count(),
+        hostile_cancellation
+            .storm_receipt
+            .counters()
+            .operator_input_count(),
+        "operator consumption must converge after replay despite transform breadth differences"
+    );
+    assert_ne!(
+        movement_stack.storm_receipt.workload_identity(),
+        hostile_cancellation.storm_receipt.workload_identity(),
+        "distinct Query declarations must remain visible even when storm breadth converges"
     );
 }
 
 #[test]
 fn mb_m6_1_user_outcome_matrix_branches_every_stop() {
-    let tiny_rotation_denial = deny_tiny_rotation(
+    let tiny_rotation_denial = deny_storm_tiny_rotation(
         "mb-real-coplanar-matrix-tiny-rotation",
         &near_graze_region(),
     );
     assert_mb_m6_outcome_matrix(&tiny_rotation_denial);
+}
+
+#[test]
+fn mb_m6_1_fixture_arithmetic_cannot_satisfy_storm_truth() {
+    for stage in [
+        WorkloadEvidenceStage::Topology,
+        WorkloadEvidenceStage::GeometryBinding,
+        WorkloadEvidenceStage::SurfaceSupport,
+        WorkloadEvidenceStage::Projection,
+        WorkloadEvidenceStage::Transform,
+        WorkloadEvidenceStage::RetainedReplay,
+        WorkloadEvidenceStage::Diagnostics,
+        WorkloadEvidenceStage::Response,
+    ] {
+        let error = manual_stage_substitution_error(stage)
+            .expect_err("hand-filled authority row must not complete storm evidence");
+
+        assert_eq!(
+            error,
+            WorkloadEvidenceLedgerError::ManualAuthorityStage(stage)
+        );
+        assert_eq!(
+            error.human_reason(),
+            format!(
+                "workload evidence ledger has hand-filled {} instead of a source receipt",
+                stage.human_name()
+            )
+        );
+    }
+}
+
+#[test]
+fn mb_m6_1_operator_receipt_must_match_workload_ledger() {
+    let error = mismatched_operator_stage_link_error()
+        .expect_err("operator receipt from a different workload must not certify this storm");
+
+    assert_eq!(
+        error,
+        CoplanarOverlapStormWorkloadError::MismatchedOperatorStageLink(
+            WorkloadEvidenceStage::Projection
+        )
+    );
+    assert_eq!(
+        error.human_reason(),
+        "coplanar overlap storm operator receipt must consume the same projection evidence as the workload ledger"
+    );
 }

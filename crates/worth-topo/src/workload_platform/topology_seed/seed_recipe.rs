@@ -166,6 +166,16 @@ fn dirty_seed_denial(kind: TopologySeedKind) -> Option<DirtyTopologySeedDenial> 
             reason:
                 "non-manifold wire seeds are intentionally dirty and must stop before spatial binding can consume topology",
         }),
+        TopologySeedKind::ThinWallLocalBasis => Some(DirtyTopologySeedDenial {
+            reason_code: TopologySeedCleanFailReasonCode::ThinWallLocalBasisCannotBindAsGeometry,
+            reason:
+                "thin wall local-basis seeds are intentionally dirty and must stop before spatial binding can infer a stable planar frame",
+        }),
+        TopologySeedKind::OrientationInconsistency => Some(DirtyTopologySeedDenial {
+            reason_code: TopologySeedCleanFailReasonCode::OrientationInconsistencyRequiresRepairPolicy,
+            reason:
+                "orientation-inconsistent seeds are intentionally dirty and must stop before spatial binding can choose a repair policy",
+        }),
         _ => None,
     }
 }

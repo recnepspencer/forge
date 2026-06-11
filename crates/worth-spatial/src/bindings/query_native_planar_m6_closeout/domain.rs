@@ -76,6 +76,7 @@ impl ForgeQueryDeclarationFamilyMarker<M6PlanarCloseoutQueryDomain>
                 "geometry.planar_m6_closeout.m7_readiness",
                 "geometry.planar_m6_closeout.premetaboss",
                 "geometry.planar_m6_closeout.legacy_deletion",
+                "geometry.planar_m6_closeout.legacy_fixture_fence",
                 "geometry.planar_m6_closeout.query_boundary",
             ],
             &[

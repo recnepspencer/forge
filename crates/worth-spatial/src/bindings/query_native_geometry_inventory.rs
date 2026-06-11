@@ -25,6 +25,7 @@ pub enum GeometryPublicSurface {
     PlanarDiagnosticBundle,
     PlanarLocalRebuildParity,
     PlanarCleanFailBoundary,
+    PlanarBooleanReadinessWorkload,
     ToleranceAndPrecisionCertification,
     HistoricalGeometryInspection,
     BranchLocalGeometryInspection,
@@ -34,7 +35,7 @@ pub enum GeometryPublicSurface {
 }
 
 impl GeometryPublicSurface {
-    pub const fn all() -> [Self; 31] {
+    pub const fn all() -> [Self; 32] {
         [
             Self::GeometryTargetIdentity,
             Self::SpatialAnchorSelection,
@@ -61,6 +62,7 @@ impl GeometryPublicSurface {
             Self::PlanarDiagnosticBundle,
             Self::PlanarLocalRebuildParity,
             Self::PlanarCleanFailBoundary,
+            Self::PlanarBooleanReadinessWorkload,
             Self::ToleranceAndPrecisionCertification,
             Self::HistoricalGeometryInspection,
             Self::BranchLocalGeometryInspection,
@@ -99,6 +101,7 @@ impl GeometryPublicSurface {
             Self::PlanarDiagnosticBundle => "PlanarDiagnosticBundle",
             Self::PlanarLocalRebuildParity => "PlanarLocalRebuildParity",
             Self::PlanarCleanFailBoundary => "PlanarCleanFailBoundary",
+            Self::PlanarBooleanReadinessWorkload => "PlanarBooleanReadinessWorkload",
             Self::ToleranceAndPrecisionCertification => "ToleranceAndPrecisionCertification",
             Self::HistoricalGeometryInspection => "HistoricalGeometryInspection",
             Self::BranchLocalGeometryInspection => "BranchLocalGeometryInspection",

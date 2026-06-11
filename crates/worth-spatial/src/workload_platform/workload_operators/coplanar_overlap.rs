@@ -1,15 +1,30 @@
+use crate::planar_contracts::coplanar_overlap_contract::CoplanarOverlapContractReceipt;
 use crate::workload_platform::evidence_ledger::{WorkloadEvidenceRow, WorkloadEvidenceStage};
+
+use super::coplanar_overlap_extractions::{
+    extraction_summary, operator_digest, CoplanarOverlapOperatorExtraction,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CoplanarOverlapWorkloadOperator {
     consumed_evidence: Vec<WorkloadEvidenceRow>,
+    overlap_extractions: Vec<CoplanarOverlapOperatorExtraction>,
 }
 
 impl CoplanarOverlapWorkloadOperator {
     pub fn from_consumed_evidence(consumed_evidence: &[WorkloadEvidenceRow]) -> Self {
         Self {
             consumed_evidence: consumed_evidence.to_vec(),
+            overlap_extractions: Vec::new(),
         }
+    }
+
+    pub fn with_overlap_extractions(mut self, receipts: &[CoplanarOverlapContractReceipt]) -> Self {
+        self.overlap_extractions = receipts
+            .iter()
+            .map(CoplanarOverlapOperatorExtraction::from_receipt)
+            .collect();
+        self
     }
 
     pub fn execute(self) -> Result<CoplanarOverlapOperatorReceipt, CoplanarOverlapOperatorDenial> {
@@ -37,13 +52,28 @@ impl CoplanarOverlapWorkloadOperator {
             &self.consumed_evidence,
             RequiredOperatorEvidenceStage::RetainedReplay,
         )?;
-        let operator_digest =
-            format!("coplanar-overlap-operator:{projection}:{transform}:{retained_replay}");
+        let extraction_summary = extraction_summary(&self.overlap_extractions)?;
+        let operator_digest = operator_digest(
+            projection,
+            transform,
+            retained_replay,
+            &extraction_summary.extraction_identities,
+            &extraction_summary,
+        );
         Ok(CoplanarOverlapOperatorReceipt {
             operator_digest,
             consumed_evidence_identities: consumed_identities(&self.consumed_evidence),
-            operator_input_count: self.consumed_evidence.len(),
+            overlap_extraction_identities: extraction_summary.extraction_identities,
+            operator_input_count: self.consumed_evidence.len() + extraction_summary.receipt_count,
             operator_receipt_count: 1,
+            overlap_extraction_receipt_count: extraction_summary.receipt_count,
+            overlap_candidate_pair_breadth: extraction_summary.candidate_pair_breadth,
+            overlap_segment_contacts_certified: extraction_summary.segment_contacts_certified,
+            overlap_shared_intervals: extraction_summary.shared_intervals,
+            overlap_islands: extraction_summary.overlap_islands,
+            overlap_containment_relations: extraction_summary.containment_relations,
+            overlap_policy_required_exits: extraction_summary.policy_required_exits,
+            overlap_ambiguous_contacts: extraction_summary.ambiguous_contacts,
         })
     }
 }
@@ -52,8 +82,17 @@ impl CoplanarOverlapWorkloadOperator {
 pub struct CoplanarOverlapOperatorReceipt {
     operator_digest: String,
     consumed_evidence_identities: Vec<String>,
+    overlap_extraction_identities: Vec<String>,
     operator_input_count: usize,
     operator_receipt_count: usize,
+    overlap_extraction_receipt_count: usize,
+    overlap_candidate_pair_breadth: usize,
+    overlap_segment_contacts_certified: usize,
+    overlap_shared_intervals: usize,
+    overlap_islands: usize,
+    overlap_containment_relations: usize,
+    overlap_policy_required_exits: usize,
+    overlap_ambiguous_contacts: usize,
 }
 
 impl CoplanarOverlapOperatorReceipt {
@@ -65,12 +104,48 @@ impl CoplanarOverlapOperatorReceipt {
         &self.consumed_evidence_identities
     }
 
+    pub fn overlap_extraction_identities(&self) -> &[String] {
+        &self.overlap_extraction_identities
+    }
+
     pub fn operator_input_count(&self) -> usize {
         self.operator_input_count
     }
 
     pub fn operator_receipt_count(&self) -> usize {
         self.operator_receipt_count
+    }
+
+    pub fn overlap_extraction_receipt_count(&self) -> usize {
+        self.overlap_extraction_receipt_count
+    }
+
+    pub fn overlap_candidate_pair_breadth(&self) -> usize {
+        self.overlap_candidate_pair_breadth
+    }
+
+    pub fn overlap_segment_contacts_certified(&self) -> usize {
+        self.overlap_segment_contacts_certified
+    }
+
+    pub fn overlap_shared_intervals(&self) -> usize {
+        self.overlap_shared_intervals
+    }
+
+    pub fn overlap_islands(&self) -> usize {
+        self.overlap_islands
+    }
+
+    pub fn overlap_containment_relations(&self) -> usize {
+        self.overlap_containment_relations
+    }
+
+    pub fn overlap_policy_required_exits(&self) -> usize {
+        self.overlap_policy_required_exits
+    }
+
+    pub fn overlap_ambiguous_contacts(&self) -> usize {
+        self.overlap_ambiguous_contacts
     }
 
     pub fn links_to_stage(&self, stage: WorkloadEvidenceStage) -> bool {
@@ -124,6 +199,8 @@ pub enum CoplanarOverlapOperatorDenial {
     SyntheticProjectedWorkload,
     SyntheticTransformWorkload,
     SyntheticRetainedReplayWorkload,
+    MissingOverlapExtractionReceipts,
+    SyntheticOverlapExtraction,
 }
 
 impl CoplanarOverlapOperatorDenial {
@@ -156,6 +233,12 @@ impl CoplanarOverlapOperatorDenial {
             Self::SyntheticRetainedReplayWorkload => {
                 "coplanar overlap operator requires retained artifact and replay checkpoint evidence"
             }
+            Self::MissingOverlapExtractionReceipts => {
+                "coplanar overlap operator requires real overlap extraction receipts"
+            }
+            Self::SyntheticOverlapExtraction => {
+                "coplanar overlap operator requires overlap extraction receipts with candidate pairs and retained overlap facts"
+            }
         }
     }
 }
@@ -179,7 +262,9 @@ fn require_honest_stage(
         {
             Err(CoplanarOverlapOperatorDenial::SyntheticProjectedWorkload)
         }
-        RequiredOperatorEvidenceStage::Transform if counters.transform_step_count() == 0 => {
+        RequiredOperatorEvidenceStage::Transform
+            if counters.transform_changed_coordinate_count() == 0 =>
+        {
             Err(CoplanarOverlapOperatorDenial::SyntheticTransformWorkload)
         }
         RequiredOperatorEvidenceStage::RetainedReplay

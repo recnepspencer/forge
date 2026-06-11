@@ -68,6 +68,10 @@ impl ForgeQueryDeclarationInput<M6PlanarCloseoutQueryDomain> for M6PlanarCloseou
                 row.evidence_digest(),
             )
         }));
+        entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+            "geometry.planar_m6_closeout.legacy_fixture_fence",
+            basis.legacy_fixture_fence().fence_digest(),
+        ));
         entries
     }
 }

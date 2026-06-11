@@ -4,7 +4,8 @@ use worth_spatial::facade::planar_m6_closeout::{
 };
 
 use super::fixture::{
-    all_legacy_deletion_rows, all_premetaboss_rows, closeout_contracts, readiness_receipt,
+    all_legacy_deletion_rows, all_premetaboss_rows, closeout_contracts, legacy_fixture_fence,
+    readiness_receipt,
 };
 
 #[test]
@@ -16,6 +17,7 @@ fn m6_closeout_rejects_missing_or_duplicate_premetaboss_family() {
         M6PlanarCloseoutCertification::from_m7_readiness(readiness.clone())
             .with_premetaboss_evidence(missing_rows)
             .with_legacy_deletion_evidence(all_legacy_deletion_rows())
+            .with_legacy_fixture_fence(legacy_fixture_fence())
             .with_query_boundary_evidence(M6QueryBoundaryEvidenceRow::from_m7_readiness(
                 &readiness,
             )),
@@ -36,6 +38,7 @@ fn m6_closeout_rejects_missing_or_duplicate_premetaboss_family() {
         M6PlanarCloseoutCertification::from_m7_readiness(readiness.clone())
             .with_premetaboss_evidence(duplicate_rows)
             .with_legacy_deletion_evidence(all_legacy_deletion_rows())
+            .with_legacy_fixture_fence(legacy_fixture_fence())
             .with_query_boundary_evidence(M6QueryBoundaryEvidenceRow::from_m7_readiness(
                 &readiness,
             )),
@@ -59,6 +62,7 @@ fn m6_closeout_rejects_mismatched_query_boundary() {
         M6PlanarCloseoutCertification::from_m7_readiness(readiness)
             .with_premetaboss_evidence(all_premetaboss_rows())
             .with_legacy_deletion_evidence(all_legacy_deletion_rows())
+            .with_legacy_fixture_fence(legacy_fixture_fence())
             .with_query_boundary_evidence(M6QueryBoundaryEvidenceRow::from_m7_readiness(&stale)),
     )
     .compile(&closeout_contracts("m6-closeout-query-mismatch"))
@@ -71,4 +75,28 @@ fn m6_closeout_rejects_mismatched_query_boundary() {
         denial.kind(),
         M6PlanarCloseoutDenialKind::QueryBoundaryMismatch
     );
+}
+
+#[test]
+fn m6_closeout_requires_legacy_fixture_fence() {
+    let readiness = readiness_receipt("m6-closeout-missing-legacy-fence");
+    let denial = match M6PlanarCloseoutQueryCertification::from_certification(
+        M6PlanarCloseoutCertification::from_m7_readiness(readiness.clone())
+            .with_premetaboss_evidence(all_premetaboss_rows())
+            .with_legacy_deletion_evidence(all_legacy_deletion_rows())
+            .with_query_boundary_evidence(M6QueryBoundaryEvidenceRow::from_m7_readiness(
+                &readiness,
+            )),
+    )
+    .compile(&closeout_contracts("m6-closeout-missing-legacy-fence"))
+    {
+        Ok(_) => panic!("M6 closeout must require legacy fixture fence evidence"),
+        Err(denial) => denial,
+    };
+
+    assert_eq!(
+        denial.kind(),
+        M6PlanarCloseoutDenialKind::MissingLegacyFixtureFence
+    );
+    assert!(denial.reason().contains("legacy fixture fence"));
 }

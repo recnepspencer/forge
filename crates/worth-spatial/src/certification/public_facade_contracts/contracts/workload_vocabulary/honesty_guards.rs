@@ -1,6 +1,7 @@
 use worth_spatial::facade::surface_support::{
     SurfaceFamily, SurfaceSupportWorkload as RichSurfaceSupportWorkload,
 };
+use worth_spatial::facade::transform_workload::{TransformReorientation, TransformSequence};
 use worth_spatial::facade::workload_binding::{
     GeometryBindingWorkload as RichGeometryBindingWorkload, PlanarEdgeCarrierSet,
     PlanarFaceCarrierSet, PlanarLoopCarrierSet,
@@ -10,7 +11,9 @@ use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceRow, WorkloadEvidenceStage,
 };
 
-use super::evidence_ledger_receipts::{admitted_receipts, receipt_backed_rows};
+use super::evidence_ledger_receipts::{
+    admitted_receipts, counter_backed_rows_with_transform, receipt_backed_rows,
+};
 
 #[test]
 fn honesty_guards_reject_synthetic_replay_motion_and_fixture_arithmetic() {
@@ -24,6 +27,24 @@ fn honesty_guards_reject_synthetic_replay_motion_and_fixture_arithmetic() {
     assert_eq!(
         label_only_motion,
         WorkloadEvidenceGuardError::LabelOnlyMotion
+    );
+
+    let posture_only_motion =
+        WorkloadEvidenceLedger::from_rows(counter_backed_rows_with_transform(
+            "posture-only-transform-guard",
+            TransformSequence::new().reorient(TransformReorientation::preserves_handedness()),
+        ))
+        .expect("posture-only transform receipt rows should remain inspectable")
+        .guards()
+        .assert_transform_changed_geometry()
+        .expect_err("posture-only transform evidence must not prove moved coordinates");
+    assert_eq!(
+        posture_only_motion,
+        WorkloadEvidenceGuardError::LabelOnlyMotion
+    );
+    assert_eq!(
+        posture_only_motion.human_reason(),
+        "workload evidence guard requires coordinate-changing transform evidence"
     );
 
     let synthetic_replay = WorkloadEvidenceLedger::from_rows(receipt_backed_rows(&receipts))

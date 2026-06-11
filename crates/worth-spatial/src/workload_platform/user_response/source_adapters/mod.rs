@@ -1,8 +1,14 @@
+mod boolean_readiness_workload;
+mod dirty_planar_clean_fail;
+mod open_planar_posture;
+mod projection_fact_parity;
+mod retained_cancellation;
+
 use worth_math::sign::TriSign;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::{
-    choices::overlap_policy_choices, source::WorthUserResponseSourceKind,
+    choices::overlap_policy_choices, source::WorthUserResponseSourceKind, WorthPolicyDecision,
     WorthUserOutcomeCauseKind, WorthUserResponseSource,
 };
 use crate::bindings::query_native_planar_predicate::PlanarPredicateAuthorityFactError;
@@ -13,10 +19,18 @@ use crate::planar_contracts::coplanar_overlap_contract::{
     CoplanarOverlapContractReceipt, CoplanarOverlapDenial, CoplanarOverlapDenialKind,
 };
 use crate::planar_contracts::planar_diagnostics::PlanarDiagnosticBundleReceipt;
+use crate::workload_platform::coplanar_overlap_storm::CoplanarOverlapStormWorkloadError;
+use crate::workload_platform::high_valence_singularity::{
+    HighValenceSingularityReceipt, HighValenceSingularityWorkloadError,
+};
 use crate::workload_platform::retained_replay_workload::{
     UnsupportedReplayReasonCode, UnsupportedReplayWorkload,
 };
 use crate::workload_platform::surface_support::UnsupportedSurfaceSupport;
+use crate::workload_platform::thin_feature_scale_separation::{
+    ThinFeatureScaleSeparationReceipt, ThinFeatureScaleSeparationWorkloadError,
+};
+use crate::workload_platform::workload_operators::CoplanarOverlapOperatorReceipt;
 
 impl WorthUserResponseSource {
     pub fn from_overlap_receipt(receipt: &CoplanarOverlapContractReceipt) -> Self {
@@ -36,6 +50,161 @@ impl WorthUserResponseSource {
                     .to_string(),
                 evidence_digest: receipt.fact_digest().to_string(),
                 source_identity: receipt.fact_digest().to_string(),
+            },
+        }
+    }
+
+    pub fn from_coplanar_overlap_operator(receipt: &CoplanarOverlapOperatorReceipt) -> Self {
+        Self {
+            kind: WorthUserResponseSourceKind::Admitted {
+                message: "Coplanar overlap workload operator consumed platform evidence and certified the storm.".to_string(),
+                evidence_digest: receipt.operator_digest().to_string(),
+                source_identity: receipt.operator_digest().to_string(),
+            },
+        }
+    }
+
+    pub fn from_coplanar_overlap_storm_error(error: CoplanarOverlapStormWorkloadError) -> Self {
+        let cause_kind = match error {
+            CoplanarOverlapStormWorkloadError::MismatchedOperatorStageLink(_) => {
+                WorthUserOutcomeCauseKind::IntegrityMismatch
+            }
+            _ => WorthUserOutcomeCauseKind::MissingEvidence,
+        };
+        let evidence_digest = truth_digest_parts(
+            TruthDigestScope::ArtifactIdentity,
+            &[
+                "coplanar-overlap-storm-error".to_string(),
+                format!("{error:?}"),
+                error.human_reason(),
+            ],
+        );
+        Self {
+            kind: WorthUserResponseSourceKind::NoOptions {
+                cause_kind,
+                message: error.human_reason(),
+                source_identity: evidence_digest.clone(),
+                evidence_digest,
+            },
+        }
+    }
+
+    pub fn from_high_valence_singularity(receipt: &HighValenceSingularityReceipt) -> Self {
+        Self {
+            kind: WorthUserResponseSourceKind::Admitted {
+                message: format!(
+                    "High-valence singularity neighborhood was certified at valence {}.",
+                    receipt.counters().neighborhood_valence()
+                ),
+                evidence_digest: receipt.singularity_digest().to_string(),
+                source_identity: receipt.workload_identity().to_string(),
+            },
+        }
+    }
+
+    pub fn from_high_valence_singularity_error(error: HighValenceSingularityWorkloadError) -> Self {
+        let cause_kind = match &error {
+            HighValenceSingularityWorkloadError::UnsupportedValence { .. } => {
+                WorthUserOutcomeCauseKind::UnsupportedInput
+            }
+            HighValenceSingularityWorkloadError::RebuildMotionIncompatible { .. } => {
+                WorthUserOutcomeCauseKind::DeniedMovementOrRotation
+            }
+            HighValenceSingularityWorkloadError::PredicateUncertain => {
+                WorthUserOutcomeCauseKind::PredicateUncertain
+            }
+            HighValenceSingularityWorkloadError::PolicyRequired => {
+                WorthUserOutcomeCauseKind::PolicyRequired
+            }
+            HighValenceSingularityWorkloadError::IntegrityMismatch { .. } => {
+                WorthUserOutcomeCauseKind::IntegrityMismatch
+            }
+            _ => WorthUserOutcomeCauseKind::MissingEvidence,
+        };
+        let evidence_digest = truth_digest_parts(
+            TruthDigestScope::ArtifactIdentity,
+            &[
+                "high-valence-singularity-error".to_string(),
+                format!("{error:?}"),
+                error.human_reason(),
+            ],
+        );
+        if cause_kind == WorthUserOutcomeCauseKind::PolicyRequired {
+            return Self {
+                kind: WorthUserResponseSourceKind::PolicyRequired {
+                    message: error.human_reason(),
+                    evidence_digest: evidence_digest.clone(),
+                    source_identity: evidence_digest,
+                    choices: vec![WorthPolicyDecision::PauseForManualInspection],
+                },
+            };
+        }
+        Self {
+            kind: WorthUserResponseSourceKind::NoOptions {
+                cause_kind,
+                message: error.human_reason(),
+                source_identity: evidence_digest.clone(),
+                evidence_digest,
+            },
+        }
+    }
+
+    pub fn from_thin_feature_scale_separation(receipt: &ThinFeatureScaleSeparationReceipt) -> Self {
+        Self {
+            kind: WorthUserResponseSourceKind::Admitted {
+                message: format!(
+                    "Thin-feature scale separation was certified for {} topology-bound features across {} local scales.",
+                    receipt.counters().thin_feature_count(),
+                    receipt.counters().local_scale_order_count()
+                ),
+                evidence_digest: receipt.thin_feature_digest().to_string(),
+                source_identity: receipt.workload_identity().to_string(),
+            },
+        }
+    }
+
+    pub fn from_thin_feature_scale_separation_error(
+        error: ThinFeatureScaleSeparationWorkloadError,
+    ) -> Self {
+        let cause_kind = match &error {
+            ThinFeatureScaleSeparationWorkloadError::UnsupportedTinyRotationPosture => {
+                WorthUserOutcomeCauseKind::UnsupportedInput
+            }
+            ThinFeatureScaleSeparationWorkloadError::PredicateUncertain => {
+                WorthUserOutcomeCauseKind::PredicateUncertain
+            }
+            ThinFeatureScaleSeparationWorkloadError::PolicyRequired => {
+                WorthUserOutcomeCauseKind::PolicyRequired
+            }
+            ThinFeatureScaleSeparationWorkloadError::IntegrityMismatch { .. } => {
+                WorthUserOutcomeCauseKind::IntegrityMismatch
+            }
+            _ => WorthUserOutcomeCauseKind::MissingEvidence,
+        };
+        let evidence_digest = truth_digest_parts(
+            TruthDigestScope::ArtifactIdentity,
+            &[
+                "thin-feature-scale-separation-error".to_string(),
+                format!("{error:?}"),
+                error.human_reason(),
+            ],
+        );
+        if cause_kind == WorthUserOutcomeCauseKind::PolicyRequired {
+            return Self {
+                kind: WorthUserResponseSourceKind::PolicyRequired {
+                    message: error.human_reason(),
+                    evidence_digest: evidence_digest.clone(),
+                    source_identity: evidence_digest,
+                    choices: vec![WorthPolicyDecision::PauseForManualInspection],
+                },
+            };
+        }
+        Self {
+            kind: WorthUserResponseSourceKind::NoOptions {
+                cause_kind,
+                message: error.human_reason(),
+                source_identity: evidence_digest.clone(),
+                evidence_digest,
             },
         }
     }

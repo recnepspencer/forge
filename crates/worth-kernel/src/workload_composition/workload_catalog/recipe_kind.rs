@@ -59,7 +59,7 @@ impl WorkloadCatalogRecipeKind {
     }
 
     pub fn is_admitted_now(self) -> bool {
-        !matches!(self, Self::DirtySelfIntersectingLoop)
+        !matches!(self, Self::DirtySelfIntersectingLoop | Self::OpenSheet)
     }
 }
 
@@ -82,6 +82,13 @@ impl WorkloadCatalogSupportPosture {
 pub enum TransformRecipe {
     MovementRotationStack,
     HostileCancellation,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorkloadTopologyBreadth {
+    Default,
+    MultiFaceShell { face_count: usize },
+    HighValenceVertex { valence: usize },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -136,6 +136,22 @@ fn planar_metaboss_support_rows() -> Vec<SeedInventoryRow> {
             "planar_overlap::metaboss::diagnostics",
             "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/diagnostics.rs",
         ),
+        (
+            "planar_overlap::metaboss::platform_storm_subject",
+            "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/platform_storm_subject.rs",
+        ),
+        (
+            "planar_overlap::metaboss::storm_extraction_subject",
+            "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/storm_extraction_subject.rs",
+        ),
+        (
+            "planar_overlap::metaboss::high_valence_singularity",
+            "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/high_valence_singularity.rs",
+        ),
+        (
+            "planar_overlap::metaboss::high_valence_subject",
+            "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/high_valence_subject.rs",
+        ),
     ]
     .into_iter()
     .map(|(surface_id, source_path)| {
@@ -148,7 +164,7 @@ fn planar_metaboss_support_rows() -> Vec<SeedInventoryRow> {
             SurfaceScope::LegacyMigrationOnly,
             InventoryDecision::DeleteAfterReplacement,
             source_path,
-            "Current MB overlap harness proves useful outcomes but its storm setup is local spatial staging until M6.5 workload seeds replace it.",
+            "Current MB overlap harness consumes real workload platform receipts but remains MB-specific support until reusable post-M6.5 workload subjects replace it.",
         )
     })
     .collect()

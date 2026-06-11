@@ -1,0 +1,39 @@
+error[E0451]: fields `chain_digest`, `workload_identity`, `retained_basis_identity`, `projection_consumed_identity`, `checkpoints` and `counters` of struct `RetainedCancellationChainReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/retained_cancellation_chain/receipt_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = RetainedCancellationChainReceipt {
+   |             -------------------------------- in this type
+ 7 |         chain_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field
+ 8 |         workload_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 9 |         retained_basis_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         projection_consumed_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         checkpoints: Vec::new(),
+   |         ^^^^^^^^^^^ private field
+12 |         counters: RetainedCancellationChainCounters {
+   |         ^^^^^^^^ private field
+
+error[E0451]: fields `checkpoint_count`, `transform_step_count`, `replayed_checkpoint_count`, `trigger_local_replay_count`, `retained_artifact_count`, `projection_consumed_fact_count`, `diagnostic_trigger_count` and `user_outcome_count` of struct `RetainedCancellationChainCounters` are private
+  --> src/certification/public_facade_contracts/compile_fail/retained_cancellation_chain/receipt_not_forgeable.rs:13:13
+   |
+12 |         counters: RetainedCancellationChainCounters {
+   |                   --------------------------------- in this type
+13 |             checkpoint_count: 0,
+   |             ^^^^^^^^^^^^^^^^ private field
+14 |             transform_step_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^ private field
+15 |             replayed_checkpoint_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |             trigger_local_replay_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |             retained_artifact_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |             projection_consumed_fact_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |             diagnostic_trigger_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |             user_outcome_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^ private field

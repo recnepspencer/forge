@@ -295,6 +295,23 @@ pub(crate) fn classify_planar_contract_surface(
             Denied,
             "clean-fail boundary is a non-mutating certification surface and must not run local rebuilds, mutate topology, or claim replay parity",
         ),
+        (Surface::PlanarBooleanReadinessWorkload, Concern::LowerRuntimeRouting)
+        | (Surface::PlanarBooleanReadinessWorkload, Concern::ProjectionConsumption)
+        | (Surface::PlanarBooleanReadinessWorkload, Concern::HistoricalInspection)
+        | (Surface::PlanarBooleanReadinessWorkload, Concern::BranchLocalInspection)
+        | (Surface::PlanarBooleanReadinessWorkload, Concern::ReplayParity)
+        | (Surface::PlanarBooleanReadinessWorkload, Concern::BooleanReadinessCertification) => (
+            Required,
+            "phase 20 final-boss readiness consumes complete platform evidence, parity, diagnostics, and response blockers as the last admitted pre-M7 Query-backed workload",
+        ),
+        (Surface::PlanarBooleanReadinessWorkload, Concern::GroupedNeighborhoodWorkflow)
+        | (Surface::PlanarBooleanReadinessWorkload, Concern::ContributionComposition)
+        | (Surface::PlanarBooleanReadinessWorkload, Concern::RecoveryAction)
+        | (Surface::PlanarBooleanReadinessWorkload, Concern::MutationEvidence)
+        | (Surface::PlanarBooleanReadinessWorkload, Concern::SignalContinuation) => (
+            Denied,
+            "boolean-readiness workload certifies pre-M7 readiness or typed blockers and must not mutate topology, repair input, synthesize recovery, or execute boolean work",
+        ),
         _ => return None,
     };
     Some(classification)

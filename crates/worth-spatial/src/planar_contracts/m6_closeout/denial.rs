@@ -5,8 +5,10 @@ pub enum M6PlanarCloseoutDenialKind {
     MissingLegacyDeletionFamily,
     DuplicateLegacyDeletionFamily,
     MissingQueryBoundaryEvidence,
+    MissingLegacyFixtureFence,
     QueryBoundaryMismatch,
     BooleanExecutionAlreadyPresent,
+    SyntheticEndToEndBlocked,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

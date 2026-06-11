@@ -37,6 +37,7 @@ pub(crate) mod query_native_geometry_recovery;
 pub(crate) mod query_native_geometry_replay_parity;
 pub(crate) mod query_native_geometry_replay_parity_artifact;
 pub(crate) mod query_native_historical_geometry_inspection;
+pub(crate) mod query_native_planar_boolean_readiness_workload;
 pub(crate) mod query_native_planar_clean_fail_boundary;
 pub(crate) mod query_native_planar_contract_bundle;
 pub(crate) mod query_native_planar_diagnostics;

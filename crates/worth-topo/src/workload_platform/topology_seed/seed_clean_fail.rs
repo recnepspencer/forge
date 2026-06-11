@@ -2,6 +2,7 @@ use super::{
     TopologySeedCounters, TopologySeedEntityIdentities, TopologySeedKind,
     TopologySeedQueryReceipts, TopologySeedTopologyPosture,
 };
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TopologySeedCleanFailStage {
@@ -24,6 +25,8 @@ pub enum TopologySeedCleanFailReasonCode {
     MultiFaceShellFaceCountOutOfRange,
     SelfIntersectingLoopRequiresSpatialPolicy,
     NonManifoldWireCannotBindAsGeometry,
+    ThinWallLocalBasisCannotBindAsGeometry,
+    OrientationInconsistencyRequiresRepairPolicy,
     TopologyValidationRejectedSeed,
     WorkloadDeclarationRejectedSeed,
 }
@@ -87,6 +90,20 @@ impl TopologySeedCleanFailReceipt {
 
     pub fn reason(&self) -> &str {
         &self.reason
+    }
+
+    pub fn clean_fail_identity(&self) -> String {
+        truth_digest_parts(
+            TruthDigestScope::ArtifactIdentity,
+            &[
+                "topology-seed-clean-fail".to_string(),
+                format!("kind:{:?}", self.kind),
+                format!("stage:{:?}", self.stage),
+                format!("class:{:?}", self.class),
+                format!("reason:{:?}", self.reason_code),
+                self.reason.clone(),
+            ],
+        )
     }
 
     pub fn query_receipts(&self) -> Option<&TopologySeedQueryReceipts> {

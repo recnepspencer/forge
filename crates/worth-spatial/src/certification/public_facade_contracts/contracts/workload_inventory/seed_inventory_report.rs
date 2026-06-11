@@ -8,13 +8,13 @@ fn workload_seed_inventory_classifies_existing_topology_and_spatial_setup() {
     let report = SeedInventoryReport::certify_existing_surfaces()
         .expect("existing seed inventory should certify");
 
-    assert_eq!(report.counters().registered_surfaces(), 20);
+    assert_eq!(report.counters().registered_surfaces(), 24);
     assert_eq!(report.counters().query_backed_surfaces(), 3);
     assert_eq!(report.counters().production_receipt_surfaces(), 3);
     assert_eq!(report.counters().workload_candidates(), 3);
     assert_eq!(report.counters().unit_only_fixtures(), 10);
-    assert_eq!(report.counters().legacy_migration_surfaces(), 7);
-    assert_eq!(report.counters().test_local_surfaces(), 17);
+    assert_eq!(report.counters().legacy_migration_surfaces(), 11);
+    assert_eq!(report.counters().test_local_surfaces(), 21);
     assert!(report.assert_every_surface_has_human_readable_decision());
 
     assert_real_topology_seed(&report, "MinimalTopologySeed");
@@ -201,6 +201,10 @@ fn assert_metaboss_support_rows(report: &SeedInventoryReport) {
         "planar_overlap::metaboss::proof",
         "planar_overlap::metaboss::coplanar_overlap_storm",
         "planar_overlap::metaboss::diagnostics",
+        "planar_overlap::metaboss::platform_storm_subject",
+        "planar_overlap::metaboss::storm_extraction_subject",
+        "planar_overlap::metaboss::high_valence_singularity",
+        "planar_overlap::metaboss::high_valence_subject",
     ] {
         assert_legacy_migration(report, surface);
     }

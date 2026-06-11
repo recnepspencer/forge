@@ -258,6 +258,9 @@ fn admission_rule_for(surface: GeometryPublicSurface) -> &'static str {
         GeometryPublicSurface::PlanarCleanFailBoundary => {
             "support comes from admitted planar clean-fail boundary certification consuming admission, movement/rotation, recovery, and diagnostics while proving no repair or bounded conversion was attempted"
         }
+        GeometryPublicSurface::PlanarBooleanReadinessWorkload => {
+            "support comes from admitted final-boss boolean-readiness workload certification consuming complete workload evidence, projection parity, diagnostics, and user-response blockers before M7 without boolean execution"
+        }
         GeometryPublicSurface::ToleranceAndPrecisionCertification => {
             "support comes from admitted tolerance and precision certification declaration family workflow"
         }

@@ -5,10 +5,12 @@ use crate::planar_contracts::coplanar_overlap_contract::{
     CoplanarOverlapImprintAction,
 };
 use crate::planar_contracts::planar_diagnostics::PlanarDiagnosticBundleReceipt;
+use crate::workload_platform::coplanar_overlap_storm::CoplanarOverlapStormWorkloadError;
 use crate::workload_platform::user_response::{
     WorthPolicyDecision, WorthUserOutcome, WorthUserOutcomeCauseKind, WorthUserOutcomeKind,
     WorthUserResponseSource, WorthUserResponseWorkload,
 };
+use crate::workload_platform::workload_operators::CoplanarOverlapOperatorReceipt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CoplanarOverlapUserOutcomeKind {
@@ -25,6 +27,8 @@ pub enum CoplanarOverlapNoOptionsCause {
     PredicateUncertain,
     PredicateEvaluationFailed,
     PredicateAuthorityNotBound,
+    IntegrityMismatch,
+    MissingEvidence,
     OverlapDenied,
 }
 
@@ -65,6 +69,23 @@ impl CoplanarOverlapUserOutcome {
             boolean_result: receipt.boolean_result(),
             imprint_action: receipt.imprint_action(),
         }
+    }
+
+    pub fn from_operator_receipt(receipt: &CoplanarOverlapOperatorReceipt) -> Self {
+        Self {
+            shared: shared_outcome(WorthUserResponseSource::from_coplanar_overlap_operator(
+                receipt,
+            )),
+            decisions: Vec::new(),
+            boolean_result: None,
+            imprint_action: None,
+        }
+    }
+
+    pub fn from_storm_workload_error(error: CoplanarOverlapStormWorkloadError) -> Self {
+        Self::from_source(WorthUserResponseSource::from_coplanar_overlap_storm_error(
+            error,
+        ))
     }
 
     pub fn from_clean_fail_boundary(receipt: &PlanarCleanFailBoundaryReceipt) -> Self {
@@ -162,6 +183,12 @@ fn overlap_no_options_cause(cause: WorthUserOutcomeCauseKind) -> CoplanarOverlap
         }
         WorthUserOutcomeCauseKind::PredicateAuthorityNotBound => {
             CoplanarOverlapNoOptionsCause::PredicateAuthorityNotBound
+        }
+        WorthUserOutcomeCauseKind::IntegrityMismatch => {
+            CoplanarOverlapNoOptionsCause::IntegrityMismatch
+        }
+        WorthUserOutcomeCauseKind::MissingEvidence => {
+            CoplanarOverlapNoOptionsCause::MissingEvidence
         }
         _ => CoplanarOverlapNoOptionsCause::OverlapDenied,
     }

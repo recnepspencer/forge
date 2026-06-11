@@ -11,8 +11,9 @@ pub use operator_harness::{
 };
 pub use stage_requirements::WorkloadStageRequirement;
 pub use workload_catalog::{
-    BuiltWorkloadCatalogRecipe, TransformRecipe, WorkloadCatalog,
+    BuiltCleanFailCatalogRecipe, BuiltWorkloadCatalogRecipe, TransformRecipe, WorkloadCatalog,
     WorkloadCatalogDeclarationReceipt, WorkloadCatalogError, WorkloadCatalogRecipe,
     WorkloadCatalogRecipeKind, WorkloadCatalogSupportPosture, WorkloadCatalogSupportReceipt,
+    WorkloadTopologyBreadth,
 };
 pub use worth_workload::{WorkloadCompositionError, WorthWorkload, WorthWorkloadParts};

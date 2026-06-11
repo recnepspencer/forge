@@ -4,58 +4,9 @@ use super::topology_record_constructors::{
     base_container, edge, entity, half_edge, vertex, wire, HalfEdgeRecordConstruction,
 };
 use crate::brep::topology_graph::TopologyView;
-use crate::workload_platform::topology_seed::TopologySeedNeighborhoodReceipt;
 
 pub(crate) fn open_wire_topology_view() -> TopologyView {
     wire_chain_view(60_000, "open wire", 4)
-}
-
-pub(crate) fn high_valence_vertex_topology_view() -> (TopologyView, TopologySeedNeighborhoodReceipt)
-{
-    let mut topology = base_container(70_000, "high valence wire");
-    let center_id = entity(70_010);
-    topology
-        .vertices
-        .push(vertex("high valence center", center_id));
-
-    let mut incident_half_edges = Vec::new();
-    let wire_id = entity(70_020);
-    for index in 0..5 {
-        let outer_id = entity(70_030 + index);
-        let edge_id = entity(70_100 + index);
-        let half_edge_id = entity(70_200 + index);
-        topology
-            .vertices
-            .push(vertex(format!("high valence outer {index}"), outer_id));
-        topology
-            .edges
-            .push(edge(format!("high valence edge {index}"), edge_id));
-        topology
-            .half_edges
-            .push(half_edge(HalfEdgeRecordConstruction {
-                label: format!("high valence half-edge {index}"),
-                id: half_edge_id,
-                loop_id: None,
-                wire_id: Some(wire_id),
-                next_id: Some(half_edge_id),
-                prev_id: Some(half_edge_id),
-                radial_next_id: Some(half_edge_id),
-                edge_id,
-                origin_id: center_id,
-                target_id: outer_id,
-                face_id: None,
-            }));
-        incident_half_edges.push(half_edge_id);
-    }
-    topology.wires.push(wire(
-        "high valence wire",
-        wire_id,
-        incident_half_edges.clone(),
-    ));
-    (
-        topology,
-        TopologySeedNeighborhoodReceipt::new(center_id, incident_half_edges),
-    )
 }
 
 pub(crate) fn wire_chain_view(base: u64, label: &str, edge_count: usize) -> TopologyView {

@@ -147,6 +147,15 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/planar_m6_closeout/receipt_not_forgeable.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/planar_m6_closeout/hand_filled_premetaboss_evidence_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_m6_closeout/generic_ledger_premetaboss_target_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_m6_closeout/readiness_summary_premetaboss_target_not_exported.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/workload_vocabulary/out_of_order_phase_transition.rs"
     ));
     t.compile_fail(format!(
@@ -205,5 +214,29 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/user_response/user_response_source_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/coplanar_overlap_storm/storm_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/high_valence_singularity/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/thin_feature_scale_separation/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/retained_cancellation_chain/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/dirty_planar_clean_fail/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/open_planar_posture/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/projection_fact_parity/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/boolean_readiness_workload/receipt_not_forgeable.rs"
     ));
 }

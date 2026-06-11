@@ -11,6 +11,7 @@ use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceStage,
 };
 
+use crate::public_api_planar_overlap::metaboss::storm_extraction_subject::certify_storm_overlap_extractions;
 use crate::public_api_workload_vocabulary::evidence_ledger_receipts::{
     counter_backed_receipts, CounterBackedReceipts,
 };
@@ -52,6 +53,9 @@ fn operator_harness_consumes_projected_retained_transformed_workloads() {
 
     let operator_receipt =
         CoplanarOverlapWorkloadOperator::from_consumed_evidence(run.consumed_evidence())
+            .with_overlap_extractions(&certify_storm_overlap_extractions(
+                "operator-harness-real-overlap-extractions",
+            ))
             .execute()
             .expect("coplanar overlap operator should consume workload proof");
     assert!(operator_receipt.links_to_stage(WorkloadEvidenceStage::Projection));
@@ -75,7 +79,7 @@ fn operator_harness_consumes_projected_retained_transformed_workloads() {
             .operator_evidence_row()
             .counters()
             .operator_input_count(),
-        8
+        44
     );
     assert!(
         receipts
@@ -190,6 +194,22 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
         CoplanarOverlapOperatorDenial::SyntheticRetainedReplayWorkload,
         "requires retained artifact and replay checkpoint evidence",
     );
+    let missing_extractions = counter_backed_receipts("operator-missing-extractions");
+    let denial = CoplanarOverlapWorkloadOperator::from_consumed_evidence(&[
+        WorkloadEvidenceRow::from_projection_receipt_set(&missing_extractions.projection),
+        WorkloadEvidenceRow::from_transform_receipt_set(&missing_extractions.transform),
+        WorkloadEvidenceRow::from_replay_receipt_set(&missing_extractions.replay),
+    ])
+    .execute()
+    .expect_err("operator must deny missing overlap extraction receipts");
+    assert_eq!(
+        denial,
+        CoplanarOverlapOperatorDenial::MissingOverlapExtractionReceipts
+    );
+    assert!(denial
+        .human_reason()
+        .contains("requires real overlap extraction receipts"));
+    assert!(!denial.human_reason().contains('_'));
 }
 
 fn assert_operator_denial(
@@ -198,6 +218,9 @@ fn assert_operator_denial(
     human_reason_fragment: &str,
 ) {
     let denial = CoplanarOverlapWorkloadOperator::from_consumed_evidence(&consumed_evidence)
+        .with_overlap_extractions(&certify_storm_overlap_extractions(
+            "operator-denial-real-overlap-extractions",
+        ))
         .execute()
         .expect_err("operator must deny invalid stage evidence");
 

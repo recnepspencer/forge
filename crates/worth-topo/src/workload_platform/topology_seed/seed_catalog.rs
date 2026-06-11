@@ -31,11 +31,23 @@ impl TopologySeed {
         TopologySeedRecipe::new(TopologySeedKind::HighValenceVertex, None)
     }
 
+    pub fn high_valence_vertex_with_valence(valence: usize) -> TopologySeedRecipe {
+        TopologySeedRecipe::new(TopologySeedKind::HighValenceVertex, Some(valence))
+    }
+
     pub fn self_intersecting_loop() -> TopologySeedRecipe {
         TopologySeedRecipe::new(TopologySeedKind::SelfIntersectingLoop, None)
     }
 
     pub fn non_manifold_wire() -> TopologySeedRecipe {
         TopologySeedRecipe::new(TopologySeedKind::NonManifoldWire, None)
+    }
+
+    pub fn thin_wall_local_basis() -> TopologySeedRecipe {
+        TopologySeedRecipe::new(TopologySeedKind::ThinWallLocalBasis, None)
+    }
+
+    pub fn orientation_inconsistency() -> TopologySeedRecipe {
+        TopologySeedRecipe::new(TopologySeedKind::OrientationInconsistency, None)
     }
 }

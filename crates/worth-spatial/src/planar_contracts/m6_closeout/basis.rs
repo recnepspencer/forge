@@ -3,6 +3,8 @@ use std::collections::BTreeSet;
 use crate::planar_contracts::contract_bundle::PlanarM7ReadinessReceipt;
 
 use super::denial::{M6PlanarCloseoutDenial, M6PlanarCloseoutDenialKind};
+use super::fixture_fence::M6LegacyFixtureFence;
+use super::platform_targets::{M6PremetabossEvidencePosture, M6PremetabossEvidenceRow};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum M6PremetabossFamily {
@@ -81,29 +83,6 @@ impl M6ShortcutDeletionFamily {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct M6PremetabossEvidenceRow {
-    family: M6PremetabossFamily,
-    evidence_digest: String,
-}
-
-impl M6PremetabossEvidenceRow {
-    pub fn passed(family: M6PremetabossFamily, evidence_digest: impl Into<String>) -> Self {
-        Self {
-            family,
-            evidence_digest: evidence_digest.into(),
-        }
-    }
-
-    pub fn family(&self) -> M6PremetabossFamily {
-        self.family
-    }
-
-    pub fn evidence_digest(&self) -> &str {
-        &self.evidence_digest
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct M6LegacyDeletionEvidenceRow {
     family: M6ShortcutDeletionFamily,
     evidence_digest: String,
@@ -155,6 +134,7 @@ pub struct M6PlanarCloseoutCertification {
     premetaboss: Vec<M6PremetabossEvidenceRow>,
     legacy_deletion: Vec<M6LegacyDeletionEvidenceRow>,
     query_boundary: Option<M6QueryBoundaryEvidenceRow>,
+    legacy_fixture_fence: Option<M6LegacyFixtureFence>,
 }
 
 impl M6PlanarCloseoutCertification {
@@ -164,6 +144,7 @@ impl M6PlanarCloseoutCertification {
             premetaboss: Vec::new(),
             legacy_deletion: Vec::new(),
             query_boundary: None,
+            legacy_fixture_fence: None,
         }
     }
 
@@ -188,6 +169,11 @@ impl M6PlanarCloseoutCertification {
         self
     }
 
+    pub fn with_legacy_fixture_fence(mut self, fence: M6LegacyFixtureFence) -> Self {
+        self.legacy_fixture_fence = Some(fence);
+        self
+    }
+
     pub(crate) fn build(self) -> Result<M6PlanarCloseoutBasis, M6PlanarCloseoutDenial> {
         M6PlanarCloseoutBasis::from_builder(self)
     }
@@ -199,6 +185,7 @@ pub struct M6PlanarCloseoutBasis {
     premetaboss: Vec<M6PremetabossEvidenceRow>,
     legacy_deletion: Vec<M6LegacyDeletionEvidenceRow>,
     query_boundary: M6QueryBoundaryEvidenceRow,
+    legacy_fixture_fence: M6LegacyFixtureFence,
 }
 
 impl M6PlanarCloseoutBasis {
@@ -216,6 +203,12 @@ impl M6PlanarCloseoutBasis {
             premetaboss: builder.premetaboss,
             legacy_deletion: builder.legacy_deletion,
             query_boundary,
+            legacy_fixture_fence: builder.legacy_fixture_fence.ok_or_else(|| {
+                M6PlanarCloseoutDenial::new(
+                    M6PlanarCloseoutDenialKind::MissingLegacyFixtureFence,
+                    "M6 closeout requires an explicit legacy fixture fence",
+                )
+            })?,
         };
         validate_m6_closeout_basis(&basis)?;
         Ok(basis)
@@ -237,8 +230,12 @@ impl M6PlanarCloseoutBasis {
         &self.query_boundary
     }
 
+    pub fn legacy_fixture_fence(&self) -> &M6LegacyFixtureFence {
+        &self.legacy_fixture_fence
+    }
+
     pub fn closeout_rows(&self) -> usize {
-        self.premetaboss.len() + self.legacy_deletion.len() + 1
+        self.premetaboss.len() + self.legacy_deletion.len() + 2
     }
 }
 
@@ -267,6 +264,16 @@ fn require_exact_premetaboss_families(
 ) -> Result<(), M6PlanarCloseoutDenial> {
     let mut seen = BTreeSet::new();
     for row in rows {
+        if row.posture() != M6PremetabossEvidencePosture::WorkloadPlatform {
+            return Err(denial(
+                M6PlanarCloseoutDenialKind::SyntheticEndToEndBlocked,
+                format!(
+                    "{} cannot register synthetic MB closeout evidence: {}",
+                    row.family().as_str(),
+                    row.human_reason()
+                ),
+            ));
+        }
         if !seen.insert(row.family()) {
             return Err(denial(
                 M6PlanarCloseoutDenialKind::DuplicatePremetabossFamily,

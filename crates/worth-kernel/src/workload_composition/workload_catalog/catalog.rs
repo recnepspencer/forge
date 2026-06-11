@@ -1,10 +1,14 @@
 use super::error::WorkloadCatalogError;
 use super::query::{query_backed_catalog_declaration, query_backed_catalog_support};
 use super::recipe_kind::{
-    RetainedReplayRecipe, TransformRecipe, WorkloadCatalogRecipeKind, WorkloadCatalogSupportPosture,
+    RetainedReplayRecipe, TransformRecipe, WorkloadCatalogRecipeKind,
+    WorkloadCatalogSupportPosture, WorkloadTopologyBreadth,
 };
 use super::recipe_pipeline::build_catalog_workload;
 use crate::workload_composition::WorthWorkload;
+use topology::facade::{
+    TopologySeed, TopologySeedCleanFailReceipt, TopologySeedNeighborhoodReceipt,
+};
 
 pub struct WorkloadCatalog;
 
@@ -56,6 +60,7 @@ pub struct WorkloadCatalogRecipe {
     declaration: String,
     transform_recipe: Option<TransformRecipe>,
     retained_replay_recipe: Option<RetainedReplayRecipe>,
+    topology_breadth: WorkloadTopologyBreadth,
 }
 
 impl WorkloadCatalogRecipe {
@@ -65,6 +70,7 @@ impl WorkloadCatalogRecipe {
             declaration: kind.default_declaration().to_string(),
             transform_recipe: None,
             retained_replay_recipe: None,
+            topology_breadth: WorkloadTopologyBreadth::Default,
         }
     }
 
@@ -78,33 +84,72 @@ impl WorkloadCatalogRecipe {
         self
     }
 
+    pub fn with_topology_breadth(mut self, topology_breadth: WorkloadTopologyBreadth) -> Self {
+        self.topology_breadth = topology_breadth;
+        self
+    }
+
+    pub fn with_retained_replay_artifacts(mut self) -> Self {
+        self.retained_replay_recipe = Some(RetainedReplayRecipe::RetainedCancellationChain);
+        self
+    }
+
     pub fn inspect_support(&self) -> Result<WorkloadCatalogSupportReceipt, WorkloadCatalogError> {
         let declaration = self.declaration_receipt()?;
-        WorkloadCatalogSupportReceipt::new(&declaration, self.support_posture())
+        WorkloadCatalogSupportReceipt::new(&declaration, self.support_decision())
     }
 
     pub fn build(self) -> Result<BuiltWorkloadCatalogRecipe, WorkloadCatalogError> {
         let declaration = self.declaration_receipt()?;
-        let support = WorkloadCatalogSupportReceipt::new(&declaration, self.support_posture())?;
+        let support = WorkloadCatalogSupportReceipt::new(&declaration, self.support_decision())?;
         if support.posture() != WorkloadCatalogSupportPosture::Admitted {
             return Err(WorkloadCatalogError::UnsupportedRecipe {
                 recipe: self.kind,
                 reason: support.human_reason().to_string(),
             });
         }
-        let workload = build_catalog_workload(
+        let workload_build = build_catalog_workload(
             self.kind,
             &self.declaration,
             self.transform_recipe
                 .unwrap_or_else(|| self.kind.default_transform_recipe()),
             self.retained_replay_recipe
                 .unwrap_or_else(|| self.kind.default_retained_replay_recipe()),
+            self.topology_breadth,
         )?;
+        let topology_neighborhood = workload_build.topology_neighborhood().cloned();
         Ok(BuiltWorkloadCatalogRecipe {
             recipe: self.kind,
             declaration,
             support,
-            workload,
+            workload: workload_build.workload(),
+            topology_neighborhood,
+        })
+    }
+
+    pub fn build_clean_fail(self) -> Result<BuiltCleanFailCatalogRecipe, WorkloadCatalogError> {
+        let declaration = self.declaration_receipt()?;
+        let support =
+            WorkloadCatalogSupportReceipt::new(&declaration, self.clean_fail_support_decision()?)?;
+        let topology_clean_fail = match self.kind {
+            WorkloadCatalogRecipeKind::DirtySelfIntersectingLoop => {
+                TopologySeed::self_intersecting_loop()
+                    .with_declaration(format!("topology seed for {}", self.declaration))
+                    .build()
+                    .expect_err("dirty self-intersecting loop must clean-fail")
+            }
+            _ => {
+                return Err(WorkloadCatalogError::UnsupportedRecipe {
+                    recipe: self.kind,
+                    reason: "only dirty workload recipes can be built through the clean-fail catalog lane".to_string(),
+                });
+            }
+        };
+        Ok(BuiltCleanFailCatalogRecipe {
+            recipe: self.kind,
+            declaration,
+            support,
+            topology_clean_fail,
         })
     }
 
@@ -115,11 +160,73 @@ impl WorkloadCatalogRecipe {
         WorkloadCatalogDeclarationReceipt::new(self.kind, &self.declaration)
     }
 
-    fn support_posture(&self) -> WorkloadCatalogSupportPosture {
+    fn support_decision(&self) -> WorkloadCatalogSupportDecision {
+        if let Some(denial) = self.explicit_topology_breadth_denial() {
+            return WorkloadCatalogSupportDecision::unsupported(denial);
+        }
+
         if self.kind.is_admitted_now() {
-            WorkloadCatalogSupportPosture::Admitted
+            WorkloadCatalogSupportDecision::admitted(format!(
+                "{} is admitted",
+                self.kind.human_name()
+            ))
         } else {
-            WorkloadCatalogSupportPosture::Unsupported
+            WorkloadCatalogSupportDecision::unsupported(format!(
+                "{} is not yet supported because the catalog only admits clean, receipt-backed workload recipes today; the self-intersecting branch must deny instead of fabricating a workload",
+                self.kind.human_name()
+            ))
+        }
+    }
+
+    fn explicit_topology_breadth_denial(&self) -> Option<String> {
+        match self.topology_breadth {
+            WorkloadTopologyBreadth::HighValenceVertex { valence }
+                if self.kind == WorkloadCatalogRecipeKind::HighValenceVertex
+                    && !(3..=16).contains(&valence) =>
+            {
+                Some(format!(
+                    "high valence vertex workload recipe supports valence 3 through 16 today; valence {valence} needs an explicit widening phase"
+                ))
+            }
+            _ => None,
+        }
+    }
+
+    fn clean_fail_support_decision(
+        &self,
+    ) -> Result<WorkloadCatalogSupportDecision, WorkloadCatalogError> {
+        match self.kind {
+            WorkloadCatalogRecipeKind::DirtySelfIntersectingLoop => {
+                Ok(WorkloadCatalogSupportDecision::admitted(
+                    "dirty self-intersecting loop workload is admitted only as topology-backed clean-fail evidence".to_string(),
+                ))
+            }
+            _ => Err(WorkloadCatalogError::UnsupportedRecipe {
+                recipe: self.kind,
+                reason: "clean-fail catalog lane is only for dirty workload recipes".to_string(),
+            }),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct WorkloadCatalogSupportDecision {
+    posture: WorkloadCatalogSupportPosture,
+    human_reason: String,
+}
+
+impl WorkloadCatalogSupportDecision {
+    fn admitted(human_reason: String) -> Self {
+        Self {
+            posture: WorkloadCatalogSupportPosture::Admitted,
+            human_reason,
+        }
+    }
+
+    fn unsupported(human_reason: String) -> Self {
+        Self {
+            posture: WorkloadCatalogSupportPosture::Unsupported,
+            human_reason,
         }
     }
 }
@@ -130,6 +237,37 @@ pub struct BuiltWorkloadCatalogRecipe {
     declaration: WorkloadCatalogDeclarationReceipt,
     support: WorkloadCatalogSupportReceipt,
     workload: WorthWorkload,
+    topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BuiltCleanFailCatalogRecipe {
+    recipe: WorkloadCatalogRecipeKind,
+    declaration: WorkloadCatalogDeclarationReceipt,
+    support: WorkloadCatalogSupportReceipt,
+    topology_clean_fail: TopologySeedCleanFailReceipt,
+}
+
+impl BuiltCleanFailCatalogRecipe {
+    pub fn recipe(&self) -> WorkloadCatalogRecipeKind {
+        self.recipe
+    }
+
+    pub fn declaration(&self) -> &WorkloadCatalogDeclarationReceipt {
+        &self.declaration
+    }
+
+    pub fn support(&self) -> &WorkloadCatalogSupportReceipt {
+        &self.support
+    }
+
+    pub fn topology_clean_fail(&self) -> &TopologySeedCleanFailReceipt {
+        &self.topology_clean_fail
+    }
+
+    pub fn into_topology_clean_fail(self) -> TopologySeedCleanFailReceipt {
+        self.topology_clean_fail
+    }
 }
 
 impl BuiltWorkloadCatalogRecipe {
@@ -147,6 +285,10 @@ impl BuiltWorkloadCatalogRecipe {
 
     pub fn workload(&self) -> &WorthWorkload {
         &self.workload
+    }
+
+    pub fn topology_neighborhood(&self) -> Option<&TopologySeedNeighborhoodReceipt> {
+        self.topology_neighborhood.as_ref()
     }
 
     pub fn into_workload(self) -> WorthWorkload {
@@ -210,30 +352,19 @@ pub struct WorkloadCatalogSupportReceipt {
 impl WorkloadCatalogSupportReceipt {
     fn new(
         declaration: &WorkloadCatalogDeclarationReceipt,
-        posture: WorkloadCatalogSupportPosture,
+        decision: WorkloadCatalogSupportDecision,
     ) -> Result<Self, WorkloadCatalogError> {
         let query_receipt = query_backed_catalog_support(
             declaration.recipe(),
             declaration.declaration(),
-            posture,
+            decision.posture,
             declaration.query_declaration_digest(),
         )?;
-        let human_reason = match posture {
-            WorkloadCatalogSupportPosture::Admitted => {
-                format!("{} is admitted", declaration.recipe().human_name())
-            }
-            WorkloadCatalogSupportPosture::Unsupported => {
-                format!(
-                    "{} is not yet supported because the catalog only admits clean, receipt-backed workload recipes today; the self-intersecting branch must deny instead of fabricating a workload",
-                    declaration.recipe().human_name()
-                )
-            }
-        };
         Ok(Self {
             recipe: declaration.recipe(),
-            posture,
+            posture: decision.posture,
             query_support_digest: query_receipt.declaration_digest().to_string(),
-            human_reason,
+            human_reason: decision.human_reason,
         })
     }
 

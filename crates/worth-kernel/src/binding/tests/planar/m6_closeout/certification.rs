@@ -1,50 +1,55 @@
 use forge_query::facade::ForgeQueryApplicationFacade;
 use worth_spatial::facade::planar_m6_closeout::{
     M6LegacyDeletionEvidenceRow, M6PlanarCloseoutCertification, M6PlanarCloseoutContracts,
-    M6PlanarCloseoutQueryCertification, M6PlanarCloseoutQueryDomain, M6PlanarCloseoutQueryWorld,
-    M6PremetabossEvidenceRow, M6PremetabossFamily, M6QueryBoundaryEvidenceRow,
-    M6ShortcutDeletionFamily,
+    M6PlanarCloseoutDenialKind, M6PlanarCloseoutQueryCertification, M6PlanarCloseoutQueryDomain,
+    M6PlanarCloseoutQueryWorld, M6PremetabossEvidenceRow, M6PremetabossFamily,
+    M6QueryBoundaryEvidenceRow, M6ShortcutDeletionFamily,
 };
+use worth_spatial::facade::planar_m6_closeout::{M6LegacyFixtureFence, M6LegacyFixtureFenceRow};
+use worth_spatial::facade::workload_inventory::SeedInventoryReport;
 
 use super::super::bundle_closeout::boolean_readiness::m7_readiness_receipt;
 
 #[test]
-fn kernel_consumes_m6_closeout_without_planar_truth_synthesis() {
+fn kernel_cannot_synthesize_m6_closeout_from_readiness_summary() {
     let readiness = m7_readiness_receipt();
     let contracts = closeout_contracts();
-    let receipt = M6PlanarCloseoutQueryCertification::from_certification(
+    let denial = match M6PlanarCloseoutQueryCertification::from_certification(
         M6PlanarCloseoutCertification::from_m7_readiness(readiness.clone())
-            .with_premetaboss_evidence(all_premetaboss_rows())
+            .with_premetaboss_evidence(synthetic_premetaboss_rows())
             .with_legacy_deletion_evidence(all_legacy_deletion_rows())
+            .with_legacy_fixture_fence(legacy_fixture_fence())
             .with_query_boundary_evidence(M6QueryBoundaryEvidenceRow::from_m7_readiness(
                 &readiness,
             )),
     )
     .compile(&contracts)
-    .expect("kernel M6 closeout plan")
-    .certify()
-    .expect("kernel M6 closeout receipt");
+    {
+        Ok(_) => panic!("kernel summary rows must not synthesize M6 closeout authority"),
+        Err(denial) => denial,
+    };
 
-    assert!(receipt.proves_all_premetaboss_families());
-    assert!(receipt.proves_no_kernel_local_planar_shortcuts());
-    assert!(receipt.proves_query_owned_runtime_lanes());
-    assert_eq!(receipt.boolean_result(), None);
-    assert_eq!(receipt.imprint_action(), None);
     assert_eq!(
-        receipt.counters().premetaboss_rows(),
-        M6PremetabossFamily::ALL.len()
+        denial.kind(),
+        M6PlanarCloseoutDenialKind::SyntheticEndToEndBlocked
     );
-    assert_eq!(
-        receipt.counters().rejected_shortcut_rows(),
-        M6ShortcutDeletionFamily::ALL.len()
+    assert!(
+        denial
+            .reason()
+            .contains("cannot register synthetic MB closeout evidence"),
+        "{}",
+        denial.reason()
     );
 }
 
-fn all_premetaboss_rows() -> Vec<M6PremetabossEvidenceRow> {
+fn synthetic_premetaboss_rows() -> Vec<M6PremetabossEvidenceRow> {
     M6PremetabossFamily::ALL
         .into_iter()
         .map(|family| {
-            M6PremetabossEvidenceRow::passed(family, format!("kernel-evidence:{}", family.as_str()))
+            M6PremetabossEvidenceRow::synthetic_end_to_end_claim(
+                family,
+                format!("kernel-readiness-summary:{}", family.as_str()),
+            )
         })
         .collect()
 }
@@ -59,6 +64,17 @@ fn all_legacy_deletion_rows() -> Vec<M6LegacyDeletionEvidenceRow> {
             )
         })
         .collect()
+}
+
+fn legacy_fixture_fence() -> M6LegacyFixtureFence {
+    let report = SeedInventoryReport::certify_existing_surfaces()
+        .expect("existing seed inventory should certify");
+    M6LegacyFixtureFence::from_rows(
+        report
+            .rows()
+            .iter()
+            .map(|row| M6LegacyFixtureFenceRow::classify(row.classification(), row.decision())),
+    )
 }
 
 fn closeout_contracts() -> M6PlanarCloseoutContracts<M6PlanarCloseoutQueryWorld> {

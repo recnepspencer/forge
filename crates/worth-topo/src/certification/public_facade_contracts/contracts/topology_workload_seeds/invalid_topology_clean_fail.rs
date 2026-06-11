@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use topology::facade::{
     TopologySeed, TopologySeedCleanFailClass, TopologySeedCleanFailReasonCode,
     TopologySeedCleanFailStage, TopologySeedKind, TopologySeedTopologyPosture,
@@ -63,6 +65,7 @@ fn dirty_topology_seeds_report_human_readable_spatial_binding_denials() {
         TopologySeedCleanFailReasonCode::SelfIntersectingLoopRequiresSpatialPolicy
     );
     assert_human_readable_reason(dirty_loop.reason());
+    assert!(!dirty_loop.clean_fail_identity().trim().is_empty());
     assert!(dirty_loop.entity_identities().is_some());
     assert!(dirty_loop.counters().unwrap().total_topology_entities() > 0);
     assert!(!dirty_loop.can_enter_spatial_binding());
@@ -80,6 +83,67 @@ fn dirty_topology_seeds_report_human_readable_spatial_binding_denials() {
     assert_human_readable_reason(non_manifold.reason());
     assert!(non_manifold.entity_identities().is_some());
     assert!(!non_manifold.can_enter_spatial_binding());
+
+    let thin_wall = TopologySeed::thin_wall_local_basis().build().unwrap_err();
+    assert_eq!(thin_wall.kind(), TopologySeedKind::ThinWallLocalBasis);
+    assert_eq!(
+        thin_wall.stage(),
+        TopologySeedCleanFailStage::SpatialBindingAdmission
+    );
+    assert_eq!(
+        thin_wall.reason_code(),
+        TopologySeedCleanFailReasonCode::ThinWallLocalBasisCannotBindAsGeometry
+    );
+    assert_human_readable_reason(thin_wall.reason());
+    assert!(thin_wall.entity_identities().is_some());
+    assert!(!thin_wall.can_enter_spatial_binding());
+
+    let orientation = TopologySeed::orientation_inconsistency()
+        .build()
+        .unwrap_err();
+    assert_eq!(
+        orientation.kind(),
+        TopologySeedKind::OrientationInconsistency
+    );
+    assert_eq!(
+        orientation.stage(),
+        TopologySeedCleanFailStage::SpatialBindingAdmission
+    );
+    assert_eq!(
+        orientation.reason_code(),
+        TopologySeedCleanFailReasonCode::OrientationInconsistencyRequiresRepairPolicy
+    );
+    assert_human_readable_reason(orientation.reason());
+    assert!(orientation.entity_identities().is_some());
+    assert!(!orientation.can_enter_spatial_binding());
+
+    let clean_fail_identities = [
+        dirty_loop.clean_fail_identity(),
+        non_manifold.clean_fail_identity(),
+        thin_wall.clean_fail_identity(),
+        orientation.clean_fail_identity(),
+    ]
+    .into_iter()
+    .collect::<BTreeSet<_>>();
+    assert_eq!(
+        clean_fail_identities.len(),
+        4,
+        "dirty topology seeds must not reuse one clean-fail identity under multiple labels"
+    );
+
+    let topology_shapes = [
+        topology_shape_signature(dirty_loop.counters().unwrap()),
+        topology_shape_signature(non_manifold.counters().unwrap()),
+        topology_shape_signature(thin_wall.counters().unwrap()),
+        topology_shape_signature(orientation.counters().unwrap()),
+    ]
+    .into_iter()
+    .collect::<BTreeSet<_>>();
+    assert_eq!(
+        topology_shapes.len(),
+        4,
+        "dirty topology seeds must carry distinct topology evidence, not one fixture relabeled four ways"
+    );
 }
 
 #[test]
@@ -148,4 +212,17 @@ fn assert_human_readable_reason(reason: &str) {
     assert!(reason.contains(' '));
     assert!(!reason.contains('_'));
     assert!(!reason.trim().is_empty());
+}
+
+fn topology_shape_signature(
+    counters: topology::facade::TopologySeedCounters,
+) -> (usize, usize, usize, usize, usize, usize) {
+    (
+        counters.shell_count(),
+        counters.face_count(),
+        counters.loop_count(),
+        counters.wire_count(),
+        counters.half_edge_count(),
+        counters.vertex_count(),
+    )
 }

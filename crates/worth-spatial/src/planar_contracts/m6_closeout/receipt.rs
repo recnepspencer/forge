@@ -108,6 +108,10 @@ fn closeout_digest_for(
             row.evidence_digest()
         )
     }));
+    parts.push(format!(
+        "legacy_fixture_fence:{}",
+        basis.legacy_fixture_fence().fence_digest()
+    ));
     parts.sort();
     planar_contract_bundle_digest(&parts)
 }

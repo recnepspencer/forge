@@ -12,7 +12,10 @@ use worth_spatial::facade::planar_predicates::{
 };
 
 use super::diagnostics::{assert_tiny_rotation_diagnostic, certify_tiny_rotation_diagnostic};
-use super::proof::{certify_policy_required_overlap, certify_representative_overlap};
+use super::platform_storm_subject::mismatched_operator_stage_link_error;
+use super::storm_extraction_subject::{
+    certify_storm_overlap_extractions, certify_storm_policy_required_overlap,
+};
 use crate::public_api_planar_clean_fail_boundary::clean_fail_fixture::{
     certify_clean_fail_boundary, diagnostic, dirty_input_with_kind, dirty_recovery,
     open_input_with_kind, unbounded_recovery,
@@ -28,6 +31,7 @@ pub(crate) fn assert_mb_m6_outcome_matrix(movement_denial: &CoplanarOverlapDenia
         unsupported_input_outcome(),
         denied_movement_outcome(movement_denial),
         predicate_uncertain_outcome(),
+        integrity_mismatch_outcome(),
     ];
 
     assert_one_kind(
@@ -45,9 +49,20 @@ pub(crate) fn assert_mb_m6_outcome_matrix(movement_denial: &CoplanarOverlapDenia
         CoplanarOverlapNoOptionsCause::DeniedMovementOrRotation,
     );
     assert_one_no_options(&outcomes, CoplanarOverlapNoOptionsCause::PredicateUncertain);
+    assert_one_no_options(&outcomes, CoplanarOverlapNoOptionsCause::IntegrityMismatch);
 
     for outcome in outcomes {
         assert!(!outcome.message().is_empty());
+        assert!(
+            !outcome.message().contains('_'),
+            "user-facing outcome messages must not leak machine tokens: {}",
+            outcome.message()
+        );
+        assert!(
+            !contains_machine_slug(outcome.message()),
+            "user-facing outcome messages must explain causes in prose: {}",
+            outcome.message()
+        );
         assert!(!outcome.evidence_digest().is_empty());
         match outcome.kind() {
             CoplanarOverlapUserOutcomeKind::ContractsCertified => {
@@ -93,14 +108,24 @@ pub(crate) fn assert_mb_m6_outcome_matrix(movement_denial: &CoplanarOverlapDenia
     }
 }
 
+fn contains_machine_slug(message: &str) -> bool {
+    message
+        .split_whitespace()
+        .any(|word| word.matches('-').count() >= 3)
+}
+
 fn certified_overlap_outcome() -> CoplanarOverlapUserOutcome {
-    let receipt = certify_representative_overlap("mb-m6-matrix-certified-overlap");
+    let receipts = certify_storm_overlap_extractions("mb-m6-matrix-certified-overlap");
+    let receipt = receipts
+        .iter()
+        .find(|receipt| receipt.policy_required_exits().is_empty())
+        .expect("storm extraction should include admitted overlap receipts");
     assert!(receipt.policy_required_exits().is_empty());
-    CoplanarOverlapUserOutcome::from_overlap_receipt(&receipt)
+    CoplanarOverlapUserOutcome::from_overlap_receipt(receipt)
 }
 
 fn policy_required_outcome() -> CoplanarOverlapUserOutcome {
-    let receipt = certify_policy_required_overlap("mb-m6-matrix-policy-required");
+    let receipt = certify_storm_policy_required_overlap("mb-m6-matrix-policy-required");
     assert_eq!(receipt.policy_required_exits().len(), 1);
     CoplanarOverlapUserOutcome::from_overlap_receipt(&receipt)
 }
@@ -149,6 +174,12 @@ fn predicate_uncertain_outcome() -> CoplanarOverlapUserOutcome {
     let error = planar_predicate_authority_facts(&entry, &handle)
         .expect_err("certified zero must require policy or repair before boolean work");
     CoplanarOverlapUserOutcome::from_predicate_authority_error(&error)
+}
+
+fn integrity_mismatch_outcome() -> CoplanarOverlapUserOutcome {
+    let error = mismatched_operator_stage_link_error()
+        .expect_err("matrix integrity branch should come from mismatched platform evidence");
+    CoplanarOverlapUserOutcome::from_storm_workload_error(error)
 }
 
 fn assert_one_kind(outcomes: &[CoplanarOverlapUserOutcome], kind: CoplanarOverlapUserOutcomeKind) {

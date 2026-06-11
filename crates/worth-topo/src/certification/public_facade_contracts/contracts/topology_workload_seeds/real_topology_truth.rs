@@ -106,6 +106,11 @@ fn topology_workload_high_valence_seed_builds_neighborhood_receipt() {
     );
     assert_eq!(neighborhood.valence(), 5);
     assert_eq!(neighborhood.incident_half_edge_ids().len(), 5);
+    assert_eq!(receipt.counters().face_count(), 5);
+    assert_eq!(receipt.counters().edge_count(), 10);
+    assert_eq!(receipt.counters().vertex_count(), 6);
+    assert_eq!(receipt.entity_identities().face_ids().len(), 5);
+    assert_eq!(receipt.entity_identities().loop_ids().len(), 5);
     assert!(receipt
         .entity_identities()
         .vertex_ids()

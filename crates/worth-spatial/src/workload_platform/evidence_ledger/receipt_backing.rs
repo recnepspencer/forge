@@ -68,6 +68,7 @@ impl WorkloadEvidenceRow {
             workload_receipt.identity().name(),
             WorkloadEvidenceStageCounters::topology(
                 counters.total_topology_entities(),
+                counters.face_count(),
                 counters.loop_count() + counters.half_edge_count() + counters.edge_count(),
             ),
         )
@@ -151,7 +152,11 @@ impl WorkloadEvidenceRow {
         Self::receipt_backed(
             WorkloadEvidenceStage::Transform,
             receipt.stage_identity().receipt_identity(),
-            WorkloadEvidenceStageCounters::transform(receipt.counters().transform_steps()),
+            WorkloadEvidenceStageCounters::transform(
+                receipt.counters().transform_steps(),
+                receipt.counters().changed_coordinate_rows(),
+                receipt.counters().cancellation_steps(),
+            ),
         )
     }
 
@@ -178,7 +183,7 @@ impl WorkloadEvidenceRow {
         Self::receipt_backed(
             WorkloadEvidenceStage::Diagnostics,
             receipt.identity().receipt_identity(),
-            WorkloadEvidenceStageCounters::default(),
+            WorkloadEvidenceStageCounters::diagnostics(1),
         )
     }
 
@@ -201,7 +206,7 @@ impl WorkloadEvidenceRow {
         Self::receipt_backed(
             WorkloadEvidenceStage::Response,
             receipt.identity().receipt_identity(),
-            WorkloadEvidenceStageCounters::default(),
+            WorkloadEvidenceStageCounters::response(1),
         )
     }
 

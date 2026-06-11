@@ -1,6 +1,7 @@
 mod closed_solid_recipes;
 mod hostile_recipes;
 mod sheet_recipes;
+mod singular_vertex_recipes;
 mod topology_record_constructors;
 mod wire_recipes;
 
@@ -63,7 +64,10 @@ pub(crate) fn build(
             wire_recipes::open_wire_topology_view(),
         )),
         TopologySeedKind::HighValenceVertex => {
-            let (topology, neighborhood) = wire_recipes::high_valence_vertex_topology_view();
+            let (topology, neighborhood) =
+                singular_vertex_recipes::high_valence_vertex_topology_view_with_valence(
+                    recipe.requested_count().unwrap_or(5),
+                );
             Ok(TopologySeedRecipeOutput::with_neighborhood(
                 topology,
                 neighborhood,
@@ -74,6 +78,12 @@ pub(crate) fn build(
         )),
         TopologySeedKind::NonManifoldWire => Ok(TopologySeedRecipeOutput::topology(
             hostile_recipes::non_manifold_wire_topology_view(),
+        )),
+        TopologySeedKind::ThinWallLocalBasis => Ok(TopologySeedRecipeOutput::topology(
+            hostile_recipes::thin_wall_local_basis_topology_view(),
+        )),
+        TopologySeedKind::OrientationInconsistency => Ok(TopologySeedRecipeOutput::topology(
+            hostile_recipes::orientation_inconsistency_topology_view(),
         )),
     }
 }

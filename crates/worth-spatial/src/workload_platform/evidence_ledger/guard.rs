@@ -31,7 +31,7 @@ impl<'a> WorkloadEvidenceGuard<'a> {
 
     pub fn assert_transform_changed_geometry(self) -> Result<Self, WorkloadEvidenceGuardError> {
         let row = self.receipt_backed_row(WorkloadEvidenceStage::Transform)?;
-        if row.counters().transform_step_count() == 0 {
+        if row.counters().transform_changed_coordinate_count() == 0 {
             return Err(WorkloadEvidenceGuardError::LabelOnlyMotion);
         }
         Ok(self)
@@ -148,7 +148,7 @@ impl WorkloadEvidenceGuardError {
                 "workload evidence guard requires real topology entity and relation evidence"
             }
             Self::LabelOnlyMotion => {
-                "workload evidence guard requires transform evidence that changed geometry"
+                "workload evidence guard requires coordinate-changing transform evidence"
             }
             Self::SyntheticReplay => {
                 "workload evidence guard requires retained artifacts and replay checkpoints"

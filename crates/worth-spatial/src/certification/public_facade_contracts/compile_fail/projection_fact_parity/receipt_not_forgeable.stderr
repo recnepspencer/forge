@@ -1,0 +1,32 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/projection_fact_parity/receipt_not_forgeable.rs:6:42
+  |
+6 |       let _ = ProjectionFactParityReceipt::new(
+  |                                            ^^^ private associated function
+  |
+ ::: src/workload_platform/projection_fact_parity/receipt.rs
+  |
+  | /     pub(crate) fn new(
+  | |         case: ProjectionFactParityCase,
+  | |         parity_digest: String,
+  | |         workload_basis_identity: String,
+... |
+  | |         counters: ProjectionFactParityCounters,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> src/certification/public_facade_contracts/compile_fail/projection_fact_parity/receipt_not_forgeable.rs:12:39
+   |
+12 |           ProjectionFactParityCounters::new(0, 0, 0, 0),
+   |                                         ^^^ private associated function
+   |
+  ::: src/workload_platform/projection_fact_parity/counters.rs
+   |
+   | /     pub(crate) fn new(
+   | |         lanes_compared: usize,
+   | |         receipt_backed_lanes: usize,
+   | |         denied_lanes: usize,
+   | |         policy_required_lanes: usize,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

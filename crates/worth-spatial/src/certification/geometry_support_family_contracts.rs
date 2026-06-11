@@ -8,6 +8,7 @@ use crate::bindings::query_native::{
     PrimitiveAnchorBindingDeclarationFamily, PrimitiveBindingDeclarationFamily,
 };
 use crate::bindings::query_native_geometry_inventory::GeometryPublicSurface;
+use crate::bindings::query_native_planar_boolean_readiness_workload::PlanarBooleanReadinessWorkloadDeclarationFamily;
 use crate::bindings::query_native_planar_clean_fail_boundary::PlanarCleanFailBoundaryDeclarationFamily;
 use crate::bindings::query_native_planar_contract_bundle::PlanarContractBundleValidationDeclarationFamily;
 use crate::bindings::query_native_planar_diagnostics::PlanarDiagnosticBundleDeclarationFamily;
@@ -111,6 +112,9 @@ pub(super) fn declared_family_key_for(surface: GeometryPublicSurface) -> Option<
         GeometryPublicSurface::PlanarCleanFailBoundary => {
             Some(PlanarCleanFailBoundaryDeclarationFamily::semantic_family_key())
         }
+        GeometryPublicSurface::PlanarBooleanReadinessWorkload => {
+            Some(PlanarBooleanReadinessWorkloadDeclarationFamily::semantic_family_key())
+        }
         GeometryPublicSurface::ToleranceAndPrecisionCertification => {
             Some(ToleranceAndPrecisionCertificationDeclarationFamily::semantic_family_key())
         }
@@ -209,6 +213,9 @@ pub(super) fn legality_contract_for(
         GeometryPublicSurface::PlanarCleanFailBoundary => {
             Some(PlanarCleanFailBoundaryDeclarationFamily::legality_contract())
         }
+        GeometryPublicSurface::PlanarBooleanReadinessWorkload => {
+            Some(PlanarBooleanReadinessWorkloadDeclarationFamily::legality_contract())
+        }
         GeometryPublicSurface::ToleranceAndPrecisionCertification => {
             Some(ToleranceAndPrecisionCertificationDeclarationFamily::legality_contract())
         }
@@ -306,6 +313,9 @@ pub(super) fn route_contract_for(
         }
         GeometryPublicSurface::PlanarCleanFailBoundary => {
             Some(PlanarCleanFailBoundaryDeclarationFamily::route_contract())
+        }
+        GeometryPublicSurface::PlanarBooleanReadinessWorkload => {
+            Some(PlanarBooleanReadinessWorkloadDeclarationFamily::route_contract())
         }
         GeometryPublicSurface::ToleranceAndPrecisionCertification => {
             Some(ToleranceAndPrecisionCertificationDeclarationFamily::route_contract())

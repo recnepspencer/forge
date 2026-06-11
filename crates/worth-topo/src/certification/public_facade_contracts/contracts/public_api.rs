@@ -256,8 +256,12 @@ fn _topology_seed_public_facade_contract(
     let _: fn() -> TopologySeedRecipe = TopologySeed::high_valence_vertex;
     let _: fn() -> TopologySeedRecipe = TopologySeed::self_intersecting_loop;
     let _: fn() -> TopologySeedRecipe = TopologySeed::non_manifold_wire;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::thin_wall_local_basis;
+    let _: fn() -> TopologySeedRecipe = TopologySeed::orientation_inconsistency;
 
     let _: TopologySeedKind = TopologySeedKind::Cube;
+    let _: TopologySeedKind = TopologySeedKind::ThinWallLocalBasis;
+    let _: TopologySeedKind = TopologySeedKind::OrientationInconsistency;
     let _: TopologySeedTopologyPosture = TopologySeedTopologyPosture::ClosedValid;
     let _: TopologySeedCleanFailStage = TopologySeedCleanFailStage::ParameterAdmission;
     let _: TopologySeedCleanFailClass = TopologySeedCleanFailClass::DirtyTopology;

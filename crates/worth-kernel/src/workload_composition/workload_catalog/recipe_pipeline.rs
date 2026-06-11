@@ -1,4 +1,6 @@
-use topology::facade::{TopologySeed, TopologySeedReceipt};
+use topology::facade::{
+    TopologySeed, TopologySeedNeighborhoodReceipt, TopologySeedReceipt, TopologySeedRecipe,
+};
 use worth_spatial::facade::projection_workload::{
     LocalFrameBasis, ProjectedPlanarWorkload, ProjectionReceiptSet, ProjectionWorkload,
 };
@@ -22,16 +24,35 @@ use worth_spatial::facade::workload_vocabulary::{
 };
 
 use super::error::WorkloadCatalogError;
-use super::recipe_kind::{RetainedReplayRecipe, TransformRecipe, WorkloadCatalogRecipeKind};
+use super::recipe_kind::{
+    RetainedReplayRecipe, TransformRecipe, WorkloadCatalogRecipeKind, WorkloadTopologyBreadth,
+};
 use crate::workload_composition::{WorthWorkload, WorthWorkloadParts};
+
+pub(crate) struct CatalogWorkloadBuild {
+    workload: WorthWorkload,
+    topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
+}
+
+impl CatalogWorkloadBuild {
+    pub(crate) fn workload(self) -> WorthWorkload {
+        self.workload
+    }
+
+    pub(crate) fn topology_neighborhood(&self) -> Option<&TopologySeedNeighborhoodReceipt> {
+        self.topology_neighborhood.as_ref()
+    }
+}
 
 pub(crate) fn build_catalog_workload(
     recipe: WorkloadCatalogRecipeKind,
     declaration: &str,
     transform_recipe: TransformRecipe,
     retained_replay_recipe: RetainedReplayRecipe,
-) -> Result<WorthWorkload, WorkloadCatalogError> {
-    let topology = build_topology_seed(recipe, declaration)?;
+    topology_breadth: WorkloadTopologyBreadth,
+) -> Result<CatalogWorkloadBuild, WorkloadCatalogError> {
+    let topology = build_topology_seed(recipe, declaration, topology_breadth)?;
+    let topology_neighborhood = topology.neighborhood().cloned();
     let bound_geometry = bind_seed_geometry(&topology, declaration)?;
     let geometry_receipts = bound_geometry.receipts().clone();
     let surface_support = certify_surface_support(bound_geometry, declaration)?;
@@ -66,7 +87,7 @@ pub(crate) fn build_catalog_workload(
         response: &response,
     })?;
 
-    WorthWorkload::compose(WorthWorkloadParts {
+    let workload = WorthWorkload::compose(WorthWorkloadParts {
         topology: topology.query_receipts().declaration_receipt().clone(),
         geometry_binding: geometry_receipts.stage_receipt().clone(),
         surface_support: support_receipts.stage_receipt().clone(),
@@ -77,18 +98,55 @@ pub(crate) fn build_catalog_workload(
         response,
         evidence_ledger,
     })
-    .map_err(WorkloadCatalogError::from)
+    .map_err(WorkloadCatalogError::from)?;
+
+    Ok(CatalogWorkloadBuild {
+        workload,
+        topology_neighborhood,
+    })
 }
 
 fn build_topology_seed(
     recipe: WorkloadCatalogRecipeKind,
     declaration: &str,
+    topology_breadth: WorkloadTopologyBreadth,
 ) -> Result<TopologySeedReceipt, WorkloadCatalogError> {
-    let seed = match recipe {
+    let seed = match topology_breadth {
+        WorkloadTopologyBreadth::Default => default_topology_seed(recipe),
+        WorkloadTopologyBreadth::MultiFaceShell { face_count }
+            if recipe == WorkloadCatalogRecipeKind::CoplanarOverlapStorm =>
+        {
+            TopologySeed::multi_face_shell(face_count)
+        }
+        WorkloadTopologyBreadth::HighValenceVertex { valence }
+            if recipe == WorkloadCatalogRecipeKind::HighValenceVertex =>
+        {
+            TopologySeed::high_valence_vertex_with_valence(valence)
+        }
+        WorkloadTopologyBreadth::MultiFaceShell { .. } => {
+            return Err(WorkloadCatalogError::UnsupportedRecipe {
+                recipe,
+                reason: "explicit multi-face shell breadth is only admitted for the coplanar overlap storm recipe".to_string(),
+            });
+        }
+        WorkloadTopologyBreadth::HighValenceVertex { .. } => {
+            return Err(WorkloadCatalogError::UnsupportedRecipe {
+                recipe,
+                reason: "explicit high-valence vertex breadth is only admitted for the high-valence vertex recipe".to_string(),
+            });
+        }
+    };
+    seed.with_declaration(format!("topology seed for {declaration}"))
+        .build()
+        .map_err(WorkloadCatalogError::from)
+}
+
+fn default_topology_seed(recipe: WorkloadCatalogRecipeKind) -> TopologySeedRecipe {
+    match recipe {
         WorkloadCatalogRecipeKind::Cube
-        | WorkloadCatalogRecipeKind::CoplanarOverlapStorm
         | WorkloadCatalogRecipeKind::TransformCycle
         | WorkloadCatalogRecipeKind::RetainedCancellationChain => TopologySeed::cube(),
+        WorkloadCatalogRecipeKind::CoplanarOverlapStorm => TopologySeed::multi_face_shell(64),
         WorkloadCatalogRecipeKind::Tetrahedron => TopologySeed::tetrahedron(),
         WorkloadCatalogRecipeKind::SingleFaceLoop => TopologySeed::single_face_loop(4),
         WorkloadCatalogRecipeKind::ThinFeatureWall => TopologySeed::single_face_loop(64),
@@ -97,10 +155,7 @@ fn build_topology_seed(
         WorkloadCatalogRecipeKind::DirtySelfIntersectingLoop => {
             TopologySeed::self_intersecting_loop()
         }
-    };
-    seed.with_declaration(format!("topology seed for {declaration}"))
-        .build()
-        .map_err(WorkloadCatalogError::from)
+    }
 }
 
 fn bind_seed_geometry(

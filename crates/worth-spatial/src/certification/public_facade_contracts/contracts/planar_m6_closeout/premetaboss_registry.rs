@@ -13,7 +13,7 @@ fn m6_certification_bundle_proves_all_premetaboss_families() {
         .expect("M6 closeout plan");
     assert_eq!(
         plan.inspected_closeout_rows(),
-        M6PremetabossFamily::ALL.len() + 6 + 1
+        M6PremetabossFamily::ALL.len() + 6 + 2
     );
 
     let receipt = plan.certify().expect("M6 closeout receipt");

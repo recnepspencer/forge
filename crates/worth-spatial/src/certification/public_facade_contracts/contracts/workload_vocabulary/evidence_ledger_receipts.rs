@@ -11,7 +11,8 @@ use worth_spatial::facade::surface_support::{
     SurfaceSupportWorkload as RichSurfaceSupportWorkload,
 };
 use worth_spatial::facade::transform_workload::{
-    TransformReceiptSet, TransformWorkload as RichTransformWorkload, TransformedWorkload,
+    TransformReceiptSet, TransformSequence, TransformWorkload as RichTransformWorkload,
+    TransformedWorkload,
 };
 use worth_spatial::facade::user_response::WorthUserResponseReceipt;
 use worth_spatial::facade::workload_binding::{
@@ -174,6 +175,18 @@ pub(crate) fn receipt_backed_rows(receipts: &VocabularyReceipts) -> Vec<Workload
 
 pub(crate) fn counter_backed_rows(world: &'static str) -> Vec<WorkloadEvidenceRow> {
     let receipts = counter_backed_receipts(world);
+    counter_backed_rows_from_receipts(&receipts)
+}
+
+pub(crate) fn counter_backed_rows_with_transform(
+    world: &'static str,
+    transform_sequence: TransformSequence,
+) -> Vec<WorkloadEvidenceRow> {
+    let receipts = counter_backed_receipts_with_transform(world, transform_sequence);
+    counter_backed_rows_from_receipts(&receipts)
+}
+
+fn counter_backed_rows_from_receipts(receipts: &CounterBackedReceipts) -> Vec<WorkloadEvidenceRow> {
     vec![
         WorkloadEvidenceRow::from_topology_seed_receipt(&receipts.topology),
         WorkloadEvidenceRow::from_geometry_binding_receipt_set(&receipts.geometry),
@@ -198,6 +211,13 @@ pub(crate) struct CounterBackedReceipts {
 }
 
 pub(crate) fn counter_backed_receipts(world: &'static str) -> CounterBackedReceipts {
+    counter_backed_receipts_with_transform(world, acceptance_transform_sequence())
+}
+
+pub(crate) fn counter_backed_receipts_with_transform(
+    world: &'static str,
+    transform_sequence: TransformSequence,
+) -> CounterBackedReceipts {
     let topology = counter_backed_topology(world);
     let bound_geometry = counter_backed_geometry(world, &topology);
     let geometry = bound_geometry.receipts().clone();
@@ -205,7 +225,7 @@ pub(crate) fn counter_backed_receipts(world: &'static str) -> CounterBackedRecei
     let support = surface_support.receipts().clone();
     let projected = counter_backed_projection(world, surface_support);
     let projection = projected.receipts().clone();
-    let transformed = counter_backed_transform(world, projected);
+    let transformed = counter_backed_transform(world, projected, transform_sequence);
     let transform = transformed.receipts().clone();
     let replayed = counter_backed_replay(world, transformed);
     let replay = replayed.receipts().clone();
@@ -269,10 +289,11 @@ fn counter_backed_projection(
 fn counter_backed_transform(
     world: &'static str,
     projected: worth_spatial::facade::projection_workload::ProjectedPlanarWorkload,
+    transform_sequence: TransformSequence,
 ) -> TransformedWorkload {
     RichTransformWorkload::for_projected_workload(projected)
         .declared(format!("transform {world}"))
-        .with_transform_sequence(acceptance_transform_sequence())
+        .with_transform_sequence(transform_sequence)
         .transform()
         .expect("transform evidence should admit")
 }
