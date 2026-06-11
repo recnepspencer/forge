@@ -18,5 +18,6 @@ pub mod runtime_support;
 mod test_support;
 mod topology_operators;
 mod validation;
+pub mod workload_platform;
 
 pub mod facade;

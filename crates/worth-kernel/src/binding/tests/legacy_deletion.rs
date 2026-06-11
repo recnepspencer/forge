@@ -59,7 +59,7 @@ const FORBIDDEN_GEOMETRY_SHADOW_RUNTIME_PATTERNS: [&str; 8] = [
 ];
 
 #[test]
-fn phase_nine_deleted_geometry_entrypoints_and_shadow_runtime_carriers_stay_gone() {
+fn legacy_deleted_geometry_entrypoints_and_shadow_runtime_carriers_stay_gone() {
     let violations = AUDITED_GEOMETRY_RUNTIME_FILES
         .iter()
         .flat_map(|(label, source)| {
@@ -73,7 +73,7 @@ fn phase_nine_deleted_geometry_entrypoints_and_shadow_runtime_carriers_stay_gone
     assert_eq!(
         violations,
         Vec::<String>::new(),
-        "phase-nine deletion proof failed because legacy geometry entrypoints or shadow runtime carriers reappeared: {violations:?}"
+        "legacy deletion proof failed because legacy geometry entrypoints or shadow runtime carriers reappeared: {violations:?}"
     );
 
     let deleted_kernel_workflow_boundary_paths = [
@@ -100,6 +100,6 @@ fn phase_nine_deleted_geometry_entrypoints_and_shadow_runtime_carriers_stay_gone
     assert_eq!(
         resurrected,
         Vec::<&str>::new(),
-        "phase-nine deletion proof failed because workflow-boundary kernel shelves reappeared under src/binding: {resurrected:?}"
+        "legacy deletion proof failed because workflow-boundary kernel shelves reappeared under src/binding: {resurrected:?}"
     );
 }

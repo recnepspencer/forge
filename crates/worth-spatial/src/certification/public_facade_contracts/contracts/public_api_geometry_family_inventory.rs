@@ -10,6 +10,11 @@ use worth_spatial::facade::inspection::{
     HistoricalGeometryInspectionDeclarationFamily,
 };
 use worth_spatial::facade::neighborhood::TopologyNeighborhoodReplacementDeclarationFamily;
+use worth_spatial::facade::planar_local_frame::PlanarLocalFrameCertificateDeclarationFamily;
+use worth_spatial::facade::planar_precision::PlanarPrecisionCertificationDeclarationFamily;
+use worth_spatial::facade::planar_projection::ProjectPointToCertifiedPlane2DDeclarationFamily;
+use worth_spatial::facade::planar_projection_consumption::ProjectionConsumedPlanarFactsDeclarationFamily;
+use worth_spatial::facade::planar_recovery::PlanarRecoveryPostureDeclarationFamily;
 use worth_spatial::facade::projection::GeometryProjectionConsumptionDeclarationFamily;
 use worth_spatial::facade::rebinding::PrimitiveRebindingDeclarationFamily;
 use worth_spatial::facade::recovery::GeometryRecoveryActionDeclarationFamily;
@@ -36,6 +41,26 @@ fn spatial_public_family_inventory_uses_direct_query_native_runtime_names() {
     assert_eq!(
         TopologyNeighborhoodReplacementDeclarationFamily::semantic_family_key(),
         "TopologyNeighborhoodReplacement"
+    );
+    assert_eq!(
+        PlanarPrecisionCertificationDeclarationFamily::semantic_family_key(),
+        "PlanarPrecisionCertification"
+    );
+    assert_eq!(
+        PlanarLocalFrameCertificateDeclarationFamily::semantic_family_key(),
+        "PlanarLocalFrameCertificate"
+    );
+    assert_eq!(
+        ProjectPointToCertifiedPlane2DDeclarationFamily::semantic_family_key(),
+        "ProjectPointToCertifiedPlane2D"
+    );
+    assert_eq!(
+        ProjectionConsumedPlanarFactsDeclarationFamily::semantic_family_key(),
+        "ProjectionConsumedPlanarFacts"
+    );
+    assert_eq!(
+        PlanarRecoveryPostureDeclarationFamily::semantic_family_key(),
+        "PlanarRecoveryPosture"
     );
     assert_eq!(
         ToleranceAndPrecisionCertificationDeclarationFamily::semantic_family_key(),
@@ -90,6 +115,26 @@ fn spatial_public_family_inventory_exposes_explicit_legality_and_route_contracts
         legality
     );
     assert_eq!(
+        PlanarPrecisionCertificationDeclarationFamily::legality_contract(),
+        legality
+    );
+    assert_eq!(
+        PlanarLocalFrameCertificateDeclarationFamily::legality_contract(),
+        legality
+    );
+    assert_eq!(
+        ProjectPointToCertifiedPlane2DDeclarationFamily::legality_contract(),
+        legality
+    );
+    assert_eq!(
+        ProjectionConsumedPlanarFactsDeclarationFamily::legality_contract(),
+        legality
+    );
+    assert_eq!(
+        PlanarRecoveryPostureDeclarationFamily::legality_contract(),
+        legality
+    );
+    assert_eq!(
         ToleranceAndPrecisionCertificationDeclarationFamily::legality_contract(),
         legality
     );
@@ -129,6 +174,26 @@ fn spatial_public_family_inventory_exposes_explicit_legality_and_route_contracts
     );
     assert_eq!(
         TopologyNeighborhoodReplacementDeclarationFamily::route_contract(),
+        route
+    );
+    assert_eq!(
+        PlanarPrecisionCertificationDeclarationFamily::route_contract(),
+        route
+    );
+    assert_eq!(
+        PlanarLocalFrameCertificateDeclarationFamily::route_contract(),
+        route
+    );
+    assert_eq!(
+        ProjectPointToCertifiedPlane2DDeclarationFamily::route_contract(),
+        route
+    );
+    assert_eq!(
+        ProjectionConsumedPlanarFactsDeclarationFamily::route_contract(),
+        route
+    );
+    assert_eq!(
+        PlanarRecoveryPostureDeclarationFamily::route_contract(),
         route
     );
     assert_eq!(

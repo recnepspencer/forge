@@ -94,9 +94,8 @@ fn binding_layer_certification_bundle_rejects_retained_proofs_from_the_wrong_dec
             ),
         ),
     );
-    let handle = admitted_rebinding_handle("phase-sixteen-closeout-mismatch");
-    let branch_basis =
-        scoped_branch_head_inspection_basis("branch:phase-sixteen-closeout-mismatch");
+    let handle = admitted_rebinding_handle("binding-closeout-mismatch");
+    let branch_basis = scoped_branch_head_inspection_basis("branch:binding-closeout-mismatch");
 
     let historical_mismatch = primitive_rebinding_certification_bundle(
         retained_fact_source(&left_entry, &handle),

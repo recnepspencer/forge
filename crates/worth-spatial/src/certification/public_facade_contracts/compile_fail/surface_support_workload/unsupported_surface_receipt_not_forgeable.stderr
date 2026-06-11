@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/surface_support_workload/unsupported_surface_receipt_not_forgeable.rs:6:47
+  |
+6 |       let _ = UnsupportedSurfaceSupportReceipt::new(
+  |                                                 ^^^ private associated function
+  |
+ ::: src/workload_platform/surface_support/support_receipt.rs
+  |
+  | /     pub(crate) fn new(
+  | |         declaration: String,
+  | |         upstream_geometry_binding_identity: String,
+  | |         family: Option<SurfaceFamily>,
+... |
+  | |         upstream_geometry_carriers: usize,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

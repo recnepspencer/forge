@@ -33,8 +33,7 @@ impl MaterializedTopologyView {
         Self { topology, report }
     }
 
-    #[cfg(test)]
-    pub(crate) fn whole_view(topology: TopologyView) -> Self {
+    pub(crate) fn from_complete_topology_view(topology: TopologyView) -> Self {
         let topology_entity_count = topology.models.len()
             + topology.bodies.len()
             + topology.lumps.len()
@@ -59,6 +58,11 @@ impl MaterializedTopologyView {
                 fallback_class: Some(MaterializationFallbackClass::WholeViewRebuild),
             },
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn whole_view(topology: TopologyView) -> Self {
+        Self::from_complete_topology_view(topology)
     }
 
     pub fn topology(&self) -> &TopologyView {

@@ -1,0 +1,35 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/planar_contract_bundle/m7_readiness_receipt_not_forgeable.rs:6:22
+  |
+5 |         basis: todo!(),
+  |                ------- any code following this expression is unreachable
+6 |         family_rows: Vec::new(),
+  |                      ^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `basis`, `family_rows`, `declaration_digest`, `envelope_digest`, `readiness_digest` and `counters` of struct `PlanarM7ReadinessReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_contract_bundle/m7_readiness_receipt_not_forgeable.rs:5:9
+   |
+ 4 |     let _receipt = PlanarM7ReadinessReceipt {
+   |                    ------------------------ in this type
+ 5 |         basis: todo!(),
+   |         ^^^^^ private field
+ 6 |         family_rows: Vec::new(),
+   |         ^^^^^^^^^^^ private field
+ 7 |         declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 8 |         envelope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 9 |         readiness_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         counters: todo!(),
+   |         ^^^^^^^^ private field
+
+error: type `worth_spatial::planar_contracts::contract_bundle::m7_readiness::basis::PlanarM7ReadinessBasis` is private
+ --> src/certification/public_facade_contracts/compile_fail/planar_contract_bundle/m7_readiness_receipt_not_forgeable.rs:5:16
+  |
+5 |         basis: todo!(),
+  |                ^^^^^^^ private type
+  |
+  = note: this error originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
