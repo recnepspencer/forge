@@ -17,6 +17,10 @@ The governing rules remain:
 - compiled Rust defines capabilities; hot-reloadable UI source composes them
 - file-authored UI and Rust-authored composition must converge on the same
   canonical artifact and execution-plan pipeline
+- if `forge-query` already owns a stronger runtime-backed public lane for
+  support or admission, typed bindings, projection consumption, async or result
+  posture, recovery, inspection, explanation, or grouped/read/query products,
+  Worth UI must consume that lane rather than rebuild a UI-local pseudo runtime
 - app-shell behavior, interaction semantics, and execution plans must be
   platform-owned rather than app-local folklore
 - semantic richness must lower before the hot path runs
@@ -134,6 +138,8 @@ built on top of ad hoc app-local abstractions.
 
 ## Milestone 2: Canonical UI Source, Lowering, and Runtime Artifact
 
+Detailed spec: [milestone-2.md](./milestone-2.md)
+
 ### Goal
 
 Make repo-authored UI source lower into one canonical runtime artifact so the
@@ -164,6 +170,9 @@ growth broaden the surface area.
   completes
 - file-authored source and Rust-authored composition do not fork artifact
   meaning, diagnostics, or execution planning
+- Query-facing runtime surfaces referenced by the artifact remain Query-owned;
+  Worth UI may bind, route, inspect, and present them, but must not recreate
+  local query, result-state, recovery, or explanation models
 - source parsing and validation do not leak into the steady-state frame path
 - artifact meaning remains independent of diagnostics richness
 - the lowering pipeline does not bypass capability registries or app facade
@@ -186,9 +195,11 @@ growth broaden the surface area.
 
 ### Goal
 
-Make high-frequency UI composition changes apply to a running app without Rust
-recompilation while preserving enough identity that the app remains usable
-during iteration.
+Make the running Worth runtime the ordinary home of UI iteration so most
+runtime-owned UI structure, presentation, binding, and shell changes can apply
+without Rust recompilation while preserving enough identity that the app
+remains usable during iteration. Compiled raw Rust remains the escape hatch for
+edge cases, not the default authoring path for ordinary UI change.
 
 ### Must Ship
 
@@ -198,11 +209,19 @@ during iteration.
   input
 - reload pipeline that reparses, revalidates, relowers, replans, and atomically
   swaps only at safe frame boundaries
+- a default runtime-owned reload posture where ordinary changes to layout,
+  shell composition, labels, tokens, inspector structure, tables, command
+  placement, bindings, and other admitted UI artifact content flow through the
+  same hot path
 - stable identity rules for lowered nodes that own durable interaction state
 - reconciliation logic for focus, scroll position, selection, panel visibility,
   splitter positions, tab state, text input state, and Query subscriptions
 - explicit failure handling that keeps the last valid artifact and plan active
 - in-app diagnostics surface for reload errors and rejected plan swaps
+- explicit classification of what stays in the hot runtime lane versus what
+  requires compiled raw Rust, with raw Rust framed as the edge-case escape
+  hatch for behavior or platform work that cannot honestly be expressed as
+  replaceable runtime artifact input
 - one hostile reload scenario proving repeated edits do not collapse into state
   loss or app restart folklore
 
@@ -211,24 +230,32 @@ during iteration.
 - reload work stays off the normal frame path where possible
 - the running Worth runtime remains the ordinary owner of active artifacts,
   diagnostics, reconciliation state, and plan swap boundaries
+- the default mental model stays "if it lives inside the runtime-owned UI
+  artifact model, it hot reloads" rather than "reload exists for a narrow set
+  of cosmetic edits"
 - identity changes remain explicit replacement events rather than accidental
   state loss
 - invalid reloads never blank or corrupt the active app shell
 - hot reload remains composition reload, not arbitrary Rust-code hot patching
-- the Rust escape hatch feeds canonical artifact input rather than becoming a
-  second UI runtime or bypassing capability registration
+- the raw Rust escape hatch feeds canonical artifact input where possible and
+  otherwise remains an explicit edge path rather than becoming a second UI
+  runtime or bypassing capability registration
 - state reconciliation remains compatible with nested layout structure rather
   than flattening regions into anonymous geometry
 
 ### Acceptance Evidence
 
-- editing layout, tokens, labels, table columns, inspector sections, or command
-  placement updates a running app without a Rust rebuild
+- editing layout, shell composition, tokens, labels, table columns, inspector
+  sections, command placement, view bindings, or other admitted runtime-owned
+  UI artifact content updates a running app without a Rust rebuild
 - the same running app can accept a valid replacement artifact produced from
   file-authored UI or Rust-authored composition through the same swap pipeline
 - valid reloads preserve the declared stable state surfaces they should
 - invalid reloads preserve the previous running plan while surfacing typed
   diagnostics
+- the milestone names at least one concrete category that still requires
+  compiled raw Rust and proves it is treated as an explicit escape hatch rather
+  than a silent gap in the runtime reload model
 - reload latency is observable and bounded enough to support ordinary UI
   iteration without feeling build-shaped
 
@@ -388,6 +415,10 @@ app-local caches, host-shaped events, or widget-owned live-update folklore.
 
 - Worth UI does not become the owner of query legality, basis semantics, or
   truth authority
+- table, detail, grouped, timeline, and inspector semantics, plus query
+  planning, saved-query meaning, projection consumption, and typed fact
+  receipts remain Query-owned runtime lanes rather than UI-local data-source
+  abstractions
 - live updates remain query-shaped rather than raw CDC or raw widget events
 - view surfaces remain honest about policy masks, unsupported families, denied
   basis combinations, and deferred capability rows
@@ -428,6 +459,9 @@ widgets, local booleans, and submission folklore.
 - draft or editing state does not masquerade as authoritative truth
 - runtime validation or admission stays structured rather than flattened into
   one error string or one boolean
+- async or result-state posture, recovery, preview, and ordinary outcome
+  semantics compose with existing Query/runtime lanes rather than a Worth-UI-
+  owned form status model
 - form behavior remains accessible, keyboard-usable, and hot-reload-safe
 
 ### Acceptance Evidence
@@ -467,6 +501,9 @@ status folklore.
 - Worth UI does not invent a second mutation, recovery, or explanation runtime
 - runtime posture stays structured through the UI boundary
 - preview and staged states remain distinct from authoritative truth
+- recovery briefs, async or result-state posture, projection-consumption facts,
+  Query inspection, and cross-runtime causal explanation remain runtime-owned
+  contracts that Worth UI presents rather than redefines
 - richer diagnostics do not change the operational outcome being presented
 
 ### Acceptance Evidence

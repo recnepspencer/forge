@@ -1,10 +1,11 @@
 use crate::capability::{
-    FrozenCommandCapabilities, FrozenCommandProjectionCapabilities, FrozenComponentCapabilities,
-    FrozenIconCapabilities, FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
-    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
-    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
-    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
-    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
+    CapabilitySupportCatalog, FrozenCommandCapabilities, FrozenCommandProjectionCapabilities,
+    FrozenComponentCapabilities, FrozenIconCapabilities, FrozenMosaicPlacementCapabilities,
+    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
+    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
+    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
+    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
+    FrozenViewBindingCapabilities, RegisteredCapabilitySet,
 };
 
 pub(crate) struct CapabilitySnapshotFreezeInput {
@@ -25,4 +26,5 @@ pub(crate) struct CapabilitySnapshotFreezeInput {
     pub(crate) settings: FrozenSettingCapabilities,
     pub(crate) task_presentations: FrozenTaskPresentationCapabilities,
     pub(crate) theme_tokens: FrozenThemeTokenCapabilities,
+    pub(crate) support_catalog: CapabilitySupportCatalog,
 }

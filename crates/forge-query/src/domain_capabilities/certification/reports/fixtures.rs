@@ -1,6 +1,6 @@
 use forge_proof::TransitionOutcome;
-use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 use forge_relational::facade::runtime::InvariantCatalog;
+use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 use serde_json::json;
 
 use crate::domain_capabilities::{
