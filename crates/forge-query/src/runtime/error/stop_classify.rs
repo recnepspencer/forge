@@ -179,8 +179,13 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
             authority_lane: *authority_lane,
             label,
         },
-        ForgeQueryRuntimeError::UnsupportedAuthority(authority) => {
-            ForgeQueryStopClass::UnsupportedAuthority { authority }
+        ForgeQueryRuntimeError::UnsupportedAuthorityRequirement(requirement) => {
+            ForgeQueryStopClass::UnsupportedAuthorityRequirement { requirement }
+        }
+        ForgeQueryRuntimeError::ExistingTruthAssertionRequiresAuthorityLane { required_lane } => {
+            ForgeQueryStopClass::ExistingTruthAssertionRequiresAuthorityLane {
+                required_lane: *required_lane,
+            }
         }
         ForgeQueryRuntimeError::IntentCommitDenied {
             intent_name,
@@ -245,9 +250,8 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
             label,
             stage,
             message,
-        } => ForgeQueryStopClass::RuntimeDeclarationFailed {
-            kind: ForgeQueryRuntimeDeclarationFailureKind::PreviewOperationEffectDenied,
-            name: label,
+        } => ForgeQueryStopClass::PreviewOperationEffectDenied {
+            label,
             stage,
             message,
         },

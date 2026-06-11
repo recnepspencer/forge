@@ -38,7 +38,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         deny_preview_continuity(&command)?;
         admit_naming_intent(&command).map_err(ForgeQueryRuntimeError::MutationNamingDenied)?;
         let receipt = ForgeQueryWriteReceipt::preview(
-            self.label.display(),
+            &self.label,
             self.pending_commands.len() + 1,
             &command,
             self.runtime.snapshot_token(),
@@ -195,7 +195,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                         continuity_intent: continuity_intent.clone(),
                     };
                     ForgeQueryWriteReceipt::preview(
-                        self.label.display(),
+                        &self.label,
                         self.pending_commands.len() + 1,
                         &concrete,
                         self.runtime.snapshot_token(),
@@ -222,7 +222,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                         naming_intent: naming_intent.clone(),
                     };
                     ForgeQueryWriteReceipt::preview(
-                        self.label.display(),
+                        &self.label,
                         self.pending_commands.len() + 1,
                         &concrete,
                         self.runtime.snapshot_token(),
@@ -237,7 +237,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     admit_naming_intent(&command)
                         .map_err(ForgeQueryRuntimeError::MutationNamingDenied)?;
                     ForgeQueryWriteReceipt::preview(
-                        self.label.display(),
+                        &self.label,
                         self.pending_commands.len() + 1,
                         &command,
                         self.runtime.snapshot_token(),
@@ -336,9 +336,11 @@ fn deny_preview_assertion(command: &ForgeQueryWriteCommand) -> Result<(), ForgeQ
             | ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects { .. }
             | ForgeQueryWriteCommand::VerifyExistingAspects { .. }
     ) {
-        return Err(ForgeQueryRuntimeError::UnsupportedAuthority(
-            "existing-truth assertion currently requires the authoritative lane".to_string(),
-        ));
+        return Err(
+            ForgeQueryRuntimeError::ExistingTruthAssertionRequiresAuthorityLane {
+                required_lane: crate::runtime::ForgeQueryAuthorityLane::AuthoritativeTruth,
+            },
+        );
     }
     Ok(())
 }

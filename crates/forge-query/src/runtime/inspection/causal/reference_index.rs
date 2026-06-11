@@ -1,38 +1,48 @@
 use std::collections::BTreeMap;
 
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::inventory::{CausalEvidenceFamily, CausalEvidenceOwner};
+use super::observation_identity::{
+    CausalEvidenceReferenceDigest, CausalEvidenceReferenceIndexErrorIdentity,
+    CausalEvidenceReferenceIndexIdentity, CausalEvidenceReferenceIndexRecordIdentity,
+    CausalEvidenceReferenceInput,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalEvidenceReferenceIndex {
-    records: BTreeMap<CausalEvidenceFamily, BTreeMap<String, CausalEvidenceReferenceIndexRecord>>,
-    index_digest: String,
+    records: BTreeMap<
+        CausalEvidenceFamily,
+        BTreeMap<CausalEvidenceReferenceDigest, CausalEvidenceReferenceIndexRecord>,
+    >,
+    index_identity: CausalEvidenceReferenceIndexIdentity,
 }
 
 impl CausalEvidenceReferenceIndex {
     pub(in crate::runtime) fn new(records: Vec<CausalEvidenceReferenceIndexRecord>) -> Self {
         let mut indexed_records = BTreeMap::<
             CausalEvidenceFamily,
-            BTreeMap<String, CausalEvidenceReferenceIndexRecord>,
+            BTreeMap<CausalEvidenceReferenceDigest, CausalEvidenceReferenceIndexRecord>,
         >::new();
         for record in records {
             indexed_records
                 .entry(record.family())
                 .or_default()
-                .insert(record.reference_digest().to_string(), record);
+                .insert(record.reference_digest().clone(), record);
         }
-        let index_digest = index_digest(&indexed_records);
+        let index_identity = index_identity(&indexed_records);
         Self {
             records: indexed_records,
-            index_digest,
+            index_identity,
         }
     }
 
     pub(super) fn record_for_reference(
         &self,
         family: CausalEvidenceFamily,
-        reference_digest: &str,
+        reference_digest: &CausalEvidenceReferenceDigest,
     ) -> Option<&CausalEvidenceReferenceIndexRecord> {
         self.records
             .get(&family)
@@ -48,7 +58,7 @@ impl CausalEvidenceReferenceIndex {
     }
 
     pub fn index_digest(&self) -> &str {
-        &self.index_digest
+        self.index_identity.as_str()
     }
 }
 
@@ -56,27 +66,32 @@ impl CausalEvidenceReferenceIndex {
 pub struct CausalEvidenceReferenceIndexRecord {
     owner: CausalEvidenceOwner,
     family: CausalEvidenceFamily,
-    reference_digest: String,
-    record_digest: String,
+    reference_digest: CausalEvidenceReferenceDigest,
+    record_identity: CausalEvidenceReferenceIndexRecordIdentity,
 }
 
 impl CausalEvidenceReferenceIndexRecord {
     pub(in crate::runtime) fn new(
         owner: CausalEvidenceOwner,
         family: CausalEvidenceFamily,
-        reference_digest: String,
+        reference_digest: CausalEvidenceReferenceDigest,
     ) -> Self {
-        let record_digest = hash_parts(&[
-            "causal_evidence_reference_index_record_v1".to_string(),
-            format!("owner:{}", owner.as_str()),
-            format!("family:{}", family.as_str()),
-            format!("reference:{reference_digest}"),
-        ]);
+        let record_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalEvidenceReferenceIndexRecord,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("owner"), owner.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+        .field_identity(
+            ForgeQueryEvidenceTag::new("reference"),
+            reference_digest.as_str(),
+        )
+        .seal()
+        .into();
         Self {
             owner,
             family,
             reference_digest,
-            record_digest,
+            record_identity,
         }
     }
 
@@ -88,12 +103,12 @@ impl CausalEvidenceReferenceIndexRecord {
         self.family
     }
 
-    pub fn reference_digest(&self) -> &str {
+    pub fn reference_digest(&self) -> &CausalEvidenceReferenceDigest {
         &self.reference_digest
     }
 
     pub fn record_digest(&self) -> &str {
-        &self.record_digest
+        self.record_identity.as_str()
     }
 }
 
@@ -118,7 +133,7 @@ pub struct CausalEvidenceReferenceIndexError {
     family: CausalEvidenceFamily,
     supplied_owner: CausalEvidenceOwner,
     expected_owner: CausalEvidenceOwner,
-    failure_digest: String,
+    failure_identity: CausalEvidenceReferenceIndexErrorIdentity,
 }
 
 impl CausalEvidenceReferenceIndexError {
@@ -128,19 +143,27 @@ impl CausalEvidenceReferenceIndexError {
         supplied_owner: CausalEvidenceOwner,
         expected_owner: CausalEvidenceOwner,
     ) -> Self {
-        let failure_digest = hash_parts(&[
-            "causal_evidence_reference_index_error_v1".to_string(),
-            kind.as_str().to_string(),
-            format!("family:{}", family.as_str()),
-            format!("supplied-owner:{}", supplied_owner.as_str()),
-            format!("expected-owner:{}", expected_owner.as_str()),
-        ]);
+        let failure_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalEvidenceReferenceIndexError,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("supplied_owner"),
+            supplied_owner.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("expected_owner"),
+            expected_owner.as_str(),
+        )
+        .seal()
+        .into();
         Self {
             kind,
             family,
             supplied_owner,
             expected_owner,
-            failure_digest,
+            failure_identity,
         }
     }
 
@@ -161,7 +184,7 @@ impl CausalEvidenceReferenceIndexError {
     }
 
     pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+        self.failure_identity.as_str()
     }
 }
 
@@ -174,7 +197,7 @@ pub(in crate::runtime) fn causal_evidence_reference_index(
 pub(in crate::runtime) fn causal_evidence_reference_index_record(
     owner: CausalEvidenceOwner,
     family: CausalEvidenceFamily,
-    reference_digest: impl Into<String>,
+    reference_digest: impl Into<CausalEvidenceReferenceInput>,
 ) -> Result<CausalEvidenceReferenceIndexRecord, CausalEvidenceReferenceIndexError> {
     let expected_owner = owner_for_family(family);
     if owner != expected_owner {
@@ -185,15 +208,20 @@ pub(in crate::runtime) fn causal_evidence_reference_index_record(
             expected_owner,
         ));
     }
-    let reference_digest = reference_digest.into();
-    if reference_digest.is_empty() {
-        return Err(CausalEvidenceReferenceIndexError::new(
-            CausalEvidenceReferenceIndexErrorKind::EmptyReferenceDigest,
-            family,
-            owner,
-            expected_owner,
-        ));
-    }
+    let reference_digest = match reference_digest.into() {
+        CausalEvidenceReferenceInput::Typed(identity) => identity,
+        CausalEvidenceReferenceInput::Source(source_reference) => {
+            if source_reference.is_empty() {
+                return Err(CausalEvidenceReferenceIndexError::new(
+                    CausalEvidenceReferenceIndexErrorKind::EmptyReferenceDigest,
+                    family,
+                    owner,
+                    expected_owner,
+                ));
+            }
+            CausalEvidenceReferenceDigest::from(source_reference)
+        }
+    };
     Ok(CausalEvidenceReferenceIndexRecord::new(
         owner,
         family,
@@ -234,17 +262,20 @@ pub(super) fn owner_for_family(family: CausalEvidenceFamily) -> CausalEvidenceOw
     }
 }
 
-fn index_digest(
-    records: &BTreeMap<CausalEvidenceFamily, BTreeMap<String, CausalEvidenceReferenceIndexRecord>>,
-) -> String {
-    let record_part = records
-        .values()
-        .flat_map(|family_records| family_records.values())
-        .map(CausalEvidenceReferenceIndexRecord::record_digest)
-        .collect::<Vec<_>>()
-        .join("|");
-    hash_parts(&[
-        "causal_evidence_reference_index_v1".to_string(),
-        format!("records:{record_part}"),
-    ])
+fn index_identity(
+    records: &BTreeMap<
+        CausalEvidenceFamily,
+        BTreeMap<CausalEvidenceReferenceDigest, CausalEvidenceReferenceIndexRecord>,
+    >,
+) -> CausalEvidenceReferenceIndexIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReferenceIndex)
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("records"),
+            records
+                .values()
+                .flat_map(|family_records| family_records.values())
+                .map(CausalEvidenceReferenceIndexRecord::record_digest),
+        )
+        .seal()
+        .into()
 }

@@ -22,9 +22,34 @@ pub enum ForgeQueryGenericInspectionIntentTargetSeed {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryGenericInspectionRequestLabel(String);
+
+impl ForgeQueryGenericInspectionRequestLabel {
+    fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for ForgeQueryGenericInspectionRequestLabel {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl std::fmt::Display for ForgeQueryGenericInspectionRequestLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGenericInspectionIntentSeed {
     target: ForgeQueryGenericInspectionIntentTargetSeed,
-    request_label: String,
+    request_label: ForgeQueryGenericInspectionRequestLabel,
     request_input_digest: String,
 }
 
@@ -91,7 +116,7 @@ impl ForgeQueryGenericInspectionIntentSeed {
             ForgeQueryGenericInspectionIntentTargetSeed::LiveView {
                 view_name: view_name.to_string(),
             },
-            format!("inspect.live.{view_name}"),
+            ForgeQueryGenericInspectionRequestLabel::new(format!("inspect.live.{view_name}")),
             hash_parts(&[
                 "forge_query_generic_inspection_live_view_seed_v1".to_string(),
                 format!("view:{view_name}"),
@@ -108,7 +133,7 @@ impl ForgeQueryGenericInspectionIntentSeed {
             ForgeQueryGenericInspectionIntentTargetSeed::Effect {
                 effect_name: effect_name.to_string(),
             },
-            format!("inspect.effect.{effect_name}"),
+            ForgeQueryGenericInspectionRequestLabel::new(format!("inspect.effect.{effect_name}")),
             hash_parts(&[
                 "forge_query_generic_inspection_effect_seed_v1".to_string(),
                 format!("effect:{effect_name}"),
@@ -119,7 +144,10 @@ impl ForgeQueryGenericInspectionIntentSeed {
     pub(crate) fn write_receipt(receipt: &ForgeQueryWriteReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::WriteReceipt(receipt.clone()),
-            format!("inspect.write_receipt.{}", receipt.commit_identity()),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.write_receipt.{}",
+                receipt.commit_identity()
+            )),
             hash_parts(&[
                 "forge_query_generic_inspection_write_receipt_seed_v1".to_string(),
                 format!("commit:{}", receipt.commit_identity()),
@@ -131,7 +159,10 @@ impl ForgeQueryGenericInspectionIntentSeed {
     pub(crate) fn batch_write_receipt(receipt: &ForgeQueryBatchWriteReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::BatchWriteReceipt(receipt.clone()),
-            format!("inspect.batch_write_receipt.{}", receipt.batch_digest()),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.batch_write_receipt.{}",
+                receipt.batch_digest()
+            )),
             hash_parts(&[
                 "forge_query_generic_inspection_batch_write_receipt_seed_v1".to_string(),
                 format!("receipt:{}", receipt.batch_digest()),
@@ -142,7 +173,10 @@ impl ForgeQueryGenericInspectionIntentSeed {
     pub(crate) fn intent_receipt(receipt: &ForgeQueryIntentReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::IntentReceipt(receipt.clone()),
-            format!("inspect.intent_receipt.{}", receipt.intent_name()),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.intent_receipt.{}",
+                receipt.intent_name()
+            )),
             hash_parts(&[
                 "forge_query_generic_inspection_intent_receipt_seed_v1".to_string(),
                 format!("receipt:{}", receipt.receipt_digest()),
@@ -153,7 +187,10 @@ impl ForgeQueryGenericInspectionIntentSeed {
     pub(crate) fn intent_denial(evidence: &ForgeQueryIntentDenialEvidence) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::IntentDenial(evidence.clone()),
-            format!("inspect.intent_denial.{}", evidence.intent_name()),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.intent_denial.{}",
+                evidence.intent_name()
+            )),
             hash_parts(&[
                 "forge_query_generic_inspection_intent_denial_seed_v1".to_string(),
                 format!("evidence:{}", evidence.denial_digest()),
@@ -164,7 +201,10 @@ impl ForgeQueryGenericInspectionIntentSeed {
     pub(crate) fn effect_intent_receipt(receipt: &ForgeQueryEffectIntentReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::EffectIntentReceipt(receipt.clone()),
-            format!("inspect.effect_intent_receipt.{}", receipt.effect_name()),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.effect_intent_receipt.{}",
+                receipt.effect_name()
+            )),
             hash_parts(&[
                 "forge_query_generic_inspection_effect_intent_receipt_seed_v1".to_string(),
                 format!("receipt:{}", receipt.receipt_digest()),
@@ -175,10 +215,13 @@ impl ForgeQueryGenericInspectionIntentSeed {
     pub(crate) fn preview_binding(binding: &ForgeQueryPreviewHandleBindingEvidence) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::PreviewBinding(binding.clone()),
-            format!("inspect.preview_binding.{}", binding.label()),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.preview_binding.{}",
+                binding.session_label().display()
+            )),
             hash_parts(&[
                 "forge_query_generic_inspection_preview_binding_seed_v1".to_string(),
-                format!("label:{}", binding.label()),
+                format!("label_identity:{}", binding.label_identity().as_str()),
                 format!("handle:{}", binding.handle_name()),
             ]),
         )
@@ -187,7 +230,10 @@ impl ForgeQueryGenericInspectionIntentSeed {
     pub(crate) fn preview_outcome(outcome: &ForgeQueryPreviewOutcome) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::PreviewOutcome(outcome.clone()),
-            format!("inspect.preview_outcome.{}", outcome.label()),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.preview_outcome.{}",
+                outcome.label()
+            )),
             hash_parts(&[
                 "forge_query_generic_inspection_preview_outcome_seed_v1".to_string(),
                 format!("label:{}", outcome.label()),
@@ -201,7 +247,10 @@ impl ForgeQueryGenericInspectionIntentSeed {
     pub(crate) fn preview_intent_receipt(receipt: &ForgeQueryPreviewIntentReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::PreviewIntentReceipt(receipt.clone()),
-            format!("inspect.preview_intent_receipt.{}", receipt.intent_name()),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.preview_intent_receipt.{}",
+                receipt.intent_name()
+            )),
             hash_parts(&[
                 "forge_query_generic_inspection_preview_intent_receipt_seed_v1".to_string(),
                 format!("receipt:{}", receipt.receipt_digest()),
@@ -212,7 +261,10 @@ impl ForgeQueryGenericInspectionIntentSeed {
     pub(crate) fn branch_intent_receipt(receipt: &ForgeQueryBranchIntentReceipt) -> Self {
         Self::new(
             ForgeQueryGenericInspectionIntentTargetSeed::BranchIntentReceipt(receipt.clone()),
-            format!("inspect.branch_intent_receipt.{}", receipt.intent_name()),
+            ForgeQueryGenericInspectionRequestLabel::new(format!(
+                "inspect.branch_intent_receipt.{}",
+                receipt.intent_name()
+            )),
             hash_parts(&[
                 "forge_query_generic_inspection_branch_intent_receipt_seed_v1".to_string(),
                 format!("receipt:{}", receipt.receipt_digest()),
@@ -222,7 +274,7 @@ impl ForgeQueryGenericInspectionIntentSeed {
 
     fn new(
         target: ForgeQueryGenericInspectionIntentTargetSeed,
-        request_label: String,
+        request_label: ForgeQueryGenericInspectionRequestLabel,
         request_input_digest: String,
     ) -> Self {
         Self {
@@ -236,7 +288,7 @@ impl ForgeQueryGenericInspectionIntentSeed {
         &self.target
     }
 
-    pub fn request_label(&self) -> &str {
+    pub fn request_label(&self) -> &ForgeQueryGenericInspectionRequestLabel {
         &self.request_label
     }
 

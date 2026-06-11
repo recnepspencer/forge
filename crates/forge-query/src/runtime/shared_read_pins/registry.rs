@@ -1,18 +1,18 @@
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
 #[cfg(test)]
 use std::sync::atomic::AtomicUsize;
 #[cfg(test)]
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex};
 
 use crate::runtime::shared_read::SharedReadDerivedViewState;
 
+#[cfg(test)]
+use super::ForgeQuerySharedReadCounters;
 use super::{
     ForgeQuerySharedReadGenerationEntry, ForgeQuerySharedReadGenerationId,
     ForgeQuerySharedReadGenerationLease, ForgeQuerySharedReadPinnedSnapshot,
 };
-#[cfg(test)]
-use super::ForgeQuerySharedReadCounters;
 
 #[derive(Clone, Debug)]
 pub(in crate::runtime) struct ForgeQuerySharedReadPinRegistry {
@@ -48,7 +48,10 @@ impl ForgeQuerySharedReadPinRegistry {
             let mut state = self.state.lock().expect("shared-read pin registry lock");
             state.pin_current_generation()
         }?;
-        Some(ForgeQuerySharedReadGenerationLease::new(self.clone(), entry))
+        Some(ForgeQuerySharedReadGenerationLease::new(
+            self.clone(),
+            entry,
+        ))
     }
 
     pub(in crate::runtime) fn has_current_generation(&self) -> bool {
@@ -72,7 +75,8 @@ impl ForgeQuerySharedReadPinRegistry {
     pub(in crate::runtime) fn counters(&self) -> ForgeQuerySharedReadCounters {
         let state = self.state.lock().expect("shared-read pin registry lock");
         state.counters(
-            self.committed_read_hot_path_lock_count.load(Ordering::SeqCst),
+            self.committed_read_hot_path_lock_count
+                .load(Ordering::SeqCst),
         )
     }
 
@@ -142,10 +146,7 @@ impl ForgeQuerySharedReadPinRegistryState {
     }
 
     #[cfg(test)]
-    fn counters(
-        &self,
-        committed_read_hot_path_lock_count: usize,
-    ) -> ForgeQuerySharedReadCounters {
+    fn counters(&self, committed_read_hot_path_lock_count: usize) -> ForgeQuerySharedReadCounters {
         let orphaned_generation_count = self
             .generations
             .values()
@@ -169,7 +170,8 @@ impl ForgeQuerySharedReadPinRegistryState {
             .generations
             .iter()
             .filter_map(|(ordinal, entry)| {
-                (entry.snapshot().generation().snapshot_token() == snapshot_token).then_some(*ordinal)
+                (entry.snapshot().generation().snapshot_token() == snapshot_token)
+                    .then_some(*ordinal)
             })
             .collect::<Vec<_>>();
         for ordinal in affected {

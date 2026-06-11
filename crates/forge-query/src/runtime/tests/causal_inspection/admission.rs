@@ -41,8 +41,8 @@ fn changed_reference_set() -> CausalEvidenceReferenceSet {
 fn target_for(reference_set: &CausalEvidenceReferenceSet) -> CausalInspectionTarget {
     let receipt = reference_set.anchor().observation_receipt();
     causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
+        receipt.observation_target().clone(),
+        receipt.result_shape_context().clone(),
     )
     .unwrap()
 }
@@ -195,7 +195,11 @@ fn causal_inspection_denies_unsupported_explanation_family_before_envelope_reque
 #[test]
 fn causal_inspection_request_denies_target_and_unresolved_family_mismatches() {
     let reference_set = changed_reference_set();
-    let bad_target = causal_inspection_target("different-target", "fixture-result-shape").unwrap();
+    let bad_target = causal_inspection_target(
+        CausalObservationTargetHandle::from_rendered("different-target"),
+        CausalResultShapeContextHandle::from_rendered("fixture-result-shape"),
+    )
+    .unwrap();
     let target_mismatch = request_causal_inspection(
         reference_set.clone(),
         bad_target,

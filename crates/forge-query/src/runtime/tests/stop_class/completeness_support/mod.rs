@@ -120,6 +120,9 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
         ForgeQueryRuntimeError::MissingLiveView("view.live".to_string()),
         ForgeQueryRuntimeError::MissingLiveSubscription("sub.live".to_string()),
         ForgeQueryRuntimeError::MissingDerivedView("view.derived".to_string()),
+        ForgeQueryRuntimeError::SharedReadStaleBasis {
+            snapshot_token: "snapshot.stale".to_string(),
+        },
         ForgeQueryRuntimeError::MissingEffect("effect.name".to_string()),
         ForgeQueryRuntimeError::MissingPendingWriteIntent("effect.name".to_string()),
         ForgeQueryRuntimeError::RetainedRowDecode {
@@ -142,7 +145,12 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
             stage: "install",
             message: "install failed".to_string(),
         },
-        ForgeQueryRuntimeError::UnsupportedAuthority("authoritative-lane".to_string()),
+        ForgeQueryRuntimeError::UnsupportedAuthorityRequirement(
+            ForgeQueryAuthorityRequirement::Merge,
+        ),
+        ForgeQueryRuntimeError::ExistingTruthAssertionRequiresAuthorityLane {
+            required_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+        },
         intent_commit_denied_error(),
         intent_execution_routing_failed_error(),
         ForgeQueryRuntimeError::EffectPolicyDenied(effect_policy_denial),
@@ -159,7 +167,7 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
             label: test_session_label("stop-class-collision"),
         },
         ForgeQueryRuntimeError::PreviewOperationEffectDenied {
-            label: "preview-label".to_string(),
+            label: test_session_label("preview-label"),
             stage: "effect-admission",
             message: "preview declaration denied".to_string(),
         },
@@ -224,7 +232,12 @@ pub(super) fn runtime_error_variant_key(error: &ForgeQueryRuntimeError) -> &'sta
         ForgeQueryRuntimeError::LiveSubscriptionInstallation { .. } => {
             "live_subscription_installation"
         }
-        ForgeQueryRuntimeError::UnsupportedAuthority(_) => "unsupported_authority",
+        ForgeQueryRuntimeError::UnsupportedAuthorityRequirement(_) => {
+            "unsupported_authority_requirement"
+        }
+        ForgeQueryRuntimeError::ExistingTruthAssertionRequiresAuthorityLane { .. } => {
+            "existing_truth_assertion_requires_authority_lane"
+        }
         ForgeQueryRuntimeError::IntentCommitDenied { .. } => "intent_commit_denied",
         ForgeQueryRuntimeError::IntentExecutionRoutingFailed { .. } => {
             "intent_execution_routing_failed"
@@ -277,8 +290,16 @@ pub(super) fn stop_class_variant_key(stop_class: ForgeQueryStopClass<'_>) -> &'s
         ForgeQueryStopClass::MissingRuntimeArtifact { .. } => "missing_runtime_artifact",
         ForgeQueryStopClass::SharedReadStaleBasis { .. } => "shared_read_stale_basis",
         ForgeQueryStopClass::RuntimeDeclarationFailed { .. } => "runtime_declaration_failed",
+        ForgeQueryStopClass::PreviewOperationEffectDenied { .. } => {
+            "preview_operation_effect_denied"
+        }
         ForgeQueryStopClass::SessionLabelCollision { .. } => "session_label_collision",
-        ForgeQueryStopClass::UnsupportedAuthority { .. } => "unsupported_authority",
+        ForgeQueryStopClass::UnsupportedAuthorityRequirement { .. } => {
+            "unsupported_authority_requirement"
+        }
+        ForgeQueryStopClass::ExistingTruthAssertionRequiresAuthorityLane { .. } => {
+            "existing_truth_assertion_requires_authority_lane"
+        }
         ForgeQueryStopClass::IntentCommitDenied { .. } => "intent_commit_denied",
         ForgeQueryStopClass::IntentExecutionRoutingFailed { .. } => {
             "intent_execution_routing_failed"

@@ -2,6 +2,7 @@ use crate::identity::hash_parts;
 
 mod artifact;
 mod hash;
+mod identity;
 mod inventory;
 mod slots;
 
@@ -13,6 +14,7 @@ use artifact::{
     inspection_digest,
 };
 use hash::{row_digest, RowDigestParts};
+use identity::RepresentativeCausalObservationAnchorDigest;
 use slots::named_evidence_slots;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -20,7 +22,7 @@ pub struct CausalInspectionRepresentativeRowDigestSet {
     kind: CausalInspectionRepresentativeKind,
     query_digest: String,
     query_observation_receipt_digest: String,
-    causal_observation_anchor_digest: String,
+    causal_observation_anchor_digest: RepresentativeCausalObservationAnchorDigest,
     inspection_digest: Option<String>,
     artifact_digest: Option<String>,
     causal_envelope_digest: Option<String>,
@@ -55,11 +57,14 @@ impl CausalInspectionRepresentativeRowDigestSet {
         artifact: &QueryCausalInspectionArtifact,
     ) -> Self {
         let query_observation_receipt_digest = artifact.query_observation_digest().to_string();
-        let causal_observation_anchor_digest = artifact.causal_identity_digest().to_string();
+        let causal_observation_anchor_digest =
+            RepresentativeCausalObservationAnchorDigest::from_digest(
+                artifact.causal_identity_digest(),
+            );
         let query_digest = hash_parts(&[
             "causal_inspection_representative_query_digest_v1".to_string(),
             format!("observation:{query_observation_receipt_digest}"),
-            format!("anchor:{causal_observation_anchor_digest}"),
+            format!("anchor:{}", causal_observation_anchor_digest.as_str()),
         ]);
         let inspection_digest = inspection_digest(artifact).to_string();
         let evidence_reference_collection_digest =
@@ -72,7 +77,7 @@ impl CausalInspectionRepresentativeRowDigestSet {
             kind,
             query_digest: &query_digest,
             query_observation_receipt_digest: &query_observation_receipt_digest,
-            causal_observation_anchor_digest: &causal_observation_anchor_digest,
+            causal_observation_anchor_digest: causal_observation_anchor_digest.as_str(),
             inspection_digest: Some(&inspection_digest),
             artifact_digest: Some(artifact.artifact_digest()),
             causal_envelope_digest: artifact.bridge_envelope_digest(),
@@ -151,16 +156,17 @@ impl CausalInspectionRepresentativeRowDigestSet {
         failure_digest: &str,
     ) -> Self {
         let query_observation_receipt_digest = "denied-before-materialization".to_string();
-        let causal_observation_anchor_digest = hash_parts(&[
-            "causal_inspection_failure_anchor_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("failure-class:{failure_class}"),
-            format!("failure:{failure_digest}"),
-        ]);
+        let causal_observation_anchor_digest =
+            RepresentativeCausalObservationAnchorDigest::from_digest(hash_parts(&[
+                "causal_inspection_failure_anchor_v1".to_string(),
+                format!("kind:{}", kind.as_str()),
+                format!("failure-class:{failure_class}"),
+                format!("failure:{failure_digest}"),
+            ]));
         let query_digest = hash_parts(&[
             "causal_inspection_representative_query_digest_v1".to_string(),
             format!("observation:{query_observation_receipt_digest}"),
-            format!("anchor:{causal_observation_anchor_digest}"),
+            format!("anchor:{}", causal_observation_anchor_digest.as_str()),
         ]);
         let counter_snapshot_digest = hash_parts(&[
             "causal_inspection_failure_counter_snapshot_v1".to_string(),
@@ -174,7 +180,7 @@ impl CausalInspectionRepresentativeRowDigestSet {
             kind,
             query_digest: &query_digest,
             query_observation_receipt_digest: &query_observation_receipt_digest,
-            causal_observation_anchor_digest: &causal_observation_anchor_digest,
+            causal_observation_anchor_digest: causal_observation_anchor_digest.as_str(),
             inspection_digest: None,
             artifact_digest: None,
             causal_envelope_digest: None,
@@ -252,7 +258,7 @@ impl CausalInspectionRepresentativeRowDigestSet {
     }
 
     pub fn causal_observation_anchor_digest(&self) -> &str {
-        &self.causal_observation_anchor_digest
+        self.causal_observation_anchor_digest.as_str()
     }
 
     pub fn inspection_digest(&self) -> Option<&str> {

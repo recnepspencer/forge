@@ -203,6 +203,9 @@ The ordinary runtime-backed product lane also has four hard boundary rules:
 - preview and branch entry take `ForgeQuerySessionLabel`, not raw strings, so
   label identity, replay collision posture, and basis-admission evidence stay
   runtime-owned
+- preview binding and preview outcome inspection keep that same
+  `ForgeQuerySessionLabel` artifact on the ordinary path; rendered labels are
+  DX, not the identity lane
 - workflow preview capability authoring takes
   `BridgePreviewSessionIdentity`, not ad hoc preview-session strings, so
   preview-planning evidence stays on the typed artifact lane too
@@ -281,6 +284,17 @@ typed preview-session identity artifact instead of smuggling preview identity
 through free-form strings.
 If identity matters to support, replay, inspection, workflow binding, or
 recovery, prefer the Query-owned typed artifact over a caller-owned string.
+
+For Milestone `9.6`, the application support surface also publishes
+`support_report().identity_boundary_closure()`. Read that closure posture
+literally:
+
+- `Closed` means the ordinary runtime-backed identity boundary is live and the
+  hostile residue scans are clean
+- `Partial` means the typed closure work exists but the current support posture
+  does not expose the full ordinary path or a same-class residue class is
+  still open
+- `Open` is reserved for genuinely unclosed posture, not for "not checked yet"
 
 Read next:
 

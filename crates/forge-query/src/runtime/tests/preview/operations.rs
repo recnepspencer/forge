@@ -1,4 +1,5 @@
 use super::super::support::*;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 #[test]
 fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
@@ -33,9 +34,19 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
 
         assert_eq!(run.write_receipts().len(), 1);
         let draft_label = test_session_label("draft create");
-        assert!(run.write_receipts()[0]
-            .commit_identity()
-            .starts_with(&format!("preview:{}:", draft_label.display())));
+        let expected_commit_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::PreviewWriteReceiptIdentity,
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            draft_label.identity_digest().as_str(),
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("sequence"), 1)
+        .seal();
+        assert_eq!(
+            run.write_receipts()[0].commit_identity(),
+            expected_commit_identity.as_str()
+        );
         assert_eq!(
             run.write_receipts()[0].authority_lane(),
             ForgeQueryAuthorityLane::PreviewTruth
@@ -163,10 +174,7 @@ fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
             stage,
             message,
         } => {
-            assert_eq!(
-                label,
-                test_session_label("deny declaration effects").display()
-            );
+            assert_eq!(label, test_session_label("deny declaration effects"));
             assert_eq!(stage, "effect-admission");
             assert!(message.contains("cannot install live view `tasks.table`"));
         }

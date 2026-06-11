@@ -221,8 +221,8 @@ impl CausalInspection {
         let anchor = anchor_causal_observation(self.receipt, reason)
             .map_err(CausalInspectionPlanError::Anchor)?;
         let target = causal_inspection_target(
-            anchor.observation_receipt().observation_target_digest(),
-            anchor.observation_receipt().result_shape_context_digest(),
+            anchor.observation_receipt().observation_target().clone(),
+            anchor.observation_receipt().result_shape_context().clone(),
         )
         .map_err(CausalInspectionPlanError::Request)?;
         let resolution =

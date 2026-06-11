@@ -44,12 +44,10 @@ impl ForgeQueryRuntime {
             .support_for(ForgeQueryRuntimeFacadeFamily::BranchPreview)
             .map(|support| support.evidence().to_vec())
             .unwrap_or_default();
-        let evidence_rows = std::iter::once(
-            ForgeQueryBasisAdmissionEvidenceRow::tagged(
-                "runtime-branch-basis-admission",
-                "runtime-branch-basis-admission",
-            ),
-        )
+        let evidence_rows = std::iter::once(ForgeQueryBasisAdmissionEvidenceRow::tagged(
+            "runtime-branch-basis-admission",
+            "runtime-branch-basis-admission",
+        ))
         .chain(
             branch_support_evidence
                 .into_iter()

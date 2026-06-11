@@ -341,7 +341,13 @@ fn shared_read_pin_counters_return_to_exact_zero_after_context_and_artifact_drop
             .published_derived_artifact(&derived)
             .expect("published artifact should mint");
         assert!(artifact.published_binding().is_some());
-        assert_eq!(workspace.runtime.shared_read_counters().unretired_pin_count(), 2);
+        assert_eq!(
+            workspace
+                .runtime
+                .shared_read_counters()
+                .unretired_pin_count(),
+            2
+        );
     }
 
     let counters = workspace.runtime.shared_read_counters();

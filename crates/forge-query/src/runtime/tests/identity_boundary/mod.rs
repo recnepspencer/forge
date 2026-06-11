@@ -1,10 +1,12 @@
 use super::support::*;
 use crate::application::{
-    identity_boundary_hostile_matrix_digest, EXACT_ZERO_FORMAT_DIGEST_PATHS,
-    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
-    ForgeQueryFolkloreResidueStatus, STOP_CLASS_COVERED_CONTRACTS,
-    format_digest_folklore_pattern_in, source_for_format_digest_path,
-    source_for_session_admission_path, source_for_string_matching_path,
+    format_digest_folklore_pattern_in, identity_boundary_hostile_matrix_artifact,
+    identity_boundary_hostile_matrix_digest, source_for_format_digest_path,
+    source_for_session_admission_path, source_for_string_carried_session_identity_path,
+    source_for_string_matching_path, ForgeQueryFolkloreResidueStatus,
+    EXACT_ZERO_FORMAT_DIGEST_PATHS, EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS,
+    EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
+    STOP_CLASS_COVERED_CONTRACTS,
 };
 use crate::facade::ForgeQueryApplicationFacade;
 use crate::ForgeQueryEvidenceIdentityScheme;
@@ -15,12 +17,10 @@ const AI_README: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/
 fn identity_boundary_hostile_closure_matrix_holds_under_combined_drift_pressure() {
     let report = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
     let closure = report.identity_boundary_closure();
+    let hostile_matrix = identity_boundary_hostile_matrix_artifact();
 
     assert!(closure.residue_status().is_zero());
-    assert_eq!(
-        closure.residue_status().as_str(),
-        "zero-folklore-residue"
-    );
+    assert_eq!(closure.residue_status().as_str(), "zero-folklore-residue");
     assert_eq!(
         closure.evidence_identity().scheme(),
         ForgeQueryEvidenceIdentityScheme::V1
@@ -28,6 +28,28 @@ fn identity_boundary_hostile_closure_matrix_holds_under_combined_drift_pressure(
     assert_eq!(
         closure.hostile_matrix_digest(),
         identity_boundary_hostile_matrix_digest()
+    );
+    assert!(closure.hostile_matrix_certified());
+    assert!(hostile_matrix.certified());
+    assert_eq!(
+        hostile_matrix.suite_name(),
+        crate::application::MILESTONE_NINE_SIX_SUITE_NAME
+    );
+    assert_eq!(
+        hostile_matrix
+            .canonical_rows()
+            .iter()
+            .map(|row| row.name())
+            .collect::<Vec<_>>(),
+        crate::application::MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES
+    );
+    assert_eq!(
+        hostile_matrix
+            .rejection_rows()
+            .iter()
+            .map(|row| row.name())
+            .collect::<Vec<_>>(),
+        crate::application::MILESTONE_NINE_SIX_REQUIRED_REJECTION_ROW_NAMES
     );
     assert!(
         AI_README.contains("ForgeQueryEvidenceIdentity::compose")
@@ -40,6 +62,7 @@ fn identity_boundary_hostile_closure_matrix_holds_under_combined_drift_pressure(
     assert_no_format_string_digest_folklore(closure);
     assert_no_string_matched_control_flow(closure);
     assert_no_raw_string_session_admission(closure);
+    assert_no_string_carried_session_identity(closure);
 }
 
 fn assert_combined_drift_pressure_holds(
@@ -65,7 +88,8 @@ fn assert_evidence_identity_resists_joined_string_folklore() {
         test_session_label("preview|basis"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
-            "alpha", "beta|gamma",
+            "alpha",
+            "beta|gamma",
         ]),
     );
     let right = crate::runtime::ForgeQueryPreviewBasisAdmission::new(
@@ -73,7 +97,8 @@ fn assert_evidence_identity_resists_joined_string_folklore() {
         test_session_label("preview"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
-            "basis|alpha", "beta|gamma",
+            "basis|alpha",
+            "beta|gamma",
         ]),
     );
 
@@ -251,11 +276,44 @@ fn assert_no_raw_string_session_admission(
     }
 }
 
+fn assert_no_string_carried_session_identity(
+    closure: &crate::application::ForgeQueryIdentityBoundaryClosure,
+) {
+    use crate::application::normalize_source_text;
+
+    assert_eq!(
+        closure.exact_zero_string_carried_session_identity_paths(),
+        EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS
+    );
+    for path in EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS {
+        let source = source_for_string_carried_session_identity_path(path).unwrap_or_else(|| {
+            panic!("unexpected string-carried session-identity audit path: {path}");
+        });
+        let normalized = normalize_source_text(source);
+        let carries_string_identity = normalized.contains("label: String")
+            || normalized.contains("label: &str")
+            || normalized.contains("self.label.to_string()")
+            || normalized.contains("label.to_string(),")
+            || normalized.contains("self.label.display(),")
+            || normalized.contains("format!(\"preview:{label}:{sequence}\")");
+        let preserves_typed_identity = normalized.contains("label: ForgeQuerySessionLabel")
+            || normalized.contains("label: &ForgeQuerySessionLabel")
+            || normalized.contains("&self.label")
+            || normalized.contains("self.label.clone()");
+        assert!(
+            !carries_string_identity,
+            "ordinary runtime/product path still stores session identity as string: {path}"
+        );
+        assert!(
+            preserves_typed_identity,
+            "ordinary runtime/product path must keep the typed session-label artifact: {path}"
+        );
+    }
+}
+
 #[test]
 fn inventory_reports_zero_format_digest_residue_when_covered_paths_are_clean() {
-    assert!(
-        crate::application::scan_format_digest_residue_paths().is_empty()
-    );
+    assert!(crate::application::scan_format_digest_residue_paths().is_empty());
 }
 
 #[test]
@@ -281,6 +339,29 @@ fn inventory_documents_excluded_folklore_paths() {
 
     assert!(EXCLUDED_FOLKLORE_PATHS.contains(&"subscription/"));
     assert!(EXCLUDED_FOLKLORE_PATHS.contains(&"runtime/intent/receipt.rs"));
+}
+
+#[test]
+fn unified_inspection_request_labels_remain_typed_artifacts() {
+    let seed_source = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/intent_admission/eligibility/seeds/generic_inspection.rs"
+    ));
+    let receipt_source = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/runtime/surface/unified_inspection_receipt.rs"
+    ));
+
+    assert!(
+        seed_source.contains("ForgeQueryGenericInspectionRequestLabel")
+            && !seed_source.contains("request_label: String"),
+        "generic inspection seeds must carry typed request labels instead of raw strings"
+    );
+    assert!(
+        receipt_source.contains("target_label: ForgeQueryGenericInspectionRequestLabel")
+            && !receipt_source.contains("target_label: String"),
+        "unified inspection receipts must retain the typed request-label artifact"
+    );
 }
 
 #[test]

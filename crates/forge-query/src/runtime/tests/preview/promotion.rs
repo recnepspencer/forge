@@ -50,6 +50,10 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
     assert_eq!(closeout.authoritative_residue_count(), 0);
     assert_eq!(closeout.effect_delivery_residue_count(), 0);
     assert_eq!(closeout.pending_write_intent_residue_count(), 0);
+    assert_eq!(
+        closeout.closeout_identity().as_str(),
+        closeout.closeout_digest()
+    );
     assert!(!closeout.closeout_digest().is_empty());
     assert!(runtime.read_live(&live).is_empty());
 }
@@ -100,6 +104,10 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
     assert_eq!(
         closeout.effect_policy(),
         ForgeQueryEffectPolicy::SandboxedWriteIntent
+    );
+    assert_eq!(
+        closeout.closeout_identity().as_str(),
+        closeout.closeout_digest()
     );
 
     let view = runtime

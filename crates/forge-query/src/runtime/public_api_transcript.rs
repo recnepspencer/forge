@@ -1,6 +1,6 @@
-#[cfg(test)]
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -17,7 +17,7 @@ pub struct ForgeQueryRuntimePublicApiTranscriptEvidence {
     delivery_residue_count: usize,
     authority_lane_digest: String,
     meaningful_assertion_count: usize,
-    transcript_digest: String,
+    transcript_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimePublicApiTranscriptEvidence {
@@ -53,7 +53,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             !support_gated_neighbor_denial_digests.is_empty(),
             "runtime public API transcript evidence must prove at least one support-gated neighbor denial"
         );
-        let transcript_digest = forge_query_evidence_identity(
+        let transcript_identity = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::RuntimePublicApiTranscriptEvidence,
         )
         .field_shape(
@@ -106,9 +106,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             ForgeQueryEvidenceTag::new("meaningful_assertion_count"),
             meaningful_assertion_count,
         )
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         Self {
             transcript_family,
             support_contract_digest,
@@ -122,7 +120,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             delivery_residue_count,
             authority_lane_digest,
             meaningful_assertion_count,
-            transcript_digest,
+            transcript_identity,
         }
     }
 
@@ -175,6 +173,10 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
     }
 
     pub fn transcript_digest(&self) -> &str {
-        &self.transcript_digest
+        self.transcript_identity.as_str()
+    }
+
+    pub fn transcript_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.transcript_identity
     }
 }

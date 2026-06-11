@@ -14,7 +14,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         command: ForgeQueryWriteCommand,
     ) -> ForgeQueryWriteReceipt {
         let receipt = ForgeQueryWriteReceipt::preview(
-            self.label.display(),
+            &self.label,
             self.pending_commands.len() + 1,
             &command,
             self.runtime.snapshot_token(),

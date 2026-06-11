@@ -56,7 +56,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         promoted_write_count: usize,
         residue_snapshot: PreviewLifecycleResidueSnapshot,
         target_basis_snapshot_token: &str,
-        rebinding_digest: Option<String>,
+        rebinding_identity: Option<crate::ForgeQueryEvidenceIdentity>,
     ) -> ForgeQueryPreviewCloseoutEvidence {
         ForgeQueryPreviewCloseoutEvidence::new(
             kind,
@@ -79,7 +79,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             self.effect_delivery_residue_count(),
             self.pending_write_intent_residue_count(),
             residue_snapshot.crossed_authoritative_residue_count,
-            rebinding_digest,
+            rebinding_identity,
         )
     }
 

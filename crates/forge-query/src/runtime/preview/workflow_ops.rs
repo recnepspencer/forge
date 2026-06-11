@@ -56,32 +56,29 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         }
         let crossed_authoritative_residue_count =
             residue_snapshot.crossed_authoritative_residue_count;
-        let promotion_rebinding_digest = forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::PreviewPromotionRebinding,
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("session_label_identity"),
-            self.basis_admission.label_identity().as_str(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("basis_snapshot_token"),
-            self.basis_snapshot_token.as_str(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("promotion_snapshot_token"),
-            promotion_snapshot_token.as_str(),
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("crossed_authoritative_residue_count"),
-            crossed_authoritative_residue_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("preview_binding_count"),
-            self.handle_bindings.len(),
-        )
-        .seal()
-        .as_str()
-        .to_string();
+        let promotion_rebinding_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewPromotionRebinding)
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("session_label_identity"),
+                    self.basis_admission.label_identity().as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("basis_snapshot_token"),
+                    self.basis_snapshot_token.as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("promotion_snapshot_token"),
+                    promotion_snapshot_token.as_str(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("crossed_authoritative_residue_count"),
+                    crossed_authoritative_residue_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("preview_binding_count"),
+                    self.handle_bindings.len(),
+                )
+                .seal();
         if crossed_authoritative_residue_count > 0 {
             return Err(ForgeQueryRuntimeError::PreviewPromotionRebindingRequired(
                 ForgeQueryPreviewPromotionDenialEvidence::rebinding_required(
@@ -236,7 +233,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         match effect {
             ForgeQueryProgramEffect::DeclareLiveView { name, .. } => {
                 Err(ForgeQueryRuntimeError::PreviewOperationEffectDenied {
-                    label: self.label.to_string(),
+                    label: self.label.clone(),
                     stage: "effect-admission",
                     message: format!(
                         "preview operations cannot install live view `{name}` into authoritative runtime state; declare the live surface before entering preview or add preview-scoped declaration support"
@@ -245,7 +242,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             }
             ForgeQueryProgramEffect::DeclareDerivedView(view) => {
                 Err(ForgeQueryRuntimeError::PreviewOperationEffectDenied {
-                    label: self.label.to_string(),
+                    label: self.label.clone(),
                     stage: "effect-admission",
                     message: format!(
                         "preview operations cannot install computed view `{}` into authoritative runtime state; declare the computed surface before entering preview or add preview-scoped declaration support",

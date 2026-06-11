@@ -283,12 +283,9 @@ fn preview_assert_existing_requires_authoritative_lane() {
         .expect_err("preview assertion should require authoritative lane");
 
     match error.stop_class() {
-        ForgeQueryStopClass::UnsupportedAuthority { authority } => {
-            assert_eq!(
-                authority,
-                "existing-truth assertion currently requires the authoritative lane"
-            );
+        ForgeQueryStopClass::ExistingTruthAssertionRequiresAuthorityLane { required_lane } => {
+            assert_eq!(required_lane, ForgeQueryAuthorityLane::AuthoritativeTruth);
         }
-        other => panic!("expected unsupported authority stop class, got {other:?}"),
+        other => panic!("expected typed authoritative lane stop class, got {other:?}"),
     }
 }

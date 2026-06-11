@@ -324,8 +324,8 @@ fn replay_gap_inputs() -> (
         panic!("query-inspection-only replay evidence should resolve");
     };
     let target = causal_inspection_target(
-        observation.observation_target_digest(),
-        observation.result_shape_context_digest(),
+        observation.observation_target().clone(),
+        observation.result_shape_context().clone(),
     )
     .expect("observation-derived target should be valid");
 

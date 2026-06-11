@@ -37,9 +37,9 @@ pub(crate) mod milestone_nine_five_forbidden_fallback_closeout;
 #[cfg(test)]
 pub(crate) mod milestone_nine_five_hostile_matrix;
 #[cfg(test)]
-pub(crate) mod milestone_nine_six_identity_boundary_matrix;
-#[cfg(test)]
 pub(crate) mod milestone_nine_one_certification;
+#[cfg(test)]
+pub(crate) mod milestone_nine_six_identity_boundary_matrix;
 #[cfg(test)]
 pub(crate) mod milestone_nine_three_certification;
 #[cfg(test)]

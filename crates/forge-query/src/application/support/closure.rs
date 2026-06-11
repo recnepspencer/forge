@@ -1,24 +1,30 @@
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope,
-    ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityScheme,
+    ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 
+use super::identity_boundary_hostile_matrix::ForgeQueryIdentityBoundaryHostileMatrixArtifact;
 use super::identity_boundary_inventory::{
     scan_format_digest_residue_paths, scan_raw_session_admission_residue_paths,
-    scan_string_matching_residue_paths, EXACT_ZERO_FORMAT_DIGEST_PATHS,
-    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
-    EVIDENCE_IDENTITY_COVERED_SURFACES, SESSION_LABEL_ORDINARY_ENTRYPOINTS,
+    scan_string_carried_session_identity_residue_paths, scan_string_matching_residue_paths,
+    EVIDENCE_IDENTITY_COVERED_SURFACES, EXACT_ZERO_FORMAT_DIGEST_PATHS,
+    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS,
+    EXACT_ZERO_STRING_MATCHING_PATHS, SESSION_LABEL_ORDINARY_ENTRYPOINTS,
     STOP_CLASS_COVERED_CONTRACTS,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryMilestoneClosureStatus {
+    Open,
+    Partial,
     Closed,
 }
 
 impl ForgeQueryMilestoneClosureStatus {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::Open => "open",
+            Self::Partial => "partial",
             Self::Closed => "closed",
         }
     }
@@ -65,6 +71,11 @@ impl ForgeQueryFolkloreResidueStatus {
                 .into_iter()
                 .map(str::to_string),
         );
+        remaining.extend(
+            scan_string_carried_session_identity_residue_paths()
+                .into_iter()
+                .map(str::to_string),
+        );
         remaining.sort();
         remaining.dedup();
         if remaining.is_empty() {
@@ -79,14 +90,23 @@ impl ForgeQueryFolkloreResidueStatus {
 pub struct ForgeQueryEvidenceIdentityBoundaryClosure {
     scheme: ForgeQueryEvidenceIdentityScheme,
     status: ForgeQueryMilestoneClosureStatus,
-    closure_digest: String,
+    closure_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryEvidenceIdentityBoundaryClosure {
-    pub(crate) fn closed(support_matrix_digest: &str) -> Self {
+    pub(crate) fn derived(
+        support_matrix_digest: &str,
+        ordinary_surface_available: bool,
+        hostile_matrix_certified: bool,
+        residue_clean: bool,
+    ) -> Self {
         let scheme = ForgeQueryEvidenceIdentityScheme::V1;
-        let status = ForgeQueryMilestoneClosureStatus::Closed;
-        let closure_digest = forge_query_evidence_identity(
+        let status = derive_boundary_status(
+            ordinary_surface_available,
+            residue_clean,
+            hostile_matrix_certified,
+        );
+        let closure_identity = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::ApplicationEvidenceIdentityBoundaryClosure,
         )
         .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
@@ -99,13 +119,11 @@ impl ForgeQueryEvidenceIdentityBoundaryClosure {
             ForgeQueryEvidenceTag::new("covered_surface"),
             EVIDENCE_IDENTITY_COVERED_SURFACES.iter().copied(),
         )
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         Self {
             scheme,
             status,
-            closure_digest,
+            closure_identity,
         }
     }
 
@@ -118,7 +136,11 @@ impl ForgeQueryEvidenceIdentityBoundaryClosure {
     }
 
     pub fn closure_digest(&self) -> &str {
-        &self.closure_digest
+        self.closure_identity.as_str()
+    }
+
+    pub fn closure_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.closure_identity
     }
 
     pub fn covered_surfaces(&self) -> &'static [&'static str] {
@@ -130,14 +152,22 @@ impl ForgeQueryEvidenceIdentityBoundaryClosure {
 pub struct ForgeQueryStopClassBoundaryClosure {
     accessor: &'static str,
     status: ForgeQueryMilestoneClosureStatus,
-    closure_digest: String,
+    closure_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryStopClassBoundaryClosure {
-    pub(crate) fn closed() -> Self {
+    pub(crate) fn derived(
+        ordinary_surface_available: bool,
+        hostile_matrix_certified: bool,
+        residue_clean: bool,
+    ) -> Self {
         let accessor = "ForgeQueryRuntimeError::stop_class()";
-        let status = ForgeQueryMilestoneClosureStatus::Closed;
-        let closure_digest = forge_query_evidence_identity(
+        let status = derive_boundary_status(
+            ordinary_surface_available,
+            residue_clean,
+            hostile_matrix_certified,
+        );
+        let closure_identity = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::ApplicationStopClassBoundaryClosure,
         )
         .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
@@ -146,13 +176,11 @@ impl ForgeQueryStopClassBoundaryClosure {
             ForgeQueryEvidenceTag::new("covered_contract"),
             STOP_CLASS_COVERED_CONTRACTS.iter().copied(),
         )
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         Self {
             accessor,
             status,
-            closure_digest,
+            closure_identity,
         }
     }
 
@@ -165,7 +193,11 @@ impl ForgeQueryStopClassBoundaryClosure {
     }
 
     pub fn closure_digest(&self) -> &str {
-        &self.closure_digest
+        self.closure_identity.as_str()
+    }
+
+    pub fn closure_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.closure_identity
     }
 
     pub fn covered_contracts(&self) -> &'static [&'static str] {
@@ -178,15 +210,23 @@ pub struct ForgeQuerySessionLabelBoundaryClosure {
     entry_label_type: &'static str,
     collision_stop_class: &'static str,
     status: ForgeQueryMilestoneClosureStatus,
-    closure_digest: String,
+    closure_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQuerySessionLabelBoundaryClosure {
-    pub(crate) fn closed() -> Self {
+    pub(crate) fn derived(
+        ordinary_surface_available: bool,
+        hostile_matrix_certified: bool,
+        residue_clean: bool,
+    ) -> Self {
         let entry_label_type = "ForgeQuerySessionLabel";
         let collision_stop_class = "ForgeQueryStopClass::SessionLabelCollision";
-        let status = ForgeQueryMilestoneClosureStatus::Closed;
-        let closure_digest = forge_query_evidence_identity(
+        let status = derive_boundary_status(
+            ordinary_surface_available,
+            residue_clean,
+            hostile_matrix_certified,
+        );
+        let closure_identity = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::ApplicationSessionLabelBoundaryClosure,
         )
         .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
@@ -202,14 +242,12 @@ impl ForgeQuerySessionLabelBoundaryClosure {
             ForgeQueryEvidenceTag::new("ordinary_entrypoint"),
             SESSION_LABEL_ORDINARY_ENTRYPOINTS.iter().copied(),
         )
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         Self {
             entry_label_type,
             collision_stop_class,
             status,
-            closure_digest,
+            closure_identity,
         }
     }
 
@@ -226,7 +264,11 @@ impl ForgeQuerySessionLabelBoundaryClosure {
     }
 
     pub fn closure_digest(&self) -> &str {
-        &self.closure_digest
+        self.closure_identity.as_str()
+    }
+
+    pub fn closure_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.closure_identity
     }
 
     pub fn ordinary_entrypoints(&self) -> &'static [&'static str] {
@@ -236,24 +278,62 @@ impl ForgeQuerySessionLabelBoundaryClosure {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIdentityBoundaryClosure {
+    status: ForgeQueryMilestoneClosureStatus,
     evidence_identity: ForgeQueryEvidenceIdentityBoundaryClosure,
     stop_class: ForgeQueryStopClassBoundaryClosure,
     session_label: ForgeQuerySessionLabelBoundaryClosure,
     residue_status: ForgeQueryFolkloreResidueStatus,
+    hostile_matrix_certified: bool,
     hostile_matrix_digest: String,
-    closure_digest: String,
+    closure_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryIdentityBoundaryClosure {
-    pub(crate) fn closed(support_matrix_digest: &str, hostile_matrix_digest: &str) -> Self {
-        let evidence_identity =
-            ForgeQueryEvidenceIdentityBoundaryClosure::closed(support_matrix_digest);
-        let stop_class = ForgeQueryStopClassBoundaryClosure::closed();
-        let session_label = ForgeQuerySessionLabelBoundaryClosure::closed();
+    pub(crate) fn derived(
+        support_matrix_digest: &str,
+        hostile_matrix: &ForgeQueryIdentityBoundaryHostileMatrixArtifact,
+        evidence_identity_surface_available: bool,
+        stop_class_surface_available: bool,
+        session_label_surface_available: bool,
+    ) -> Self {
+        let hostile_matrix_certified = hostile_matrix.certified();
+        let hostile_matrix_digest = hostile_matrix.artifact_digest();
+        let format_digest_residue_paths = scan_format_digest_residue_paths();
+        let string_matching_residue_paths = scan_string_matching_residue_paths();
+        let raw_session_admission_residue_paths = scan_raw_session_admission_residue_paths();
+        let string_carried_session_identity_residue_paths =
+            scan_string_carried_session_identity_residue_paths();
+        let evidence_identity_residue_clean = format_digest_residue_paths.is_empty();
+        let stop_class_residue_clean = string_matching_residue_paths.is_empty();
+        let session_label_residue_clean = raw_session_admission_residue_paths.is_empty()
+            && string_carried_session_identity_residue_paths.is_empty();
+        let evidence_identity = ForgeQueryEvidenceIdentityBoundaryClosure::derived(
+            support_matrix_digest,
+            evidence_identity_surface_available,
+            hostile_matrix_certified,
+            evidence_identity_residue_clean,
+        );
+        let stop_class = ForgeQueryStopClassBoundaryClosure::derived(
+            stop_class_surface_available,
+            hostile_matrix_certified,
+            stop_class_residue_clean,
+        );
+        let session_label = ForgeQuerySessionLabelBoundaryClosure::derived(
+            session_label_surface_available,
+            hostile_matrix_certified,
+            session_label_residue_clean,
+        );
         let residue_status = ForgeQueryFolkloreResidueStatus::derived();
+        let status = derive_closure_status(
+            evidence_identity.status(),
+            stop_class.status(),
+            session_label.status(),
+            residue_status.is_zero(),
+        );
         let mut closure_builder = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::ApplicationIdentityBoundaryClosure,
         )
+        .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
         .field_identity(
             ForgeQueryEvidenceTag::new("evidence_identity_closure_digest"),
             evidence_identity.closure_digest(),
@@ -270,6 +350,10 @@ impl ForgeQueryIdentityBoundaryClosure {
             ForgeQueryEvidenceTag::new("residue_status"),
             residue_status.as_str(),
         )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("hostile_matrix_certified"),
+            hostile_matrix_certified,
+        )
         .field_identity(
             ForgeQueryEvidenceTag::new("hostile_matrix_digest"),
             hostile_matrix_digest,
@@ -285,6 +369,12 @@ impl ForgeQueryIdentityBoundaryClosure {
         .field_identity_sequence(
             ForgeQueryEvidenceTag::new("exact_zero_raw_session_admission_path"),
             EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS.iter().copied(),
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("exact_zero_string_carried_session_identity_path"),
+            EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS
+                .iter()
+                .copied(),
         );
         if let ForgeQueryFolkloreResidueStatus::FolkloreResidueRemaining(paths) = &residue_status {
             closure_builder = closure_builder.field_identity_sequence(
@@ -292,15 +382,21 @@ impl ForgeQueryIdentityBoundaryClosure {
                 paths.iter().map(String::as_str),
             );
         }
-        let closure_digest = closure_builder.seal().as_str().to_string();
+        let closure_identity = closure_builder.seal();
         Self {
+            status,
             evidence_identity,
             stop_class,
             session_label,
             residue_status,
+            hostile_matrix_certified,
             hostile_matrix_digest: hostile_matrix_digest.to_string(),
-            closure_digest,
+            closure_identity,
         }
+    }
+
+    pub fn status(&self) -> ForgeQueryMilestoneClosureStatus {
+        self.status
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentityBoundaryClosure {
@@ -323,6 +419,10 @@ impl ForgeQueryIdentityBoundaryClosure {
         &self.hostile_matrix_digest
     }
 
+    pub fn hostile_matrix_certified(&self) -> bool {
+        self.hostile_matrix_certified
+    }
+
     pub fn exact_zero_format_digest_paths(&self) -> &'static [&'static str] {
         EXACT_ZERO_FORMAT_DIGEST_PATHS
     }
@@ -335,7 +435,52 @@ impl ForgeQueryIdentityBoundaryClosure {
         EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS
     }
 
+    pub fn exact_zero_string_carried_session_identity_paths(&self) -> &'static [&'static str] {
+        EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS
+    }
+
     pub fn closure_digest(&self) -> &str {
-        &self.closure_digest
+        self.closure_identity.as_str()
+    }
+
+    pub fn closure_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.closure_identity
+    }
+}
+
+fn derive_boundary_status(
+    ordinary_surface_available: bool,
+    residue_clean: bool,
+    hostile_matrix_certified: bool,
+) -> ForgeQueryMilestoneClosureStatus {
+    if ordinary_surface_available && residue_clean && hostile_matrix_certified {
+        ForgeQueryMilestoneClosureStatus::Closed
+    } else if ordinary_surface_available || residue_clean || hostile_matrix_certified {
+        ForgeQueryMilestoneClosureStatus::Partial
+    } else {
+        ForgeQueryMilestoneClosureStatus::Open
+    }
+}
+
+fn derive_closure_status(
+    evidence_identity: ForgeQueryMilestoneClosureStatus,
+    stop_class: ForgeQueryMilestoneClosureStatus,
+    session_label: ForgeQueryMilestoneClosureStatus,
+    residue_clean: bool,
+) -> ForgeQueryMilestoneClosureStatus {
+    if residue_clean
+        && evidence_identity == ForgeQueryMilestoneClosureStatus::Closed
+        && stop_class == ForgeQueryMilestoneClosureStatus::Closed
+        && session_label == ForgeQueryMilestoneClosureStatus::Closed
+    {
+        ForgeQueryMilestoneClosureStatus::Closed
+    } else if evidence_identity == ForgeQueryMilestoneClosureStatus::Open
+        && stop_class == ForgeQueryMilestoneClosureStatus::Open
+        && session_label == ForgeQueryMilestoneClosureStatus::Open
+        && !residue_clean
+    {
+        ForgeQueryMilestoneClosureStatus::Open
+    } else {
+        ForgeQueryMilestoneClosureStatus::Partial
     }
 }

@@ -26,25 +26,27 @@ impl ForgeQueryReadDomainInvariantDenial {
         let hook_family = read_invariant_pack_hook_family().to_string();
         let invariant_family = violation.invariant_family().to_string();
         let message = violation.message().to_string();
-        let denial_digest = forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::ReadDomainInvariantDenial,
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("hook_family"), hook_family.as_str())
-        .field_shape(
-            ForgeQueryEvidenceTag::new("invariant_family"),
-            invariant_family.as_str(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("summary_digest"),
-            domain_invariant_summary.summary_digest(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("violation_digest"),
-            violation.violation_digest(),
-        )
-        .seal()
-        .as_str()
-        .to_string();
+        let denial_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::ReadDomainInvariantDenial)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("hook_family"),
+                    hook_family.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("invariant_family"),
+                    invariant_family.as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("summary_digest"),
+                    domain_invariant_summary.summary_digest(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("violation_digest"),
+                    violation.violation_digest(),
+                )
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             hook_family,
             invariant_family,

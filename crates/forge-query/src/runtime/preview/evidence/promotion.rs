@@ -1,6 +1,7 @@
 use super::super::*;
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -36,9 +37,9 @@ pub struct ForgeQueryPreviewPromotionDenialEvidence {
     preview_binding_count: usize,
     crossed_authoritative_residue_count: usize,
     recovery_posture: String,
-    rebinding_digest: Option<String>,
+    rebinding_identity: Option<ForgeQueryEvidenceIdentity>,
     reason: String,
-    denial_digest: String,
+    denial_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryPreviewPromotionDenialEvidence {
@@ -55,74 +56,73 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         preview_binding_count: usize,
         crossed_authoritative_residue_count: usize,
         recovery_posture: String,
-        rebinding_digest: Option<String>,
+        rebinding_identity: Option<ForgeQueryEvidenceIdentity>,
         reason: String,
     ) -> Self {
         let basis_evidence_rows = basis_admission.evidence_rows();
-        let mut denial_builder = forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::PreviewPromotionDenialEvidence,
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("session_label_identity"),
-            basis_admission.label_identity().as_str(),
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
-        .field_shape(
-            ForgeQueryEvidenceTag::new("effect_policy"),
-            effect_policy.as_str(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("basis_admission_digest"),
-            basis_admission.admission_digest().as_str(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("basis_snapshot_token"),
-            basis_snapshot_token,
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("promotion_snapshot_token"),
-            promotion_snapshot_token,
-        )
-        .field_identity_sequence(
-            ForgeQueryEvidenceTag::new("basis_evidence_row"),
-            basis_evidence_rows
-                .iter()
-                .map(|row| row.row_digest().as_str()),
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("staged_preview_write_count"),
-            staged_preview_write_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("promoted_write_count"),
-            promoted_write_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("preview_binding_count"),
-            preview_binding_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("crossed_authoritative_residue_count"),
-            crossed_authoritative_residue_count,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("recovery_posture"),
-            recovery_posture.as_str(),
-        )
-        .field_value(ForgeQueryEvidenceTag::new("reason"), reason.as_str());
+        let mut denial_builder =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewPromotionDenialEvidence)
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("session_label_identity"),
+                    basis_admission.label_identity().as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("effect_policy"),
+                    effect_policy.as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("basis_admission_digest"),
+                    basis_admission.admission_digest().as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("basis_snapshot_token"),
+                    basis_snapshot_token,
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("promotion_snapshot_token"),
+                    promotion_snapshot_token,
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("basis_evidence_row"),
+                    basis_evidence_rows
+                        .iter()
+                        .map(|row| row.row_digest().as_str()),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("staged_preview_write_count"),
+                    staged_preview_write_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("promoted_write_count"),
+                    promoted_write_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("preview_binding_count"),
+                    preview_binding_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("crossed_authoritative_residue_count"),
+                    crossed_authoritative_residue_count,
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("recovery_posture"),
+                    recovery_posture.as_str(),
+                )
+                .field_value(ForgeQueryEvidenceTag::new("reason"), reason.as_str());
         if let Some(failed_write_sequence) = failed_write_sequence {
             denial_builder = denial_builder.field_usize(
                 ForgeQueryEvidenceTag::new("failed_write_sequence"),
                 failed_write_sequence,
             );
         }
-        if let Some(rebinding_digest) = rebinding_digest.as_deref() {
+        if let Some(rebinding_identity) = rebinding_identity.as_ref() {
             denial_builder = denial_builder.field_identity(
                 ForgeQueryEvidenceTag::new("rebinding_digest"),
-                rebinding_digest,
+                rebinding_identity.as_str(),
             );
         }
-        let denial_digest = denial_builder.seal().as_str().to_string();
+        let denial_identity = denial_builder.seal();
         let basis_evidence = basis_admission.evidence();
         Self {
             session_label: basis_admission.session_label().clone(),
@@ -137,9 +137,9 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             preview_binding_count,
             crossed_authoritative_residue_count,
             recovery_posture,
-            rebinding_digest,
+            rebinding_identity,
             reason,
-            denial_digest,
+            denial_identity,
         }
     }
 
@@ -233,7 +233,7 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         staged_preview_write_count: usize,
         preview_binding_count: usize,
         crossed_authoritative_residue_count: usize,
-        rebinding_digest: String,
+        rebinding_identity: ForgeQueryEvidenceIdentity,
     ) -> Self {
         Self::new(
             ForgeQueryPreviewPromotionDenialKind::RebindingRequired,
@@ -247,7 +247,7 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             preview_binding_count,
             crossed_authoritative_residue_count,
             "discard_preview_and_readmit_authoritative".to_string(),
-            Some(rebinding_digest),
+            Some(rebinding_identity),
             "preview promotion rejected because preview-owned temporal or async residue requires authoritative re-admission before promotion"
                 .to_string(),
         )
@@ -310,7 +310,13 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
     }
 
     pub fn rebinding_digest(&self) -> Option<&str> {
-        self.rebinding_digest.as_deref()
+        self.rebinding_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn rebinding_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.rebinding_identity.as_ref()
     }
 
     pub fn reason(&self) -> &str {
@@ -318,6 +324,10 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
     }
 
     pub fn denial_digest(&self) -> &str {
-        &self.denial_digest
+        self.denial_identity.as_str()
+    }
+
+    pub fn denial_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.denial_identity
     }
 }

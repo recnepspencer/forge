@@ -1,7 +1,13 @@
 use std::collections::BTreeSet;
 
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
+use super::observation_identity::{
+    CausalObservationAnchorCountersIdentity, CausalObservationAnchorDigest,
+    CausalObservationAnchorFailureIdentity,
+};
 use super::receipt_types::{
     CausalInspectionReason, CausalObservationOutcome, QueryObservationReceipt,
 };
@@ -24,21 +30,6 @@ impl CausalObservationMissingReferencePosture {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CausalObservationAnchorDigest {
-    digest: String,
-}
-
-impl CausalObservationAnchorDigest {
-    fn new(digest: String) -> Self {
-        Self { digest }
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.digest
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalObservationAnchorCounters {
     source_receipt_family_count: usize,
     reference_family_count: usize,
@@ -46,7 +37,7 @@ pub struct CausalObservationAnchorCounters {
     anchor_digest_width: usize,
     runtime_graph_scan_count: usize,
     diagnostics_retention_scan_count: usize,
-    counter_snapshot: String,
+    counter_identity: CausalObservationAnchorCountersIdentity,
 }
 
 impl CausalObservationAnchorCounters {
@@ -55,18 +46,29 @@ impl CausalObservationAnchorCounters {
         missing_reference_posture: CausalObservationMissingReferencePosture,
         anchor_digest_width: usize,
     ) -> Self {
-        let counter_snapshot = hash_parts(&[
-            "causal_observation_anchor_counters_v1".to_string(),
-            "source_receipt_family_count:1".to_string(),
-            format!("reference_family_count:{reference_family_count}"),
-            format!(
-                "missing_reference_posture:{}",
-                missing_reference_posture.as_str()
-            ),
-            format!("anchor_digest_width:{anchor_digest_width}"),
-            "runtime_graph_scan_count:0".to_string(),
-            "diagnostics_retention_scan_count:0".to_string(),
-        ]);
+        let counter_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalObservationAnchorCounters,
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("source_receipt_family_count"), 1)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("reference_family_count"),
+            reference_family_count,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("missing_reference_posture"),
+            missing_reference_posture.as_str(),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("anchor_digest_width"),
+            anchor_digest_width,
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("runtime_graph_scan_count"), 0)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("diagnostics_retention_scan_count"),
+            0,
+        )
+        .seal()
+        .into();
         Self {
             source_receipt_family_count: 1,
             reference_family_count,
@@ -74,7 +76,7 @@ impl CausalObservationAnchorCounters {
             anchor_digest_width,
             runtime_graph_scan_count: 0,
             diagnostics_retention_scan_count: 0,
-            counter_snapshot,
+            counter_identity,
         }
     }
 
@@ -103,7 +105,11 @@ impl CausalObservationAnchorCounters {
     }
 
     pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
+        self.counter_identity.as_str()
+    }
+
+    pub fn counter_identity(&self) -> &CausalObservationAnchorCountersIdentity {
+        &self.counter_identity
     }
 }
 
@@ -128,7 +134,7 @@ impl CausalObservationAnchorErrorKind {
 pub struct CausalObservationAnchorError {
     kind: CausalObservationAnchorErrorKind,
     message: &'static str,
-    failure_digest: String,
+    failure_identity: CausalObservationAnchorFailureIdentity,
 }
 
 impl CausalObservationAnchorError {
@@ -137,16 +143,21 @@ impl CausalObservationAnchorError {
         message: &'static str,
         evidence: &[String],
     ) -> Self {
-        let mut parts = vec![
-            "causal_observation_anchor_error_v1".to_string(),
-            kind.as_str().to_string(),
-            message.to_string(),
-        ];
-        parts.extend(evidence.iter().cloned());
+        let failure_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalObservationAnchorFailure,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_value(ForgeQueryEvidenceTag::new("message"), message)
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("evidence"),
+            evidence.iter().map(String::as_str),
+        )
+        .seal()
+        .into();
         Self {
             kind,
             message,
-            failure_digest: hash_parts(&parts),
+            failure_identity,
         }
     }
 
@@ -159,7 +170,7 @@ impl CausalObservationAnchorError {
     }
 
     pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+        self.failure_identity.as_str()
     }
 }
 
@@ -213,7 +224,11 @@ pub fn anchor_causal_observation(
             ],
         ));
     }
-    if observation_receipt.observation_receipt_digest().is_empty() {
+    if observation_receipt
+        .observation_receipt_identity()
+        .as_str()
+        .is_empty()
+    {
         return Err(CausalObservationAnchorError::new(
             CausalObservationAnchorErrorKind::MissingObservationReceipt,
             "causal observation anchors require one canonical Query observation receipt",
@@ -226,14 +241,14 @@ pub fn anchor_causal_observation(
             "causal observation anchors require at least one lower-runtime or Query evidence identity carried by the source receipt",
             &[format!(
                 "observation:{}",
-                observation_receipt.observation_receipt_digest()
+                observation_receipt.observation_receipt_identity().as_str()
             )],
         ));
     }
     if let Some(missing_identity) = observation_receipt
         .evidence_identities()
         .iter()
-        .find(|identity| identity.reference_digest().is_empty())
+        .find(|identity| identity.source_reference_was_empty())
     {
         return Err(CausalObservationAnchorError::new(
             CausalObservationAnchorErrorKind::MissingRequiredEvidenceReference,
@@ -241,7 +256,7 @@ pub fn anchor_causal_observation(
             &[
                 format!(
                     "observation:{}",
-                    observation_receipt.observation_receipt_digest()
+                    observation_receipt.observation_receipt_identity().as_str()
                 ),
                 format!("family:{}", missing_identity.family().as_str()),
             ],
@@ -253,42 +268,66 @@ pub fn anchor_causal_observation(
         .iter()
         .map(|identity| identity.family())
         .collect::<BTreeSet<_>>();
-    let evidence_part = observation_receipt
-        .evidence_identities()
-        .iter()
-        .map(|identity| {
-            format!(
-                "{}:{}",
-                identity.family().as_str(),
-                identity.reference_digest()
+    let anchor_digest: CausalObservationAnchorDigest =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalObservationAnchor)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("reason"),
+                inspection_reason.as_str(),
             )
-        })
-        .collect::<Vec<_>>()
-        .join("|");
-    let anchor_digest_value = hash_parts(&[
-        "causal_observation_anchor_v1".to_string(),
-        format!("reason:{}", inspection_reason.as_str()),
-        format!("receipt:{}", observation_receipt.receipt_digest()),
-        format!(
-            "observation:{}",
-            observation_receipt.observation_receipt_digest()
-        ),
-        format!("query:{}", observation_receipt.query_digest()),
-        format!("basis-posture:{}", observation_receipt.basis_posture()),
-        format!("basis:{}", observation_receipt.basis_digest()),
-        format!(
-            "result-shape:{}",
-            observation_receipt.result_shape_context_digest()
-        ),
-        format!("target:{}", observation_receipt.observation_target_digest()),
-        format!("outcome:{}", observation_receipt.outcome().as_str()),
-        format!("evidence:{evidence_part}"),
-    ]);
+            .field_identity(
+                ForgeQueryEvidenceTag::new("receipt"),
+                observation_receipt.receipt_identity().as_str(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("observation"),
+                observation_receipt.observation_receipt_identity().as_str(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("query"),
+                observation_receipt.query_identity().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("basis_posture"),
+                observation_receipt.basis_posture(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("basis"),
+                observation_receipt.basis_identity().as_str(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("result_shape_context"),
+                observation_receipt
+                    .result_shape_context()
+                    .identity()
+                    .as_str(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("observation_target"),
+                observation_receipt.observation_target().identity().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("outcome"),
+                observation_receipt.outcome().as_str(),
+            )
+            .field_identity_sequence(
+                ForgeQueryEvidenceTag::new("evidence"),
+                observation_receipt
+                    .evidence_identities()
+                    .iter()
+                    .flat_map(|identity| {
+                        [
+                            identity.family().as_str(),
+                            identity.reference_digest().as_str(),
+                        ]
+                    }),
+            )
+            .seal()
+            .into();
     let missing_reference_posture = CausalObservationMissingReferencePosture::Complete;
     let counters = CausalObservationAnchorCounters::new(
         unique_families.len(),
         missing_reference_posture,
-        anchor_digest_value.len(),
+        anchor_digest.as_str().len(),
     );
 
     Ok(CausalObservationAnchor {
@@ -296,7 +335,7 @@ pub fn anchor_causal_observation(
         inspection_reason,
         lower_runtime_evidence_family_count: unique_families.len(),
         missing_reference_posture,
-        anchor_digest: CausalObservationAnchorDigest::new(anchor_digest_value),
+        anchor_digest,
         counters,
     })
 }

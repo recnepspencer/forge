@@ -365,8 +365,8 @@ pub(in crate::runtime::tests::causal_inspection) fn request_for(
 ) -> CausalInspectionRequest {
     let receipt = reference_set.anchor().observation_receipt();
     let target = causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
+        receipt.observation_target().clone(),
+        receipt.result_shape_context().clone(),
     )
     .expect("target should match receipt");
     request_causal_inspection(
@@ -386,8 +386,8 @@ pub(in crate::runtime::tests::causal_inspection) fn request_for_families(
 ) -> CausalInspectionRequest {
     let receipt = reference_set.anchor().observation_receipt();
     let target = causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
+        receipt.observation_target().clone(),
+        receipt.result_shape_context().clone(),
     )
     .expect("target should match receipt");
     request_causal_inspection(

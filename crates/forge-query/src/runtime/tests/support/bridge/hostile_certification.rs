@@ -111,9 +111,7 @@ fn shared_read_structural_lock_acquisition_count(_runtime: &ForgeQueryRuntime) -
 }
 
 fn shared_read_structural_orphaned_generation_count(_runtime: &ForgeQueryRuntime) -> usize {
-    _runtime
-        .shared_read_counters()
-        .orphaned_generation_count()
+    _runtime.shared_read_counters().orphaned_generation_count()
 }
 
 fn shared_read_structural_unretired_pin_count(_runtime: &ForgeQueryRuntime) -> usize {

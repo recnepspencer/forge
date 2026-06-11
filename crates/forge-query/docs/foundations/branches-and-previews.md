@@ -193,6 +193,10 @@ is a separate typed identity lane. Opening the preview uses
 planning uses `forge_query::facade::runtime::BridgePreviewSessionIdentity`.
 Do not collapse those two roles into one raw string.
 
+Preview binding and preview outcome inspection stay on the
+`ForgeQuerySessionLabel` lane too. Use rendered labels for DX only; if replay
+identity or collision posture matters, keep the typed session-label artifact.
+
 What is authoritative:
 
 - the workspace's current truth lane

@@ -66,7 +66,10 @@ pub enum ForgeQueryRuntimeError {
         stage: &'static str,
         message: String,
     },
-    UnsupportedAuthority(String),
+    UnsupportedAuthorityRequirement(ForgeQueryAuthorityRequirement),
+    ExistingTruthAssertionRequiresAuthorityLane {
+        required_lane: ForgeQueryAuthorityLane,
+    },
     IntentCommitDenied {
         intent_name: String,
         stage: &'static str,
@@ -96,7 +99,7 @@ pub enum ForgeQueryRuntimeError {
         label: ForgeQuerySessionLabel,
     },
     PreviewOperationEffectDenied {
-        label: String,
+        label: ForgeQuerySessionLabel,
         stage: &'static str,
         message: String,
     },
@@ -216,10 +219,17 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 f,
                 "live view `{view_name}` subscription installation failed during {stage}: {message}"
             ),
-            Self::UnsupportedAuthority(authority) => {
+            Self::UnsupportedAuthorityRequirement(requirement) => {
                 write!(
                     f,
-                    "authority requirement `{authority}` is not admitted by this runtime"
+                    "authority requirement `{}` is not admitted by this runtime",
+                    requirement.as_str()
+                )
+            }
+            Self::ExistingTruthAssertionRequiresAuthorityLane { required_lane } => {
+                write!(
+                    f,
+                    "existing-truth assertion currently requires the `{required_lane}` lane"
                 )
             }
             Self::IntentCommitDenied {

@@ -108,7 +108,8 @@ fn basis_admissions_emit_canonical_evidence_tokens() {
         test_session_label("preview basis | punctuation"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
-            "basis|one", "basis:two",
+            "basis|one",
+            "basis:two",
         ]),
     );
     let branch = crate::runtime::ForgeQueryBranchBasisAdmission::new(
@@ -116,7 +117,8 @@ fn basis_admissions_emit_canonical_evidence_tokens() {
         test_session_label("branch basis | punctuation"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
-            "branch|one", "branch:two",
+            "branch|one",
+            "branch:two",
         ]),
     );
 
@@ -347,7 +349,8 @@ fn runtime_surface_evidence_identities_resist_joined_string_folklore_collisions(
         test_session_label("preview|basis"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
-            "alpha", "beta|gamma",
+            "alpha",
+            "beta|gamma",
         ]),
     );
     let right = crate::runtime::ForgeQueryPreviewBasisAdmission::new(
@@ -355,7 +358,8 @@ fn runtime_surface_evidence_identities_resist_joined_string_folklore_collisions(
         test_session_label("preview"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
-            "basis|alpha", "beta|gamma",
+            "basis|alpha",
+            "beta|gamma",
         ]),
     );
     let branch = crate::runtime::ForgeQueryBranchBasisAdmission::new(
@@ -363,7 +367,8 @@ fn runtime_surface_evidence_identities_resist_joined_string_folklore_collisions(
         test_session_label("preview|basis"),
         ForgeQueryEffectPolicy::SandboxedWriteIntent,
         crate::runtime::ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
-            "alpha", "beta|gamma",
+            "alpha",
+            "beta|gamma",
         ]),
     );
 
@@ -373,9 +378,7 @@ fn runtime_surface_evidence_identities_resist_joined_string_folklore_collisions(
 
 #[test]
 fn phase_one_covered_surfaces_have_no_digest_folklore_residue() {
-    use crate::application::{
-        format_digest_folklore_pattern_in, source_for_format_digest_path,
-    };
+    use crate::application::{format_digest_folklore_pattern_in, source_for_format_digest_path};
 
     for path in [
         "runtime/support_matrix.rs",

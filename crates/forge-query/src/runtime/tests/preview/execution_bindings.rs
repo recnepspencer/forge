@@ -221,6 +221,7 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
         evidence.kind() == ForgeQueryPreviewExecutionKind::LivePatch
             && evidence.handle_name() == "tasks.preview-execution"
             && evidence.preview_lane() == ForgeQueryAuthorityLane::PreviewTruth
+            && evidence.execution_identity().as_str() == evidence.execution_digest()
             && !evidence.execution_digest().is_empty()
     }));
     assert!(execution_evidence.iter().any(|evidence| {

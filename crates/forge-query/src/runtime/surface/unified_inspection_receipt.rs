@@ -1,3 +1,4 @@
+use crate::intent_admission::ForgeQueryGenericInspectionRequestLabel;
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
 use crate::runtime::{
     ForgeQueryInspection, ForgeQueryIntentConsumerInspection, ForgeQueryIntentExecutionProvenance,
@@ -5,7 +6,7 @@ use crate::runtime::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryUnifiedInspectionReceipt {
-    target_label: String,
+    target_label: ForgeQueryGenericInspectionRequestLabel,
     result_digest: String,
     snapshot_token: String,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
@@ -14,7 +15,7 @@ pub struct ForgeQueryUnifiedInspectionReceipt {
 
 impl ForgeQueryUnifiedInspectionReceipt {
     pub(in crate::runtime) fn from_inspection(
-        target_label: String,
+        target_label: ForgeQueryGenericInspectionRequestLabel,
         inspection: &ForgeQueryInspection,
         snapshot_token: String,
     ) -> Self {
@@ -28,6 +29,10 @@ impl ForgeQueryUnifiedInspectionReceipt {
     }
 
     pub fn target_label(&self) -> &str {
+        self.target_label.as_str()
+    }
+
+    pub fn typed_target_label(&self) -> &ForgeQueryGenericInspectionRequestLabel {
         &self.target_label
     }
 

@@ -4,8 +4,8 @@ use super::completeness_support::{
     representative_runtime_stop_errors, runtime_error_variant_key, stop_class_variant_key,
 };
 
-const PHASE_THREE_COVERED_RUNTIME_ERROR_VARIANT_COUNT: usize = 45;
-const PHASE_THREE_STOP_CLASS_VARIANT_COUNT: usize = 23;
+const PHASE_THREE_COVERED_RUNTIME_ERROR_VARIANT_COUNT: usize = 47;
+const PHASE_THREE_STOP_CLASS_VARIANT_COUNT: usize = 26;
 
 #[test]
 fn runtime_stop_class_classifier_is_complete_for_covered_runtime_error_variants() {
@@ -67,8 +67,17 @@ fn runtime_stop_class_classifier_is_complete_for_covered_runtime_error_variants(
         .filter(|error| stop_class_variant_key(error.stop_class()) == "runtime_declaration_failed")
         .count();
     assert_eq!(
-        runtime_declaration_count, 6,
+        runtime_declaration_count, 5,
         "runtime declaration failures should converge on one typed declaration stop class family"
+    );
+
+    let shared_read_stale_basis_count = representative_errors
+        .iter()
+        .filter(|error| stop_class_variant_key(error.stop_class()) == "shared_read_stale_basis")
+        .count();
+    assert_eq!(
+        shared_read_stale_basis_count, 1,
+        "shared-read stale basis must stay inside the phase-3 typed taxonomy representatives"
     );
 
     let classifier_source = include_str!("../../error/stop_classify.rs");

@@ -12,8 +12,8 @@ pub(super) fn admit_authority_requirements(
             | ForgeQueryAuthorityRequirement::Writeback
             | ForgeQueryAuthorityRequirement::ReplayRequired => {}
             ForgeQueryAuthorityRequirement::Merge | ForgeQueryAuthorityRequirement::Destructive => {
-                return Err(ForgeQueryRuntimeError::UnsupportedAuthority(
-                    requirement.as_str().to_string(),
+                return Err(ForgeQueryRuntimeError::UnsupportedAuthorityRequirement(
+                    requirement.clone(),
                 ));
             }
         }

@@ -228,8 +228,8 @@ fn denied_query_causal_artifact_carries_boundary_context_without_bridge_envelope
     let reference_set = changed_reference_set(routed.route_identity());
     let receipt = reference_set.anchor().observation_receipt();
     let target = causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
+        receipt.observation_target().clone(),
+        receipt.result_shape_context().clone(),
     )
     .expect("target should match receipt");
     let request = request_causal_inspection(
@@ -283,8 +283,8 @@ fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
     let reference_set = changed_reference_set(routed.route_identity());
     let receipt = reference_set.anchor().observation_receipt();
     let target = causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
+        receipt.observation_target().clone(),
+        receipt.result_shape_context().clone(),
     )
     .expect("target should match receipt");
     let request = request_causal_inspection(

@@ -391,7 +391,7 @@ fn preview_proof(
 
 fn binding_digest(binding: &crate::facade::ForgeQueryPreviewHandleBindingEvidence) -> String {
     hash_parts(&[
-        format!("label:{}", binding.label()),
+        format!("label_identity:{}", binding.label_identity().as_str()),
         format!("handle:{}", binding.handle_name()),
         format!("family:{}", binding.family().as_str()),
         format!("source:{}", binding.source_lane().as_str()),

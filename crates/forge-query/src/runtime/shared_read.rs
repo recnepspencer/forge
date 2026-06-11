@@ -10,9 +10,8 @@ use super::{
     ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationBundle,
     ForgeQueryDerivedMaterializationReceipt, ForgeQueryDerivedMaterializationResult,
     ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewHandle, ForgeQueryRuntime,
-    ForgeQuerySharedReadGenerationLease,
     ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeAsyncResultStateKind,
-    ForgeQueryRuntimeError,
+    ForgeQueryRuntimeError, ForgeQuerySharedReadGenerationLease,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -205,7 +204,8 @@ impl ForgeQueryRuntime {
             .derived_views
             .iter()
             .map(|(view_name, runtime_view)| {
-                let evidence = super::ForgeQueryComputedInspectionEvidence::from_runtime(runtime_view);
+                let evidence =
+                    super::ForgeQueryComputedInspectionEvidence::from_runtime(runtime_view);
                 let receipt = ForgeQueryDerivedMaterializationReceipt::from_evidence(
                     &evidence,
                     snapshot_token.to_string(),
@@ -254,7 +254,8 @@ impl ForgeQueryRuntime {
                             published: runtime_view.materialization.is_published(),
                             materialization,
                             pending_patch_count: evidence.pending_patch_count(),
-                            pending_refresh_fallback_count: evidence.pending_refresh_fallback_count(),
+                            pending_refresh_fallback_count: evidence
+                                .pending_refresh_fallback_count(),
                         },
                     )
                 })
@@ -265,24 +266,23 @@ impl ForgeQueryRuntime {
         let lease = self
             .shared_read_pins
             .pin_current_generation()
-            .ok_or_else(|| ForgeQueryRuntimeError::Workspace(crate::memory_workspace::ForgeQueryWorkspaceError::new(
-                "shared read context requires a committed generation",
-            )))?;
+            .ok_or_else(|| {
+                ForgeQueryRuntimeError::Workspace(
+                    crate::memory_workspace::ForgeQueryWorkspaceError::new(
+                        "shared read context requires a committed generation",
+                    ),
+                )
+            })?;
         Ok(ForgeQuerySharedReadContext { lease })
     }
 
     #[cfg(test)]
-    pub(in crate::runtime) fn shared_read_counters(
-        &self,
-    ) -> super::ForgeQuerySharedReadCounters {
+    pub(in crate::runtime) fn shared_read_counters(&self) -> super::ForgeQuerySharedReadCounters {
         self.shared_read_pins.counters()
     }
 
     #[cfg(test)]
-    pub(crate) fn force_retire_shared_read_snapshot_for_tests(
-        &self,
-        snapshot_token: &str,
-    ) {
+    pub(crate) fn force_retire_shared_read_snapshot_for_tests(&self, snapshot_token: &str) {
         self.shared_read_pins
             .force_retire_snapshot_token(snapshot_token);
     }

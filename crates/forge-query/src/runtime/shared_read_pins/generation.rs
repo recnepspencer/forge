@@ -52,7 +52,9 @@ impl ForgeQuerySharedReadPinnedSnapshot {
         &self.generation
     }
 
-    pub(in crate::runtime) fn derived_views(&self) -> &BTreeMap<String, SharedReadDerivedViewState> {
+    pub(in crate::runtime) fn derived_views(
+        &self,
+    ) -> &BTreeMap<String, SharedReadDerivedViewState> {
         &self.derived_views
     }
 }
@@ -82,7 +84,9 @@ impl ForgeQuerySharedReadGenerationEntry {
     }
 
     pub(in crate::runtime) fn release_pin(&self) -> usize {
-        self.pin_count.fetch_sub(1, Ordering::SeqCst).saturating_sub(1)
+        self.pin_count
+            .fetch_sub(1, Ordering::SeqCst)
+            .saturating_sub(1)
     }
 
     pub(in crate::runtime) fn pin_count(&self) -> usize {

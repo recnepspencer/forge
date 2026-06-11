@@ -1,13 +1,15 @@
-use crate::identity::hash_parts;
-
 use super::super::super::{
     ForgeQueryAuthorityLane, ForgeQueryEffectPolicy, ForgeQueryPreviewHandleBindingEvidence,
     ForgeQueryPreviewHandleBindingFamily,
 };
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::session_label::ForgeQuerySessionLabel;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryPreviewBindingInspection {
-    label: String,
+    label: ForgeQuerySessionLabel,
     handle_name: String,
     family: ForgeQueryPreviewHandleBindingFamily,
     source_lane: ForgeQueryAuthorityLane,
@@ -28,48 +30,90 @@ impl ForgeQueryPreviewBindingInspection {
         binding: &ForgeQueryPreviewHandleBindingEvidence,
     ) -> Self {
         let basis_evidence = binding.basis_evidence().to_vec();
-        let basis_digest = hash_parts(&[
-            "forge_query_preview_binding_basis_v1".to_string(),
-            format!("label:{}", binding.label()),
-            format!("family:{}", binding.family().as_str()),
-            format!("basis:{}", basis_evidence.join("|")),
-        ]);
+        let basis_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::PreviewBindingInspectionArtifact,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "basis")
+        .field_identity(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            binding.label_identity().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("binding_family"),
+            binding.family().as_str(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("basis_evidence"),
+            basis_evidence.iter().map(String::as_str),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         let effect_disposition = binding
             .effect_disposition()
             .map(|disposition| disposition.as_str().to_string());
-        let admission_digest = hash_parts(&[
-            "forge_query_preview_binding_admission_v1".to_string(),
-            format!("label:{}", binding.label()),
-            format!("handle:{}", binding.handle_name()),
-            format!("family:{}", binding.family().as_str()),
-            format!("source:{}", binding.source_lane()),
-            format!("preview:{}", binding.preview_lane()),
-            format!("policy:{}", binding.effect_policy().as_str()),
-            format!(
-                "effect-disposition:{}",
-                effect_disposition.as_deref().unwrap_or("none")
-            ),
-            format!("basis:{basis_digest}"),
-            format!(
-                "effect-delivery-admitted:{}",
-                binding.effect_delivery_admitted()
-            ),
-            format!(
-                "pending-write-intent-admitted:{}",
-                binding.pending_write_intent_admitted()
-            ),
-            format!(
-                "authoritative-side-effect-admitted:{}",
-                binding.authoritative_side_effect_admitted()
-            ),
-        ]);
-        let inspection_digest = hash_parts(&[
-            "forge_query_preview_binding_inspection_v1".to_string(),
-            admission_digest.clone(),
-        ]);
+        let admission_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::PreviewBindingInspectionArtifact,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "admission")
+        .field_identity(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            binding.label_identity().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("handle_name"),
+            binding.handle_name(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("binding_family"),
+            binding.family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source_lane"),
+            binding.source_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("preview_lane"),
+            binding.preview_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("effect_policy"),
+            binding.effect_policy().as_str(),
+        )
+        .optional_shape(
+            ForgeQueryEvidenceTag::new("effect_disposition"),
+            effect_disposition.as_deref(),
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("basis_digest"), &basis_digest)
+        .field_bool(
+            ForgeQueryEvidenceTag::new("effect_delivery_admitted"),
+            binding.effect_delivery_admitted(),
+        )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("pending_write_intent_admitted"),
+            binding.pending_write_intent_admitted(),
+        )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("authoritative_side_effect_admitted"),
+            binding.authoritative_side_effect_admitted(),
+        )
+        .seal()
+        .as_str()
+        .to_string();
+        let inspection_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::PreviewBindingInspectionArtifact,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "inspection")
+        .field_identity(
+            ForgeQueryEvidenceTag::new("admission_digest"),
+            &admission_digest,
+        )
+        .seal()
+        .as_str()
+        .to_string();
 
         Self {
-            label: binding.label().to_string(),
+            label: binding.session_label().clone(),
             handle_name: binding.handle_name().to_string(),
             family: binding.family(),
             source_lane: binding.source_lane(),
@@ -87,6 +131,10 @@ impl ForgeQueryPreviewBindingInspection {
     }
 
     pub fn label(&self) -> &str {
+        self.label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
         &self.label
     }
     pub fn handle_name(&self) -> &str {

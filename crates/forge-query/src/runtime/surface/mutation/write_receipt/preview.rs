@@ -1,7 +1,11 @@
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::runtime::{
     ForgeQueryAuthorityLane, ForgeQueryExistingTruthBindingEvidence, ForgeQueryMutationFamily,
     ForgeQueryWriteReceipt,
 };
+use crate::session_label::ForgeQuerySessionLabel;
 
 use super::{
     helpers::{
@@ -13,12 +17,13 @@ use super::{
 
 impl ForgeQueryWriteReceipt {
     pub(in crate::runtime) fn preview(
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         sequence: usize,
         command: &ForgeQueryWriteCommand,
         snapshot_token: String,
     ) -> Self {
-        let delta = preview_receipt_delta(command, label, sequence);
+        let preview_identity = preview_write_receipt_identity(label, sequence);
+        let delta = preview_receipt_delta(command, &preview_identity);
         let target_entity_identity = preview_target_entity_identity(command, &delta);
         let target_collection = command.declared_collection();
         let naming_mutation_evidence = naming_mutation_evidence(
@@ -40,7 +45,7 @@ impl ForgeQueryWriteReceipt {
         );
         Self {
             inner: crate::memory_workspace::ForgeQueryMutationReceipt {
-                commit_identity: format!("preview:{label}:{sequence}"),
+                commit_identity: preview_identity,
                 snapshot_token,
                 deltas: vec![delta.clone()],
                 bridge_authority: None,
@@ -97,14 +102,13 @@ impl ForgeQueryWriteReceipt {
 
 pub(super) fn preview_receipt_delta(
     command: &ForgeQueryWriteCommand,
-    label: &str,
-    sequence: usize,
+    preview_identity: &str,
 ) -> crate::memory_workspace::ForgeQueryMutationDelta {
     match command {
         ForgeQueryWriteCommand::InsertAspects { collection, .. } => {
             crate::memory_workspace::ForgeQueryMutationDelta {
                 collection: collection.clone(),
-                entity_identity: format!("preview:{label}:{sequence}"),
+                entity_identity: preview_identity.to_string(),
                 kind: crate::memory_workspace::ForgeQueryMutationKind::Created,
                 aspect_paths: command.declared_aspect_paths(),
             }
@@ -233,6 +237,18 @@ pub(super) fn preview_receipt_delta(
             }
         }
     }
+}
+
+fn preview_write_receipt_identity(label: &ForgeQuerySessionLabel, sequence: usize) -> String {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewWriteReceiptIdentity)
+        .field_identity(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            label.identity_digest().as_str(),
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("sequence"), sequence)
+        .seal()
+        .as_str()
+        .to_string()
 }
 
 fn preview_target_entity_identity(

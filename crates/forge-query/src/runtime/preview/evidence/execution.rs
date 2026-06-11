@@ -1,6 +1,7 @@
 use super::super::*;
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,7 +34,7 @@ pub struct ForgeQueryPreviewExecutionEvidence {
     preview_lane: ForgeQueryAuthorityLane,
     commit_identity: String,
     aspect_paths: Vec<String>,
-    execution_digest: String,
+    execution_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryPreviewExecutionEvidence {
@@ -46,34 +47,31 @@ impl ForgeQueryPreviewExecutionEvidence {
         commit_identity: &str,
         aspect_paths: Vec<String>,
     ) -> Self {
-        let execution_digest = forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::PreviewExecutionEvidence,
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("session_label_identity"),
-            basis_admission.label_identity().as_str(),
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
-        .field_shape(ForgeQueryEvidenceTag::new("handle_name"), handle_name)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("source_lane"),
-            source_lane.as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("preview_lane"),
-            preview_lane.as_str(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("commit_identity"),
-            commit_identity,
-        )
-        .field_identity_sequence(
-            ForgeQueryEvidenceTag::new("aspect_path"),
-            aspect_paths.iter().map(String::as_str),
-        )
-        .seal()
-        .as_str()
-        .to_string();
+        let execution_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewExecutionEvidence)
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("session_label_identity"),
+                    basis_admission.label_identity().as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_shape(ForgeQueryEvidenceTag::new("handle_name"), handle_name)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("source_lane"),
+                    source_lane.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("preview_lane"),
+                    preview_lane.as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("commit_identity"),
+                    commit_identity,
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("aspect_path"),
+                    aspect_paths.iter().map(String::as_str),
+                )
+                .seal();
         Self {
             session_label: basis_admission.session_label().clone(),
             kind,
@@ -82,7 +80,7 @@ impl ForgeQueryPreviewExecutionEvidence {
             preview_lane,
             commit_identity: commit_identity.to_string(),
             aspect_paths,
-            execution_digest,
+            execution_identity,
         }
     }
 
@@ -123,6 +121,10 @@ impl ForgeQueryPreviewExecutionEvidence {
     }
 
     pub fn execution_digest(&self) -> &str {
-        &self.execution_digest
+        self.execution_identity.as_str()
+    }
+
+    pub fn execution_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.execution_identity
     }
 }

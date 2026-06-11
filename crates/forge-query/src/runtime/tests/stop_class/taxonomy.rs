@@ -22,8 +22,10 @@ fn runtime_stop_class_taxonomy_covers_representative_runtime_error_variants() {
             | ForgeQueryStopClass::MissingRuntimeArtifact { .. }
             | ForgeQueryStopClass::SharedReadStaleBasis { .. }
             | ForgeQueryStopClass::RuntimeDeclarationFailed { .. }
+            | ForgeQueryStopClass::PreviewOperationEffectDenied { .. }
             | ForgeQueryStopClass::SessionLabelCollision { .. }
-            | ForgeQueryStopClass::UnsupportedAuthority { .. }
+            | ForgeQueryStopClass::UnsupportedAuthorityRequirement { .. }
+            | ForgeQueryStopClass::ExistingTruthAssertionRequiresAuthorityLane { .. }
             | ForgeQueryStopClass::IntentCommitDenied { .. }
             | ForgeQueryStopClass::IntentExecutionRoutingFailed { .. }
             | ForgeQueryStopClass::EffectPolicyDenied { .. }

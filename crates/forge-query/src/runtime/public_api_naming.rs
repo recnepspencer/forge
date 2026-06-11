@@ -9,7 +9,7 @@ pub struct ForgeQueryRuntimePublicApiNamingRow {
     preferred_name: String,
     alternate_names: Vec<String>,
     boundary_crossing: bool,
-    naming_digest: String,
+    naming_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimePublicApiNamingRow {
@@ -25,31 +25,28 @@ impl ForgeQueryRuntimePublicApiNamingRow {
             .into_iter()
             .map(Into::into)
             .collect::<Vec<_>>();
-        let naming_digest = forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::RuntimePublicApiNamingRow,
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("concept"), concept.as_str())
-        .field_shape(
-            ForgeQueryEvidenceTag::new("preferred_name"),
-            preferred_name.as_str(),
-        )
-        .field_bool(
-            ForgeQueryEvidenceTag::new("boundary_crossing"),
-            boundary_crossing,
-        )
-        .field_identity_sequence(
-            ForgeQueryEvidenceTag::new("alternate_name"),
-            alternate_names.iter().map(String::as_str),
-        )
-        .seal()
-        .as_str()
-        .to_string();
+        let naming_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicApiNamingRow)
+                .field_shape(ForgeQueryEvidenceTag::new("concept"), concept.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("preferred_name"),
+                    preferred_name.as_str(),
+                )
+                .field_bool(
+                    ForgeQueryEvidenceTag::new("boundary_crossing"),
+                    boundary_crossing,
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("alternate_name"),
+                    alternate_names.iter().map(String::as_str),
+                )
+                .seal();
         Self {
             concept,
             preferred_name,
             alternate_names,
             boundary_crossing,
-            naming_digest,
+            naming_identity,
         }
     }
 
@@ -70,7 +67,11 @@ impl ForgeQueryRuntimePublicApiNamingRow {
     }
 
     pub fn naming_digest(&self) -> &str {
-        &self.naming_digest
+        self.naming_identity.as_str()
+    }
+
+    pub fn naming_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.naming_identity
     }
 }
 
@@ -80,7 +81,7 @@ pub struct ForgeQueryRuntimePublicApiNamingContract {
     preferred_entrypoint_count: usize,
     alternate_name_count: usize,
     boundary_crossing_name_count: usize,
-    contract_digest: String,
+    contract_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimePublicApiNamingContract {
@@ -197,34 +198,32 @@ impl ForgeQueryRuntimePublicApiNamingContract {
         let alternate_name_count = rows.iter().map(|row| row.alternate_names().len()).sum();
         let boundary_crossing_name_count =
             rows.iter().filter(|row| row.boundary_crossing()).count();
-        let contract_digest = forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::RuntimePublicApiNamingContract,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("preferred_entrypoint_count"),
-            preferred_entrypoint_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("alternate_name_count"),
-            alternate_name_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("boundary_crossing_name_count"),
-            boundary_crossing_name_count,
-        )
-        .field_identity_sequence(
-            ForgeQueryEvidenceTag::new("row_digest"),
-            rows.iter().map(ForgeQueryRuntimePublicApiNamingRow::naming_digest),
-        )
-        .seal()
-        .as_str()
-        .to_string();
+        let contract_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicApiNamingContract)
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("preferred_entrypoint_count"),
+                    preferred_entrypoint_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("alternate_name_count"),
+                    alternate_name_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("boundary_crossing_name_count"),
+                    boundary_crossing_name_count,
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("row_digest"),
+                    rows.iter()
+                        .map(ForgeQueryRuntimePublicApiNamingRow::naming_digest),
+                )
+                .seal();
         Self {
             rows,
             preferred_entrypoint_count,
             alternate_name_count,
             boundary_crossing_name_count,
-            contract_digest,
+            contract_identity,
         }
     }
 
@@ -252,10 +251,15 @@ impl ForgeQueryRuntimePublicApiNamingContract {
     }
 
     pub fn contract_digest(&self) -> &str {
-        &self.contract_digest
+        self.contract_identity.as_str()
+    }
+
+    pub fn contract_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.contract_identity
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn compose_public_api_naming_row_identity(
     row: &ForgeQueryRuntimePublicApiNamingRow,
 ) -> ForgeQueryEvidenceIdentity {
@@ -276,6 +280,7 @@ pub(crate) fn compose_public_api_naming_row_identity(
         .seal()
 }
 
+#[allow(dead_code)]
 pub(crate) fn compose_public_api_naming_contract_identity(
     contract: &ForgeQueryRuntimePublicApiNamingContract,
 ) -> ForgeQueryEvidenceIdentity {
@@ -294,7 +299,10 @@ pub(crate) fn compose_public_api_naming_contract_identity(
         )
         .field_identity_sequence(
             ForgeQueryEvidenceTag::new("row_digest"),
-            contract.rows().iter().map(ForgeQueryRuntimePublicApiNamingRow::naming_digest),
+            contract
+                .rows()
+                .iter()
+                .map(ForgeQueryRuntimePublicApiNamingRow::naming_digest),
         )
         .seal()
 }

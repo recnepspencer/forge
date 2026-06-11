@@ -2,6 +2,10 @@ use crate::identity::hash_parts;
 
 use forge_runtime_bridge::facade::{BridgeCausalEvidenceBinding, BridgeCausalExplanationEnvelope};
 
+use super::super::super::identity::CausalInspectionOutcomeIdentity;
+use super::super::super::observation_identity::{
+    CausalObservationReceiptIdentity, CausalResultShapeContextIdentity,
+};
 use super::super::{
     CausalBridgeReadmissionProof, CausalInspectionArtifactKind,
     CausalInspectionBoundaryEnvelopeCategory, CausalInspectionPerformanceEnvelope,
@@ -87,9 +91,9 @@ impl QueryCausalEvidenceReferenceArtifact {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdmittedQueryCausalInspectionArtifact {
-    query_admission_digest: String,
-    query_observation_digest: String,
-    result_shape_context_digest: String,
+    query_admission_identity: CausalInspectionOutcomeIdentity,
+    query_observation_identity: CausalObservationReceiptIdentity,
+    result_shape_context_identity: CausalResultShapeContextIdentity,
     bridge_envelope_identity_digest: String,
     bridge_envelope_digest: String,
     bridge_receipt_digest: String,
@@ -105,9 +109,9 @@ pub struct AdmittedQueryCausalInspectionArtifact {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdvisoryQueryCausalInspectionArtifact {
-    query_advisory_digest: String,
-    query_observation_digest: String,
-    result_shape_context_digest: String,
+    query_advisory_identity: CausalInspectionOutcomeIdentity,
+    query_observation_identity: CausalObservationReceiptIdentity,
+    result_shape_context_identity: CausalResultShapeContextIdentity,
     advisory_reason: String,
     bridge_envelope_identity_digest: String,
     bridge_envelope_digest: String,
@@ -124,17 +128,17 @@ pub struct AdvisoryQueryCausalInspectionArtifact {
 
 impl AdmittedQueryCausalInspectionArtifact {
     pub(in crate::runtime::inspection::causal::materialization) fn from_parts(
-        query_admission_digest: &str,
-        query_observation_digest: &str,
-        result_shape_context_digest: &str,
+        query_admission_identity: &CausalInspectionOutcomeIdentity,
+        query_observation_identity: &CausalObservationReceiptIdentity,
+        result_shape_context_identity: &CausalResultShapeContextIdentity,
         envelope: &BridgeCausalExplanationEnvelope,
         temporal_async_explanation: QueryCausalTemporalAsyncExplanation,
         built: BuiltBridgeBackedArtifact,
     ) -> Self {
         Self {
-            query_admission_digest: query_admission_digest.to_string(),
-            query_observation_digest: query_observation_digest.to_string(),
-            result_shape_context_digest: result_shape_context_digest.to_string(),
+            query_admission_identity: query_admission_identity.clone(),
+            query_observation_identity: query_observation_identity.clone(),
+            result_shape_context_identity: result_shape_context_identity.clone(),
             bridge_envelope_identity_digest: envelope.identity().identity_digest().to_string(),
             bridge_envelope_digest: envelope.envelope_digest().to_string(),
             bridge_receipt_digest: envelope.receipt().receipt_digest().to_string(),
@@ -150,15 +154,15 @@ impl AdmittedQueryCausalInspectionArtifact {
     }
 
     pub fn query_admission_digest(&self) -> &str {
-        &self.query_admission_digest
+        self.query_admission_identity.as_str()
     }
 
     pub fn query_observation_digest(&self) -> &str {
-        &self.query_observation_digest
+        self.query_observation_identity.as_str()
     }
 
     pub fn result_shape_context_digest(&self) -> &str {
-        &self.result_shape_context_digest
+        self.result_shape_context_identity.as_str()
     }
 
     pub fn bridge_envelope_identity_digest(&self) -> &str {
@@ -168,18 +172,18 @@ impl AdmittedQueryCausalInspectionArtifact {
 
 impl AdvisoryQueryCausalInspectionArtifact {
     pub(in crate::runtime::inspection::causal::materialization) fn from_parts(
-        query_advisory_digest: &str,
-        query_observation_digest: &str,
-        result_shape_context_digest: &str,
+        query_advisory_identity: &CausalInspectionOutcomeIdentity,
+        query_observation_identity: &CausalObservationReceiptIdentity,
+        result_shape_context_identity: &CausalResultShapeContextIdentity,
         advisory_reason: String,
         envelope: &BridgeCausalExplanationEnvelope,
         temporal_async_explanation: QueryCausalTemporalAsyncExplanation,
         built: BuiltBridgeBackedArtifact,
     ) -> Self {
         Self {
-            query_advisory_digest: query_advisory_digest.to_string(),
-            query_observation_digest: query_observation_digest.to_string(),
-            result_shape_context_digest: result_shape_context_digest.to_string(),
+            query_advisory_identity: query_advisory_identity.clone(),
+            query_observation_identity: query_observation_identity.clone(),
+            result_shape_context_identity: result_shape_context_identity.clone(),
             advisory_reason,
             bridge_envelope_identity_digest: envelope.identity().identity_digest().to_string(),
             bridge_envelope_digest: envelope.envelope_digest().to_string(),
@@ -196,15 +200,15 @@ impl AdvisoryQueryCausalInspectionArtifact {
     }
 
     pub fn query_advisory_digest(&self) -> &str {
-        &self.query_advisory_digest
+        self.query_advisory_identity.as_str()
     }
 
     pub fn query_observation_digest(&self) -> &str {
-        &self.query_observation_digest
+        self.query_observation_identity.as_str()
     }
 
     pub fn result_shape_context_digest(&self) -> &str {
-        &self.result_shape_context_digest
+        self.result_shape_context_identity.as_str()
     }
 
     pub fn advisory_reason(&self) -> &str {

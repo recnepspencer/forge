@@ -85,11 +85,19 @@ fn public_api_contract_transcript_and_support_report_emit_canonical_evidence_tok
     let contract = runtime.public_api_contract();
     assert_canonical_evidence_identity_token(contract.contract_digest());
     assert_eq!(
+        contract.contract_identity().as_str(),
+        contract.contract_digest()
+    );
+    assert_eq!(
         contract.contract_digest(),
         compose_public_api_contract_identity(&contract).as_str()
     );
     for family in contract.families() {
         assert_canonical_evidence_identity_token(family.contract_digest());
+        assert_eq!(
+            family.contract_identity().as_str(),
+            family.contract_digest()
+        );
         assert_eq!(
             family.contract_digest(),
             compose_public_api_family_contract_identity(family).as_str()
@@ -99,6 +107,10 @@ fn public_api_contract_transcript_and_support_report_emit_canonical_evidence_tok
     let transcript =
         crate::harness::RuntimeApiStabilizationAdapter::composed_runtime_hostile_transcript_evidence();
     assert_canonical_evidence_identity_token(transcript.transcript_digest());
+    assert_eq!(
+        transcript.transcript_identity().as_str(),
+        transcript.transcript_digest()
+    );
     assert_eq!(
         transcript.transcript_digest(),
         compose_runtime_public_api_transcript_identity(&transcript).as_str()
@@ -119,6 +131,13 @@ fn public_api_contract_transcript_and_support_report_emit_canonical_evidence_tok
     let report =
         crate::application::ForgeQueryApplicationFacade::runtime_backed_default().support_report();
     assert_canonical_evidence_identity_token(report.report_digest());
+    assert_eq!(report.report_identity().as_str(), report.report_digest());
+    for posture in report.section_postures() {
+        assert_eq!(
+            posture.posture_identity().as_str(),
+            posture.posture_digest()
+        );
+    }
     assert_eq!(
         report.report_digest(),
         compose_support_report_identity(&report).as_str()

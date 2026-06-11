@@ -85,6 +85,12 @@ Good to know:
   is now verified too. Remaining grouped follow-on work belongs to later
   durable/store-backed neighbors rather than runtime-backed grouped reusable
   composition/template closure or the grouped view-family row
+- the application support report also publishes
+  `support_report().identity_boundary_closure()`, whose posture is explicit:
+  `Closed` means the identity-boundary residue scans are clean on the ordinary
+  runtime-backed path, `Partial` means typed closure work exists but same-class
+  residue or support posture still blocks full closure, and `Open` means the
+  closure is genuinely not finished yet
 
 ## How It Executes
 

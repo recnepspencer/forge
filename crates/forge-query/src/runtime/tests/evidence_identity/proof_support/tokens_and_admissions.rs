@@ -8,6 +8,7 @@ pub(in super::super) fn assert_canonical_evidence_identity_token(token: impl AsR
     );
 }
 
+#[allow(dead_code)]
 pub(in super::super) fn assert_phase_one_surface_has_no_digest_folklore(source: &str) {
     for forbidden in [
         "hash_parts(",
@@ -49,9 +50,7 @@ pub(in super::super) fn compose_basis_admission_identity(
         )
         .field_identity_sequence(
             crate::ForgeQueryEvidenceTag::new("evidence_row"),
-            evidence_rows
-                .iter()
-                .map(|row| row.row_digest().as_str()),
+            evidence_rows.iter().map(|row| row.row_digest().as_str()),
         )
         .seal()
 }

@@ -10,11 +10,13 @@ fn compose_certification_sequence_digest(
     tag: &'static str,
     values: impl IntoIterator<Item = impl AsRef<str>>,
 ) -> String {
-    crate::ForgeQueryEvidenceIdentity::compose(crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact)
-        .field_identity_sequence(crate::ForgeQueryEvidenceTag::new(tag), values)
-        .seal()
-        .as_str()
-        .to_string()
+    crate::ForgeQueryEvidenceIdentity::compose(
+        crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
+    )
+    .field_identity_sequence(crate::ForgeQueryEvidenceTag::new(tag), values)
+    .seal()
+    .as_str()
+    .to_string()
 }
 
 #[test]
@@ -187,8 +189,24 @@ fn digest_failure_output(errors: &[ForgeQueryRuntimeError]) -> String {
                 stage,
                 message
             )),
-            ForgeQueryStopClass::UnsupportedAuthority { authority } => {
-                Some(format!("authority:{authority}"))
+            ForgeQueryStopClass::PreviewOperationEffectDenied {
+                label,
+                stage,
+                message,
+            } => Some(format!(
+                "preview_operation_effect_denied:{}:{}:{}",
+                label.identity_digest().as_str(),
+                stage,
+                message
+            )),
+            ForgeQueryStopClass::UnsupportedAuthorityRequirement { requirement } => {
+                Some(format!("authority_requirement:{}", requirement.as_str()))
+            }
+            ForgeQueryStopClass::ExistingTruthAssertionRequiresAuthorityLane { required_lane } => {
+                Some(format!(
+                    "existing_truth_assertion_requires_authority_lane:{}",
+                    required_lane.as_str()
+                ))
             }
             ForgeQueryStopClass::Workspace { error } => Some(format!("workspace:{error}")),
             ForgeQueryStopClass::Program { error } => Some(format!("program:{error}")),
@@ -249,20 +267,28 @@ fn digest_message_drift_probe(
         "the first wording probe should fail after presentation drift"
     );
 
-    crate::ForgeQueryEvidenceIdentity::compose(crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact)
-        .field_identity(
-            crate::ForgeQueryEvidenceTag::new("typed_first_route"),
-            consumer_stop_route_key(&route_consumer_stop_class(first_error)),
-        )
-        .field_identity(
-            crate::ForgeQueryEvidenceTag::new("typed_second_route"),
-            consumer_stop_route_key(&route_consumer_stop_class(second_error)),
-        )
-        .field_bool(crate::ForgeQueryEvidenceTag::new("probe_first"), first_probe)
-        .field_bool(crate::ForgeQueryEvidenceTag::new("probe_second"), second_probe)
-        .seal()
-        .as_str()
-        .to_string()
+    crate::ForgeQueryEvidenceIdentity::compose(
+        crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
+    )
+    .field_identity(
+        crate::ForgeQueryEvidenceTag::new("typed_first_route"),
+        consumer_stop_route_key(&route_consumer_stop_class(first_error)),
+    )
+    .field_identity(
+        crate::ForgeQueryEvidenceTag::new("typed_second_route"),
+        consumer_stop_route_key(&route_consumer_stop_class(second_error)),
+    )
+    .field_bool(
+        crate::ForgeQueryEvidenceTag::new("probe_first"),
+        first_probe,
+    )
+    .field_bool(
+        crate::ForgeQueryEvidenceTag::new("probe_second"),
+        second_probe,
+    )
+    .seal()
+    .as_str()
+    .to_string()
 }
 
 fn consumer_stop_route_key(route: &ConsumerStopRoute) -> String {
@@ -316,7 +342,21 @@ fn consumer_stop_route_key(route: &ConsumerStopRoute) -> String {
         ConsumerStopRoute::RuntimeDeclarationDenied(kind) => {
             format!("runtime_declaration_denied:{kind:?}")
         }
-        ConsumerStopRoute::UnsupportedAuthority => "unsupported_authority".to_string(),
+        ConsumerStopRoute::PreviewOperationEffectDenied(label_identity) => {
+            format!(
+                "preview_operation_effect_denied:{}",
+                label_identity.as_str()
+            )
+        }
+        ConsumerStopRoute::UnsupportedAuthorityRequirement(requirement) => {
+            format!("unsupported_authority_requirement:{}", requirement.as_str())
+        }
+        ConsumerStopRoute::ExistingTruthAssertionRequiresAuthorityLane(required_lane) => {
+            format!(
+                "existing_truth_assertion_requires_authority_lane:{}",
+                required_lane.as_str()
+            )
+        }
         ConsumerStopRoute::IntentCommitDenied => "intent_commit_denied".to_string(),
         ConsumerStopRoute::IntentExecutionRoutingFailed(kind) => {
             format!("intent_execution_routing_failed:{kind:?}")
@@ -368,8 +408,5 @@ fn declaration_kind_key(kind: ForgeQueryRuntimeDeclarationFailureKind) -> &'stat
             "live_subscription_installation"
         }
         ForgeQueryRuntimeDeclarationFailureKind::InvariantRegistration => "invariant_registration",
-        ForgeQueryRuntimeDeclarationFailureKind::PreviewOperationEffectDenied => {
-            "preview_operation_effect_denied"
-        }
     }
 }

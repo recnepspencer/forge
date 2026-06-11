@@ -20,16 +20,15 @@ impl ForgeQueryReadInvariantPackViolation {
     pub fn new(invariant_family: impl Into<String>, message: impl Into<String>) -> Self {
         let invariant_family = invariant_family.into();
         let message = message.into();
-        let violation_digest = forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::ReadInvariantViolation,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("invariant_family"),
-            invariant_family.as_str(),
-        )
-        .seal()
-        .as_str()
-        .to_string();
+        let violation_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::ReadInvariantViolation)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("invariant_family"),
+                    invariant_family.as_str(),
+                )
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             invariant_family,
             message,

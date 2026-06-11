@@ -33,8 +33,8 @@ fn explanation_runtime_materializer_builds_denied_causal_artifact() {
         panic!("query-inspection-only replay evidence should resolve");
     };
     let target = causal_inspection_target(
-        observation.observation_target_digest(),
-        observation.result_shape_context_digest(),
+        observation.observation_target().clone(),
+        observation.result_shape_context().clone(),
     )
     .expect("observation-derived target should be valid");
 
@@ -99,8 +99,8 @@ fn explanation_runtime_review_preserves_denied_plan_identity() {
         panic!("query-inspection-only replay evidence should resolve");
     };
     let target = causal_inspection_target(
-        observation.observation_target_digest(),
-        observation.result_shape_context_digest(),
+        observation.observation_target().clone(),
+        observation.result_shape_context().clone(),
     )
     .expect("observation-derived target should be valid");
     let review_contribution = ready_explanation(

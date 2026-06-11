@@ -1,6 +1,15 @@
-use crate::identity::hash_parts;
-
+use super::identity::{
+    compose_causal_admission_decision_identity, compose_causal_admission_subject_identity,
+    CausalInspectionAdmissionDecisionIdentity, CausalInspectionAdmissionSubjectIdentity,
+    CausalInspectionRequestIdentity, CausalInspectionTargetIdentity,
+};
 use super::inventory::{CausalEvidenceFamily, CausalEvidenceOwner};
+use super::observation_identity::{
+    CausalEvidenceReferenceDigest, CausalObservationAnchorCountersIdentity,
+    CausalObservationAnchorDigest, CausalObservationQueryIdentity,
+    CausalObservationReceiptIdentity, CausalObservationTargetHandle,
+    CausalResultShapeContextHandle, CausalResultShapeContextIdentity,
+};
 use super::receipt_types::{CausalInspectionReason, CausalObservationOutcome};
 use super::request::{
     CausalInspectionExplanationFamily, CausalInspectionRequest, CausalInspectionRichness,
@@ -53,51 +62,41 @@ impl CausalInspectionViolationKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalInspectionAdmissionSubject {
-    request_digest: String,
-    anchor_digest: String,
-    anchor_counter_snapshot: String,
+    request_identity: CausalInspectionRequestIdentity,
+    anchor_digest: CausalObservationAnchorDigest,
+    anchor_counter_identity: CausalObservationAnchorCountersIdentity,
     anchor_reference_family_count: usize,
     lower_runtime_evidence_family_count: usize,
-    query_digest: String,
-    query_observation_digest: String,
+    query_identity: CausalObservationQueryIdentity,
+    query_observation_identity: CausalObservationReceiptIdentity,
     inspection_reason: CausalInspectionReason,
     observation_outcome: CausalObservationOutcome,
-    reference_set_digest: String,
+    reference_set_digest: CausalEvidenceReferenceDigest,
     resolved_reference_count: usize,
     missing_reference_family_count: usize,
     resolved_evidence_families: Vec<CausalEvidenceFamily>,
-    observation_target_digest: String,
-    result_shape_context_digest: String,
-    target_digest: String,
+    observation_target: CausalObservationTargetHandle,
+    result_shape_context: CausalResultShapeContextHandle,
+    target_identity: CausalInspectionTargetIdentity,
     explanation_family: CausalInspectionExplanationFamily,
     requested_richness: CausalInspectionRichness,
     requested_evidence_families: Vec<CausalEvidenceFamily>,
-    subject_digest: String,
+    subject_identity: CausalInspectionAdmissionSubjectIdentity,
 }
 
 impl CausalInspectionAdmissionSubject {
     pub(super) fn from_request(request: &CausalInspectionRequest) -> Self {
         let requested_evidence_families = request.requested_evidence_families().to_vec();
-        let family_part = requested_evidence_families
-            .iter()
-            .map(CausalEvidenceFamily::as_str)
-            .collect::<Vec<_>>()
-            .join("|");
-        let anchor_digest = request
-            .reference_set()
-            .anchor()
-            .anchor_digest()
-            .as_str()
-            .to_string();
+        let anchor_digest = request.reference_set().anchor().anchor_digest().clone();
         let observation_receipt = request.reference_set().anchor().observation_receipt();
         let inspection_reason = request.reference_set().anchor().inspection_reason();
         let observation_outcome = observation_receipt.outcome();
-        let anchor_counter_snapshot = request
+        let anchor_counter_identity = request
             .reference_set()
             .anchor()
             .counters()
-            .counter_snapshot()
-            .to_string();
+            .counter_identity()
+            .clone();
         let anchor_reference_family_count = request
             .reference_set()
             .anchor()
@@ -111,13 +110,9 @@ impl CausalInspectionAdmissionSubject {
             .map(|reference| reference.family())
             .collect::<std::collections::BTreeSet<_>>()
             .len();
-        let query_digest = observation_receipt.query_digest().to_string();
-        let query_observation_digest = observation_receipt.observation_receipt_digest().to_string();
-        let reference_set_digest = request
-            .reference_set()
-            .reference_set_digest()
-            .as_str()
-            .to_string();
+        let query_identity = observation_receipt.query_identity().clone();
+        let query_observation_identity = observation_receipt.observation_receipt_identity().clone();
+        let reference_set_digest = request.reference_set().reference_set_digest().clone();
         let resolved_reference_count = request.reference_set().receipt().resolved_reference_count();
         let missing_reference_family_count = request
             .reference_set()
@@ -131,71 +126,54 @@ impl CausalInspectionAdmissionSubject {
             .collect::<std::collections::BTreeSet<_>>()
             .into_iter()
             .collect::<Vec<_>>();
-        let resolved_family_part = resolved_evidence_families
-            .iter()
-            .map(CausalEvidenceFamily::as_str)
-            .collect::<Vec<_>>()
-            .join("|");
-        let observation_target_digest = request.target().observation_target_digest().to_string();
-        let result_shape_context_digest =
-            request.target().result_shape_context_digest().to_string();
-        let target_digest = request.target().target_digest().to_string();
-        let subject_digest = hash_parts(&[
-            "causal_inspection_admission_subject_v1".to_string(),
-            format!("request:{}", request.request_digest()),
-            format!("anchor:{anchor_digest}"),
-            format!("anchor-counters:{anchor_counter_snapshot}"),
-            format!("anchor-reference-families:{anchor_reference_family_count}"),
-            format!("lower-runtime-families:{lower_runtime_evidence_family_count}"),
-            format!("query:{query_digest}"),
-            format!("query-observation:{query_observation_digest}"),
-            format!("inspection-reason:{}", inspection_reason.as_str()),
-            format!("observation-outcome:{}", observation_outcome.as_str()),
-            format!("reference-set:{reference_set_digest}"),
-            format!("resolved-references:{resolved_reference_count}"),
-            format!("missing-reference-families:{missing_reference_family_count}"),
-            format!("resolved-evidence-families:{resolved_family_part}"),
-            format!("observation-target:{observation_target_digest}"),
-            format!("result-shape:{result_shape_context_digest}"),
-            format!("target:{target_digest}"),
-            format!("family:{}", request.explanation_family().as_str()),
-            format!("richness:{}", request.requested_richness().as_str()),
-            format!("evidence-families:{family_part}"),
-        ]);
-        Self {
-            request_digest: request.request_digest().to_string(),
+        let observation_target = request.target().observation_target().clone();
+        let result_shape_context = request.target().result_shape_context().clone();
+        let target_identity = request.target().target_identity().clone();
+        let mut subject = Self {
+            request_identity: request.request_identity().clone(),
             anchor_digest,
-            anchor_counter_snapshot,
+            anchor_counter_identity,
             anchor_reference_family_count,
             lower_runtime_evidence_family_count,
-            query_digest,
-            query_observation_digest,
+            query_identity,
+            query_observation_identity,
             inspection_reason,
             observation_outcome,
             reference_set_digest,
             resolved_reference_count,
             missing_reference_family_count,
             resolved_evidence_families,
-            observation_target_digest,
-            result_shape_context_digest,
-            target_digest,
+            observation_target,
+            result_shape_context,
+            target_identity,
             explanation_family: request.explanation_family(),
             requested_richness: request.requested_richness(),
             requested_evidence_families,
-            subject_digest,
-        }
+            subject_identity: CausalInspectionAdmissionSubjectIdentity::from(
+                crate::ForgeQueryEvidenceIdentity::compose(
+                    crate::ForgeQueryEvidenceScope::CausalInspectionAdmissionSubject,
+                )
+                .seal(),
+            ),
+        };
+        subject.subject_identity = compose_causal_admission_subject_identity(&subject);
+        subject
     }
 
     pub fn request_digest(&self) -> &str {
-        &self.request_digest
+        self.request_identity.as_str()
     }
 
     pub fn anchor_digest(&self) -> &str {
+        self.anchor_digest.as_str()
+    }
+
+    pub(super) fn anchor_identity(&self) -> &CausalObservationAnchorDigest {
         &self.anchor_digest
     }
 
     pub fn anchor_counter_snapshot(&self) -> &str {
-        &self.anchor_counter_snapshot
+        self.anchor_counter_identity.as_str()
     }
 
     pub fn anchor_reference_family_count(&self) -> usize {
@@ -207,11 +185,11 @@ impl CausalInspectionAdmissionSubject {
     }
 
     pub fn query_digest(&self) -> &str {
-        &self.query_digest
+        self.query_identity.as_str()
     }
 
     pub fn query_observation_digest(&self) -> &str {
-        &self.query_observation_digest
+        self.query_observation_identity.as_str()
     }
 
     pub fn inspection_reason(&self) -> CausalInspectionReason {
@@ -223,7 +201,7 @@ impl CausalInspectionAdmissionSubject {
     }
 
     pub fn reference_set_digest(&self) -> &str {
-        &self.reference_set_digest
+        self.reference_set_digest.as_str()
     }
 
     pub fn resolved_reference_count(&self) -> usize {
@@ -239,15 +217,15 @@ impl CausalInspectionAdmissionSubject {
     }
 
     pub fn observation_target_digest(&self) -> &str {
-        &self.observation_target_digest
+        self.observation_target.identity().as_str()
     }
 
     pub fn result_shape_context_digest(&self) -> &str {
-        &self.result_shape_context_digest
+        self.result_shape_context.identity().as_str()
     }
 
     pub fn target_digest(&self) -> &str {
-        &self.target_digest
+        self.target_identity.as_str()
     }
 
     pub fn explanation_family(&self) -> CausalInspectionExplanationFamily {
@@ -263,7 +241,19 @@ impl CausalInspectionAdmissionSubject {
     }
 
     pub fn subject_digest(&self) -> &str {
-        &self.subject_digest
+        self.subject_identity.as_str()
+    }
+
+    pub(super) fn query_observation_identity(&self) -> &CausalObservationReceiptIdentity {
+        &self.query_observation_identity
+    }
+
+    pub(super) fn result_shape_context_identity(&self) -> &CausalResultShapeContextIdentity {
+        self.result_shape_context.identity()
+    }
+
+    pub(super) fn subject_identity(&self) -> &CausalInspectionAdmissionSubjectIdentity {
+        &self.subject_identity
     }
 }
 
@@ -274,7 +264,7 @@ pub struct CausalInspectionAdmissionDecision {
     violation_kind: Option<CausalInspectionViolationKind>,
     admitted_richness: CausalInspectionRichness,
     permitted_evidence_families: Vec<CausalEvidenceFamily>,
-    decision_digest: String,
+    decision_identity: CausalInspectionAdmissionDecisionIdentity,
 }
 
 impl CausalInspectionAdmissionDecision {
@@ -321,33 +311,21 @@ impl CausalInspectionAdmissionDecision {
         admitted_richness: CausalInspectionRichness,
         permitted_evidence_families: Vec<CausalEvidenceFamily>,
     ) -> Self {
-        let family_part = permitted_evidence_families
-            .iter()
-            .map(CausalEvidenceFamily::as_str)
-            .collect::<Vec<_>>()
-            .join("|");
-        let decision_digest = hash_parts(&[
-            "causal_inspection_admission_decision_v1".to_string(),
-            kind.as_str().to_string(),
-            format!(
-                "advisory:{}",
-                advisory_kind.map_or("none", |kind| kind.as_str())
-            ),
-            format!(
-                "violation:{}",
-                violation_kind.map_or("none", |kind| kind.as_str())
-            ),
-            format!("richness:{}", admitted_richness.as_str()),
-            format!("families:{family_part}"),
-        ]);
-        Self {
+        let mut decision = Self {
             kind,
             advisory_kind,
             violation_kind,
             admitted_richness,
             permitted_evidence_families,
-            decision_digest,
-        }
+            decision_identity: CausalInspectionAdmissionDecisionIdentity::from(
+                crate::ForgeQueryEvidenceIdentity::compose(
+                    crate::ForgeQueryEvidenceScope::CausalInspectionAdmissionDecision,
+                )
+                .seal(),
+            ),
+        };
+        decision.decision_identity = compose_causal_admission_decision_identity(&decision);
+        decision
     }
 
     pub fn kind(&self) -> CausalInspectionAdmissionDecisionKind {
@@ -371,6 +349,10 @@ impl CausalInspectionAdmissionDecision {
     }
 
     pub fn decision_digest(&self) -> &str {
-        &self.decision_digest
+        self.decision_identity.as_str()
+    }
+
+    pub(super) fn decision_identity(&self) -> &CausalInspectionAdmissionDecisionIdentity {
+        &self.decision_identity
     }
 }

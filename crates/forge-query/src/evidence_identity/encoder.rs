@@ -84,13 +84,34 @@ impl ForgeQueryEvidenceIdentityEncoder {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
+        let mut count = 0usize;
         for (index, value) in values.into_iter().enumerate() {
             self.entries.push(text_entry(
-                format!("evidence.{}.{}", tag.as_str(), index),
+                sequence_item_locus(tag, index),
                 CanonicalBasisEntryKind::Identity,
                 value.as_ref(),
             ));
+            count = index + 1;
         }
+        self.push_sequence_count(tag, count);
+        self
+    }
+
+    pub fn field_value_sequence<I, S>(mut self, tag: ForgeQueryEvidenceTag, values: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let mut count = 0usize;
+        for (index, value) in values.into_iter().enumerate() {
+            self.entries.push(text_entry(
+                sequence_item_locus(tag, index),
+                CanonicalBasisEntryKind::Value,
+                value.as_ref(),
+            ));
+            count = index + 1;
+        }
+        self.push_sequence_count(tag, count);
         self
     }
 
@@ -129,10 +150,27 @@ impl ForgeQueryEvidenceIdentityEncoder {
         tag: ForgeQueryEvidenceTag,
         value: impl AsRef<str>,
     ) {
+        self.entries
+            .push(text_entry(field_locus(tag), kind, value.as_ref()));
+    }
+
+    fn push_sequence_count(&mut self, tag: ForgeQueryEvidenceTag, count: usize) {
         self.entries.push(text_entry(
-            format!("evidence.{}", tag.as_str()),
-            kind,
-            value.as_ref(),
+            sequence_count_locus(tag),
+            CanonicalBasisEntryKind::Shape,
+            count.to_string(),
         ));
     }
+}
+
+fn field_locus(tag: ForgeQueryEvidenceTag) -> String {
+    format!("evidence.field.{}", tag.as_str())
+}
+
+fn sequence_count_locus(tag: ForgeQueryEvidenceTag) -> String {
+    format!("evidence.sequence.{}.count", tag.as_str())
+}
+
+fn sequence_item_locus(tag: ForgeQueryEvidenceTag, index: usize) -> String {
+    format!("evidence.sequence.{}.item.{index}", tag.as_str())
 }

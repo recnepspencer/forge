@@ -26,10 +26,11 @@ pub struct ForgeQueryBasisAdmissionEvidenceRow {
 impl ForgeQueryBasisAdmissionEvidenceRow {
     pub fn tagged(kind: &'static str, value: impl Into<String>) -> Self {
         let value = value.into();
-        let row_digest = forge_query_evidence_identity(ForgeQueryEvidenceScope::BasisAdmissionEvidenceRow)
-            .field_shape(ForgeQueryEvidenceTag::new("kind"), kind)
-            .field_value(ForgeQueryEvidenceTag::new("value"), value.as_str())
-            .seal();
+        let row_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::BasisAdmissionEvidenceRow)
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind)
+                .field_value(ForgeQueryEvidenceTag::new("value"), value.as_str())
+                .seal();
         Self {
             kind,
             value,
@@ -257,9 +258,7 @@ fn basis_admission_digest(
         )
         .field_identity_sequence(
             ForgeQueryEvidenceTag::new("evidence_row"),
-            evidence_rows
-                .iter()
-                .map(|row| row.row_digest().as_str()),
+            evidence_rows.iter().map(|row| row.row_digest().as_str()),
         )
         .seal()
 }

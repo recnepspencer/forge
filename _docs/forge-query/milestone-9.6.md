@@ -1,11 +1,13 @@
 # Milestone 9.6 Engineering Spec: Product Boundary Debt Closure For Evidence Identity, Typed Stop Classes, And Session Label Identity
 
-> **Status:** Draft
+> **Status:** Closed
 >
-> **Handoff note (2026-06-10):** Runtime identity fix pass is largely landed on
-> branch `query-repair`. The five runtime workstreams from the closure plan are
-> implemented in code; milestone remains **Draft** until the workstation handoff
-> gate below is re-run and any remaining optional polish is closed.
+> **Closeout note (2026-06-10):** Runtime identity closure is landed on branch
+> `query-repair`. The support-layer closure posture is now proof-derived
+> (`Open` / `Partial` / `Closed`), preview binding and preview outcome ordinary
+> paths retain typed `ForgeQuerySessionLabel` artifacts instead of collapsing
+> back to strings, and the hostile residue scans include same-class
+> string-carried session-identity seams.
 >
 > **Done in this pass**
 >
@@ -25,7 +27,7 @@
 >   digests; denial digest stable under message rewording; identity-boundary
 >   hostile matrix + residue inventory wired through support report.
 >
-> **Verification (re-run on next workstation)**
+> **Verification**
 >
 > ```text
 > cargo test -p forge-query session_label --lib
@@ -35,21 +37,12 @@
 > cargo test -p forge-query --lib
 > ```
 >
-> Targeted 9.6 suites (`session_label`, `evidence_identity`, `stop_class`,
-> `identity_boundary`) were green during this pass. Full `--lib` had a handful of
-> stale label-display assertions and one domain-capability manifest drift; those
-> fixes are in the working tree but **not re-verified here** before handoff.
->
-> **Still open / next workstation**
->
-> - Optional: `preview/binding.rs` still stores display string for handle-binding
->   evidence (same class of bug; out of scope unless a test forces it).
-> - Optional: AI_README paragraph on `session_label()` / `label_identity()` if
->   doc gate is tightened beyond existing identity-boundary doc tests.
-> - Re-run full `cargo test -p forge-query --lib` and certification harness after
->   merge/rebase on the other machine.
-> - Flip status to **Closed** only when acceptance evidence in this spec passes
->   end-to-end on the target branch.
+> The targeted `session_label`, `evidence_identity`, `stop_class`, and
+> `identity_boundary` suites are green again in this closeout pass, and full
+> `cargo test -p forge-query --lib` is green after the closure-honesty and
+> typed-session-identity cleanup. The support/profile closure surface no longer
+> hard-codes `Closed`; it derives posture from runtime-backed ordinary-surface
+> availability plus the hostile residue scans.
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -68,6 +61,9 @@ runtime-owned, structurally encoded, and machine-checkable so that downstream
 consumers never have a reason to format runtime values into digests, string-
 match error messages in decision paths, or mint colliding free-form session
 labels against a runtime that is otherwise fanatical about canonical identity.
+The stronger product goal is that downstream runtimes can trust Query as the
+sole owner of machine identity, machine denial classification, and preview/
+branch session identity on the ordinary product boundary.
 
 ## Why This Milestone Exists
 
@@ -504,7 +500,7 @@ The target shape after this phase:
 
 ```rust
 // AFTER: canonical label identity; collisions stop typed instead of merging
-let label = ForgeQuerySessionLabel::scoped("worth-kernel", family.as_str(), "preview");
+let label = ForgeQuerySessionLabel::scoped_strs("worth-kernel", [family.as_str(), "preview"])?;
 let preview = workspace.preview_with_options(
     label,
     ForgeQueryPreviewOptions::sandboxed_write_intent(),
@@ -565,6 +561,13 @@ hold together under combined drift pressure.
   narrow canonical artifacts per boundary.
 - Do not let docs and support output disagree about whether the canonical
   identity surfaces are the ordinary path.
+- Do not let the closure artifact publish `Closed` by construction. A support
+  row that can only say "closed" is overclaiming disguised as metadata.
+- Do not treat curated covered-path inventories as full closure by default. If
+  a same-class identity defect still survives in an upstream or adjacent
+  ordinary product/runtime artifact, this phase is not honestly complete.
+- Do not accept "typed" artifacts that merely wrap or shuttle display strings
+  while leaving equality or digest participation string-defined underneath.
 
 **Test requirements**
 - Add a `Milestone 9.6 Identity And Stop-Class Hostile Certification Matrix`
@@ -577,14 +580,73 @@ hold together under combined drift pressure.
 - Exact-zero assertions: zero format-string digest construction, zero
   string-matched control flow, and zero raw-string session admissions in the
   covered ordinary paths.
+- Closure-honesty proof: the support/profile closure surface must be able to
+  represent `Open`, `Partial`, and `Closed`, and `Closed` must be derivable
+  only from zero same-class residue plus hostile certification success.
+- Same-class residue proof: a hostile scan must fail if any upstream or
+  adjacent ordinary runtime/product artifact still carries string-built machine
+  identity, string-matched control flow, or string-carried session identity
+  where this milestone claims a typed boundary.
+- Typed-not-string-disguised proof: equality and digest participation for the
+  session-label and evidence-identity boundaries must derive from structured
+  parts rather than display rendering or caller-owned string reconstruction.
 
 **Engineering decisions**
 - Support/profile output is authoritative for whether these boundaries are
-  closed.
+  closed, which means the support/profile closure surface itself must be
+  honest, derived, and capable of expressing incompleteness.
 - This milestone closes on hostile proof, not on API presence.
+- Exclusions are allowed only for genuinely different milestone-class boundary
+  debt. Same-class leftovers do not become acceptable merely because they are
+  inconvenient to scan.
 
 **Open questions**
 - None.
+
+## Closure Gate: Honest Completion Criteria
+
+Milestone `9.6` is an all-or-nothing trust-boundary milestone. It is not
+enough for the mainline examples to work, for most call sites to look typed,
+or for the originally targeted files to be green. The real closure question is
+whether Query can now be believed as the single ordinary-path owner of:
+
+- machine evidence identity
+- machine denial classification
+- preview/branch session identity
+
+The milestone is still **Open** if any ordinary runtime/product path of the
+same defect class survives, even when:
+
+- the surviving path sits slightly upstream or adjacent to the originally
+  curated scan inventory
+- the surviving path is wrapped in a nominal type whose equality, digest
+  participation, or collision semantics still reduce to strings
+- the support/profile closure surface reports success by declaration rather
+  than by derived proof
+- the architecture is inconsistent enough that some surfaces are canonical and
+  typed while sibling surfaces still reconstruct identity or control flow from
+  strings
+
+The milestone is only **Closed** when all of the following hold together:
+
+1. Every ordinary covered surface and every same-class upstream/adjacent feeder
+   surface uses the canonical typed boundary rather than a string fallback.
+2. Typed artifacts are structurally honest: equality, digest participation,
+   replay identity, and collision posture derive from typed parts, not from
+   display strings or caller reconstruction.
+3. Closure posture is derived from proof-bearing scans and hostile
+   certification, and the support/profile layer can visibly remain `Open` or
+   `Partial` while same-class residue exists.
+4. Architecture is internally consistent across sibling boundaries. If one
+   session/evidence/error path still uses the old identity/control-flow model,
+   the milestone is not complete just because other siblings migrated.
+5. Any exclusion is defended as a genuinely different milestone-class boundary
+   with a named owner; "not in the original inventory" is not a valid reason.
+
+In other words: this milestone does not merely add typed APIs. It removes the
+need, excuse, and surviving opportunity for ordinary consumers or adjacent
+runtime layers to keep using string folklore for these three machine
+boundaries.
 
 ## Must Ship
 
@@ -596,6 +658,12 @@ hold together under combined drift pressure.
   family payloads on admission denials
 - canonical session label identity for preview/branch entry with explicit
   collision posture
+- support/profile closure publication that derives milestone posture from
+  proof-bearing residue and hostile certification state rather than hard-coded
+  declaration
+- elimination of same-class identity-boundary leftovers in upstream/adjacent
+  ordinary runtime artifacts, including string-carried session identity hidden
+  behind apparently typed surfaces
 - support/profile, docs, and hostile certification closure for all three
   boundaries
 
@@ -616,12 +684,28 @@ This milestone is complete only when `forge-query` can prove:
 - the Milestone `9.6` certification suites added to
   [test-requirements.md](./test-requirements.md) pass with narrow
   machine-checkable artifacts
+- the support/profile closure surface can represent incomplete posture and
+  derives `Closed` only from proof, never from a hard-coded milestone
+  declaration
 - covered digest surfaces emit scheme-versioned canonical digests and contain
   zero format-string digest construction
 - a consumer-shaped matching suite handles every covered stop class without
   string operations, and message rewording cannot break it
 - preview/branch session entry flows through canonical label identity with
   typed collision posture
+- no same-class identity-boundary folklore remains in any ordinary
+  runtime/product artifact that feeds these surfaces, even if it sits slightly
+  upstream of the originally curated scan list
+- any excluded path is explicitly justified as a different milestone-class
+  boundary with a named owning milestone; exclusions are not allowed to hide
+  same-class leftovers
+- typed boundary artifacts are structurally typed rather than string-disguised:
+  equality, digest participation, and collision semantics derive from typed
+  parts, not display rendering or caller-owned reconstruction
+- sibling and feeder surfaces that participate in the same machine boundary are
+  architecturally consistent; there is no mixed model where some ordinary
+  paths are canonical/typed while others still reconstruct identity or control
+  flow from strings
 - docs, support profiles, and certification agree the three boundaries are
   closed ordinary product surface
 

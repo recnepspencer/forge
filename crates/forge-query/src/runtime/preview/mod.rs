@@ -83,5 +83,4 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             discarded: false,
         }
     }
-
 }

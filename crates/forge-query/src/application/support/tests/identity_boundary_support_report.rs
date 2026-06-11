@@ -1,17 +1,20 @@
 use super::query_disabled_application_facade;
 use crate::application::{
-    ForgeQueryApplicationFacade, ForgeQueryFolkloreResidueStatus, ForgeQueryMilestoneClosureStatus,
-    EXACT_ZERO_FORMAT_DIGEST_PATHS, EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS,
-    EXACT_ZERO_STRING_MATCHING_PATHS, EVIDENCE_IDENTITY_COVERED_SURFACES,
-    SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
+    identity_boundary_hostile_matrix_artifact, ForgeQueryApplicationFacade,
+    ForgeQueryFolkloreResidueStatus, ForgeQueryMilestoneClosureStatus,
+    EVIDENCE_IDENTITY_COVERED_SURFACES, EXACT_ZERO_FORMAT_DIGEST_PATHS,
+    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS,
+    EXACT_ZERO_STRING_MATCHING_PATHS, SESSION_LABEL_ORDINARY_ENTRYPOINTS,
+    STOP_CLASS_COVERED_CONTRACTS,
 };
 use crate::ForgeQueryEvidenceIdentityScheme;
 
 #[test]
-fn support_report_publishes_closed_identity_boundary() {
+fn support_report_derives_closed_identity_boundary_from_clean_runtime_backed_surface() {
     let report = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
     let closure = report.identity_boundary_closure();
 
+    assert_eq!(closure.status(), ForgeQueryMilestoneClosureStatus::Closed);
     assert_eq!(
         closure.evidence_identity().status(),
         ForgeQueryMilestoneClosureStatus::Closed
@@ -69,12 +72,55 @@ fn support_report_publishes_closed_identity_boundary() {
         closure.exact_zero_raw_session_admission_paths(),
         EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS
     );
+    assert_eq!(
+        closure.exact_zero_string_carried_session_identity_paths(),
+        EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS
+    );
+    assert!(closure.hostile_matrix_certified());
     assert!(!closure.hostile_matrix_digest().is_empty());
+    assert_eq!(
+        closure.evidence_identity().closure_identity().as_str(),
+        closure.evidence_identity().closure_digest()
+    );
+    assert_eq!(
+        closure.stop_class().closure_identity().as_str(),
+        closure.stop_class().closure_digest()
+    );
+    assert_eq!(
+        closure.session_label().closure_identity().as_str(),
+        closure.session_label().closure_digest()
+    );
+    assert_eq!(
+        closure.closure_identity().as_str(),
+        closure.closure_digest()
+    );
     assert!(!closure.closure_digest().is_empty());
+    assert!(identity_boundary_hostile_matrix_artifact().certified());
 }
 
 #[test]
-fn support_report_digest_tracks_identity_boundary_publication() {
+fn support_report_keeps_identity_boundary_partial_when_ordinary_surface_is_disabled() {
+    let report = query_disabled_application_facade().support_report();
+    let closure = report.identity_boundary_closure();
+
+    assert_eq!(closure.status(), ForgeQueryMilestoneClosureStatus::Partial);
+    assert_eq!(
+        closure.evidence_identity().status(),
+        ForgeQueryMilestoneClosureStatus::Partial
+    );
+    assert_eq!(
+        closure.stop_class().status(),
+        ForgeQueryMilestoneClosureStatus::Partial
+    );
+    assert_eq!(
+        closure.session_label().status(),
+        ForgeQueryMilestoneClosureStatus::Partial
+    );
+    assert!(closure.residue_status().is_zero());
+}
+
+#[test]
+fn support_report_digest_tracks_identity_boundary_publication_and_status() {
     let admitted_report = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
     let denied_report = query_disabled_application_facade().support_report();
 
@@ -87,5 +133,10 @@ fn support_report_digest_tracks_identity_boundary_publication() {
         admitted_report.identity_boundary_closure().closure_digest(),
         denied_report.identity_boundary_closure().closure_digest(),
         "identity-boundary evidence must track support posture changes"
+    );
+    assert_ne!(
+        admitted_report.identity_boundary_closure().status(),
+        denied_report.identity_boundary_closure().status(),
+        "identity-boundary status must track whether the ordinary surface is actually available"
     );
 }

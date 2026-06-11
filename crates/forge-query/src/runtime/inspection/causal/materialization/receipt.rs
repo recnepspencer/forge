@@ -1,5 +1,6 @@
 use crate::identity::hash_parts;
 
+use super::super::identity::CausalInspectionOutcomeIdentity;
 use super::{
     CausalInspectionMaterializationPolicy, CausalInspectionPerformanceEnvelope,
     CausalInspectionRedactionPolicy,
@@ -7,7 +8,7 @@ use super::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalMaterializationReceipt {
-    query_admission_digest: String,
+    query_admission_identity: CausalInspectionOutcomeIdentity,
     bridge_envelope_digest: Option<String>,
     bridge_receipt_digest: Option<String>,
     policy_digest: String,
@@ -18,7 +19,7 @@ pub struct CausalMaterializationReceipt {
 
 impl CausalMaterializationReceipt {
     pub(super) fn new(
-        query_admission_digest: &str,
+        query_admission_identity: &CausalInspectionOutcomeIdentity,
         bridge_envelope_digest: Option<&str>,
         bridge_receipt_digest: Option<&str>,
         redaction_policy: CausalInspectionRedactionPolicy,
@@ -33,7 +34,7 @@ impl CausalMaterializationReceipt {
         ]);
         let materialization_digest = hash_parts(&[
             "causal_inspection_materialization_v1".to_string(),
-            format!("query-admission:{query_admission_digest}"),
+            format!("query-admission:{}", query_admission_identity.as_str()),
             format!(
                 "bridge-envelope:{}",
                 bridge_envelope_digest.unwrap_or("none")
@@ -48,7 +49,7 @@ impl CausalMaterializationReceipt {
             materialization_digest.clone(),
         ]);
         Self {
-            query_admission_digest: query_admission_digest.to_string(),
+            query_admission_identity: query_admission_identity.clone(),
             bridge_envelope_digest: bridge_envelope_digest.map(str::to_string),
             bridge_receipt_digest: bridge_receipt_digest.map(str::to_string),
             policy_digest,
@@ -59,7 +60,7 @@ impl CausalMaterializationReceipt {
     }
 
     pub fn query_admission_digest(&self) -> &str {
-        &self.query_admission_digest
+        self.query_admission_identity.as_str()
     }
 
     pub fn bridge_envelope_digest(&self) -> Option<&str> {

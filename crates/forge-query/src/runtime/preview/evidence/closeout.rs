@@ -1,6 +1,7 @@
 use super::super::*;
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -79,8 +80,8 @@ pub struct ForgeQueryPreviewCloseoutEvidence {
     mixed_cause_residue_count: usize,
     crossed_authoritative_residue_count: usize,
     authoritative_residue_count: usize,
-    rebinding_digest: Option<String>,
-    closeout_digest: String,
+    rebinding_identity: Option<ForgeQueryEvidenceIdentity>,
+    closeout_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryPreviewCloseoutEvidence {
@@ -106,110 +107,109 @@ impl ForgeQueryPreviewCloseoutEvidence {
         effect_delivery_residue_count: usize,
         pending_write_intent_residue_count: usize,
         authoritative_residue_count: usize,
-        rebinding_digest: Option<String>,
+        rebinding_identity: Option<ForgeQueryEvidenceIdentity>,
     ) -> Self {
         let basis_evidence_rows = basis_admission.evidence_rows();
-        let mut closeout_builder = forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::PreviewCloseoutEvidence,
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("session_label_identity"),
-            basis_admission.label_identity().as_str(),
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
-        .field_shape(
-            ForgeQueryEvidenceTag::new("effect_policy"),
-            effect_policy.as_str(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("basis_admission_digest"),
-            basis_admission.admission_digest().as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("authority_lane"),
-            basis_admission.authority_lane().as_str(),
-        )
-        .field_identity_sequence(
-            ForgeQueryEvidenceTag::new("basis_evidence_row"),
-            basis_evidence_rows
-                .iter()
-                .map(|row| row.row_digest().as_str()),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("preview_basis_snapshot_token"),
-            preview_basis_snapshot_token,
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("target_basis_snapshot_token"),
-            target_basis_snapshot_token,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("preview_binding_count"),
-            preview_binding_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("live_binding_count"),
-            live_binding_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("computed_binding_count"),
-            computed_binding_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("effect_binding_count"),
-            effect_binding_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("subscription_residue_count"),
-            subscription_residue_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("derived_runtime_residue_count"),
-            derived_runtime_residue_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("effect_delivery_residue_count"),
-            effect_delivery_residue_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("pending_write_intent_residue_count"),
-            pending_write_intent_residue_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("preview_write_staging_count"),
-            preview_write_staging_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("promoted_write_count"),
-            promoted_write_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("temporal_wake_residue_count"),
-            temporal_wake_residue_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("async_result_residue_count"),
-            async_result_residue_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("mixed_cause_residue_count"),
-            mixed_cause_residue_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("crossed_authoritative_residue_count"),
-            crossed_authoritative_residue_count,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("authoritative_residue_count"),
-            authoritative_residue_count,
-        );
-        if let Some(rebinding_digest) = rebinding_digest.as_deref() {
+        let mut closeout_builder =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewCloseoutEvidence)
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("session_label_identity"),
+                    basis_admission.label_identity().as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("effect_policy"),
+                    effect_policy.as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("basis_admission_digest"),
+                    basis_admission.admission_digest().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authority_lane"),
+                    basis_admission.authority_lane().as_str(),
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("basis_evidence_row"),
+                    basis_evidence_rows
+                        .iter()
+                        .map(|row| row.row_digest().as_str()),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("preview_basis_snapshot_token"),
+                    preview_basis_snapshot_token,
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("target_basis_snapshot_token"),
+                    target_basis_snapshot_token,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("preview_binding_count"),
+                    preview_binding_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("live_binding_count"),
+                    live_binding_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("computed_binding_count"),
+                    computed_binding_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("effect_binding_count"),
+                    effect_binding_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("subscription_residue_count"),
+                    subscription_residue_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("derived_runtime_residue_count"),
+                    derived_runtime_residue_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("effect_delivery_residue_count"),
+                    effect_delivery_residue_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("pending_write_intent_residue_count"),
+                    pending_write_intent_residue_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("preview_write_staging_count"),
+                    preview_write_staging_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("promoted_write_count"),
+                    promoted_write_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("temporal_wake_residue_count"),
+                    temporal_wake_residue_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("async_result_residue_count"),
+                    async_result_residue_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("mixed_cause_residue_count"),
+                    mixed_cause_residue_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("crossed_authoritative_residue_count"),
+                    crossed_authoritative_residue_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("authoritative_residue_count"),
+                    authoritative_residue_count,
+                );
+        if let Some(rebinding_identity) = rebinding_identity.as_ref() {
             closeout_builder = closeout_builder.field_identity(
                 ForgeQueryEvidenceTag::new("rebinding_digest"),
-                rebinding_digest,
+                rebinding_identity.as_str(),
             );
         }
-        let closeout_digest = closeout_builder.seal().as_str().to_string();
+        let closeout_identity = closeout_builder.seal();
         let basis_evidence = basis_admission.evidence();
         Self {
             session_label: basis_admission.session_label().clone(),
@@ -233,8 +233,8 @@ impl ForgeQueryPreviewCloseoutEvidence {
             mixed_cause_residue_count,
             crossed_authoritative_residue_count,
             authoritative_residue_count,
-            rebinding_digest,
-            closeout_digest,
+            rebinding_identity,
+            closeout_identity,
         }
     }
 
@@ -331,7 +331,13 @@ impl ForgeQueryPreviewCloseoutEvidence {
     }
 
     pub fn rebinding_digest(&self) -> Option<&str> {
-        self.rebinding_digest.as_deref()
+        self.rebinding_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn rebinding_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.rebinding_identity.as_ref()
     }
 
     pub fn class_count(&self, residue_class: ForgeQueryPreviewResidueClass) -> usize {
@@ -358,6 +364,10 @@ impl ForgeQueryPreviewCloseoutEvidence {
     }
 
     pub fn closeout_digest(&self) -> &str {
-        &self.closeout_digest
+        self.closeout_identity.as_str()
+    }
+
+    pub fn closeout_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.closeout_identity
     }
 }

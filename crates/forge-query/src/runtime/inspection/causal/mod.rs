@@ -6,8 +6,10 @@ mod builder;
 mod builder_bridge;
 mod builder_support;
 mod certification;
+mod identity;
 mod inventory;
 mod materialization;
+mod observation_identity;
 mod receipt;
 mod receipt_types;
 mod reference;
@@ -29,7 +31,7 @@ pub use admission_trace::{
 };
 pub use anchor::{
     anchor_causal_observation, CausalObservationAnchor, CausalObservationAnchorCounters,
-    CausalObservationAnchorDigest, CausalObservationAnchorError, CausalObservationAnchorErrorKind,
+    CausalObservationAnchorError, CausalObservationAnchorErrorKind,
     CausalObservationMissingReferencePosture,
 };
 pub use builder::{
@@ -69,14 +71,18 @@ pub use materialization::{
     QueryCausalEvidenceReferenceArtifact, QueryCausalInspectionArtifact,
     QueryCausalTemporalAsyncExplanation, QueryCausalTemporalAsyncExplanationKind,
 };
+pub use observation_identity::{
+    CausalEvidenceReferenceDigest, CausalObservationAnchorDigest, CausalObservationTargetHandle,
+    CausalResultShapeContextHandle,
+};
 pub use receipt_types::{
     CausalInspectionReason, CausalObservationEvidenceIdentity, CausalObservationOutcome,
     QueryObservationReceipt, QueryObservationReceiptFamily,
 };
 pub use reference::{
-    CausalEvidenceReference, CausalEvidenceReferenceDigest, CausalEvidenceReferenceReceipt,
-    CausalEvidenceReferenceResolution, CausalEvidenceReferenceResolutionCounters,
-    CausalEvidenceReferenceResolutionDenial, CausalEvidenceReferenceSet,
+    CausalEvidenceReference, CausalEvidenceReferenceReceipt, CausalEvidenceReferenceResolution,
+    CausalEvidenceReferenceResolutionCounters, CausalEvidenceReferenceResolutionDenial,
+    CausalEvidenceReferenceSet,
 };
 #[cfg(test)]
 pub(in crate::runtime) use reference_index::{

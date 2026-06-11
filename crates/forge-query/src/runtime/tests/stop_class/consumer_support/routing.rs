@@ -1,7 +1,7 @@
 use super::super::super::support::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in super::super) enum ConsumerStopRoute {
+pub(in super::super) enum ConsumerStopRoute<'a> {
     MissingRuntimeComponent(ForgeQueryRuntimeMissingComponent),
     ExistingTruthAssertionDenied(ForgeQueryExistingTruthAssertionDenialKind),
     ExistingTruthProbeDenied(ForgeQueryExistingTruthProbeDenialKind),
@@ -9,15 +9,15 @@ pub(in super::super) enum ConsumerStopRoute {
     MutationContinuityDenied(ForgeQueryContinuityMutationDenialKind),
     GraphCompositionDenied(ForgeQueryGraphCompositionDenialKind),
     GraphCompositionDomainInvariantDenied {
-        hook_family: String,
-        invariant_family: String,
+        hook_family: &'a str,
+        invariant_family: &'a str,
     },
     MutationNamingDenied(ForgeQueryNamingMutationDenialKind),
     MutationTargetReferenceDenied(ForgeQuerySymbolicTargetReferenceDenialKind),
     ReadCompositionDenied(ForgeQueryReadDenialKind),
     ReadCompositionDomainInvariantDenied {
-        hook_family: String,
-        invariant_family: String,
+        hook_family: &'a str,
+        invariant_family: &'a str,
     },
     WorkspaceDenied,
     ProgramDenied,
@@ -25,7 +25,9 @@ pub(in super::super) enum ConsumerStopRoute {
     MissingRuntimeArtifact(ForgeQueryRuntimeMissingArtifactKind),
     SharedReadStaleBasis,
     RuntimeDeclarationDenied(ForgeQueryRuntimeDeclarationFailureKind),
-    UnsupportedAuthority,
+    PreviewOperationEffectDenied(crate::ForgeQueryEvidenceIdentity),
+    UnsupportedAuthorityRequirement(ForgeQueryAuthorityRequirement),
+    ExistingTruthAssertionRequiresAuthorityLane(ForgeQueryAuthorityLane),
     IntentCommitDenied,
     IntentExecutionRoutingFailed(ForgeQueryRuntimeDeclarationFailureKind),
     EffectPolicyDenied,
@@ -40,7 +42,7 @@ pub(in super::super) enum ConsumerStopRoute {
 
 pub(in super::super) fn route_consumer_stop_class(
     error: &ForgeQueryRuntimeError,
-) -> ConsumerStopRoute {
+) -> ConsumerStopRoute<'_> {
     match error.stop_class() {
         ForgeQueryStopClass::MissingRuntimeComponent { component } => {
             ConsumerStopRoute::MissingRuntimeComponent(component)
@@ -62,8 +64,8 @@ pub(in super::super) fn route_consumer_stop_class(
         }
         ForgeQueryStopClass::GraphCompositionDomainInvariantDenied { denial } => {
             ConsumerStopRoute::GraphCompositionDomainInvariantDenied {
-                hook_family: denial.hook_family().to_string(),
-                invariant_family: denial.invariant_family().to_string(),
+                hook_family: denial.hook_family(),
+                invariant_family: denial.invariant_family(),
             }
         }
         ForgeQueryStopClass::MutationNamingDenied { denial } => {
@@ -77,8 +79,8 @@ pub(in super::super) fn route_consumer_stop_class(
         }
         ForgeQueryStopClass::ReadCompositionDomainInvariantDenied { denial } => {
             ConsumerStopRoute::ReadCompositionDomainInvariantDenied {
-                hook_family: denial.hook_family().to_string(),
-                invariant_family: denial.invariant_family().to_string(),
+                hook_family: denial.hook_family(),
+                invariant_family: denial.invariant_family(),
             }
         }
         ForgeQueryStopClass::Workspace { .. } => ConsumerStopRoute::WorkspaceDenied,
@@ -93,7 +95,15 @@ pub(in super::super) fn route_consumer_stop_class(
         ForgeQueryStopClass::RuntimeDeclarationFailed { kind, .. } => {
             ConsumerStopRoute::RuntimeDeclarationDenied(kind)
         }
-        ForgeQueryStopClass::UnsupportedAuthority { .. } => ConsumerStopRoute::UnsupportedAuthority,
+        ForgeQueryStopClass::PreviewOperationEffectDenied { label, .. } => {
+            ConsumerStopRoute::PreviewOperationEffectDenied(label.identity_digest().clone())
+        }
+        ForgeQueryStopClass::UnsupportedAuthorityRequirement { requirement } => {
+            ConsumerStopRoute::UnsupportedAuthorityRequirement(requirement.clone())
+        }
+        ForgeQueryStopClass::ExistingTruthAssertionRequiresAuthorityLane { required_lane } => {
+            ConsumerStopRoute::ExistingTruthAssertionRequiresAuthorityLane(required_lane)
+        }
         ForgeQueryStopClass::IntentCommitDenied { .. } => ConsumerStopRoute::IntentCommitDenied,
         ForgeQueryStopClass::IntentExecutionRoutingFailed { source, .. } => {
             match source.stop_class() {

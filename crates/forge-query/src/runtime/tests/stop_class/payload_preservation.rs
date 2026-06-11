@@ -53,8 +53,7 @@ fn graph_domain_invariant_stop_class_preserves_hook_and_invariant_families() {
     let second_digest = reworded.denial_digest().to_string();
     let first_error =
         ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(graph_domain_denial);
-    let second_error =
-        ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(reworded);
+    let second_error = ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(reworded);
 
     for error in [&first_error, &second_error] {
         match error.stop_class() {
@@ -286,6 +285,29 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
             );
         }
         other => panic!("expected rebinding-required stop class, got {other:?}"),
+    }
+}
+
+#[test]
+fn preview_operation_effect_denial_stop_class_preserves_typed_label_identity() {
+    let label = test_session_label("preview.operation.effect.denied");
+    let error = ForgeQueryRuntimeError::PreviewOperationEffectDenied {
+        label: label.clone(),
+        stage: "effect-admission",
+        message: "preview effect denied".to_string(),
+    };
+
+    match error.stop_class() {
+        ForgeQueryStopClass::PreviewOperationEffectDenied {
+            label: classified_label,
+            stage,
+            message,
+        } => {
+            assert_eq!(classified_label.identity_digest(), label.identity_digest());
+            assert_eq!(stage, "effect-admission");
+            assert_eq!(message, "preview effect denied");
+        }
+        other => panic!("expected preview operation effect stop class, got {other:?}"),
     }
 }
 

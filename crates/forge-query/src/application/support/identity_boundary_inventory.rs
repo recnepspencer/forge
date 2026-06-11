@@ -45,8 +45,10 @@ pub const STOP_CLASS_COVERED_CONTRACTS: &[&str] = &[
     "missing_runtime_artifact",
     "shared_read_stale_basis",
     "runtime_declaration_failed",
+    "preview_operation_effect_denied",
     "session_label_collision",
-    "unsupported_authority",
+    "unsupported_authority_requirement",
+    "existing_truth_assertion_requires_authority_lane",
     "intent_commit_denied",
     "intent_execution_routing_failed",
     "effect_policy_denied",
@@ -79,6 +81,12 @@ pub const EXACT_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
     "runtime/preview/evidence/promotion.rs",
     "runtime/preview/evidence/execution.rs",
     "runtime/preview/workflow_ops.rs",
+    "runtime/inspection/causal/request.rs",
+    "runtime/inspection/causal/admission_decision.rs",
+    "runtime/inspection/causal/admission_trace.rs",
+    "runtime/inspection/causal/admission.rs",
+    "runtime/inspection/causal/materialization/mod.rs",
+    "runtime/inspection/causal/certification/artifacts/performance.rs",
     "runtime/mutation/graph_composition/domain_invariant_denial.rs",
     "runtime/mutation/graph_composition/hooks.rs",
     "runtime/read_composition_hooks.rs",
@@ -90,6 +98,17 @@ pub const EXACT_ZERO_STRING_MATCHING_PATHS: &[&str] =
 
 pub const EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS: &[&str] =
     &["runtime/runtime_sessions.rs", "runtime/workspace.rs"];
+
+pub const EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS: &[&str] = &[
+    "runtime/error.rs",
+    "runtime/preview/workflow_ops.rs",
+    "runtime/preview/binding.rs",
+    "runtime/preview/session_execution.rs",
+    "runtime/preview/mutation_ops.rs",
+    "runtime/surface/mutation/write_receipt/preview.rs",
+    "runtime/inspection/preview/binding.rs",
+    "runtime/inspection/preview/outcome.rs",
+];
 
 /// Paths that retain pre-9.6 joined-string digest folklore by explicit milestone scope.
 pub const EXCLUDED_FOLKLORE_PATHS: &[&str] = &[
@@ -168,7 +187,27 @@ pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
         "runtime/preview/evidence/execution.rs" => {
             Some(include_str!("../../runtime/preview/evidence/execution.rs"))
         }
-        "runtime/preview/workflow_ops.rs" => Some(include_str!("../../runtime/preview/workflow_ops.rs")),
+        "runtime/preview/workflow_ops.rs" => {
+            Some(include_str!("../../runtime/preview/workflow_ops.rs"))
+        }
+        "runtime/inspection/causal/request.rs" => {
+            Some(include_str!("../../runtime/inspection/causal/request.rs"))
+        }
+        "runtime/inspection/causal/admission_decision.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/admission_decision.rs"
+        )),
+        "runtime/inspection/causal/admission_trace.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/admission_trace.rs"
+        )),
+        "runtime/inspection/causal/admission.rs" => {
+            Some(include_str!("../../runtime/inspection/causal/admission.rs"))
+        }
+        "runtime/inspection/causal/materialization/mod.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/materialization/mod.rs"
+        )),
+        "runtime/inspection/causal/certification/artifacts/performance.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/certification/artifacts/performance.rs"
+        )),
         "runtime/mutation/graph_composition/domain_invariant_denial.rs" => Some(include_str!(
             "../../runtime/mutation/graph_composition/domain_invariant_denial.rs"
         )),
@@ -198,6 +237,32 @@ pub fn source_for_session_admission_path(path: &str) -> Option<&'static str> {
     match path {
         "runtime/runtime_sessions.rs" => Some(include_str!("../../runtime/runtime_sessions.rs")),
         "runtime/workspace.rs" => Some(include_str!("../../runtime/workspace.rs")),
+        _ => None,
+    }
+}
+
+pub fn source_for_string_carried_session_identity_path(path: &str) -> Option<&'static str> {
+    match path {
+        "runtime/error.rs" => Some(include_str!("../../runtime/error.rs")),
+        "runtime/preview/workflow_ops.rs" => {
+            Some(include_str!("../../runtime/preview/workflow_ops.rs"))
+        }
+        "runtime/preview/binding.rs" => Some(include_str!("../../runtime/preview/binding.rs")),
+        "runtime/preview/session_execution.rs" => {
+            Some(include_str!("../../runtime/preview/session_execution.rs"))
+        }
+        "runtime/preview/mutation_ops.rs" => {
+            Some(include_str!("../../runtime/preview/mutation_ops.rs"))
+        }
+        "runtime/surface/mutation/write_receipt/preview.rs" => Some(include_str!(
+            "../../runtime/surface/mutation/write_receipt/preview.rs"
+        )),
+        "runtime/inspection/preview/binding.rs" => {
+            Some(include_str!("../../runtime/inspection/preview/binding.rs"))
+        }
+        "runtime/inspection/preview/outcome.rs" => {
+            Some(include_str!("../../runtime/inspection/preview/outcome.rs"))
+        }
         _ => None,
     }
 }
@@ -253,6 +318,31 @@ pub fn scan_raw_session_admission_residue_paths() -> Vec<&'static str> {
             continue;
         }
         if !normalized.contains("label: ForgeQuerySessionLabel") {
+            remaining.push(path);
+        }
+    }
+    remaining
+}
+
+pub fn scan_string_carried_session_identity_residue_paths() -> Vec<&'static str> {
+    let mut remaining = Vec::new();
+    for &path in EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS {
+        let Some(source) = source_for_string_carried_session_identity_path(path) else {
+            remaining.push(path);
+            continue;
+        };
+        let normalized = normalize_source_text(source);
+        let carries_string_identity = normalized.contains("label: String")
+            || normalized.contains("label: &str")
+            || normalized.contains("self.label.to_string()")
+            || normalized.contains("label.to_string(),")
+            || normalized.contains("self.label.display(),")
+            || normalized.contains("format!(\"preview:{label}:{sequence}\")");
+        let preserves_typed_identity = normalized.contains("label: ForgeQuerySessionLabel")
+            || normalized.contains("label: &ForgeQuerySessionLabel")
+            || normalized.contains("&self.label")
+            || normalized.contains("self.label.clone()");
+        if carries_string_identity || !preserves_typed_identity {
             remaining.push(path);
         }
     }

@@ -32,7 +32,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         view: &ForgeQueryLiveView<T>,
     ) -> ForgeQueryPreviewHandleBindingEvidence {
         let evidence = ForgeQueryPreviewHandleBindingEvidence::live_view(
-            self.label.display(),
+            &self.label,
             view.name(),
             self.effect_policy,
             &self.basis_admission.evidence(),
@@ -46,7 +46,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         computed: &ForgeQueryDerivedViewHandle<T>,
     ) -> ForgeQueryPreviewHandleBindingEvidence {
         let evidence = ForgeQueryPreviewHandleBindingEvidence::computed(
-            self.label.display(),
+            &self.label,
             computed.name(),
             self.effect_policy,
             &self.basis_admission.evidence(),
@@ -66,7 +66,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             inspected.target_lane(),
         )?;
         let evidence = ForgeQueryPreviewHandleBindingEvidence::effect(
-            self.label.display(),
+            &self.label,
             effect.name(),
             inspected.target_lane(),
             self.effect_policy,

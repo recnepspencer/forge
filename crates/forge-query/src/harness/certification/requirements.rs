@@ -379,8 +379,10 @@ pub fn milestone_nine_five_requirements() -> SuiteRequirements {
 pub fn milestone_nine_six_requirements() -> SuiteRequirements {
     SuiteRequirements {
         suite_name: crate::application::MILESTONE_NINE_SIX_SUITE_NAME,
-        required_canonical_rows: crate::application::MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES,
-        required_rejection_rows: crate::application::MILESTONE_NINE_SIX_REQUIRED_REJECTION_ROW_NAMES,
+        required_canonical_rows:
+            crate::application::MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows:
+            crate::application::MILESTONE_NINE_SIX_REQUIRED_REJECTION_ROW_NAMES,
         required_assertion_classes: &[
             RequiredAssertionClass::Equality,
             RequiredAssertionClass::Inequality,

@@ -423,7 +423,8 @@ pub use inspection::{
     CausalInspectionViolationKind, CausalMaterializationReceipt, CausalObservationAnchor,
     CausalObservationAnchorCounters, CausalObservationAnchorDigest, CausalObservationAnchorError,
     CausalObservationAnchorErrorKind, CausalObservationEvidenceIdentity,
-    CausalObservationMissingReferencePosture, CausalObservationOutcome, DeniedCausalInspection,
+    CausalObservationMissingReferencePosture, CausalObservationOutcome,
+    CausalObservationTargetHandle, CausalResultShapeContextHandle, DeniedCausalInspection,
     DeniedQueryCausalInspectionArtifact, ForgeQueryBasisLifecycleInspection,
     ForgeQueryBatchWriteComponentInspection, ForgeQueryBatchWriteReceiptInspection,
     ForgeQueryBranchIntentReceiptInspection, ForgeQueryEffectIntentReceiptInspection,
@@ -540,17 +541,16 @@ pub use shared_read::{
     ForgeQueryPublishedDerivedArtifactHandle, ForgeQueryPublishedProjectionConsumption,
     ForgeQueryPublishedProjectionInspection, ForgeQuerySharedReadContext,
 };
+#[cfg(test)]
+pub(in crate::runtime) use shared_read_pins::ForgeQuerySharedReadCounters;
 pub(in crate::runtime) use shared_read_pins::{
     forge_query_shared_read_stale_basis_error, ForgeQuerySharedReadGenerationLease,
 };
-#[cfg(test)]
-pub(in crate::runtime) use shared_read_pins::ForgeQuerySharedReadCounters;
 pub use state::ForgeQueryRuntimeStateTarget;
 pub use state_snapshot::{ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot};
 pub use support::{
     ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryBranchBasisAdmission,
-    ForgeQueryGraphCompositionCapabilityClass,
-    ForgeQueryGraphCompositionCapabilitySupportRow,
+    ForgeQueryGraphCompositionCapabilityClass, ForgeQueryGraphCompositionCapabilitySupportRow,
     ForgeQueryGraphCompositionExtensionHookBoundary,
     ForgeQueryGraphCompositionExtensionHookSupportRow, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,

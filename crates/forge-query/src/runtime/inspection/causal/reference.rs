@@ -1,22 +1,14 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
-use super::anchor::{CausalObservationAnchor, CausalObservationAnchorDigest};
+use super::anchor::CausalObservationAnchor;
 use super::inventory::{CausalEvidenceFamily, CausalEvidenceOwner};
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CausalEvidenceReferenceDigest {
-    digest: String,
-}
-
-impl CausalEvidenceReferenceDigest {
-    pub(super) fn new(digest: String) -> Self {
-        Self { digest }
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.digest
-    }
-}
+use super::observation_identity::{
+    CausalEvidenceReferenceDigest, CausalEvidenceReferenceReceiptIdentity,
+    CausalEvidenceReferenceResolutionCountersIdentity,
+    CausalEvidenceReferenceResolutionDenialIdentity, CausalObservationAnchorDigest,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalEvidenceReference {
@@ -29,12 +21,12 @@ impl CausalEvidenceReference {
     pub(super) fn new(
         owner: CausalEvidenceOwner,
         family: CausalEvidenceFamily,
-        reference_digest: &str,
+        reference_digest: CausalEvidenceReferenceDigest,
     ) -> Self {
         Self {
             owner,
             family,
-            reference_digest: CausalEvidenceReferenceDigest::new(reference_digest.to_string()),
+            reference_digest,
         }
     }
 
@@ -53,7 +45,7 @@ impl CausalEvidenceReference {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalEvidenceReferenceReceipt {
-    receipt_digest: String,
+    receipt_identity: CausalEvidenceReferenceReceiptIdentity,
     anchor_digest: CausalObservationAnchorDigest,
     reference_set_digest: CausalEvidenceReferenceDigest,
     resolved_reference_count: usize,
@@ -67,15 +59,26 @@ impl CausalEvidenceReferenceReceipt {
         resolved_reference_count: usize,
         missing_reference_family_count: usize,
     ) -> Self {
-        let receipt_digest = hash_parts(&[
-            "causal_evidence_reference_receipt_v1".to_string(),
-            format!("anchor:{}", anchor_digest.as_str()),
-            format!("reference-set:{}", reference_set_digest.as_str()),
-            format!("resolved:{resolved_reference_count}"),
-            format!("missing:{missing_reference_family_count}"),
-        ]);
+        let receipt_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt,
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("anchor"), anchor_digest.as_str())
+        .field_identity(
+            ForgeQueryEvidenceTag::new("reference_set"),
+            reference_set_digest.as_str(),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("resolved"),
+            resolved_reference_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("missing"),
+            missing_reference_family_count,
+        )
+        .seal()
+        .into();
         Self {
-            receipt_digest,
+            receipt_identity,
             anchor_digest,
             reference_set_digest,
             resolved_reference_count,
@@ -84,7 +87,7 @@ impl CausalEvidenceReferenceReceipt {
     }
 
     pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+        self.receipt_identity.as_str()
     }
 
     pub fn anchor_digest(&self) -> &CausalObservationAnchorDigest {
@@ -155,7 +158,7 @@ pub struct CausalEvidenceReferenceResolutionCounters {
     bridge_record_unindexed_scan_count: usize,
     retained_record_scan_count: usize,
     runtime_graph_scan_count: usize,
-    counter_snapshot: String,
+    counter_identity: CausalEvidenceReferenceResolutionCountersIdentity,
 }
 
 impl CausalEvidenceReferenceResolutionCounters {
@@ -167,18 +170,41 @@ impl CausalEvidenceReferenceResolutionCounters {
         resolved_reference_count: usize,
         missing_required_reference_count: usize,
     ) -> Self {
-        let counter_snapshot = hash_parts(&[
-            "causal_evidence_reference_resolution_counters_v1".to_string(),
-            format!("requested_family_count:{requested_family_count}"),
-            format!("anchor_reference_width:{anchor_reference_width}"),
-            format!("indexed_record_count:{consulted_indexed_record_count}"),
-            format!("index_lookup_count:{index_lookup_count}"),
-            format!("resolved_reference_count:{resolved_reference_count}"),
-            format!("missing_required_reference_count:{missing_required_reference_count}"),
-            "bridge_record_unindexed_scan_count:0".to_string(),
-            "retained_record_scan_count:0".to_string(),
-            "runtime_graph_scan_count:0".to_string(),
-        ]);
+        let counter_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalEvidenceReferenceResolutionCounters,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("requested_family_count"),
+            requested_family_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("anchor_reference_width"),
+            anchor_reference_width,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("indexed_record_count"),
+            consulted_indexed_record_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("index_lookup_count"),
+            index_lookup_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("resolved_reference_count"),
+            resolved_reference_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("missing_required_reference_count"),
+            missing_required_reference_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("bridge_record_unindexed_scan_count"),
+            0,
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("retained_record_scan_count"), 0)
+        .field_usize(ForgeQueryEvidenceTag::new("runtime_graph_scan_count"), 0)
+        .seal()
+        .into();
         Self {
             requested_family_count,
             anchor_reference_width,
@@ -189,7 +215,7 @@ impl CausalEvidenceReferenceResolutionCounters {
             bridge_record_unindexed_scan_count: 0,
             retained_record_scan_count: 0,
             runtime_graph_scan_count: 0,
-            counter_snapshot,
+            counter_identity,
         }
     }
 
@@ -230,7 +256,7 @@ impl CausalEvidenceReferenceResolutionCounters {
     }
 
     pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
+        self.counter_identity.as_str()
     }
 }
 
@@ -239,7 +265,7 @@ pub struct CausalEvidenceReferenceResolutionDenial {
     anchor_digest: CausalObservationAnchorDigest,
     missing_families: Vec<CausalEvidenceFamily>,
     missing_indexed_reference_count: usize,
-    failure_digest: String,
+    failure_identity: CausalEvidenceReferenceResolutionDenialIdentity,
 }
 
 impl CausalEvidenceReferenceResolutionDenial {
@@ -248,22 +274,25 @@ impl CausalEvidenceReferenceResolutionDenial {
         missing_families: Vec<CausalEvidenceFamily>,
         missing_indexed_reference_count: usize,
     ) -> Self {
-        let missing_part = missing_families
-            .iter()
-            .map(CausalEvidenceFamily::as_str)
-            .collect::<Vec<_>>()
-            .join("|");
-        let failure_digest = hash_parts(&[
-            "causal_evidence_reference_resolution_denial_v1".to_string(),
-            format!("anchor:{}", anchor_digest.as_str()),
-            format!("missing:{missing_part}"),
-            format!("missing-indexed-reference:{missing_indexed_reference_count}"),
-        ]);
+        let failure_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalEvidenceReferenceResolutionDenial,
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("anchor"), anchor_digest.as_str())
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("missing"),
+            missing_families.iter().map(CausalEvidenceFamily::as_str),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("missing_indexed_reference_count"),
+            missing_indexed_reference_count,
+        )
+        .seal()
+        .into();
         Self {
             anchor_digest,
             missing_families,
             missing_indexed_reference_count,
-            failure_digest,
+            failure_identity,
         }
     }
 
@@ -280,7 +309,7 @@ impl CausalEvidenceReferenceResolutionDenial {
     }
 
     pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+        self.failure_identity.as_str()
     }
 }
 

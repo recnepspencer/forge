@@ -49,9 +49,7 @@ fn basis_digest(
         )
         .field_identity_sequence(
             ForgeQueryEvidenceTag::new("evidence_row"),
-            evidence_rows
-                .iter()
-                .map(|row| row.row_digest().as_str()),
+            evidence_rows.iter().map(|row| row.row_digest().as_str()),
         )
         .seal()
 }
@@ -294,6 +292,55 @@ fn display_colliding_preview_labels_produce_distinct_closeout_digests() {
 }
 
 #[test]
+fn display_colliding_preview_labels_produce_distinct_write_receipt_identities() {
+    let mut runtime = session_entry_runtime();
+    let left = ForgeQuerySessionLabel::scoped_strs("worth.kernel", ["preview"]).expect("label");
+    let right = ForgeQuerySessionLabel::scoped_strs("worth", ["kernel", "preview"]).expect("label");
+
+    let left_receipt = {
+        let mut preview = runtime
+            .preview(left.clone())
+            .expect("left preview should admit");
+        preview
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("left-receipt-render-collision")),
+                    ("title.value", json!("Left receipt render collision")),
+                ],
+            ))
+            .expect("left preview write should stage")
+    };
+    let right_receipt = {
+        let mut preview = runtime
+            .preview(right.clone())
+            .expect("right preview should admit");
+        preview
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("right-receipt-render-collision")),
+                    ("title.value", json!("Right receipt render collision")),
+                ],
+            ))
+            .expect("right preview write should stage")
+    };
+
+    assert_eq!(left.display(), right.display());
+    assert_ne!(left.identity_digest(), right.identity_digest());
+    assert_ne!(
+        left_receipt.commit_identity(),
+        right_receipt.commit_identity(),
+        "preview write receipt commit identity must preserve canonical label identity"
+    );
+    assert_ne!(
+        left_receipt.target_entity_identity(),
+        right_receipt.target_entity_identity(),
+        "preview-created entity identity must preserve canonical label identity"
+    );
+}
+
+#[test]
 fn display_colliding_preview_labels_produce_distinct_execution_digests() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
@@ -308,7 +355,10 @@ fn display_colliding_preview_labels_produce_distinct_execution_digests() {
 
     let left_execution = {
         let mut preview = runtime
-            .preview_with_options(left.clone(), ForgeQueryPreviewOptions::redirected_delivery())
+            .preview_with_options(
+                left.clone(),
+                ForgeQueryPreviewOptions::redirected_delivery(),
+            )
             .expect("left preview should admit");
         preview.use_view(&live);
         preview
@@ -362,14 +412,11 @@ fn display_colliding_preview_labels_produce_distinct_execution_digests() {
 
 #[test]
 fn ordinary_runtime_entrypoints_require_typed_session_labels() {
-    use crate::application::{
-        normalize_source_text, ordinary_session_entrypoint_audit_violations,
-    };
+    use crate::application::{normalize_source_text, ordinary_session_entrypoint_audit_violations};
 
     let runtime_sessions = normalize_source_text(include_str!("../runtime_sessions.rs"));
     let workspace = normalize_source_text(include_str!("../workspace.rs"));
-    let violations =
-        ordinary_session_entrypoint_audit_violations(&runtime_sessions, &workspace);
+    let violations = ordinary_session_entrypoint_audit_violations(&runtime_sessions, &workspace);
     assert!(
         violations.is_empty(),
         "ordinary runtime session entrypoint audit failed: {violations:?}"
@@ -378,9 +425,7 @@ fn ordinary_runtime_entrypoints_require_typed_session_labels() {
 
 #[test]
 fn canonical_session_label_intake_phase_six_outputs_are_non_empty_and_stable() {
-    use crate::application::{
-        normalize_source_text, ordinary_session_entrypoint_audit_violations,
-    };
+    use crate::application::{normalize_source_text, ordinary_session_entrypoint_audit_violations};
 
     let mut runtime = session_entry_runtime();
     let preview_label = test_session_label("phase-six-preview");

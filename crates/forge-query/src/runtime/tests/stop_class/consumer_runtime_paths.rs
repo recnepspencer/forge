@@ -58,8 +58,8 @@ fn consumer_router_handles_runtime_generated_stop_classes_without_string_matchin
     assert_eq!(
         route_consumer_stop_class(&read_error),
         ConsumerStopRoute::ReadCompositionDomainInvariantDenied {
-            hook_family: "domain_invariant_pack_hook".to_string(),
-            invariant_family: "no_traversal_reads".to_string(),
+            hook_family: "domain_invariant_pack_hook",
+            invariant_family: "no_traversal_reads",
         }
     );
 

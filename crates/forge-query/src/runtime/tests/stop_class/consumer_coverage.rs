@@ -112,8 +112,8 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
                 ),
             ),
             ConsumerStopRoute::GraphCompositionDomainInvariantDenied {
-                hook_family: "domain_invariant_pack_hook".to_string(),
-                invariant_family: "graph.family".to_string(),
+                hook_family: "domain_invariant_pack_hook",
+                invariant_family: "graph.family",
             },
         ),
         (
@@ -182,8 +182,20 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
             ),
         ),
         (
-            ForgeQueryRuntimeError::UnsupportedAuthority("authoritative-lane".to_string()),
-            ConsumerStopRoute::UnsupportedAuthority,
+            ForgeQueryRuntimeError::UnsupportedAuthorityRequirement(
+                ForgeQueryAuthorityRequirement::Merge,
+            ),
+            ConsumerStopRoute::UnsupportedAuthorityRequirement(
+                ForgeQueryAuthorityRequirement::Merge,
+            ),
+        ),
+        (
+            ForgeQueryRuntimeError::ExistingTruthAssertionRequiresAuthorityLane {
+                required_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+            },
+            ConsumerStopRoute::ExistingTruthAssertionRequiresAuthorityLane(
+                ForgeQueryAuthorityLane::AuthoritativeTruth,
+            ),
         ),
         (
             ForgeQueryRuntimeError::EffectPolicyDenied(effect_policy_denial),

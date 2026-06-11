@@ -1,5 +1,5 @@
 use super::closure::ForgeQueryIdentityBoundaryClosure;
-use super::identity_boundary_hostile_matrix::identity_boundary_hostile_matrix_digest;
+use super::identity_boundary_hostile_matrix::identity_boundary_hostile_matrix_artifact;
 use super::registry::{
     ForgeQueryCapabilityFamily, ForgeQueryCapabilityStatus, ForgeQuerySupportMatrix,
 };
@@ -11,7 +11,8 @@ use crate::composition::{
     runtime_backed_query_composition_support_profile, QueryCompositionSupportProfile,
 };
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 use crate::identity_evolution::{
     runtime_backed_direct_identity_evolution_support_profile, IdentityEvolutionSupportProfile,
@@ -47,7 +48,7 @@ pub struct ForgeQuerySupportSectionPosture {
     owner: ForgeQuerySubsystemOwner,
     enabled: bool,
     config_digest: String,
-    posture_digest: String,
+    posture_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQuerySupportSectionPosture {
@@ -56,7 +57,7 @@ impl ForgeQuerySupportSectionPosture {
         let owner = resolution.owner();
         let enabled = resolution.enabled();
         let config_digest = resolution.config_digest().to_string();
-        let posture_digest = forge_query_evidence_identity(
+        let posture_identity = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::ApplicationSupportSectionPosture,
         )
         .field_shape(ForgeQueryEvidenceTag::new("section"), section.as_str())
@@ -66,15 +67,13 @@ impl ForgeQuerySupportSectionPosture {
             ForgeQueryEvidenceTag::new("config_digest"),
             config_digest.clone(),
         )
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         Self {
             section,
             owner,
             enabled,
             config_digest,
-            posture_digest,
+            posture_identity,
         }
     }
 
@@ -95,7 +94,11 @@ impl ForgeQuerySupportSectionPosture {
     }
 
     pub fn posture_digest(&self) -> &str {
-        &self.posture_digest
+        self.posture_identity.as_str()
+    }
+
+    pub fn posture_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.posture_identity
     }
 }
 
@@ -115,7 +118,7 @@ pub struct ForgeQuerySupportReport {
     identity_boundary_closure: ForgeQueryIdentityBoundaryClosure,
     validated_config_digest: String,
     counters: ForgeQuerySupportReportCounters,
-    report_digest: String,
+    report_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQuerySupportReport {
@@ -176,13 +179,23 @@ impl ForgeQuerySupportReport {
             .descriptor(ForgeQueryCapabilityFamily::IdentityEvolution)
             .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted)
             .map(|_| runtime_backed_direct_identity_evolution_support_profile());
-        let identity_boundary_closure = ForgeQueryIdentityBoundaryClosure::closed(
+        let query_read_surface_available = support_matrix
+            .descriptor(ForgeQueryCapabilityFamily::QueryRead)
+            .is_some_and(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted);
+        let preview_session_surface_available = support_matrix
+            .descriptor(ForgeQueryCapabilityFamily::PreviewSession)
+            .is_some_and(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted);
+        let hostile_matrix = identity_boundary_hostile_matrix_artifact();
+        let identity_boundary_closure = ForgeQueryIdentityBoundaryClosure::derived(
             support_matrix.support_matrix_digest(),
-            &identity_boundary_hostile_matrix_digest(),
+            &hostile_matrix,
+            query_read_surface_available,
+            query_read_surface_available,
+            preview_session_surface_available,
         );
         let validated_config_digest = config.validated_digest().to_string();
         let counters = ForgeQuerySupportReportCounters::generated_once();
-        let report_digest =
+        let report_identity =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::ApplicationSupportReport)
                 .field_identity(
                     ForgeQueryEvidenceTag::new("support_matrix_digest"),
@@ -254,9 +267,7 @@ impl ForgeQuerySupportReport {
                     ForgeQueryEvidenceTag::new("support_report_generation_count"),
                     counters.support_report_generation_count(),
                 )
-                .seal()
-                .as_str()
-                .to_string();
+                .seal();
 
         Self {
             support_matrix,
@@ -273,7 +284,7 @@ impl ForgeQuerySupportReport {
             identity_boundary_closure,
             validated_config_digest,
             counters,
-            report_digest,
+            report_identity,
         }
     }
 
@@ -338,6 +349,10 @@ impl ForgeQuerySupportReport {
     }
 
     pub fn report_digest(&self) -> &str {
-        &self.report_digest
+        self.report_identity.as_str()
+    }
+
+    pub fn report_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.report_identity
     }
 }

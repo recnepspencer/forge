@@ -36,7 +36,6 @@ pub enum ForgeQueryRuntimeDeclarationFailureKind {
     EffectDeclaration,
     LiveSubscriptionInstallation,
     InvariantRegistration,
-    PreviewOperationEffectDenied,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -98,12 +97,20 @@ pub enum ForgeQueryStopClass<'a> {
         stage: &'static str,
         message: &'a str,
     },
+    PreviewOperationEffectDenied {
+        label: &'a ForgeQuerySessionLabel,
+        stage: &'static str,
+        message: &'a str,
+    },
     SessionLabelCollision {
         authority_lane: ForgeQueryAuthorityLane,
         label: &'a ForgeQuerySessionLabel,
     },
-    UnsupportedAuthority {
-        authority: &'a str,
+    UnsupportedAuthorityRequirement {
+        requirement: &'a ForgeQueryAuthorityRequirement,
+    },
+    ExistingTruthAssertionRequiresAuthorityLane {
+        required_lane: ForgeQueryAuthorityLane,
     },
     IntentCommitDenied {
         intent_name: &'a str,

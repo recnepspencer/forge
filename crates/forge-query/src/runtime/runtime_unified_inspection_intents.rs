@@ -69,7 +69,7 @@ impl ForgeQueryRuntime {
     ) -> Result<ForgeQueryUnifiedInspectionResult, ForgeQueryRuntimeError> {
         let inspection = self.inspect_from_generic_seed(binding.seed())?;
         let receipt = ForgeQueryUnifiedInspectionReceipt::from_inspection(
-            binding.seed().request_label().to_string(),
+            binding.seed().request_label().clone(),
             &inspection,
             self.backend.snapshot_token(),
         );
@@ -78,7 +78,7 @@ impl ForgeQueryRuntime {
             ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
                 binding.family(),
                 binding.entrypoint(),
-                binding.seed().request_label(),
+                binding.seed().request_label().as_str(),
                 binding.handoff().request_digest(),
                 binding.handoff().eligibility_trace().clone(),
                 binding.handoff().decision_digest(),

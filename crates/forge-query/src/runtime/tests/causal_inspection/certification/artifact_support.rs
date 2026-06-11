@@ -145,8 +145,8 @@ pub(super) fn denied_artifact_and_missing_evidence() -> (QueryCausalInspectionAr
     };
     let receipt = reference_set.anchor().observation_receipt();
     let target = causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
+        receipt.observation_target().clone(),
+        receipt.result_shape_context().clone(),
     )
     .expect("target should match receipt");
     let request = request_causal_inspection(

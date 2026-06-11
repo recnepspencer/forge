@@ -18,8 +18,8 @@ fn denied_offline_temporal_async_artifact(
     };
     let receipt = reference_set.anchor().observation_receipt();
     let target = causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
+        receipt.observation_target().clone(),
+        receipt.result_shape_context().clone(),
     )
     .expect("offline temporal/async target should match");
     let request = request_causal_inspection(

@@ -306,6 +306,16 @@ fn preview_promotion_denies_with_typed_rebinding_recovery_posture() {
                 evidence.recovery_posture(),
                 "discard_preview_and_readmit_authoritative"
             );
+            assert_eq!(
+                evidence.denial_identity().as_str(),
+                evidence.denial_digest()
+            );
+            assert_eq!(
+                evidence
+                    .rebinding_identity()
+                    .map(|identity| identity.as_str()),
+                evidence.rebinding_digest()
+            );
             assert!(evidence.rebinding_digest().is_some());
         }
         other => panic!("expected preview rebinding denial, got {other:?}"),

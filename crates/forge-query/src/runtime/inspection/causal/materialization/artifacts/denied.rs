@@ -1,3 +1,7 @@
+use super::super::super::identity::CausalInspectionOutcomeIdentity;
+use super::super::super::observation_identity::{
+    CausalObservationReceiptIdentity, CausalResultShapeContextIdentity,
+};
 use super::super::{
     causal_identity_digest, CausalInspectionArtifactKind, CausalInspectionBoundaryEnvelopeCategory,
     CausalInspectionPerformanceEnvelope, CausalMaterializationReceipt,
@@ -6,9 +10,9 @@ use super::super::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeniedQueryCausalInspectionArtifact {
-    query_denial_digest: String,
-    query_observation_digest: String,
-    result_shape_context_digest: String,
+    query_denial_identity: CausalInspectionOutcomeIdentity,
+    query_observation_identity: CausalObservationReceiptIdentity,
+    result_shape_context_identity: CausalResultShapeContextIdentity,
     denial_reason: String,
     bridge_denial_digest: Option<String>,
     bridge_denial_kind: Option<String>,
@@ -23,10 +27,10 @@ pub struct DeniedQueryCausalInspectionArtifact {
 
 impl DeniedQueryCausalInspectionArtifact {
     pub(in crate::runtime::inspection::causal::materialization) fn from_parts(
-        query_denial_digest: &str,
+        query_denial_identity: &CausalInspectionOutcomeIdentity,
         denial_reason: String,
-        query_observation_digest: &str,
-        result_shape_context_digest: &str,
+        query_observation_identity: &CausalObservationReceiptIdentity,
+        result_shape_context_identity: &CausalResultShapeContextIdentity,
         bridge_denial_digest: Option<String>,
         bridge_denial_kind: Option<String>,
         bridge_denial_family: Option<String>,
@@ -38,15 +42,15 @@ impl DeniedQueryCausalInspectionArtifact {
     ) -> Self {
         let causal_identity_digest = causal_identity_digest(
             CausalInspectionArtifactKind::Denied,
-            query_denial_digest,
-            query_observation_digest,
+            query_denial_identity.as_str(),
+            query_observation_identity.as_str(),
             None,
             None,
         );
         Self {
-            query_denial_digest: query_denial_digest.to_string(),
-            query_observation_digest: query_observation_digest.to_string(),
-            result_shape_context_digest: result_shape_context_digest.to_string(),
+            query_denial_identity: query_denial_identity.clone(),
+            query_observation_identity: query_observation_identity.clone(),
+            result_shape_context_identity: result_shape_context_identity.clone(),
             denial_reason,
             bridge_denial_digest,
             bridge_denial_kind,
@@ -61,15 +65,15 @@ impl DeniedQueryCausalInspectionArtifact {
     }
 
     pub fn query_denial_digest(&self) -> &str {
-        &self.query_denial_digest
+        self.query_denial_identity.as_str()
     }
 
     pub fn query_observation_digest(&self) -> &str {
-        &self.query_observation_digest
+        self.query_observation_identity.as_str()
     }
 
     pub fn result_shape_context_digest(&self) -> &str {
-        &self.result_shape_context_digest
+        self.result_shape_context_identity.as_str()
     }
 
     pub fn denial_reason(&self) -> &str {

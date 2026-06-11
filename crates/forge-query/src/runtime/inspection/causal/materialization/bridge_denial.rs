@@ -3,6 +3,7 @@ use crate::identity::hash_parts;
 use forge_runtime_bridge::facade::BridgeCausalEnvelopeDenial;
 
 use super::super::admission::{AdmittedCausalInspection, AdvisoryCausalInspection};
+use super::super::identity::CausalInspectionOutcomeIdentity;
 use super::{
     artifact_digest, policy, CausalInspectionArtifactKind, CausalInspectionMaterializationPolicy,
     CausalInspectionPerformanceEnvelope, CausalInspectionRedactionPolicy,
@@ -18,7 +19,7 @@ pub(crate) fn materialize_bridge_denied_admitted_causal_inspection(
 ) -> QueryCausalInspectionArtifact {
     materialize_bridge_denied_query_inspection(
         inspection,
-        inspection.admitted_inspection_digest(),
+        inspection.admitted_inspection_identity(),
         bridge_denial,
         redaction_policy,
         materialization_policy,
@@ -33,7 +34,7 @@ pub(crate) fn materialize_bridge_denied_advisory_causal_inspection(
 ) -> QueryCausalInspectionArtifact {
     materialize_bridge_denied_query_inspection(
         inspection,
-        inspection.advisory_inspection_digest(),
+        inspection.advisory_inspection_identity(),
         bridge_denial,
         redaction_policy,
         materialization_policy,
@@ -42,7 +43,7 @@ pub(crate) fn materialize_bridge_denied_advisory_causal_inspection(
 
 fn materialize_bridge_denied_query_inspection(
     inspection: impl CausalInspectionBridgeDeniedSubject,
-    query_admission_digest: &str,
+    query_admission_identity: &CausalInspectionOutcomeIdentity,
     bridge_denial: &BridgeCausalEnvelopeDenial,
     redaction_policy: CausalInspectionRedactionPolicy,
     materialization_policy: CausalInspectionMaterializationPolicy,
@@ -61,7 +62,7 @@ fn materialize_bridge_denied_query_inspection(
         format!("bridge-denial-family:{}", bridge_denial.family().as_str()),
     ]);
     let receipt = CausalMaterializationReceipt::new(
-        query_admission_digest,
+        query_admission_identity,
         None,
         None,
         redaction_policy,
@@ -71,7 +72,7 @@ fn materialize_bridge_denied_query_inspection(
     );
     let artifact_digest = artifact_digest(
         CausalInspectionArtifactKind::Denied,
-        query_admission_digest,
+        query_admission_identity.as_str(),
         None,
         None,
         &receipt,
@@ -85,10 +86,10 @@ fn materialize_bridge_denied_query_inspection(
         Some(bridge_denial.family().as_str()),
     );
     QueryCausalInspectionArtifact::Denied(DeniedQueryCausalInspectionArtifact::from_parts(
-        query_admission_digest,
+        query_admission_identity,
         denial_reason,
-        query_observation_digest,
-        result_shape_context_digest,
+        inspection.subject().query_observation_identity(),
+        inspection.subject().result_shape_context_identity(),
         Some(bridge_denial.failure_digest().to_string()),
         Some(bridge_denial.kind().as_str().to_string()),
         Some(bridge_denial.family().as_str().to_string()),
