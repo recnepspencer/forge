@@ -9,7 +9,7 @@ use super::parity_fixture::{local_rebuild_parity_parts, LocalRebuildParityParts}
 use super::runtime_handles::local_rebuild_handle;
 
 #[test]
-fn mb_m6_2_and_mb_m6_8_local_rebuild_rebinding_parity() {
+fn local_rebuild_rebinding_parity_preserves_movement_and_diagnostics() {
     let first = certified_digest_for("phase-19-movement-order", "rebinding-continuation:a");
     let replay_a = certified_digest_for("phase-19-movement-order", "rebinding-continuation:a");
     assert_eq!(

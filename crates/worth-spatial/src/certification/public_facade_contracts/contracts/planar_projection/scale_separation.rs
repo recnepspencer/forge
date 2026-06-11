@@ -21,7 +21,7 @@ fn thin_feature_projection_uses_local_delta_not_world_coordinate_subtraction() {
 }
 
 #[test]
-fn mb_m6_1_projection_basis_survives_coplanar_overlap_storm() {
+fn representative_projection_basis_preserves_overlap_local_frame() {
     let frame = certified_frame(
         "projection-overlap-frame",
         "movement:rotation-cancelled",

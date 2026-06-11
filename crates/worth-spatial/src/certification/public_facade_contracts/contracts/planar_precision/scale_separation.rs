@@ -67,7 +67,7 @@ fn planar_precision_counters_preserve_nonzero_worth_math_escalation_breadth() {
 }
 
 #[test]
-fn mb_m6_3_thin_feature_scale_separation_contract() {
+fn thin_feature_scale_separation_contract_preserves_precision_identity() {
     let cancelled = predicate_receipt(
         "movement:rotation-cancelled",
         [[0.0, 0.0], [1.0e-9, 0.0], [0.0, 1.0e-9]],
@@ -80,7 +80,7 @@ fn mb_m6_3_thin_feature_scale_separation_contract() {
         "movement:translated-large-world",
         [[0.0, 0.0], [1.0e-9, 0.0], [0.0, 1.0e-9]],
     );
-    let handle = precision_handle("mb-m6-3");
+    let handle = precision_handle("thin-feature-scale-separation");
 
     let cancelled_receipt = precision_receipt_for(&handle, cancelled);
     let repeated_receipt = precision_receipt_for(&handle, repeated_cancel);

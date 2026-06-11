@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/projection_workload/projected_workload_not_forgeable.rs:4:38
+  |
+4 |       let _ = ProjectedPlanarWorkload::new(
+  |                                        ^^^ private associated function
+  |
+ ::: src/workload_platform/projection_workload/projection_workload.rs
+  |
+  | /     pub(crate) fn new(
+  | |         local_frame: CertifiedLocalFrameWorkload,
+  | |         projected_faces: Vec<ProjectedFace>,
+  | |         projected_edges: ProjectedEdgeSet,
+  | |         projected_loops: Vec<ProjectedLoop>,
+  | |         receipts: ProjectionReceiptSet,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

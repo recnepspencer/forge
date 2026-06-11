@@ -80,7 +80,7 @@ fn assert_replay_subject_matches_query_artifacts(
 }
 
 #[test]
-fn mb_m6_4_retained_planar_history_cancellation_chain() {
+fn retained_planar_history_cancellation_chain_replays_without_repair() {
     let parts = retained_planar_parts("retained-planar-cancellation-chain");
     assert_eq!(parts.motion.counters().rotation_rows_inspected(), 1);
     assert_eq!(parts.motion.counters().cancellation_rows_inspected(), 1);

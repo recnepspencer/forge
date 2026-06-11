@@ -4,6 +4,8 @@ mod public_api_bindings_boundary;
 mod public_api_birth_and_resolution;
 mod public_api_facade_boundary;
 mod public_api_geometry_applicability;
+#[path = "geometry_binding_workload/mod.rs"]
+mod public_api_geometry_binding_workload;
 mod public_api_geometry_family_inventory;
 mod public_api_geometry_support_posture;
 mod public_api_motion_and_constraints;
@@ -51,8 +53,24 @@ mod public_api_planar_topology_contract;
 #[path = "planar_winding/mod.rs"]
 mod public_api_planar_winding;
 mod public_api_policy;
+#[path = "projection_workload/mod.rs"]
+mod public_api_projection_workload;
 mod public_api_rebinding_signal_continuation;
 mod public_api_refs_boundary;
 mod public_api_resolution_boundary;
+#[path = "retained_replay_workload/mod.rs"]
+mod public_api_retained_replay_workload;
+#[path = "surface_support_workload/mod.rs"]
+mod public_api_surface_support_workload;
 mod public_api_tolerance_precision;
+#[path = "transform_workload/mod.rs"]
+mod public_api_transform_workload;
+#[path = "user_response/mod.rs"]
+mod public_api_user_response;
 mod public_api_workflow_boundary;
+#[path = "workload_inventory/mod.rs"]
+mod public_api_workload_inventory;
+#[path = "workload_operators/mod.rs"]
+mod public_api_workload_operators;
+#[path = "workload_vocabulary/mod.rs"]
+mod public_api_workload_vocabulary;

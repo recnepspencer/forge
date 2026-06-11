@@ -52,6 +52,8 @@
 //!   point projection over retained local-frame certificates
 //! - [`facade::planar_segment_segment`] for Query-native certified projected
 //!   segment contact classification
+//! - [`facade::workload_inventory`] for M6.5 seed and fixture classification
+//!   before reusable workload construction
 //! - [`facade::support`] for public family inventory and applicability posture
 //! - [`facade::tolerance`] for tolerance and precision certification families
 //!
@@ -72,5 +74,6 @@ mod structure_guard;
 #[cfg(test)]
 mod test_support;
 mod witness_resolution;
+mod workload_platform;
 
 pub mod facade;

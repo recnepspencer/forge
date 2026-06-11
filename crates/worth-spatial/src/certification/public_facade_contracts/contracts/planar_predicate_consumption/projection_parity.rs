@@ -12,7 +12,7 @@ use crate::public_api_planar_contract_bundle::proof_fixture::{
 };
 
 #[test]
-fn mb_m6_7_projection_consumed_planar_fact_parity_requires_predicate_metadata() {
+fn projection_consumed_planar_fact_parity_requires_predicate_metadata() {
     let world = "predicate-consumption-parity";
     let parts = complete_bundle_parts(world);
     let segment = parts.segments[0].clone();

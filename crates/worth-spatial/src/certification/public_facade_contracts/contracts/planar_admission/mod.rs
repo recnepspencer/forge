@@ -166,7 +166,7 @@ fn planar_admission_receipt_exists_only_for_admitted_rows() {
 }
 
 #[test]
-fn mb_m6_admission_rows_cover_premetaboss_input_families() {
+fn planar_admission_rows_cover_premetaboss_input_families() {
     let matrix = planar_admission_matrix();
     let rows = matrix.premetaboss_rows();
 

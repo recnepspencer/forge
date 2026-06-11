@@ -99,7 +99,7 @@ fn planar_recovery_canonical_source_rows_stay_stable_for_same_basis() {
 }
 
 #[test]
-fn mb_m6_5_dirty_input_and_mb_m6_6_unbounded_posture_recovery_rows() {
+fn dirty_and_unbounded_recovery_rows_remain_typed() {
     let dirty_world = "planar-recovery-dirty";
     let dirty = PlanarRecoveryPosture::from_blocked_planar_source(
         worth_spatial::facade::planar_recovery::PlanarRecoverySource::dirty_input(

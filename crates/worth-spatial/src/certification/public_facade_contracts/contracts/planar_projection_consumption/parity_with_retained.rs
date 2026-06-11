@@ -70,8 +70,8 @@ fn projection_consumed_planar_facts_match_live_and_retained_basis() {
 }
 
 #[test]
-fn mb_m6_7_projection_consumed_planar_fact_parity() {
-    let world = "projection-consumed-mb-m6-7";
+fn projection_consumed_planar_fact_parity_matches_retained_basis() {
+    let world = "projection-consumed-parity";
     let parts = projection_consumed_planar_parts(world);
     let receipt = ProjectionConsumedPlanarFacts::from_retained_planar_facts(parts.retained.clone())
         .consume_bundle_projection_receipts(parts.projections.clone())

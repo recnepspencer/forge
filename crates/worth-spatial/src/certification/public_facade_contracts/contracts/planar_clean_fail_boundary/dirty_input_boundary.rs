@@ -72,8 +72,8 @@ fn dirty_planar_input_fails_cleanly_without_heuristic_repair() {
 }
 
 #[test]
-fn mb_m6_5_dirty_planar_input_clean_fail_localization() {
-    let world = "phase-20-mb-m6-5";
+fn dirty_planar_input_clean_fail_localizes_motion_posture() {
+    let world = "phase-20-dirty-clean-fail";
     let source = "dirty:stable-id-orientation-reversal";
     let receipt = certify_clean_fail_boundary(
         world,

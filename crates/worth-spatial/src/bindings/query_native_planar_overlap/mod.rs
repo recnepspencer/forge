@@ -2,6 +2,7 @@ mod authoring;
 mod domain;
 mod extraction;
 mod facts;
+mod outcome;
 mod workflow;
 
 pub use authoring::{
@@ -12,6 +13,10 @@ pub use domain::{
     CoplanarOverlapContractQueryWorld,
 };
 pub use facts::{coplanar_overlap_contract_facts, CoplanarOverlapContractFactError};
+pub use outcome::{
+    CoplanarOverlapNoOptionsCause, CoplanarOverlapUserDecision, CoplanarOverlapUserOutcome,
+    CoplanarOverlapUserOutcomeKind,
+};
 pub use workflow::{
     CoplanarOverlapContractContracts, CoplanarOverlapContractExtractor, CoplanarOverlapContractPlan,
 };

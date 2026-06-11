@@ -57,8 +57,8 @@ fn planar_contract_bundle_validator_accepts_complete_retained_and_projection_con
 }
 
 #[test]
-fn mb_m6_8_boolean_readiness_final_boss_requires_complete_contract_bundle() {
-    let world = "bundle-final-boss";
+fn boolean_readiness_requires_complete_contract_bundle() {
+    let world = "boolean-readiness-complete-bundle";
     let parts = complete_bundle_parts(world);
     let contracts = PlanarContractBundleValidationContracts::new(bundle_handle(world));
     let receipt = PlanarContractBundleValidator::for_boolean_readiness(complete_bundle(&parts))

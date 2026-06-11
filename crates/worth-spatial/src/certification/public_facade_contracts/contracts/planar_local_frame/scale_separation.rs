@@ -3,14 +3,17 @@ use super::proof_fixture::{
 };
 
 #[test]
-fn mb_m6_3_local_frame_basis_survives_scale_separation() {
-    let precision = precision_receipt(&precision_handle("mb-m6-3"), "movement:rotation-cancelled");
+fn local_frame_basis_survives_scale_separation() {
+    let precision = precision_receipt(
+        &precision_handle("thin-feature-scale-separation"),
+        "movement:rotation-cancelled",
+    );
     let basis = local_frame_basis(
         &precision,
         "movement:rotation-cancelled",
         "transform:move-rotate-cancelled",
     );
-    let receipt = local_frame_receipt(&frame_handle("mb-m6-3"), basis);
+    let receipt = local_frame_receipt(&frame_handle("thin-feature-scale-separation"), basis);
 
     assert_eq!(receipt.scale_separation_orders(), 21);
     assert_eq!(receipt.basis().origin(), [1.0e12, 0.0, 0.0]);

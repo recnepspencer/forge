@@ -1,4 +1,4 @@
-mod clean_fail_fixture;
+pub(crate) mod clean_fail_fixture;
 mod dirty_input_boundary;
 mod mismatch_denials;
 mod no_repair_denials;

@@ -8,3 +8,4 @@ mod recovery_action;
 mod route_posture;
 mod runtime_story;
 mod support;
+mod workload_inventory;

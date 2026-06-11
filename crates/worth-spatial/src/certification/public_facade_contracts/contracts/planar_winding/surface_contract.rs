@@ -41,7 +41,7 @@ fn certified_polygon_winding_family_is_query_native_and_retained() {
 }
 
 #[test]
-fn mb_m6_1_nested_hole_winding_rows_are_retained_and_replayable() {
+fn nested_hole_winding_rows_are_retained_and_replayable() {
     let world = "winding-dx";
     let frame = certified_frame(world, "movement:stable");
     let outer_points = loop_points(

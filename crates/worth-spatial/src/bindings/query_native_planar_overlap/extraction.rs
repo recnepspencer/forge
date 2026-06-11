@@ -254,7 +254,7 @@ fn area_policy_exits(basis: &CoplanarOverlapContractBasis) -> Vec<PolicyRequired
     area_fact_digests.sort();
     vec![PolicyRequiredExitRow::new(
         basis.pair_identity().to_string(),
-        "signed-area-policy-required-before-overlap-imprint".to_string(),
+        "Signed area needs a user policy decision before overlap imprint.".to_string(),
         format!("{}:{}", area_fact_digests[0], area_fact_digests[1]),
     )]
 }

@@ -51,10 +51,11 @@ pub(crate) fn overlap_contracts(
 
 pub(crate) fn overlap_face(
     world: &'static str,
-    face: &'static str,
+    face: impl Into<String>,
     movement: &'static str,
     points: &[[f64; 2]],
 ) -> CertifiedCoplanarOverlapFace2D {
+    let face = face.into();
     let precision = precision_receipt(world, movement);
     let frame = frame_receipt(world, movement, &precision);
     let loop_identity = format!("loop:{face}");
@@ -92,11 +93,12 @@ pub(crate) fn overlap_face(
 
 pub(crate) fn overlap_face_with_containment_candidate(
     world: &'static str,
-    face: &'static str,
+    face: impl Into<String>,
     movement: &'static str,
     outer_points: &[[f64; 2]],
     candidate_points: &[[f64; 2]],
 ) -> CertifiedCoplanarOverlapFace2D {
+    let face = face.into();
     let precision = precision_receipt(world, movement);
     let frame = frame_receipt(world, movement, &precision);
     let outer_identity = format!("loop:{face}:outer");

@@ -32,7 +32,7 @@ fn topology_query_projection_consumption_feeds_planar_contract_without_raw_topol
 }
 
 #[test]
-fn mb_m6_2_high_valence_contract_runs_topology_completeness_before_identity() {
+fn high_valence_contract_runs_topology_completeness_before_identity() {
     let receipt = complete_topology_contract_receipt("topology-high-valence");
 
     assert_eq!(

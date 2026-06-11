@@ -8,10 +8,11 @@ use super::runtime_handles::diagnostic_handle;
 use crate::public_api_planar_motion_posture::contract_subject::cancellation_motion_receipt;
 
 #[test]
-fn mb_m6_8_final_boss_orientation_flip_localizes_exact_step() {
-    let parts = diagnostic_planar_parts("planar-diagnostic-final-boss");
-    let contracts =
-        PlanarDiagnosticBundleContracts::new(diagnostic_handle("planar-diagnostic-final-boss"));
+fn retained_orientation_flip_localizes_exact_step() {
+    let parts = diagnostic_planar_parts("planar-diagnostic-retained-orientation-flip");
+    let contracts = PlanarDiagnosticBundleContracts::new(diagnostic_handle(
+        "planar-diagnostic-retained-orientation-flip",
+    ));
     let plan = PlanarDiagnosticBundle::explain_planar_failure(
         PlanarDiagnosticSubject::retained_transform_failure(
             "retained-transform:orientation-flip-step",
@@ -20,9 +21,11 @@ fn mb_m6_8_final_boss_orientation_flip_localizes_exact_step() {
     .with_retained_planar_facts(parts.retained)
     .with_projection_consumed_planar_facts(parts.projected)
     .with_motion_posture(cancellation_motion_receipt(
-        "planar-diagnostic-final-boss-motion",
+        "planar-diagnostic-retained-orientation-flip-motion",
     ))
-    .with_query_causal_inspection(causal_reference("planar-diagnostic-final-boss"))
+    .with_query_causal_inspection(causal_reference(
+        "planar-diagnostic-retained-orientation-flip",
+    ))
     .inspect_failure_locality()
     .compile(&contracts)
     .expect("final boss diagnostic plan");

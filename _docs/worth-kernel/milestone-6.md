@@ -176,6 +176,13 @@ then this milestone has failed.
   silently repair, or allow later boolean code to consume unclear input.
 - All `MB-M6-*` tests in `_docs/worth/m6-premetaboss.md` are closeout
   requirements. `MB-M6-7` and `MB-M6-8` are mandatory final closeout gates.
+- `MB-M6-*` tests must be operational end-to-end proofs. They must assemble
+  real topology truth, spatial binding/projection facts, retained Query
+  artifacts, movement/rotation posture, and production user-response surfaces
+  through the ordinary public runtime. A test that hand-builds only spatial
+  rectangles, re-extracts the same inputs as "replay," changes identity strings
+  instead of transforming geometry, or asserts fixture-generator arithmetic is
+  not an MB closeout proof.
 - M6 must not implement M7 boolean split/classify/assemble, EMBER, or B-rep
   boolean execution.
 
@@ -184,10 +191,40 @@ then this milestone has failed.
 - A phase is not done because a representative planar fixture passes.
 - A phase is not done because a visible Query surface exists.
 - A phase is not done because kernel can assemble a convincing summary.
+- An MB phase is not done because a production spatial extractor was called
+  from a synthetic harness. The proof must also include the real upstream
+  topology, geometry-binding, projection, retained/replay, movement/rotation,
+  and user-response path required by that workload.
 - A phase is done only when production surfaces exist, support posture is
   explicit, and the phase's adversarial proofs pass.
 - If a required Query lane is missing, harden Query or mark the specific support
   row as blocked. Do not build a local Worth substitute.
+
+## Product Response And MB Harness Lock
+
+Before any MB closeout test may count, M6 must operationalize two product
+surfaces that the MB1 audit exposed as missing or too narrow:
+
+- a shared planar user-response layer that can express admitted,
+  policy-required, unsupported, denied, predicate-uncertain, integrity-mismatch,
+  and no-options outcomes with typed causes, selectable policy decisions only
+  when safe, and human-readable explanations
+- a real MB operational harness that starts from production topology and
+  geometry setup, binds spatial facts through the ordinary Query-native path,
+  applies actual movement/rotation to geometry rather than identity strings,
+  consumes retained artifacts for replay rather than re-running the same
+  extractor, and records Query-visible receipts/counters for every step
+
+The overlap-specific response surface created for `MB-M6-1` is acceptable only
+as the first concrete branch of this broader product layer. If later MB phases
+need the same response taxonomy, the broader planar response layer must be
+built and the overlap surface must either wrap it or be refactored into it.
+
+`MB-M6-1` must be refactored before it can remain a closeout gate. Its storm may
+still use generated hostile scale, but the closeout proof must no longer rely on
+procedural rectangles alone, synthetic world placement alone, fake retained
+replay, motion labels standing in for transformed geometry, or self-referential
+fixture-count assertions.
 
 ## Phase Plan
 
@@ -1413,10 +1450,565 @@ a complete planar boolean-readiness bundle, not a boolean result.
 - Exact bundle type and whether it lives under `worth-kernel` certification or a
   narrow `worth-spatial` boolean-readiness facade.
 
-### Phase 22: Freeze Milestone 6 Certification And Legacy Deletion Proof
+### Phase 22: Freeze MB-M6-1 Coplanar Overlap Contract Storm
 
-Phase 22 closes M6 by proving the whole surface under pre-MetaBoss pressure and
-locking out the shortcuts this milestone exists to kill.
+Phase 22 closes the coplanar-overlap storm as its own production proof. It must
+prove the full workload and the user-facing outcome surface, not a synthetic
+test-local matrix.
+It also refactors the current MB1 harness so the storm enters through real
+topology, geometry binding, projection, retained replay, and actual
+movement/rotation semantics instead of procedural-only spatial setup.
+
+**Relevant subsystems**
+- `worth-spatial` coplanar overlap contracts
+- `worth-spatial` planar diagnostics and clean-fail posture
+- `worth-spatial` exact predicate authority and precision/local-frame basis
+- Forge Query declaration, receipt, envelope, and diagnostic evidence lanes
+
+**Relevant APIs**
+- `CoplanarOverlapContractExtractor`
+- `CoplanarOverlapUserOutcome`
+- `CoplanarOverlapUserDecision`
+- `CoplanarOverlapNoOptionsCause`
+- `PlanarDiagnosticBundle`
+- `PlanarCleanFailBoundary`
+
+**Required Query posture**
+- required now:
+  - overlap declaration entry and bound receipt
+  - policy-required ordinary outcome projection
+  - diagnostic receipt for every denied movement/rotation lane
+  - clean-fail receipt for every dirty or unsupported no-options lane
+  - predicate-authority error projection for predicate uncertainty
+- support-gated:
+  - M7 boolean imprint or split/classify decisions
+- out:
+  - test-local outcome rows, synthetic evidence strings, or fake user choices
+
+**Policy, matrix, and human response requirements**
+- The production overlap outcome surface must branch every observed result into:
+  certified, policy-required, no-options dirty input, no-options unsupported
+  input, no-options denied movement/rotation, and no-options predicate
+  uncertainty.
+- Policy-required rows must expose typed user decisions with readable labels.
+- No-options rows must expose a typed cause and a human-readable explanation;
+  they must not advertise selectable outcomes.
+- Machine identifiers may remain as evidence digests, but the user-facing
+  message must be readable without knowing internal token names.
+
+**Warnings**
+- Do not satisfy the matrix with a test-local enum or helper-only adapter.
+- Do not ignore the full storm in the closeout suite.
+- Do not assert only absence of bad machine strings; assert exact
+  human-readable messages where the message is public contract.
+
+**Test requirements**
+- `mb_m6_1_coplanar_overlap_storm_end_to_end_receipts`
+- prove the full storm runs in the normal public contract suite and exercises
+  hundreds of coplanar faces across admitted overlap regions; the proof must
+  start from real topology and geometry-binding setup and must not be satisfied
+  by procedural rectangles alone
+- `mb_m6_1_user_outcome_matrix_branches_every_stop`
+- prove the matrix is made of production `CoplanarOverlapUserOutcome` values
+  derived from real receipts, denials, diagnostics, clean-fail receipts, and
+  predicate-authority errors
+- `mb_m6_1_equivalent_motion_subset_converges_without_full_storm_replay`
+- prove equivalent movement, rotation, host order, and retained replay converge;
+  actual coordinates and retained Query artifacts must change/flow through the
+  tested path, so identity-label changes and second extractor calls with the
+  same inputs are not acceptable replay or motion proof
+- `mb_m6_1_fixture_arithmetic_cannot_satisfy_storm_truth`
+- prove storm counters are cross-checked against production receipts and
+  geometry/topology evidence rather than only against generator cardinality
+
+**Engineering decisions**
+- The full storm is a real executed proof, not an ignored artifact.
+- The matrix is a production outcome contract, not test scaffolding.
+- User-facing policy and no-options causes are part of the overlap public
+  surface.
+- Generated hostile regions are permitted only as one input source. They must
+  be routed through the same topology, binding, projection, retained replay, and
+  movement/rotation path as non-generated Worth geometry.
+
+**Open questions**
+- Whether the overlap user-outcome surface should remain overlap-owned or be
+  promoted to a broader planar user-outcome boundary if later MB phases share
+  the same response taxonomy.
+
+### Phase 23: Freeze MB-M6-2 High-Valence Planar Singularity Contract
+
+Phase 23 closes the high-valence singularity proof as a separate pressure
+family. It must prove exact predicate localization and topology-to-spatial
+admission before any rebuild, rebinding, or correspondence summary can help.
+
+**Relevant subsystems**
+- `worth-spatial` predicate authority and precision escalation
+- `worth-spatial` topology-to-spatial contract completeness
+- `worth-spatial` local rebuild/rebinding parity
+- `worth-topo` topology legality and local neighborhood truth
+- Forge Query inspection and support posture
+
+**Relevant APIs**
+- `PlanarPredicateAuthority`
+- `PlanarPrecisionCertification`
+- `PlanarTopologyContractCompleteness`
+- `PlanarLocalRebuildParity`
+- `PlanarDiagnosticBundle`
+- production user-outcome surface for singularity admission and no-options
+  causes, added before the test if no adequate surface exists
+
+**Required Query posture**
+- required now:
+  - predicate declaration and receipt/error envelope
+  - topology completeness receipt before spatial identity or projection facts
+  - local neighborhood Query receipt for any admitted rebuild pressure
+  - diagnostic receipt naming singular vertex/neighborhood and movement posture
+- support-gated:
+  - manifold repair or non-M6 singularity healing
+- out:
+  - topology-name or binding-summary substitution for predicate authority
+
+**Policy, matrix, and human response requirements**
+- The production matrix must classify admitted, policy-required,
+  predicate-uncertain, topology-contract-failed, and movement-neighborhood
+  denied outcomes.
+- Each no-options row must name whether the blocker is predicate uncertainty,
+  topology contract failure, unsupported valence posture, or movement/rebuild
+  incompatibility.
+- Policy-required singularity rows must expose selectable policy decisions only
+  when a real production policy surface owns those decisions.
+- Human-readable responses must name the singular vertex or local neighborhood,
+  not just a digest.
+
+**Warnings**
+- Do not pre-solve valence pressure in fixtures by constructing already-clean
+  low-valence cases.
+- Do not let correspondence continuity substitute for topology completeness.
+- Do not collapse topology failure and predicate uncertainty into one generic
+  denial.
+
+**Test requirements**
+- `mb_m6_2_high_valence_planar_singularity_contract`
+- prove deterministic predicate posture across admitted incidence-preserving
+  movement/rotation variants
+- `mb_m6_2_singularity_no_options_matrix_names_exact_blocker`
+- prove each denied or unavailable singularity branch has a typed production
+  cause and human-readable response
+- `mb_m6_2_rebuild_movement_break_denies_before_correspondence`
+- prove a movement that breaks the local replacement neighborhood fails before
+  rebinding can become fake continuity
+
+**Engineering decisions**
+- High valence is a predicate/topology contract boundary, not a boolean repair
+  boundary.
+- User response policy must be production-owned before the matrix test exists.
+
+**Open questions**
+- Exact admitted valence ceiling for M6, if any; unsupported valence must be
+  explicit if the ceiling is intentionally bounded.
+
+### Phase 24: Freeze MB-M6-3 Thin-Feature Scale-Separation Contract
+
+Phase 24 closes thin-feature scale separation under large-world and micro-local
+coordinates. It must prove local scale, precision escalation, and user-facing
+uncertainty without hiding cost or fallback.
+
+**Relevant subsystems**
+- `worth-math` precision escalation metadata
+- `worth-spatial` precision certification and local frame certificates
+- `worth-spatial` projection-consumed facts
+- `worth-spatial` diagnostics and recovery posture
+- Forge Query counters and retained receipts
+
+**Relevant APIs**
+- `PlanarPrecisionCertification`
+- `PlanarLocalFrameCertificate`
+- `ProjectPointToCertifiedPlane2D`
+- `ProjectionConsumedPlanarFacts`
+- `PlanarDiagnosticBundle`
+- production thin-feature outcome/policy surface, added before tests if missing
+
+**Required Query posture**
+- required now:
+  - precision declaration and receipt
+  - local-frame receipt with local feature scale and world magnitude
+  - projection receipt and projection-consumption receipt
+  - diagnostic receipt for every tiny-rotation or predicate-uncertain branch
+- support-gated:
+  - M7 micro-feature boolean split/classify execution
+- out:
+  - global-coordinate epsilon fallback or hidden snapping
+
+**Policy, matrix, and human response requirements**
+- The production matrix must classify admitted scale-separated facts,
+  predicate-uncertain micro-feature cases, unsupported tiny-rotation cases, and
+  no-options precision-basis failures.
+- Human-readable responses must distinguish local scale failure from world
+  coordinate magnitude and must name the affected micro-feature/local frame.
+- Policy choices must be typed only where the modeler can responsibly choose a
+  handling policy; precision failures with no safe options must remain
+  no-options.
+
+**Warnings**
+- Do not test one toy micro-feature and claim scale-separation closure.
+- Do not let elapsed time stand in for structural counters.
+- Do not let projection consumption recompute local frame truth.
+
+**Test requirements**
+- `mb_m6_3_thin_feature_scale_separation_contract`
+- prove precision escalation is based on local feature scale and survives
+  large-world coordinates
+- `mb_m6_3_micro_feature_outcome_matrix_is_production_owned`
+- prove admitted, predicate-uncertain, and no-options branches come from
+  production receipts and errors
+- `mb_m6_3_projection_consumption_preserves_local_basis`
+- prove projection-consumed facts match retained/local-frame basis without
+  broadening to whole-model scans
+
+**Engineering decisions**
+- Scale-separation user outcomes belong at the precision/local-frame boundary,
+  not inside boolean execution.
+- Counters are acceptance evidence, not advisory diagnostics.
+
+**Open questions**
+- Exact micro-feature workload cardinality for the closeout proof.
+
+### Phase 25: Freeze MB-M6-4 Retained Planar History Cancellation Chain
+
+Phase 25 closes retained-history cancellation as a distinct replay proof. It
+must prove exact cancellation, near-graze localization, and response policy at
+the retained step where truth changes.
+
+**Relevant subsystems**
+- `worth-spatial` retained planar facts
+- `worth-spatial` movement/rotation posture
+- `worth-spatial` structural identity
+- `worth-spatial` diagnostics and projection consumption
+- Forge Query retained artifact and replay lanes
+
+**Relevant APIs**
+- `RetainedPlanarFacts`
+- `PlanarMotionPosture`
+- `PlanarStructuralIdentity`
+- `ProjectionConsumedPlanarFacts`
+- `PlanarDiagnosticBundle`
+- production retained-history user-outcome surface if no existing surface can
+  honestly represent cancellation and near-graze outcomes
+
+**Required Query posture**
+- required now:
+  - retained fact declaration/progression/route/receipt/envelope
+  - movement/rotation posture receipt for every step
+  - structural identity receipt at every cancellation checkpoint
+  - diagnostic receipt localizing near-graze step
+- support-gated:
+  - M7 boolean chain execution
+- out:
+  - final-coordinate-only cancellation, history summary substitution, or
+    deferred localization at the end of the chain
+
+**Policy, matrix, and human response requirements**
+- The production matrix must distinguish exact cancellation success,
+  policy-required near-graze, predicate uncertainty, retained replay mismatch,
+  and no-options motion/rotation invalidation.
+- Human-readable responses must name the retained step, transform posture, and
+  exact blocker.
+- Policy choices may be offered only at the retained step that produced the
+  ambiguous or policy-required evidence.
+
+**Warnings**
+- Do not prove cancellation only at final output; checkpoint every named
+  cancellation boundary.
+- Do not let replay reorder or hide the injected near-graze trigger.
+- Do not use final coordinate equality as structural identity.
+
+**Test requirements**
+- `mb_m6_4_retained_planar_history_cancellation_chain`
+- prove exact cancellation checkpoints are bit-identical and near-graze is
+  localized to the injected step
+- `mb_m6_4_retained_outcome_matrix_branches_each_history_stop`
+- prove production outcomes cover cancellation success, policy-required,
+  predicate uncertainty, replay mismatch, and no-options transform denial
+- `mb_m6_4_projection_consumed_facts_match_retained_checkpoints`
+- prove projection-consumed facts before and after the trigger match retained
+  basis for the same semantic step
+
+**Engineering decisions**
+- Retained-history outcomes are step-local.
+- Recovery and diagnostics must not change retained planar truth.
+
+**Open questions**
+- Whether the closeout chain uses 500 steps or a bounded but slope-sensitive M6
+  variant with exact counters.
+
+### Phase 26: Freeze MB-M6-5 Dirty Planar Input Clean-Fail Localization
+
+Phase 26 closes dirty planar input as a clean-fail proof. It must prove dirty
+input never becomes admitted truth through repair, stable topology ids, or
+movement/rotation pressure.
+
+**Relevant subsystems**
+- `worth-spatial` clean-fail boundary
+- `worth-spatial` recovery posture
+- `worth-spatial` diagnostics
+- `worth-spatial` movement/rotation posture
+- `worth-topo` topology contract truth
+
+**Relevant APIs**
+- `PlanarCleanFailBoundary`
+- `PlanarCleanFailInput`
+- `PlanarRecoveryPosture`
+- `PlanarDiagnosticBundle`
+- production dirty-input outcome surface, added before tests if missing
+
+**Required Query posture**
+- required now:
+  - clean-fail boundary receipt
+  - recovery posture receipt
+  - diagnostic receipt naming first blocker
+  - movement/rotation posture receipt where transforms expose or preserve dirt
+- support-gated:
+  - repair or healing operations outside M6
+- out:
+  - heuristic repair, topology-only success, or hidden bounded conversion
+
+**Policy, matrix, and human response requirements**
+- The production matrix must classify dirty self-intersection, non-manifold
+  wire, thin wall, orientation inconsistency, and movement/rotation
+  invalidation as typed no-options or policy-required branches.
+- Human-readable responses must name the dirty input class and the first
+  blocking feature.
+- If there are no safe choices, the response must explain why no options are
+  offered rather than returning an empty or generic failure.
+
+**Warnings**
+- Do not reuse one dirty fixture while changing only labels.
+- Do not let stable topology ids, names, or binding identity reconstruct
+  passing structural identity.
+- Do not let projection-consumed facts consume dirty retained basis as admitted
+  truth.
+
+**Test requirements**
+- `mb_m6_5_dirty_planar_input_clean_fail_localization`
+- prove every dirty class fails cleanly without heuristic repair
+- `mb_m6_5_dirty_outcome_matrix_branches_each_dirty_kind`
+- prove production outcomes expose each dirty class and no-options cause with a
+  human-readable message
+- `mb_m6_5_dirty_transform_pressure_preserves_failure_class`
+- prove translations, rotations, and orientation-reversing transforms do not
+  hide or repair dirty input
+
+**Engineering decisions**
+- Dirty input policy belongs to clean-fail/recovery/diagnostics, not overlap or
+  boolean execution.
+- Source detail is identity-bearing.
+
+**Open questions**
+- Whether any dirty class in M6 may become policy-required instead of
+  no-options, and what user decisions would be safe.
+
+### Phase 27: Freeze MB-M6-6 Unbounded Half-Space Planar Posture
+
+Phase 27 closes open and unbounded planar posture. It must prove M6 classifies
+these cases honestly without bounded conversion or hidden manifold repair.
+
+**Relevant subsystems**
+- `worth-spatial` clean-fail boundary
+- `worth-spatial` recovery posture
+- `worth-spatial` structural identity
+- `worth-spatial` diagnostics
+- Forge Query support and admission matrix
+
+**Relevant APIs**
+- `PlanarCleanFailBoundary`
+- `PlanarOpenInputKind`
+- `PlanarRecoveryPosture`
+- `PlanarStructuralIdentity`
+- production unbounded/open outcome surface, added before tests if missing
+
+**Required Query posture**
+- required now:
+  - support/admission row for every open/unbounded class
+  - clean-fail or admitted posture receipt
+  - recovery posture receipt that does not synthesize bounded truth
+  - diagnostic receipt naming half-space group or open domain
+- support-gated:
+  - bounded conversion and M7 open-sheet handling
+- out:
+  - clipping, inferred manifold repair, or hidden finite surrogate geometry
+
+**Policy, matrix, and human response requirements**
+- The production matrix must classify half-space groups and open planar domains
+  as admitted, unsupported, policy-required, or predicate-uncertain before M7.
+- Human-readable responses must name the open/unbounded class and explain why
+  bounded boolean overlap cannot proceed when no options exist.
+- Policy choices must be explicit if a half-space arrangement can be admitted
+  only with modeler intent.
+
+**Warnings**
+- Do not silently convert open domains to bounded domains.
+- Do not leave unsupported posture as absence of a row.
+- Do not collapse orientation-changing rotation into canonical equivalence.
+
+**Test requirements**
+- `mb_m6_6_unbounded_half_space_planar_posture`
+- prove half-space/open domains classify without bounded conversion
+- `mb_m6_6_unbounded_outcome_matrix_explains_no_options`
+- prove production outcomes expose unsupported/policy/predicate branches with
+  readable user responses
+- `mb_m6_6_half_space_transform_canonicalization_and_divergence`
+- prove equivalent transform cycles converge and semantic inversions perturb
+  identity or outcome
+
+**Engineering decisions**
+- Open/unbounded posture is a first-class M6 clean-fail/admission result.
+- Recovery suggests next steps only; it cannot create bounded truth.
+
+**Open questions**
+- Which half-space arrangements, if any, become admitted in M7.
+
+### Phase 28: Freeze MB-M6-7 Projection-Consumed Planar Fact Parity
+
+Phase 28 closes projection-consumed parity across live, retained, recovered,
+replayed, movement/rotation, and rebuild views. It proves denied paths remain
+denied and admitted paths converge.
+
+**Relevant subsystems**
+- `worth-spatial` projection-consumed planar facts
+- `worth-spatial` retained planar facts
+- `worth-spatial` recovery posture and diagnostics
+- `worth-spatial` local rebuild/rebinding parity
+- Forge Query projection consumption and retained artifact lanes
+
+**Relevant APIs**
+- `ProjectionConsumedPlanarFacts`
+- `RetainedPlanarFacts`
+- `PlanarRecoveryPosture`
+- `PlanarLocalRebuildParity`
+- `PlanarDiagnosticBundle`
+- production parity outcome surface, added before tests if no existing surface
+  can honestly represent parity mismatches and denied views
+
+**Required Query posture**
+- required now:
+  - live planar receipt
+  - retained planar receipt
+  - projection-consumed receipt
+  - recovery receipt
+  - replay artifact receipt
+  - local rebuild/rebinding receipt
+  - diagnostic receipt for every mismatch
+- support-gated:
+  - M7 boolean result materialization
+- out:
+  - summary-only parity, projection-success upgrade of denied paths, or hidden
+    retained basis rebuild
+
+**Policy, matrix, and human response requirements**
+- The production matrix must classify admitted parity, denied parity,
+  projection mismatch, retained mismatch, recovery mismatch, replay mismatch,
+  and rebuild mismatch.
+- Human-readable responses must name the surface where parity broke: live,
+  retained, projection, recovery, replay, movement, rotation, or rebuild.
+- Policy choices are allowed only when parity failure is genuinely
+  policy-required; integrity mismatches are no-options.
+
+**Warnings**
+- Do not compare only live and projection while skipping retained/recovery.
+- Do not let denied retained basis become projection success.
+- Do not accept same digest from a helper that rebuilt basis locally.
+
+**Test requirements**
+- `mb_m6_7_projection_consumed_planar_fact_parity`
+- prove equivalent semantic inputs converge across live, retained,
+  projection-consumed, recovered, replayed, movement/rotation, and rebuild views
+- `mb_m6_7_denied_paths_remain_denied_across_all_views`
+- prove denied workloads never upgrade through projection or recovery summaries
+- `mb_m6_7_parity_outcome_matrix_localizes_each_mismatch_surface`
+- prove production outcomes explain each mismatch surface with exact readable
+  messages and typed causes
+
+**Engineering decisions**
+- Projection parity is a cross-view production contract, not a helper
+  comparison.
+- Integrity mismatch is no-options unless a real policy surface owns choices.
+
+**Open questions**
+- Exact representative workload set for admitted and denied parity rows.
+
+### Phase 29: Freeze MB-M6-8 Boolean-Readiness Final Boss
+
+Phase 29 closes the combined pre-boolean final boss. It must compose all M6
+proof families and stop exactly at the boolean-readiness boundary.
+
+**Relevant subsystems**
+- all M6 `worth-spatial` planar fact families
+- `worth-topo` topology contract completeness
+- `worth-kernel` boolean-readiness certification
+- Forge Query support, declaration, receipt, retained, projection, recovery,
+  diagnostics, and continuation lanes
+
+**Relevant APIs**
+- `PlanarBooleanReadinessBundle`
+- all M6 planar fact receipts
+- `PlanarM7Readiness` or equivalent pre-boolean readiness surface
+- production final-boss outcome surface, added before tests if no existing
+  surface can honestly represent bundle-ready vs typed clean failure
+
+**Required Query posture**
+- required now:
+  - every Query surface required by Phases 1 through 28
+  - complete boolean-readiness bundle receipt
+  - typed clean-fail receipt for every unsupported/denied sub-workload
+  - diagnostic receipt for the exact final-boss trigger
+  - public support matrix proof that M7 may consume only complete bundles
+- support-gated:
+  - M7 split/classify/assemble
+- out:
+  - any boolean result, manifold output, or kernel summary standing in for the
+    readiness bundle
+
+**Policy, matrix, and human response requirements**
+- The production matrix must classify complete boolean-readiness,
+  policy-required final-boss branch, typed clean failure, unsupported family,
+  predicate uncertainty, projection mismatch, recovery mismatch, and
+  orientation-flip localization.
+- Human-readable responses must say whether M7 may proceed, which exact
+  sub-workload blocked it if not, and what user policy choices are available if
+  any.
+- No-options final-boss responses must include exact cause and evidence family;
+  they must not collapse to "readiness failed."
+
+**Warnings**
+- Do not perform M7 boolean split/classify/assemble.
+- Do not let a complete-looking bundle omit unsupported families.
+- Do not let kernel-local workflow summaries substitute for spatial/topology
+  proof receipts.
+
+**Test requirements**
+- `mb_m6_8_boolean_readiness_final_boss`
+- prove the final output is either a complete boolean-readiness bundle or a
+  typed clean failure with exact trigger localization
+- `mb_m6_8_final_boss_outcome_matrix_is_production_owned`
+- prove the final-boss matrix uses production readiness/clean-fail/user-outcome
+  surfaces only
+- `mb_m6_8_no_kernel_summary_can_substitute_for_readiness_receipts`
+- prove kernel summaries cannot replace spatial predicate authority, retained
+  facts, projection-consumed facts, movement/rotation posture, recovery, or
+  diagnostics
+
+**Engineering decisions**
+- MB-M6-8 is the final pre-boolean proof, not the start of M7.
+- Every admitted and denied sub-workload must preserve its class across live,
+  retained, projection-consumed, recovered, replayed, and rebuild views.
+
+**Open questions**
+- Final public type names for the combined readiness user-outcome surface.
+
+### Phase 30: Freeze Milestone 6 Certification And Legacy Deletion Proof
+
+Phase 30 closes M6 after every individual MB phase is real, registered, and
+passing. It locks out the shortcuts this milestone exists to kill.
 
 **Relevant subsystems**
 - `worth-kernel` certification
@@ -1429,11 +2021,11 @@ locking out the shortcuts this milestone exists to kill.
 - kernel public API contract suite
 - spatial public API contract suite
 - topology public API contract suite
-- new legacy deletion fixtures for forbidden planar shortcuts
+- legacy deletion fixtures for forbidden planar shortcuts
 
 **Required Query posture**
 - required now:
-  - all Query surfaces required by Phases 1 through 13
+  - all Query surfaces required by Phases 1 through 29
   - support matrix and admission closeout
   - public API contract proof
   - compile-fail deletion proof for local pseudo-Query and kernel-owned planar
@@ -1446,8 +2038,8 @@ locking out the shortcuts this milestone exists to kill.
 **Warnings**
 - Do not close M6 with only happy-path unit tests.
 - Do not leave old planar helper paths available as compatibility.
-- Do not mark M6 complete if any `MB-M6-*` suite is missing, red, or only
-  partially registered.
+- Do not mark M6 complete if any `MB-M6-*` suite is missing, red, ignored,
+  synthetic-only, or only partially registered.
 
 **Test requirements**
 - `m6_certification_bundle_proves_live_retained_projection_recovery_replay_and_boolean_readiness_parity`
@@ -1465,7 +2057,8 @@ locking out the shortcuts this milestone exists to kill.
 - `mb_m6_8_boolean_readiness_final_boss`
 
 **Engineering decisions**
-- M6 closeout requires every pre-MetaBoss suite.
+- M6 closeout requires every pre-MetaBoss suite as a real production-boundary
+  test.
 - Certification must prove both success and denied-path honesty.
 - Legacy deletion is part of the milestone, not cleanup.
 
@@ -1497,7 +2090,9 @@ locking out the shortcuts this milestone exists to kill.
 - local planar rebuild and rebinding parity over grouped Query neighborhoods
 - dirty and unbounded/open planar clean-fail classification
 - boolean-readiness contract bundles suitable for M7 input
-- every `MB-M6-*` pre-MetaBoss suite registered and passing
+- every `MB-M6-*` pre-MetaBoss suite registered, passing, non-ignored, and
+  backed by production-owned policy, outcome matrix, and human-readable
+  response surfaces
 - legacy deletion proofs blocking kernel-local predicate, identity, retained,
   projection, recovery, and pseudo-Query shortcuts
 
@@ -1534,7 +2129,9 @@ Milestone 6 is accepted only when all of the following evidence exists:
   coplanar-overlap contract, bundle-validation, predicate-consumption,
   identity, retained, projection-consumption, recovery, movement/rotation,
   topology-completeness, and diagnostics suites
-- `MB-M6-1` through `MB-M6-8` suites from `_docs/worth/m6-premetaboss.md`
+- `MB-M6-1` through `MB-M6-8` suites from `_docs/worth/m6-premetaboss.md`,
+  each with its own closeout phase, production policy branches, outcome matrix
+  coverage, and human-readable no-options/denial/unsupported explanations
 - a final M6 certification bundle proving admitted and denied paths across
   live, retained, projection-consumed, recovered, replayed, movement/rotation,
   local rebuild/rebinding, and boolean-readiness lanes
@@ -1542,7 +2139,9 @@ Milestone 6 is accepted only when all of the following evidence exists:
   return
 
 The exact test module names may change during implementation, but every named
-proof family in this spec must have an executed proof row before closeout.
+proof family in this spec must have an executed proof row before closeout. No
+MB proof may be satisfied by synthetic-only fixtures, test-local policy enums,
+ignored tests, or kernel summaries standing in for production receipts.
 
 ## Sequencing Notes
 
@@ -1579,7 +2178,8 @@ proof family in this spec must have an executed proof row before closeout.
   coplanar overlap contracts, bundle validation, predicate-consumption
   firewall, identity, movement/rotation, topology completeness, retained facts,
   projection consumption, recovery, diagnostics, local rebuild/rebinding,
-  clean-fail, boolean-readiness bundle, closeout.
+  clean-fail, boolean-readiness bundle, MB-M6-1 through MB-M6-8 closeout, and
+  final certification/deletion closeout.
 - Does each phase contain at least 2 adversarial tests by default? Yes.
 - Could a competent engineer map this spec into honest types, modules, and
   tests? Yes, with open naming questions left explicit.

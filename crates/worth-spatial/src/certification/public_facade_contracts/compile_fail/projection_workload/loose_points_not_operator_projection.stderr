@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> src/certification/public_facade_contracts/compile_fail/projection_workload/loose_points_not_operator_projection.rs:5:32
+  |
+5 |     consume_projected_workload(loose_points);
+  |     -------------------------- ^^^^^^^^^^^^ expected `ProjectedPlanarWorkload`, found `Vec<({float}, {float})>`
+  |     |
+  |     arguments to this function are incorrect
+  |
+  = note: expected struct `ProjectedPlanarWorkload`
+             found struct `Vec<({float}, {float})>`
+note: function defined here
+ --> src/certification/public_facade_contracts/compile_fail/projection_workload/loose_points_not_operator_projection.rs:8:4
+  |
+8 | fn consume_projected_workload(_workload: ProjectedPlanarWorkload) {}
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^^^ ----------------------------------

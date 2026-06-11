@@ -142,7 +142,7 @@ fn coplanar_overlap_contract_extractor_retains_policy_required_exits_without_boo
     assert_eq!(receipt.counters().policy_required_exits(), 1);
     assert!(receipt.policy_required_exits()[0]
         .reason()
-        .contains("signed-area-policy-required-before-overlap-imprint"));
+        .contains("user policy decision before overlap imprint"));
 
     let reversed = CoplanarOverlapContractExtractor::between(ordinary_face, policy_face)
         .within_planar_neighborhood(NEIGHBORHOOD)
@@ -252,8 +252,8 @@ fn coplanar_overlap_contract_extractor_retains_ambiguous_contacts_without_boolea
 }
 
 #[test]
-fn mb_m6_1_coplanar_overlap_contract_storm_complete_contract_bundle() {
-    let world = "overlap-storm";
+fn representative_coplanar_overlap_extracts_complete_contract_bundle() {
+    let world = "representative-overlap-contract";
     let base = overlap_face(
         world,
         "face:storm-a",

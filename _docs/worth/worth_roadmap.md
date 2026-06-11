@@ -38,6 +38,10 @@ The operating rule is:
 - `Milestone 5`: Binding/rebinding authority and Query-native geometry
   hard-break work are the current predecessor for Milestone 6; do not treat
   Milestone 6 as starting from the older pre-Query-native geometry shape
+- `Milestone 6.5`: Planned as the operational workload platform between exact
+  planar contracts and booleans; hostile tests must consume real topology,
+  binding, projection, retained replay, transform, response, and evidence rails
+  rather than private synthetic fixtures
 - Milestones `6+`: Planned
 
 Milestone 1 closeout record:
@@ -454,7 +458,8 @@ Critical path:
 - `Milestone 1` -> `Milestone 2` -> `Forge Query Runtime Rewrite Gate` ->
   `Worth Read Composition Side Quest` ->
   `Worth Topology Domain Structure Gate` -> `Milestone 3` ->
-  `Milestone 4` -> `Milestone 5` -> `Milestone 6` -> `Milestone 7` ->
+  `Milestone 4` -> `Milestone 5` -> `Milestone 6` -> `Milestone 6.5` ->
+  `Milestone 7` ->
   `Milestone 8` -> `Milestone 9` -> `Milestone 10` -> `Milestone 11` ->
   `Milestone 12` -> `Milestone 13` -> `Milestone 14` -> `Milestone 15` ->
   `Milestone 16` -> `Milestone 17` -> `Milestone 18` -> `Milestone 19` ->
@@ -1214,6 +1219,114 @@ predicate authority, structural identity, retained planar truth, and
 projection-consumable planar facts before split/classify/assemble work can be
 trusted.
 
+## Milestone 6.5: Operational Workload Platform
+
+Engineering spec:
+[milestone-6.5.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth-kernel/milestone-6.5.md)
+
+### Goal
+
+Build the reusable Worth workload platform that makes real topology-to-geometry
+proof easier than synthetic fixture staging.
+
+Milestone 6.5 consumes M6 exact planar contracts and produces the operational
+rails that hostile tests and later operators must use: topology workload seeds,
+geometry binding workloads, surface support classification, local frame and
+projection workloads, transform workloads, retained replay workloads, user
+response outcomes, evidence ledgers, operator harnesses, and canonical workload
+catalog recipes.
+
+### Adversarial Constraint
+
+Hostile tests and future operator proof must not be able to claim end-to-end
+Worth evidence through hand-built spatial fixtures, label-only transforms,
+re-extraction replay, fixture-generator arithmetic, or hand-filled evidence
+ledgers.
+
+### Admitted Surface
+
+- topology-backed workload seeds for common and hostile model classes
+- receipt-backed geometry binding, certified plane support, projection,
+  transform, retained replay, diagnostics, and user response workloads
+- evidence ledgers and honesty guards proving which stages actually ran
+- operator harness support with coplanar overlap as the first concrete consumer
+- canonical workload catalog recipes for real reusable test and certification
+  setup
+
+### Excluded Surface
+
+- boolean split/classify/assemble execution
+- implementation of future surface or feature operator families
+- synthetic end-to-end fixture paths
+- unsupported surface families masquerading as admitted support
+
+### Workflow Surface
+
+Milestone 6.5 is not done because one cube, tetrahedron, or overlap storm can
+be built.
+
+It is done only when the workload platform can build admitted topology-backed
+shape families, bind them to geometry, certify planar support, project them,
+transform them, retain and replay them, run the first operator consumer, and
+emit evidence that blocks synthetic end-to-end claims.
+
+### Operator Closure
+
+- workload operator harness
+- coplanar overlap workload operator
+- unsupported operator family posture
+
+### Validator Closure
+
+- evidence ledger honesty guards
+- synthetic fixture registration blockers
+- topology-to-binding-to-projection receipt validation
+- transform and retained replay validation
+- human-readable response validation
+
+### Replay Closure
+
+- retained replay workloads must consume retained artifacts
+- replay must not be modeled as re-extraction with the same inputs
+
+### Diagnostics Closure
+
+- unsupported workload stages must produce typed reasons
+- no-options and denied user outcomes must explain their cause in readable
+  language
+- legacy synthetic fixture paths must produce diagnosable rejection
+
+### Determinism Closure
+
+- catalog recipes must produce stable workload identities and evidence digests
+- equivalent transform workloads must converge through evidence, not labels
+
+### Complexity / Proof Closure
+
+- expose counters for topology breadth, binding breadth, surface support,
+  projection, transform, retained replay, operator execution, and evidence
+  ledger stages
+- block counter claims based only on fixture-generator arithmetic
+
+### Allowed Debt
+
+- future surface and feature operator families may remain typed unsupported
+- synthetic end-to-end claims, fake replay, fake transforms, and hand-filled
+  ledgers may not remain
+
+### Milestone Done When
+
+Milestone 6.5 is done only when MB-M6-1 runs on the workload platform and
+MB-M6-2 through MB-M6-8 each has its own workload-platform phase, explicit
+outcome matrix, missing production feature list, and registration gate that
+prevents synthetic or incomplete evidence from counting as closeout proof.
+
+### Sequencing Notes
+
+This belongs after M6 exact planar contracts and before M7 booleans because
+booleans and hostile proof need trustworthy operational workloads, not private
+test worlds.
+
 ## Milestone 7: Boolean Foundation With EMBER And B-Rep Pipelines
 
 ### Goal
@@ -1426,6 +1539,7 @@ The corrected dependency chain through the boolean gate is now:
 - `Milestone 4`: topology-certified primitive construction
 - `Milestone 5`: spatial binding and topology-to-geometry contracts
 - `Milestone 6`: spatially exact planar contracts and structural identity
+- `Milestone 6.5`: operational workload platform and hostile-test rails
 - `Milestone 7`: boolean foundation with EMBER and B-rep pipelines
 - `Milestone 8`: hostile boolean proof gate
 

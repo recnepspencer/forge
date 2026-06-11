@@ -278,8 +278,8 @@ fn certified_signed_area_denies_mismatched_precision_movement_before_facts() {
 }
 
 #[test]
-fn mb_m6_3_signed_area_and_degeneracy_survive_thin_feature_pressure() {
-    let world = "mb-m6-3-signed-area";
+fn signed_area_and_degeneracy_survive_thin_feature_pressure() {
+    let world = "thin-feature-signed-area";
     let (precision, frame) = precision_and_frame(world, "movement:rotate-cancelled");
     let winding = loop_receipt(
         world,

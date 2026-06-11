@@ -5,8 +5,8 @@ use worth_spatial::facade::planar_contract_bundle::{
 use super::fixture::{bundle_contracts, m7_readiness_parts};
 
 #[test]
-fn mb_m6_8_boolean_readiness_final_boss() {
-    let world = "m7-readiness-final-boss";
+fn boolean_readiness_bundle_is_pre_boolean_contract() {
+    let world = "m7-readiness-pre-boolean-contract";
     let parts = m7_readiness_parts(world);
     let motion_digest = parts.motion.retained_motion_digest().to_string();
     let projection_digest = parts.projected.projection_consumption_digest().to_string();
@@ -25,9 +25,9 @@ fn mb_m6_8_boolean_readiness_final_boss() {
             "M6 stops before split/classify/assemble; M7 must opt into boolean execution lanes",
         ))
         .compile(&contracts)
-        .expect("final-boss M7 readiness plan")
+        .expect("pre-boolean M7 readiness plan")
         .certify()
-        .expect("final-boss M7 readiness receipt");
+        .expect("pre-boolean M7 readiness receipt");
 
     assert!(receipt.is_acceptable_m7_input());
     assert_eq!(receipt.boolean_result(), None);

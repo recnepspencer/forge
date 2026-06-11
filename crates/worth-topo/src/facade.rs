@@ -81,3 +81,13 @@ pub use crate::topology_operators::{
     TopologySplitSingleFaceFromTwoFaceShellToNewShellFamily, TopologyWireRehomeHalfEdgeMember,
     TopologyWireSplitHalfEdgeMember,
 };
+pub use crate::workload_platform::{
+    TopologySeed, TopologySeedCleanFailClass, TopologySeedCleanFailReasonCode,
+    TopologySeedCleanFailReceipt, TopologySeedCleanFailStage, TopologySeedCounters,
+    TopologySeedEntityIdentities, TopologySeedKind, TopologySeedNeighborhoodReceipt,
+    TopologySeedQueryReceipts, TopologySeedReceipt, TopologySeedRecipe,
+    TopologySeedTopologyPosture, TopologySeedValidationReceipt, TopologyWorkload,
+    TopologyWorkloadCounters, TopologyWorkloadDeclaration, TopologyWorkloadDeclarationIdentity,
+    TopologyWorkloadDenial, TopologyWorkloadEnvelope, TopologyWorkloadFamily,
+    TopologyWorkloadReceipt, TopologyWorkloadSupport, TopologyWorkloadSupportPosture,
+};

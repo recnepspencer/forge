@@ -188,8 +188,8 @@ fn exact_planar_predicate_authority_normalizes_signed_zero_authoring_drift() {
 }
 
 #[test]
-fn mb_m6_1_coplanar_overlap_contract_storm_predicate_rows() {
-    let handle = admitted_handle("contract-storm");
+fn representative_coplanar_overlap_predicate_rows_commit_movement_posture() {
+    let handle = admitted_handle("representative-overlap-predicate");
     let identity = receipt_for(
         &handle,
         orient_basis("movement:identity", [[0.0, 0.0], [8.0, 0.0], [0.0, 5.0]]),

@@ -4,6 +4,8 @@ pub use crate::bindings::query_native_planar_overlap::{
     CoplanarOverlapContractEntry, CoplanarOverlapContractExtractor,
     CoplanarOverlapContractFactError, CoplanarOverlapContractPlan,
     CoplanarOverlapContractQueryDomain, CoplanarOverlapContractQueryWorld,
+    CoplanarOverlapNoOptionsCause, CoplanarOverlapUserDecision, CoplanarOverlapUserOutcome,
+    CoplanarOverlapUserOutcomeKind,
 };
 pub use crate::planar_contracts::coplanar_overlap_contract::{
     AmbiguousContactRow, CertifiedCoplanarOverlapFace2D, ContainmentRelationRow,

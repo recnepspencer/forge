@@ -52,8 +52,8 @@ fn unbounded_half_space_posture_classifies_without_bounded_conversion() {
 }
 
 #[test]
-fn mb_m6_6_unbounded_half_space_planar_posture() {
-    let world = "phase-20-mb-m6-6";
+fn unbounded_half_space_posture_stays_pre_boolean() {
+    let world = "phase-20-unbounded-open-posture";
     let source = "unbounded:open-domain-transform-cycle";
     let receipt = certify_clean_fail_boundary(
         world,

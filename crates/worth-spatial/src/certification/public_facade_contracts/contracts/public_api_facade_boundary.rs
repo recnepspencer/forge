@@ -23,6 +23,8 @@ fn spatial_facade_is_namespaced_and_no_longer_flat() {
     assert!(facade.contains("pub mod recovery;"));
     assert!(facade.contains("pub mod support;"));
     assert!(facade.contains("pub mod tolerance;"));
+    assert!(facade.contains("pub mod workload_inventory;"));
+    assert!(facade.contains("pub mod workload_operators;"));
     assert!(!facade.contains("pub mod policy;"));
     assert!(!facade.contains("pub mod birth;"));
     assert!(!facade.contains("pub mod motion;"));

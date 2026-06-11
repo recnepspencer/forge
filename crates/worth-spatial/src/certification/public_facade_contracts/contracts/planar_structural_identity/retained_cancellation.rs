@@ -1,7 +1,7 @@
 use super::contract_subject::structural_identity_receipt;
 
 #[test]
-fn mb_m6_4_retained_planar_history_cancellation_identity_rows() {
+fn retained_planar_history_cancellation_identity_rows() {
     let checkpoint = structural_identity_receipt("structural-cancellation", "topology:checkpoint");
     let regrouped = structural_identity_receipt("structural-cancellation", "topology:regrouped");
 

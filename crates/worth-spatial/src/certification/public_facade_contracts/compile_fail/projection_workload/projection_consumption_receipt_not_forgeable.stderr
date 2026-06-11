@@ -1,0 +1,14 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/projection_workload/projection_consumption_receipt_not_forgeable.rs:4:48
+  |
+4 |       let _ = ProjectionConsumedWorkloadReceipt::new(unconstructible(), "local-basis", 3);
+  |                                                  ^^^ private associated function
+  |
+ ::: src/workload_platform/projection_workload/projection_consumption.rs
+  |
+  | /     pub(crate) fn new(
+  | |         projection_stage_identity: WorkloadStageIdentity,
+  | |         local_basis_identity: impl Into<String>,
+  | |         projected_entity_count: usize,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
