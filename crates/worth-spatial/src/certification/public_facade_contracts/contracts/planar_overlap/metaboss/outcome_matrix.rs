@@ -13,14 +13,13 @@ use worth_spatial::facade::planar_predicates::{
 
 use super::diagnostics::{assert_tiny_rotation_diagnostic, certify_tiny_rotation_diagnostic};
 use super::platform_storm_subject::mismatched_operator_stage_link_error;
-use super::storm_extraction_subject::{
-    certify_storm_overlap_extractions, certify_storm_policy_required_overlap,
-};
+use super::storm_extraction_subject::certify_projected_storm_extraction_bundle;
 use crate::public_api_planar_clean_fail_boundary::clean_fail_fixture::{
     certify_clean_fail_boundary, diagnostic, dirty_input_with_kind, dirty_recovery,
     open_input_with_kind, unbounded_recovery,
 };
 use crate::public_api_planar_predicate::proof_fixture::{admitted_handle, orient_basis};
+use worth_kernel::workload_composition::{WorkloadCatalog, WorkloadTopologyBreadth};
 use worth_spatial::facade::planar_overlap::CoplanarOverlapDenial;
 
 pub(crate) fn assert_mb_m6_outcome_matrix(movement_denial: &CoplanarOverlapDenial) {
@@ -115,8 +114,9 @@ fn contains_machine_slug(message: &str) -> bool {
 }
 
 fn certified_overlap_outcome() -> CoplanarOverlapUserOutcome {
-    let receipts = certify_storm_overlap_extractions("mb-m6-matrix-certified-overlap");
-    let receipt = receipts
+    let bundle = projected_overlap_bundle("mb-m6-matrix-certified-overlap");
+    let receipt = bundle
+        .receipts()
         .iter()
         .find(|receipt| receipt.policy_required_exits().is_empty())
         .expect("storm extraction should include admitted overlap receipts");
@@ -125,9 +125,25 @@ fn certified_overlap_outcome() -> CoplanarOverlapUserOutcome {
 }
 
 fn policy_required_outcome() -> CoplanarOverlapUserOutcome {
-    let receipt = certify_storm_policy_required_overlap("mb-m6-matrix-policy-required");
+    let bundle = projected_overlap_bundle("mb-m6-matrix-policy-required");
+    let receipt = bundle
+        .receipts()
+        .iter()
+        .find(|receipt| !receipt.policy_required_exits().is_empty())
+        .expect("storm extraction should include policy-required receipts");
     assert_eq!(receipt.policy_required_exits().len(), 1);
-    CoplanarOverlapUserOutcome::from_overlap_receipt(&receipt)
+    CoplanarOverlapUserOutcome::from_overlap_receipt(receipt)
+}
+
+fn projected_overlap_bundle(
+    world: &'static str,
+) -> worth_spatial::facade::projected_overlap_faces::CoplanarOverlapExtractionBundle {
+    let built = WorkloadCatalog::coplanar_overlap_storm()
+        .with_topology_breadth(WorkloadTopologyBreadth::MultiFaceShell { face_count: 8 })
+        .declared(format!("MB-M6-1 outcome matrix projected storm {world}"))
+        .build()
+        .expect("outcome matrix projected storm should build");
+    certify_projected_storm_extraction_bundle(world, built.projected_workload())
 }
 
 fn dirty_input_outcome() -> CoplanarOverlapUserOutcome {

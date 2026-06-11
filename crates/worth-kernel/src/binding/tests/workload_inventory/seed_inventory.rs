@@ -38,10 +38,8 @@ fn kernel_consumes_seed_inventory_without_promoting_local_fixtures() {
     for surface in [
         "planar_overlap::metaboss::scenario",
         "planar_overlap::metaboss::outcome_matrix",
-        "planar_overlap::metaboss::proof",
         "planar_overlap::metaboss::coplanar_overlap_storm",
         "planar_overlap::metaboss::diagnostics",
-        "planar_overlap::metaboss::certify_storm_with_retained_replay",
     ] {
         let metaboss_harness = report
             .require_surface(surface)
@@ -58,5 +56,5 @@ fn kernel_consumes_seed_inventory_without_promoting_local_fixtures() {
 
     assert_eq!(report.counters().workload_candidates(), 3);
     assert_eq!(report.counters().unit_only_fixtures(), 10);
-    assert_eq!(report.counters().legacy_migration_surfaces(), 7);
+    assert_eq!(report.counters().legacy_migration_surfaces(), 9);
 }

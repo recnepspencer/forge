@@ -1,4 +1,7 @@
-use super::{GeometryCarrierFamily, GeometryCarrierIdentity};
+use super::{
+    catalog_loop_boundary_geometry, GeometryCarrierFamily, GeometryCarrierIdentity,
+    PlanarLoopBoundaryGeometry,
+};
 use crate::bindings::authority::{
     CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite, EdgeCurveBindingSpec,
     FaceBindingSite, FaceSurfaceBindingSpec, SpatialBindingCompleteness,
@@ -103,12 +106,13 @@ impl BoundPlanarEdgeGeometry {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BoundPlanarLoopGeometry {
     topology_loop_identity: String,
     carrier_identity: GeometryCarrierIdentity,
     binding_spec: CoedgePCurveBindingSpec,
     completeness: SpatialBindingCompleteness,
+    boundary: PlanarLoopBoundaryGeometry,
 }
 
 impl BoundPlanarLoopGeometry {
@@ -116,6 +120,7 @@ impl BoundPlanarLoopGeometry {
         topology_loop_identity: String,
         binding_spec: CoedgePCurveBindingSpec,
         binding_identity: SpatialBindingIdentity,
+        boundary: PlanarLoopBoundaryGeometry,
     ) -> Self {
         Self {
             carrier_identity: GeometryCarrierIdentity::from_spatial_binding(
@@ -128,6 +133,7 @@ impl BoundPlanarLoopGeometry {
                 binding_spec.geometry_identity(),
             ),
             binding_spec,
+            boundary,
         }
     }
 
@@ -145,6 +151,10 @@ impl BoundPlanarLoopGeometry {
 
     pub fn binding_spec(&self) -> &CoedgePCurveBindingSpec {
         &self.binding_spec
+    }
+
+    pub fn boundary(&self) -> &PlanarLoopBoundaryGeometry {
+        &self.boundary
     }
 }
 
@@ -246,7 +256,7 @@ impl PlanarEdgeCarrierSet {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PlanarLoopCarrierSet {
     topology_receipt_identity: String,
     loops: Vec<BoundPlanarLoopGeometry>,
@@ -256,12 +266,17 @@ impl PlanarLoopCarrierSet {
     pub fn for_seed_loops(seed: &TopologySeedReceipt) -> Self {
         let contract = birth_contract_for_seed(seed);
         let topology_receipt_identity = topology_receipt_identity(seed);
+        let face_identities = seed.entity_identities().face_identity_tokens();
         let loops = seed
             .entity_identities()
             .loop_identity_tokens()
             .into_iter()
             .enumerate()
             .map(|(index, topology_identity)| {
+                let owning_face_identity = face_identities
+                    .get(index)
+                    .cloned()
+                    .unwrap_or_else(|| format!("face:unmatched-loop:{topology_identity}"));
                 let geometry = planar_geometry_identity(index);
                 let spec = CoedgePCurveBindingSpec::new(
                     CoedgeBindingSite::new(topology_identity.clone()),
@@ -273,7 +288,8 @@ impl PlanarLoopCarrierSet {
                     spec.birth_contract(),
                     spec.geometry_identity(),
                 ));
-                BoundPlanarLoopGeometry::new(topology_identity, spec, binding_identity)
+                let boundary = catalog_loop_boundary_geometry(index, owning_face_identity);
+                BoundPlanarLoopGeometry::new(topology_identity, spec, binding_identity, boundary)
             })
             .collect();
         Self {

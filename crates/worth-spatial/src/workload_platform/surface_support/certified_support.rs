@@ -32,7 +32,7 @@ impl CertifiedPlaneSupport {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CertifiedSurfaceSupport {
     plane_support: CertifiedPlaneSupport,
     receipts: SurfaceSupportReceiptSet,

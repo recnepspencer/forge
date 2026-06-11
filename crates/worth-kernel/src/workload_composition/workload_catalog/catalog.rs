@@ -5,10 +5,8 @@ use super::recipe_kind::{
     WorkloadCatalogSupportPosture, WorkloadTopologyBreadth,
 };
 use super::recipe_pipeline::build_catalog_workload;
-use crate::workload_composition::WorthWorkload;
-use topology::facade::{
-    TopologySeed, TopologySeedCleanFailReceipt, TopologySeedNeighborhoodReceipt,
-};
+use super::{BuiltCleanFailCatalogRecipe, BuiltWorkloadCatalogRecipe};
+use topology::facade::TopologySeed;
 
 pub struct WorkloadCatalog;
 
@@ -118,13 +116,15 @@ impl WorkloadCatalogRecipe {
             self.topology_breadth,
         )?;
         let topology_neighborhood = workload_build.topology_neighborhood().cloned();
-        Ok(BuiltWorkloadCatalogRecipe {
-            recipe: self.kind,
+        let projected = workload_build.projected().clone();
+        Ok(BuiltWorkloadCatalogRecipe::new(
+            self.kind,
             declaration,
             support,
-            workload: workload_build.workload(),
+            workload_build.workload(),
             topology_neighborhood,
-        })
+            projected,
+        ))
     }
 
     pub fn build_clean_fail(self) -> Result<BuiltCleanFailCatalogRecipe, WorkloadCatalogError> {
@@ -145,12 +145,12 @@ impl WorkloadCatalogRecipe {
                 });
             }
         };
-        Ok(BuiltCleanFailCatalogRecipe {
-            recipe: self.kind,
+        Ok(BuiltCleanFailCatalogRecipe::new(
+            self.kind,
             declaration,
             support,
             topology_clean_fail,
-        })
+        ))
     }
 
     fn declaration_receipt(
@@ -228,71 +228,6 @@ impl WorkloadCatalogSupportDecision {
             posture: WorkloadCatalogSupportPosture::Unsupported,
             human_reason,
         }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BuiltWorkloadCatalogRecipe {
-    recipe: WorkloadCatalogRecipeKind,
-    declaration: WorkloadCatalogDeclarationReceipt,
-    support: WorkloadCatalogSupportReceipt,
-    workload: WorthWorkload,
-    topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BuiltCleanFailCatalogRecipe {
-    recipe: WorkloadCatalogRecipeKind,
-    declaration: WorkloadCatalogDeclarationReceipt,
-    support: WorkloadCatalogSupportReceipt,
-    topology_clean_fail: TopologySeedCleanFailReceipt,
-}
-
-impl BuiltCleanFailCatalogRecipe {
-    pub fn recipe(&self) -> WorkloadCatalogRecipeKind {
-        self.recipe
-    }
-
-    pub fn declaration(&self) -> &WorkloadCatalogDeclarationReceipt {
-        &self.declaration
-    }
-
-    pub fn support(&self) -> &WorkloadCatalogSupportReceipt {
-        &self.support
-    }
-
-    pub fn topology_clean_fail(&self) -> &TopologySeedCleanFailReceipt {
-        &self.topology_clean_fail
-    }
-
-    pub fn into_topology_clean_fail(self) -> TopologySeedCleanFailReceipt {
-        self.topology_clean_fail
-    }
-}
-
-impl BuiltWorkloadCatalogRecipe {
-    pub fn recipe(&self) -> WorkloadCatalogRecipeKind {
-        self.recipe
-    }
-
-    pub fn declaration(&self) -> &WorkloadCatalogDeclarationReceipt {
-        &self.declaration
-    }
-
-    pub fn support(&self) -> &WorkloadCatalogSupportReceipt {
-        &self.support
-    }
-
-    pub fn workload(&self) -> &WorthWorkload {
-        &self.workload
-    }
-
-    pub fn topology_neighborhood(&self) -> Option<&TopologySeedNeighborhoodReceipt> {
-        self.topology_neighborhood.as_ref()
-    }
-
-    pub fn into_workload(self) -> WorthWorkload {
-        self.workload
     }
 }
 

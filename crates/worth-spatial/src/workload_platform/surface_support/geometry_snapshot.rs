@@ -1,10 +1,13 @@
-use crate::workload_platform::geometry_binding::{BoundGeometryWorkload, GeometryCarrierFamily};
+use crate::workload_platform::geometry_binding::{
+    BoundGeometryWorkload, GeometryCarrierFamily, PlanarLoopBoundaryGeometry,
+};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SurfaceSupportCarrierRow {
     topology_entity_identity: String,
     geometry_carrier_identity: String,
     carrier_family: GeometryCarrierFamily,
+    loop_boundary: Option<PlanarLoopBoundaryGeometry>,
 }
 
 impl SurfaceSupportCarrierRow {
@@ -17,7 +20,13 @@ impl SurfaceSupportCarrierRow {
             topology_entity_identity: topology_entity_identity.into(),
             geometry_carrier_identity: geometry_carrier_identity.into(),
             carrier_family,
+            loop_boundary: None,
         }
+    }
+
+    fn with_loop_boundary(mut self, boundary: PlanarLoopBoundaryGeometry) -> Self {
+        self.loop_boundary = Some(boundary);
+        self
     }
 
     pub fn topology_entity_identity(&self) -> &str {
@@ -31,9 +40,13 @@ impl SurfaceSupportCarrierRow {
     pub fn carrier_family(&self) -> GeometryCarrierFamily {
         self.carrier_family
     }
+
+    pub fn loop_boundary(&self) -> Option<&PlanarLoopBoundaryGeometry> {
+        self.loop_boundary.as_ref()
+    }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SurfaceSupportGeometrySnapshot {
     face_rows: Vec<SurfaceSupportCarrierRow>,
     edge_rows: Vec<SurfaceSupportCarrierRow>,
@@ -73,6 +86,7 @@ impl SurfaceSupportGeometrySnapshot {
                     loop_geometry.carrier_identity().carrier_identity(),
                     loop_geometry.carrier_identity().family(),
                 )
+                .with_loop_boundary(loop_geometry.boundary().clone())
             })
             .collect();
         Self {

@@ -1,13 +1,13 @@
 use worth_spatial::facade::user_response::WorthUserResponseSource;
 
-use super::contract_subject::{unsupported_surface_support_response, user_response};
-use crate::public_api_planar_overlap::metaboss::proof::{
-    certify_policy_required_overlap, certify_representative_overlap,
+use super::contract_subject::{
+    admitted_overlap_receipt, policy_required_overlap_receipt,
+    unsupported_surface_support_response, user_response,
 };
 
 #[test]
 fn user_response_evidence_digest_comes_from_source_receipts() {
-    let admitted_receipt = certify_representative_overlap("user-response-evidence-admitted");
+    let admitted_receipt = admitted_overlap_receipt("user-response-evidence-admitted");
     let admitted = user_response(WorthUserResponseSource::from_overlap_receipt(
         &admitted_receipt,
     ));
@@ -17,7 +17,7 @@ fn user_response_evidence_digest_comes_from_source_receipts() {
         admitted_receipt.fact_digest()
     );
 
-    let policy_receipt = certify_policy_required_overlap("user-response-evidence-policy");
+    let policy_receipt = policy_required_overlap_receipt("user-response-evidence-policy");
     let policy = user_response(WorthUserResponseSource::from_overlap_receipt(
         &policy_receipt,
     ));

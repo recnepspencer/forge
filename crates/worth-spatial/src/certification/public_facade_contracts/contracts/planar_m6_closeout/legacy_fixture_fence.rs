@@ -140,7 +140,7 @@ fn legacy_fixture_fence_classifies_every_inventory_surface() {
     assert_eq!(fence.rows().len(), report.rows().len());
     assert_eq!(fence.workload_platform_recipes(), 3);
     assert_eq!(fence.unit_only_fixtures(), 10);
-    assert_eq!(fence.blocked_synthetic_claims(), 11);
+    assert_eq!(fence.blocked_synthetic_claims(), 9);
 
     for row in fence.rows() {
         assert_ne!(row.fence_digest(), "");
@@ -188,7 +188,6 @@ fn legacy_fixture_fence_blocks_metaboss_and_replay_migration_surfaces() {
     let fence = legacy_fixture_fence();
     for surface in [
         "planar_overlap::metaboss::scenario",
-        "planar_overlap::metaboss::certify_storm_with_retained_replay",
         "planar_m6_closeout::fixture",
     ] {
         let row = fence

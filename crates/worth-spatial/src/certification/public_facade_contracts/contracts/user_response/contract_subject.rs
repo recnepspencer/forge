@@ -3,7 +3,7 @@ use worth_spatial::facade::planar_clean_fail_boundary::{
 };
 use worth_spatial::facade::planar_diagnostics::PlanarDiagnosticSubject;
 use worth_spatial::facade::planar_overlap::{
-    CoplanarOverlapContractExtractor, CoplanarOverlapDenialKind,
+    CoplanarOverlapContractExtractor, CoplanarOverlapContractReceipt, CoplanarOverlapDenialKind,
 };
 use worth_spatial::facade::planar_predicates::{
     planar_predicate_authority_entry, planar_predicate_authority_facts,
@@ -24,9 +24,7 @@ use crate::public_api_planar_clean_fail_boundary::clean_fail_fixture::{
     open_input_with_kind, unbounded_recovery,
 };
 use crate::public_api_planar_overlap::metaboss::diagnostics::certify_tiny_rotation_diagnostic;
-use crate::public_api_planar_overlap::metaboss::proof::{
-    certify_policy_required_overlap, certify_representative_overlap,
-};
+use crate::public_api_planar_overlap::metaboss::storm_extraction_subject::certify_projected_storm_extraction_bundle;
 use crate::public_api_planar_overlap::proof_fixture::{
     overlap_contracts, overlap_face, NEIGHBORHOOD,
 };
@@ -35,15 +33,43 @@ use crate::public_api_planar_projection_consumption::contract_subject::projectio
 use crate::public_api_retained_replay_workload::contract_subject::{
     projection_consumed_receipt, retained_replay_parts,
 };
+use worth_kernel::workload_composition::{WorkloadCatalog, WorkloadTopologyBreadth};
 
 pub(crate) fn admitted_response(world: &'static str) -> WorthUserResponseReceipt {
-    let receipt = certify_representative_overlap(world);
+    let receipt = admitted_overlap_receipt(world);
     user_response(WorthUserResponseSource::from_overlap_receipt(&receipt))
 }
 
 pub(crate) fn policy_required_response(world: &'static str) -> WorthUserResponseReceipt {
-    let receipt = certify_policy_required_overlap(world);
+    let receipt = policy_required_overlap_receipt(world);
     user_response(WorthUserResponseSource::from_overlap_receipt(&receipt))
+}
+
+pub(crate) fn admitted_overlap_receipt(world: &'static str) -> CoplanarOverlapContractReceipt {
+    projected_storm_overlap_receipts(world)
+        .into_iter()
+        .find(|receipt| receipt.policy_required_exits().is_empty())
+        .expect("projected storm should include an admitted overlap receipt")
+}
+
+pub(crate) fn policy_required_overlap_receipt(
+    world: &'static str,
+) -> CoplanarOverlapContractReceipt {
+    projected_storm_overlap_receipts(world)
+        .into_iter()
+        .find(|receipt| !receipt.policy_required_exits().is_empty())
+        .expect("projected storm should include a policy-required overlap receipt")
+}
+
+fn projected_storm_overlap_receipts(world: &'static str) -> Vec<CoplanarOverlapContractReceipt> {
+    let built = WorkloadCatalog::coplanar_overlap_storm()
+        .with_topology_breadth(WorkloadTopologyBreadth::MultiFaceShell { face_count: 8 })
+        .declared(format!("user response projected overlap storm {world}"))
+        .build()
+        .expect("user response projected overlap workload should build");
+    certify_projected_storm_extraction_bundle(world, built.projected_workload())
+        .receipts()
+        .to_vec()
 }
 
 pub(crate) fn dirty_input_response(world: &'static str) -> WorthUserResponseReceipt {

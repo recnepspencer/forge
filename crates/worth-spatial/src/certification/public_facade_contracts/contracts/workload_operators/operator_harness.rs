@@ -1,24 +1,26 @@
-use topology::facade::TopologyWorkloadReceipt;
 use worth_kernel::workload_composition::{
-    OperatorOutcome, OperatorOutcomeKind, WorkloadOperator, WorkloadOperatorFamily,
-    WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
+    OperatorOutcome, OperatorOutcomeKind, WorkloadCatalog, WorkloadOperator,
+    WorkloadOperatorFamily, WorkloadStageRequirement,
 };
 use worth_spatial::facade::workload_operators::{
     CoplanarOverlapOperatorDenial, CoplanarOverlapWorkloadOperator,
 };
-use worth_spatial::facade::workload_vocabulary::{
-    DiagnosticWorkload, ResponseWorkload, WorkloadEvidenceLedger, WorkloadEvidenceRow,
-    WorkloadEvidenceStage,
-};
+use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
 
-use crate::public_api_planar_overlap::metaboss::storm_extraction_subject::certify_storm_overlap_extractions;
-use crate::public_api_workload_vocabulary::evidence_ledger_receipts::{
-    counter_backed_receipts, CounterBackedReceipts,
-};
+use crate::public_api_planar_overlap::metaboss::storm_extraction_subject::certify_projected_storm_extraction_bundle;
+use crate::public_api_workload_vocabulary::evidence_ledger_receipts::counter_backed_receipts;
 
 #[test]
 fn operator_harness_consumes_projected_retained_transformed_workloads() {
-    let workload = counter_backed_operator_workload("operator-harness-consumes-real-workload");
+    let built = WorkloadCatalog::coplanar_overlap_storm()
+        .declared("operator-harness-consumes-real-workload")
+        .build()
+        .expect("operator harness catalog workload should build");
+    let extraction_bundle = certify_projected_storm_extraction_bundle(
+        "operator-harness-real-overlap-extractions",
+        built.projected_workload(),
+    );
+    let workload = built.into_workload();
 
     let run = WorkloadOperator::for_family(WorkloadOperatorFamily::CoplanarOverlap)
         .requiring(WorkloadStageRequirement::RetainedReplay)
@@ -53,9 +55,7 @@ fn operator_harness_consumes_projected_retained_transformed_workloads() {
 
     let operator_receipt =
         CoplanarOverlapWorkloadOperator::from_consumed_evidence(run.consumed_evidence())
-            .with_overlap_extractions(&certify_storm_overlap_extractions(
-                "operator-harness-real-overlap-extractions",
-            ))
+            .with_extraction_bundle(&extraction_bundle)
             .execute()
             .expect("coplanar overlap operator should consume workload proof");
     assert!(operator_receipt.links_to_stage(WorkloadEvidenceStage::Projection));
@@ -79,7 +79,7 @@ fn operator_harness_consumes_projected_retained_transformed_workloads() {
             .operator_evidence_row()
             .counters()
             .operator_input_count(),
-        44
+        40
     );
     assert!(
         receipts
@@ -218,7 +218,7 @@ fn assert_operator_denial(
     human_reason_fragment: &str,
 ) {
     let denial = CoplanarOverlapWorkloadOperator::from_consumed_evidence(&consumed_evidence)
-        .with_overlap_extractions(&certify_storm_overlap_extractions(
+        .with_extraction_bundle(&operator_extraction_bundle(
             "operator-denial-real-overlap-extractions",
         ))
         .execute()
@@ -230,59 +230,12 @@ fn assert_operator_denial(
     assert!(!denial.human_reason().contains(".operator."));
 }
 
-fn counter_backed_operator_workload(world: &'static str) -> WorthWorkload {
-    let receipts = counter_backed_receipts(world);
-    let topology = receipts
-        .topology
-        .query_receipts()
-        .declaration_receipt()
-        .clone();
-    let diagnostics = DiagnosticWorkload::for_retained_replay(receipts.replay.stage_receipt())
-        .declared(format!("operator diagnostics for {world}"))
-        .admit()
-        .expect("simple diagnostic stage remains admitted");
-    let response = ResponseWorkload::for_diagnostics(&diagnostics)
-        .declared(format!("operator response for {world}"))
-        .admit()
-        .expect("simple response stage remains admitted");
-    let ledger = WorkloadEvidenceLedger::from_rows(operator_rows(
-        &topology,
-        &receipts,
-        &diagnostics,
-        &response,
-    ))
-    .expect("operator workload ledger should be inspectable")
-    .certify_complete()
-    .expect("operator workload ledger should be complete");
-
-    WorthWorkload::compose(WorthWorkloadParts {
-        topology,
-        geometry_binding: receipts.geometry.stage_receipt().clone(),
-        surface_support: receipts.support.stage_receipt().clone(),
-        projection: receipts.projection.stage_receipt().clone(),
-        transform: receipts.transform.stage_receipt().clone(),
-        retained_replay: receipts.replay.stage_receipt().clone(),
-        diagnostics,
-        response,
-        evidence_ledger: ledger,
-    })
-    .expect("operator workload should compose")
-}
-
-fn operator_rows(
-    topology: &TopologyWorkloadReceipt,
-    receipts: &CounterBackedReceipts,
-    diagnostics: &worth_spatial::facade::workload_vocabulary::DiagnosticWorkloadReceipt,
-    response: &worth_spatial::facade::workload_vocabulary::ResponseWorkloadReceipt,
-) -> Vec<WorkloadEvidenceRow> {
-    vec![
-        WorkloadEvidenceRow::from_topology_workload_and_seed_receipts(topology, &receipts.topology),
-        WorkloadEvidenceRow::from_geometry_binding_receipt_set(&receipts.geometry),
-        WorkloadEvidenceRow::from_surface_support_receipt_set(&receipts.support),
-        WorkloadEvidenceRow::from_projection_receipt_set(&receipts.projection),
-        WorkloadEvidenceRow::from_transform_receipt_set(&receipts.transform),
-        WorkloadEvidenceRow::from_replay_receipt_set(&receipts.replay),
-        WorkloadEvidenceRow::from_diagnostic_receipt(diagnostics),
-        WorkloadEvidenceRow::from_response_receipt(response),
-    ]
+fn operator_extraction_bundle(
+    world: &'static str,
+) -> worth_spatial::facade::projected_overlap_faces::CoplanarOverlapExtractionBundle {
+    let built = WorkloadCatalog::coplanar_overlap_storm()
+        .declared(format!("operator harness projected overlap bundle {world}"))
+        .build()
+        .expect("operator harness projected overlap workload should build");
+    certify_projected_storm_extraction_bundle(world, built.projected_workload())
 }

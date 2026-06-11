@@ -32,6 +32,7 @@ use crate::workload_composition::{WorthWorkload, WorthWorkloadParts};
 pub(crate) struct CatalogWorkloadBuild {
     workload: WorthWorkload,
     topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
+    projected: ProjectedPlanarWorkload,
 }
 
 impl CatalogWorkloadBuild {
@@ -41,6 +42,10 @@ impl CatalogWorkloadBuild {
 
     pub(crate) fn topology_neighborhood(&self) -> Option<&TopologySeedNeighborhoodReceipt> {
         self.topology_neighborhood.as_ref()
+    }
+
+    pub(crate) fn projected(&self) -> &ProjectedPlanarWorkload {
+        &self.projected
     }
 }
 
@@ -59,7 +64,8 @@ pub(crate) fn build_catalog_workload(
     let support_receipts = surface_support.receipts().clone();
     let projected = project_supported_geometry(surface_support, declaration)?;
     let projection_receipts = projected.receipts().clone();
-    let transformed = transform_projected_geometry(projected, declaration, transform_recipe)?;
+    let transformed =
+        transform_projected_geometry(projected.clone(), declaration, transform_recipe)?;
     let transform_receipts = transformed.receipts().clone();
     let retained_replay =
         replay_transformed_geometry(transformed, declaration, retained_replay_recipe)?;
@@ -103,6 +109,7 @@ pub(crate) fn build_catalog_workload(
     Ok(CatalogWorkloadBuild {
         workload,
         topology_neighborhood,
+        projected,
     })
 }
 

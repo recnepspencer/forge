@@ -6,6 +6,7 @@ pub(crate) mod geometry_binding;
 pub(crate) mod high_valence_singularity;
 pub(crate) mod inventory;
 pub(crate) mod open_planar_posture;
+pub(crate) mod projected_overlap_faces;
 pub(crate) mod projection_fact_parity;
 pub(crate) mod projection_workload;
 pub(crate) mod retained_cancellation_chain;

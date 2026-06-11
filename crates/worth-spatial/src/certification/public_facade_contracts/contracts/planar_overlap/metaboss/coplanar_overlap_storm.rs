@@ -9,6 +9,7 @@ use super::storm_extraction_subject::deny_storm_tiny_rotation;
 use worth_kernel::workload_composition::{TransformRecipe, WorkloadTopologyBreadth};
 use worth_spatial::facade::coplanar_overlap_storm::CoplanarOverlapStormWorkloadError;
 use worth_spatial::facade::planar_overlap::CoplanarOverlapUserOutcomeKind;
+use worth_spatial::facade::projected_overlap_faces::ProjectedOverlapFaceSet;
 use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceLedgerError, WorkloadEvidenceStage,
 };
@@ -26,14 +27,15 @@ fn mb_m6_1_coplanar_overlap_storm_end_to_end_receipts() {
     assert!(counters.transform_cancellation_step_count() > 0);
     assert!(counters.retained_artifact_count() > 0);
     assert!(counters.replay_checkpoint_count() > 0);
-    assert_eq!(counters.operator_input_count(), 44);
+    assert_eq!(counters.operator_input_count(), 40);
     assert!(counters.operator_receipt_count() > 0);
-    assert_eq!(counters.overlap_extraction_receipt_count(), 36);
-    assert!(counters.overlap_candidate_pair_breadth() >= 576);
+    assert_eq!(counters.overlap_extraction_receipt_count(), 32);
+    assert!(counters.overlap_candidate_pair_breadth() >= 512);
     assert!(counters.overlap_segment_contacts_certified() >= 192);
-    assert!(counters.overlap_shared_intervals() >= 12);
-    assert!(counters.overlap_islands() >= 12);
-    assert!(counters.overlap_ambiguous_contacts() >= 12);
+    assert!(counters.overlap_shared_intervals() >= 8);
+    assert!(counters.overlap_islands() >= 8);
+    assert!(counters.overlap_ambiguous_contacts() >= 8);
+    assert!(counters.overlap_policy_required_exits() >= 8);
     assert!(!subject.storm_receipt.storm_digest().is_empty());
     assert!(!subject.storm_receipt.workload_identity().is_empty());
     assert_eq!(
@@ -188,4 +190,22 @@ fn mb_m6_1_operator_receipt_must_match_workload_ledger() {
         error.human_reason(),
         "coplanar overlap storm operator receipt must consume the same projection evidence as the workload ledger"
     );
+}
+
+#[test]
+fn mb_m6_1_unpaired_projected_face_cannot_be_silently_dropped() {
+    let built = worth_kernel::workload_composition::WorkloadCatalog::coplanar_overlap_storm()
+        .with_topology_breadth(WorkloadTopologyBreadth::MultiFaceShell { face_count: 9 })
+        .declared("mb-real-coplanar-storm-unpaired-projected-face")
+        .build()
+        .expect("odd-width storm workload should build before overlap pairing is denied");
+
+    let denial = ProjectedOverlapFaceSet::from_projected_workload(built.projected_workload())
+        .expect_err("unpaired projected face must deny instead of being dropped");
+
+    assert_eq!(
+        denial.human_reason(),
+        "projected overlap candidate policy requires an even number of boundary-backed faces; one projected face has no adjacent overlap partner"
+    );
+    assert!(!denial.human_reason().contains('_'));
 }

@@ -1,8 +1,9 @@
-use crate::workload_platform::surface_support::{
-    CertifiedSurfaceSupport, SurfaceSupportCarrierRow,
+use crate::workload_platform::{
+    geometry_binding::PlanarLoopBoundaryGeometry,
+    surface_support::{CertifiedSurfaceSupport, SurfaceSupportCarrierRow},
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ProjectedTopologyEntities {
     faces: Vec<ProjectedFace>,
     edges: Vec<ProjectedEdge>,
@@ -140,9 +141,10 @@ impl ProjectedFace {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ProjectedLoop {
     identity: ProjectedEntityIdentity,
+    boundary: Option<PlanarLoopBoundaryGeometry>,
 }
 
 impl ProjectedLoop {
@@ -157,11 +159,16 @@ impl ProjectedLoop {
                 surface_support_identity,
                 local_basis_identity,
             ),
+            boundary: carrier.loop_boundary().cloned(),
         }
     }
 
     pub fn identity(&self) -> &ProjectedEntityIdentity {
         &self.identity
+    }
+
+    pub fn boundary(&self) -> Option<&PlanarLoopBoundaryGeometry> {
+        self.boundary.as_ref()
     }
 }
 

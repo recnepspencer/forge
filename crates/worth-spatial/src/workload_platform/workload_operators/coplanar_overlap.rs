@@ -1,5 +1,5 @@
-use crate::planar_contracts::coplanar_overlap_contract::CoplanarOverlapContractReceipt;
 use crate::workload_platform::evidence_ledger::{WorkloadEvidenceRow, WorkloadEvidenceStage};
+use crate::workload_platform::projected_overlap_faces::CoplanarOverlapExtractionBundle;
 
 use super::coplanar_overlap_extractions::{
     extraction_summary, operator_digest, CoplanarOverlapOperatorExtraction,
@@ -9,6 +9,7 @@ use super::coplanar_overlap_extractions::{
 pub struct CoplanarOverlapWorkloadOperator {
     consumed_evidence: Vec<WorkloadEvidenceRow>,
     overlap_extractions: Vec<CoplanarOverlapOperatorExtraction>,
+    extraction_bundle_projection_identity: Option<String>,
 }
 
 impl CoplanarOverlapWorkloadOperator {
@@ -16,14 +17,18 @@ impl CoplanarOverlapWorkloadOperator {
         Self {
             consumed_evidence: consumed_evidence.to_vec(),
             overlap_extractions: Vec::new(),
+            extraction_bundle_projection_identity: None,
         }
     }
 
-    pub fn with_overlap_extractions(mut self, receipts: &[CoplanarOverlapContractReceipt]) -> Self {
-        self.overlap_extractions = receipts
+    pub fn with_extraction_bundle(mut self, bundle: &CoplanarOverlapExtractionBundle) -> Self {
+        self.overlap_extractions = bundle
+            .receipts()
             .iter()
             .map(CoplanarOverlapOperatorExtraction::from_receipt)
             .collect();
+        self.extraction_bundle_projection_identity =
+            Some(bundle.projection_stage_identity().to_string());
         self
     }
 
@@ -51,6 +56,10 @@ impl CoplanarOverlapWorkloadOperator {
         let retained_replay = stage_identity(
             &self.consumed_evidence,
             RequiredOperatorEvidenceStage::RetainedReplay,
+        )?;
+        require_extraction_bundle_matches_projection(
+            self.extraction_bundle_projection_identity.as_deref(),
+            projection,
         )?;
         let extraction_summary = extraction_summary(&self.overlap_extractions)?;
         let operator_digest = operator_digest(
@@ -201,6 +210,7 @@ pub enum CoplanarOverlapOperatorDenial {
     SyntheticRetainedReplayWorkload,
     MissingOverlapExtractionReceipts,
     SyntheticOverlapExtraction,
+    MismatchedOverlapExtractionBundle,
 }
 
 impl CoplanarOverlapOperatorDenial {
@@ -239,8 +249,24 @@ impl CoplanarOverlapOperatorDenial {
             Self::SyntheticOverlapExtraction => {
                 "coplanar overlap operator requires overlap extraction receipts with candidate pairs and retained overlap facts"
             }
+            Self::MismatchedOverlapExtractionBundle => {
+                "coplanar overlap operator requires the overlap extraction bundle to come from the same projected workload evidence"
+            }
         }
     }
+}
+
+fn require_extraction_bundle_matches_projection(
+    bundle_projection_identity: Option<&str>,
+    projection_identity: &str,
+) -> Result<(), CoplanarOverlapOperatorDenial> {
+    bundle_projection_identity.map_or(Ok(()), |bundle_projection| {
+        if bundle_projection == projection_identity {
+            Ok(())
+        } else {
+            Err(CoplanarOverlapOperatorDenial::MismatchedOverlapExtractionBundle)
+        }
+    })
 }
 
 fn require_honest_stage(

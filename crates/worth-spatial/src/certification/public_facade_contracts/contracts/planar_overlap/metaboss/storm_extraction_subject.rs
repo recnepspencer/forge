@@ -4,7 +4,7 @@ use worth_spatial::facade::planar_local_frame::{
 };
 use worth_spatial::facade::planar_overlap::{
     CertifiedCoplanarOverlapFace2D, CoplanarOverlapContractContracts,
-    CoplanarOverlapContractExtractor, CoplanarOverlapContractReceipt,
+    CoplanarOverlapContractExtractor,
 };
 use worth_spatial::facade::planar_precision::{
     planar_precision_certification_entry, planar_precision_certification_facts,
@@ -29,8 +29,12 @@ use worth_spatial::facade::planar_winding::{
     CertifiedPolygonWinding2D, CertifiedPolygonWinding2DContracts, CertifiedProjectedLoop2D,
     CertifiedTopologyLoopBasis2D,
 };
+use worth_spatial::facade::projected_overlap_faces::{
+    CoplanarOverlapExtractionBundle, ProjectedOverlapExtractionContracts, ProjectedOverlapFaceSet,
+};
+use worth_spatial::facade::projection_workload::ProjectedPlanarWorkload;
 
-use super::scenario::{storm_regions, StormRegion};
+use super::scenario::StormRegion;
 use crate::public_api_planar_overlap::runtime_handles::{
     frame_handle, overlap_handle, precision_handle, predicate_handle, projection_handle,
     segment_handle, signed_area_handle, winding_handle,
@@ -39,28 +43,34 @@ use crate::public_api_planar_overlap::runtime_handles::{
 const STORM_NEIGHBORHOOD: &str = "topology:mb1-storm-overlap-neighborhood";
 const STORM_MOVEMENT: &str = "movement:mb1-storm-canonical";
 
-pub(crate) fn certify_storm_overlap_extractions(
+pub(crate) fn certify_projected_storm_extraction_bundle(
     world: &'static str,
-) -> Vec<CoplanarOverlapContractReceipt> {
-    storm_regions()
-        .into_iter()
-        .map(|region| certify_storm_region_overlap(world, &region))
-        .collect()
-}
-
-pub(crate) fn certify_storm_region_overlap(
-    world: &'static str,
-    region: &StormRegion,
-) -> CoplanarOverlapContractReceipt {
-    CoplanarOverlapContractExtractor::between(
-        storm_face(world, region.first_face_identity(), &region.first_face),
-        storm_face(world, region.second_face_identity(), &region.second_face),
+    projected: &ProjectedPlanarWorkload,
+) -> CoplanarOverlapExtractionBundle {
+    let precision = precision_receipt(world, STORM_MOVEMENT);
+    let frame = frame_receipt(world, STORM_MOVEMENT, &precision);
+    let winding_contracts = CertifiedPolygonWinding2DContracts::new(
+        winding_handle(world),
+        CertifiedSegmentSegment2DContracts::new(segment_handle(world), predicate_handle()),
+        predicate_handle(),
+    );
+    let signed_area_contracts = CertifiedSignedArea2DContracts::new(signed_area_handle(world));
+    let overlap_contracts = overlap_contracts(world);
+    let face_set = ProjectedOverlapFaceSet::from_projected_workload(projected)
+        .expect("catalog projected workload must expose overlap face geometry");
+    CoplanarOverlapExtractionBundle::from_projected_faces(
+        &face_set,
+        ProjectedOverlapExtractionContracts {
+            projection_handle: &projection_handle(world),
+            winding_contracts: &winding_contracts,
+            signed_area_contracts: &signed_area_contracts,
+            overlap_contracts: &overlap_contracts,
+            precision_receipt: &precision,
+            local_frame_receipt: &frame,
+            planar_neighborhood_identity: STORM_NEIGHBORHOOD,
+        },
     )
-    .within_planar_neighborhood(STORM_NEIGHBORHOOD)
-    .compile(&overlap_contracts(world))
-    .expect("MB1 storm overlap extraction plan")
-    .extract()
-    .expect("MB1 storm overlap extraction receipt")
+    .expect("projected storm extraction bundle should certify")
 }
 
 pub(crate) fn deny_storm_tiny_rotation(
@@ -90,29 +100,6 @@ pub(crate) fn deny_storm_tiny_rotation(
     }
 }
 
-pub(crate) fn certify_storm_policy_required_overlap(
-    world: &'static str,
-) -> CoplanarOverlapContractReceipt {
-    let region = super::scenario::policy_required_region();
-    CoplanarOverlapContractExtractor::between(
-        storm_face_with_candidate(
-            world,
-            region.first_face_identity(),
-            &region.first_face,
-            region
-                .containment_candidate
-                .as_ref()
-                .expect("policy region candidate"),
-        ),
-        storm_face(world, region.second_face_identity(), &region.second_face),
-    )
-    .within_planar_neighborhood(STORM_NEIGHBORHOOD)
-    .compile(&overlap_contracts(world))
-    .expect("MB1 storm policy overlap plan")
-    .extract()
-    .expect("MB1 storm policy overlap receipt")
-}
-
 fn overlap_contracts(
     world: &'static str,
 ) -> CoplanarOverlapContractContracts<
@@ -132,34 +119,6 @@ fn storm_face(
     points: &[[f64; 2]],
 ) -> CertifiedCoplanarOverlapFace2D {
     storm_face_with_movement(world, face, STORM_MOVEMENT, points)
-}
-
-fn storm_face_with_candidate(
-    world: &'static str,
-    face: String,
-    outer_points: &[[f64; 2]],
-    candidate_points: &[[f64; 2]],
-) -> CertifiedCoplanarOverlapFace2D {
-    let precision = precision_receipt(world, STORM_MOVEMENT);
-    let frame = frame_receipt(world, STORM_MOVEMENT, &precision);
-    let outer_identity = format!("loop:{face}:outer");
-    let candidate_identity = format!("loop:{face}:candidate");
-    let outer_loop = projected_loop(world, &frame, &face, &outer_identity, outer_points);
-    let candidate_loop =
-        projected_loop(world, &frame, &face, &candidate_identity, candidate_points);
-    let winding_contracts = CertifiedPolygonWinding2DContracts::new(
-        winding_handle(world),
-        CertifiedSegmentSegment2DContracts::new(segment_handle(world), predicate_handle()),
-        predicate_handle(),
-    );
-    let winding = CertifiedPolygonWinding2D::certify(outer_loop)
-        .with_containment_candidate(candidate_loop)
-        .within_planar_neighborhood(STORM_NEIGHBORHOOD)
-        .compile(&winding_contracts)
-        .expect("MB1 candidate winding plan")
-        .certify()
-        .expect("MB1 candidate winding receipt");
-    certified_face_from_winding(world, face, precision, winding)
 }
 
 fn storm_face_with_movement(

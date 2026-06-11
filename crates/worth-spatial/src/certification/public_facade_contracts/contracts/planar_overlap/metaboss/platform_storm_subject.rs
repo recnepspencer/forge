@@ -13,7 +13,7 @@ use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
 };
 
-use super::storm_extraction_subject::certify_storm_overlap_extractions;
+use super::storm_extraction_subject::certify_projected_storm_extraction_bundle;
 
 pub(crate) struct PlatformStormSubject {
     pub(crate) storm_receipt: CoplanarOverlapStormReceipt,
@@ -48,10 +48,11 @@ pub(crate) fn certify_platform_storm_with_transform(
         ))
         .admit_for(workload)
         .expect("platform storm workload should admit for coplanar overlap");
-    let overlap_extractions = certify_storm_overlap_extractions(world);
+    let extraction_bundle =
+        certify_projected_storm_extraction_bundle(world, built.projected_workload());
     let operator_receipt =
         CoplanarOverlapWorkloadOperator::from_consumed_evidence(run.consumed_evidence())
-            .with_overlap_extractions(&overlap_extractions)
+            .with_extraction_bundle(&extraction_bundle)
             .execute()
             .expect("platform storm operator should execute");
     let operator_outcome =
@@ -121,8 +122,9 @@ pub(crate) fn mismatched_operator_stage_link_error(
         .expect("operator source should admit");
     let operator_receipt =
         CoplanarOverlapWorkloadOperator::from_consumed_evidence(operator_run.consumed_evidence())
-            .with_overlap_extractions(&certify_storm_overlap_extractions(
+            .with_extraction_bundle(&certify_projected_storm_extraction_bundle(
                 "mb-m6-1-mismatched-operator-extractions",
+                operator_source.projected_workload(),
             ))
             .execute()
             .expect("operator source should execute");

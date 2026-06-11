@@ -8,7 +8,6 @@ pub(crate) mod open_planar_posture;
 mod outcome_matrix;
 pub(crate) mod platform_storm_subject;
 pub(crate) mod projection_fact_parity;
-pub(crate) mod proof;
 pub(crate) mod retained_cancellation_chain;
 mod scenario;
 pub(crate) mod storm_extraction_subject;

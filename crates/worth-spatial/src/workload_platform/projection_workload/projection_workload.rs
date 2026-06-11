@@ -188,7 +188,7 @@ fn projection_receipt_set(
     )
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ProjectedPlanarWorkload {
     local_frame: CertifiedLocalFrameWorkload,
     projected_faces: Vec<ProjectedFace>,

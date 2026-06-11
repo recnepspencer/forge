@@ -15,6 +15,7 @@ pub struct CoplanarOverlapStormCounters {
     overlap_segment_contacts_certified: usize,
     overlap_shared_intervals: usize,
     overlap_islands: usize,
+    overlap_policy_required_exits: usize,
     overlap_ambiguous_contacts: usize,
 }
 
@@ -36,6 +37,7 @@ impl CoplanarOverlapStormCounters {
             overlap_segment_contacts_certified: input.overlap_segment_contacts_certified,
             overlap_shared_intervals: input.overlap_shared_intervals,
             overlap_islands: input.overlap_islands,
+            overlap_policy_required_exits: input.overlap_policy_required_exits,
             overlap_ambiguous_contacts: input.overlap_ambiguous_contacts,
         }
     }
@@ -100,6 +102,10 @@ impl CoplanarOverlapStormCounters {
         self.overlap_islands
     }
 
+    pub fn overlap_policy_required_exits(self) -> usize {
+        self.overlap_policy_required_exits
+    }
+
     pub fn overlap_ambiguous_contacts(self) -> usize {
         self.overlap_ambiguous_contacts
     }
@@ -121,5 +127,6 @@ pub(crate) struct CoplanarOverlapStormCounterInput {
     pub(crate) overlap_segment_contacts_certified: usize,
     pub(crate) overlap_shared_intervals: usize,
     pub(crate) overlap_islands: usize,
+    pub(crate) overlap_policy_required_exits: usize,
     pub(crate) overlap_ambiguous_contacts: usize,
 }

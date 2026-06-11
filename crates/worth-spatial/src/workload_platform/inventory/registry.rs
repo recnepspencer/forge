@@ -125,10 +125,6 @@ fn planar_metaboss_support_rows() -> Vec<SeedInventoryRow> {
             "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/outcome_matrix.rs",
         ),
         (
-            "planar_overlap::metaboss::proof",
-            "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/proof.rs",
-        ),
-        (
             "planar_overlap::metaboss::coplanar_overlap_storm",
             "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/coplanar_overlap_storm.rs",
         ),
@@ -171,30 +167,17 @@ fn planar_metaboss_support_rows() -> Vec<SeedInventoryRow> {
 }
 
 fn planar_replay_and_runtime_fixture_rows() -> Vec<SeedInventoryRow> {
-    vec![
-        row(
-            "planar_overlap::runtime_handles",
-            SurfaceKind::SpatialFixture,
-            SurfaceAuthority::TestLocalConvenience,
-            TopologyPosture::BypassesTopologyTruth,
-            ReceiptPosture::NoReceipt,
-            SurfaceScope::UnitSupportOnly,
-            InventoryDecision::LeaveUnitOnly,
-            "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/runtime_handles.rs",
-            "Runtime handles are test-local route handles and are not workload authority.",
-        ),
-        row(
-            "planar_overlap::metaboss::certify_storm_with_retained_replay",
-            SurfaceKind::ReExtractionReplayHelper,
-            SurfaceAuthority::TestLocalConvenience,
-            TopologyPosture::BypassesTopologyTruth,
-            ReceiptPosture::TestLocal,
-            SurfaceScope::LegacyMigrationOnly,
-            InventoryDecision::DeleteAfterReplacement,
-            "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/proof.rs",
-            "The retained-replay storm helper currently reuses local MB setup and cannot register as workload replay proof.",
-        ),
-    ]
+    vec![row(
+        "planar_overlap::runtime_handles",
+        SurfaceKind::SpatialFixture,
+        SurfaceAuthority::TestLocalConvenience,
+        TopologyPosture::BypassesTopologyTruth,
+        ReceiptPosture::NoReceipt,
+        SurfaceScope::UnitSupportOnly,
+        InventoryDecision::LeaveUnitOnly,
+        "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/runtime_handles.rs",
+        "Runtime handles are test-local route handles and are not workload authority.",
+    )]
 }
 
 fn row(

@@ -117,6 +117,9 @@ impl<'a> CoplanarOverlapStormWorkload<'a> {
                     .overlap_segment_contacts_certified(),
                 overlap_shared_intervals: self.operator_receipt.overlap_shared_intervals(),
                 overlap_islands: self.operator_receipt.overlap_islands(),
+                overlap_policy_required_exits: self
+                    .operator_receipt
+                    .overlap_policy_required_exits(),
                 overlap_ambiguous_contacts: self.operator_receipt.overlap_ambiguous_contacts(),
             },
         ))
