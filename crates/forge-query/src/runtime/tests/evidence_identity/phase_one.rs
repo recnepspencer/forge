@@ -126,7 +126,10 @@ fn basis_admissions_emit_canonical_evidence_tokens() {
         ForgeQueryAuthorityLane::PreviewTruth,
         ["basis|one", "basis:two"],
     );
-    assert_eq!(preview.admission_digest().as_str(), manual_preview_identity.as_str());
+    assert_eq!(
+        preview.admission_digest().as_str(),
+        manual_preview_identity.as_str()
+    );
 }
 
 #[test]

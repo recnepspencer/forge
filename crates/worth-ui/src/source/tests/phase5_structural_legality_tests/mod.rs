@@ -1,0 +1,5 @@
+mod illegal_structure_cases;
+mod legal_structure_cases;
+mod structural_legality_body_fixture_support;
+mod structural_legality_capability_fixture_support;
+mod structural_legality_snapshot_support;

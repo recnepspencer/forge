@@ -276,8 +276,7 @@ impl ForgeQueryRuntimePublicSupportMatrix {
                 )
                 .field_identity_sequence(
                     ForgeQueryEvidenceTag::new("row_digest"),
-                    rows.iter()
-                        .map(|row| row.row_digest().as_str()),
+                    rows.iter().map(|row| row.row_digest().as_str()),
                 )
                 .seal();
         Self {

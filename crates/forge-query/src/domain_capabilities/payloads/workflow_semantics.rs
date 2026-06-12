@@ -65,7 +65,10 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
 
     pub fn preview_foundation_binding(
         &self,
-    ) -> Option<(&BridgePreviewSessionIdentity, WorkflowPreviewEvaluationClass)> {
+    ) -> Option<(
+        &BridgePreviewSessionIdentity,
+        WorkflowPreviewEvaluationClass,
+    )> {
         match self {
             Self::PreviewFoundation {
                 preview_session_identity,

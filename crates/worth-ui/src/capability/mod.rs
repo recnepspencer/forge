@@ -107,6 +107,7 @@ pub use snapshot::{
 };
 pub(crate) use snapshot::{
     CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySnapshotIndexParts,
+    CapabilitySupportCatalog,
 };
 pub use support::{
     AdmittedCapability, CapabilitySupportId, CapabilitySupportKind, CapabilitySupportPosture,

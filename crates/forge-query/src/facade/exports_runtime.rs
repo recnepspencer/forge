@@ -497,7 +497,6 @@ pub use crate::saved_query::{
 pub use crate::schema_view::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
 };
-pub use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 pub use crate::session_label::{
     ForgeQuerySessionLabel, ForgeQuerySessionLabelError, ForgeQuerySessionLabelSegment,
     ForgeQuerySessionNamespace,
@@ -688,3 +687,4 @@ pub use crate::workflow::{
     WorkflowStalenessOutcome, WritebackCausalityBinding, WritebackDeclarationFamily,
     WritebackLoweringInput,
 };
+pub use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;

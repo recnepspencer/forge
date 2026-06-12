@@ -1,6 +1,7 @@
 use crate::capability::{
     validate_registration_candidates, CapabilityDiagnosticRichness, CapabilityRegistrationReport,
-    CapabilitySnapshot, CommandAcceptedRegistrationProof, CommandDescriptor,
+    CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySupportCatalog,
+    CommandAcceptedRegistrationProof, CommandDescriptor,
     CommandProjectionAcceptedRegistrationProof, CommandProjectionDescriptor,
     CommandProjectionRegistry, CommandRegistry, ComponentAcceptedRegistrationProof,
     ComponentDescriptor, ComponentRegistry, IconAcceptedRegistrationProof, IconDescriptor,
@@ -284,6 +285,8 @@ impl WorthUiAppBuilder {
             validation_report
                 .accepted_identity_texts_for_registry_family(RegistryFamily::ThemeToken),
         );
+        let support_catalog =
+            CapabilitySupportCatalog::from_registration_candidates(&self.registration_candidates);
         let (accepted_capabilities, diagnostics) = validation_report.into_parts();
         let command_capabilities = self.command_registry.freeze(&accepted_commands);
         let command_projection_capabilities = self
@@ -316,25 +319,27 @@ impl WorthUiAppBuilder {
             .freeze(&accepted_task_presentations);
         let theme_token_capabilities = self.theme_token_registry.freeze(&accepted_theme_tokens);
         CapabilityRegistrationReport::new(
-            CapabilitySnapshot::from_registered_capabilities_commands_command_projections_components_icons_surfaces_mosaic_regions_mosaic_placements_mosaic_sizing_mosaic_state_native_capabilities_plugin_slots_view_bindings_runtime_outcome_projections_settings_task_presentations_and_theme_tokens(
-                accepted_capabilities,
-                command_capabilities,
-                command_projection_capabilities,
-                component_capabilities,
-                icon_capabilities,
-                surface_capabilities,
-                mosaic_region_capabilities,
-                mosaic_placement_capabilities,
-                mosaic_sizing_capabilities,
-                mosaic_state_capabilities,
+            CapabilitySnapshotBuilder::new(CapabilitySnapshotFreezeInput {
+                registered_capabilities: accepted_capabilities,
+                commands: command_capabilities,
+                command_projections: command_projection_capabilities,
+                components: component_capabilities,
+                icons: icon_capabilities,
+                surfaces: surface_capabilities,
+                mosaic_regions: mosaic_region_capabilities,
+                mosaic_placement_policies: mosaic_placement_capabilities,
+                mosaic_sizing_contracts: mosaic_sizing_capabilities,
+                mosaic_state_slots: mosaic_state_capabilities,
                 native_capabilities,
-                plugin_slot_capabilities,
-                view_binding_capabilities,
-                runtime_outcome_projection_capabilities,
-                setting_capabilities,
-                task_presentation_capabilities,
-                theme_token_capabilities,
-            ),
+                plugin_slots: plugin_slot_capabilities,
+                view_bindings: view_binding_capabilities,
+                runtime_outcome_projections: runtime_outcome_projection_capabilities,
+                settings: setting_capabilities,
+                task_presentations: task_presentation_capabilities,
+                theme_tokens: theme_token_capabilities,
+                support_catalog,
+            })
+            .freeze(),
             diagnostics,
         )
     }

@@ -49,6 +49,13 @@ impl FrozenViewBindingCapabilities {
             .map(|index| self.entries[index].descriptor())
     }
 
+    pub fn get_entry(&self, id: &ViewBindingId) -> Option<&FrozenViewBindingEntry> {
+        self.entries
+            .binary_search_by(|entry| entry.descriptor().id().cmp(id))
+            .ok()
+            .map(|index| &self.entries[index])
+    }
+
     pub(crate) fn digest_basis(&self) -> u64 {
         self.entries
             .iter()

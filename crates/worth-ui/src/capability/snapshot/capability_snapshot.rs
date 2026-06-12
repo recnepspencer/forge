@@ -1,13 +1,13 @@
 use crate::capability::{
     CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySnapshotIndex,
-    CapabilitySnapshotIndexParts, FrozenCommandCapabilities, FrozenCommandProjectionCapabilities,
-    FrozenComponentCapabilities, FrozenIconCapabilities, FrozenMosaicPlacementCapabilities,
-    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
-    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
-    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
-    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
-    FrozenViewBindingCapabilities, RegisteredCapabilitySet, SnapshotFreezeReport,
-    SnapshotReferenceValidationReport,
+    CapabilitySnapshotIndexParts, CapabilitySupportCatalog, FrozenCommandCapabilities,
+    FrozenCommandProjectionCapabilities, FrozenComponentCapabilities, FrozenIconCapabilities,
+    FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
+    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
+    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
+    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
+    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
+    SnapshotFreezeReport, SnapshotReferenceValidationReport,
 };
 
 use super::{CapabilitySnapshotDigest, SnapshotMetrics};
@@ -32,6 +32,7 @@ pub struct CapabilitySnapshot {
     settings: FrozenSettingCapabilities,
     task_presentations: FrozenTaskPresentationCapabilities,
     theme_tokens: FrozenThemeTokenCapabilities,
+    support_catalog: CapabilitySupportCatalog,
     digest: CapabilitySnapshotDigest,
     metrics: SnapshotMetrics,
     freeze_report: SnapshotFreezeReport,
@@ -235,6 +236,7 @@ impl CapabilitySnapshot {
             FrozenSettingCapabilities::empty(),
             FrozenTaskPresentationCapabilities::empty(),
             FrozenThemeTokenCapabilities::empty(),
+            CapabilitySupportCatalog::empty(),
         )
     }
 
@@ -256,6 +258,7 @@ impl CapabilitySnapshot {
         settings: FrozenSettingCapabilities,
         task_presentations: FrozenTaskPresentationCapabilities,
         theme_tokens: FrozenThemeTokenCapabilities,
+        support_catalog: CapabilitySupportCatalog,
     ) -> Self {
         CapabilitySnapshotBuilder::new(CapabilitySnapshotFreezeInput {
             registered_capabilities,
@@ -275,6 +278,7 @@ impl CapabilitySnapshot {
             settings,
             task_presentations,
             theme_tokens,
+            support_catalog,
         })
         .freeze()
     }
@@ -304,6 +308,7 @@ impl CapabilitySnapshot {
             settings: input.settings,
             task_presentations: input.task_presentations,
             theme_tokens: input.theme_tokens,
+            support_catalog: input.support_catalog,
             digest,
             metrics,
             freeze_report,
@@ -388,6 +393,10 @@ impl CapabilitySnapshot {
     /// Frozen semantic theme token capabilities admitted at registration freeze.
     pub fn theme_tokens(&self) -> &FrozenThemeTokenCapabilities {
         &self.theme_tokens
+    }
+
+    pub(crate) fn support_catalog(&self) -> &CapabilitySupportCatalog {
+        &self.support_catalog
     }
 
     /// Deterministic digest for this frozen capability meaning.
