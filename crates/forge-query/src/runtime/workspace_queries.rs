@@ -5,6 +5,8 @@ use serde_json::Value;
 use super::read_composition_hooks::{
     ForgeQueryReadInvariantPackContext, ForgeQueryReadInvariantPackViolation,
 };
+#[cfg(test)]
+use super::{record_forbidden_fallback_seam_invocation, ForgeQueryForbiddenFallbackSeam};
 use super::{
     ForgeQueryDerivedViewHandle, ForgeQueryGenericInspectionIntentTarget, ForgeQueryInspection,
     ForgeQueryInspectionTarget, ForgeQueryInstalledProgram, ForgeQueryLiveArtifactBinding,
@@ -12,7 +14,7 @@ use super::{
     ForgeQueryPatchBatch, ForgeQueryProgram, ForgeQueryReadBuilder,
     ForgeQueryReadDomainInvariantDenial, ForgeQueryReadFamily,
     ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph, ForgeQueryReadResult,
-    ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryRuntimeError, ForgeQueryUnifiedInspectionResult, ForgeQueryWorkspace,
 };
 
 impl ForgeQueryWorkspace {
@@ -128,11 +130,39 @@ impl ForgeQueryWorkspace {
             .to_vec()
     }
 
+    pub fn state_live_by_name(
+        &self,
+        view_name: &str,
+    ) -> Result<super::ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
+        super::state::snapshot_live_view_name(&self.runtime, view_name)
+    }
+
+    pub fn read_live_by_name(
+        &mut self,
+        view_name: &str,
+    ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
+        let installation = self
+            .runtime
+            .inspect_live_view_name_installation(view_name)?
+            .clone();
+        let review = self.review_live_read_execution(super::ForgeQueryLiveView::<Value>::new(
+            crate::memory_workspace::ForgeQueryLiveViewHandle::new(view_name),
+            installation,
+        ))?;
+        let handoff = self.resolve_reviewed_admitted_live_read_execution_handoff(review)?;
+        let binding = self.into_runtime_live_read_execution_binding(handoff);
+        self.execute_bound_live_read_execution(binding)
+    }
+
     pub fn read_live_artifact_binding(
         &mut self,
         artifact_name: impl Into<String>,
         targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
     ) -> Result<ForgeQueryLiveArtifactBinding, ForgeQueryRuntimeError> {
+        #[cfg(test)]
+        record_forbidden_fallback_seam_invocation(
+            ForgeQueryForbiddenFallbackSeam::ReadLiveArtifactBinding,
+        );
         let retained_targets = targets.into_iter().collect::<Vec<_>>();
         self.read_live_artifact_bundle(retained_targets.clone())?
             .bind_live_artifact(artifact_name, retained_targets)
@@ -142,6 +172,10 @@ impl ForgeQueryWorkspace {
         &mut self,
         targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
     ) -> Result<ForgeQueryLiveArtifactBundle, ForgeQueryRuntimeError> {
+        #[cfg(test)]
+        record_forbidden_fallback_seam_invocation(
+            ForgeQueryForbiddenFallbackSeam::ReadLiveArtifactBundle,
+        );
         let mut retained_targets = targets.into_iter().collect::<Vec<_>>();
         retained_targets.sort();
         retained_targets.dedup();
@@ -192,6 +226,24 @@ impl ForgeQueryWorkspace {
         T: Into<ForgeQueryInspectionTarget<'a>>,
     {
         self.runtime.inspect(target)
+    }
+
+    pub fn inspect_live_by_name(
+        &self,
+        view_name: &str,
+    ) -> Result<ForgeQueryUnifiedInspectionResult, ForgeQueryRuntimeError> {
+        self.runtime.inspect_live_view_name_result(view_name)
+    }
+
+    pub fn subscription_basis_digest_by_name(
+        &self,
+        view_name: &str,
+    ) -> Result<String, ForgeQueryRuntimeError> {
+        Ok(self
+            .runtime
+            .inspect_live_view_name_installation(view_name)?
+            .basis_binding_digest()
+            .to_string())
     }
 }
 

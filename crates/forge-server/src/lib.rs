@@ -10,8 +10,10 @@
 #![forbid(unsafe_code)]
 
 mod config;
+mod declaration_intake;
 mod diagnostics;
 pub mod facade;
+pub mod forge_native;
 pub mod middleware;
 pub mod operator_evidence;
 pub mod query_handoff;
@@ -32,8 +34,41 @@ pub use config::{
     ForgeServerRequestContextConfigBuilder, ForgeServerRequestContextConfigError,
     ForgeServerResponseConfig, ForgeServerResponseConfigBuilder, ForgeServerResponseConfigError,
 };
+pub use declaration_intake::{
+    ForgeServerAdmittedDirectDeclaration, ForgeServerDirectDeclaration,
+    ForgeServerDirectDeclarationBuilder, ForgeServerDirectDeclarationDenial,
+    ForgeServerDirectDeclarationDenialCode, ForgeServerDirectDeclarationError,
+    ForgeServerDirectDeclarationSource, ForgeServerDirectDeclarationSourceKind,
+    ForgeServerDirectDeclarationSourceSupportStatus, ForgeServerDirectSupportSnapshot,
+    ForgeServerDirectViewShape, ForgeServerPreparedDirectDeclaration,
+};
 pub use diagnostics::ForgeServerCounterSnapshot;
 pub use facade::{ForgeServer, ForgeServerBuildError, ForgeServerBuilder};
+pub use forge_native::{
+    ForgeServerDirectAsyncResultState, ForgeServerDirectContextArtifact,
+    ForgeServerDirectDeclarationSnapshot, ForgeServerDirectDeliveryClass,
+    ForgeServerDirectDeliveryContract, ForgeServerDirectDeliveryOutcome,
+    ForgeServerDirectDeliveryRequest, ForgeServerDirectFactReceipt, ForgeServerDirectFreshnessMode,
+    ForgeServerDirectInspection, ForgeServerDirectInspectionOutcome,
+    ForgeServerDirectLeaseDeclaration, ForgeServerDirectLeaseDeclarationOutcome,
+    ForgeServerDirectMaterializationDigest, ForgeServerDirectMaterializedRemaskArtifact,
+    ForgeServerDirectMutation, ForgeServerDirectMutationOutcome, ForgeServerDirectMutationResult,
+    ForgeServerDirectProductFlow, ForgeServerDirectProjection,
+    ForgeServerDirectProjectionConsumption, ForgeServerDirectProjectionFactReceipt,
+    ForgeServerDirectProjectionOutcome, ForgeServerDirectProjectionRequest,
+    ForgeServerDirectProvenance, ForgeServerDirectRead, ForgeServerDirectReadOutcome,
+    ForgeServerDirectRemaskArtifact, ForgeServerDirectRemaskDisposition,
+    ForgeServerDirectRemaskPosture, ForgeServerDirectRetainedPosture, ForgeServerDirectState,
+    ForgeServerDirectStateOutcome, ForgeServerDirectTemporalState, ForgeServerForgeNativeDeferred,
+    ForgeServerForgeNativeDirectFacade, ForgeServerForgeNativeFacade,
+    ForgeServerForgeNativeFailure, ForgeServerForgeNativePreparationOutcome,
+    ForgeServerForgeNativePreparedSession, ForgeServerForgeNativeProductFacade,
+    ForgeServerForgeNativeRebindRequired, ForgeServerForgeNativeSession,
+    ForgeServerForgeNativeSessionDenial, ForgeServerForgeNativeSessionDenialCode,
+    ForgeServerForgeNativeSessionInput, ForgeServerForgeNativeSessionInputBuilder,
+    ForgeServerForgeNativeSessionInputError, ForgeServerForgeNativeSessionOutcome,
+    ForgeServerForgeNativeStale, ForgeServerForgeNativeSurfaceRoot,
+};
 pub use middleware::{
     ForgeServerAdmission, ForgeServerAdmissionOutcome, ForgeServerDenial, ForgeServerDenialCode,
     ForgeServerDenialPriority, ForgeServerMiddlewareDeferred, ForgeServerMiddlewareFacade,
@@ -52,9 +87,10 @@ pub use query_handoff::{
     ForgeServerQueryHandoffDenialCode, ForgeServerQueryHandoffFacade,
     ForgeServerQueryHandoffFailure, ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation,
     ForgeServerQueryHandoffOutcome, ForgeServerQueryHandoffRebindRequired,
-    ForgeServerQueryHandoffStale, ForgeServerQueryOperationKind, ForgeServerQueryRequestedResume,
-    ForgeServerQueryRequestedResumeKind, ForgeServerQuerySupportPosture,
-    ForgeServerQueryWorkspaceBindingError, ForgeServerQueryWorkspaceBindingRequest,
+    ForgeServerQueryHandoffStale, ForgeServerQueryOperation, ForgeServerQueryOperationKind,
+    ForgeServerQueryRequestedResume, ForgeServerQueryRequestedResumeKind,
+    ForgeServerQuerySupportPosture, ForgeServerQueryWorkspaceBindingError,
+    ForgeServerQueryWorkspaceBindingRequest, ForgeServerQueryWorkspaceBindingTarget,
     ForgeServerQueryWorkspaceProvider,
 };
 pub use registration::{
@@ -78,7 +114,50 @@ pub use response::{
 };
 pub use surfaces::{
     BinarySurface, BinarySurfaceRoot, CompatHttpSurface, CompatHttpSurfaceRoot, ForgeNativeSurface,
-    ForgeNativeSurfaceRoot, ForgeServerSurfaceCapabilities, ForgeServerSurfaceRoot,
-    ForgeServerSurfacesFacade, IntegrationSurface, IntegrationSurfaceRoot, LeaseSurface,
-    LeaseSurfaceRoot, SyncSurface, SyncSurfaceRoot,
+    ForgeNativeSurfaceRoot, ForgeServerAbuseBudgetReceipt, ForgeServerBackgroundExportRequest,
+    ForgeServerBinaryCertificationBundle, ForgeServerBinaryCounterSet, ForgeServerBinaryDownload,
+    ForgeServerBinaryDownloadAuthorization, ForgeServerBinaryDownloadExecutionInput,
+    ForgeServerBinaryDownloadOutcome, ForgeServerBinaryDownloadRequest,
+    ForgeServerBinaryEgressPerformanceReceipt, ForgeServerBinaryEgressSession,
+    ForgeServerBinaryIngressSession, ForgeServerBinaryIntegrityDigest,
+    ForgeServerBinaryPolicyDecision, ForgeServerBinaryResumeRequest, ForgeServerBinaryRetryPosture,
+    ForgeServerBinarySessionResume, ForgeServerCacheabilityPolicy, ForgeServerCanonicalFilename,
+    ForgeServerCanonicalHeaderSet, ForgeServerCompatHttpRouteFamilies,
+    ForgeServerCompatHttpRouteFamily, ForgeServerCompatibilityCachePolicy,
+    ForgeServerCompatibilityCertificationBundle, ForgeServerCompatibilityDeferred,
+    ForgeServerCompatibilityDenial, ForgeServerCompatibilityDenialCode,
+    ForgeServerCompatibilityExecutionInput, ForgeServerCompatibilityExecutionOutcome,
+    ForgeServerCompatibilityExport, ForgeServerCompatibilityFacade,
+    ForgeServerCompatibilityFailure, ForgeServerCompatibilityFileEnvelope,
+    ForgeServerCompatibilityInspection, ForgeServerCompatibilityMutation,
+    ForgeServerCompatibilityMutationCommand, ForgeServerCompatibilityMutationEnvelope,
+    ForgeServerCompatibilityMutationExecutionInput, ForgeServerCompatibilityMutationOutcome,
+    ForgeServerCompatibilityMutationRequest, ForgeServerCompatibilityMutationResult,
+    ForgeServerCompatibilityPreparedRequest, ForgeServerCompatibilityRead,
+    ForgeServerCompatibilityRebindRequired, ForgeServerCompatibilityRequest,
+    ForgeServerCompatibilityRequestInput, ForgeServerCompatibilityRequestInputBuilder,
+    ForgeServerCompatibilityRequestInputError, ForgeServerCompatibilityRequestOutcome,
+    ForgeServerCompatibilityStale, ForgeServerCompatibilityState, ForgeServerCompatibilityStream,
+    ForgeServerCompatibilityUpload, ForgeServerCompatibilityUploadExecutionInput,
+    ForgeServerCompatibilityUploadOutcome, ForgeServerCompatibilityVersion,
+    ForgeServerConditionalRangeRequest, ForgeServerConditionalRead,
+    ForgeServerExternalBasisRequest, ForgeServerExternalCounterSet,
+    ForgeServerExternalEvidenceRecord, ForgeServerExternalRequestContract,
+    ForgeServerFileMetadataReceipt, ForgeServerFileMetadataTruthKind,
+    ForgeServerFileTransferDisposition, ForgeServerFileTransferProvenance,
+    ForgeServerIdempotencyKey, ForgeServerIdempotentReplayReceipt,
+    ForgeServerIngressIntegrityDigest, ForgeServerIngressPerformanceReceipt,
+    ForgeServerMetadataNormalizationReceipt, ForgeServerMultipartUpload,
+    ForgeServerMutationPrecondition, ForgeServerNegotiatedRepresentation,
+    ForgeServerPreparedMultipartUpload, ForgeServerRangeRequest, ForgeServerReadValidator,
+    ForgeServerStreamCancellationKind, ForgeServerStreamCancellationReceipt,
+    ForgeServerStreamFinishError, ForgeServerStreamSelection, ForgeServerStreamingChunk,
+    ForgeServerStreamingPerformanceReceipt, ForgeServerStreamingResponse,
+    ForgeServerSurfaceCapabilities, ForgeServerSurfaceRoot, ForgeServerSurfacesFacade,
+    ForgeServerTransferByteClass, ForgeServerTransferCleanupEvidence,
+    ForgeServerTransferCleanupReason, ForgeServerUploadChunk, ForgeServerUploadCleanupReason,
+    ForgeServerUploadCleanupReceipt, ForgeServerUploadContentEncoding,
+    ForgeServerUploadExpectation, ForgeServerUploadManifest, ForgeServerUploadPart,
+    ForgeServerUploadTransferMode, ForgeServerVerifiedBinaryIngress, IntegrationSurface,
+    IntegrationSurfaceRoot, LeaseSurface, LeaseSurfaceRoot, SyncSurface, SyncSurfaceRoot,
 };

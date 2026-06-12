@@ -10,7 +10,7 @@ warning: unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0451]: field `admission` of struct `ObservationBasisCapability` is private
+error[E0451]: field `admission` of struct `forge_query::facade::ObservationBasisCapability` is private
  --> tests/ui/basis_operation_lane_witness_constructor_private.rs:5:9
   |
 4 |     let _ = ObservationBasisCapability {

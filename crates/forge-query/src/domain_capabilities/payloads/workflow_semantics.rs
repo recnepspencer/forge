@@ -1,4 +1,5 @@
 use forge_relational::facade::merge::RelationalMergeInspectionArtifact;
+use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
 use crate::basis::ExecutionPreflightBundle;
 use crate::workflow::{
@@ -17,7 +18,7 @@ pub enum ForgeQueryWorkflowRuntimeBindingSemantics {
         preflight: ExecutionPreflightBundle,
     },
     PreviewFoundation {
-        preview_session_identity: String,
+        preview_session_identity: BridgePreviewSessionIdentity,
         evaluation_class: WorkflowPreviewEvaluationClass,
     },
 }
@@ -34,11 +35,11 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
     }
 
     pub fn preview_foundation(
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
         evaluation_class: WorkflowPreviewEvaluationClass,
     ) -> Self {
         Self::PreviewFoundation {
-            preview_session_identity: preview_session_identity.into(),
+            preview_session_identity,
             evaluation_class,
         }
     }
@@ -62,12 +63,17 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
         }
     }
 
-    pub fn preview_foundation_binding(&self) -> Option<(&str, WorkflowPreviewEvaluationClass)> {
+    pub fn preview_foundation_binding(
+        &self,
+    ) -> Option<(
+        &BridgePreviewSessionIdentity,
+        WorkflowPreviewEvaluationClass,
+    )> {
         match self {
             Self::PreviewFoundation {
                 preview_session_identity,
                 evaluation_class,
-            } => Some((preview_session_identity.as_str(), evaluation_class.clone())),
+            } => Some((preview_session_identity, evaluation_class.clone())),
             Self::RuntimePreflight { .. } | Self::RuntimePreflightBundle { .. } => None,
         }
     }
@@ -88,7 +94,7 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
                 evaluation_class,
             } => format!(
                 "preview:{}:{}",
-                preview_session_identity,
+                preview_session_identity.as_str(),
                 evaluation_class.as_str()
             ),
         }

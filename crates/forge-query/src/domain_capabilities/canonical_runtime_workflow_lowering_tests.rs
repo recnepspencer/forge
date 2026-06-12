@@ -51,7 +51,7 @@ fn merge_lowering_materializer_builds_preview_bound_lowering() {
         ForgeQueryWorkflowContributionAuthoring::promotion_eligible_merge_reconciliation(
             "spatial.workflow.merge",
             "preview promotion should lower a merge workflow declaration",
-            "preview-session:77",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
             BranchId("main".to_string()),
             BranchId("candidate".to_string()),
         )
@@ -144,7 +144,7 @@ fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
             "preview promotion writeback should preserve stale posture at lowering time",
             Some(ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    "preview-session:88",
+                    crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:88"),
                     crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::WritebackLoweringNarrow,
@@ -177,7 +177,7 @@ fn discard_required_writeback_lowering_preserves_preview_stale_posture() {
         ForgeQueryWorkflowContributionAuthoring::discard_required_writeback_projected_state_diff(
             "spatial.workflow.writeback.discard",
             "discard-required preview writeback should stay stale until authoritative revalidation",
-            "preview-session:91",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:91"),
         )
         .bind_to_declaration_target(declaration_target("intent-workflow-writeback-discard")),
     ));
@@ -204,7 +204,7 @@ fn workflow_lowering_materializer_preserves_runtime_rebind_posture() {
             "preview-scoped writeback should preserve explicit rebind posture",
             Some(ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    "preview-session:89",
+                    crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:89"),
                     crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::WritebackLoweringNarrow,

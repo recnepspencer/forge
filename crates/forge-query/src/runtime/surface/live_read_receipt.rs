@@ -1,4 +1,5 @@
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::runtime::{
     ForgeQueryIntentConsumerInspection, ForgeQueryIntentExecutionProvenance,
     ForgeQueryRuntimeLiveSubscriptionInstallation,
@@ -16,6 +17,7 @@ pub struct ForgeQueryLiveReadReceipt {
     result_digest: String,
     snapshot_token: String,
     row_count: usize,
+    materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
 }
@@ -24,6 +26,7 @@ impl ForgeQueryLiveReadReceipt {
     pub(in crate::runtime) fn from_rows(
         installation: &ForgeQueryRuntimeLiveSubscriptionInstallation,
         snapshot_token: String,
+        materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
         rows: &[crate::memory_workspace::ForgeQueryEntity],
     ) -> Self {
         Self {
@@ -41,6 +44,7 @@ impl ForgeQueryLiveReadReceipt {
             .to_string(),
             snapshot_token,
             row_count: rows.len(),
+            materialized_fact_posture,
             decision_trace_envelope: None,
             execution_provenance: None,
         }
@@ -78,6 +82,10 @@ impl ForgeQueryLiveReadReceipt {
         self.row_count
     }
 
+    pub fn materialized_fact_posture(&self) -> Option<&ProjectionMaterializedFactPosture> {
+        self.materialized_fact_posture.as_ref()
+    }
+
     pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {
         self.decision_trace_envelope.as_ref()
     }
@@ -96,5 +104,31 @@ impl ForgeQueryLiveReadReceipt {
         Some(ForgeQueryIntentConsumerInspection::from_live_read_receipt(
             self,
         ))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        view_name: impl Into<String>,
+        installation_digest: impl Into<String>,
+        query_digest: impl Into<String>,
+        view_shape_digest: impl Into<String>,
+        subscription_family_digest: impl Into<String>,
+        result_digest: impl Into<String>,
+        snapshot_token: impl Into<String>,
+        row_count: usize,
+    ) -> Self {
+        Self {
+            view_name: view_name.into(),
+            installation_digest: installation_digest.into(),
+            query_digest: query_digest.into(),
+            view_shape_digest: view_shape_digest.into(),
+            subscription_family_digest: subscription_family_digest.into(),
+            result_digest: result_digest.into(),
+            snapshot_token: snapshot_token.into(),
+            row_count,
+            materialized_fact_posture: None,
+            decision_trace_envelope: None,
+            execution_provenance: None,
+        }
     }
 }

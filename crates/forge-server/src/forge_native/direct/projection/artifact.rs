@@ -1,0 +1,145 @@
+use forge_query::facade::{
+    CompletedProjectionFactConsumption, ConsumedProjectionFactSet,
+    ProjectionConsumptionWarningKind, SelfDescribingProjectionConsumptionEnvelope,
+};
+
+use crate::{
+    ForgeServerDirectContextArtifact, ForgeServerQuerySupportPosture, ForgeServerResponseEnvelope,
+};
+
+use super::{ForgeServerDirectMaterializationDigest, ForgeServerDirectProjectionFactReceipt};
+
+#[derive(Debug)]
+pub struct ForgeServerDirectProjection {
+    support_posture: ForgeServerQuerySupportPosture,
+    workspace_name: String,
+    handoff_digest: String,
+    direct_context: ForgeServerDirectContextArtifact,
+    basis_digest: Option<String>,
+    policy_digest: String,
+    result_shape_digest: String,
+    narrowed_result_shape_digest: String,
+    facts: ConsumedProjectionFactSet,
+    fact_receipt: ForgeServerDirectProjectionFactReceipt,
+    warning_kinds: Vec<ProjectionConsumptionWarningKind>,
+    projection_consumption_envelope: SelfDescribingProjectionConsumptionEnvelope,
+    response_envelope: ForgeServerResponseEnvelope,
+    canonical_digest: String,
+}
+
+impl ForgeServerDirectProjection {
+    pub(crate) fn from_completed(
+        support_posture: ForgeServerQuerySupportPosture,
+        workspace_name: String,
+        handoff_digest: String,
+        direct_context: ForgeServerDirectContextArtifact,
+        completed: CompletedProjectionFactConsumption,
+        warning_kinds: Vec<ProjectionConsumptionWarningKind>,
+        response_envelope: ForgeServerResponseEnvelope,
+    ) -> Self {
+        let materialization_digest = completed
+            .materialized_fact_posture()
+            .map(|posture| ForgeServerDirectMaterializationDigest::new(posture.posture_digest()))
+            .unwrap_or_else(|| {
+                ForgeServerDirectMaterializationDigest::new(completed.receipt().receipt_digest())
+            });
+        let fact_receipt = ForgeServerDirectProjectionFactReceipt::from_projection_receipt(
+            completed.receipt(),
+            materialization_digest,
+        );
+        let basis_digest = completed.contract().basis_digest().map(str::to_string);
+        let policy_digest = completed.contract().policy_digest().to_string();
+        let result_shape_digest = completed
+            .contract()
+            .canonical_result_shape_digest()
+            .to_string();
+        let narrowed_result_shape_digest = completed
+            .contract()
+            .narrowed_result_shape_digest()
+            .to_string();
+        let facts = completed.facts().clone();
+        let projection_consumption_envelope = completed.projection_consumption_envelope();
+        let canonical_digest = format!(
+            "forge-server-direct-projection-v1:{}:{}:{}",
+            handoff_digest,
+            fact_receipt.receipt_digest(),
+            fact_receipt.materialization_digest().as_str()
+        );
+        Self {
+            support_posture,
+            workspace_name,
+            handoff_digest,
+            direct_context,
+            basis_digest,
+            policy_digest,
+            result_shape_digest,
+            narrowed_result_shape_digest,
+            facts,
+            fact_receipt,
+            warning_kinds,
+            projection_consumption_envelope,
+            response_envelope,
+            canonical_digest,
+        }
+    }
+
+    pub fn support_posture(&self) -> &ForgeServerQuerySupportPosture {
+        &self.support_posture
+    }
+
+    pub fn workspace_name(&self) -> &str {
+        &self.workspace_name
+    }
+
+    pub fn handoff_digest(&self) -> &str {
+        &self.handoff_digest
+    }
+
+    pub fn direct_context(&self) -> &ForgeServerDirectContextArtifact {
+        &self.direct_context
+    }
+
+    pub fn basis_digest(&self) -> Option<&str> {
+        self.basis_digest.as_deref()
+    }
+
+    pub fn policy_digest(&self) -> &str {
+        &self.policy_digest
+    }
+
+    pub fn result_shape_digest(&self) -> &str {
+        &self.result_shape_digest
+    }
+
+    pub fn narrowed_result_shape_digest(&self) -> &str {
+        &self.narrowed_result_shape_digest
+    }
+
+    pub fn facts(&self) -> &ConsumedProjectionFactSet {
+        &self.facts
+    }
+
+    pub fn fact_receipt(&self) -> &ForgeServerDirectProjectionFactReceipt {
+        &self.fact_receipt
+    }
+
+    pub fn materialization_digest(&self) -> &ForgeServerDirectMaterializationDigest {
+        self.fact_receipt.materialization_digest()
+    }
+
+    pub fn warning_kinds(&self) -> &[ProjectionConsumptionWarningKind] {
+        &self.warning_kinds
+    }
+
+    pub fn projection_consumption_envelope(&self) -> &SelfDescribingProjectionConsumptionEnvelope {
+        &self.projection_consumption_envelope
+    }
+
+    pub fn response_envelope(&self) -> &ForgeServerResponseEnvelope {
+        &self.response_envelope
+    }
+
+    pub fn canonical_digest(&self) -> &str {
+        &self.canonical_digest
+    }
+}

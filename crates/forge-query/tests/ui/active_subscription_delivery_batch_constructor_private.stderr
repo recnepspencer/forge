@@ -9,22 +9,24 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0451]: fields `delivery_batch_digest`, `delivery_window_digest`, `attachment_digest`, `sequence`, `patch_group`, `receipt` and `counters` of struct `QueryDeliveryBatch` are private
-  --> tests/ui/active_subscription_delivery_batch_constructor_private.rs:5:9
+error: cannot construct `QueryDeliveryBatch` with struct literal syntax due to private fields
+  --> tests/ui/active_subscription_delivery_batch_constructor_private.rs:4:13
    |
  4 |     let _ = QueryDeliveryBatch {
-   |             ------------------ in this type
+   |             ^^^^^^^^^^^^^^^^^^
  5 |         delivery_batch_digest: "batch".to_string(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------ private field
  6 |         delivery_window_digest: "window".to_string(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------------------- private field
  7 |         attachment_digest: todo!(),
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------- private field
  8 |         sequence: todo!(),
-   |         ^^^^^^^^ private field
+   |         ----------------- private field
  9 |         patch_group: todo!(),
-   |         ^^^^^^^^^^^ private field
+   |         -------------------- private field
 10 |         receipt: todo!(),
-   |         ^^^^^^^ private field
+   |         ---------------- private field
 11 |         counters: todo!(),
-   |         ^^^^^^^^ private field
+   |         ----------------- private field
+   |
+   = note: ...and other private fields `delivery_cause` and `has_relational_patch` that were not provided

@@ -183,6 +183,7 @@ use crate::program::{
     ForgeQueryProgramEffect, ForgeQueryProgramError, ForgeQueryProgramTrace,
 };
 use crate::schema_view::QuerySchemaView;
+use crate::session_label::ForgeQuerySessionLabel;
 use crate::subscription::{
     admit_active_subscription_lane, admit_query_subscription, attach_subscription_consumer,
     close_subscription_lifecycle, declare_query_subscription, lower_query_subscription_to_bridge,
@@ -214,10 +215,13 @@ mod downstream_delivery_contract;
 mod downstream_delivery_resume;
 mod effect;
 mod error;
+#[cfg(test)]
+mod fallback_seam_counters;
 mod handle_contract;
 mod inspection;
 mod intent;
 mod live_subscription;
+mod materialized_fact_posture;
 mod mixed_cause_delivery;
 mod mixed_cause_emission;
 mod mutation;
@@ -361,7 +365,17 @@ pub use effect::{
     ForgeQueryEffectTriggerSourceKind, ForgeQueryEffectWriteAdjacentTrigger,
     ForgeQueryEffectWriteAdjacentTriggerClass,
 };
-pub use error::ForgeQueryRuntimeError;
+#[allow(unused_imports)]
+pub use error::{
+    ForgeQueryRuntimeDeclarationFailureKind, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeLookupFailureKind, ForgeQueryRuntimeMissingArtifactKind,
+    ForgeQueryRuntimeMissingComponent, ForgeQueryStopClass,
+};
+#[cfg(test)]
+pub(crate) use fallback_seam_counters::{
+    forbidden_fallback_seam_invocation_count, record_forbidden_fallback_seam_invocation,
+    reset_forbidden_fallback_seam_invocations, ForgeQueryForbiddenFallbackSeam,
+};
 pub use handle_contract::{
     ForgeQueryHandleContract, ForgeQueryHandleContractFamily, ForgeQueryHandleContractRow,
 };
@@ -502,7 +516,7 @@ pub use read_composition_support_report::{
 };
 pub use remask_posture::{
     ForgeQueryRuntimeRemaskDispositionKind, ForgeQueryRuntimeRemaskPosture,
-    ForgeQueryRuntimeRemaskReasonKind,
+    ForgeQueryRuntimeRemaskProjection, ForgeQueryRuntimeRemaskReasonKind,
 };
 #[cfg(test)]
 use runtime_helpers::runtime_subscription_budget_digest;
@@ -585,6 +599,8 @@ pub use workspace_declaration::{
 pub struct ForgeQueryRuntime {
     backend: Box<dyn ForgeQueryRuntimeBackend>,
     evidence_authority: ForgeQueryRuntimeEvidenceAuthority,
+    preview_session_labels: BTreeMap<String, ForgeQuerySessionLabel>,
+    branch_session_labels: BTreeMap<String, ForgeQuerySessionLabel>,
     active_subscriptions: ActiveSubscriptionRuntime,
     live_subscriptions: BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>,
     materialized_read_views: BTreeMap<String, DeclarativeLiveQueryRequest>,

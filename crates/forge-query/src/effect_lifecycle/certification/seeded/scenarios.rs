@@ -20,6 +20,7 @@ use crate::workflow::{
     WorkflowPreviewEvaluationClass,
 };
 use forge_relational::facade::identity::EntityId;
+use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
 use super::{
     EffectLifecycleSeededCertificationRow, EffectLifecycleSeededOutcomeClass,
@@ -155,7 +156,7 @@ pub(super) fn runtime_workflow_binding_with_snapshot(
 pub(super) fn preview_workflow_binding(label: &str) -> WorkflowContextBinding {
     synthetic_preview_workflow_binding(
         "effect-lifecycle-seeded-preview",
-        label.to_string(),
+        BridgePreviewSessionIdentity::new(label),
         WorkflowPreviewEvaluationClass::PromotionEligible,
     )
 }

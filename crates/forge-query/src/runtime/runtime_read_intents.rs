@@ -13,6 +13,8 @@ use crate::intent_admission::{
 };
 use crate::query_context::AdmittedQueryBasisContext;
 
+use super::materialized_fact_posture::materialized_fact_posture_from_live_subscription_state;
+
 impl ForgeQueryWorkspace {
     pub fn read_family_intent(
         &mut self,
@@ -288,8 +290,16 @@ impl ForgeQueryRuntime {
             .backend
             .live_entities(binding.installation().view_name());
         let snapshot_token = self.backend.snapshot_token();
-        let receipt =
-            ForgeQueryLiveReadReceipt::from_rows(binding.installation(), snapshot_token, &rows);
+        let materialized_fact_posture = self.materialized_fact_posture_for_live_read(
+            binding.installation().view_name(),
+            &snapshot_token,
+        );
+        let receipt = ForgeQueryLiveReadReceipt::from_rows(
+            binding.installation(),
+            snapshot_token,
+            materialized_fact_posture,
+            &rows,
+        );
         let mut result = ForgeQueryLiveReadResult::new(rows, receipt);
         let decision_trace_envelope =
             ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
@@ -317,5 +327,17 @@ impl ForgeQueryRuntime {
         );
         result.attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
         Ok(result)
+    }
+
+    fn materialized_fact_posture_for_live_read(
+        &self,
+        view_name: &str,
+        basis_digest: &str,
+    ) -> Option<crate::projection_consumption::ProjectionMaterializedFactPosture> {
+        let state = self.live_subscriptions.get(view_name)?;
+        Some(materialized_fact_posture_from_live_subscription_state(
+            state,
+            basis_digest,
+        ))
     }
 }

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::certification_bundle::ForgeServerCertificationBundle;
 
 pub fn assert_counter_exact(

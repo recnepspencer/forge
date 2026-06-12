@@ -3,12 +3,13 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryBridgeContinuationAuthority, ForgeQueryCapabilityFamily,
-    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryConfig, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
     ForgeQueryDeclarationRouteContract, ForgeQueryDeclarationSignalCompatibilityContract,
     ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
-    ForgeQueryNeighborhoodCapableGrouping, ForgeQuerySignalCompatiblePosture,
+    ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalConfig,
+    ForgeQuerySignalCompatiblePosture,
 };
 use crate::family_helpers::{
     ForgeQueryGeometryActiveFaceSelectionHelperFamily, ForgeQueryGeometryNeighborhoodHelperFamily,
@@ -231,6 +232,23 @@ pub(super) fn admitted_handle(
         .unwrap()
         .admit()
         .unwrap()
+}
+
+pub(super) fn admitted_handle_with_shifted_relational_digest(
+    world: &'static str,
+) -> crate::application::ForgeQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
+    ForgeQueryApplicationFacade::new(
+        ForgeQueryConfig::runtime_backed_default().with_relational(
+            ForgeQueryRelationalConfig::enabled().with_historical_evaluation(false),
+        ),
+    )
+    .expect("shifted relational config should remain valid")
+    .domain(GeometryDomain)
+    .with_operating_context(GeometryWorld(world))
+    .validate()
+    .unwrap()
+    .admit()
+    .unwrap()
 }
 
 pub(super) fn reset_counting_geometry_canonicalization_count() {

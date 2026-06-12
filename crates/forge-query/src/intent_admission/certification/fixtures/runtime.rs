@@ -13,10 +13,11 @@ use crate::facade::{
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
     ForgeQueryRuntimeSupportProfile, ForgeQueryRuntimeWriteAuthorityAdapter,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
-    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationInput, WriteAuthorityExecutionReceipt,
+    ForgeQuerySessionLabel, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
+    SchemaFieldKind, SchemaFieldView, SignalInvalidationBoundaryReceipt,
+    SubscriptionActivationBoundaryReceipt, SubscriptionActivationInput,
+    WriteAuthorityExecutionReceipt,
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
@@ -373,13 +374,13 @@ struct CertificationPreviewBasis;
 impl ForgeQueryRuntimePreviewBasisAdapter for CertificationPreviewBasis {
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
         Ok(ForgeQueryPreviewBasisAdmission::new(
             authority,
-            label,
+            label.clone(),
             effect_policy,
             ["certification-preview-basis"],
         ))

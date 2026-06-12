@@ -41,8 +41,8 @@ The public contract is:
 - `workspace.live_view(...)`
 - `workspace.computed(...)`
 - `workspace.effect(...)`
-- `workspace.preview(...)`
-- `workspace.branch(...)`
+- `workspace.preview(ForgeQuerySessionLabel, ...)`
+- `workspace.branch(ForgeQuerySessionLabel, ...)`
 - `workspace.read(...)`
 - `workspace.observe(...)`
 - `workspace.downstream_delivery(...)`
@@ -189,12 +189,12 @@ In practice:
 
 - teach rows with `ordinary_downstream_dx() == true` as normal runtime entry
   points
+- treat `support-gate-only` rows as shipped support markers that close runtime-
+  backed product truth without minting a parallel public runtime root
 - treat `visible-but-deferred` rows as published future vocabulary that must
   still deny through admission today
 - treat `visible-vocabulary-only` rows as public language, not blanket runtime
   support
-- treat `support-gate-only` rows as support or certification boundaries, not
-  ordinary runtime entry points
 
 ## Basis And Lane Rules
 
@@ -206,6 +206,10 @@ That means:
   capabilities, not caller-defined snapshot folklore
 - preview and branch work are lane shifts over retained surfaces, not separate
   local runtimes
+- opening those sessions uses `ForgeQuerySessionLabel`, while declaration-bound
+  workflow preview inspection and mutation planning must bind through
+  `BridgePreviewSessionIdentity`; do not collapse those two identity roles into
+  one local string
 - authoritative truth, branch-local truth, preview truth, derived runtime
   state, delivery state, and pending write intent remain Query-owned public
   lane vocabulary

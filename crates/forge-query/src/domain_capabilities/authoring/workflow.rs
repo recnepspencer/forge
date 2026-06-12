@@ -7,6 +7,7 @@ use crate::workflow::{
 };
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::EntityId;
+use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
 use super::bind_requested;
 use crate::domain_capabilities::payloads::{
@@ -63,7 +64,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn preview_only_query_inspection(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> Self {
         Self::with_runtime_semantics(
             ForgeQueryWorkflowContributionPosture::PreviewOnly,
@@ -86,7 +87,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn promotion_eligible_mutation_lowering(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> Self {
         Self::with_runtime_semantics(
             ForgeQueryWorkflowContributionPosture::PromotionEligible,
@@ -171,7 +172,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn promotion_eligible_merge_reconciliation(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
         target_branch: BranchId,
         source_branch: BranchId,
     ) -> Self {
@@ -290,7 +291,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn discard_required_query_inspection(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> Self {
         Self::with_runtime_semantics(
             ForgeQueryWorkflowContributionPosture::DiscardRequired,
@@ -313,7 +314,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
     pub fn discard_required_writeback_projected_state_diff(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
-        preview_session_identity: impl Into<String>,
+        preview_session_identity: BridgePreviewSessionIdentity,
     ) -> Self {
         Self::with_runtime_and_lowering_semantics(
             ForgeQueryWorkflowContributionPosture::DiscardRequired,

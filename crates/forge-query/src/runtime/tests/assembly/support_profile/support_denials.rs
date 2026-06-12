@@ -105,11 +105,11 @@ fn runtime_support_denies_unsupported_preview_and_branch_sessions_without_panick
         ),
     );
 
-    let preview_error = match runtime.preview("unsupported preview") {
+    let preview_error = match runtime.preview(test_session_label("unsupported preview")) {
         Ok(_) => panic!("unsupported preview should return a typed denial"),
         Err(error) => error,
     };
-    let branch_error = match runtime.branch("unsupported branch") {
+    let branch_error = match runtime.branch(test_session_label("unsupported branch")) {
         Ok(_) => panic!("unsupported branch should return a typed denial"),
         Err(error) => error,
     };

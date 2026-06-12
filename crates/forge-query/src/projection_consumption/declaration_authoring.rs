@@ -1,7 +1,10 @@
 use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::canonicalization::CanonicalResultShapeArtifact;
 use crate::query_context::QueryContextExecutionArtifact;
-use crate::runtime::{ForgeQueryReadReceipt, ForgeQueryWriteReceipt};
+use crate::runtime::{
+    ForgeQueryDerivedArtifactBinding, ForgeQueryLiveArtifactBinding, ForgeQueryReadReceipt,
+    ForgeQueryWriteReceipt,
+};
 use forge_relational::facade::grouped_truth::{
     RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
@@ -115,6 +118,34 @@ impl ProjectionConsumptionAuthoringSurface {
     ) -> Self {
         Self {
             source: ProjectionConsumptionSource::from_bridge_grouped_truth_view(grouped_truth_view),
+            binding: ProjectionConsumptionBindingContext::from_result_shape_digest(
+                result_shape_digest,
+                authorized_projection,
+            ),
+        }
+    }
+
+    pub fn from_retained_derived_artifact_binding(
+        binding: &ForgeQueryDerivedArtifactBinding,
+        result_shape_digest: &str,
+        authorized_projection: &AuthorizedProjectionArtifact,
+    ) -> Self {
+        Self {
+            source: ProjectionConsumptionSource::from_retained_derived_artifact_binding(binding),
+            binding: ProjectionConsumptionBindingContext::from_result_shape_digest(
+                result_shape_digest,
+                authorized_projection,
+            ),
+        }
+    }
+
+    pub fn from_live_artifact_binding(
+        binding: &ForgeQueryLiveArtifactBinding,
+        result_shape_digest: &str,
+        authorized_projection: &AuthorizedProjectionArtifact,
+    ) -> Self {
+        Self {
+            source: ProjectionConsumptionSource::from_live_artifact_binding(binding),
             binding: ProjectionConsumptionBindingContext::from_result_shape_digest(
                 result_shape_digest,
                 authorized_projection,
@@ -246,6 +277,44 @@ impl QueryContextExecutionArtifact {
             .source(
                 ProjectionConsumptionAuthoringSurface::from_query_context_execution(
                     self,
+                    authorized_projection,
+                ),
+            )
+            .build()
+    }
+}
+
+impl ForgeQueryDerivedArtifactBinding {
+    pub fn declare_projection_fact_consumption(
+        &self,
+        result_shape_digest: &str,
+        authorized_projection: &AuthorizedProjectionArtifact,
+        requested: ProjectMaterializedFacts,
+    ) -> Result<ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError> {
+        requested
+            .source(
+                ProjectionConsumptionAuthoringSurface::from_retained_derived_artifact_binding(
+                    self,
+                    result_shape_digest,
+                    authorized_projection,
+                ),
+            )
+            .build()
+    }
+}
+
+impl ForgeQueryLiveArtifactBinding {
+    pub fn declare_projection_fact_consumption(
+        &self,
+        result_shape_digest: &str,
+        authorized_projection: &AuthorizedProjectionArtifact,
+        requested: ProjectMaterializedFacts,
+    ) -> Result<ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError> {
+        requested
+            .source(
+                ProjectionConsumptionAuthoringSurface::from_live_artifact_binding(
+                    self,
+                    result_shape_digest,
                     authorized_projection,
                 ),
             )

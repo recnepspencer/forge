@@ -17,8 +17,14 @@ impl ForgeServerOperatorEvidenceClass {
     pub(crate) fn from_response_envelope(response: &ForgeServerResponseEnvelope) -> Self {
         if let Some(success) = response.success() {
             return match success.payload().kind() {
-                ForgeServerSuccessKind::QueryRead => Self::QueryReadSucceeded,
-                ForgeServerSuccessKind::QueryMutation => Self::QueryMutationSucceeded,
+                ForgeServerSuccessKind::QueryRead
+                | ForgeServerSuccessKind::DirectRead
+                | ForgeServerSuccessKind::DirectState
+                | ForgeServerSuccessKind::DirectInspection
+                | ForgeServerSuccessKind::DirectProjection => Self::QueryReadSucceeded,
+                ForgeServerSuccessKind::DirectMutation | ForgeServerSuccessKind::QueryMutation => {
+                    Self::QueryMutationSucceeded
+                }
                 ForgeServerSuccessKind::DownstreamDelivery => Self::DownstreamDeliverySucceeded,
             };
         }

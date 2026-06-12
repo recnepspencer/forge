@@ -173,26 +173,16 @@ fn legality_evidence_preserves_masked_aspect_coverage_without_promoting_it_to_re
 }
 
 #[test]
-fn temporal_declarations_fail_legality_as_deferred_when_runtime_temporal_support_is_not_admitted() {
+fn temporal_declarations_pass_legality_when_runtime_temporal_support_is_admitted() {
     let handle = admitted_handle("collaborative");
     let declaration = handle
         .declare(TemporalDeclaration::<TemporalCurrentFamily>::new("edge:42"))
         .expect("temporal declaration should admit canonically");
 
-    match handle.review_legality_checked(declaration) {
-        ForgeQueryDeclarationLegalityChecked::Illegal(
-            crate::application::ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported {
-                kind,
-                ..
-            },
-        ) => {
-            assert_eq!(kind, ForgeQueryTemporalLegalityDenialKind::RuntimeFacadeDeferred);
-        }
-        other => panic!(
-            "expected deferred temporal legality denial, got {:?}",
-            std::mem::discriminant(&other)
-        ),
-    }
+    let legal = handle
+        .review_legality(declaration)
+        .expect("runtime-backed temporal legality should now admit");
+    assert!(legal.is_structurally_legal());
 }
 
 #[test]
@@ -242,7 +232,7 @@ fn temporal_preview_and_historical_truth_basis_remain_typed_legality_denials() {
 }
 
 #[test]
-fn async_declarations_fail_legality_as_deferred_when_runtime_async_support_is_not_admitted() {
+fn async_declarations_pass_legality_when_runtime_async_support_is_admitted() {
     let handle = admitted_handle("collaborative");
     let declaration = handle
         .declare(AsyncDeclaration::<AsyncCurrentFamily>::bridge_blocking(
@@ -250,20 +240,10 @@ fn async_declarations_fail_legality_as_deferred_when_runtime_async_support_is_no
         ))
         .expect("async declaration should admit canonically");
 
-    match handle.review_legality_checked(declaration) {
-        ForgeQueryDeclarationLegalityChecked::Illegal(
-            ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported { kind, .. },
-        ) => {
-            assert_eq!(
-                kind,
-                ForgeQueryAsyncLegalityDenialKind::RuntimeFacadeDeferred
-            );
-        }
-        other => panic!(
-            "expected deferred async legality denial, got {:?}",
-            std::mem::discriminant(&other)
-        ),
-    }
+    let legal = handle
+        .review_legality(declaration)
+        .expect("runtime-backed async legality should now admit");
+    assert!(legal.is_structurally_legal());
 }
 
 #[test]

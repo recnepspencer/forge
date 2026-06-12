@@ -48,8 +48,8 @@ use super::{
     admit_grouped_live_view, execute_grouped_live_view_shape_change,
     execute_live_view_shape_change, lower_view_shape_plan_to_live,
     materialize_authoritative_grouped_baseline,
-    materialize_grouped_execution_surface_from_truth_view, ViewShapeLiveFailureClass,
-    ViewShapePatchFamily, ViewShapePatchPayload, ViewShapeRefreshDisposition,
+    materialize_grouped_execution_surface_from_truth_view, LiveViewShapeExecutionEnvelope,
+    ViewShapeLiveFailureClass, ViewShapePatchFamily, ViewShapePatchPayload,
 };
 
 fn schema_view() -> crate::schema_view::QuerySchemaView {
@@ -495,6 +495,30 @@ fn grouped_truth_view_with_rows(
         .expect("grouped truth view")
 }
 
+fn assert_grouped_delta_counters_are_debt_free(
+    execution: &LiveViewShapeExecutionEnvelope,
+    expected_transition_count: usize,
+    expected_lane_count: usize,
+) {
+    assert_eq!(
+        execution.counters().grouped_delta_row_count(),
+        expected_transition_count
+    );
+    assert_eq!(
+        execution.counters().grouped_membership_transition_count(),
+        expected_transition_count
+    );
+    assert_eq!(
+        execution.counters().grouped_lane_count(),
+        expected_lane_count
+    );
+    assert_eq!(
+        execution.counters().view_family_refresh_admission_count(),
+        0
+    );
+    assert_eq!(execution.counters().complexity_status_debt_count(), 0);
+}
+
 fn aspect_value(value: AspectValue) -> AspectValue {
     encode_snapshot_aspect_read_value(&value)
 }
@@ -579,6 +603,7 @@ fn table_live_lowering_emits_table_row_patch() {
         Some(ViewShapePatchFamily::TableRowPatch)
     );
     assert_eq!(execution.counters().table_ordering_key_count(), 1);
+    assert_eq!(execution.counters().complexity_status_debt_count(), 0);
     assert_eq!(
         execution.counters().view_shape_executor_rediscovery_count(),
         0
@@ -610,6 +635,7 @@ fn detail_live_lowering_emits_detail_field_patch() {
         execution.patch_envelope().patch_family(),
         Some(ViewShapePatchFamily::DetailFieldPatch)
     );
+    assert_eq!(execution.counters().complexity_status_debt_count(), 0);
 }
 
 #[test]
@@ -653,8 +679,16 @@ fn observed_and_focused_inspector_emit_distinct_live_patches() {
         Some(ViewShapePatchFamily::ObservedInspectorPatch)
     );
     assert_eq!(
+        observed_execution.counters().complexity_status_debt_count(),
+        0
+    );
+    assert_eq!(
         focused_execution.patch_envelope().patch_family(),
         Some(ViewShapePatchFamily::FocusedInspectorAspectPatch)
+    );
+    assert_eq!(
+        focused_execution.counters().complexity_status_debt_count(),
+        0
     );
     assert_ne!(
         observed_execution.patch_envelope().replay_digest(),
@@ -709,6 +743,7 @@ fn identity_aware_focused_inspector_emits_explicit_identity_artifact() {
             .classification(),
         Some(InspectorIdentityClassification::IdentityBreak)
     );
+    assert_eq!(execution.counters().complexity_status_debt_count(), 0);
 }
 
 #[test]
@@ -1008,7 +1043,7 @@ fn grouped_execution_rejects_truth_view_with_mismatched_snapshot_identity() {
 }
 
 #[test]
-fn grouped_churn_overrun_is_explicit_refresh_debt() {
+fn grouped_churn_overrun_stays_on_grouped_membership_delta() {
     let planned = planned_view(
         &collection_canonical(),
         ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
@@ -1084,20 +1119,22 @@ fn grouped_churn_overrun_is_explicit_refresh_debt() {
     )
     .unwrap();
 
-    assert_eq!(execution.patch_envelope().patch_family(), None);
-    assert!(matches!(
-        execution.patch_envelope().payload(),
-        ViewShapePatchPayload::Refresh(ViewShapeRefreshDisposition::GroupedDeferredDebt { .. })
-    ));
-    assert_eq!(execution.counters().grouped_full_regroup_denial_count(), 1);
     assert_eq!(
-        execution.counters().view_family_refresh_admission_count(),
-        1
+        execution.patch_envelope().patch_family(),
+        Some(ViewShapePatchFamily::KanbanGroupMembershipPatch)
     );
+    match execution.patch_envelope().payload() {
+        ViewShapePatchPayload::KanbanGroupMembershipPatch(delta) => {
+            assert_eq!(delta.transitions().len(), 2);
+            assert_eq!(delta.next().result().lane_count(), 2);
+        }
+        other => panic!("expected grouped delta payload, got {other:?}"),
+    }
+    assert_grouped_delta_counters_are_debt_free(&execution, 2, 2);
 }
 
 #[test]
-fn grouped_core_refresh_is_trapped_as_grouped_debt() {
+fn grouped_core_refresh_still_emits_grouped_semantics() {
     let planned = planned_view(
         &collection_canonical(),
         ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
@@ -1135,22 +1172,22 @@ fn grouped_core_refresh_is_trapped_as_grouped_debt() {
     )
     .unwrap();
 
-    assert!(matches!(
-        execution.patch_envelope().payload(),
-        ViewShapePatchPayload::Refresh(ViewShapeRefreshDisposition::GroupedDeferredDebt {
-            reason: super::GroupedRefreshReason::CoreRefreshRequested,
-            ..
-        })
-    ));
-    assert_eq!(execution.counters().grouped_full_regroup_denial_count(), 1);
     assert_eq!(
-        execution.counters().view_family_refresh_admission_count(),
-        1
+        execution.patch_envelope().patch_family(),
+        Some(ViewShapePatchFamily::KanbanGroupMembershipPatch)
     );
+    match execution.patch_envelope().payload() {
+        ViewShapePatchPayload::KanbanGroupMembershipPatch(delta) => {
+            assert!(delta.transitions().is_empty());
+            assert_eq!(delta.next().result().lane_count(), 2);
+        }
+        other => panic!("expected grouped delta payload, got {other:?}"),
+    }
+    assert_grouped_delta_counters_are_debt_free(&execution, 0, 2);
 }
 
 #[test]
-fn grouped_delta_mixed_member_churn_is_explicit_refresh_debt() {
+fn grouped_delta_mixed_member_churn_stays_incremental() {
     let planned = planned_view(
         &collection_canonical(),
         ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
@@ -1200,16 +1237,16 @@ fn grouped_delta_mixed_member_churn_is_explicit_refresh_debt() {
     )
     .unwrap();
 
-    assert!(matches!(
-        execution.patch_envelope().payload(),
-        ViewShapePatchPayload::Refresh(ViewShapeRefreshDisposition::GroupedDeferredDebt {
-            reason: super::GroupedRefreshReason::PolicyExceeded,
-            ..
-        })
-    ));
-    assert_eq!(execution.counters().grouped_full_regroup_denial_count(), 1);
     assert_eq!(
-        execution.counters().view_family_refresh_admission_count(),
-        1
+        execution.patch_envelope().patch_family(),
+        Some(ViewShapePatchFamily::KanbanGroupMembershipPatch)
     );
+    match execution.patch_envelope().payload() {
+        ViewShapePatchPayload::KanbanGroupMembershipPatch(delta) => {
+            assert_eq!(delta.transitions().len(), 3);
+            assert_eq!(delta.next().result().lane_count(), 2);
+        }
+        other => panic!("expected grouped delta payload, got {other:?}"),
+    }
+    assert_grouped_delta_counters_are_debt_free(&execution, 3, 2);
 }

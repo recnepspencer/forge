@@ -4,9 +4,7 @@ use crate::basis::{
 };
 use crate::declarative_live::canonicalize_declarative_request;
 use crate::execution::execute_preflight_bundle;
-use crate::projection_consumption::{
-    ProjectionMaterializedFactPosture, ProjectionMaterializedFactPostureKind,
-};
+use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::query_context::{
     execute_query_basis_context, AdmittedQueryBasisContext, QueryContextFamily,
 };
@@ -15,6 +13,7 @@ use crate::runtime::{
     ForgeQueryReadGraph, ForgeQueryReadResult, ForgeQueryReadScopeClass, ForgeQueryRuntime,
 };
 
+use super::materialized_fact_posture::materialized_fact_posture_from_live_subscription_state;
 use super::read_composition_materialization::{
     materialize_query_context_rows, materialize_read_rows,
 };
@@ -182,35 +181,9 @@ fn materialized_fact_posture_for_read_graph(
         }
         state
     };
-    let kind =
-        if state.remask_posture.is_some() {
-            ProjectionMaterializedFactPostureKind::Remasked
-        } else if state.last_delivery.as_ref().is_some_and(|delivery| {
-            delivery.mixed_cause_delivery().ordered_member_kinds().len() > 1
-        }) {
-            ProjectionMaterializedFactPostureKind::MixedCause
-        } else if state.last_delivery.as_ref().is_some_and(|delivery| {
-            matches!(
-            delivery.delivery_cause_kind(),
-            crate::subscription::QuerySubscriptionDeliveryCauseKind::FreshnessOnly
-                | crate::subscription::QuerySubscriptionDeliveryCauseKind::WindowEntry
-                | crate::subscription::QuerySubscriptionDeliveryCauseKind::WindowExit
-                | crate::subscription::QuerySubscriptionDeliveryCauseKind::Deadline
-                | crate::subscription::QuerySubscriptionDeliveryCauseKind::PreviousValueTransition
-        )
-        }) {
-            ProjectionMaterializedFactPostureKind::TimeOnly
-        } else if state.async_result_state.is_some() {
-            ProjectionMaterializedFactPostureKind::AsyncBacked
-        } else {
-            ProjectionMaterializedFactPostureKind::Ordinary
-        };
-    Some(ProjectionMaterializedFactPosture::new(
-        kind,
-        state.installation.query_digest(),
+    Some(materialized_fact_posture_from_live_subscription_state(
+        state,
         basis_digest,
-        state.installation.support_evidence(),
-        Some(state.installation.installation_digest().to_string()),
     ))
 }
 

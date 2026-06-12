@@ -15,9 +15,13 @@ forge-foundational.workspace = true
 forge-proof.workspace = true
 forge-query.workspace = true
 serde.workspace = true
+serde_json.workspace = true
+sha2 = "0.10"
+flate2 = "1"
 tracing.workspace = true
 
 [dev-dependencies]
+sha2 = "0.10"
 trybuild.workspace = true
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 

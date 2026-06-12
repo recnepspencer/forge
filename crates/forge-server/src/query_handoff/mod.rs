@@ -17,12 +17,13 @@ pub use facade::ForgeServerQueryHandoffFacade;
 pub use handoff::ForgeServerQueryHandoff;
 pub use input::ForgeServerQueryHandoffInput;
 pub use operation::{
-    ForgeServerQueryHandoffOperation, ForgeServerQueryOperationKind,
+    ForgeServerQueryHandoffOperation, ForgeServerQueryOperation, ForgeServerQueryOperationKind,
     ForgeServerQueryRequestedResume, ForgeServerQueryRequestedResumeKind,
 };
 pub use outcome::ForgeServerQueryHandoffOutcome;
 pub use support_posture::ForgeServerQuerySupportPosture;
 pub use workspace_binding::{
     ForgeServerQueryWorkspaceBindingError, ForgeServerQueryWorkspaceBindingRequest,
-    ForgeServerQueryWorkspaceProvider, UnavailableWorkspaceProvider,
+    ForgeServerQueryWorkspaceBindingTarget, ForgeServerQueryWorkspaceProvider,
+    UnavailableWorkspaceProvider,
 };

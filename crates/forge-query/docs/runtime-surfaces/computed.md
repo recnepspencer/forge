@@ -105,19 +105,10 @@ archaeology, the admitted materialization lane is the stronger floor:
   use `materialize_derived_artifact_binding(...)` instead of spelling
   `materialize_derived_artifact_bundle(...).bind_retained_artifact(...)`
   manually
-- when the next step needs only named scalar evidence from one retained
-  derived artifact row, consume it through
-  `ForgeQueryDerivedArtifactBinding::consume_scalar_fields(...)` so the runtime
-  owns dotted-path extraction and retained fact identity instead of caller code
-  spelunking decoded structs or raw `serde_json::Value`
-- when the next step needs a small typed pack from one retained artifact,
-  decode it through `ForgeQueryDerivedArtifactBinding::decode_row_pair(...)` or
-  `decode_row_triple(...)` instead of repeating separate single-row decode
-  choreography in caller code
-- when the next step must prove that scalar evidence stayed aligned across two
-  retained rows inside one artifact, verify it through
-  `ForgeQueryDerivedArtifactBinding::verify_scalar_alignment(...)` instead of
-  extracting both fact sets and comparing them locally
+- when the next step needs typed identity, membership, provenance, continuity,
+  or view-shape-qualified facts from that retained artifact, use
+  `consume_projection_facts(...)` on the retained artifact binding instead of
+  reopening the artifact through older helper seams
 - when one mutation step already has a retained batch-write receipt and needs
   the matching inspection plus one exact retained derived artifact as the next
   authoritative package, use `materialize_batch_write_artifact_binding(...)`
@@ -126,6 +117,10 @@ archaeology, the admitted materialization lane is the stronger floor:
 - whole-refresh maintainers can also decode one retained computed upstream row
   through `ForgeQueryRetainedUpstreamInputs::decode_single_computed_row(...)`
   instead of teaching local `serde_json` helper folklore
+- scalar extraction helpers, row-pair decode helpers, and scalar-alignment
+  helpers remain available as narrower expert seams when the artifact contract
+  itself is the product surface, but they are no longer the ordinary typed fact
+  lane after the retained/live projection-consumption closure
 
 Nested computed surfaces execute in dependency order rather than in accidental
 call order.
@@ -315,8 +310,11 @@ This is the main way to verify whether a computed surface is wired correctly.
 
 - Computed surfaces are stable for runtime-backed synchronous derived state.
 - They must remain rebuildable from authority; they are not persistent truth.
-- Async/resource-derived state and temporal execution lanes are deferred future
-  neighbors, not part of the stabilized computed contract yet.
+- Runtime-backed temporal and async/resource posture now projects through the
+  same retained computed state/inspection world rather than a parallel facade.
+- Separate sibling facade-family roots for `Temporal`, `AsyncResource`, and
+  `MixedCauseDelivery` still stay support-gated instead of becoming standalone
+  computed-entry APIs.
 
 ## Related Docs
 

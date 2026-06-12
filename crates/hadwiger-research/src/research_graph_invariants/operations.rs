@@ -4,9 +4,9 @@ use forge_query::facade::runtime::{
     evaluate_requested_domain_capability_contribution,
     materialize_graph_composition_domain_invariant_denial,
     prepare_admitted_domain_capability_contribution_for_materialization,
-    ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionFailure,
-    ForgeQueryDomainCapabilityRebindRequired, ForgeQueryDomainCapabilityStale,
-    ForgeQueryDomainCapabilityTransitionOutcome,
+    CustomInvariantRegistrationError, ForgeQueryDomainCapabilityProgressionDenial,
+    ForgeQueryDomainCapabilityProgressionFailure, ForgeQueryDomainCapabilityRebindRequired,
+    ForgeQueryDomainCapabilityStale, ForgeQueryDomainCapabilityTransitionOutcome,
     ForgeQueryInvariantCapabilityContributionAuthoring,
 };
 
@@ -21,6 +21,10 @@ use super::catalog::{
 };
 use super::denials::ResearchGraphInvariantDenial;
 use super::requests::{ResearchGraphInvariantCheckRequest, ResearchGraphInvariantDenialRequest};
+use super::runtime_projection::ResearchGraphInvariantRuntimeProjection;
+use super::runtime_registration::{
+    registrations_for_catalog, HadwigerResearchInvariantRegistrationChecked,
+};
 use super::violations::{ResearchGraphInvariantViolation, ResearchGraphInvariantViolationKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -33,11 +37,18 @@ pub enum ResearchGraphInvariantError {
     QueryInvariantContributionStale(ForgeQueryDomainCapabilityStale),
     QueryInvariantContributionRebindRequired(ForgeQueryDomainCapabilityRebindRequired),
     QueryInvariantContributionFailed(ForgeQueryDomainCapabilityProgressionFailure),
+    CustomInvariantRegistration(CustomInvariantRegistrationError),
 }
 
 impl From<HadwigerArtifactShapeError> for ResearchGraphInvariantError {
     fn from(value: HadwigerArtifactShapeError) -> Self {
         Self::Shape(value)
+    }
+}
+
+impl From<CustomInvariantRegistrationError> for ResearchGraphInvariantError {
+    fn from(value: CustomInvariantRegistrationError) -> Self {
+        Self::CustomInvariantRegistration(value)
     }
 }
 
@@ -156,7 +167,25 @@ pub fn plan_research_graph_invariant_registration(
     _handle: &HadwigerResearchHandle,
     catalog: &HadwigerResearchInvariantCatalog,
 ) -> Result<ResearchGraphInvariantRegistrationPlan, ResearchGraphInvariantError> {
-    ResearchGraphInvariantRegistrationPlan::blocked_draft(catalog).map_err(Into::into)
+    ResearchGraphInvariantRegistrationPlan::custom_invariant_registrations_ready(catalog)
+        .map_err(Into::into)
+}
+
+pub fn project_research_graph_for_invariant_registration_checked(
+    handle: &HadwigerResearchHandle,
+    corpus: &ResearchEvidenceCorpus,
+    frontier: &DiscoveryFrontier,
+) -> Result<ResearchGraphInvariantRuntimeProjection, ResearchGraphInvariantError> {
+    let catalog = draft_research_graph_invariant_catalog(handle, corpus, frontier)?;
+    ResearchGraphInvariantRuntimeProjection::new(corpus, frontier, catalog).map_err(Into::into)
+}
+
+pub fn register_research_graph_invariants_checked(
+    _handle: &HadwigerResearchHandle,
+    catalog: &HadwigerResearchInvariantCatalog,
+) -> Result<HadwigerResearchInvariantRegistrationChecked, ResearchGraphInvariantError> {
+    let registrations = registrations_for_catalog(catalog)?;
+    HadwigerResearchInvariantRegistrationChecked::new(catalog, registrations).map_err(Into::into)
 }
 
 fn violation(

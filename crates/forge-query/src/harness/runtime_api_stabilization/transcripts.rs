@@ -9,6 +9,7 @@ use crate::facade::{
     ForgeQueryWorkspace,
 };
 use crate::identity::hash_parts;
+use crate::ForgeQuerySessionLabel;
 
 use super::transcript_runtime::transcript_runtime;
 
@@ -22,7 +23,7 @@ pub(super) fn workflow_editor_transcript() -> ForgeQueryRuntimePublicApiTranscri
         effect_name: "workflow.editor.publish-readiness",
         intent_name: "workflow.editor.commit-intent",
         produced_aspects: &["validation.state", "layout.frame", "runtimeValue.preview"],
-        neighbor_families: &[ForgeQueryRuntimeFacadeFamily::AsyncResource],
+        neighbor_families: &[ForgeQueryRuntimeFacadeFamily::StoreBackedExecution],
         assertion_floor: 12,
     })
 }
@@ -37,7 +38,7 @@ pub(super) fn geometry_kernel_transcript() -> ForgeQueryRuntimePublicApiTranscri
         effect_name: "geometry.kernel.persist-solver-output",
         intent_name: "geometry.kernel.commit-solve",
         produced_aspects: &["topology.edge", "surface.trim", "solver.residue"],
-        neighbor_families: &[ForgeQueryRuntimeFacadeFamily::Temporal],
+        neighbor_families: &[ForgeQueryRuntimeFacadeFamily::DurableArtifacts],
         assertion_floor: 12,
     })
 }
@@ -52,7 +53,7 @@ pub(super) fn table_spreadsheet_transcript() -> ForgeQueryRuntimePublicApiTransc
         effect_name: "table.sheet.persist-batched-edit",
         intent_name: "table.sheet.commit-edit",
         produced_aspects: &["formula.value", "dropdown.domain", "layout.width"],
-        neighbor_families: &[ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery],
+        neighbor_families: &[ForgeQueryRuntimeFacadeFamily::StoreBackedExecution],
         assertion_floor: 12,
     })
 }
@@ -73,8 +74,8 @@ pub(super) fn composed_runtime_transcript() -> ForgeQueryRuntimePublicApiTranscr
             "intent.commit",
         ],
         neighbor_families: &[
-            ForgeQueryRuntimeFacadeFamily::Temporal,
-            ForgeQueryRuntimeFacadeFamily::AsyncResource,
+            ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
+            ForgeQueryRuntimeFacadeFamily::DurableArtifacts,
         ],
         assertion_floor: 16,
     })
@@ -95,13 +96,12 @@ pub(super) fn composed_runtime_hostile_transcript() -> ForgeQueryRuntimePublicAp
             "branch.preview",
             "expression.output",
             "intent.commit",
-            "temporal.denial",
-            "async.denial",
+            "store.debt-denial",
+            "durable.debt-denial",
         ],
         neighbor_families: &[
-            ForgeQueryRuntimeFacadeFamily::Temporal,
-            ForgeQueryRuntimeFacadeFamily::AsyncResource,
             ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
+            ForgeQueryRuntimeFacadeFamily::DurableArtifacts,
         ],
         assertion_floor: 18,
     })
@@ -285,7 +285,7 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
         other => panic!("expected intent receipt inspection, got {other:?}"),
     };
     let support_contract = workspace.public_api_contract();
-    let denial_digests = unsupported_neighbor_denials(&support_contract, spec.neighbor_families);
+    let denial_digests = support_gated_neighbor_denials(&support_contract, spec.neighbor_families);
     let state = workspace
         .state(&second)
         .expect("golden transcript should use the public state boundary");
@@ -329,7 +329,11 @@ fn preview_proof(
 ) -> (String, usize) {
     let mut preview = workspace
         .preview_with_options(
-            format!("{}.preview", spec.family),
+            ForgeQuerySessionLabel::scoped_strs(
+                "runtime-api-stabilization",
+                [format!("{}.preview", spec.family)],
+            )
+            .expect("preview label should build"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("transcript preview should open");
@@ -406,7 +410,11 @@ fn binding_digest(binding: &crate::facade::ForgeQueryPreviewHandleBindingEvidenc
 fn branch_proof(workspace: &mut ForgeQueryWorkspace, spec: &TranscriptSpec) -> String {
     let mut branch = workspace
         .branch_with_options(
-            format!("{}.branch", spec.family),
+            ForgeQuerySessionLabel::scoped_strs(
+                "runtime-api-stabilization",
+                [format!("{}.branch", spec.family)],
+            )
+            .expect("branch label should build"),
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .expect("transcript branch should open");
@@ -424,7 +432,7 @@ fn branch_proof(workspace: &mut ForgeQueryWorkspace, spec: &TranscriptSpec) -> S
     receipt.receipt_digest().to_string()
 }
 
-fn unsupported_neighbor_denials(
+fn support_gated_neighbor_denials(
     contract: &ForgeQueryRuntimePublicApiContract,
     families: &[ForgeQueryRuntimeFacadeFamily],
 ) -> Vec<String> {

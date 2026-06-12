@@ -61,7 +61,10 @@ of the lifecycle you hold directly.
 ```rust
 let plan = forge_query_domain("worth.spatial")
     .for_intent(&declaration)
-    .plans_preview_mutation("topology.preview_mutation", "preview-session:77")
+    .plans_preview_mutation(
+        "topology.preview_mutation",
+        forge_query::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
+    )
     .because("the edge split should be planned before promotion")
     .materialize()?;
 ```
@@ -71,7 +74,10 @@ let plan = forge_query_domain("worth.spatial")
 ```rust
 let checked = forge_query_domain("worth.spatial")
     .for_intent(&declaration)
-    .plans_preview_mutation("topology.preview_mutation", "preview-session:77")
+    .plans_preview_mutation(
+        "topology.preview_mutation",
+        forge_query::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
+    )
     .because("the edge split should be planned before promotion")
     .try_materialize();
 

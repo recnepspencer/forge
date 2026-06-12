@@ -13,14 +13,14 @@ fn workflow_materializer_reuses_admitted_preview_foundation_identity() {
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.identity",
             "workflow declarations should bind through the same admitted preview foundation identity",
-            "preview-session:identity",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:identity"),
         ),
     )));
     let foundation = success(materialize_admitted_preview_workflow_foundation(ready_workflow(
         ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
             "spatial.preview.identity",
             "workflow declarations should bind through the same admitted preview foundation identity",
-            "preview-session:identity",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:identity"),
         ),
     )));
 
@@ -49,7 +49,9 @@ fn workflow_materializer_denies_runtime_only_postures_at_preview_foundation_boun
             "workflow declaration materialization must deny the same dishonest read-only discard-required preview semantics as preview foundation admission",
             Some(super::ForgeQueryWorkflowRuntimeSemantics::new(
                 super::ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    "preview-session:denied",
+                    crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                        "preview-session:denied",
+                    ),
                     crate::workflow::WorkflowPreviewEvaluationClass::ReadOnly,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::ConflictInspectionNarrow,

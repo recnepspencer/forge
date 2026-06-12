@@ -57,7 +57,7 @@ fn runtime_api_stabilization_rows_have_required_outputs_and_meaningful_assertion
                 "golden DX rows must assert proof artifacts, not only compilation"
             );
             assert!(
-                lane.unsupported_neighbor_denial_count >= 1,
+                lane.support_gated_neighbor_denial_count >= 1,
                 "golden DX rows must prove future-neighbor denials"
             );
             assert!(
@@ -75,7 +75,7 @@ fn runtime_api_stabilization_rows_have_required_outputs_and_meaningful_assertion
                 "runtime API counter snapshot must include canonical naming contract counters"
             );
             assert!(
-                lane.counter_snapshot.contains("support_deferred_rows=6")
+                lane.counter_snapshot.contains("support_deferred_rows=2")
                     && lane.counter_snapshot.contains("support_fail_closed=")
                     && lane.counter_snapshot.contains("parallel_api_forbidden="),
                 "runtime API counter snapshot must include Phase 5 support-matrix gates"
@@ -85,8 +85,8 @@ fn runtime_api_stabilization_rows_have_required_outputs_and_meaningful_assertion
                 lane.public_api_naming_contract_digest, lane.public_api_surface_digest,
                 "naming contract must be distinct from backend family support posture"
             );
-            assert!(lane.stable_family_count >= 7);
-            assert!(lane.deferred_family_count >= 6);
+            assert!(lane.stable_family_count >= 10);
+            assert!(lane.deferred_family_count >= 2);
         }
     }
 }
@@ -174,18 +174,6 @@ fn runtime_api_stabilization_deferred_gates_name_future_owners() {
     let matrix = RuntimeApiStabilizationAdapter::runtime_api_golden_dx_and_async_safe_facade_test();
     let expected = [
         (
-            "temporal-basis-deferred-gate",
-            ForgeQueryRuntimeFacadeFamily::Temporal,
-        ),
-        (
-            "async-resource-deferred-gate",
-            ForgeQueryRuntimeFacadeFamily::AsyncResource,
-        ),
-        (
-            "mixed-cause-delivery-deferred-gate",
-            ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-        ),
-        (
             "store-backed-parity-deferred-gate",
             ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
         ),
@@ -244,21 +232,21 @@ fn runtime_api_stabilization_closeout_answers_required_questions() {
         .iter()
         .any(|row| row == "branch-preview"));
     assert!(closeout
-        .deferred_runtime_surfaces
+        .stable_runtime_surfaces
         .iter()
-        .any(|row| row == "temporal:Milestone 9.4"));
+        .any(|row| row == "temporal"));
     assert!(closeout
-        .deferred_runtime_surfaces
+        .stable_runtime_surfaces
         .iter()
-        .any(|row| row == "async-resource:Milestone 9.4"));
+        .any(|row| row == "async-resource"));
     assert!(closeout
-        .deferred_runtime_surfaces
+        .stable_runtime_surfaces
         .iter()
-        .any(|row| row == "mixed-cause-delivery:Milestone 9.4"));
+        .any(|row| row == "mixed-cause-delivery"));
     assert!(closeout
-        .deferred_runtime_surfaces
+        .stable_runtime_surfaces
         .iter()
-        .any(|row| row == "temporal-async-certification:Milestone 9.4"));
+        .any(|row| row == "temporal-async-certification"));
     assert!(closeout
         .deferred_runtime_surfaces
         .iter()
@@ -274,11 +262,11 @@ fn runtime_api_stabilization_closeout_answers_required_questions() {
 
     for required in [
         "golden transcripts are executable through the public facade",
-        "unsupported future neighbors fail typed and early",
+        "support-gated future neighbors fail typed and early",
         "ordinary DX uses no lower-runtime plumbing",
         "support metadata is synchronized with admission gates",
         "handle/state/inspection contract is extension-ready",
-        "temporal/async/store/durable behavior remains explicitly deferred",
+        "store/durable behavior remains explicitly deferred",
         "downstream examples are pressure tests",
     ] {
         assert!(
@@ -329,10 +317,6 @@ fn runtime_api_stabilization_closeout_carries_migration_and_verification_contrac
         .safe_to_build_now
         .iter()
         .any(|row| row.contains("state/inspect access")));
-    assert!(closeout
-        .must_not_assume_yet
-        .iter()
-        .any(|row| row.contains("temporal basis")));
     assert!(closeout
         .must_not_assume_yet
         .iter()
@@ -412,10 +396,6 @@ fn runtime_api_stabilization_closeout_document_matches_certified_contract() {
             .split_once(':')
             .expect("deferred closeout surface should carry milestone ownership");
         let expected_phrase = match surface {
-            "temporal" => "temporal basis and time-aware subscriptions",
-            "async-resource" => "async/resource query families",
-            "mixed-cause-delivery" => "mixed truth/time/async delivery",
-            "temporal-async-certification" => "temporal/async certification",
             "store-backed-execution" => "store-backed parity",
             "durable-artifacts" => "durable restart and artifact reload",
             other => panic!("unexpected deferred surface `{other}`"),

@@ -23,7 +23,7 @@ fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
     let (receipt, outcome) = {
         let mut preview = runtime
             .preview_with_options(
-                "preview local intent",
+                test_session_label("preview local intent"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");
@@ -50,15 +50,15 @@ fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
             ForgeQueryEffectPolicy::SandboxedWriteIntent
         );
         assert!(!receipt.basis_evidence().is_empty());
-        assert!(!receipt.admission_digest().is_empty());
-        assert!(!receipt.receipt_digest().is_empty());
+        assert!(!receipt.admission_digest().as_str().is_empty());
+        assert!(!receipt.receipt_digest().as_str().is_empty());
         assert_eq!(preview.preview_intent_receipts(), [receipt.clone()]);
         assert!(preview.preview_execution_evidence().iter().any(|evidence| {
             evidence.kind() == ForgeQueryPreviewExecutionKind::PendingWriteIntent
                 && evidence.handle_name() == "preview-reconcile"
                 && evidence.source_lane() == ForgeQueryAuthorityLane::PendingWriteIntent
                 && evidence.preview_lane() == ForgeQueryAuthorityLane::PreviewTruth
-                && evidence.commit_identity() == receipt.receipt_digest()
+                && evidence.commit_identity() == receipt.receipt_digest().as_str()
                 && evidence.aspect_paths() == ["strategy.intent.reconcile"]
         }));
         (receipt, preview.discard())
@@ -130,7 +130,7 @@ fn derive_only_preview_intent_denies_before_authoritative_execution() {
 
     let error = {
         let mut preview = runtime
-            .preview("derive-only preview intent")
+            .preview(test_session_label("derive-only preview intent"))
             .expect("preview session should be admitted");
         preview
             .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
@@ -199,7 +199,7 @@ fn preview_local_intent_requires_intent_support_for_preview_lane() {
     let error = {
         let mut preview = runtime
             .preview_with_options(
-                "preview lane unsupported",
+                test_session_label("preview lane unsupported"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .expect("preview session should be admitted");

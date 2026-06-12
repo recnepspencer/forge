@@ -149,11 +149,17 @@ pub use crate::domain_capabilities::{
     ForgeQueryWorkflowInspectionSemantics, ForgeQueryWorkflowLoweringSemantics,
     ForgeQueryWorkflowRuntimeBindingSemantics, ForgeQueryWorkflowRuntimeSemantics,
 };
+pub use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityComparisonError,
+    ForgeQueryEvidenceIdentityEncoder, ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 pub use crate::intent_admission::{
     ForgeQueryIntentAdmissionSlopeLane, ForgeQueryIntentAdmissionWidthRunRow,
     ForgeQueryIntentAdmissionWidthRunScale, ForgeQueryIntentDecisionTraceEvidence,
     ForgeQueryIntentDecisionTraceEvidenceOwner, ForgeQueryIntentEligibilityTraceEvidence,
 };
+pub use crate::projection_consumption::ProjectionMaterializedFactPosture;
 pub use crate::runtime::{
     admit_causal_inspection, admit_runtime_intent_request, anchor_causal_observation,
     build_causal_inspection_certification_scope, causal_evidence_inventory_rows,
@@ -475,6 +481,10 @@ pub use crate::runtime::{
     SignalInvalidationRoutingReceipt, SubscriptionActivationBoundaryReceipt,
     SubscriptionActivationReceipt, WriteAuthorityExecutionReceipt,
 };
+pub use crate::runtime::{
+    ForgeQueryRuntimeRemaskDispositionKind, ForgeQueryRuntimeRemaskPosture,
+    ForgeQueryRuntimeRemaskProjection, ForgeQueryRuntimeRemaskReasonKind,
+};
 pub use crate::saved_query::{
     evaluate_saved_query_reuse, freeze_composed_saved_query, freeze_direct_saved_query,
     runtime_backed_saved_query_support_profile, SavedQueryArtifact, SavedQueryArtifactDigest,
@@ -486,6 +496,10 @@ pub use crate::saved_query::{
 };
 pub use crate::schema_view::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+};
+pub use crate::session_label::{
+    ForgeQuerySessionLabel, ForgeQuerySessionLabelError, ForgeQuerySessionLabelSegment,
+    ForgeQuerySessionNamespace,
 };
 pub use crate::subscription::{
     admit_active_subscription_lane, admit_preview_subscription_isolation, admit_query_subscription,
@@ -640,15 +654,15 @@ pub use crate::view_shape_live::{
     execute_live_view_shape_change, lower_view_shape_plan_to_live,
     materialize_grouped_execution_surface_from_truth_view, AuthoritativeGroupedBaselineArtifact,
     DetailFieldPatchArtifact, FocusedInspectorAspectPatchArtifact, GroupedDeltaArtifact,
-    GroupedDeltaComputation, GroupedDesiredStateArtifact, GroupedExecutionLaneValue,
+    GroupedDeltaInvariantFailure, GroupedDesiredStateArtifact, GroupedExecutionLaneValue,
     GroupedExecutionMemberRow, GroupedExecutionSurfaceArtifact, GroupedLaneIdentity,
     GroupedLiveViewShapeArtifact, GroupedMemberState, GroupedMembershipTransition,
-    GroupedMembershipTransitionKind, GroupedRefreshReason, GroupedViewResultArtifact,
-    LiveViewShapeArtifact, LiveViewShapeExecutionEnvelope, LiveViewShapeFamily,
-    ObservedInspectorPatchArtifact, TableRowPatchArtifact, ViewShapeLiveCounters,
-    ViewShapeLiveError, ViewShapeLiveFailureClass, ViewShapeLiveLowering, ViewShapeLiveReport,
-    ViewShapePatchEnvelope, ViewShapePatchFamily, ViewShapePatchPayload,
-    ViewShapeRefreshDisposition, ViewShapeReplayBundle, ViewShapeSuppressionDisposition,
+    GroupedMembershipTransitionKind, GroupedViewResultArtifact, LiveViewShapeArtifact,
+    LiveViewShapeExecutionEnvelope, LiveViewShapeFamily, ObservedInspectorPatchArtifact,
+    TableRowPatchArtifact, ViewShapeLiveCounters, ViewShapeLiveError, ViewShapeLiveFailureClass,
+    ViewShapeLiveLowering, ViewShapeLiveReport, ViewShapePatchEnvelope, ViewShapePatchFamily,
+    ViewShapePatchPayload, ViewShapeRefreshDisposition, ViewShapeReplayBundle,
+    ViewShapeSuppressionDisposition,
 };
 pub use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, build_workflow_replay_bundle,
@@ -673,3 +687,4 @@ pub use crate::workflow::{
     WorkflowStalenessOutcome, WritebackCausalityBinding, WritebackDeclarationFamily,
     WritebackLoweringInput,
 };
+pub use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;

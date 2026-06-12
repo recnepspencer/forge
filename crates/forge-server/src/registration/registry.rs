@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use super::{ForgeServerSurfaceFamily, ForgeServerSurfaceRegistration};
 use crate::diagnostics::ForgeServerCounters;
+use crate::surfaces::compat_http::ForgeServerCompatHttpRouteFamilies;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeServerSurfaceRegistry {
@@ -47,6 +48,13 @@ impl ForgeServerSurfaceRegistry {
             .get(&family)
             .map(ForgeServerSurfaceRegistration::capabilities)
             .unwrap_or_else(|| crate::surfaces::ForgeServerSurfaceCapabilities::absent(family))
+    }
+
+    pub(crate) fn compat_http_route_families(&self) -> ForgeServerCompatHttpRouteFamilies {
+        self.registrations_by_family
+            .get(&ForgeServerSurfaceFamily::CompatHttp)
+            .and_then(ForgeServerSurfaceRegistration::compat_http_route_families)
+            .unwrap_or_default()
     }
 }
 

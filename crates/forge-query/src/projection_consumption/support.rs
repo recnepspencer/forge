@@ -118,6 +118,9 @@ pub(crate) fn support_for_kind(
         ProjectionSourceCapabilityProfile::QueryReadReceipt { execution_posture } => {
             query_read_support(*execution_posture, fact_kind)
         }
+        ProjectionSourceCapabilityProfile::QueryLiveReadReceipt { execution_posture } => {
+            query_read_support(*execution_posture, fact_kind)
+        }
         ProjectionSourceCapabilityProfile::QueryWriteReceipt { capabilities } => {
             query_write_support(capabilities, fact_kind)
         }
@@ -139,6 +142,12 @@ pub(crate) fn support_for_kind(
         }
         ProjectionSourceCapabilityProfile::BridgeGroupedTruthView => {
             bridge_grouped_truth_view_support(fact_kind)
+        }
+        ProjectionSourceCapabilityProfile::RetainedDerivedArtifactBinding => {
+            retained_derived_artifact_binding_support(fact_kind)
+        }
+        ProjectionSourceCapabilityProfile::LiveArtifactBinding => {
+            live_artifact_binding_support(fact_kind)
         }
     }
 }
@@ -326,6 +335,42 @@ fn bridge_grouped_truth_view_support(
         | ProjectionFactKind::EffectContinuity
         | ProjectionFactKind::DisplayField
         | ProjectionFactKind::DerivedScalarField => {
+            ProjectionConsumptionSupportPosture::SourceMismatch
+        }
+    }
+}
+
+fn retained_derived_artifact_binding_support(
+    fact_kind: ProjectionFactKind,
+) -> ProjectionConsumptionSupportPosture {
+    match fact_kind {
+        ProjectionFactKind::ViewLocalIdentity
+        | ProjectionFactKind::SourceReference
+        | ProjectionFactKind::DisplayField
+        | ProjectionFactKind::DerivedScalarField => ProjectionConsumptionSupportPosture::Admitted,
+        ProjectionFactKind::EntityIdentity
+        | ProjectionFactKind::TargetIdentity
+        | ProjectionFactKind::EffectContinuity
+        | ProjectionFactKind::Membership
+        | ProjectionFactKind::RelationEndpoint => {
+            ProjectionConsumptionSupportPosture::SourceMismatch
+        }
+    }
+}
+
+fn live_artifact_binding_support(
+    fact_kind: ProjectionFactKind,
+) -> ProjectionConsumptionSupportPosture {
+    match fact_kind {
+        ProjectionFactKind::EntityIdentity
+        | ProjectionFactKind::ViewLocalIdentity
+        | ProjectionFactKind::SourceReference
+        | ProjectionFactKind::DisplayField
+        | ProjectionFactKind::DerivedScalarField => ProjectionConsumptionSupportPosture::Admitted,
+        ProjectionFactKind::TargetIdentity
+        | ProjectionFactKind::EffectContinuity
+        | ProjectionFactKind::Membership
+        | ProjectionFactKind::RelationEndpoint => {
             ProjectionConsumptionSupportPosture::SourceMismatch
         }
     }

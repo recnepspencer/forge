@@ -1,0 +1,13 @@
+error[E0603]: module `capability` is private
+ --> tests/ui/facade/settings/facade/settings_registry_internal_module_not_public.rs:1:15
+  |
+1 | use worth_ui::capability::registry::settings;
+  |               ^^^^^^^^^^            -------- module `settings` is not publicly re-exported
+  |               |
+  |               private module
+  |
+note: the module `capability` is defined here
+ --> src/lib.rs
+  |
+  | mod capability;
+  | ^^^^^^^^^^^^^^

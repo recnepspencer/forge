@@ -1,3 +1,4 @@
+use super::closure::ForgeQueryIdentityBoundaryClosure;
 use super::registry::{
     ForgeQueryCapabilityFamily, ForgeQueryCapabilityStatus, ForgeQuerySupportMatrix,
 };
@@ -8,7 +9,9 @@ use crate::application::config::{
 use crate::composition::{
     runtime_backed_query_composition_support_profile, QueryCompositionSupportProfile,
 };
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::identity_evolution::{
     runtime_backed_direct_identity_evolution_support_profile, IdentityEvolutionSupportProfile,
 };
@@ -43,15 +46,34 @@ pub struct ForgeQuerySupportSectionPosture {
     owner: ForgeQuerySubsystemOwner,
     enabled: bool,
     config_digest: String,
+    posture_digest: String,
 }
 
 impl ForgeQuerySupportSectionPosture {
     fn from_resolution(resolution: ForgeQueryConfigSectionResolution) -> Self {
+        let section = resolution.section();
+        let owner = resolution.owner();
+        let enabled = resolution.enabled();
+        let config_digest = resolution.config_digest().to_string();
+        let posture_digest = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::ApplicationSupportSectionPosture,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("section"), section.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("owner"), owner.as_str())
+        .field_value(ForgeQueryEvidenceTag::new("enabled"), enabled.to_string())
+        .field_identity(
+            ForgeQueryEvidenceTag::new("config_digest"),
+            config_digest.clone(),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
-            section: resolution.section(),
-            owner: resolution.owner(),
-            enabled: resolution.enabled(),
-            config_digest: resolution.config_digest().to_string(),
+            section,
+            owner,
+            enabled,
+            config_digest,
+            posture_digest,
         }
     }
 
@@ -70,6 +92,10 @@ impl ForgeQuerySupportSectionPosture {
     pub fn config_digest(&self) -> &str {
         &self.config_digest
     }
+
+    pub fn posture_digest(&self) -> &str {
+        &self.posture_digest
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -85,6 +111,7 @@ pub struct ForgeQuerySupportReport {
     query_context_support_profile: Option<ForgeQueryQueryContextSupportProfile>,
     query_composition_support_profile: Option<ForgeQueryQueryCompositionSupportProfile>,
     identity_evolution_support_profile: Option<ForgeQueryIdentityEvolutionSupportProfile>,
+    identity_boundary_closure: ForgeQueryIdentityBoundaryClosure,
     validated_config_digest: String,
     counters: ForgeQuerySupportReportCounters,
     report_digest: String,
@@ -148,78 +175,85 @@ impl ForgeQuerySupportReport {
             .descriptor(ForgeQueryCapabilityFamily::IdentityEvolution)
             .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted)
             .map(|_| runtime_backed_direct_identity_evolution_support_profile());
+        let identity_boundary_closure =
+            ForgeQueryIdentityBoundaryClosure::closed(support_matrix.support_matrix_digest());
         let validated_config_digest = config.validated_digest().to_string();
         let counters = ForgeQuerySupportReportCounters::generated_once();
-        let report_digest = hash_parts(&[
-            format!("support:{}", support_matrix.support_matrix_digest()),
-            format!("validated_config:{validated_config_digest}"),
-            format!("admitted:{admitted_capability_count}"),
-            format!("deferred:{deferred_capability_count}"),
-            format!("unsupported:{unsupported_capability_count}"),
-            format!(
-                "admitted_families:{}",
-                admitted_capability_families
-                    .iter()
-                    .map(ForgeQueryCapabilityFamily::as_str)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            format!(
-                "deferred_families:{}",
-                deferred_capability_families
-                    .iter()
-                    .map(ForgeQueryCapabilityFamily::as_str)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            format!(
-                "unsupported_families:{}",
-                unsupported_capability_families
-                    .iter()
-                    .map(ForgeQueryCapabilityFamily::as_str)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            format!(
-                "sections:{}",
-                section_postures
-                    .iter()
-                    .map(|posture| format!(
-                        "{}:{}:{}:{}",
-                        posture.section().as_str(),
-                        posture.owner().as_str(),
-                        posture.enabled(),
-                        posture.config_digest()
-                    ))
-                    .collect::<Vec<_>>()
-                    .join("|")
-            ),
-            format!(
-                "query_composition_profile:{}",
-                query_composition_support_profile
-                    .as_ref()
-                    .map(ForgeQueryQueryCompositionSupportProfile::profile_digest)
-                    .unwrap_or("none")
-            ),
-            format!(
-                "query_context_profile:{}",
-                query_context_support_profile
-                    .as_ref()
-                    .map(ForgeQueryQueryContextSupportProfile::profile_digest)
-                    .unwrap_or("none")
-            ),
-            format!(
-                "identity_evolution_profile:{}",
-                identity_evolution_support_profile
-                    .as_ref()
-                    .map(ForgeQueryIdentityEvolutionSupportProfile::profile_digest)
-                    .unwrap_or("none")
-            ),
-            format!(
-                "report_generation:{}",
-                counters.support_report_generation_count()
-            ),
-        ]);
+        let report_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::ApplicationSupportReport)
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("support_matrix_digest"),
+                    support_matrix.support_matrix_digest(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("validated_config_digest"),
+                    validated_config_digest.clone(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("admitted_capability_count"),
+                    admitted_capability_count.to_string(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("deferred_capability_count"),
+                    deferred_capability_count.to_string(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("unsupported_capability_count"),
+                    unsupported_capability_count.to_string(),
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("admitted_capability_family"),
+                    admitted_capability_families
+                        .iter()
+                        .map(ForgeQueryCapabilityFamily::as_str),
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("deferred_capability_family"),
+                    deferred_capability_families
+                        .iter()
+                        .map(ForgeQueryCapabilityFamily::as_str),
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("unsupported_capability_family"),
+                    unsupported_capability_families
+                        .iter()
+                        .map(ForgeQueryCapabilityFamily::as_str),
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("section_posture_digest"),
+                    section_postures
+                        .iter()
+                        .map(ForgeQuerySupportSectionPosture::posture_digest),
+                )
+                .optional_identity(
+                    ForgeQueryEvidenceTag::new("query_composition_profile_digest"),
+                    query_composition_support_profile
+                        .as_ref()
+                        .map(ForgeQueryQueryCompositionSupportProfile::profile_digest),
+                )
+                .optional_identity(
+                    ForgeQueryEvidenceTag::new("query_context_profile_digest"),
+                    query_context_support_profile
+                        .as_ref()
+                        .map(ForgeQueryQueryContextSupportProfile::profile_digest),
+                )
+                .optional_identity(
+                    ForgeQueryEvidenceTag::new("identity_evolution_profile_digest"),
+                    identity_evolution_support_profile
+                        .as_ref()
+                        .map(ForgeQueryIdentityEvolutionSupportProfile::profile_digest),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("identity_boundary_closure_digest"),
+                    identity_boundary_closure.closure_digest(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("support_report_generation_count"),
+                    counters.support_report_generation_count().to_string(),
+                )
+                .seal()
+                .as_str()
+                .to_string();
 
         Self {
             support_matrix,
@@ -233,6 +267,7 @@ impl ForgeQuerySupportReport {
             query_context_support_profile,
             query_composition_support_profile,
             identity_evolution_support_profile,
+            identity_boundary_closure,
             validated_config_digest,
             counters,
             report_digest,
@@ -285,6 +320,10 @@ impl ForgeQuerySupportReport {
         &self,
     ) -> Option<&ForgeQueryIdentityEvolutionSupportProfile> {
         self.identity_evolution_support_profile.as_ref()
+    }
+
+    pub fn identity_boundary_closure(&self) -> &ForgeQueryIdentityBoundaryClosure {
+        &self.identity_boundary_closure
     }
 
     pub fn validated_config_digest(&self) -> &str {

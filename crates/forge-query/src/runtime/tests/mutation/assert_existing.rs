@@ -264,7 +264,7 @@ fn preview_assert_existing_requires_authoritative_lane() {
         })
         .expect("seed insert should execute");
     let mut preview = workspace
-        .preview("assert-existing-preview")
+        .preview(test_session_label("assert-existing-preview"))
         .expect("preview should open");
     let binding = preview
         .bind_existing_entity(
@@ -282,10 +282,13 @@ fn preview_assert_existing_requires_authoritative_lane() {
         .assert_existing(binding, |task| task.aspect("title.value", "Seed title"))
         .expect_err("preview assertion should require authoritative lane");
 
-    match error {
-        ForgeQueryRuntimeError::UnsupportedAuthority(message) => {
-            assert!(message.contains("authoritative lane"));
+    match error.stop_class() {
+        ForgeQueryStopClass::UnsupportedAuthority { authority } => {
+            assert_eq!(
+                authority,
+                "existing-truth assertion currently requires the authoritative lane"
+            );
         }
-        other => panic!("expected unsupported authority denial, got {other:?}"),
+        other => panic!("expected unsupported authority stop class, got {other:?}"),
     }
 }

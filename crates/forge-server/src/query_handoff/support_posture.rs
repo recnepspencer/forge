@@ -7,6 +7,21 @@ pub enum ForgeServerQuerySupportPosture {
     QueryReadSupported {
         family_contract: ForgeQueryRuntimePublicApiFamilyContract,
     },
+    DirectReadSupported {
+        family_contract: ForgeQueryRuntimePublicApiFamilyContract,
+    },
+    DirectStateSupported {
+        family_contract: ForgeQueryRuntimePublicApiFamilyContract,
+    },
+    DirectInspectionSupported {
+        family_contract: ForgeQueryRuntimePublicApiFamilyContract,
+    },
+    DirectProjectionSupported {
+        family_contract: ForgeQueryRuntimePublicApiFamilyContract,
+    },
+    DirectMutationSupported {
+        family_contract: ForgeQueryRuntimePublicApiFamilyContract,
+    },
     QueryMutationSupported {
         family_contract: ForgeQueryRuntimePublicApiFamilyContract,
     },
@@ -31,10 +46,86 @@ pub enum ForgeServerQuerySupportPosture {
 }
 
 impl ForgeServerQuerySupportPosture {
+    pub fn runtime_resume_support_posture(
+        &self,
+    ) -> forge_query::facade::ForgeQueryLowerRuntimeSupportPosture {
+        match self {
+            Self::DownstreamDeliverySupported {
+                runtime_resume_support_posture,
+                ..
+            }
+            | Self::RuntimeBackedResumeSupported {
+                runtime_resume_support_posture,
+                ..
+            } => *runtime_resume_support_posture,
+            Self::DurableResumeSupported { .. }
+            | Self::QueryReadSupported { .. }
+            | Self::DirectReadSupported { .. }
+            | Self::DirectStateSupported { .. }
+            | Self::DirectInspectionSupported { .. }
+            | Self::DirectProjectionSupported { .. }
+            | Self::DirectMutationSupported { .. }
+            | Self::QueryMutationSupported { .. } => {
+                forge_query::facade::ForgeQueryLowerRuntimeSupportPosture::Forbidden
+            }
+        }
+    }
+
+    pub fn durable_resume_support_posture(
+        &self,
+    ) -> forge_query::facade::ForgeQueryLowerRuntimeSupportPosture {
+        match self {
+            Self::DownstreamDeliverySupported {
+                durable_resume_support_posture,
+                ..
+            }
+            | Self::DurableResumeSupported {
+                durable_resume_support_posture,
+                ..
+            } => *durable_resume_support_posture,
+            Self::RuntimeBackedResumeSupported { .. }
+            | Self::QueryReadSupported { .. }
+            | Self::DirectReadSupported { .. }
+            | Self::DirectStateSupported { .. }
+            | Self::DirectInspectionSupported { .. }
+            | Self::DirectProjectionSupported { .. }
+            | Self::DirectMutationSupported { .. }
+            | Self::QueryMutationSupported { .. } => {
+                forge_query::facade::ForgeQueryLowerRuntimeSupportPosture::Forbidden
+            }
+        }
+    }
+
     pub(crate) fn canonical_label(&self) -> String {
         match self {
             Self::QueryReadSupported { family_contract } => {
                 format!("query-read-supported:{}", family_contract.contract_digest())
+            }
+            Self::DirectReadSupported { family_contract } => {
+                format!(
+                    "direct-read-supported:{}",
+                    family_contract.contract_digest()
+                )
+            }
+            Self::DirectStateSupported { family_contract } => {
+                format!(
+                    "direct-state-supported:{}",
+                    family_contract.contract_digest()
+                )
+            }
+            Self::DirectInspectionSupported { family_contract } => format!(
+                "direct-inspection-supported:{}",
+                family_contract.contract_digest()
+            ),
+            Self::DirectProjectionSupported { family_contract } => format!(
+                "direct-projection-supported:{}",
+                family_contract.contract_digest()
+            ),
+            Self::DirectMutationSupported { family_contract } => {
+                format!(
+                    "direct-mutation-supported:{}",
+                    family_contract.contract_digest()
+                )
             }
             Self::QueryMutationSupported { family_contract } => {
                 format!(

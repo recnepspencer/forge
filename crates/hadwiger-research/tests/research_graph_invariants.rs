@@ -6,6 +6,9 @@ use forge_query::facade::{
 };
 use hadwiger_research::facade::*;
 
+#[path = "research_graph_invariants/registration.rs"]
+mod registration;
+
 fn handle() -> HadwigerResearchHandle {
     admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
         .expect("Hadwiger handle should admit")
@@ -219,24 +222,8 @@ fn catalog_drafting_emits_required_rule_families() {
     }
     assert_eq!(left.artifact_digest(), right.artifact_digest());
     assert_eq!(left.counters().checked_rules(), 5);
+    assert_eq!(left.counters().registration_ready_rules(), 5);
     assert!(!left.registers_query_invariant_authority());
-}
-
-#[test]
-fn registration_plan_is_blocked_and_names_query_surfaces() {
-    let (handle, corpus, frontier, _plans) = corpus_frontier_and_suppressed_plans();
-    let catalog = draft_research_graph_invariant_catalog(&handle, &corpus, &frontier).unwrap();
-
-    let plan = plan_research_graph_invariant_registration(&handle, &catalog).unwrap();
-
-    assert_eq!(
-        plan.posture(),
-        ResearchGraphInvariantRegistrationPosture::BlockedDraft
-    );
-    assert!(plan
-        .compatible_query_surfaces()
-        .contains("ForgeQueryRuntime::builder().invariant_catalog(...)"));
-    assert!(!plan.registers_runtime_invariants());
 }
 
 #[test]

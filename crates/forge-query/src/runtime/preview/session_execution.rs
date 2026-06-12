@@ -14,7 +14,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         command: ForgeQueryWriteCommand,
     ) -> ForgeQueryWriteReceipt {
         let receipt = ForgeQueryWriteReceipt::preview(
-            &self.label,
+            self.label.display(),
             self.pending_commands.len() + 1,
             &command,
             self.runtime.snapshot_token(),
@@ -51,7 +51,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             live_affected.insert(binding.handle_name().to_string(), affected_aspects.clone());
             self.execution_evidence
                 .push(ForgeQueryPreviewExecutionEvidence::new(
-                    &self.label,
+                    self.label.display(),
                     ForgeQueryPreviewExecutionKind::LivePatch,
                     binding.handle_name(),
                     binding.source_lane(),
@@ -77,7 +77,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             computed_affected.insert(binding.handle_name().to_string(), affected_aspects.clone());
             self.execution_evidence
                 .push(ForgeQueryPreviewExecutionEvidence::new(
-                    &self.label,
+                    self.label.display(),
                     ForgeQueryPreviewExecutionKind::ComputedPatch,
                     binding.handle_name(),
                     binding.source_lane(),
@@ -118,7 +118,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 }
             };
             pending_effect_evidence.push(ForgeQueryPreviewExecutionEvidence::new(
-                &self.label,
+                self.label.display(),
                 kind,
                 binding.handle_name(),
                 binding.source_lane(),

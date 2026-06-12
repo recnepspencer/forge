@@ -2,14 +2,15 @@ use forge_query::facade::{
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeSupportProfile,
 };
 use forge_server::{
-    ForgeServerMiddlewareConfig, ForgeServerQueryHandoffDenialCode, ForgeServerQueryHandoffInput,
+    ForgeServerDirectDeliveryClass, ForgeServerDirectFreshnessMode, ForgeServerMiddlewareConfig,
+    ForgeServerQueryHandoffDenialCode, ForgeServerQueryHandoffInput,
     ForgeServerQueryHandoffOperation, ForgeServerQueryRequestedResume, ForgeServerSurfaceFamily,
     ForgeServerTransportClass,
 };
 
-#[path = "support/query_handoff_fixture.rs"]
+#[path = "support/query_handoff/fixture.rs"]
 mod query_handoff_fixture;
-#[path = "support/query_handoff_runtime.rs"]
+#[path = "support/query_handoff/runtime.rs"]
 mod query_handoff_runtime;
 
 use query_handoff_fixture::{
@@ -39,6 +40,8 @@ fn prepare_denies_durable_resume_but_admits_runtime_backed_resume() {
                 admission.clone(),
                 ForgeServerQueryHandoffOperation::downstream_delivery(
                     "users.profile",
+                    ForgeServerDirectFreshnessMode::LiveStrict,
+                    ForgeServerDirectDeliveryClass::AuthoritativeOrdered,
                     ForgeServerQueryRequestedResume::durable(),
                 ),
             )),
@@ -48,6 +51,8 @@ fn prepare_denies_durable_resume_but_admits_runtime_backed_resume() {
             admission,
             ForgeServerQueryHandoffOperation::downstream_delivery(
                 "users.profile",
+                ForgeServerDirectFreshnessMode::LiveStrict,
+                ForgeServerDirectDeliveryClass::AuthoritativeOrdered,
                 ForgeServerQueryRequestedResume::runtime_backed(None::<String>),
             ),
         ),
@@ -164,6 +169,8 @@ fn prepare_denies_downstream_delivery_when_query_workspace_does_not_admit_live_f
                 ),
                 ForgeServerQueryHandoffOperation::downstream_delivery(
                     "users.profile",
+                    ForgeServerDirectFreshnessMode::LiveStrict,
+                    ForgeServerDirectDeliveryClass::AuthoritativeOrdered,
                     ForgeServerQueryRequestedResume::none(),
                 ),
             )),
@@ -206,6 +213,8 @@ fn prepare_denies_downstream_delivery_when_middleware_only_admitted_mutation_int
                 mutation_admission,
                 ForgeServerQueryHandoffOperation::downstream_delivery(
                     "users.rename",
+                    ForgeServerDirectFreshnessMode::LiveStrict,
+                    ForgeServerDirectDeliveryClass::AuthoritativeOrdered,
                     ForgeServerQueryRequestedResume::none(),
                 ),
             )),

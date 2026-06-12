@@ -25,7 +25,7 @@ fn public_verified_relation_profile(
 #[test]
 fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retirement() {
     let harness = PublicBridgeRuntimeHarness::new();
-    let runtime = harness.runtime(public_graph_support_profile());
+    let runtime = harness.bridge_backed_runtime();
     let mut workspace = runtime
         .workspace("public.graph-composition-lifecycle")
         .expect("runtime should open a named workspace");
@@ -144,7 +144,10 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
         .expect("relation binding should build");
     harness.seed_existing_truth_value(&binding, "source.id", json!("he-1"));
     harness.seed_existing_truth_value(&binding, "target.id", json!("he-2"));
-    let runtime = harness.runtime(public_verified_relation_profile("update_existing_verified"));
+    let runtime = harness
+        .bridge_backed_runtime_builder()
+        .support_profile(public_verified_relation_profile("update_existing_verified"))
+        .build();
     let mut workspace = runtime
         .workspace("public.graph-composition-domain-invariant-denial")
         .expect("runtime should open a named workspace");

@@ -1,0 +1,13 @@
+error[E0603]: module `capability` is private
+ --> tests/ui/facade/mosaic_sizing/facade/mosaic_sizing_registry_internal_module_not_public.rs:1:15
+  |
+1 | use worth_ui::capability::registry::mosaic_sizing::MosaicSizingRegistry;
+  |               ^^^^^^^^^^            ------------- module `mosaic_sizing` is not publicly re-exported
+  |               |
+  |               private module
+  |
+note: the module `capability` is defined here
+ --> src/lib.rs
+  |
+  | mod capability;
+  | ^^^^^^^^^^^^^^

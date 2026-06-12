@@ -178,6 +178,17 @@ fn richest_profile(
 fn success_kind(operation: &ForgeServerQueryHandoffOperation) -> ForgeServerSuccessKind {
     match operation {
         ForgeServerQueryHandoffOperation::QueryRead { .. } => ForgeServerSuccessKind::QueryRead,
+        ForgeServerQueryHandoffOperation::DirectRead { .. } => ForgeServerSuccessKind::DirectRead,
+        ForgeServerQueryHandoffOperation::DirectState { .. } => ForgeServerSuccessKind::DirectState,
+        ForgeServerQueryHandoffOperation::DirectInspection { .. } => {
+            ForgeServerSuccessKind::DirectInspection
+        }
+        ForgeServerQueryHandoffOperation::DirectProjection { .. } => {
+            ForgeServerSuccessKind::DirectProjection
+        }
+        ForgeServerQueryHandoffOperation::DirectMutation { .. } => {
+            ForgeServerSuccessKind::DirectMutation
+        }
         ForgeServerQueryHandoffOperation::QueryMutation { .. } => {
             ForgeServerSuccessKind::QueryMutation
         }

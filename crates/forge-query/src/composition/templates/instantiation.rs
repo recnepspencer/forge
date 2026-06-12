@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
+use crate::authoring::{
+    PredicateSelector, RawAuthoredQuery, RawAuthoredResultShape, ScalarPredicateValue,
+};
 use crate::composition::counters::CompositionCounters;
 use crate::composition::digests::TemplateBindingDigest;
 use crate::composition::errors::{QueryCompositionAdmissionFailureClass, QueryCompositionError};
@@ -117,10 +119,11 @@ fn deny_if_deferred_family(
 ) -> Result<(), QueryCompositionError> {
     let counters = CompositionCounters::for_template_instantiation(slot_count, binding_width);
     match family {
-        TemplateFamily::DetailTemplate | TemplateFamily::CollectionTemplate => Ok(()),
+        TemplateFamily::DetailTemplate
+        | TemplateFamily::CollectionTemplate
+        | TemplateFamily::GroupedCollectionTemplate => Ok(()),
         TemplateFamily::ObservedInspectorDetailTemplate
-        | TemplateFamily::FocusedInspectorDetailTemplate
-        | TemplateFamily::GroupedCollectionTemplate => {
+        | TemplateFamily::FocusedInspectorDetailTemplate => {
             Err(QueryCompositionError::unsupported_template(
                 family,
                 QueryCompositionAdmissionFailureClass::DeferredTemplateFamily,
@@ -269,7 +272,7 @@ impl TemplateBindingValue {
 
     fn digest_fragment(&self) -> String {
         match self {
-            Self::Predicate(predicate) => format!("{}:{}", predicate.aspect(), predicate.field()),
+            Self::Predicate(predicate) => predicate_binding_digest_fragment(predicate),
             Self::Ordering(ordering) => format!(
                 "{}:{}:{:?}",
                 ordering.aspect(),
@@ -283,5 +286,54 @@ impl TemplateBindingValue {
                 format!("{}:{}", traversal.relation(), traversal.depth())
             }
         }
+    }
+}
+
+fn predicate_binding_digest_fragment(predicate: &PredicateSelector) -> String {
+    match predicate {
+        PredicateSelector::Equality(predicate) => format!(
+            "equality:{}:{}:{}",
+            predicate.aspect(),
+            predicate.field(),
+            scalar_predicate_value_digest_fragment(predicate.value())
+        ),
+        PredicateSelector::IntegerComparison(predicate) => format!(
+            "integer_comparison:{}:{}:{:?}:{}",
+            predicate.aspect(),
+            predicate.field(),
+            predicate.operator(),
+            predicate.value()
+        ),
+        PredicateSelector::StringContains(predicate) => format!(
+            "string_contains:{}:{}:{}",
+            predicate.aspect(),
+            predicate.field(),
+            predicate.value()
+        ),
+        PredicateSelector::SetMembership(predicate) => format!(
+            "set_membership:{}:{}:{}",
+            predicate.aspect(),
+            predicate.field(),
+            predicate
+                .values()
+                .iter()
+                .map(scalar_predicate_value_digest_fragment)
+                .collect::<Vec<_>>()
+                .join("|")
+        ),
+        PredicateSelector::Presence(predicate) => format!(
+            "presence:{}:{}:{}",
+            predicate.aspect(),
+            predicate.field(),
+            predicate.kind().digest_key()
+        ),
+    }
+}
+
+fn scalar_predicate_value_digest_fragment(value: &ScalarPredicateValue) -> String {
+    match value {
+        ScalarPredicateValue::String(value) => format!("string:{value}"),
+        ScalarPredicateValue::Integer(value) => format!("integer:{value}"),
+        ScalarPredicateValue::Boolean(value) => format!("boolean:{value}"),
     }
 }

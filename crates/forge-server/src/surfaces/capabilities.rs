@@ -7,6 +7,13 @@ pub struct ForgeServerSurfaceCapabilities {
 }
 
 impl ForgeServerSurfaceCapabilities {
+    pub(crate) fn enabled(family: ForgeServerSurfaceFamily) -> Self {
+        Self {
+            family,
+            registration_state: ForgeServerSurfaceRegistrationState::Enabled,
+        }
+    }
+
     pub(crate) fn absent(family: ForgeServerSurfaceFamily) -> Self {
         Self {
             family,
@@ -46,6 +53,7 @@ impl ForgeServerSurfaceCapabilities {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ForgeServerSurfaceRegistrationState {
+    Enabled,
     Absent,
     Disabled,
 }

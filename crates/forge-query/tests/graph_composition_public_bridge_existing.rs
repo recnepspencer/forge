@@ -31,7 +31,7 @@ fn public_multi_verified_relation_profile() -> forge_query::facade::ForgeQueryRu
 #[test]
 fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle() {
     let harness = PublicBridgeRuntimeHarness::new();
-    let runtime = harness.runtime(public_graph_support_profile());
+    let runtime = harness.bridge_backed_runtime();
     let mut workspace = runtime
         .workspace("public.graph-composition-existing-retarget")
         .expect("runtime should open a named workspace");
@@ -136,7 +136,10 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
 #[test]
 fn graph_composition_public_bridge_supports_verified_existing_followup_and_retirement() {
     let harness = PublicBridgeRuntimeHarness::new();
-    let runtime = harness.runtime(public_multi_verified_relation_profile());
+    let runtime = harness
+        .bridge_backed_runtime_builder()
+        .support_profile(public_multi_verified_relation_profile())
+        .build();
     let mut workspace = runtime
         .workspace("public.graph-composition-verified-existing")
         .expect("workspace should open");

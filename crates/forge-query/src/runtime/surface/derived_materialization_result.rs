@@ -47,4 +47,12 @@ impl ForgeQueryDerivedMaterializationResult {
         self.receipt.decision_trace_envelope = Some(decision_trace_envelope);
         self.receipt.execution_provenance = Some(execution_provenance);
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        rows: Vec<serde_json::Value>,
+        receipt: ForgeQueryDerivedMaterializationReceipt,
+    ) -> Self {
+        Self { rows, receipt }
+    }
 }

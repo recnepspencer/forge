@@ -15,7 +15,7 @@ use super::aspect_value_projection::{
 };
 use crate::memory_workspace::ForgeQueryEntity;
 use crate::projection_consumption::ProjectionFactExtractionError;
-use crate::runtime::ForgeQueryReadResult;
+use crate::runtime::{ForgeQueryLiveReadResult, ForgeQueryReadResult};
 
 #[derive(Clone, Copy)]
 enum RowIdentityExtractionMode {
@@ -79,6 +79,22 @@ pub(super) fn extract_read_result_facts(
     super::ensure_source_identity(
         contract.source_identity(),
         result.receipt().read_graph_digest(),
+    )?;
+    extract_json_rows(
+        contract,
+        result.rows(),
+        RowIdentityExtractionMode::RowIdentityAsEntityIdentity,
+    )
+}
+
+pub(super) fn extract_live_read_result_facts(
+    contract: &MaterializedProjectionContract,
+    result: &ForgeQueryLiveReadResult,
+) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
+    super::ensure_contract_family(contract, ProjectionSourceFamily::QueryLiveReadReceipt)?;
+    super::ensure_source_identity(
+        contract.source_identity(),
+        result.receipt().installation_digest(),
     )?;
     extract_json_rows(
         contract,

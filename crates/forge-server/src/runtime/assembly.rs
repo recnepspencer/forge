@@ -1,11 +1,21 @@
-use std::sync::Arc;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
-    config::ForgeServerConfig, diagnostics::ForgeServerCounters,
-    middleware::ForgeServerMiddlewareFacade, operator_evidence::ForgeServerOperatorEvidenceFacade,
-    query_handoff::ForgeServerQueryHandoffFacade, registration::ForgeServerSurfaceRegistry,
-    request_context::ForgeServerRequestContextFacade, response::ForgeServerResponseFacade,
-    surfaces::ForgeServerSurfacesFacade,
+    config::ForgeServerConfig,
+    diagnostics::ForgeServerCounters,
+    middleware::ForgeServerMiddlewareFacade,
+    operator_evidence::ForgeServerOperatorEvidenceFacade,
+    query_handoff::ForgeServerQueryHandoffFacade,
+    registration::ForgeServerSurfaceRegistry,
+    request_context::ForgeServerRequestContextFacade,
+    response::ForgeServerResponseFacade,
+    surfaces::{
+        compat_http::{ForgeServerStoredBinaryIngress, ForgeServerStoredCompatibilityMutation},
+        ForgeServerSurfacesFacade,
+    },
 };
 
 #[derive(Debug)]
@@ -19,6 +29,9 @@ pub(crate) struct ForgeServerRuntimeAssembly {
     response_facade: ForgeServerResponseFacade,
     request_context_facade: ForgeServerRequestContextFacade,
     counters: Arc<ForgeServerCounters>,
+    compat_http_mutation_replay_store:
+        Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>>,
+    compat_http_binary_ingress_store: Arc<Mutex<HashMap<String, ForgeServerStoredBinaryIngress>>>,
 }
 
 impl ForgeServerRuntimeAssembly {
@@ -46,6 +59,8 @@ impl ForgeServerRuntimeAssembly {
             response_facade,
             request_context_facade,
             counters,
+            compat_http_mutation_replay_store: Arc::new(Mutex::new(HashMap::new())),
+            compat_http_binary_ingress_store: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -83,5 +98,17 @@ impl ForgeServerRuntimeAssembly {
 
     pub(crate) fn counters(&self) -> &Arc<ForgeServerCounters> {
         &self.counters
+    }
+
+    pub(crate) fn compat_http_mutation_replay_store(
+        &self,
+    ) -> &Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>> {
+        &self.compat_http_mutation_replay_store
+    }
+
+    pub(crate) fn compat_http_binary_ingress_store(
+        &self,
+    ) -> &Arc<Mutex<HashMap<String, ForgeServerStoredBinaryIngress>>> {
+        &self.compat_http_binary_ingress_store
     }
 }

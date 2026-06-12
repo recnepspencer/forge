@@ -239,6 +239,26 @@ cross-feature proof gates before final certification:
   grouped composition, projection-consumption, and preserved temporal/async
   reuse debts are closed as production-ready Query productization lanes before
   store-backed and durable milestones build on top of them
+- `Milestone 9.6` must prove evidence identity, stop-class matching, and
+  session label identity are runtime-owned structural contracts — digests
+  survive formatting drift, every covered stop class is matchable without
+  string operations, and session labels carry canonical identity with typed
+  collision posture
+- `Milestone 9.7` must prove N concurrent shared read contexts under commit
+  pressure produce byte-identical results and receipts to serialized
+  execution, that journal replay reconstructs identical truth and published
+  artifacts, and that no reader can acquire a lock on the committed-read hot
+  path or trigger derived evaluation
+- `Milestone 9.8` must prove a downstream crate can author evidence reports,
+  enforce the no-bypass contract, pin support posture, and obtain a valid
+  honestly-postured in-memory test runtime using only Query-shipped kit
+  surfaces, with closure proven by reference-consumer adoption and deletion
+  of the hand-rolled equivalents
+- `Milestone 9.9` must prove complete graph touch obligation authority: every
+  obligation kind executable, compose/batch/read lanes dispatching, policy-aware
+  mutation gates live, explicit relational graph-composition execution point,
+  exact-zero duplicate enforcement, and full reference adoption in `worth-topo`
+  and `worth-kernel` construction with architectural certification closure
 - `Milestone 10` must prove store-backed execution and historical parity for
   admitted shared capability families
 - `Milestone 11` must prove durable saved-query, cursor, and artifact reload
@@ -262,7 +282,8 @@ Critical path:
   `Milestone 9.3.5` -> `Milestone 9.3.6` -> `Milestone 9.3.7` ->
   `Milestone 9.3.8` -> `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
-  `Milestone 9.5` -> `Milestone 10` -> `Milestone 11` -> `Milestone 12` ->
+  `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` -> `Milestone 9.8` ->
+  `Milestone 9.9` -> `Milestone 10` -> `Milestone 11` -> `Milestone 12` ->
   `Milestone 13`
 
 Store-gated completion tracks:
@@ -350,6 +371,22 @@ Store-gated completion tracks:
   preserved temporal/async reuse without claiming store-backed saved-query
   reload, durable temporal/async reuse, or restart-stable artifact
   continuation before `Milestone 10` and `Milestone 11`
+- `Milestone 9.6` can close runtime-backed canonical evidence identity, typed
+  stop classes, and session label identity first, but durable digest archives
+  and restart-stable identity reload remain explicit debt until `Milestone 10`
+  and `Milestone 11` close
+- `Milestone 9.7` can close runtime-backed concurrent read authority,
+  deterministic submission, and published-artifact reads first, but durable
+  journal persistence, store-backed replay reconstruction, and restart-stable
+  published-artifact reload remain explicit debt until `Milestone 10` and
+  `Milestone 11` close
+- `Milestone 9.8` can close the runtime-backed consumer kit and reference
+  adoption first, but persisted support snapshots, durable audit archives, and
+  store-backed kit artifacts remain explicit debt until `Milestone 10` and
+  `Milestone 11` close
+- `Milestone 9.9` closes complete graph touch obligation authority including
+  policy-aware graph mutation execution, all obligation kind executors, and full
+  reference adoption in `worth-topo` and `worth-kernel` construction
 - `Milestone 10` is the first intentionally store-gated execution milestone
 - `Milestone 11` is the intentionally store-gated durable artifact milestone
 - `Milestone 12` is the intentionally store-gated blob/media milestone
@@ -3115,6 +3152,395 @@ This milestone is complete only when `forge-query` can prove:
   runtime-backed semantics across the covered reuse surface
 - hostile runtime-backed read tests no longer need a custom minimal
   bridge-backed harness just to obtain a valid raw runtime read path
+
+## Milestone 9.6: Product Boundary Debt Closure For Evidence Identity, Typed Stop Classes, And Session Label Identity
+
+### Goal
+
+Make evidence identity, stop-class matching, and session label identity
+runtime-owned structural contracts so consumers never format runtime values
+into digests, string-match error messages in decision paths, or mint
+free-form session labels against a runtime built on canonical identity.
+
+### Adversarial Constraint
+
+For the same runtime fact — admission denial, basis admission, receipt,
+support row, session identity — Query must produce the same canonical
+evidence identity and the same typed stop-class meaning under `Debug` derive
+reordering, field renaming, message rewording, separator injection inside
+field values, and session label collision pressure.
+
+### Why This Milestone Exists
+
+The first serious downstream consumer hashes `format!("{:?}", value)` strings
+joined with `|` for evidence identity, matches runtime denials with
+`message.contains(...)`, and opens preview/branch sessions with free-form
+string labels. Each is a Query-owned contract carried by consumer folklore.
+Concurrency receipts (`9.7`) and the consumer kit (`9.8`) must be born on
+canonical identity rather than migrated onto it later.
+
+### Must Ship
+
+- one sealed, scheme-versioned canonical evidence-identity primitive
+- migration of covered Query-owned digest surfaces onto that primitive with
+  zero format-string residue
+- typed stop-class matching across covered denial paths, including typed
+  family payloads on admission denials
+- canonical session label identity for preview/branch entry with explicit
+  collision posture
+- support/profile, docs, and hostile certification closure for all three
+  boundaries
+
+### Must Preserve
+
+- the existing rich error topology, extended into matchability rather than
+  flattened
+- the existing public facade shape; no parallel digest, error, or label APIs
+- human-readable diagnostics as presentation atop typed contracts
+
+### Complexity / Proof Obligations
+
+- name the canonical encoding and digest contracts and prove digest stability
+  under formatting drift and separator injection with exact assertions
+- prove typed stop-class coverage with a consumer-shaped zero-string-ops
+  matching suite that survives message rewording
+- prove session label collision posture with typed collision stops
+
+### Allowed Debt
+
+- durable digest archives and restart-stable identity reload remain explicit
+  debt until `Milestone 10` and `Milestone 11`
+- no covered surface may keep the format-string digest scheme as debt
+
+### Sequencing Notes
+
+The detailed execution plan lives in [milestone-9.6.md](./milestone-9.6.md).
+This milestone belongs immediately after `Milestone 9.5` and before
+`Milestone 9.7`, whose receipts, journal identity, and published-artifact
+digests must use the canonical scheme from birth.
+
+### Parallelization Notes
+
+Phases are mostly independent per boundary; digest migration must complete
+before `9.7` begins emitting new receipt families.
+
+### Store Dependency
+
+- This milestone is not blocked on `forge-store`.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- covered digest surfaces emit scheme-versioned canonical digests with zero
+  format-string construction
+- a consumer-shaped matching suite handles every covered stop class without
+  string operations, surviving hostile message rewording
+- preview/branch entry flows through canonical label identity with typed
+  collision posture
+- docs, support profiles, and certification agree the boundaries are closed
+
+## Milestone 9.7: Concurrent Read Authority And Deterministic Submission
+
+### Goal
+
+Decompose the Query runtime into authority-typed subsystems so
+committed-snapshot reads scale concurrently across consumers while truth
+mutation and derived maintenance remain single-owner and deterministic,
+without changing canonical query meaning or adding a second semantics path
+beside the workspace.
+
+### Adversarial Constraint
+
+N concurrent shared read contexts under sustained commit pressure, preview
+and branch churn, and live maintenance load must produce byte-identical
+results and receipts for the same canonical declaration and basis capability
+as fully serialized execution — while journal replay reconstructs identical
+truth, receipts, and published derived artifacts, with zero locks on the
+committed-read hot path and zero derived evaluations triggered by readers.
+
+### Why This Milestone Exists
+
+Every workspace operation takes `&mut self`, so the borrow checker enforces
+one operation in flight per workspace regardless of MVCC immutability
+underneath. Server-grade consumers would otherwise improvise a global lock or
+branch-per-connection — both prohibited folklore. Store-backed shapes in
+`Milestone 10` must inherit lane-correct contracts rather than retrofit
+`Send` boundaries later.
+
+### Must Ship
+
+- backend adapter contracts decomposed by authority lane with `Send + Sync`
+  read lanes
+- sealed basis-bound shared read contexts with generation-pinned snapshots
+  and lock-free committed reads
+- a deterministic submission seam whose total intake order is the journal,
+  flowing through the existing admission lattice and receipt vocabulary,
+  including a consumer-facing journal-segment replay surface
+- the published derived-artifact rule: readers consume digest-stamped
+  published results through projection consumption; only the maintenance
+  owner evaluates
+- the re-expressed workspace facade with unchanged existing consumer surface
+  and fail-closed admission rows for the new families
+- a hostile concurrency/determinism certification matrix
+
+### Must Preserve
+
+- canonical query meaning across serialized and concurrent execution
+- lower-crate authority boundaries; only access topology moves
+- the single-owner workspace as a first-class consumer surface
+- merged `9.4` temporal/async meaning and `9.5` projection-consumption
+  semantics inside the published-artifact lane
+
+### Complexity / Proof Obligations
+
+- name the read-context mint, submission intake, and publication contracts
+- expose exact counters for lock acquisitions (zero), reader evaluations
+  (zero), snapshot generation pins/retirements, journal positions, and
+  publication breadth
+- prove byte-identical concurrent-versus-serialized receipts and journal
+  replay parity
+
+### Allowed Debt
+
+- durable journal persistence, store-backed replay reconstruction, and
+  restart-stable published-artifact reload remain explicit debt until
+  `Milestone 10` and `Milestone 11`
+- lock-based or evaluation-leaking read paths may not ship as debt
+
+### Sequencing Notes
+
+The detailed execution plan lives in [milestone-9.7.md](./milestone-9.7.md).
+This milestone belongs after `Milestone 9.6` so its receipts and digests are
+born canonical, and before `Milestone 10` as a hard gate so store-backed
+shapes inherit the concurrency topology.
+
+### Parallelization Notes
+
+The adapter decomposition, read-context, and submission phases can proceed
+with limited overlap; the published-artifact boundary and certification close
+strictly last.
+
+### Store Dependency
+
+- This milestone is not blocked on `forge-store`.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- concurrent readers under write pressure produce byte-identical receipts and
+  results to serialized execution with exact-zero lock and reader-evaluation
+  counters
+- journal replay reconstructs identical truth, receipts, and published
+  artifacts
+- existing downstream consumers compile unchanged against the re-expressed
+  facade
+- the new facade families carry honest fail-closed support/admission rows
+
+## Milestone 9.8: Downstream Consumer Product Kit For Evidence Reports, Boundary Audits, And Support Pinning
+
+### Goal
+
+Ship the runtime-owned kit that eliminates consumer-side folklore around
+Query's product contracts — declarative evidence-report scaffolding, a
+shipped boundary-bypass audit, and exportable, pinnable support snapshots —
+proven by reference-consumer adoption rather than API presence.
+
+### Adversarial Constraint
+
+A downstream domain crate must be able to author a digest-bearing evidence
+report, enforce the no-bypass contract, and pin its support-posture
+dependencies using only Query-shipped kit surfaces, with every divergence
+class — escaped digest fields, prohibited seam usage, pinned posture
+regression, folklore resurrection — failing mechanically in the consumer's
+build.
+
+### Why This Milestone Exists
+
+The reference consumer pays roughly 250 hand-rolled lines per evidence
+report, enforces the hard prohibitions with `include_str!` source greps, and
+re-derives support posture as hand-built gap rows. Each is a runtime-owned
+contract materialized by consumer folklore, and every future consumer would
+reinvent or skip it. Milestones `9.6` and `9.7` harden what Query says; this
+milestone hardens what Query gives consumers to build with.
+
+### Must Ship
+
+- the declarative evidence-report composition kit over the `9.6` canonical
+  evidence-identity primitive
+- runtime-owned bypass enforcement: sealed or visibility-tightened seams plus
+  one shipped audit artifact derived from a single prohibition registry
+- the serialized, versioned support snapshot and typed consumer pinning
+  contract with build-failing drift detection
+- the shipped in-memory consumer test backend with honest fail-closed support
+  posture, replacing hand-implemented adapter assemblies and hand-fabricated
+  receipts in consumer test suites
+- reference-consumer adoption with deletion of `worth-kernel`'s hand-rolled
+  report plumbing, grep audit, and gap-row assembly in covered surfaces
+- support/profile, docs, and hostile certification closure for the kit
+  families
+
+### Must Preserve
+
+- the `9.6` canonical evidence-identity scheme as the only digest authority
+  the kit can express
+- one support truth: the snapshot is a digest-bound derived projection of the
+  live matrix
+- the reference consumer's evidence semantics through migration
+- the Query facade as the only consumer surface
+
+### Complexity / Proof Obligations
+
+- name the kit report, audit, and pinning contracts
+- prove kit-versus-hand-rolled report parity, structural (non-textual) bypass
+  detection with zero false positives on comments and literals, and
+  pin-localized build failure under posture regression
+- prove adoption residue with exact-zero assertions on covered consumer
+  surfaces
+
+### Allowed Debt
+
+- persisted support snapshots, durable audit archives, and store-backed kit
+  artifacts remain explicit debt until `Milestone 10` and `Milestone 11`
+- shipping the kit without reference-consumer adoption may not be claimed as
+  closure
+
+### Sequencing Notes
+
+The detailed execution plan lives in [milestone-9.8.md](./milestone-9.8.md).
+This milestone belongs after `Milestone 9.7` so the kit covers the
+concurrency-era facade families, and before `Milestone 10` closure so real
+consumer adoption pressure-tests the frozen runtime-backed surface.
+
+### Parallelization Notes
+
+Kit phases may overlap early `Milestone 10` work where staffing allows, since
+store execution does not consume kit surfaces; reference adoption and
+certification close strictly last.
+
+### Store Dependency
+
+- This milestone is not blocked on `forge-store`.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- a kit-authored report reproduces a hand-rolled report's semantics with
+  canonical-scheme digests, and misuse fails typed or fails to compile
+- the shipped audit detects seeded bypasses structurally from a downstream
+  crate's test suite with zero textual false positives
+- a pinned posture regression fails exactly the pinned consumers' builds with
+  typed findings
+- a downstream-shaped test suite obtains a valid workspace from the shipped
+  in-memory backend with zero hand-implemented adapter traits and zero
+  hand-fabricated receipts
+- covered `worth-kernel` surfaces carry zero remaining hand-rolled digest,
+  audit, or gap-row folklore
+
+## Milestone 9.9: Graph Touch Obligation Authority
+
+### Goal
+
+Establish graph touch obligation dispatch as a complete Query authority
+boundary — typed obligation kinds, three-state verdicts, canonical dispatch
+artifacts, index-backed selection, relational execution bridge, duplicate-rule
+elimination, and mechanical consumer anti-folklore — certified
+architecturally and proven by reference-consumer deletion of parallel
+legality in `worth-topo` and `worth-kernel`.
+
+### Adversarial Constraint
+
+Obligation dispatch must be a pure function of touch descriptor, operating
+world, and assembly index — on every lane that reaches authoritative
+execution: write-batch intent admission, declaration-entry orchestration,
+read-family execution, and preview/branch mutation where applicable — with
+exact-zero false negatives, false positives, duplicate rule implementations,
+manual pre-check residue, and dispatch-plan drift on covered surfaces under
+property-test certification.
+
+### Why This Milestone Exists
+
+Query teaches register invariants and consume typed graph-composition
+denials, but the product surface still trains manual invariant-pack callbacks
+and duplicate enforcement across pre-checks, materialized-view validators,
+and commit-boundary invariants. `worth-topo` calls `compose_graph` yet
+enforces loop wiring in three places; `worth-kernel` carries host-local
+layout legality and motion sequencing guarded by `unreachable!`. This
+milestone ships obligation authority as foundation infrastructure before
+store-backed execution inherits another legality layer.
+
+### Must Ship
+
+- complete obligation authority model with multi-obligation dispatch envelopes
+- graph touch descriptors for mutation and read lanes
+- registration, auto-indexing, assembly index with complexity contracts
+- relational graph-composition execution point and rule migration
+- authoritative write-batch intent admission integration (canonical dispatch seam)
+- declaration-entry and contribution-orchestration dispatch
+- read-family and read-composition dispatch (all four entry points)
+- preview and branch mutation obligation parity
+- policy-aware graph mutation execution and operating-context gate dispatch
+- advisory, capability-gap, and preflight-sequencing executors
+- envelope attachment to receipts, decision traces, and mutation evidence
+- derived read validation re-homed; consumer obligation bypass audit
+- kernel construction operating context wiring
+- primitive construction birth compose execution (all covered families)
+- full reference adoption in `worth-topo` and `worth-kernel` construction
+- public docs and AI_README category
+- architectural hostile certification matrix closure
+
+### Must Preserve
+
+- relational invariant execution authority
+- typed graph-composition domain-invariant denial contracts on block paths
+- declaration legality and support admission as upstream lanes obligations consume
+
+### Complexity / Proof Obligations
+
+- every obligation kind × representative touch in certification matrix
+- false-fire/false-miss, replay equivalence, complexity contracts
+- exact-zero duplicate rule implementations and adoption manifest residue
+- policy-aware mutation gate parity with operating context changes
+
+### Allowed Debt
+
+- store-backed obligation envelope durability remains Milestone `10`/`11` scope
+- shipping authority surfaces without full reference adoption may not be claimed
+  as closure
+
+### Sequencing Notes
+
+The detailed execution plan lives in [milestone-9.9.md](./milestone-9.9.md).
+Twenty phases: vocabulary and relational execution point (1–5); intent
+admission integration before surface-specific wiring (6–9); remaining
+executors and envelope attachment (10–12); re-homing and bypass audit (13–14);
+kernel operating context before birth compose (15–16); adoption (17–18);
+docs then certification close (19–20).
+
+### Parallelization Notes
+
+Relational execution point and policy-aware mutation work may overlap where
+staffing allows; adoption and certification close strictly last.
+
+### Store Dependency
+
+- Runtime-backed obligation authority is not blocked on `forge-store`.
+- Durable obligation envelope persistence is Milestone `10`/`11` scope.
+
+### Acceptance Evidence
+
+- every obligation kind executes in certification matrix across representative
+  touches and lanes
+- write-batch intent admission carries obligation dispatch — manual
+  invariant-pack pre-hook eliminated on covered paths
+- primitive construction birth executes compose_graph with obligation routing
+- compose, batch, read-family, preview/branch, and declaration-entry lanes
+  dispatch with canonical envelopes on receipts and decision traces
+- policy-aware mutation gates and preflight sequencing certified
+- full topo milestone-one catalog and kernel phase-chain adoption residue
+- bypass audit and architectural certification matrix pass
 
 ## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
 

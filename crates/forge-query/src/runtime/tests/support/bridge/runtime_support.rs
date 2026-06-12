@@ -1,9 +1,28 @@
 use crate::runtime::tests::support::*;
 
+pub(in crate::runtime::tests) fn bridge_backed_runtime_with_support(
+    profile: ForgeQueryRuntimeSupportProfile,
+) -> ForgeQueryRuntime {
+    bridge_backed_runtime_with_support_and_intent_authority(profile, TestIntentAuthority)
+}
+
 pub(in crate::runtime::tests) fn bridge_runtime_with_support(
     profile: ForgeQueryRuntimeSupportProfile,
 ) -> ForgeQueryRuntime {
-    bridge_runtime_with_support_and_intent_authority(profile, TestIntentAuthority)
+    bridge_backed_runtime_with_support(profile)
+}
+
+pub(in crate::runtime::tests) fn bridge_backed_runtime_with_support_and_intent_authority<
+    T: ForgeQueryIntentAuthorityAdapter + 'static,
+>(
+    profile: ForgeQueryRuntimeSupportProfile,
+    intent_authority: T,
+) -> ForgeQueryRuntime {
+    bridge_backed_runtime_builder(profile)
+        .intent_authority(intent_authority)
+        .build_backend_from_parts()
+        .build()
+        .expect("complete bridge-backed runtime test support should build")
 }
 
 pub(in crate::runtime::tests) fn bridge_runtime_with_support_and_intent_authority<
@@ -12,40 +31,25 @@ pub(in crate::runtime::tests) fn bridge_runtime_with_support_and_intent_authorit
     profile: ForgeQueryRuntimeSupportProfile,
     intent_authority: T,
 ) -> ForgeQueryRuntime {
-    ForgeQueryRuntime::builder()
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
-        .write_authority(TestWriteAuthority)
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
-        .intent_authority(intent_authority)
-        .support_profile(profile)
+    bridge_backed_runtime_with_support_and_intent_authority(profile, intent_authority)
+}
+
+pub(in crate::runtime::tests) fn bridge_backed_runtime_with_existing_truth_verification(
+    profile: ForgeQueryRuntimeSupportProfile,
+    adapter: TestExistingTruthVerificationAdapter,
+) -> ForgeQueryRuntime {
+    bridge_backed_runtime_builder(profile)
+        .existing_truth_verification(adapter)
         .build_backend_from_parts()
         .build()
-        .expect("complete backend parts should build")
+        .expect("complete bridge-backed runtime test support should build")
 }
 
 pub(in crate::runtime::tests) fn bridge_runtime_with_support_and_existing_truth_verification(
     profile: ForgeQueryRuntimeSupportProfile,
     adapter: TestExistingTruthVerificationAdapter,
 ) -> ForgeQueryRuntime {
-    ForgeQueryRuntime::builder()
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
-        .existing_truth_verification(adapter)
-        .write_authority(TestWriteAuthority)
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
-        .support_profile(profile)
-        .build_backend_from_parts()
-        .build()
-        .expect("complete backend parts should build")
+    bridge_backed_runtime_with_existing_truth_verification(profile, adapter)
 }
 
 pub(in crate::runtime::tests) fn intent_support_profile() -> ForgeQueryRuntimeSupportProfile {
@@ -81,4 +85,19 @@ pub(in crate::runtime::tests) fn bridge_verified_direct_relation_profile(
         true,
         None,
     )
+}
+
+fn bridge_backed_runtime_builder(
+    profile: ForgeQueryRuntimeSupportProfile,
+) -> ForgeQueryRuntimeBuilder {
+    ForgeQueryRuntime::builder()
+        .runtime_bridge(test_bridge())
+        .schema_adapter(TestSchemaAdapter)
+        .source_adapter(TestSourceAdapter::default())
+        .write_authority(TestWriteAuthority)
+        .signal_sink(TestSignalSink)
+        .subscription_activation(TestSubscriptionActivation)
+        .preview_basis(TestPreviewBasis)
+        .inspector_evidence(TestInspectorEvidence)
+        .support_profile(profile)
 }

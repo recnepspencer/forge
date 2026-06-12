@@ -71,10 +71,6 @@ impl RuntimeApiStabilizationCloseout {
             "typed early support admission via public support matrix rows".to_string(),
         ];
         let must_not_assume_yet = vec![
-            "temporal basis or time-aware subscription execution is implemented".to_string(),
-            "async/resource query lifecycle execution is implemented".to_string(),
-            "mixed truth/time/async delivery is implemented".to_string(),
-            "temporal/async certification has closed".to_string(),
             "store-backed parity or durable restart/reload semantics are admitted".to_string(),
             "domain-specific geometry/workflow/table semantics live inside forge-query".to_string(),
         ];
@@ -86,8 +82,6 @@ impl RuntimeApiStabilizationCloseout {
             "use workspace.public_support_matrix() for family admission and workspace.public_mutation_surface_report() for lower-level mutation posture"
                 .to_string(),
             "use aspects, lanes, state snapshots, support rows, and inspect output as the extension points"
-                .to_string(),
-            "fail closed through admit_public_api_family before exposing temporal or async neighbors"
                 .to_string(),
             "extend existing handle/state/inspection contracts in 9.4 rather than adding sibling facades"
                 .to_string(),
@@ -115,7 +109,7 @@ impl RuntimeApiStabilizationCloseout {
                 golden_transcript_count
             ),
             format!(
-                "unsupported future neighbors fail typed and early: {} rejection rows",
+                "support-gated future neighbors fail typed and early: {} rejection rows",
                 hostile_rejection_count
             ),
             format!(
@@ -130,7 +124,7 @@ impl RuntimeApiStabilizationCloseout {
                 "handle/state/inspection contract is extension-ready: {} handle rows",
                 handle_contract.rows().len()
             ),
-            "temporal/async/store/durable behavior remains explicitly deferred".to_string(),
+            "store/durable behavior remains explicitly deferred".to_string(),
             "downstream examples are pressure tests, not forge-query domain semantics".to_string(),
         ];
         let mut parts = vec![

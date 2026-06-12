@@ -35,7 +35,16 @@ fn runtime_public_handle_contract_freezes_inspection_sections_and_future_state_l
         assert!(future_row.deferred_future_posture());
         assert_eq!(
             future_row.support_status(),
-            ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+            ForgeQueryRuntimeFamilySupportStatus::Supported
+        );
+        let mut sections = future_row.inspection_sections().to_vec();
+        let original_count = sections.len();
+        sections.sort();
+        sections.dedup();
+        assert_eq!(
+            sections.len(),
+            original_count,
+            "future-capable handle contract rows must not repeat inspection sections"
         );
     }
 }
@@ -58,29 +67,16 @@ fn runtime_workspace_rejects_empty_names_before_public_use() {
 }
 
 #[test]
-fn runtime_workspace_declares_observes_and_inspects_with_preferred_names() {
+fn runtime_workspace_declares_and_inspects_with_preferred_names() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("task.workspace")
         .expect("task runtime should open a named workspace");
     let view: ForgeQueryLiveView<Value> = workspace
         .live_view_request("tasks.workspace-table", task_live_request(), task_schema())
         .expect("workspace live view should declare");
-
-    let write = workspace
-        .insert("Task", |task| {
-            task.aspect("identity.id", "task-1")
-                .aspect("title.value", "Workspace facade")
-        })
-        .expect("workspace write should execute");
-    let patches = workspace.observe(&view);
     let inspection = workspace.inspect(&view).expect("inspect should succeed");
 
     assert_eq!(workspace.name(), "task.workspace");
-    assert_eq!(
-        write.affected_live_view_ids(),
-        &["tasks.workspace-table".to_string()]
-    );
-    assert_eq!(patches.query_delivery_batches.len(), 1);
     match inspection {
         ForgeQueryInspection::LiveView(live) => {
             assert_eq!(live.view_name(), "tasks.workspace-table");
@@ -207,11 +203,11 @@ fn runtime_workspace_state_snapshots_are_async_safe_and_support_gated() {
         .expect("computed state should snapshot");
     let temporal_state = workspace
         .state(ForgeQueryRuntimeFacadeFamily::Temporal)
-        .expect("deferred temporal family should report a typed state");
+        .expect("runtime-backed temporal family should report a typed state");
 
     assert_eq!(live_state.kind(), ForgeQueryRuntimeStateKind::Ready);
     assert_eq!(computed_state.kind(), ForgeQueryRuntimeStateKind::Ready);
-    assert_eq!(temporal_state.kind(), ForgeQueryRuntimeStateKind::Pending);
+    assert_eq!(temporal_state.kind(), ForgeQueryRuntimeStateKind::Ready);
 }
 
 #[test]

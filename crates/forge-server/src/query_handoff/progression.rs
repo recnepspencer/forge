@@ -25,7 +25,7 @@ pub(crate) fn prepare_query_handoff(
         return TransitionOutcome::Denied(denial);
     }
 
-    let binding_request = ForgeServerQueryWorkspaceBindingRequest::new(
+    let binding_request = ForgeServerQueryWorkspaceBindingRequest::for_query_handoff(
         admission.resolved_request_context().clone(),
         operation.clone(),
     );
@@ -97,6 +97,24 @@ fn validate_prepared_intent(
         {
             None
         }
+        ForgeServerQueryHandoffOperation::DirectRead { .. }
+        | ForgeServerQueryHandoffOperation::DirectState { .. }
+        | ForgeServerQueryHandoffOperation::DirectInspection { .. }
+        | ForgeServerQueryHandoffOperation::DirectProjection { .. }
+        | ForgeServerQueryHandoffOperation::DirectMutation { .. }
+        | ForgeServerQueryHandoffOperation::DownstreamDelivery { .. }
+            if prepared.kind() == ForgeServerPreparedQueryHandoffKind::ForgeNativeSession =>
+        {
+            None
+        }
+        ForgeServerQueryHandoffOperation::DirectRead { .. }
+        | ForgeServerQueryHandoffOperation::DirectState { .. }
+        | ForgeServerQueryHandoffOperation::DirectInspection { .. }
+        | ForgeServerQueryHandoffOperation::DirectProjection { .. }
+            if prepared.kind() == ForgeServerPreparedQueryHandoffKind::QueryRead =>
+        {
+            None
+        }
         ForgeServerQueryHandoffOperation::DownstreamDelivery { .. } => None,
         _ => Some(ForgeServerQueryHandoffDenial::new(
             ForgeServerQueryHandoffDenialCode::PreparedIntentMismatch,
@@ -113,12 +131,75 @@ fn derive_support_posture(
     contract: &ForgeQueryRuntimeDownstreamDeliveryContract,
     diagnostics_profile: DiagnosticRichnessProfile,
 ) -> Result<ForgeServerQuerySupportPosture, ForgeServerQueryHandoffDenial> {
+    if prepared_kind == ForgeServerPreparedQueryHandoffKind::ForgeNativeSession {
+        match operation {
+            ForgeServerQueryHandoffOperation::DirectRead { .. }
+            | ForgeServerQueryHandoffOperation::DirectState { .. }
+            | ForgeServerQueryHandoffOperation::DirectInspection { .. }
+            | ForgeServerQueryHandoffOperation::DirectProjection { .. }
+            | ForgeServerQueryHandoffOperation::DirectMutation { .. }
+            | ForgeServerQueryHandoffOperation::DownstreamDelivery { .. } => {}
+            _ => {
+                return Err(ForgeServerQueryHandoffDenial::new(
+                    ForgeServerQueryHandoffDenialCode::PreparedIntentMismatch,
+                    diagnostics_profile,
+                    "forge-native session entry only supports direct read/state/inspection/projection/mutation/downstream-delivery handoff operations",
+                ));
+            }
+        }
+    }
+
     match operation {
         ForgeServerQueryHandoffOperation::QueryRead { .. } => {
             Ok(ForgeServerQuerySupportPosture::QueryReadSupported {
                 family_contract: admit_query_family(
                     workspace,
                     ForgeQueryRuntimeFacadeFamily::Read,
+                    diagnostics_profile,
+                )?,
+            })
+        }
+        ForgeServerQueryHandoffOperation::DirectRead { .. } => {
+            Ok(ForgeServerQuerySupportPosture::DirectReadSupported {
+                family_contract: admit_query_family(
+                    workspace,
+                    ForgeQueryRuntimeFacadeFamily::Read,
+                    diagnostics_profile,
+                )?,
+            })
+        }
+        ForgeServerQueryHandoffOperation::DirectState { .. } => {
+            Ok(ForgeServerQuerySupportPosture::DirectStateSupported {
+                family_contract: admit_query_family(
+                    workspace,
+                    ForgeQueryRuntimeFacadeFamily::Live,
+                    diagnostics_profile,
+                )?,
+            })
+        }
+        ForgeServerQueryHandoffOperation::DirectInspection { .. } => {
+            Ok(ForgeServerQuerySupportPosture::DirectInspectionSupported {
+                family_contract: admit_query_family(
+                    workspace,
+                    ForgeQueryRuntimeFacadeFamily::Inspect,
+                    diagnostics_profile,
+                )?,
+            })
+        }
+        ForgeServerQueryHandoffOperation::DirectProjection { .. } => {
+            Ok(ForgeServerQuerySupportPosture::DirectProjectionSupported {
+                family_contract: admit_query_family(
+                    workspace,
+                    ForgeQueryRuntimeFacadeFamily::Read,
+                    diagnostics_profile,
+                )?,
+            })
+        }
+        ForgeServerQueryHandoffOperation::DirectMutation { .. } => {
+            Ok(ForgeServerQuerySupportPosture::DirectMutationSupported {
+                family_contract: admit_query_family(
+                    workspace,
+                    ForgeQueryRuntimeFacadeFamily::Write,
                     diagnostics_profile,
                 )?,
             })
@@ -135,11 +216,15 @@ fn derive_support_posture(
         ForgeServerQueryHandoffOperation::DownstreamDelivery {
             requested_resume, ..
         } => {
-            if prepared_kind != ForgeServerPreparedQueryHandoffKind::QueryRead {
+            if !matches!(
+                prepared_kind,
+                ForgeServerPreparedQueryHandoffKind::QueryRead
+                    | ForgeServerPreparedQueryHandoffKind::ForgeNativeSession
+            ) {
                 return Err(ForgeServerQueryHandoffDenial::new(
                     ForgeServerQueryHandoffDenialCode::DownstreamDeliveryRequiresReadIntent,
                     diagnostics_profile,
-                    "downstream delivery handoff requires a read-admitted middleware intent",
+                    "downstream delivery handoff requires a read-admitted middleware intent or a forge-native direct session",
                 ));
             }
 

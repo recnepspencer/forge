@@ -134,14 +134,50 @@ impl ForgeQueryRuntimeFamilySupport {
         effect_policies: impl IntoIterator<Item = ForgeQueryEffectPolicy>,
         evidence: impl IntoIterator<Item = impl Into<String>>,
     ) -> Self {
+        Self::supported_with_teaching_posture(
+            family,
+            ForgeQueryRuntimeFamilyTeachingPosture::OrdinaryRuntimeDx,
+            authority_lanes,
+            effect_policies,
+            evidence,
+        )
+    }
+
+    pub fn supported_with_teaching_posture(
+        family: ForgeQueryRuntimeFacadeFamily,
+        teaching_posture: ForgeQueryRuntimeFamilyTeachingPosture,
+        authority_lanes: impl IntoIterator<Item = ForgeQueryAuthorityLane>,
+        effect_policies: impl IntoIterator<Item = ForgeQueryEffectPolicy>,
+        evidence: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
         Self {
             family,
             status: ForgeQueryRuntimeFamilySupportStatus::Supported,
-            teaching_posture: ForgeQueryRuntimeFamilyTeachingPosture::OrdinaryRuntimeDx,
+            teaching_posture,
             authority_lanes: authority_lanes.into_iter().collect(),
             effect_policies: effect_policies.into_iter().collect(),
             evidence: evidence.into_iter().map(Into::into).collect(),
             denial_reason: None,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn supported_with_teaching_posture_and_reason(
+        family: ForgeQueryRuntimeFacadeFamily,
+        teaching_posture: ForgeQueryRuntimeFamilyTeachingPosture,
+        authority_lanes: impl IntoIterator<Item = ForgeQueryAuthorityLane>,
+        effect_policies: impl IntoIterator<Item = ForgeQueryEffectPolicy>,
+        evidence: impl IntoIterator<Item = impl Into<String>>,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self {
+            family,
+            status: ForgeQueryRuntimeFamilySupportStatus::Supported,
+            teaching_posture,
+            authority_lanes: authority_lanes.into_iter().collect(),
+            effect_policies: effect_policies.into_iter().collect(),
+            evidence: evidence.into_iter().map(Into::into).collect(),
+            denial_reason: Some(reason.into()),
         }
     }
 
@@ -235,17 +271,23 @@ impl ForgeQueryRuntimeFamilySupport {
     }
 
     pub fn extension_rule(&self) -> &'static str {
-        match self.teaching_posture {
-            ForgeQueryRuntimeFamilyTeachingPosture::OrdinaryRuntimeDx => {
+        match (self.family, self.teaching_posture) {
+            (
+                ForgeQueryRuntimeFacadeFamily::Temporal
+                | ForgeQueryRuntimeFacadeFamily::AsyncResource
+                | ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
+                ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+            ) => "must-extend-stabilized-handle-state-lane-aspect-inspection-facade",
+            (_, ForgeQueryRuntimeFamilyTeachingPosture::OrdinaryRuntimeDx) => {
                 "stable-runtime-backed-handle-state-lane-aspect-inspection-facade"
             }
-            ForgeQueryRuntimeFamilyTeachingPosture::VisibleButDeferred => {
+            (_, ForgeQueryRuntimeFamilyTeachingPosture::VisibleButDeferred) => {
                 "must-extend-stabilized-handle-state-lane-aspect-inspection-facade"
             }
-            ForgeQueryRuntimeFamilyTeachingPosture::VisibleVocabularyOnly => {
+            (_, ForgeQueryRuntimeFamilyTeachingPosture::VisibleVocabularyOnly) => {
                 "must-admit-through-runtime-support-profile-before-public-use"
             }
-            ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly => {
+            (_, ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly) => {
                 "support-matrix-only-certification-gate"
             }
         }
@@ -256,6 +298,7 @@ impl ForgeQueryRuntimeFamilySupport {
     }
 
     pub fn admission_fail_closed(&self) -> bool {
-        self.status != ForgeQueryRuntimeFamilySupportStatus::Supported
+        !matches!(self.status, ForgeQueryRuntimeFamilySupportStatus::Supported)
+            || self.teaching_posture == ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly
     }
 }

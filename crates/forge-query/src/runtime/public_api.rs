@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::{
     ForgeQueryAuthorityLane, ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeFacadeFamily,
@@ -40,25 +42,42 @@ impl ForgeQueryRuntimePublicApiFamilyContract {
         let extension_rule = row.extension_rule().to_string();
         let parallel_api_forbidden = row.parallel_api_forbidden();
         let admission_fail_closed = row.admission_fail_closed();
-        let mut parts = vec![
-            format!("family:{}", family.as_str()),
-            format!("status:{}", status.as_str()),
-            format!("teaching:{}", teaching_posture.as_str()),
-            format!("owner:{owner_closure}"),
-            format!("extension:{extension_rule}"),
-            format!("parallel_forbidden:{parallel_api_forbidden}"),
-            format!("fail_closed:{admission_fail_closed}"),
-        ];
-        parts.extend(
-            authority_lanes
-                .iter()
-                .map(|lane| format!("lane:{}", lane.as_str())),
-        );
-        parts.extend(evidence.iter().map(|item| format!("evidence:{item}")));
-        if let Some(reason) = &reason {
-            parts.push(format!("reason:{reason}"));
-        }
-        let contract_digest = hash_parts(&parts);
+        let contract_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicApiFamilyContract)
+                .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+                .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("teaching_posture"),
+                    teaching_posture.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("owner_closure"),
+                    owner_closure.clone(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("extension_rule"),
+                    extension_rule.clone(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("parallel_api_forbidden"),
+                    parallel_api_forbidden.to_string(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("admission_fail_closed"),
+                    admission_fail_closed.to_string(),
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("authority_lanes"),
+                    authority_lanes.iter().map(|lane| lane.as_str()),
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("evidence"),
+                    evidence.iter().map(String::as_str),
+                )
+                .optional_value(ForgeQueryEvidenceTag::new("reason"), reason.as_deref())
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             family,
             status,
@@ -151,16 +170,33 @@ impl ForgeQueryRuntimePublicApiContract {
             .iter()
             .filter(|family| family.status() == ForgeQueryRuntimeFamilySupportStatus::Unsupported)
             .count();
-        let mut parts = vec![format!("posture:{}", profile.posture().as_str())];
-        parts.extend(
-            families
-                .iter()
-                .map(|family| format!("family:{}", family.contract_digest())),
-        );
-        parts.push(format!("stable:{stable_family_count}"));
-        parts.push(format!("deferred:{deferred_family_count}"));
-        parts.push(format!("unsupported:{unsupported_family_count}"));
-        let contract_digest = hash_parts(&parts);
+        let contract_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicApiContract)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("backend_posture"),
+                    profile.posture().as_str(),
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("family_contract_digest"),
+                    families
+                        .iter()
+                        .map(ForgeQueryRuntimePublicApiFamilyContract::contract_digest),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("stable_family_count"),
+                    stable_family_count.to_string(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("deferred_family_count"),
+                    deferred_family_count.to_string(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("unsupported_family_count"),
+                    unsupported_family_count.to_string(),
+                )
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             backend_posture: profile.posture(),
             families,

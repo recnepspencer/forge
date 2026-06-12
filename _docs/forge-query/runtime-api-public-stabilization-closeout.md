@@ -1,8 +1,8 @@
 # Forge Query Runtime API Public Stabilization Closeout
 
 This closeout is the dependency contract for downstream runtime work that wants
-to build against the Forge Query public runtime facade before temporal and async
-milestones are implemented.
+to build against the Forge Query public runtime facade while store-backed and
+durable milestone work is still deferred.
 
 ## Closed Scope
 
@@ -43,10 +43,6 @@ remains a lower-level or expert seam rather than the preferred public story.
 
 These are explicit future gates, not implied support:
 
-- temporal basis and time-aware subscriptions: Milestone 9.4
-- async/resource query families: Milestone 9.4
-- mixed truth/time/async delivery: Milestone 9.4
-- temporal/async certification: Milestone 9.4
 - store-backed parity: Milestone 10
 - durable restart and artifact reload: Milestone 11
 
@@ -95,8 +91,7 @@ Downstream runtimes may build domain-neutral public APIs that:
   derived runtime state, effect delivery, pending write intent, bridge external
   state, temporal execution state, and async resource state
 - call `admit_public_api_family(...)` before exposing future-neighbor behavior
-- rely on typed early denials for unsupported temporal/async/store/durable
-  surfaces
+- rely on typed early denials for unsupported store/durable surfaces
 
 ## Must Not Assume Yet
 
@@ -106,10 +101,6 @@ Downstream runtimes must not assume:
 - the current public mutation contract already closes full authoritative target
   evidence, existing-truth identity binding, naming writeback evidence, or
   continuity-sensitive mutation evidence beyond the admitted runtime facade
-- temporal basis execution is implemented
-- async/resource lifecycle execution is implemented
-- mixed truth/time/async delivery is implemented
-- temporal/async certification has closed
 - store-backed parity is admitted
 - durable restart or artifact reload is admitted
 - geometry, workflow, table, or other domain semantics belong inside
@@ -122,11 +113,11 @@ artifact derived from the same certification matrix as the golden transcripts.
 The closeout self-check answers:
 
 - golden transcripts execute through the public facade
-- unsupported future neighbors fail typed and early
+- support-gated future neighbors fail typed and early
 - ordinary DX uses no lower-runtime plumbing
 - support metadata is synchronized with admission gates
 - handle, state, and inspection contracts are extension-ready
-- temporal, async, store, and durable behavior remains deferred
+- store and durable behavior remains deferred
 - downstream examples are pressure tests, not `forge-query` domain semantics
 
 Required verification commands:

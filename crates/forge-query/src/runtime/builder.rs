@@ -204,10 +204,7 @@ impl ForgeQueryRuntimeBuilder {
             self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
             return self;
         }
-        self.backend = Some(
-            ForgeQueryBridgeBackedRuntimeBackend::from_parts(self.backend_parts)
-                .map(|backend| Box::new(backend) as Box<dyn ForgeQueryRuntimeBackend>),
-        );
+        self.backend = Some(self.lower_bridge_backed_backend_from_parts());
         self.backend_parts = ForgeQueryRuntimeBackendParts::new();
         self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
         self
@@ -232,6 +229,8 @@ impl ForgeQueryRuntimeBuilder {
         Ok(ForgeQueryRuntime {
             backend,
             evidence_authority: ForgeQueryRuntimeEvidenceAuthority::new(),
+            preview_session_labels: BTreeMap::new(),
+            branch_session_labels: BTreeMap::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),
             live_subscriptions: BTreeMap::new(),
             materialized_read_views: BTreeMap::new(),
@@ -262,5 +261,14 @@ impl ForgeQueryRuntimeBuilder {
         self.backend_parts = std::mem::take(&mut self.backend_parts)
             .relational_runtime(queued.lower_into_relational_runtime());
         Ok(())
+    }
+
+    fn lower_bridge_backed_backend_from_parts(
+        &mut self,
+    ) -> Result<Box<dyn ForgeQueryRuntimeBackend>, ForgeQueryRuntimeError> {
+        let bootstrap = std::mem::take(&mut self.backend_parts).lower_bridge_backed_bootstrap()?;
+        Ok(Box::new(
+            ForgeQueryBridgeBackedRuntimeBackend::from_validated_bootstrap(bootstrap),
+        ))
     }
 }

@@ -1,8 +1,11 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 
+use crate::runtime::ForgeQueryRuntimeError;
+
 use super::{
-    ForgeQueryIntentAuthorityAdapter, ForgeQueryRuntimeDeclarationInitializationAdapter,
+    bootstrap::BridgeBackedRuntimeBootstrap, ForgeQueryIntentAuthorityAdapter,
+    ForgeQueryRuntimeDeclarationInitializationAdapter,
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
     ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
@@ -53,6 +56,12 @@ impl ForgeQueryRuntimeBackendParts {
 
     pub(in crate::runtime) fn has_relational_runtime(&self) -> bool {
         self.relational_runtime.is_some()
+    }
+
+    pub(in crate::runtime) fn lower_bridge_backed_bootstrap(
+        self,
+    ) -> Result<BridgeBackedRuntimeBootstrap, ForgeQueryRuntimeError> {
+        BridgeBackedRuntimeBootstrap::lower_from_parts(self)
     }
 
     pub fn relational_runtime(mut self, runtime: RelationalRuntime) -> Self {

@@ -391,6 +391,12 @@ The default rule is:
 4. build the blocker
 5. then build the feature on the real path
 
+Scope expansion is the norm here, not the exception. If the real fix lives in a
+different crate, then the work expands into that crate. If the real fix needs a
+new lower-authority seam, then the work expands until that seam exists. Do not
+protect the current milestone or current crate boundary at the expense of
+shipping an unfinished architecture.
+
 Do **not** jump from "this is hard" to "mark it as debt" or "add an escape
 hatch." The presence of pressure, uncertainty, or implementation cost is not a
 reason to widen the API, add a compatibility shortcut, expose a raw seam, or
@@ -410,6 +416,10 @@ Debt is allowed only when all of the following are true:
 
 If those conditions are not true, the correct move is not to mark debt. The
 correct move is to expand scope and keep building until the blocker is gone.
+
+The 3000-line threshold is not a budgeting suggestion. It is the bar for what
+counts as "major enough to defer." Anything meaningfully smaller than that is
+ordinary completion work and should be built now.
 
 A `ComplexityStatus::Debt` marker on a contract is honest only when it records
 a real blocked edge after the team has already built the strongest complete path

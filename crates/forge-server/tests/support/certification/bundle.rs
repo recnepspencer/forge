@@ -1,7 +1,91 @@
+#![allow(dead_code)]
+
 use std::collections::BTreeMap;
 
 use forge_foundational::facade::FoundationalBoundaryEvidenceSupportTruthKind;
 use forge_server::{ForgeServerDenialBoundary, ForgeServerOperatorEvidenceRecord};
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum ForgeServerCertificationOutputDigest {
+    SurfaceContract,
+    Declaration,
+    DeclarationSupport,
+    Handoff,
+    SupportPosture,
+    Branch,
+    Workspace,
+    SupportMatrix,
+    ViewShape,
+    RetainedState,
+    Basis,
+    Remask,
+    AsyncResult,
+    TemporalState,
+    Policy,
+    FactReceipt,
+    Materialization,
+    CounterSnapshot,
+    DeliveryRequest,
+    ResumeMode,
+    FreshnessMode,
+    DeliveryClass,
+    DenialCode,
+    DenialDetail,
+}
+
+impl ForgeServerCertificationOutputDigest {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::SurfaceContract => "surface_contract_digest",
+            Self::Declaration => "declaration_digest",
+            Self::DeclarationSupport => "declaration_support_digest",
+            Self::Handoff => "handoff_digest",
+            Self::SupportPosture => "support_posture_digest",
+            Self::Branch => "branch_digest",
+            Self::Workspace => "workspace_digest",
+            Self::SupportMatrix => "support_matrix_digest",
+            Self::ViewShape => "view_shape",
+            Self::RetainedState => "retained_state_digest",
+            Self::Basis => "basis_digest",
+            Self::Remask => "remask_digest",
+            Self::AsyncResult => "async_result_digest",
+            Self::TemporalState => "temporal_state_digest",
+            Self::Policy => "policy_digest",
+            Self::FactReceipt => "fact_receipt_digest",
+            Self::Materialization => "materialization_digest",
+            Self::CounterSnapshot => "counter_snapshot_digest",
+            Self::DeliveryRequest => "delivery_request_digest",
+            Self::ResumeMode => "resume_mode",
+            Self::FreshnessMode => "freshness_mode",
+            Self::DeliveryClass => "delivery_class",
+            Self::DenialCode => "denial_code",
+            Self::DenialDetail => "denial_detail",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ForgeServerCertificationField {
+    RequestContextDigest,
+    ResponseDigest,
+    ProvenanceDigest,
+    FailureDigest,
+    CounterSnapshot,
+    Output(ForgeServerCertificationOutputDigest),
+}
+
+impl ForgeServerCertificationField {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::RequestContextDigest => "request_context_digest",
+            Self::ResponseDigest => "response_digest",
+            Self::ProvenanceDigest => "provenance_digest",
+            Self::FailureDigest => "failure_digest",
+            Self::CounterSnapshot => "counter_snapshot",
+            Self::Output(output) => output.label(),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeServerCertificationBundle {
@@ -9,6 +93,7 @@ pub struct ForgeServerCertificationBundle {
     response_digest: String,
     provenance_digest: String,
     failure_digest: Option<String>,
+    output_digests: BTreeMap<ForgeServerCertificationOutputDigest, String>,
     counter_snapshot: BTreeMap<String, u64>,
     support_truth_kind: FoundationalBoundaryEvidenceSupportTruthKind,
     support_attachment_present: bool,
@@ -25,6 +110,7 @@ impl ForgeServerCertificationBundle {
             response_digest: response.canonical_digest().to_string(),
             provenance_digest: provenance_digest(response.provenance()),
             failure_digest: response.denial().map(failure_digest),
+            output_digests: BTreeMap::new(),
             counter_snapshot: counter_snapshot(&evidence),
             support_truth_kind: evidence.support_truth_kind(),
             support_attachment_present: evidence
@@ -56,6 +142,30 @@ impl ForgeServerCertificationBundle {
 
     pub fn counter_snapshot(&self) -> &BTreeMap<String, u64> {
         &self.counter_snapshot
+    }
+
+    pub fn output_digest(&self, name: ForgeServerCertificationOutputDigest) -> Option<&str> {
+        self.output_digests.get(&name).map(String::as_str)
+    }
+
+    pub fn with_output_digest(
+        mut self,
+        name: ForgeServerCertificationOutputDigest,
+        digest: impl Into<String>,
+    ) -> Self {
+        self.output_digests.insert(name, digest.into());
+        self
+    }
+
+    pub fn with_optional_output_digest(
+        mut self,
+        name: ForgeServerCertificationOutputDigest,
+        digest: Option<impl Into<String>>,
+    ) -> Self {
+        if let Some(digest) = digest {
+            self.output_digests.insert(name, digest.into());
+        }
+        self
     }
 
     pub fn support_attachment_present(&self) -> bool {

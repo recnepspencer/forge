@@ -90,13 +90,13 @@ pub(in crate::runtime::tests) struct TestPreviewBasis;
 impl ForgeQueryRuntimePreviewBasisAdapter for TestPreviewBasis {
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
         Ok(ForgeQueryPreviewBasisAdmission::new(
             authority,
-            label,
+            label.clone(),
             effect_policy,
             ["test-preview-basis"],
         ))

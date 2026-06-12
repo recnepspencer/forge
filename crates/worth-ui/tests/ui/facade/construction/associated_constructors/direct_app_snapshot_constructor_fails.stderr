@@ -1,0 +1,10 @@
+error[E0624]: associated function `from_registration_report` is private
+ --> tests/ui/facade/construction/associated_constructors/direct_app_snapshot_constructor_fails.rs:4:25
+  |
+4 |     let _ = WorthUiApp::from_registration_report(registration_report());
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: src/facade/app.rs
+  |
+  |     pub(crate) fn from_registration_report(report: CapabilityRegistrationReport) -> Self {
+  |     ------------------------------------------------------------------------------------ private associated function defined here

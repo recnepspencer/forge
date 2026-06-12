@@ -6,11 +6,26 @@ error: cannot construct `ForgeServerSurfaceRegistration` with struct literal syn
 5 |         family: ForgeServerSurfaceFamily::ForgeNative,
   |         --------------------------------------------- private field
   |
-  = note: ...and other private field `implementation_state` that was not provided
-help: you might have meant to use the `disabled` associated function
+  = note: ...and other private fields `implementation_state` and `details` that were not provided
+help: you might have meant to use an associated function to build this type
+  |
+4 -     let _registration = ForgeServerSurfaceRegistration {
+5 -         family: ForgeServerSurfaceFamily::ForgeNative,
+6 -     };
+4 +     let _registration = ForgeServerSurfaceRegistration::enabled(_);
   |
 4 -     let _registration = ForgeServerSurfaceRegistration {
 5 -         family: ForgeServerSurfaceFamily::ForgeNative,
 6 -     };
 4 +     let _registration = ForgeServerSurfaceRegistration::disabled(_);
+  |
+4 -     let _registration = ForgeServerSurfaceRegistration {
+5 -         family: ForgeServerSurfaceFamily::ForgeNative,
+6 -     };
+4 +     let _registration = ForgeServerSurfaceRegistration::enabled_compat_http(_, _);
+  |
+4 -     let _registration = ForgeServerSurfaceRegistration {
+5 -         family: ForgeServerSurfaceFamily::ForgeNative,
+6 -     };
+4 +     let _registration = ForgeServerSurfaceRegistration::disabled_compat_http(_, _);
   |

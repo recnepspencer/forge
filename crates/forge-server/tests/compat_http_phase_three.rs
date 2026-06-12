@@ -1,0 +1,416 @@
+#[path = "support/compat_http/phase_three_runtime.rs"]
+mod compat_http_phase_three_runtime;
+#[path = "support/forge_native/assertions.rs"]
+mod forge_native_assertions;
+#[path = "support/forge_native/runtime.rs"]
+mod forge_native_runtime;
+#[path = "support/query_handoff/runtime.rs"]
+mod query_handoff_runtime;
+
+use std::sync::atomic::Ordering;
+
+use forge_query::facade::{
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeSupportProfile,
+};
+use forge_server::{ForgeServerQueryHandoffDenialCode, ForgeServerSuccessKind};
+use serde_json::json;
+
+use compat_http_phase_three_runtime::{
+    build_phase_three_server, build_phase_three_server_with_workspace_provider,
+    compat_mutation_denied, compat_mutation_execution_input, compat_mutation_success,
+    direct_mutation_success, insert_task, mutation_input, mutation_request_input_for_workspace,
+    prepared_mutation_request, single_insert_body, StatefulCountingMutationWorkspaceProvider,
+};
+use forge_native_assertions::{
+    family_contract_digest, forge_native_session, response_provenance_digest,
+};
+use query_handoff_runtime::ProfiledCountingTestWorkspaceProvider;
+
+#[test]
+fn compat_http_single_insert_matches_forge_native_mutation_on_shared_query_artifacts() {
+    let server = build_phase_three_server();
+    let body = single_insert_body("task-1");
+    let compat = compat_mutation_success(server.compat_http().mutate(
+        compat_mutation_execution_input(&server, "tasks.insert", body),
+    ));
+    let direct = direct_mutation_success(forge_native_session(&server).direct().mutate(
+        &forge_server::ForgeServerQueryOperation::single_mutation(
+            "tasks.insert",
+            insert_task("task-1"),
+        ),
+    ));
+
+    assert_eq!(
+        compat
+            .envelope()
+            .response_envelope()
+            .success()
+            .expect("compat response should succeed")
+            .payload()
+            .kind(),
+        ForgeServerSuccessKind::QueryMutation
+    );
+    assert_eq!(
+        family_contract_digest(compat.envelope().support_posture()),
+        family_contract_digest(direct.support_posture())
+    );
+    assert_eq!(
+        compat.mutation_result().result_digest(),
+        direct.mutation_result().result_digest()
+    );
+    assert_eq!(
+        compat.mutation_result().inspection_digest(),
+        direct.mutation_result().inspection_digest()
+    );
+    assert_eq!(
+        response_provenance_digest(compat.envelope().response_envelope()),
+        response_provenance_digest(direct.response_envelope())
+    );
+    assert!(!compat.envelope().replay_receipt().is_replayed());
+}
+
+#[test]
+fn compat_http_mutation_denies_forbidden_and_unsupported_families() {
+    let server = build_phase_three_server();
+    let forbidden =
+        compat_mutation_denied(server.compat_http().mutate(compat_mutation_execution_input(
+            &server,
+            "tasks.verify-existing",
+            json!({
+                "command": {
+                    "family": "verify_existing",
+                    "authoritative_identity": "authority:task-1",
+                    "resolved_entity_identity": "task-1",
+                    "target_collection": "Task",
+                    "asserted_aspects": { "title.value": "Expected title" }
+                }
+            }),
+        )));
+    let unsupported =
+        compat_mutation_denied(server.compat_http().mutate(compat_mutation_execution_input(
+            &server,
+            "tasks.custom",
+            json!({
+                "command": {
+                    "family": "merge",
+                    "entity_identity": "task-1",
+                    "aspects": { "title.value": "Unexpected" }
+                }
+            }),
+        )));
+
+    assert_eq!(
+        forbidden.code(),
+        ForgeServerQueryHandoffDenialCode::CompatibilityMutationFamilyForbidden
+    );
+    assert!(forbidden
+        .detail()
+        .contains("forbidden at the external server boundary"));
+    assert_eq!(
+        unsupported.code(),
+        ForgeServerQueryHandoffDenialCode::CompatibilityMutationFamilyUnsupported
+    );
+    assert!(unsupported.detail().contains("`merge` is not supported"));
+}
+
+#[test]
+fn compat_http_mutation_preconditions_deny_before_any_write_attempt() {
+    let attempted_writes = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let server = build_phase_three_server_with_workspace_provider(
+        ProfiledCountingTestWorkspaceProvider::new(
+            ForgeQueryRuntimeSupportProfile::scaffold_backend_profile(),
+            attempted_writes.clone(),
+        ),
+    );
+    let mismatch_basis = forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+        prepared_mutation_request(
+            &server,
+            mutation_input("tasks.insert")
+                .with_query_pair("basis", "basis:drifted")
+                .build()
+                .expect("basis mutation input should validate structurally"),
+        ),
+        "tasks.insert",
+        single_insert_body("task-1"),
+    );
+    let mismatch_validator = forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+        prepared_mutation_request(
+            &server,
+            mutation_input("tasks.insert")
+                .with_header("if-match", "\"validator:wrong\"")
+                .build()
+                .expect("validator mutation input should validate structurally"),
+        ),
+        "tasks.insert",
+        single_insert_body("task-2"),
+    );
+
+    let basis_denial = compat_mutation_denied(server.compat_http().mutate(mismatch_basis));
+    let validator_denial = compat_mutation_denied(server.compat_http().mutate(mismatch_validator));
+
+    assert_eq!(
+        basis_denial.code(),
+        ForgeServerQueryHandoffDenialCode::CompatibilityMutationPreconditionFailed
+    );
+    assert!(basis_denial
+        .detail()
+        .contains("did not match the admitted mutation basis"));
+    assert_eq!(
+        validator_denial.code(),
+        ForgeServerQueryHandoffDenialCode::CompatibilityMutationPreconditionFailed
+    );
+    assert!(validator_denial
+        .detail()
+        .contains("did not match the canonical mutation validator"));
+    assert_eq!(
+        attempted_writes.load(Ordering::Relaxed),
+        0,
+        "compat mutation precondition failures must deny before any write executes"
+    );
+}
+
+#[test]
+fn compat_http_idempotency_replays_identical_requests_and_denies_conflicts() {
+    let attempted_writes = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let server = build_phase_three_server_with_workspace_provider(
+        ProfiledCountingTestWorkspaceProvider::new(
+            ForgeQueryRuntimeSupportProfile::scaffold_backend_profile(),
+            attempted_writes.clone(),
+        ),
+    );
+    let first = compat_mutation_success(
+        server.compat_http().mutate(
+            forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+                prepared_mutation_request(
+                    &server,
+                    mutation_input("tasks.insert")
+                        .with_header("idempotency-key", "idem-1")
+                        .build()
+                        .expect("first idempotent mutation input should validate structurally"),
+                ),
+                "tasks.insert",
+                single_insert_body("task-1"),
+            ),
+        ),
+    );
+    let replay = compat_mutation_success(
+        server.compat_http().mutate(
+            forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+                prepared_mutation_request(
+                    &server,
+                    mutation_input("tasks.insert")
+                        .with_header("idempotency-key", "idem-1")
+                        .build()
+                        .expect("replayed idempotent mutation input should validate structurally"),
+                ),
+                "tasks.insert",
+                single_insert_body("task-1"),
+            ),
+        ),
+    );
+    let conflict = compat_mutation_denied(
+        server.compat_http().mutate(
+            forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+                prepared_mutation_request(
+                    &server,
+                    mutation_input("tasks.insert")
+                        .with_header("idempotency-key", "idem-1")
+                        .build()
+                        .expect(
+                            "conflicting idempotent mutation input should validate structurally",
+                        ),
+                ),
+                "tasks.insert",
+                single_insert_body("task-2"),
+            ),
+        ),
+    );
+
+    assert!(!first.envelope().replay_receipt().is_replayed());
+    assert!(replay.envelope().replay_receipt().is_replayed());
+    assert_eq!(
+        first.mutation_result().result_digest(),
+        replay.mutation_result().result_digest()
+    );
+    assert_eq!(
+        attempted_writes.load(Ordering::Relaxed),
+        1,
+        "identical idempotent retries must not execute a second write"
+    );
+    assert_eq!(
+        conflict.code(),
+        ForgeServerQueryHandoffDenialCode::CompatibilityIdempotencyConflict
+    );
+    assert!(conflict.detail().contains("cannot be reused"));
+}
+
+#[test]
+fn compat_http_idempotency_scope_isolated_by_workspace_target() {
+    let attempted_writes = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let server = build_phase_three_server_with_workspace_provider(
+        ProfiledCountingTestWorkspaceProvider::new(
+            ForgeQueryRuntimeSupportProfile::scaffold_backend_profile(),
+            attempted_writes.clone(),
+        ),
+    );
+    let first = compat_mutation_success(
+        server.compat_http().mutate(
+            forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+                prepared_mutation_request(
+                    &server,
+                    mutation_input("tasks.insert")
+                        .with_header("idempotency-key", "shared-key")
+                        .build()
+                        .expect("first scoped idempotent mutation input should validate"),
+                ),
+                "tasks.insert",
+                single_insert_body("task-1"),
+            ),
+        ),
+    );
+    let second = compat_mutation_success(
+        server.compat_http().mutate(
+            forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+                prepared_mutation_request(
+                    &server,
+                    mutation_request_input_for_workspace("tasks.insert", "workspace-77")
+                        .with_header("accept", "application/json")
+                        .with_header("idempotency-key", "shared-key")
+                        .build()
+                        .expect("second scoped idempotent mutation input should validate"),
+                ),
+                "tasks.insert",
+                single_insert_body("task-2"),
+            ),
+        ),
+    );
+
+    assert!(!first.envelope().replay_receipt().is_replayed());
+    assert!(!second.envelope().replay_receipt().is_replayed());
+    assert_eq!(
+        attempted_writes.load(Ordering::Relaxed),
+        2,
+        "the same idempotency key must not collide across workspace scopes"
+    );
+}
+
+#[test]
+fn compat_http_mutation_denies_before_write_when_inspect_family_is_unavailable() {
+    let attempted_writes = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let server = build_phase_three_server_with_workspace_provider(
+        ProfiledCountingTestWorkspaceProvider::new(
+            ForgeQueryRuntimeSupportProfile::scaffold_backend_profile().with_family_support(
+                ForgeQueryRuntimeFamilySupport::unsupported(
+                    ForgeQueryRuntimeFacadeFamily::Inspect,
+                    "inspect is intentionally denied in this hostile compat mutation profile",
+                ),
+            ),
+            attempted_writes.clone(),
+        ),
+    );
+
+    let denial = compat_mutation_denied(server.compat_http().mutate(
+        compat_mutation_execution_input(&server, "tasks.insert", single_insert_body("task-1")),
+    ));
+
+    assert_eq!(
+        denial.code(),
+        ForgeServerQueryHandoffDenialCode::UnsupportedQueryFacadeFamily
+    );
+    assert!(denial
+        .detail()
+        .contains("does not admit `inspect` facade family"));
+    assert_eq!(
+        attempted_writes.load(Ordering::Relaxed),
+        0,
+        "inspect family denial must happen before any compatibility mutation write"
+    );
+}
+
+#[test]
+fn compat_http_mutation_request_denials_preserve_requested_diagnostics_profile() {
+    let server = build_phase_three_server();
+    let denial = compat_mutation_denied(server.compat_http().mutate(
+        forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+            prepared_mutation_request(
+                &server,
+                mutation_input("tasks.delete")
+                    .with_diagnostics_profile(
+                        forge_server::request_context::DiagnosticRichnessProfile::OperationalMinimal,
+                    )
+                    .build()
+                    .expect("diagnostic-profile mutation input should validate structurally"),
+            ),
+            "tasks.delete",
+            json!({
+                "command": {
+                    "family": "delete",
+                    "entity_identity": "task-1",
+                    "touched_aspect_paths": ["title.value", 7]
+                }
+            }),
+        ),
+    ));
+
+    assert_eq!(
+        denial.diagnostics_profile(),
+        forge_server::request_context::DiagnosticRichnessProfile::OperationalMinimal
+    );
+    assert_eq!(
+        denial.code(),
+        ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid
+    );
+}
+
+#[test]
+fn compat_http_mutation_rejects_stale_validator_after_authoritative_write() {
+    let attempted_writes = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let server = build_phase_three_server_with_workspace_provider(
+        StatefulCountingMutationWorkspaceProvider::new(
+            ForgeQueryRuntimeSupportProfile::scaffold_backend_profile(),
+            attempted_writes.clone(),
+        ),
+    );
+    let first = compat_mutation_success(
+        server.compat_http().mutate(
+            forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+                prepared_mutation_request(
+                    &server,
+                    mutation_input("tasks.insert")
+                        .build()
+                        .expect("first stateful mutation input should validate structurally"),
+                ),
+                "tasks.insert",
+                single_insert_body("task-1"),
+            ),
+        ),
+    );
+    let stale_validator_denial = compat_mutation_denied(
+        server.compat_http().mutate(
+            forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+                prepared_mutation_request(
+                    &server,
+                    mutation_input("tasks.insert")
+                        .with_header("if-match", first.precondition().validator())
+                        .build()
+                        .expect("stale-validator mutation input should validate structurally"),
+                ),
+                "tasks.insert",
+                single_insert_body("task-2"),
+            ),
+        ),
+    );
+
+    assert_eq!(
+        stale_validator_denial.code(),
+        ForgeServerQueryHandoffDenialCode::CompatibilityMutationPreconditionFailed
+    );
+    assert!(stale_validator_denial
+        .detail()
+        .contains("did not match the canonical mutation validator"));
+    assert_eq!(
+        attempted_writes.load(Ordering::Relaxed),
+        1,
+        "stale validator denial must happen before any second write executes"
+    );
+}

@@ -5,14 +5,12 @@ use super::grouped_planning::GroupedViewPlanningArtifact;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum KanbanGroupedLiveContract {
     DeltaBound,
-    RefreshDeferredDebt,
 }
 
 impl KanbanGroupedLiveContract {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::DeltaBound => "kanban_grouped_delta_bound",
-            Self::RefreshDeferredDebt => "kanban_grouped_refresh_deferred_debt",
         }
     }
 }
@@ -48,6 +46,14 @@ pub struct GroupedDeltaAdmissionPolicy {
 }
 
 impl GroupedDeltaAdmissionPolicy {
+    pub(crate) fn admitted_grouped_delta() -> Self {
+        Self {
+            contract: KanbanGroupedLiveContract::DeltaBound,
+            max_member_transitions: usize::MAX,
+            max_lane_reassignments: usize::MAX,
+        }
+    }
+
     pub fn contract(&self) -> &KanbanGroupedLiveContract {
         &self.contract
     }
@@ -63,36 +69,8 @@ impl GroupedDeltaAdmissionPolicy {
     pub(crate) fn derive_from_grouped_planning(
         grouped_planning: &GroupedViewPlanningArtifact,
     ) -> Self {
-        let grouped_delta_bound_admitted = grouped_planning.grouped_binding_width() <= 3
-            && grouped_planning.grouped_projection_width() <= 3
-            && grouped_planning.traversal_count() == 0
-            && grouped_planning.ordering_count() <= 1
-            && grouped_planning.predicate_count() <= 1
-            && !matches!(
-                grouped_planning.fallback(),
-                FallbackDisposition::AdmittedAndSelected
-            );
-
-        if grouped_delta_bound_admitted {
-            Self {
-                contract: KanbanGroupedLiveContract::DeltaBound,
-                max_member_transitions: 1,
-                max_lane_reassignments: 1,
-            }
-        } else {
-            Self {
-                contract: KanbanGroupedLiveContract::RefreshDeferredDebt,
-                max_member_transitions: 0,
-                max_lane_reassignments: 0,
-            }
-        }
-    }
-
-    pub(crate) fn refresh_deferred_debt() -> Self {
-        Self {
-            contract: KanbanGroupedLiveContract::RefreshDeferredDebt,
-            max_member_transitions: 0,
-            max_lane_reassignments: 0,
-        }
+        let _ = grouped_planning;
+        let _ = FallbackDisposition::AdmittedAndSelected;
+        Self::admitted_grouped_delta()
     }
 }

@@ -62,7 +62,12 @@ fn certification_bundle_matches_equivalent_public_and_proof_outputs() {
 
     let workflow = forge_query_domain("worth.spatial")
         .for_intent(&declaration)
-        .plans_preview_mutation("workflow.preview_mutation", "preview-session:certification")
+        .plans_preview_mutation(
+            "workflow.preview_mutation",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                "preview-session:certification",
+            ),
+        )
         .because("preview mutation planning should preserve canonical workflow semantics")
         .materialize()
         .expect("workflow common lane should materialize");
@@ -70,7 +75,9 @@ fn certification_bundle_matches_equivalent_public_and_proof_outputs() {
         ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
             "worth.spatial.workflow.preview_mutation",
             "preview mutation planning should preserve canonical workflow semantics",
-            "preview-session:certification",
+            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                "preview-session:certification",
+            ),
         )
         .for_intent_declaration(&declaration),
     )));

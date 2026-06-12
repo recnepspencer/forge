@@ -228,7 +228,9 @@ This is how you tell the difference between "nothing happened", "suppressed",
 - Store-backed effect execution and durable replay are **deferred**—see
   [authority-scoped effect execution](authority-scoped-effect-execution.md), not
   implied by effect authoring alone.
-- Mixed truth/time/async delivery remains deferred future work.
+- Runtime-backed mixed truth/time/async delivery meaning now projects through
+  the shipped effect delivery, inspection, remask, and downstream-delivery
+  surfaces rather than waiting on a separate effect-only facade family.
 
 ## How It Relates To Authority-Scoped Execution
 

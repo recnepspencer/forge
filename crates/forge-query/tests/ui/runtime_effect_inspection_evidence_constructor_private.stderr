@@ -58,7 +58,7 @@ error: cannot construct `ForgeQueryEffectInspectionEvidence` with struct literal
 35 |         inspection_digest: String::new(),
    |         -------------------------------- private field
    |
-   = note: ...and other private field `feedback_graph` that was not provided
+   = note: ...and other private fields `write_adjacent_trigger` and `feedback_graph` that were not provided
 help: you might have meant to use the `from_runtime` associated function
    |
  8 -     let _forged = ForgeQueryEffectInspectionEvidence {

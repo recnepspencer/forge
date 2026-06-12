@@ -6,4 +6,4 @@ error: cannot construct `SubscriptionActivationInput` with struct literal syntax
 5 |         activation_digest: String::new(),
   |         -------------------------------- private field
   |
-  = note: ...and other private fields `admission_digest`, `query_declaration_digest`, `bridge_declaration_digest`, `basis_binding_digest`, `signal_strategy_digest` and `counters` that were not provided
+  = note: ...and other private fields that were not provided

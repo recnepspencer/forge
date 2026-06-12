@@ -2,9 +2,10 @@ use forge_query::facade::runtime::ForgeQueryLowerRuntimeBoundaryEnvelopeSource;
 use hadwiger_research::facade::{
     certify_research_graph_invariant_violation, draft_research_graph_invariant_catalog,
     materialize_research_graph_invariant_denial, plan_research_graph_invariant_registration,
-    DiscoveryFrontier, ExperimentBatch, HadwigerResearchHandle, ResearchEvidenceCorpus,
-    ResearchGraphInvariantCheckRequest, ResearchGraphInvariantDenialRequest,
-    ResearchGraphInvariantError, ResearchGraphInvariantFamily,
+    project_research_graph_for_invariant_registration_checked,
+    register_research_graph_invariants_checked, DiscoveryFrontier, ExperimentBatch,
+    HadwigerResearchHandle, ResearchEvidenceCorpus, ResearchGraphInvariantCheckRequest,
+    ResearchGraphInvariantDenialRequest, ResearchGraphInvariantError, ResearchGraphInvariantFamily,
     ResearchGraphInvariantRegistrationPosture,
 };
 
@@ -32,11 +33,20 @@ fn invariant_catalog_dx(
     assert!(denial.query_denial().is_some());
 
     let plan = plan_research_graph_invariant_registration(handle, &catalog)?;
-    assert_eq!(plan.posture(), ResearchGraphInvariantRegistrationPosture::BlockedDraft);
+    assert_eq!(
+        plan.posture(),
+        ResearchGraphInvariantRegistrationPosture::CustomInvariantRegistrationsReady
+    );
     assert!(plan
         .compatible_query_surfaces()
-        .contains("ForgeQueryRuntime::builder().invariant_catalog(...)"));
-    assert!(!plan.registers_runtime_invariants());
+        .contains("ForgeQueryRuntime::builder().custom_invariant(...)"));
+    assert!(plan.registers_runtime_invariants());
+
+    let projection =
+        project_research_graph_for_invariant_registration_checked(handle, corpus, frontier)?;
+    assert_eq!(projection.source_corpus_digest(), corpus.corpus_digest().stable_token());
+    let checked = register_research_graph_invariants_checked(handle, projection.catalog())?;
+    assert_eq!(checked.custom_invariant_registrations().len(), 5);
     Ok(())
 }
 

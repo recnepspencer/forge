@@ -12,8 +12,8 @@ use forge_query::facade::{
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
     ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
     ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
+    ForgeQuerySessionLabel, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
     SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
     SubscriptionActivationInput, WriteAuthorityExecutionReceipt,
 };
@@ -349,13 +349,13 @@ pub(super) struct PublicPreviewBasisAdapter;
 impl ForgeQueryRuntimePreviewBasisAdapter for PublicPreviewBasisAdapter {
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
         Ok(ForgeQueryPreviewBasisAdmission::new(
             authority,
-            label,
+            label.clone(),
             effect_policy,
             ["public-graph-preview-basis"],
         ))

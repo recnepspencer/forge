@@ -76,6 +76,11 @@ fn default_capability_profile(family: ProjectionSourceFamily) -> ProjectionSourc
                 execution_posture: ProjectionSourceExecutionPosture::Current,
             }
         }
+        ProjectionSourceFamily::QueryLiveReadReceipt => {
+            ProjectionSourceCapabilityProfile::QueryLiveReadReceipt {
+                execution_posture: ProjectionSourceExecutionPosture::Current,
+            }
+        }
         ProjectionSourceFamily::QueryWriteReceipt => {
             ProjectionSourceCapabilityProfile::QueryWriteReceipt {
                 capabilities: ProjectionWriteReceiptCapabilities::default(),
@@ -97,6 +102,12 @@ fn default_capability_profile(family: ProjectionSourceFamily) -> ProjectionSourc
         }
         ProjectionSourceFamily::BridgeGroupedTruthView => {
             ProjectionSourceCapabilityProfile::BridgeGroupedTruthView
+        }
+        ProjectionSourceFamily::RetainedDerivedArtifactBinding => {
+            ProjectionSourceCapabilityProfile::RetainedDerivedArtifactBinding
+        }
+        ProjectionSourceFamily::LiveArtifactBinding => {
+            ProjectionSourceCapabilityProfile::LiveArtifactBinding
         }
     }
 }

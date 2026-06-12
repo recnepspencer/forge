@@ -1,0 +1,4 @@
+mod plugin_slot_accepted_registration_proof;
+mod plugin_slot_registration;
+
+pub(crate) use plugin_slot_accepted_registration_proof::PluginSlotAcceptedRegistrationProof;

@@ -2,6 +2,10 @@ use forge_foundational::facade::CanonicalDerivedDigest;
 
 use super::query_references::{HadwigerQueryDeclarationReference, HadwigerQueryEnvelopeReference};
 
+mod artifact_kinds;
+
+pub use artifact_kinds::HadwigerArtifactKind;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HadwigerArtifactShapeError {
     EmptyField { field: &'static str },
@@ -9,143 +13,6 @@ pub enum HadwigerArtifactShapeError {
     MissingEdgeEndpoint { vertex_label: String },
     SelfEdge { vertex_label: String },
     EmptyParentArtifacts,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum HadwigerArtifactKind {
-    GraphIdentity,
-    GraphVersion,
-    VertexIdentity,
-    EdgeIdentity,
-    EmbeddingCandidate,
-    UnitDistanceVerification,
-    ColorabilityEncoding,
-    SolverRun,
-    ColorabilityVerification,
-    UnsatCoreArtifact,
-    GadgetDefinition,
-    GadgetContract,
-    GraphComposition,
-    ReductionTrace,
-    ProofClaim,
-    AIAdvisoryArtifact,
-    AgentAdvisoryArtifact,
-    AgentExplorationBatch,
-    AgentAdvisoryContributionRecord,
-    AgentExperimentProposalScreening,
-    WholePlaneColoringConstruction,
-    WholePlaneColoringVerification,
-    LowerBoundWitnessArtifact,
-    RetainedBackgroundTheorem,
-    RejectionExplanation,
-    PartialAdmissionExplanation,
-    QueryRecoveryExplanation,
-    RepairObligation,
-    ReusableNegativeEvidence,
-    ConservativeEscalationExplanation,
-    ResearchEvidenceCorpus,
-    GraphResidentFailure,
-    FailureBasisFingerprint,
-    PatternSignature,
-    MotifObservation,
-    InvariantHypothesis,
-    InvariantCandidate,
-    CounterexampleObligation,
-    DeadEndSignature,
-    ExperimentSuppressionProof,
-    ExperimentPlan,
-    ExperimentBatch,
-    ExperimentResult,
-    DiscoveryFrontier,
-    DerivedFrontierState,
-    RetiredHypothesisRecord,
-    ReactivationCondition,
-    HadwigerResearchInvariantCatalog,
-    ResearchGraphInvariantRule,
-    ResearchGraphInvariantViolation,
-    ResearchGraphInvariantDenial,
-    ResearchGraphInvariantRegistrationPlan,
-    ResearchCockpitSession,
-    ResearchCockpitActionPacket,
-    ResearchCockpitEquivalenceClass,
-    ResearchCockpitReport,
-    HadwigerCertificationBundle,
-    TileEquivalenceWitness,
-    CandidateScreeningInvariantCatalog,
-    CandidateScreeningInvariantNode,
-    CandidateScreeningEvaluation,
-    CandidateScreeningEvaluationReport,
-}
-
-impl HadwigerArtifactKind {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::GraphIdentity => "graph_identity",
-            Self::GraphVersion => "graph_version",
-            Self::VertexIdentity => "vertex_identity",
-            Self::EdgeIdentity => "edge_identity",
-            Self::EmbeddingCandidate => "embedding_candidate",
-            Self::UnitDistanceVerification => "unit_distance_verification",
-            Self::ColorabilityEncoding => "colorability_encoding",
-            Self::SolverRun => "solver_run",
-            Self::ColorabilityVerification => "colorability_verification",
-            Self::UnsatCoreArtifact => "unsat_core_artifact",
-            Self::GadgetDefinition => "gadget_definition",
-            Self::GadgetContract => "gadget_contract",
-            Self::GraphComposition => "graph_composition",
-            Self::ReductionTrace => "reduction_trace",
-            Self::ProofClaim => "proof_claim",
-            Self::AIAdvisoryArtifact => "ai_advisory_artifact",
-            Self::AgentAdvisoryArtifact => "agent_advisory_artifact",
-            Self::AgentExplorationBatch => "agent_exploration_batch",
-            Self::AgentAdvisoryContributionRecord => "agent_advisory_contribution_record",
-            Self::AgentExperimentProposalScreening => "agent_experiment_proposal_screening",
-            Self::WholePlaneColoringConstruction => "whole_plane_coloring_construction",
-            Self::WholePlaneColoringVerification => "whole_plane_coloring_verification",
-            Self::LowerBoundWitnessArtifact => "lower_bound_witness_artifact",
-            Self::RetainedBackgroundTheorem => "retained_background_theorem",
-            Self::RejectionExplanation => "rejection_explanation",
-            Self::PartialAdmissionExplanation => "partial_admission_explanation",
-            Self::QueryRecoveryExplanation => "query_recovery_explanation",
-            Self::RepairObligation => "repair_obligation",
-            Self::ReusableNegativeEvidence => "reusable_negative_evidence",
-            Self::ConservativeEscalationExplanation => "conservative_escalation_explanation",
-            Self::ResearchEvidenceCorpus => "research_evidence_corpus",
-            Self::GraphResidentFailure => "graph_resident_failure",
-            Self::FailureBasisFingerprint => "failure_basis_fingerprint",
-            Self::PatternSignature => "pattern_signature",
-            Self::MotifObservation => "motif_observation",
-            Self::InvariantHypothesis => "invariant_hypothesis",
-            Self::InvariantCandidate => "invariant_candidate",
-            Self::CounterexampleObligation => "counterexample_obligation",
-            Self::DeadEndSignature => "dead_end_signature",
-            Self::ExperimentSuppressionProof => "experiment_suppression_proof",
-            Self::ExperimentPlan => "experiment_plan",
-            Self::ExperimentBatch => "experiment_batch",
-            Self::ExperimentResult => "experiment_result",
-            Self::DiscoveryFrontier => "discovery_frontier",
-            Self::DerivedFrontierState => "derived_frontier_state",
-            Self::RetiredHypothesisRecord => "retired_hypothesis_record",
-            Self::ReactivationCondition => "reactivation_condition",
-            Self::HadwigerResearchInvariantCatalog => "hadwiger_research_invariant_catalog",
-            Self::ResearchGraphInvariantRule => "research_graph_invariant_rule",
-            Self::ResearchGraphInvariantViolation => "research_graph_invariant_violation",
-            Self::ResearchGraphInvariantDenial => "research_graph_invariant_denial",
-            Self::ResearchGraphInvariantRegistrationPlan => {
-                "research_graph_invariant_registration_plan"
-            }
-            Self::ResearchCockpitSession => "research_cockpit_session",
-            Self::ResearchCockpitActionPacket => "research_cockpit_action_packet",
-            Self::ResearchCockpitEquivalenceClass => "research_cockpit_equivalence_class",
-            Self::ResearchCockpitReport => "research_cockpit_report",
-            Self::HadwigerCertificationBundle => "hadwiger_certification_bundle",
-            Self::TileEquivalenceWitness => "tile_equivalence_witness",
-            Self::CandidateScreeningInvariantCatalog => "candidate_screening_invariant_catalog",
-            Self::CandidateScreeningInvariantNode => "candidate_screening_invariant_node",
-            Self::CandidateScreeningEvaluation => "candidate_screening_evaluation",
-            Self::CandidateScreeningEvaluationReport => "candidate_screening_evaluation_report",
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -363,46 +230,4 @@ pub(crate) fn canonical_digest_token(digest: &CanonicalDerivedDigest) -> String 
         .collect()
 }
 
-macro_rules! impl_hadwiger_artifact {
-    ($type:ty, $core:ident) => {
-        impl $crate::domain_artifacts::core_artifact::HadwigerCanonicalArtifact for $type {
-            fn artifact_kind(
-                &self,
-            ) -> $crate::domain_artifacts::core_artifact::HadwigerArtifactKind {
-                self.$core.artifact_kind()
-            }
-
-            fn artifact_digest(
-                &self,
-            ) -> &$crate::domain_artifacts::core_artifact::HadwigerArtifactDigest {
-                self.$core.artifact_digest()
-            }
-
-            fn authority_owner(
-                &self,
-            ) -> $crate::domain_artifacts::core_artifact::HadwigerArtifactAuthorityOwner {
-                self.$core.authority_owner()
-            }
-
-            fn source_reference(
-                &self,
-            ) -> &$crate::domain_artifacts::core_artifact::HadwigerArtifactSourceReference {
-                self.$core.source_reference()
-            }
-
-            fn parent_artifacts(
-                &self,
-            ) -> &[$crate::domain_artifacts::core_artifact::HadwigerArtifactReference] {
-                self.$core.parent_artifacts()
-            }
-
-            fn reference(
-                &self,
-            ) -> $crate::domain_artifacts::core_artifact::HadwigerArtifactReference {
-                self.$core.reference()
-            }
-        }
-    };
-}
-
-pub(crate) use impl_hadwiger_artifact;
+pub(crate) use super::canonical_artifact_impl::impl_hadwiger_artifact;

@@ -111,3 +111,26 @@ fn direct_graph_screening_reports_explicit_budget_limits() {
         }
     );
 }
+
+#[test]
+fn maximum_degree_sanity_materializes_query_advisory_not_invariant() {
+    let handle = handle();
+    let graph = path_graph(3);
+
+    let advisory = advise_maximum_degree_sanity_checked(
+        &handle,
+        AdvisoryNoteDeclaration::new(graph.version_id(), "maximum-degree-sanity"),
+        &graph,
+        6,
+    )
+    .unwrap();
+
+    assert_eq!(
+        advisory.advisory_artifact().posture(),
+        CandidateScreeningAdvisoryPosture::Deprioritize
+    );
+    assert_eq!(advisory.advisory_artifact().maximum_degree(), 2);
+    assert!(advisory.query_contribution_digest().is_some());
+    assert!(!advisory.admits_theorem_authority());
+    assert!(!advisory.registers_query_invariant_authority());
+}

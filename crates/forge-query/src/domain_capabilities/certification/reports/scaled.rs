@@ -105,7 +105,9 @@ fn scaled_evidence(scale: usize) -> ForgeQueryDomainCapabilityScaledEvidence {
             .for_intent(&declaration)
             .plans_preview_mutation(
                 format!("workflow.scale_{scale}"),
-                format!("preview-session:scale-{scale}"),
+                crate::facade::runtime::BridgePreviewSessionIdentity::new(format!(
+                    "preview-session:scale-{scale}"
+                )),
             )
             .because("scaled workflow evidence should remain canonical")
             .materialize()

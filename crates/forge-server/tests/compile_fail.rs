@@ -10,6 +10,18 @@ fn external_code_cannot_construct_or_reuse_sealed_phase_artifacts_directly() {
         "tests/ui/construction/query_handoff/private_prepared_query_handoff_constructor.rs",
     );
     tests.compile_fail("tests/ui/construction/query_handoff/private_query_handoff_constructor.rs");
+    tests
+        .compile_fail("tests/ui/construction/forge_native/private_prepared_session_constructor.rs");
+    tests.compile_fail("tests/ui/construction/forge_native/private_session_constructor.rs");
+    tests.compile_fail("tests/ui/construction/forge_native/private_direct_facade_constructor.rs");
+    tests.compile_fail("tests/ui/construction/forge_native/private_raw_query_workspace_access.rs");
+    tests.compile_fail("tests/ui/construction/compat_http/private_request_constructor.rs");
+    tests.compile_fail(
+        "tests/ui/construction/forge_native/private_direct_lease_declaration_constructor.rs",
+    );
+    tests.compile_fail(
+        "tests/ui/construction/forge_native/private_direct_delivery_contract_constructor.rs",
+    );
     tests.compile_fail("tests/ui/construction/private_request_context_constructor.rs");
     tests.compile_fail("tests/ui/construction/private_surface_registration_constructor.rs");
     tests.compile_fail("tests/ui/construction/private_server_constructor.rs");

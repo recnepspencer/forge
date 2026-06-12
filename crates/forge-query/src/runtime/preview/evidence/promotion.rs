@@ -62,7 +62,10 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             format!("label:{label}"),
             format!("kind:{}", kind.as_str()),
             format!("policy:{}", effect_policy.as_str()),
-            format!("basis_label:{}", basis_admission.label()),
+            format!(
+                "basis_label_identity:{}",
+                basis_admission.label_identity().as_str()
+            ),
             format!("basis_lane:{}", basis_admission.authority_lane()),
             format!("basis_snapshot:{basis_snapshot_token}"),
             format!("promotion_snapshot:{promotion_snapshot_token}"),

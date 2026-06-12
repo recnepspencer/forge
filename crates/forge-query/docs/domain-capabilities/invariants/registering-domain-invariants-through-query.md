@@ -9,6 +9,10 @@ registration while still lowering into relational invariant authority.
 
 - you want geometry-kernel invariants registered through the same public Query
   runtime builder you already use elsewhere
+- you have structural authoring legality to enforce — which owner kinds may
+  contain which child kinds, what may move where, what may reference what,
+  what may splice into what — and those rules should be registered invariants
+  rather than a host-local legality graph beside the runtime
 - you do not want every downstream domain importing relational builder plumbing
   directly
 - you need registration artifacts that can flow from domain capabilities into
@@ -36,6 +40,15 @@ There are two honest ways to use that:
 - register invariants directly through the ordinary Query runtime builder
 - materialize a Query invariant-registration artifact through domain
   capabilities, then hand that artifact to the same runtime builder
+
+Invariant content is not limited to geometric publication safety. Structural
+authoring legality is the same category: containment and ownership rules,
+move and placement eligibility, reference legality, and splice boundaries
+for editor-grade authoring surfaces all belong in registered invariant
+catalogs. When a registered structural invariant blocks an operation, the
+denial arrives as the same typed graph-composition domain-invariant denial
+the rest of the runtime emits — not as a verdict from a consumer-owned
+validation layer.
 
 ## How It Executes
 
@@ -107,6 +120,10 @@ result without a second local adapter.
   registrations
 - teaching registration artifacts as if they were themselves executable
   invariant engines
+- maintaining a host-local legality graph — ownership/containment edges, move
+  eligibility tables, splice-boundary rules — beside the runtime and
+  pre-validating commands against it, instead of registering those rules as
+  domain invariants and consuming the runtime's typed denials
 
 ## Current Limits
 

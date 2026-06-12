@@ -112,6 +112,18 @@ impl ForgeQueryRuntimePublicApiNamingContract {
             ),
             ForgeQueryRuntimePublicApiNamingRow::new("effect", "effect", ["declare_effect"], true),
             ForgeQueryRuntimePublicApiNamingRow::new(
+                "preview",
+                "preview",
+                ["preview_with_options"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "branch",
+                "branch",
+                ["branch_with_options"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
                 "state",
                 "state",
                 std::iter::empty::<&str>(),
@@ -139,31 +151,34 @@ impl ForgeQueryRuntimePublicApiNamingContract {
             ForgeQueryRuntimePublicApiNamingRow::new(
                 "write",
                 "write",
-                std::iter::empty::<&str>(),
+                ["ForgeQueryWriteCommand"],
                 false,
             ),
             ForgeQueryRuntimePublicApiNamingRow::new(
                 "insert",
                 "insert",
-                std::iter::empty::<&str>(),
+                ["ForgeQueryWriteCommand::InsertAspects"],
                 false,
             ),
             ForgeQueryRuntimePublicApiNamingRow::new(
                 "update",
                 "update",
-                std::iter::empty::<&str>(),
+                [
+                    "ForgeQueryWriteCommand::UpdateAspect",
+                    "ForgeQueryWriteCommand::UpdateAspects",
+                ],
                 false,
             ),
             ForgeQueryRuntimePublicApiNamingRow::new(
                 "delete",
                 "delete",
-                std::iter::empty::<&str>(),
+                ["ForgeQueryWriteCommand::Delete"],
                 false,
             ),
             ForgeQueryRuntimePublicApiNamingRow::new(
                 "batch",
                 "batch",
-                std::iter::empty::<&str>(),
+                ["workspace.write(...)"],
                 false,
             ),
         ];

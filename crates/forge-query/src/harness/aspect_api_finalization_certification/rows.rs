@@ -5,6 +5,7 @@ use crate::runtime::{
     ForgeQueryAuthorityLane, ForgeQueryIntentDeclaration, ForgeQueryLiveView,
     ForgeQueryPreviewOptions, ForgeQueryRuntimeError,
 };
+use crate::ForgeQuerySessionLabel;
 use serde_json::Value;
 
 use super::digests::{inspection_digest, touched_aspect_digest};
@@ -271,7 +272,11 @@ fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
         .expect("workspace should open");
     let mut preview = workspace
         .preview_with_options(
-            "preview-batch",
+            ForgeQuerySessionLabel::scoped_strs(
+                "aspect-api-finalization-certification",
+                ["preview-batch"],
+            )
+            .expect("preview label should build"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview should open");

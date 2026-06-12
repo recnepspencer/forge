@@ -1,23 +1,38 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::ForgeServerResolvedRequestContext;
-
-use super::ForgeServerQueryHandoffOperation;
+use crate::{
+    ForgeServerDirectDeclarationSourceKind, ForgeServerQueryHandoffOperation,
+    ForgeServerResolvedRequestContext,
+};
 
 #[derive(Clone, Debug)]
 pub struct ForgeServerQueryWorkspaceBindingRequest {
     resolved_request_context: ForgeServerResolvedRequestContext,
-    operation: ForgeServerQueryHandoffOperation,
+    target: ForgeServerQueryWorkspaceBindingTarget,
 }
 
 impl ForgeServerQueryWorkspaceBindingRequest {
-    pub(crate) fn new(
+    pub(crate) fn for_query_handoff(
         resolved_request_context: ForgeServerResolvedRequestContext,
         operation: ForgeServerQueryHandoffOperation,
     ) -> Self {
         Self {
             resolved_request_context,
-            operation,
+            target: ForgeServerQueryWorkspaceBindingTarget::QueryHandoff { operation },
+        }
+    }
+
+    pub(crate) fn for_direct_declaration(
+        resolved_request_context: ForgeServerResolvedRequestContext,
+        source_kind: ForgeServerDirectDeclarationSourceKind,
+        binding_label: impl Into<String>,
+    ) -> Self {
+        Self {
+            resolved_request_context,
+            target: ForgeServerQueryWorkspaceBindingTarget::DirectDeclaration {
+                source_kind,
+                binding_label: binding_label.into(),
+            },
         }
     }
 
@@ -25,8 +40,35 @@ impl ForgeServerQueryWorkspaceBindingRequest {
         &self.resolved_request_context
     }
 
-    pub fn operation(&self) -> &ForgeServerQueryHandoffOperation {
-        &self.operation
+    pub fn target(&self) -> &ForgeServerQueryWorkspaceBindingTarget {
+        &self.target
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ForgeServerQueryWorkspaceBindingTarget {
+    QueryHandoff {
+        operation: ForgeServerQueryHandoffOperation,
+    },
+    DirectDeclaration {
+        source_kind: ForgeServerDirectDeclarationSourceKind,
+        binding_label: String,
+    },
+}
+
+impl ForgeServerQueryWorkspaceBindingTarget {
+    pub fn canonical_label(&self) -> String {
+        match self {
+            Self::QueryHandoff { operation } => operation.canonical_label(),
+            Self::DirectDeclaration {
+                source_kind,
+                binding_label,
+            } => format!(
+                "direct-declaration:{}:{}",
+                source_kind.as_str(),
+                binding_label
+            ),
+        }
     }
 }
 

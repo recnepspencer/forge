@@ -37,4 +37,8 @@ impl ForgeServerRequestContextFacade {
     > {
         self.resolve(input)
     }
+
+    pub fn default_diagnostics_profile(&self) -> crate::request_context::DiagnosticRichnessProfile {
+        self.config.default_diagnostics_profile()
+    }
 }

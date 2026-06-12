@@ -33,6 +33,7 @@ impl ForgeServerAdmission {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeServerPreparedQueryHandoffKind {
+    ForgeNativeSession,
     QueryRead,
     QueryMutation,
 }
@@ -46,6 +47,10 @@ pub struct ForgeServerPreparedQueryHandoffIntent {
 impl ForgeServerPreparedQueryHandoffIntent {
     pub(crate) fn from_pipeline_intent(intent: ForgeServerPipelineIntent) -> Self {
         match intent {
+            ForgeServerPipelineIntent::ForgeNativeSession { operation_name } => Self {
+                kind: ForgeServerPreparedQueryHandoffKind::ForgeNativeSession,
+                operation_name,
+            },
             ForgeServerPipelineIntent::QueryRead { operation_name } => Self {
                 kind: ForgeServerPreparedQueryHandoffKind::QueryRead,
                 operation_name,
