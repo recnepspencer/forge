@@ -11,8 +11,10 @@ continuation.
 
 Start with [Milestone 1](docs/milestone-1.md), then move into
 [Milestone 2](docs/milestone-2.md) for the tiling candidate language and
-iteration harness that makes the evidence stack usable for closed-loop
-exploration.
+iteration harness. [Milestone 3](docs/milestone-3.md) turns that typed
+iteration substrate into a construction resolver and research compiler, so
+external human/agent hypotheses become executable, falsifiable, repairable,
+and replayable without becoming mathematical authority by accident.
 
 ## Local Verification
 
