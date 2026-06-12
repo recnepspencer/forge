@@ -8,6 +8,7 @@ use crate::facade::{
     GuidedAuthoringPath, IdentityBindingDescriptor, QueryBindingDescriptor, QueryBindingSlot,
     QueryBindingSubject, ResolvedSnapshotIdentity, RootEntityKey, SnapshotLineageClass,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::planning::{
     plan_validated_bundle_for_requested_aggregate_family,
     plan_validated_bundle_for_requested_derived_field_family, RequestedAggregateFamily,
@@ -120,7 +121,7 @@ fn runtime_resolved_identity(
     ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         Some("workspace-main".to_string()),
-        "snapshot-1",
+        ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-1").evidence_identity(),
         schema_basis,
         SnapshotLineageClass::CurrentHead,
     )
@@ -513,7 +514,8 @@ fn resolve_snapshot_basis_rejects_identity_mismatch() {
         ResolvedSnapshotIdentity::new(
             BasisAuthorityFamily::Store,
             Some("workspace-main".to_string()),
-            "snapshot-2",
+            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-2")
+                .evidence_identity(),
             bundle.query().schema_basis().clone(),
             SnapshotLineageClass::CurrentHead,
         ),

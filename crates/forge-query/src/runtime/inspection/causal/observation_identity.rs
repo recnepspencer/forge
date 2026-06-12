@@ -1,6 +1,8 @@
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
+use forge_runtime_bridge::facade::BridgeIdentityEvidence;
+
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
@@ -15,6 +17,11 @@ macro_rules! causal_identity_type {
                 Self(identity)
             }
 
+            #[allow(dead_code)]
+            pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+                &self.0
+            }
+
             pub fn as_str(&self) -> &str {
                 self.0.as_str()
             }
@@ -23,59 +30,6 @@ macro_rules! causal_identity_type {
         impl From<ForgeQueryEvidenceIdentity> for $name {
             fn from(value: ForgeQueryEvidenceIdentity) -> Self {
                 Self::from_identity(value)
-            }
-        }
-
-        impl AsRef<str> for $name {
-            fn as_ref(&self) -> &str {
-                self.as_str()
-            }
-        }
-
-        impl Ord for $name {
-            fn cmp(&self, other: &Self) -> Ordering {
-                self.as_str().cmp(other.as_str())
-            }
-        }
-
-        impl PartialOrd for $name {
-            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                Some(self.cmp(other))
-            }
-        }
-
-        impl Hash for $name {
-            fn hash<H: Hasher>(&self, state: &mut H) {
-                self.as_str().hash(state);
-            }
-        }
-    };
-}
-
-macro_rules! causal_handle_string_type {
-    ($name:ident) => {
-        #[derive(Clone, Debug, Eq, PartialEq)]
-        pub struct $name(String);
-
-        impl $name {
-            pub(crate) fn from_handle(handle: impl Into<String>) -> Self {
-                Self(handle.into())
-            }
-
-            pub fn as_str(&self) -> &str {
-                &self.0
-            }
-        }
-
-        impl From<String> for $name {
-            fn from(value: String) -> Self {
-                Self::from_handle(value)
-            }
-        }
-
-        impl From<&str> for $name {
-            fn from(value: &str) -> Self {
-                Self::from_handle(value)
             }
         }
 
@@ -120,17 +74,10 @@ causal_identity_type!(CausalEvidenceReferenceResolutionDenialIdentity);
 causal_identity_type!(CausalEvidenceReferenceIndexIdentity);
 causal_identity_type!(CausalEvidenceReferenceIndexRecordIdentity);
 causal_identity_type!(CausalEvidenceReferenceIndexErrorIdentity);
-causal_handle_string_type!(CausalEvidenceReferenceDigest);
-
-impl From<ForgeQueryEvidenceIdentity> for CausalEvidenceReferenceDigest {
-    fn from(value: ForgeQueryEvidenceIdentity) -> Self {
-        Self::from_handle(value.as_str())
-    }
-}
+causal_identity_type!(CausalEvidenceReferenceDigest);
 
 pub(in crate::runtime) enum CausalEvidenceReferenceInput {
     Typed(CausalEvidenceReferenceDigest),
-    Source(String),
 }
 
 impl From<CausalEvidenceReferenceDigest> for CausalEvidenceReferenceInput {
@@ -139,25 +86,24 @@ impl From<CausalEvidenceReferenceDigest> for CausalEvidenceReferenceInput {
     }
 }
 
-impl From<&str> for CausalEvidenceReferenceInput {
-    fn from(value: &str) -> Self {
-        Self::Source(value.to_string())
-    }
-}
-
-impl From<String> for CausalEvidenceReferenceInput {
-    fn from(value: String) -> Self {
-        Self::Source(value)
+impl From<BridgeIdentityEvidence> for CausalEvidenceReferenceInput {
+    fn from(value: BridgeIdentityEvidence) -> Self {
+        Self::Typed(
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
+                .field_bridge_identity(ForgeQueryEvidenceTag::new("bridge_evidence"), &value)
+                .seal()
+                .into(),
+        )
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalObservationTargetHandle {
-    rendered: String,
     identity: CausalObservationTargetIdentity,
 }
 
 impl CausalObservationTargetHandle {
+    #[cfg(test)]
     pub(crate) fn from_rendered(rendered: impl Into<String>) -> Self {
         let rendered = rendered.into();
         let identity =
@@ -165,11 +111,20 @@ impl CausalObservationTargetHandle {
                 .field_value(ForgeQueryEvidenceTag::new("rendered"), &rendered)
                 .seal()
                 .into();
-        Self { rendered, identity }
+        Self { identity }
+    }
+
+    pub(crate) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
+        let identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalObservationTarget)
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("source_identity"), identity)
+                .seal()
+                .into();
+        Self { identity }
     }
 
     pub fn rendered(&self) -> &str {
-        &self.rendered
+        self.identity.as_str()
     }
 
     pub fn identity(&self) -> &CausalObservationTargetIdentity {
@@ -179,11 +134,11 @@ impl CausalObservationTargetHandle {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalResultShapeContextHandle {
-    rendered: String,
     identity: CausalResultShapeContextIdentity,
 }
 
 impl CausalResultShapeContextHandle {
+    #[cfg(test)]
     pub(crate) fn from_rendered(rendered: impl Into<String>) -> Self {
         let rendered = rendered.into();
         let identity =
@@ -191,11 +146,20 @@ impl CausalResultShapeContextHandle {
                 .field_value(ForgeQueryEvidenceTag::new("rendered"), &rendered)
                 .seal()
                 .into();
-        Self { rendered, identity }
+        Self { identity }
+    }
+
+    pub(crate) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
+        let identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalResultShapeContext)
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("source_identity"), identity)
+                .seal()
+                .into();
+        Self { identity }
     }
 
     pub fn rendered(&self) -> &str {
-        &self.rendered
+        self.identity.as_str()
     }
 
     pub fn identity(&self) -> &CausalResultShapeContextIdentity {

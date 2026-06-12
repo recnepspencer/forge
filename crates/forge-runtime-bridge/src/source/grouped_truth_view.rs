@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use forge_foundational::facade::{AspectKey, AspectValue, ContractValidatedAspectValueView};
 
+use crate::identity::BridgeIdentityEvidence;
+
 use super::grouped_contract::{
     GroupedProjectionContract, GroupedProjectionMemberSource, GroupedProjectionSource,
 };
@@ -69,6 +71,10 @@ pub struct BridgeGroupedTruthViewDigest(Arc<str>);
 impl BridgeGroupedTruthViewDigest {
     pub fn as_str(&self) -> &str {
         self.0.as_ref()
+    }
+
+    pub fn evidence_identity(&self) -> BridgeIdentityEvidence {
+        BridgeIdentityEvidence::from_arc(&self.0)
     }
 }
 

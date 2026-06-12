@@ -18,11 +18,34 @@ pub enum ForgeQueryPreparedContinuationFamily {
     BridgeWritebackPreparation,
 }
 
+impl ForgeQueryPreparedContinuationFamily {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::BridgeRuntimeRoute => "bridge-runtime-route",
+            Self::BridgeTruthView => "bridge-truth-view",
+            Self::BridgePreviewSession => "bridge-preview-session",
+            Self::BridgePreviewPromotion => "bridge-preview-promotion",
+            Self::BridgeSubscriptionPreparation => "bridge-subscription-preparation",
+            Self::BridgeWritebackPreparation => "bridge-writeback-preparation",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryContinuationTruthContext {
     Current,
     Historical,
     Preview,
+}
+
+impl ForgeQueryContinuationTruthContext {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Current => "current",
+            Self::Historical => "historical",
+            Self::Preview => "preview",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,6 +56,17 @@ pub enum ForgeQueryContinuationBasisPosture {
     Mixed,
 }
 
+impl ForgeQueryContinuationBasisPosture {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::CurrentHead => "current-head",
+            Self::HistoricalSnapshot => "historical-snapshot",
+            Self::PreviewDerived => "preview-derived",
+            Self::Mixed => "mixed",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryContinuationWorkspaceContract {
     RuntimeWorkspace,
@@ -40,6 +74,18 @@ pub enum ForgeQueryContinuationWorkspaceContract {
     PreviewWorkspace,
     SubscriptionWorkspace,
     WritebackWorkspace,
+}
+
+impl ForgeQueryContinuationWorkspaceContract {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::RuntimeWorkspace => "runtime-workspace",
+            Self::TruthViewWorkspace => "truth-view-workspace",
+            Self::PreviewWorkspace => "preview-workspace",
+            Self::SubscriptionWorkspace => "subscription-workspace",
+            Self::WritebackWorkspace => "writeback-workspace",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -52,9 +98,30 @@ pub enum ForgeQueryContinuationRuntimeContract {
     WritebackPreparation,
 }
 
+impl ForgeQueryContinuationRuntimeContract {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::RuntimeRoute => "runtime-route",
+            Self::TruthView => "truth-view",
+            Self::PreviewSession => "preview-session",
+            Self::PreviewPromotion => "preview-promotion",
+            Self::SubscriptionPreparation => "subscription-preparation",
+            Self::WritebackPreparation => "writeback-preparation",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryPreparedContinuationExecutionMode {
     ExplicitBridgeLowering,
+}
+
+impl ForgeQueryPreparedContinuationExecutionMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ExplicitBridgeLowering => "explicit-bridge-lowering",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -63,6 +130,17 @@ pub enum ForgeQueryPreparedContinuationSignalPosture {
     Deferred,
     Denied,
     Failed,
+}
+
+impl ForgeQueryPreparedContinuationSignalPosture {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Compatible => "compatible",
+            Self::Deferred => "deferred",
+            Self::Denied => "denied",
+            Self::Failed => "failed",
+        }
+    }
 }
 
 pub struct ForgeQueryPreparedContinuation<

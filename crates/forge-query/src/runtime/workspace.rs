@@ -1,21 +1,18 @@
 use super::{
     DeclarativeLiveQueryRequest, ForgeQueryAspectApiFinalizationCloseout,
-    ForgeQueryAspectMutationBuilder, ForgeQueryAuthoritativeMutationEvidenceCloseout,
-    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryBatchWriteReceipt,
-    ForgeQueryBranchOptions, ForgeQueryBranchSession, ForgeQueryComputedBuilder,
-    ForgeQueryDeleteMutationBuilder, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
-    ForgeQueryEffectBuilder, ForgeQueryEffectHandle, ForgeQueryEffectIntentReceipt,
-    ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryHandleContract, ForgeQueryIntentDeclaration,
+    ForgeQueryAuthoritativeMutationEvidenceCloseout,
+    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryBranchOptions,
+    ForgeQueryBranchSession, ForgeQueryComputedBuilder, ForgeQueryDerivedViewHandle,
+    ForgeQueryDerivedViewMaintainer, ForgeQueryEffectBuilder, ForgeQueryEffectHandle,
+    ForgeQueryEffectIntentReceipt, ForgeQueryHandleContract, ForgeQueryIntentDeclaration,
     ForgeQueryIntentReceipt, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
-    ForgeQueryMutationBatchBuilder, ForgeQueryMutationMetadata, ForgeQueryMutationSurfaceReport,
-    ForgeQueryPreviewOptions, ForgeQueryPreviewSession, ForgeQueryRuntime, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimePublicApiContract,
-    ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimePublicSupportMatrix,
-    ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeStateTarget,
-    ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
-    QuerySchemaView,
+    ForgeQueryMutationSurfaceReport, ForgeQueryPreviewOptions, ForgeQueryPreviewSession,
+    ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiFamilyContract,
+    ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimeStateSnapshot,
+    ForgeQueryRuntimeStateTarget, ForgeQueryWorkspaceLiveViewDeclaration, QuerySchemaView,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::program::ForgeQueryDerivedView;
 use crate::session_label::ForgeQuerySessionLabel;
 
@@ -44,8 +41,8 @@ impl ForgeQueryWorkspace {
         &self.name
     }
 
-    pub fn snapshot_token(&self) -> String {
-        self.runtime.snapshot_token()
+    pub fn snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        self.runtime.current_snapshot_identity()
     }
 
     pub fn into_runtime(self) -> ForgeQueryRuntime {
@@ -222,196 +219,5 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryEffectIntentReceipt, ForgeQueryRuntimeError> {
         self.runtime
             .execute_next_effect_write_intent(effect, strategy_version, input_contract)
-    }
-
-    pub fn write(
-        &mut self,
-        command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        self.write_intent(command).execute()
-    }
-
-    pub fn write_intent(
-        &mut self,
-        command: ForgeQueryWriteCommand,
-    ) -> crate::intent_admission::ForgeQueryRuntimeWriteIntentAuthoring<'_> {
-        self.runtime.write_intent(command)
-    }
-
-    pub fn write_batch_intent(
-        &mut self,
-        commands: Vec<ForgeQueryWriteCommand>,
-    ) -> crate::intent_admission::ForgeQueryRuntimeWriteBatchIntentAuthoring<'_> {
-        self.runtime.write_batch_intent(commands)
-    }
-
-    pub fn insert(
-        &mut self,
-        collection: impl Into<String>,
-        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let command =
-            declaration(ForgeQueryAspectMutationBuilder::new()).build_insert(collection)?;
-        self.write(command)
-    }
-
-    pub fn update(
-        &mut self,
-        entity_identity: impl Into<String>,
-        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let command =
-            declaration(ForgeQueryAspectMutationBuilder::new()).build_update(entity_identity)?;
-        self.write(command)
-    }
-
-    pub fn bind_existing_entity(
-        &self,
-        target: ForgeQueryExistingEntityTarget,
-    ) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
-        Ok(ForgeQueryExistingTruthTargetBinding::from_entity_target(
-            target,
-        )?)
-    }
-
-    pub fn bind_existing_relation(
-        &self,
-        target: ForgeQueryExistingRelationTarget,
-    ) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
-        Ok(ForgeQueryExistingTruthTargetBinding::from_relation_target(
-            target,
-        )?)
-    }
-
-    pub fn probe_existing<I, S>(
-        &self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        aspect_paths: I,
-    ) -> Result<super::ForgeQueryExistingTruthProbe, ForgeQueryRuntimeError>
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        Ok(self
-            .runtime
-            .probe_existing_intent(super::ForgeQueryExistingTruthProbeRequest::new(
-                binding,
-                aspect_paths,
-            )?)
-            .execute()?
-            .probe()
-            .clone())
-    }
-
-    pub fn probe_existing_intent(
-        &self,
-        request: super::ForgeQueryExistingTruthProbeRequest,
-    ) -> crate::intent_admission::ForgeQueryRuntimeExistingTruthProbeIntentAuthoring<'_> {
-        self.runtime.probe_existing_intent(request)
-    }
-
-    pub fn update_existing(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let command =
-            declaration(ForgeQueryAspectMutationBuilder::new()).build_update_existing(binding)?;
-        self.write(command)
-    }
-
-    pub fn assert_existing(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let command =
-            declaration(ForgeQueryAspectMutationBuilder::new()).build_assert_existing(binding)?;
-        self.write(command)
-    }
-
-    pub fn verify_existing(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let command =
-            declaration(ForgeQueryAspectMutationBuilder::new()).build_verify_existing(binding)?;
-        self.write(command)
-    }
-
-    pub fn update_existing_verified(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-        update: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let asserted_aspects = verify(ForgeQueryAspectMutationBuilder::new())
-            .finish_existing_truth_verification_aspects("backend-verified existing-truth update")?;
-        let command = update(ForgeQueryAspectMutationBuilder::new())
-            .build_update_existing_verified(binding, asserted_aspects)?;
-        self.write(command)
-    }
-
-    pub fn delete(
-        &mut self,
-        entity_identity: impl Into<String>,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        self.write(ForgeQueryWriteCommand::Delete {
-            entity_identity: entity_identity.into(),
-        })
-    }
-
-    pub fn delete_with(
-        &mut self,
-        entity_identity: impl Into<String>,
-        declaration: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let command =
-            declaration(ForgeQueryDeleteMutationBuilder::new()).build_delete(entity_identity)?;
-        self.write(command)
-    }
-
-    pub fn delete_existing(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        self.write(ForgeQueryWriteCommand::DeleteExistingAspects {
-            binding,
-            touched_aspect_paths: Vec::new(),
-            metadata: ForgeQueryMutationMetadata::default(),
-            naming_intent: None,
-        })
-    }
-
-    pub fn delete_existing_with(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        declaration: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let command =
-            declaration(ForgeQueryDeleteMutationBuilder::new()).build_delete_existing(binding)?;
-        self.write(command)
-    }
-
-    pub fn delete_existing_verified(
-        &mut self,
-        binding: ForgeQueryExistingTruthTargetBinding,
-        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
-        delete: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let asserted_aspects = verify(ForgeQueryAspectMutationBuilder::new())
-            .finish_existing_truth_verification_aspects("backend-verified existing-truth delete")?;
-        let command = delete(ForgeQueryDeleteMutationBuilder::new())
-            .build_delete_existing_verified(binding, asserted_aspects)?;
-        self.write(command)
-    }
-
-    pub fn batch(
-        &mut self,
-        declaration: impl FnOnce(ForgeQueryMutationBatchBuilder) -> ForgeQueryMutationBatchBuilder,
-    ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
-        let commands = declaration(ForgeQueryMutationBatchBuilder::new()).finish()?;
-        self.write_batch_intent(commands).execute()
     }
 }

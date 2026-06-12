@@ -68,7 +68,7 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
                 })?;
             graph.insert_relation("FaceLoopRelation", |relation| {
                 relation
-                    .existing_entity_identity("face.id", "face-1")
+                    .existing_entity_identity("face.id", test_entity_identity("face-1"))
                     .symbolic_entity_identity("loop.id", &inner_loop)
                     .aspect("role.value", "inner")
             })?;
@@ -182,9 +182,19 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         ForgeQueryGraphCompositionProgramStepKind::RelationDeclaration
     );
     let loop_rows = workspace.read(&loops);
-    let half_edge_rows = workspace.read(&half_edges);
+    let mut half_edge_rows = workspace.read(&half_edges);
     let face_loop_rows = workspace.read(&face_loops);
-    let loop_edge_rows = workspace.read(&loop_edges);
+    let mut loop_edge_rows = workspace.read(&loop_edges);
+    half_edge_rows.sort_by(|left, right| {
+        left.external_row()["identity"]["id"]
+            .as_str()
+            .cmp(&right.external_row()["identity"]["id"].as_str())
+    });
+    loop_edge_rows.sort_by(|left, right| {
+        left.external_row()["half_edge"]["id"]
+            .as_str()
+            .cmp(&right.external_row()["half_edge"]["id"].as_str())
+    });
     assert_eq!(loop_rows.len(), 1);
     assert_eq!(half_edge_rows.len(), 2);
     assert_eq!(
@@ -202,20 +212,22 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
     assert_eq!(face_loop_rows.len(), 1);
     assert_eq!(
         face_loop_rows[0].external_row()["loop"]["id"].as_str(),
-        Some(loop_identity.as_str())
+        Some(loop_identity.evidence_identity().as_str())
     );
     assert_eq!(
         face_loop_rows[0].external_row()["face"]["id"].as_str(),
-        Some("face-1")
+        Some(test_entity_identity("face-1").evidence_identity().as_str())
     );
     assert_eq!(loop_edge_rows.len(), 2);
-    assert_eq!(
-        loop_edge_rows[0].external_row()["half_edge"]["id"].as_str(),
-        Some(first_half_edge_identity.as_str())
+    let loop_edge_half_edge_ids = loop_edge_rows
+        .iter()
+        .filter_map(|row| row.external_row()["half_edge"]["id"].as_str())
+        .collect::<Vec<_>>();
+    assert!(
+        loop_edge_half_edge_ids.contains(&first_half_edge_identity.evidence_identity().as_str())
     );
-    assert_eq!(
-        loop_edge_rows[1].external_row()["half_edge"]["id"].as_str(),
-        Some(second_half_edge_identity.as_str())
+    assert!(
+        loop_edge_half_edge_ids.contains(&second_half_edge_identity.evidence_identity().as_str())
     );
 
     match workspace.inspect(&receipt).expect("receipt should inspect") {
@@ -259,12 +271,12 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
             assert_eq!(
                 inspection.component_operations()[4].symbolic_aspect_resolution_evidence()[1]
                     .resolved_entity_identity(),
-                first_half_edge_identity.as_str()
+                &first_half_edge_identity
             );
             assert_eq!(
                 inspection.component_operations()[5].symbolic_aspect_resolution_evidence()[1]
                     .resolved_entity_identity(),
-                second_half_edge_identity.as_str()
+                &second_half_edge_identity
             );
         }
         other => panic!("expected batch receipt inspection, got {other:?}"),

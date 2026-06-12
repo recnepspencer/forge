@@ -58,7 +58,7 @@ impl ForgeQueryBindingTargetSemantics {
             crossing_classification: envelope.crossing_classification(),
             route_kind: envelope.route_kind(),
             support_posture: envelope.support_posture(),
-            envelope_digest: envelope.envelope_digest().to_string(),
+            envelope_digest: envelope.envelope_identity().as_ref().to_string(),
         }
     }
 

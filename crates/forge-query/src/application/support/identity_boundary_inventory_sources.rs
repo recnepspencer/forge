@@ -1,0 +1,581 @@
+pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
+    match path {
+        "application/support/report.rs" => Some(include_str!("report.rs")),
+        "runtime/support_matrix.rs" => Some(include_str!("../../runtime/support_matrix.rs")),
+        "runtime/state_snapshot.rs" => Some(include_str!("../../runtime/state_snapshot.rs")),
+        "runtime/public_api_transcript.rs" => {
+            Some(include_str!("../../runtime/public_api_transcript.rs"))
+        }
+        "runtime/public_api.rs" => Some(include_str!("../../runtime/public_api.rs")),
+        "runtime/support/profile.rs" => Some(include_str!("../../runtime/support/profile.rs")),
+        "runtime/public_api_naming.rs" => Some(include_str!("../../runtime/public_api_naming.rs")),
+        "application/declaration_bridge_routing/digest.rs" => {
+            Some(include_str!("../declaration_bridge_routing/digest.rs"))
+        }
+        "application/declaration_bridge_routing/lower.rs" => {
+            Some(include_str!("../declaration_bridge_routing/lower.rs"))
+        }
+        "application/declaration_bridge_routing/lower_identity.rs" => Some(include_str!(
+            "../declaration_bridge_routing/lower_identity.rs"
+        )),
+        "application/support/registry.rs" => Some(include_str!("registry.rs")),
+        "continuation_pipeline/execution/execute.rs" => Some(include_str!(
+            "../../continuation_pipeline/execution/execute.rs"
+        )),
+        "continuation_pipeline/execution/readmission.rs" => Some(include_str!(
+            "../../continuation_pipeline/execution/readmission.rs"
+        )),
+        "continuation_pipeline/execution/support.rs" => Some(include_str!(
+            "../../continuation_pipeline/execution/support.rs"
+        )),
+        "runtime/intent/preview.rs" => Some(include_str!("../../runtime/intent/preview.rs")),
+        "runtime/intent/preview_receipt_identity.rs" => Some(include_str!(
+            "../../runtime/intent/preview_receipt_identity.rs"
+        )),
+        "runtime/intent/receipt.rs" => Some(include_str!("../../runtime/intent/receipt.rs")),
+        "runtime/intent/receipt_identity.rs" => {
+            Some(include_str!("../../runtime/intent/receipt_identity.rs"))
+        }
+        "runtime/intent/effect_triggered.rs" => {
+            Some(include_str!("../../runtime/intent/effect_triggered.rs"))
+        }
+        "runtime/intent/provenance.rs" => Some(include_str!("../../runtime/intent/provenance.rs")),
+        "runtime/intent/provenance_identity.rs" => {
+            Some(include_str!("../../runtime/intent/provenance_identity.rs"))
+        }
+        "runtime/intent/denial.rs" => Some(include_str!("../../runtime/intent/denial.rs")),
+        "runtime/intent/failure.rs" => Some(include_str!("../../runtime/intent/failure.rs")),
+        "runtime/intent/branch.rs" => Some(include_str!("../../runtime/intent/branch.rs")),
+        "runtime/branch.rs" => Some(include_str!("../../runtime/branch.rs")),
+        "preview/scoped.rs" => Some(include_str!("../../preview/scoped.rs")),
+        "intent_admission/handoffs/bindings/mod.rs" => Some(include_str!(
+            "../../intent_admission/handoffs/bindings/mod.rs"
+        )),
+        "intent_admission/handoffs/bindings/read.rs" => Some(include_str!(
+            "../../intent_admission/handoffs/bindings/read.rs"
+        )),
+        "intent_admission/handoffs/bindings/inspection.rs" => Some(include_str!(
+            "../../intent_admission/handoffs/bindings/inspection.rs"
+        )),
+        "intent_admission/handoffs/bindings/routing.rs" => Some(include_str!(
+            "../../intent_admission/handoffs/bindings/routing.rs"
+        )),
+        "intent_admission/handoffs/bindings/unified_inspection.rs" => Some(include_str!(
+            "../../intent_admission/handoffs/bindings/unified_inspection.rs"
+        )),
+        "intent_admission/eligibility/seeds/generic_inspection.rs" => Some(include_str!(
+            "../../intent_admission/eligibility/seeds/generic_inspection.rs"
+        )),
+        "intent_admission/eligibility/seeds/mutation.rs" => Some(include_str!(
+            "../../intent_admission/eligibility/seeds/mutation.rs"
+        )),
+        "intent_admission/handoffs/mutation.rs" => {
+            Some(include_str!("../../intent_admission/handoffs/mutation.rs"))
+        }
+        "runtime/support/authority_artifacts.rs" => {
+            Some(include_str!("../../runtime/support/authority_artifacts.rs"))
+        }
+        "runtime/support/authority_artifacts/basis_admission.rs" => Some(include_str!(
+            "../../runtime/support/authority_artifacts/basis_admission.rs"
+        )),
+        "runtime/support/authority_artifacts/bridge_imports.rs" => Some(include_str!(
+            "../../runtime/support/authority_artifacts/bridge_imports.rs"
+        )),
+        "runtime/support/bridge_artifact_identity.rs" => Some(include_str!(
+            "../../runtime/support/bridge_artifact_identity.rs"
+        )),
+        "runtime/backend/receipts.rs" => Some(include_str!("../../runtime/backend/receipts.rs")),
+        "runtime/backend/signal_routing_receipt.rs" => Some(include_str!(
+            "../../runtime/backend/signal_routing_receipt.rs"
+        )),
+        "runtime/backend/mutation_authority.rs" => {
+            Some(include_str!("../../runtime/backend/mutation_authority.rs"))
+        }
+        "runtime/runtime_writes.rs" => Some(include_str!("../../runtime/runtime_writes.rs")),
+        "runtime/runtime_helpers.rs" => Some(include_str!("../../runtime/runtime_helpers.rs")),
+        "runtime/runtime_read_intents.rs" => {
+            Some(include_str!("../../runtime/runtime_read_intents.rs"))
+        }
+        "runtime/runtime_unified_inspection_intents.rs" => Some(include_str!(
+            "../../runtime/runtime_unified_inspection_intents.rs"
+        )),
+        "runtime/runtime_batch_writes.rs" => {
+            Some(include_str!("../../runtime/runtime_batch_writes.rs"))
+        }
+        "runtime/runtime_probe_routing_intents.rs" => Some(include_str!(
+            "../../runtime/runtime_probe_routing_intents.rs"
+        )),
+        "runtime/runtime_inspection_materialization_intents.rs" => Some(include_str!(
+            "../../runtime/runtime_inspection_materialization_intents.rs"
+        )),
+        "runtime/runtime_sessions.rs" => Some(include_str!("../../runtime/runtime_sessions.rs")),
+        "runtime/preview/evidence/closeout.rs" => {
+            Some(include_str!("../../runtime/preview/evidence/closeout.rs"))
+        }
+        "runtime/preview/evidence/promotion.rs" => {
+            Some(include_str!("../../runtime/preview/evidence/promotion.rs"))
+        }
+        "runtime/preview/evidence/execution.rs" => {
+            Some(include_str!("../../runtime/preview/evidence/execution.rs"))
+        }
+        "runtime/preview/mod.rs" => Some(include_str!("../../runtime/preview/mod.rs")),
+        "runtime/preview/basics.rs" => Some(include_str!("../../runtime/preview/basics.rs")),
+        "runtime/preview/mutation_ops.rs" => {
+            Some(include_str!("../../runtime/preview/mutation_ops.rs"))
+        }
+        "runtime/preview/session_execution.rs" => {
+            Some(include_str!("../../runtime/preview/session_execution.rs"))
+        }
+        "runtime/preview/workflow_ops.rs" => {
+            Some(include_str!("../../runtime/preview/workflow_ops.rs"))
+        }
+        "runtime/live_subscription.rs" => Some(include_str!("../../runtime/live_subscription.rs")),
+        "runtime/inspection/unified/write_receipt/digest.rs" => Some(include_str!(
+            "../../runtime/inspection/unified/write_receipt/digest.rs"
+        )),
+        "runtime/inspection/unified/write_receipt/digest_components.rs" => Some(include_str!(
+            "../../runtime/inspection/unified/write_receipt/digest_components.rs"
+        )),
+        "runtime/inspection/unified/write_receipt/digest_mutation_evidence.rs" => {
+            Some(include_str!(
+                "../../runtime/inspection/unified/write_receipt/digest_mutation_evidence.rs"
+            ))
+        }
+        "runtime/inspection/unified/write_receipt.rs" => Some(include_str!(
+            "../../runtime/inspection/unified/write_receipt.rs"
+        )),
+        "runtime/inspection/unified/batch_write_digest.rs" => Some(include_str!(
+            "../../runtime/inspection/unified/batch_write_digest.rs"
+        )),
+        "runtime/inspection/unified/batch_write_digest_components.rs" => Some(include_str!(
+            "../../runtime/inspection/unified/batch_write_digest_components.rs"
+        )),
+        "runtime/inspection/feedback.rs" => {
+            Some(include_str!("../../runtime/inspection/feedback.rs"))
+        }
+        "runtime/inspection/feedback_identity.rs" => Some(include_str!(
+            "../../runtime/inspection/feedback_identity.rs"
+        )),
+        "runtime/inspection/intent_identity.rs" => {
+            Some(include_str!("../../runtime/inspection/intent_identity.rs"))
+        }
+        "runtime/inspection/intent.rs" => Some(include_str!("../../runtime/inspection/intent.rs")),
+        "runtime/inspection/intent_denial.rs" => {
+            Some(include_str!("../../runtime/inspection/intent_denial.rs"))
+        }
+        "runtime/inspection/intent_delivery_counters.rs" => Some(include_str!(
+            "../../runtime/inspection/intent_delivery_counters.rs"
+        )),
+        "runtime/inspection/preview/intent_receipt.rs" => Some(include_str!(
+            "../../runtime/inspection/preview/intent_receipt.rs"
+        )),
+        "runtime/inspection/preview/intent_receipt_identity.rs" => Some(include_str!(
+            "../../runtime/inspection/preview/intent_receipt_identity.rs"
+        )),
+        "runtime/inspection/causal/request.rs" => {
+            Some(include_str!("../../runtime/inspection/causal/request.rs"))
+        }
+        "runtime/inspection/causal/admission_decision.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/admission_decision.rs"
+        )),
+        "runtime/inspection/causal/admission_trace.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/admission_trace.rs"
+        )),
+        "runtime/inspection/causal/admission.rs" => {
+            Some(include_str!("../../runtime/inspection/causal/admission.rs"))
+        }
+        "runtime/inspection/causal/builder_bridge.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/builder_bridge.rs"
+        )),
+        "runtime/inspection/causal/receipt.rs" => {
+            Some(include_str!("../../runtime/inspection/causal/receipt.rs"))
+        }
+        "runtime/inspection/causal/receipt_helpers.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/receipt_helpers.rs"
+        )),
+        "runtime/inspection/causal/observation_identity.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/observation_identity.rs"
+        )),
+        "runtime/inspection/causal/identity.rs" => {
+            Some(include_str!("../../runtime/inspection/causal/identity.rs"))
+        }
+        "runtime/inspection/causal/materialization/mod.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/materialization/mod.rs"
+        )),
+        "runtime/inspection/causal/materialization/policy.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/materialization/policy.rs"
+        )),
+        "runtime/inspection/causal/materialization/bridge_denial.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/materialization/bridge_denial.rs"
+        )),
+        "runtime/inspection/causal/materialization/performance.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/materialization/performance.rs"
+        )),
+        "runtime/inspection/causal/materialization/receipt.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/materialization/receipt.rs"
+        )),
+        "runtime/inspection/causal/materialization/proof.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/materialization/proof.rs"
+        )),
+        "runtime/inspection/causal/materialization/artifacts/denied.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/materialization/artifacts/denied.rs"
+        )),
+        "runtime/inspection/causal/materialization/artifacts/bridge_backed.rs" => Some(
+            include_str!("../../runtime/inspection/causal/materialization/artifacts/bridge_backed.rs"),
+        ),
+        "runtime/inspection/causal/certification/artifacts/performance.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/certification/artifacts/performance.rs"
+        )),
+        "runtime/mutation/graph_composition/domain_invariant_denial.rs" => Some(include_str!(
+            "../../runtime/mutation/graph_composition/domain_invariant_denial.rs"
+        )),
+        "runtime/mutation/graph_composition/denial.rs" => Some(include_str!(
+            "../../runtime/mutation/graph_composition/denial.rs"
+        )),
+        "runtime/mutation/graph_composition/hooks.rs" => Some(include_str!(
+            "../../runtime/mutation/graph_composition/hooks.rs"
+        )),
+        "runtime/mutation/assertion.rs" => {
+            Some(include_str!("../../runtime/mutation/assertion.rs"))
+        }
+        "runtime/mutation/binding/existing_truth.rs" => Some(include_str!(
+            "../../runtime/mutation/binding/existing_truth.rs"
+        )),
+        "runtime/mutation/binding/symbolic_reference.rs" => Some(include_str!(
+            "../../runtime/mutation/binding/symbolic_reference.rs"
+        )),
+        "runtime/mutation/continuity.rs" => {
+            Some(include_str!("../../runtime/mutation/continuity.rs"))
+        }
+        "runtime/mutation/lowering.rs" => Some(include_str!("../../runtime/mutation/lowering.rs")),
+        "runtime/mutation/naming.rs" => Some(include_str!("../../runtime/mutation/naming.rs")),
+        "runtime/mutation/probe.rs" => Some(include_str!("../../runtime/mutation/probe.rs")),
+        "runtime/bridge_mutation_lowering.rs" => {
+            Some(include_str!("../../runtime/bridge_mutation_lowering.rs"))
+        }
+        "runtime/runtime_batch_write_bridge_refs.rs" => Some(include_str!(
+            "../../runtime/runtime_batch_write_bridge_refs.rs"
+        )),
+        "domain_capabilities/canonical_runtime/continuity.rs" => Some(include_str!(
+            "../../domain_capabilities/canonical_runtime/continuity.rs"
+        )),
+        "runtime/read_composition_hooks.rs" => {
+            Some(include_str!("../../runtime/read_composition_hooks.rs"))
+        }
+        "lower_runtime_routing/protocol.rs" => {
+            Some(include_str!("../../lower_runtime_routing/protocol.rs"))
+        }
+        "lower_runtime_routing/adapters/runtime_backend.rs" => Some(include_str!(
+            "../../lower_runtime_routing/adapters/runtime_backend.rs"
+        )),
+        "lower_runtime_routing/adapters/runtime_backend/subject_digest.rs" => Some(include_str!(
+            "../../lower_runtime_routing/adapters/runtime_backend/subject_digest.rs"
+        )),
+        "lower_runtime_routing/eligibility/mod.rs" => Some(include_str!(
+            "../../lower_runtime_routing/eligibility/mod.rs"
+        )),
+        "lower_runtime_routing/plans/mod.rs" => {
+            Some(include_str!("../../lower_runtime_routing/plans/mod.rs"))
+        }
+        "lower_runtime_routing/receipts/mod.rs" => {
+            Some(include_str!("../../lower_runtime_routing/receipts/mod.rs"))
+        }
+        "lower_runtime_routing/envelopes.rs" => {
+            Some(include_str!("../../lower_runtime_routing/envelopes.rs"))
+        }
+        "lower_runtime_routing/support.rs" => {
+            Some(include_str!("../../lower_runtime_routing/support.rs"))
+        }
+        "lower_runtime_routing/inventory/crossing_types.rs" => {
+            Some(include_str!("../../lower_runtime_routing/inventory/crossing_types.rs"))
+        }
+        "lower_runtime_routing/inventory/closeout_types.rs" => {
+            Some(include_str!("../../lower_runtime_routing/inventory/closeout_types.rs"))
+        }
+        "lower_runtime_routing/inventory/gap_types.rs" => {
+            Some(include_str!("../../lower_runtime_routing/inventory/gap_types.rs"))
+        }
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/mod.rs" => Some(include_str!(
+            "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/mod.rs"
+        )),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/evidence_reference.rs" => Some(
+            include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/evidence_reference.rs"
+            ),
+        ),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/binding.rs" => Some(include_str!(
+            "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/binding.rs"
+        )),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/denial.rs" => Some(include_str!(
+            "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/denial.rs"
+        )),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/counters.rs" => Some(include_str!(
+            "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/counters.rs"
+        )),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/explanation_envelope.rs" => Some(
+            include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/explanation_envelope.rs"
+            ),
+        ),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/identity.rs" => Some(include_str!(
+            "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/identity.rs"
+        )),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/receipt.rs" => Some(include_str!(
+            "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/receipt.rs"
+        )),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/assembly/request.rs" => Some(
+            include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/assembly/request.rs"
+            ),
+        ),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/assembly/mod.rs" => Some(
+            include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/assembly/mod.rs"
+            ),
+        ),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/mod.rs" => Some(
+            include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/mod.rs"
+            ),
+        ),
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/digest_basis.rs" => {
+            Some(include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/digest_basis.rs"
+            ))
+        }
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/planning_checkpoint.rs" => {
+            Some(include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/planning_checkpoint.rs"
+            ))
+        }
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/route_history_preview.rs" => {
+            Some(include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/route_history_preview.rs"
+            ))
+        }
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/source_structural_stream.rs" => {
+            Some(include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/source_structural_stream.rs"
+            ))
+        }
+        "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/writeback.rs" => {
+            Some(include_str!(
+                "../../../../forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/writeback.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/acceptance_cardinality.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/acceptance_cardinality.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/bridge_fixture.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/bridge_fixture.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/core.rs" => Some(include_str!(
+            "../../lower_runtime_routing/certification/surface/fixtures/core.rs"
+        )),
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/mod.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/mod.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/causal_signal.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/causal_signal.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/effect.rs" => Some(
+            include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/effect.rs"
+            ),
+        ),
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/effect_support.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/effect_support.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/historical.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/historical.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/intent.rs" => Some(
+            include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/intent.rs"
+            ),
+        ),
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/live_aggregate.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/live_aggregate.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/projection.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/projection.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/projection_bridge_runtime.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/projection_bridge_runtime.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/read_execution.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/read_execution.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/readmission.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/readmission.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/readmission_support.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/readmission_support.rs"
+            ))
+        }
+        "lower_runtime_routing/certification/surface/fixtures/phase_six/subscription.rs" => {
+            Some(include_str!(
+                "../../lower_runtime_routing/certification/surface/fixtures/phase_six/subscription.rs"
+            ))
+        }
+        "runtime/surface/graph_composition_breadth.rs" => Some(include_str!(
+            "../../runtime/surface/graph_composition_breadth.rs"
+        )),
+        "runtime/surface/graph_composition_program.rs" => Some(include_str!(
+            "../../runtime/surface/graph_composition_program.rs"
+        )),
+        "runtime/surface/graph_composition_admission_trace.rs" => Some(include_str!(
+            "../../runtime/surface/graph_composition_admission_trace.rs"
+        )),
+        "runtime/surface/graph_composition_domain_invariant_summary.rs" => Some(include_str!(
+            "../../runtime/surface/graph_composition_domain_invariant_summary.rs"
+        )),
+        "runtime/surface/graph_composition_lifecycle_outcomes.rs" => Some(include_str!(
+            "../../runtime/surface/graph_composition_lifecycle_outcomes.rs"
+        )),
+        "runtime/surface/graph_composition_assumption_summary.rs" => Some(include_str!(
+            "../../runtime/surface/graph_composition_assumption_summary.rs"
+        )),
+        "runtime/surface/graph_composition_lineage_summary.rs" => Some(include_str!(
+            "../../runtime/surface/graph_composition_lineage_summary.rs"
+        )),
+        "runtime/surface/graph_composition_resolution_map.rs" => Some(include_str!(
+            "../../runtime/surface/graph_composition_resolution_map.rs"
+        )),
+        "runtime/surface/graph_composition_evidence.rs" => Some(include_str!(
+            "../../runtime/surface/graph_composition_evidence.rs"
+        )),
+        "runtime/surface/naming_mutation_evidence.rs" => Some(include_str!(
+            "../../runtime/surface/naming_mutation_evidence.rs"
+        )),
+        "runtime/surface/continuity_mutation_evidence.rs" => Some(include_str!(
+            "../../runtime/surface/continuity_mutation_evidence.rs"
+        )),
+        "runtime/surface/symbolic_target_reference_evidence.rs" => Some(include_str!(
+            "../../runtime/surface/symbolic_target_reference_evidence.rs"
+        )),
+        "runtime/surface/symbolic_aspect_resolution_evidence.rs" => Some(include_str!(
+            "../../runtime/surface/symbolic_aspect_resolution_evidence.rs"
+        )),
+        "runtime/surface/read_domain_invariant_summary.rs" => Some(include_str!(
+            "../../runtime/surface/read_domain_invariant_summary.rs"
+        )),
+        "runtime/surface/verified_assumption_set.rs" => Some(include_str!(
+            "../../runtime/surface/verified_assumption_set.rs"
+        )),
+        "runtime/surface/mutation_evidence/binding.rs" => Some(include_str!(
+            "../../runtime/surface/mutation_evidence/binding.rs"
+        )),
+        "runtime/surface/mutation_evidence/causality.rs" => Some(include_str!(
+            "../../runtime/surface/mutation_evidence/causality.rs"
+        )),
+        "runtime/surface/mutation_evidence/provenance.rs" => Some(include_str!(
+            "../../runtime/surface/mutation_evidence/provenance.rs"
+        )),
+        "runtime/surface/mutation_evidence/target.rs" => Some(include_str!(
+            "../../runtime/surface/mutation_evidence/target.rs"
+        )),
+        "runtime/surface/mutation_evidence/batch.rs" => Some(include_str!(
+            "../../runtime/surface/mutation_evidence/batch.rs"
+        )),
+        "runtime/surface/mutation_evidence/batch_digest_helpers.rs" => Some(include_str!(
+            "../../runtime/surface/mutation_evidence/batch_digest_helpers.rs"
+        )),
+        "runtime/surface/read_composition.rs" => {
+            Some(include_str!("../../runtime/surface/read_composition.rs"))
+        }
+        "runtime/surface/read_domain_invariant_denial.rs" => Some(include_str!(
+            "../../runtime/surface/read_domain_invariant_denial.rs"
+        )),
+        "runtime/surface/mutation/batch_receipt.rs" => Some(include_str!(
+            "../../runtime/surface/mutation/batch_receipt.rs"
+        )),
+        "runtime/surface/mutation/write_receipt/helpers.rs" => Some(include_str!(
+            "../../runtime/surface/mutation/write_receipt/helpers.rs"
+        )),
+        "runtime/effect/inspection.rs" => Some(include_str!("../../runtime/effect/inspection.rs")),
+        "runtime/effect/declaration.rs" => {
+            Some(include_str!("../../runtime/effect/declaration.rs"))
+        }
+        "runtime/effect/follow_on.rs" => Some(include_str!("../../runtime/effect/follow_on.rs")),
+        "runtime/effect/inspection_identity.rs" => Some(include_str!(
+            "../../runtime/effect/inspection_identity.rs"
+        )),
+        "effect_lifecycle/execution_bridge.rs" => {
+            Some(include_str!("../../effect_lifecycle/execution_bridge.rs"))
+        }
+        "effect_lifecycle/execution_relational_scalar.rs" => Some(include_str!(
+            "../../effect_lifecycle/execution_relational_scalar.rs"
+        )),
+        "view_shape_live/grouped_execution.rs" => {
+            Some(include_str!("../../view_shape_live/grouped_execution.rs"))
+        }
+        _ => None,
+    }
+}
+
+pub fn source_for_string_matching_path(path: &str) -> Option<&'static str> {
+    match path {
+        "runtime/tests/stop_class/consumer_support/routing.rs" => Some(include_str!(
+            "../../runtime/tests/stop_class/consumer_support/routing.rs"
+        )),
+        _ => None,
+    }
+}
+
+pub fn source_for_session_admission_path(path: &str) -> Option<&'static str> {
+    match path {
+        "runtime/runtime_sessions.rs" => Some(include_str!("../../runtime/runtime_sessions.rs")),
+        "runtime/workspace.rs" => Some(include_str!("../../runtime/workspace.rs")),
+        _ => None,
+    }
+}
+
+pub fn source_for_string_carried_session_identity_path(path: &str) -> Option<&'static str> {
+    match path {
+        "runtime/error.rs" => Some(include_str!("../../runtime/error.rs")),
+        "runtime/preview/workflow_ops.rs" => {
+            Some(include_str!("../../runtime/preview/workflow_ops.rs"))
+        }
+        "runtime/preview/binding.rs" => Some(include_str!("../../runtime/preview/binding.rs")),
+        "runtime/preview/session_execution.rs" => {
+            Some(include_str!("../../runtime/preview/session_execution.rs"))
+        }
+        "runtime/preview/mutation_ops.rs" => {
+            Some(include_str!("../../runtime/preview/mutation_ops.rs"))
+        }
+        "runtime/surface/mutation/write_receipt/preview.rs" => Some(include_str!(
+            "../../runtime/surface/mutation/write_receipt/preview.rs"
+        )),
+        "runtime/inspection/preview/binding.rs" => {
+            Some(include_str!("../../runtime/inspection/preview/binding.rs"))
+        }
+        "runtime/inspection/preview/outcome.rs" => {
+            Some(include_str!("../../runtime/inspection/preview/outcome.rs"))
+        }
+        _ => None,
+    }
+}

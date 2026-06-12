@@ -3276,18 +3276,22 @@ branch-per-connection — both prohibited folklore. Store-backed shapes in
 ### Must Ship
 
 - backend adapter contracts decomposed by authority lane with `Send + Sync`
-  read lanes
-- sealed basis-bound shared read contexts with generation-pinned snapshots
-  and lock-free committed reads
-- a deterministic submission seam whose total intake order is the journal,
-  flowing through the existing admission lattice and receipt vocabulary,
-  including a consumer-facing journal-segment replay surface
+  read lanes (Phases 1–2)
+- runtime-owned published-artifact registry authority with registry/mint
+  inventory and scans (Phase 11)
+- generation-indexed pinning with lock-free hot path, pin/retire inventory, and
+  runtime-owned residue counters (Phase 12)
+- shared read contexts with full pinning-boundary closure in-phase (Phase 13)
+- typed journal position identity with journal inventory and scans (Phase 14)
+- consumer-facing journal-segment replay with journal-boundary closure (Phase 15)
 - the published derived-artifact rule: readers consume digest-stamped
   published results through projection consumption; only the maintenance
   owner evaluates
 - the re-expressed workspace facade with unchanged existing consumer surface
-  and fail-closed admission rows for the new families
-- a hostile concurrency/determinism certification matrix
+  and fail-closed admission rows for the new families (Phase 9)
+- real concurrent hostile certification with in-phase sabotage proof (Phase 16)
+- public-bridge projection-consumption honesty (Phase 17)
+- derived milestone closure posture and closeout doc (Phase 18)
 
 ### Must Preserve
 
@@ -3322,9 +3326,15 @@ shapes inherit the concurrency topology.
 
 ### Parallelization Notes
 
-The adapter decomposition, read-context, and submission phases can proceed
-with limited overlap; the published-artifact boundary and certification close
-strictly last.
+Phases 1–10 may overlap at the topology layer (adapter decomposition,
+read-context scaffold, submission seam, facade families, interim hostile
+schedule). Phases 11–18 are the mandatory honesty end-cap: each phase owns its
+substrate and proof together — inventory slices, scans, hostile schedules, and
+sabotage close inside the phase that ships the work. Sequence:
+**11 → 12 → 13** (pinning closes in Phase 13), **14 → 15** (journal closes in
+Phase 15), **16 → 17** (certification with in-phase sabotage, public-bridge
+honesty), **18** (aggregated closeout only). Milestone `9.7` may not report
+`Closed` until Phase 18.
 
 ### Store Dependency
 

@@ -99,8 +99,8 @@ pub(crate) fn preview_active_subscription(
     preview_active_subscription_with_basis(
         runtime,
         suffix,
-        TruthBranchIdentity::new(format!("truth-branch:{suffix}")),
-        TruthSnapshotIdentity::new(format!("snapshot:{suffix}")),
+        crate::truth_identity_fixtures::truth_branch_fixture(format!("truth-branch:{suffix}")),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(format!("snapshot:{suffix}")),
     )
 }
 
@@ -110,7 +110,10 @@ pub(crate) fn preview_active_subscription_with_basis(
     truth_branch_identity: TruthBranchIdentity,
     truth_snapshot_identity: TruthSnapshotIdentity,
 ) -> BridgePreviewActiveSubscription {
-    let ready = activation_ready_for_snapshot(runtime, TruthSnapshotIdentity::new("snapshot-a"));
+    let ready = activation_ready_for_snapshot(
+        runtime,
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+    );
     let admitted_preview = runtime
         .admit_preview_session(
             BridgePreviewSessionIdentity::new(format!("preview-session:{suffix}")),

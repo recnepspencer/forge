@@ -55,15 +55,15 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         staged_preview_write_count: usize,
         promoted_write_count: usize,
         residue_snapshot: PreviewLifecycleResidueSnapshot,
-        target_basis_snapshot_token: &str,
+        target_basis_snapshot_identity: &ForgeQuerySnapshotIdentity,
         rebinding_identity: Option<crate::ForgeQueryEvidenceIdentity>,
     ) -> ForgeQueryPreviewCloseoutEvidence {
         ForgeQueryPreviewCloseoutEvidence::new(
             kind,
             self.effect_policy,
             &self.basis_admission,
-            &self.basis_snapshot_token,
-            target_basis_snapshot_token,
+            &self.basis_snapshot_identity,
+            target_basis_snapshot_identity,
             self.handle_bindings.len(),
             self.handle_binding_count(ForgeQueryPreviewHandleBindingFamily::LiveView),
             self.handle_binding_count(ForgeQueryPreviewHandleBindingFamily::ComputedView),

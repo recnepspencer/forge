@@ -30,8 +30,11 @@ pub(super) fn missing_bridge_reference(
     identity: &str,
 ) -> BridgeCausalEvidenceReference {
     bridge_reference(
-        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(family, identity)
-            .expect("bridge reference identity should be valid"),
+        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
+            family,
+            crate::facade::BridgeIdentityEvidence::from_external_authority(identity),
+        )
+        .expect("bridge reference identity should be valid"),
     )
 }
 
@@ -108,7 +111,7 @@ pub(super) fn binding_for<'a>(
         .find(|binding| {
             binding.owner() == BridgeCausalEvidenceOwner::RuntimeBridge
                 && binding.family() == family
-                && binding.reference_identity() == reference_identity
+                && binding.reference_evidence_identity().as_str() == reference_identity
         })
         .expect("expected writeback causal binding should be present")
 }
@@ -116,207 +119,47 @@ pub(super) fn binding_for<'a>(
 pub(super) fn writeback_admission_digest(
     record: &crate::facade::BridgeWritebackFamilyAdmissionRecord,
 ) -> String {
-    let family_kind = format!("{:?}", record.family_kind());
-    let effect_class = format!("{:?}", record.effect_class());
-    let strategy_class = format!("{:?}", record.strategy_class());
-    let diagnostics_tier = format!("{:?}", record.diagnostics_tier());
-    let replay_permitted = record.replay_artifacts_permitted().to_string();
-    expected_writeback_retained_digest(
-        ExpectedWritebackRetainedDigestArtifact::AdmissionRecord,
-        &[
-            record.record_identity().as_str(),
-            record.declaration_identity(),
-            record.contract_digest(),
-            family_kind.as_str(),
-            effect_class.as_str(),
-            strategy_class.as_str(),
-            record.strategy_descriptor_digest(),
-            record.family_basis_digest(),
-            record.strategy_basis_digest(),
-            record.lowered_policy_digest(),
-            diagnostics_tier.as_str(),
-            replay_permitted.as_str(),
-            record.digest(),
-        ],
-    )
+    crate::diagnostics::causal_envelope::retained_mapping::retained_artifact_digest::writeback::writeback_admission_digest(record)
+        .as_str()
+        .to_string()
 }
 
 pub(super) fn writeback_mapper_envelope_digest(
     envelope: &crate::facade::BridgeWritebackMapperEnvelope,
 ) -> String {
-    let family_kind = format!("{:?}", envelope.family_kind());
-    let effect_class = format!("{:?}", envelope.effect_class());
-    let strategy_class = format!("{:?}", envelope.strategy_class());
-    expected_writeback_retained_digest(
-        ExpectedWritebackRetainedDigestArtifact::MapperEnvelope,
-        &[
-            envelope.envelope_identity().as_str(),
-            envelope.contract_digest(),
-            family_kind.as_str(),
-            effect_class.as_str(),
-            strategy_class.as_str(),
-            envelope.strategy_descriptor_digest(),
-            envelope.causality_digest(),
-            envelope.effect_intent_digest(),
-            envelope.digest(),
-        ],
-    )
+    crate::diagnostics::causal_envelope::retained_mapping::retained_artifact_digest::writeback::writeback_mapper_envelope_artifact_digest(envelope)
+        .as_str()
+        .to_string()
 }
 
 pub(super) fn writeback_mapped_input_digest(
     mapped_input: &crate::facade::BridgeMappedWritebackFamilyInput,
 ) -> String {
-    let family_kind = format!("{:?}", mapped_input.family_kind());
-    let effect_class = format!("{:?}", mapped_input.effect_class());
-    let strategy_class = format!("{:?}", mapped_input.strategy_class());
-    expected_writeback_retained_digest(
-        ExpectedWritebackRetainedDigestArtifact::MappedFamilyInput,
-        &[
-            mapped_input.mapped_input_identity().as_str(),
-            mapped_input.mapper_envelope_digest(),
-            mapped_input.contract_digest(),
-            family_kind.as_str(),
-            effect_class.as_str(),
-            strategy_class.as_str(),
-            mapped_input.strategy_descriptor_digest(),
-            mapped_input.causality_digest(),
-            mapped_input.effect_intent_digest(),
-            mapped_input.digest(),
-        ],
-    )
+    crate::diagnostics::causal_envelope::retained_mapping::retained_artifact_digest::writeback::writeback_mapped_family_input_artifact_digest(mapped_input)
+        .as_str()
+        .to_string()
 }
 
 pub(super) fn writeback_mapper_record_digest(
     record: &crate::facade::BridgeWritebackMapperRecord,
 ) -> String {
-    let family_kind = format!("{:?}", record.family_kind());
-    let effect_class = format!("{:?}", record.effect_class());
-    let strategy_class = format!("{:?}", record.strategy_class());
-    expected_writeback_retained_digest(
-        ExpectedWritebackRetainedDigestArtifact::MapperRecord,
-        &[
-            record.record_identity().as_str(),
-            record.mapper_envelope_digest(),
-            record.mapped_input_digest(),
-            record.witness_digest(),
-            record.candidate_digest(),
-            family_kind.as_str(),
-            effect_class.as_str(),
-            strategy_class.as_str(),
-            record.strategy_descriptor_digest(),
-            record.causality_digest(),
-            record.effect_intent_digest(),
-            record.digest(),
-        ],
-    )
+    crate::diagnostics::causal_envelope::retained_mapping::retained_artifact_digest::writeback::writeback_mapper_record_artifact_digest(record)
+        .as_str()
+        .to_string()
 }
 
 pub(super) fn writeback_execution_digest(
     record: &crate::facade::BridgeWritebackExecutionRecord,
 ) -> String {
-    let family_kind = format!("{:?}", record.family_kind());
-    let strategy_class = format!("{:?}", record.strategy_class());
-    let outcome_class = record
-        .outcome_class()
-        .map(|value| format!("{value:?}"))
-        .unwrap_or_else(|| "none".to_string());
-    let failure_class = record
-        .failure_class()
-        .map(|value| format!("{value:?}"))
-        .unwrap_or_else(|| "none".to_string());
-    expected_writeback_retained_digest(
-        ExpectedWritebackRetainedDigestArtifact::ExecutionRecord,
-        &[
-            record.record_identity().as_str(),
-            record.contract_digest(),
-            record.writeback_effect_artifact_digest(),
-            record.effect_intent_digest(),
-            family_kind.as_str(),
-            strategy_class.as_str(),
-            record.causality_digest(),
-            record.idempotence_digest(),
-            record.loop_prevention_digest(),
-            record.strategy_coherence_digest(),
-            record.mapper_record_digest().unwrap_or("none"),
-            record.candidate_digest().unwrap_or("none"),
-            record.outcome_digest().unwrap_or("none"),
-            outcome_class.as_str(),
-            record.replay_bundle_digest().unwrap_or("none"),
-            record.request_digest().unwrap_or("none"),
-            record.receipt_digest().unwrap_or("none"),
-            failure_class.as_str(),
-            record.failure_digest().unwrap_or("none"),
-            record.counters().digest(),
-            record.digest(),
-        ],
-    )
+    crate::diagnostics::causal_envelope::retained_mapping::retained_artifact_digest::writeback::writeback_execution_artifact_digest(record)
+        .as_str()
+        .to_string()
 }
 
 pub(super) fn writeback_replay_digest(
     record: &crate::facade::BridgeWritebackReplayRecord,
 ) -> String {
-    let family_kind = format!("{:?}", record.family_kind());
-    let failure_class = record
-        .failure_class()
-        .map(|value| format!("{value:?}"))
-        .unwrap_or_else(|| "none".to_string());
-    expected_writeback_retained_digest(
-        ExpectedWritebackRetainedDigestArtifact::ReplayRecord,
-        &[
-            record.record_identity().as_str(),
-            family_kind.as_str(),
-            record.expected_replay_digest(),
-            record.replayed_replay_digest(),
-            record.expected_semantic_digest(),
-            record.replayed_semantic_digest(),
-            record.expected_effect_intent_digest(),
-            record.replayed_effect_intent_digest(),
-            record.expected_effect_intent_patch_canonical_basis(),
-            record.replayed_effect_intent_patch_canonical_basis(),
-            record.expected_causality_digest(),
-            record.replayed_causality_digest(),
-            failure_class.as_str(),
-            record.counters().digest(),
-            record.digest(),
-        ],
-    )
-}
-
-#[derive(Clone, Copy)]
-enum ExpectedWritebackRetainedDigestArtifact {
-    AdmissionRecord,
-    ExecutionRecord,
-    MappedFamilyInput,
-    MapperEnvelope,
-    MapperRecord,
-    ReplayRecord,
-}
-
-impl ExpectedWritebackRetainedDigestArtifact {
-    fn digest_domain(self) -> &'static str {
-        match self {
-            Self::AdmissionRecord => "bridge-causal-retained-writeback-admission-record",
-            Self::ExecutionRecord => "bridge-causal-retained-writeback-execution-record",
-            Self::MappedFamilyInput => "bridge-causal-retained-writeback-mapped-family-input",
-            Self::MapperEnvelope => "bridge-causal-retained-writeback-mapper-envelope",
-            Self::MapperRecord => "bridge-causal-retained-writeback-mapper-record",
-            Self::ReplayRecord => "bridge-causal-retained-writeback-replay-record",
-        }
-    }
-}
-
-fn expected_writeback_retained_digest(
-    artifact: ExpectedWritebackRetainedDigestArtifact,
-    parts: &[&str],
-) -> String {
-    use sha2::{Digest, Sha256};
-
-    let digest_domain = artifact.digest_domain();
-    let mut canonical = String::from(digest_domain);
-    for part in parts {
-        canonical.push('|');
-        canonical.push_str(part);
-    }
-    let digest = Sha256::digest(canonical.as_bytes());
-    format!("{digest_domain}:sha256:{digest:x}")
+    crate::diagnostics::causal_envelope::retained_mapping::retained_artifact_digest::writeback::writeback_replay_artifact_digest(record)
+        .as_str()
+        .to_string()
 }

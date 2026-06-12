@@ -5,12 +5,12 @@ use crate::evidence_identity::{
 
 use super::identity_boundary_hostile_matrix::ForgeQueryIdentityBoundaryHostileMatrixArtifact;
 use super::identity_boundary_inventory::{
-    scan_format_digest_residue_paths, scan_raw_session_admission_residue_paths,
-    scan_string_carried_session_identity_residue_paths, scan_string_matching_residue_paths,
-    EVIDENCE_IDENTITY_COVERED_SURFACES, EXACT_ZERO_FORMAT_DIGEST_PATHS,
-    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS,
-    EXACT_ZERO_STRING_MATCHING_PATHS, SESSION_LABEL_ORDINARY_ENTRYPOINTS,
-    STOP_CLASS_COVERED_CONTRACTS,
+    scan_format_digest_residue_paths, scan_lower_runtime_identity_shim_paths,
+    scan_raw_session_admission_residue_paths, scan_string_carried_session_identity_residue_paths,
+    scan_string_matching_residue_paths, EVIDENCE_IDENTITY_COVERED_SURFACES,
+    EXACT_ZERO_FORMAT_DIGEST_PATHS, EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS,
+    EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
+    SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -73,6 +73,11 @@ impl ForgeQueryFolkloreResidueStatus {
         );
         remaining.extend(
             scan_string_carried_session_identity_residue_paths()
+                .into_iter()
+                .map(str::to_string),
+        );
+        remaining.extend(
+            scan_lower_runtime_identity_shim_paths()
                 .into_iter()
                 .map(str::to_string),
         );

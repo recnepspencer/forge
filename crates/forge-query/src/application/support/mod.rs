@@ -18,12 +18,16 @@ pub use identity_boundary_hostile_matrix::{
     MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES,
     MILESTONE_NINE_SIX_REQUIRED_REJECTION_ROW_NAMES, MILESTONE_NINE_SIX_SUITE_NAME,
 };
+#[cfg(test)]
+pub use identity_boundary_inventory::scan_format_digest_residue_path_patterns;
+#[allow(unused_imports)]
 pub use identity_boundary_inventory::{
-    scan_format_digest_residue_paths, scan_raw_session_admission_residue_paths,
-    scan_string_carried_session_identity_residue_paths, scan_string_matching_residue_paths,
-    EVIDENCE_IDENTITY_COVERED_SURFACES, EXACT_ZERO_FORMAT_DIGEST_PATHS,
-    EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS,
-    EXACT_ZERO_STRING_MATCHING_PATHS, EXCLUDED_FOLKLORE_PATHS, SESSION_LABEL_ORDINARY_ENTRYPOINTS,
+    scan_format_digest_residue_paths, scan_lower_runtime_identity_shim_paths,
+    scan_raw_session_admission_residue_paths, scan_string_carried_session_identity_residue_paths,
+    scan_string_matching_residue_paths, EVIDENCE_IDENTITY_COVERED_SURFACES,
+    EXACT_ZERO_FORMAT_DIGEST_PATHS, EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS,
+    EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
+    EXCLUDED_FOLKLORE_PATHS, LOWER_RUNTIME_IDENTITY_SHIM_PATHS, SESSION_LABEL_ORDINARY_ENTRYPOINTS,
     STOP_CLASS_COVERED_CONTRACTS,
 };
 pub use registry::{

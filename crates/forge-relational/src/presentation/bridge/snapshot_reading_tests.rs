@@ -8,7 +8,8 @@ use crate::tests::support::{
     runtime_with_declared_aspect_schema,
 };
 use forge_runtime_bridge::facade::{
-    SnapshotReadContract, SnapshotReadPacket, SnapshotReadRequest, TruthSnapshotReader,
+    RelationalBridgeRecordIdentityParts, SnapshotReadContract, SnapshotReadPacket,
+    SnapshotReadRequest, TruthSnapshotReader,
 };
 
 use super::bridge_snapshot_identity_for_handle;
@@ -34,12 +35,11 @@ fn snapshot_reader_reads_published_entity_values_without_projection_surface() {
         snapshot_identity.clone(),
         published_snapshot.version_id,
     );
-    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-        format!(
-            "entity:{}:{}:{}",
+    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_relational_record(
+        RelationalBridgeRecordIdentityParts::entity(
             published_entity.partition_id.0,
             published_entity.local_slot.0,
-            published_entity.generation.0
+            published_entity.generation.0,
         ),
         scalar_string_contract("name"),
     )]);
@@ -69,10 +69,11 @@ fn snapshot_reader_reads_published_relation_field_aspects_from_authoritative_sta
         snapshot_identity.clone(),
         published_snapshot.version_id,
     );
-    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-        format!(
-            "relation:{}:{}:{}",
-            relation.partition_id.0, relation.local_slot.0, relation.generation.0
+    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_relational_record(
+        RelationalBridgeRecordIdentityParts::relation(
+            relation.partition_id.0,
+            relation.local_slot.0,
+            relation.generation.0,
         ),
         scalar_string_contract("label"),
     )]);
@@ -103,12 +104,11 @@ fn snapshot_reader_rejects_undeclared_dotted_document_paths() {
         snapshot_identity.clone(),
         published_snapshot.version_id,
     );
-    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-        format!(
-            "entity:{}:{}:{}",
+    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_relational_record(
+        RelationalBridgeRecordIdentityParts::entity(
             published_entity.partition_id.0,
             published_entity.local_slot.0,
-            published_entity.generation.0
+            published_entity.generation.0,
         ),
         scalar_string_contract("profile.name"),
     )]);
@@ -121,6 +121,36 @@ fn snapshot_reader_rejects_undeclared_dotted_document_paths() {
         error
             .to_string()
             .contains("could not resolve aspect `profile.name`"),
+        "unexpected bridge snapshot error: {error}"
+    );
+}
+
+#[test]
+fn snapshot_reader_rejects_untyped_bridge_record_identity() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "visible");
+    let published_snapshot = created.snapshot.clone();
+
+    let snapshot_identity = bridge_snapshot_identity_for_handle(&published_snapshot);
+    let reader = RuntimePublicationSnapshotReader::new(
+        Arc::new(runtime),
+        snapshot_identity,
+        published_snapshot.version_id,
+    );
+    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+        // allowed-untyped-negative-test
+        "legacy-row",
+        scalar_string_contract("name"),
+    )]);
+
+    let error = reader
+        .read_packet(&packet)
+        .expect_err("relational snapshot reads require typed record identity parts");
+
+    assert!(
+        error
+            .to_string()
+            .contains("requires typed record identity parts"),
         "unexpected bridge snapshot error: {error}"
     );
 }

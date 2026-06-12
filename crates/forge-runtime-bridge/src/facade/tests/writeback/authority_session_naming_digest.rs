@@ -34,9 +34,11 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
     )
     .with_naming_mutation(
         crate::facade::BridgeNamingMutationBundle::attach_new_target(
-            "persistent-name:left",
-            "entity:task-left",
-            Some("Task"),
+            bridge_naming_attachment("persistent-name:left"),
+            bridge_naming_target(crate::facade::RelationalBridgeRecordIdentityParts::entity(
+                1, 3, 0,
+            )),
+            Some(bridge_naming_collection("Task")),
         ),
     );
     let right = execute_bridge_mutation_bundle(
@@ -55,9 +57,11 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
     )
     .with_naming_mutation(
         crate::facade::BridgeNamingMutationBundle::attach_new_target(
-            "persistent-name:right",
-            "entity:task-left",
-            Some("Task"),
+            bridge_naming_attachment("persistent-name:right"),
+            bridge_naming_target(crate::facade::RelationalBridgeRecordIdentityParts::entity(
+                1, 3, 0,
+            )),
+            Some(bridge_naming_collection("Task")),
         ),
     );
 
@@ -73,6 +77,20 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
         .to_string();
 
     assert_ne!(left_digest, right_digest);
+}
+
+fn bridge_naming_attachment(value: &str) -> crate::facade::BridgeNamingAttachmentIdentity {
+    crate::facade::BridgeNamingAttachmentIdentity::from_external_authority_evidence(value)
+}
+
+fn bridge_naming_target(
+    parts: crate::facade::RelationalBridgeRecordIdentityParts,
+) -> crate::facade::BridgeNamingResolvedTargetIdentity {
+    crate::facade::BridgeNamingResolvedTargetIdentity::from_relational_record(parts)
+}
+
+fn bridge_naming_collection(value: &str) -> crate::facade::BridgeNamingTargetCollection {
+    crate::facade::BridgeNamingTargetCollection::new(value)
 }
 
 fn execute_bridge_mutation_bundle(

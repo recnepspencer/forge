@@ -13,6 +13,12 @@ pub type BridgeMappingId = BridgeIdentity<MappingIdTag>;
 pub type BridgeFrozenMappingRegistrationIdentity =
     BridgeIdentity<FrozenMappingRegistrationIdentityTag>;
 
+impl BridgeMappingId {
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::new(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MappingSelector {
     Any,
@@ -272,6 +278,12 @@ impl TruthPatchScope {
 }
 
 pub type SignalInvalidationScope = BridgeIdentity<SignalInvalidationScopeTag>;
+
+impl SignalInvalidationScope {
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::new(value)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CoarseRoutingMode {

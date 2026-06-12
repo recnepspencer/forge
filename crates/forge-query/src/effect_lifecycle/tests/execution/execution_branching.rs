@@ -22,9 +22,9 @@ use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectExecutionAuthority, EffectExecutionDenialKind,
 };
 
-use super::execution::{branch_snapshot_token, runtime_snapshot_token};
+use super::execution::branch_snapshot_identity;
 use super::support::{
-    admitted_mutation_effect_for_entity_with_binding, runtime_workflow_binding_with_snapshot,
+    admitted_mutation_effect_for_entity_with_binding, runtime_workflow_binding_for_branch,
 };
 
 #[test]
@@ -50,7 +50,10 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
         .expect("branch-a head should exist")
         .commit_id;
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "authority-plan" }),
     ))
@@ -107,7 +110,10 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
         )
         .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot(&runtime_snapshot_token(&runtime)),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "authority-plan" }),
     ))
@@ -176,7 +182,10 @@ fn lowered_branch_mutation_does_not_deny_when_only_another_branch_moves() {
         )
         .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot(&runtime_snapshot_token(&runtime)),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "authority-plan" }),
     ))

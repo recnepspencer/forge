@@ -122,6 +122,14 @@ impl ForgeQueryRuntimeBuilder {
         self
     }
 
+    pub fn snapshot_identity(
+        mut self,
+        adapter: impl ForgeQueryRuntimeSnapshotIdentityAdapter + 'static,
+    ) -> Self {
+        self.backend_parts = self.backend_parts.snapshot_identity(adapter);
+        self
+    }
+
     pub fn existing_truth_verification(
         mut self,
         adapter: impl ForgeQueryRuntimeExistingTruthVerificationAdapter + 'static,

@@ -129,9 +129,9 @@ mod tests {
                 "merge-artifact:commit-c",
                 "rel-merge-v1",
                 "schema-policy-v1",
-                BridgeMergeParentOrderProof::new(vec![crate::facade::TruthCommitIdentity::new(
-                    "parent-a",
-                )]),
+                BridgeMergeParentOrderProof::new(vec![
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                ]),
             ),
         );
 
@@ -167,8 +167,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    crate::facade::TruthCommitIdentity::new("parent-a"),
-                    crate::facade::TruthCommitIdentity::new("parent-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
                 ]),
             ),
         );

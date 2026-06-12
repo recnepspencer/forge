@@ -95,12 +95,30 @@ impl CollectionPlanDigest {
 pub struct BasisDigest(String);
 
 impl BasisDigest {
+    #[cfg(test)]
     pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(hash_parts(parts))
     }
 
+    pub(crate) fn from_evidence_identity(
+        identity: &crate::evidence_identity::ForgeQueryEvidenceIdentity,
+    ) -> Self {
+        Self(identity.as_str().to_string())
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub(crate) fn evidence_identity(&self) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        crate::evidence_identity::forge_query_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceScope::BasisDigest,
+        )
+        .field_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("basis_digest"),
+            self.as_str(),
+        )
+        .seal()
     }
 }
 

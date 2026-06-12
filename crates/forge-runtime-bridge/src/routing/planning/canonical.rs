@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use crate::diagnostics::BridgeRouteRecordEntry;
+use crate::diagnostics::{BridgeRouteRecordEntityIdentity, BridgeRouteRecordEntry};
 use crate::routing::canonicalization::canonical_snapshot_request_order;
 use crate::routing::eligibility::EligibleRouteEntry;
 use crate::routing::lowering::{BridgeInvalidationTarget, BridgeSubscriptionSlice};
@@ -42,14 +42,26 @@ pub(super) fn canonical_read_packet(
     let mut reads = deduped
         .into_iter()
         .map(|slice| {
-            SnapshotReadRequest::from_native_subscription_slice(
-                slice.entity_identity(),
-                slice.snapshot_read_contract().clone(),
-                slice.aspect_locator().clone(),
-                slice.field_locator().cloned(),
-                slice.projection_mask().clone(),
-                slice.slice_kind().clone(),
-            )
+            if let Some(record_identity) = slice.relational_record_identity_parts() {
+                SnapshotReadRequest::from_native_subscription_slice_relational_record(
+                    slice.entity_identity(),
+                    record_identity,
+                    slice.snapshot_read_contract().clone(),
+                    slice.aspect_locator().clone(),
+                    slice.field_locator().cloned(),
+                    slice.projection_mask().clone(),
+                    slice.slice_kind().clone(),
+                )
+            } else {
+                SnapshotReadRequest::from_native_subscription_slice(
+                    slice.entity_identity(),
+                    slice.snapshot_read_contract().clone(),
+                    slice.aspect_locator().clone(),
+                    slice.field_locator().cloned(),
+                    slice.projection_mask().clone(),
+                    slice.slice_kind().clone(),
+                )
+            }
         })
         .collect::<Vec<_>>();
     reads.sort_by(canonical_snapshot_request_order);
@@ -65,15 +77,25 @@ fn canonical_coarse_read_packet(entries: &[EligibleRouteEntry]) -> SnapshotReadP
                 entry.item().entity_identity().to_owned(),
                 Arc::<str>::from(contract.canonical_basis()),
             ),
-            contract,
+            (contract, entry.item().relational_record_identity_parts()),
         );
     }
 
     let mut reads = deduped
         .into_iter()
-        .map(|((entity_identity, _contract_basis), contract)| {
-            SnapshotReadRequest::for_coarse(entity_identity, contract)
-        })
+        .map(
+            |((entity_identity, _contract_basis), (contract, record_identity))| {
+                if let Some(record_identity) = record_identity {
+                    SnapshotReadRequest::for_coarse_relational_record(
+                        entity_identity,
+                        record_identity,
+                        contract,
+                    )
+                } else {
+                    SnapshotReadRequest::for_coarse(entity_identity, contract)
+                }
+            },
+        )
         .collect::<Vec<_>>();
     reads.sort_by(canonical_snapshot_request_order);
     SnapshotReadPacket::new(reads)
@@ -121,7 +143,7 @@ pub(super) fn canonical_route_record_entries(
             .iter()
             .map(|entry| {
                 BridgeRouteRecordEntry::new(
-                    entry.normalized_surface().entity_identity(),
+                    route_record_entity_identity(entry),
                     entry.normalized_surface().aspect_key().clone(),
                     entry.normalized_surface().target().clone(),
                     entry.item().target().clone(),
@@ -135,4 +157,16 @@ pub(super) fn canonical_route_record_entries(
             })
             .collect::<Vec<_>>(),
     )
+}
+
+fn route_record_entity_identity(entry: &EligibleRouteEntry) -> BridgeRouteRecordEntityIdentity {
+    entry
+        .normalized_surface()
+        .relational_record_identity_parts()
+        .map(BridgeRouteRecordEntityIdentity::RelationalRecord)
+        .unwrap_or_else(|| {
+            BridgeRouteRecordEntityIdentity::TruthSurface(
+                entry.normalized_surface().surface_identity().clone(),
+            )
+        })
 }

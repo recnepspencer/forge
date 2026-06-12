@@ -24,6 +24,11 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
                 component: ForgeQueryRuntimeMissingComponent::SourceAdapter,
             }
         }
+        ForgeQueryRuntimeError::MissingSnapshotIdentityAdapter => {
+            ForgeQueryStopClass::MissingRuntimeComponent {
+                component: ForgeQueryRuntimeMissingComponent::SnapshotIdentityAdapter,
+            }
+        }
         ForgeQueryRuntimeError::MissingWriteAuthority => {
             ForgeQueryStopClass::MissingRuntimeComponent {
                 component: ForgeQueryRuntimeMissingComponent::WriteAuthority,
@@ -117,8 +122,8 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
                 name: view_name,
             }
         }
-        ForgeQueryRuntimeError::SharedReadStaleBasis { snapshot_token } => {
-            ForgeQueryStopClass::SharedReadStaleBasis { snapshot_token }
+        ForgeQueryRuntimeError::SharedReadStaleBasis { snapshot_identity } => {
+            ForgeQueryStopClass::SharedReadStaleBasis { snapshot_identity }
         }
         ForgeQueryRuntimeError::MissingEffect(effect_name) => {
             ForgeQueryStopClass::MissingRuntimeArtifact {

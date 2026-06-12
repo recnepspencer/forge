@@ -44,8 +44,10 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
         .field_usize(ForgeQueryEvidenceTag::new("sequence"), 1)
         .seal();
         assert_eq!(
-            run.write_receipts()[0].commit_identity(),
-            expected_commit_identity.as_str()
+            run.write_receipts()[0]
+                .commit_identity()
+                .evidence_identity(),
+            expected_commit_identity
         );
         assert_eq!(
             run.write_receipts()[0].authority_lane(),

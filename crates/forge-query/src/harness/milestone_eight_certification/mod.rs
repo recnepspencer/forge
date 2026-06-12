@@ -25,6 +25,7 @@ use crate::identity_evolution::{
     IdentityEvolutionSyntheticScenario, InspectorIdentityArtifact, InspectorIdentityClassification,
     LineageTraversalDescriptor,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::saved_query::{
     evaluate_saved_query_reuse, freeze_composed_saved_query, freeze_direct_saved_query,
     SavedQueryFreezeContext, SavedQueryPersistenceClaim, SavedQueryReuseDescriptor,
@@ -254,7 +255,8 @@ fn runtime_basis(
         ResolvedSnapshotIdentity::new(
             BasisAuthorityFamily::Runtime,
             None,
-            "snapshot-a",
+            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-a")
+                .evidence_identity(),
             schema_basis,
             SnapshotLineageClass::CurrentHead,
         ),
@@ -341,9 +343,12 @@ impl CommittedPatchSource for StaticSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_grouped_patch_envelope(
             request.commit_identity().clone(),
-            TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("analysis"),
+            TruthPatchIdentity::from_bridge_harness_label(format!(
+                "patch-for-{}",
+                request.commit_identity().evidence_identity().as_str()
+            )),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("analysis"),
         ))
     }
 }
@@ -355,7 +360,7 @@ struct StaticSnapshotReader {
 
 impl TruthSnapshotReader for StaticSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a")
     }
 
     fn read_packet(
@@ -375,7 +380,7 @@ impl TruthSnapshotReader for StaticSnapshotReader {
             })
             .collect::<Vec<_>>();
         Ok(SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             request
                 .reads()
                 .iter()
@@ -408,14 +413,14 @@ impl SnapshotReadSource for StaticSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if identity.evidence_identity().as_str() == "snapshot-a" {
             Ok(Box::new(StaticSnapshotReader {
                 rows: self.rows.clone(),
             }))
         } else {
             Err(RelationalBridgeSourceError::new(format!(
                 "unknown snapshot `{}`",
-                identity.as_str()
+                identity.evidence_identity().as_str()
             )))
         }
     }
@@ -427,9 +432,15 @@ impl TruthBranchHeadSource for StaticSource {
         branch_identity: &TruthBranchIdentity,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_grouped_patch_envelope(
-            TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-            TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthCommitIdentity::from_bridge_harness_label(format!(
+                "head-{}",
+                branch_identity.evidence_identity().as_str()
+            )),
+            TruthPatchIdentity::from_bridge_harness_label(format!(
+                "patch-{}",
+                branch_identity.evidence_identity().as_str()
+            )),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             branch_identity.clone(),
         ))
     }
@@ -452,14 +463,14 @@ impl BridgeSourceAdapter for StaticSourceAdapter {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if identity.evidence_identity().as_str() == "snapshot-a" {
             Ok(Box::new(StaticSnapshotReader {
                 rows: self.rows.clone(),
             }))
         } else {
             Err(RelationalBridgeSourceError::new(format!(
                 "unknown snapshot `{}`",
-                identity.as_str()
+                identity.evidence_identity().as_str()
             )))
         }
     }
@@ -499,7 +510,7 @@ fn grouped_rows_result(
     packet: &SnapshotReadPacket,
 ) -> SnapshotReadPacketResult {
     SnapshotReadPacketResult::new(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         packet
             .reads()
             .iter()
@@ -535,14 +546,14 @@ fn grouped_runtime(rows: &[GroupedRowFixture]) -> RuntimeBridge {
         .with_signal_sink(StaticSink)
         .register_source(grouped_registered_source())
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping"),
+            BridgeMappingId::from_stable_name("mapping"),
             TruthPatchScope::new(
                 MappingSelector::exact("result:task-1"),
                 AspectKeySelector::exact(aspect_key("status")),
                 TruthPatchTargetSelector::entity_field(field_key("lane")),
             ),
             SnapshotReadContract::scalar(aspect_key("status"), ScalarAspectType::String),
-            SignalInvalidationScope::new("signal:board"),
+            SignalInvalidationScope::from_stable_name("signal:board"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -551,10 +562,10 @@ fn grouped_runtime(rows: &[GroupedRowFixture]) -> RuntimeBridge {
 
 fn grouped_registered_source() -> SourceDeclaration {
     SourceDeclaration::new(
-        SourceDeclarationIdentity::new("source:grouped-board"),
+        SourceDeclarationIdentity::from_stable_name("source:grouped-board"),
         BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("analysis"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         BridgeSourceCapabilitySet::new(vec![
             BridgeSourceCapability::SnapshotRead,
@@ -987,7 +998,10 @@ fn grouped_execution_surface_bundle(
         grouped_execution.digest().to_string(),
         vec![
             format!("members:{}", grouped_execution.member_rows().len()),
-            format!("truth_view:{}", grouped_execution.truth_view_digest()),
+            format!(
+                "truth_view:{}",
+                grouped_execution.truth_view_evidence_identity().as_str()
+            ),
         ],
         grouped_execution.digest().to_string(),
         "support:none".to_string(),

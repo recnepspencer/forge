@@ -1,7 +1,5 @@
 use crate::continuity::BridgeContinuityAuthorityBasis;
 use crate::error::BridgeLineageSourceErrorKind;
-use crate::input::envelope::TruthBranchIdentity;
-use crate::snapshot::TruthSnapshotIdentity;
 
 use super::{
     BridgeHistoricalLineageAuthority, BridgeHistoricalResolvedLineageIdentity,
@@ -10,8 +8,8 @@ use super::{
 
 fn authority_basis() -> BridgeContinuityAuthorityBasis {
     BridgeContinuityAuthorityBasis::new(
-        TruthBranchIdentity::new("main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     )
 }
 

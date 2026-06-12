@@ -11,12 +11,12 @@ use crate::workflow::{
 use forge_relational::facade::history::BranchId;
 
 use super::super::support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
     test_bridge_with_writeback_authority,
 };
 use super::{
     branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding,
-    runtime_workflow_binding_with_snapshot, scalar_or_terminal_row, seeded_label, workflow_request,
+    runtime_workflow_binding_for_branch, scalar_or_terminal_row, seeded_label, workflow_request,
     EffectLifecycleSeededCertificationRow, EffectLifecycleSeededOutcomeClass, SeedStepper,
 };
 
@@ -29,7 +29,8 @@ pub(super) fn scalar_mutation_row(
     let updated_name = seeded_label("updated", stepper, index);
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, &entity_name, BranchId(branch.clone()));
-    let binding = runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, &branch));
+    let binding =
+        runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, &branch), &branch);
     let basis = EffectAuthoringBasis::from(branch_mutation_basis(&branch));
     let raw = raw_mutation_effect_with_binding(binding, entity_id, updated_name);
     let support = discover_effect_lifecycle_support(basis.family(), EffectFamily::Mutation);
@@ -203,7 +204,8 @@ pub(super) fn batch_mutation_row(
         );
         seeded_entities.push((entity_id, desired));
     }
-    let binding = runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, &branch));
+    let binding =
+        runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, &branch), &branch);
     let mut draft = effect_batch();
     for (entity_id, desired) in seeded_entities {
         draft = draft.push(raw_mutation_effect_with_binding(

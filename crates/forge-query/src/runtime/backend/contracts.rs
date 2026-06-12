@@ -1,5 +1,5 @@
 use forge_relational::facade::runtime::RelationalRuntime;
-use forge_runtime_bridge::facade::RuntimeBridge;
+use forge_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
 use serde_json::Value;
 
 use super::{
@@ -9,8 +9,12 @@ use super::{
     WriteAuthorityExecutionReceipt,
 };
 use crate::declarative_live::DeclarativeLiveQueryRequest;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::memory_workspace::{
-    ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
+    ForgeQueryEntity, ForgeQueryEntityIdentity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
+    ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQuerySnapshotIdentity,
     ForgeQueryWorkspaceError,
 };
 use crate::program::ForgeQueryDerivedView;
@@ -31,6 +35,10 @@ use crate::runtime::{
 
 pub trait ForgeQueryRuntimeBackend {
     fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile;
+
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        unavailable_snapshot_identity()
+    }
 
     fn admit_live_view_declaration(
         &self,
@@ -102,8 +110,6 @@ pub trait ForgeQueryRuntimeBackend {
 
     fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String>;
 
-    fn snapshot_token(&self) -> String;
-
     fn install_live_subscription(
         &mut self,
         view_name: &str,
@@ -126,7 +132,6 @@ pub trait ForgeQueryRuntimeBackend {
     fn declaration_initialization_metadata(
         &self,
         _view: &ForgeQueryDerivedView,
-        _snapshot_token: &str,
     ) -> Result<crate::runtime::ForgeQueryMutationMetadata, ForgeQueryWorkspaceError> {
         Ok(crate::runtime::ForgeQueryMutationMetadata::default())
     }
@@ -137,6 +142,21 @@ pub trait ForgeQueryRuntimeBackend {
     ) -> Result<Option<Vec<(String, String)>>, ForgeQueryWorkspaceError> {
         Ok(None)
     }
+}
+
+pub(in crate::runtime) fn unavailable_snapshot_identity() -> ForgeQuerySnapshotIdentity {
+    ForgeQuerySnapshotIdentity::preview(
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("snapshot_authority"),
+                "unavailable",
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("snapshot_contract"),
+                "backend-must-override-for-authoritative-truth",
+            )
+            .seal(),
+    )
 }
 
 pub trait ForgeQueryRuntimeSchemaAdapter {
@@ -178,8 +198,10 @@ pub trait ForgeQueryRuntimeSourceAdapter {
     fn drain_live_patches(&mut self, view_name: &str) -> Vec<ForgeQueryLivePatch>;
 
     fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String>;
+}
 
-    fn snapshot_token(&self) -> String;
+pub trait ForgeQueryRuntimeSnapshotIdentityAdapter {
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity;
 }
 
 pub trait ForgeQueryRuntimeExistingTruthVerificationAdapter {
@@ -187,7 +209,7 @@ pub trait ForgeQueryRuntimeExistingTruthVerificationAdapter {
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
         aspects: &[crate::runtime::ForgeQueryAspectValue],
-    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial>;
+    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>;
 
     fn probe_existing_truth(
         &self,
@@ -196,6 +218,25 @@ pub trait ForgeQueryRuntimeExistingTruthVerificationAdapter {
 }
 
 pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
+    fn build_bridge_mutation_authority_bundle(
+        &self,
+        bridge: &RuntimeBridge,
+        snapshot_identity: &ForgeQuerySnapshotIdentity,
+        command: &ForgeQueryWriteCommand,
+        collection: &str,
+        entity_identity: &ForgeQueryEntityIdentity,
+        mutation_kind: ForgeQueryMutationKind,
+    ) -> Result<BridgeMutationAuthorityBundle, ForgeQueryWorkspaceError> {
+        super::build_bridge_authority_bundle(
+            bridge,
+            snapshot_identity,
+            command,
+            collection,
+            entity_identity,
+            mutation_kind,
+        )
+    }
+
     fn build_write_authority_execution_receipt(
         &self,
         command: &ForgeQueryWriteCommand,
@@ -229,7 +270,7 @@ pub trait ForgeQueryRuntimeSignalSinkAdapter {
     fn build_signal_invalidation_routing_receipt(
         &self,
         receipt: &ForgeQueryMutationReceipt,
-    ) -> SignalInvalidationRoutingReceipt {
+    ) -> Result<SignalInvalidationRoutingReceipt, ForgeQueryWorkspaceError> {
         SignalInvalidationRoutingReceipt::from_mutation_receipt(receipt)
     }
 
@@ -237,8 +278,11 @@ pub trait ForgeQueryRuntimeSignalSinkAdapter {
         &self,
         receipt: &ForgeQueryMutationReceipt,
         routing_receipt: SignalInvalidationRoutingReceipt,
-    ) -> SignalInvalidationBoundaryReceipt {
-        SignalInvalidationBoundaryReceipt::from_mutation_receipt(receipt, routing_receipt)
+    ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
+        Ok(SignalInvalidationBoundaryReceipt::from_mutation_receipt(
+            receipt,
+            routing_receipt,
+        ))
     }
 
     fn route_write_receipt(
@@ -323,6 +367,5 @@ pub trait ForgeQueryRuntimeDeclarationInitializationAdapter {
     fn declaration_initialization_metadata(
         &self,
         view: &ForgeQueryDerivedView,
-        snapshot_token: &str,
     ) -> Result<crate::runtime::ForgeQueryMutationMetadata, ForgeQueryWorkspaceError>;
 }

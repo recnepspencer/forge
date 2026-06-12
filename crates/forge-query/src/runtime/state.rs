@@ -235,15 +235,18 @@ impl ForgeQueryRuntimeStateTarget for &ForgeQueryWriteReceipt {
             "mutation-receipt:{}:{}:{}",
             self.mutation_family(),
             self.declared_collection().unwrap_or(""),
-            self.declared_entity_identity().unwrap_or("")
+            self.declared_entity_identity()
+                .map(|identity| identity.evidence_identity().as_str().to_string())
+                .unwrap_or_default()
         );
+        let commit_evidence_identity = self.commit_evidence_identity().as_str().to_string();
         Ok(ForgeQueryRuntimeStateSnapshot::ready(
-            self.commit_identity(),
+            &commit_evidence_identity,
             result_shape_digest,
             self.authority_lane(),
             format!(
                 "mutation receipt `{}` is ready with `{}` family evidence over `{}` basis lane",
-                self.commit_identity(),
+                commit_evidence_identity,
                 self.mutation_family(),
                 self.basis_lane()
             ),

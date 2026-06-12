@@ -70,7 +70,7 @@ impl ForgeQueryRuntimePublicSupportMatrixRow {
                     ForgeQueryEvidenceTag::new("admission_fail_closed"),
                     admission_fail_closed,
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("support_contract_digest"),
                     support_contract_digest.as_deref(),
                 )

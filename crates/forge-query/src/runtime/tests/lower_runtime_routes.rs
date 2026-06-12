@@ -7,6 +7,7 @@ fn runtime_live_view_denies_when_schema_boundary_receipt_drifts_from_request() {
         .schema_adapter(DriftingSchemaReceiptAdapter)
         .source_adapter(TestSourceAdapter::default())
         .write_authority(TestWriteAuthority)
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
@@ -41,7 +42,10 @@ fn runtime_write_denies_when_write_authority_route_receipt_drifts_from_command()
             let honest = authority.write(bridge, relational_runtime, command.clone())?;
             Ok(WriteAuthorityExecutionReceipt::from_command(
                 &ForgeQueryWriteCommand::Delete {
-                    entity_identity: "drifted-entity".to_string(),
+                    entity_identity:
+                        crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                            "drifted-entity",
+                        ),
                 },
                 honest.mutation_receipt().clone(),
             ))
@@ -53,6 +57,7 @@ fn runtime_write_denies_when_write_authority_route_receipt_drifts_from_command()
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
         .write_authority(DriftingWriteAuthority)
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
@@ -73,7 +78,7 @@ fn runtime_write_denies_when_write_authority_route_receipt_drifts_from_command()
 
     assert_workspace_write_error(
         error,
-        "lower-runtime capability request subject digest drifted",
+        "lower-runtime capability request subject identity drifted",
     );
 }
 

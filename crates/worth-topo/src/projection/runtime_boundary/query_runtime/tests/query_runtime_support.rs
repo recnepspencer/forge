@@ -1,5 +1,6 @@
-use forge_query::facade::ForgeQueryWorkspace;
+use forge_query::facade::{ForgeQueryEntityIdentity, ForgeQueryWorkspace};
 use forge_relational::facade::identity::{EntityId, RelationId};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde_json::Value;
@@ -132,12 +133,12 @@ impl QueryRuntimeSupport {
             .find_entity_id_by_identity(
                 self.entity_rows
                     .iter()
-                    .map(|row| row.identity())
+                    .filter_map(|row| query_identity_label(row.identity()))
                     .find(|identity| {
-                        *identity != source_identity
+                        identity.as_str() != source_identity
                             && self
                                 .lookup()
-                                .edge_identity_of_half_edge(identity)
+                                .edge_identity_of_half_edge(identity.as_str())
                                 .is_ok_and(|edge_identity| edge_identity != source_edge_identity)
                     })
                     .expect("seeded edge fan should expose an illegal radial target on a different edge"),
@@ -183,17 +184,20 @@ impl QueryRuntimeSupport {
         let half_edges = self
             .entity_rows
             .iter()
-            .map(|row| row.identity())
+            .filter_map(|row| query_identity_label(row.identity()))
             .filter(|identity| {
                 self.lookup()
-                    .incoming_source_identity(identity, TopologyRelationKind::LoopOwnsHalfEdge)
+                    .incoming_source_identity(
+                        identity.as_str(),
+                        TopologyRelationKind::LoopOwnsHalfEdge,
+                    )
                     .is_ok()
             })
             .collect::<Vec<_>>();
         for left in &half_edges {
             let left_loop = self
                 .lookup()
-                .incoming_source_identity(left, TopologyRelationKind::LoopOwnsHalfEdge)
+                .incoming_source_identity(left.as_str(), TopologyRelationKind::LoopOwnsHalfEdge)
                 .expect("seeded topology should expose loop ownership");
             for right in &half_edges {
                 if left == right {
@@ -201,10 +205,13 @@ impl QueryRuntimeSupport {
                 }
                 let right_loop = self
                     .lookup()
-                    .incoming_source_identity(right, TopologyRelationKind::LoopOwnsHalfEdge)
+                    .incoming_source_identity(
+                        right.as_str(),
+                        TopologyRelationKind::LoopOwnsHalfEdge,
+                    )
                     .expect("seeded topology should expose loop ownership");
                 if left_loop != right_loop {
-                    return ((*left).to_string(), (*right).to_string());
+                    return (left.clone(), right.clone());
                 }
             }
         }
@@ -243,4 +250,18 @@ impl QueryRuntimeSupport {
     fn lookup(&self) -> TopologyQueryRowLookup<'_> {
         TopologyQueryRowLookup::new(&self.entity_rows, &self.relation_rows)
     }
+}
+
+fn query_identity_label(identity: &ForgeQueryEntityIdentity) -> Option<String> {
+    let parts = identity.relational_record_parts()?;
+    let kind = match parts.kind() {
+        RelationalBridgeRecordIdentityKind::Entity => "entity",
+        RelationalBridgeRecordIdentityKind::Relation => "relation",
+    };
+    Some(format!(
+        "{kind}:{}:{}:{}",
+        parts.partition_id(),
+        parts.local_slot(),
+        parts.generation()
+    ))
 }

@@ -1,4 +1,3 @@
-use crate::facade::TruthSnapshotIdentity;
 use forge_harness::facade::{
     ExecutionProfile, ExecutionRequest, MutationBatch, ReplayRequest, ScenarioPlan,
 };
@@ -21,13 +20,16 @@ fn bridge_harness_executes_historical_commit_view() {
         "bridge-historical-commit-view",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("history-commit:main:commit-a")
     .declare_observation("historical")
@@ -35,8 +37,8 @@ fn bridge_harness_executes_historical_commit_view() {
     let request = ExecutionRequest::target(
         "historical-commit-a",
         BridgeHarnessTargetId::historical_commit(
-            crate::facade::TruthBranchIdentity::new("main"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
     );
     let profile = ExecutionProfile::development("development");
@@ -69,20 +71,25 @@ fn bridge_harness_executes_branch_head_view() {
         "bridge-branch-head-view",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("branch-head:main")
     .declare_observation("historical")
     .compile();
     let request = ExecutionRequest::target(
         "branch-head-main",
-        BridgeHarnessTargetId::branch_head(crate::facade::TruthBranchIdentity::new("main")),
+        BridgeHarnessTargetId::branch_head(crate::truth_identity_fixtures::truth_branch_fixture(
+            "main",
+        )),
     );
     let profile = ExecutionProfile::development("development");
 
@@ -114,13 +121,16 @@ fn bridge_harness_replays_historical_record() {
         "bridge-historical-replay",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("history-commit:main:commit-a")
     .declare_observation("historical")
@@ -128,8 +138,8 @@ fn bridge_harness_replays_historical_record() {
     let request = ExecutionRequest::target(
         "historical-commit-a",
         BridgeHarnessTargetId::historical_commit(
-            crate::facade::TruthBranchIdentity::new("main"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
     );
     let profile = ExecutionProfile::development("development");
@@ -168,21 +178,26 @@ fn bridge_harness_branch_divergence_changes_selected_truth_view_explicitly() {
     let profile = ExecutionProfile::development("development");
     let request = ExecutionRequest::target(
         "branch-head-feature",
-        BridgeHarnessTargetId::branch_head(crate::facade::TruthBranchIdentity::new("feature")),
+        BridgeHarnessTargetId::branch_head(crate::truth_identity_fixtures::truth_branch_fixture(
+            "feature",
+        )),
     );
 
     let main_fixture = ScenarioPlan::new(
         "bridge-historical-main-head",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("main"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("branch-head:main")
     .declare_observation("historical")
@@ -191,14 +206,17 @@ fn bridge_harness_branch_divergence_changes_selected_truth_view_explicitly() {
         "bridge-historical-feature-head",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("feature"),
-                crate::facade::TruthCommitIdentity::new("commit-f"),
-                crate::facade::TruthPatchIdentity::new("patch-f"),
-                TruthSnapshotIdentity::new("snapshot-f"),
+                crate::truth_identity_fixtures::truth_branch_fixture("feature"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-f"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-f"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-f"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-f"), "frank")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-f"),
+                "frank",
+            )),
     )
     .declare_input("branch-head:feature")
     .declare_observation("historical")
@@ -219,7 +237,9 @@ fn bridge_harness_branch_divergence_changes_selected_truth_view_explicitly() {
             &main_fixture,
             &ExecutionRequest::target(
                 "branch-head-main",
-                BridgeHarnessTargetId::branch_head(crate::facade::TruthBranchIdentity::new("main")),
+                BridgeHarnessTargetId::branch_head(
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                ),
             ),
             &profile,
         )
@@ -261,13 +281,16 @@ fn bridge_harness_rejects_unavailable_historical_view_explicitly() {
         "bridge-historical-missing-view",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("history-commit:main:missing-commit")
     .declare_observation("historical")
@@ -275,8 +298,8 @@ fn bridge_harness_rejects_unavailable_historical_view_explicitly() {
     let request = ExecutionRequest::target(
         "historical-missing",
         BridgeHarnessTargetId::historical_commit(
-            crate::facade::TruthBranchIdentity::new("main"),
-            crate::facade::TruthCommitIdentity::new("missing-commit"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("missing-commit"),
         ),
     );
     let profile = ExecutionProfile::development("development");
@@ -305,9 +328,12 @@ fn bridge_harness_rejects_unavailable_historical_view_explicitly() {
     );
     assert_eq!(
         failure.commit_identity().map(|commit| commit.as_str()),
-        Some("missing-commit")
+        Some(crate::truth_identity_fixtures::truth_commit_fixture("missing-commit").as_str())
     );
-    assert_eq!(failure.branch_identity().as_str(), "main");
+    assert_eq!(
+        failure.branch_identity().as_str(),
+        crate::truth_identity_fixtures::truth_branch_fixture("main").as_str()
+    );
 }
 
 #[test]
@@ -317,13 +343,16 @@ fn bridge_harness_replays_historical_record_after_newer_publication_arrives() {
         "bridge-historical-replay-stability",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("history-commit:main:commit-a")
     .declare_observation("historical")
@@ -331,8 +360,8 @@ fn bridge_harness_replays_historical_record_after_newer_publication_arrives() {
     let request = ExecutionRequest::target(
         "historical-commit-a",
         BridgeHarnessTargetId::historical_commit(
-            crate::facade::TruthBranchIdentity::new("main"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
     );
     let profile = ExecutionProfile::development("development");
@@ -351,15 +380,15 @@ fn bridge_harness_replays_historical_record_after_newer_publication_arrives() {
     let mutation = MutationBatch::new("publish-newer-history")
         .push(BridgeHarnessMutation::PublishCommittedPatch(
             committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
-                crate::facade::TruthPatchIdentity::new("patch-b"),
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ),
         ))
         .push(BridgeHarnessMutation::PublishSnapshot(snapshot(
-            TruthSnapshotIdentity::new("snapshot-b"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
             "bob",
         )));
     adapter

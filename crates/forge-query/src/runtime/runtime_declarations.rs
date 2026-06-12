@@ -1,6 +1,11 @@
 use super::async_result_state::ForgeQueryRuntimeAsyncResultProjection;
 use super::*;
-use crate::memory_workspace::{ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError,
+};
 
 impl ForgeQueryRuntime {
     pub fn declare_live_view<T>(
@@ -142,14 +147,25 @@ impl ForgeQueryRuntime {
             _ => return Ok(()),
         };
         let upstreams = retained_upstream_inputs_for_declaration(self, &declaration)?;
-        let snapshot_token = self.snapshot_token();
+        let snapshot_identity = self.current_snapshot_identity();
+        let refresh_identity = ForgeQueryCommitIdentity::preview(
+            ForgeQueryEvidenceIdentity::compose(
+                ForgeQueryEvidenceScope::WriteReceiptCommitIdentity,
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("refresh_origin"),
+                "derived-declaration",
+            )
+            .field_value(ForgeQueryEvidenceTag::new("view_name"), view_name)
+            .seal(),
+        );
         let refresh_metadata = self
             .backend
-            .declaration_initialization_metadata(&declaration, &snapshot_token)
+            .declaration_initialization_metadata(&declaration)
             .map_err(ForgeQueryRuntimeError::Workspace)?;
         let refresh = ForgeQueryRetainedRefreshContext::from_declaration_initialization(
-            format!("derived-declaration:{view_name}"),
-            snapshot_token,
+            refresh_identity,
+            snapshot_identity,
             refresh_metadata,
         );
         let Some(runtime) = self.derived_views.get_mut(view_name) else {

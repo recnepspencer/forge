@@ -1,4 +1,8 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+
+use super::super::identity::CausalInspectionCertificationErrorIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CausalInspectionCertificationErrorKind {
@@ -29,7 +33,7 @@ impl CausalInspectionCertificationErrorKind {
 pub struct CausalInspectionCertificationError {
     kind: CausalInspectionCertificationErrorKind,
     message: &'static str,
-    failure_digest: String,
+    failure_identity: CausalInspectionCertificationErrorIdentity,
 }
 
 impl CausalInspectionCertificationError {
@@ -38,16 +42,21 @@ impl CausalInspectionCertificationError {
         message: &'static str,
         evidence: &[String],
     ) -> Self {
-        let mut parts = vec![
-            "causal_inspection_certification_error_v1".to_string(),
-            kind.as_str().to_string(),
-            message.to_string(),
-        ];
-        parts.extend(evidence.iter().cloned());
+        let failure_identity = forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::CausalInspectionCertificationError,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_value(ForgeQueryEvidenceTag::new("message"), message)
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("evidence"),
+            evidence.iter().map(String::as_str),
+        )
+        .seal()
+        .into();
         Self {
             kind,
             message,
-            failure_digest: hash_parts(&parts),
+            failure_identity,
         }
     }
 
@@ -60,6 +69,6 @@ impl CausalInspectionCertificationError {
     }
 
     pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+        self.failure_identity.as_str()
     }
 }

@@ -23,8 +23,8 @@ fn registered_merge(
             "rel-merge-v1",
             "schema-policy-v1",
             BridgeMergeParentOrderProof::new(vec![
-                crate::facade::TruthCommitIdentity::new("parent-a"),
-                crate::facade::TruthCommitIdentity::new("parent-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
             ]),
         ),
     )
@@ -40,8 +40,8 @@ fn runtime_with_merge(declaration: MergeHistoryDeclaration) -> RuntimeBridge {
         .register_source(registered_source(
             "source:analysis-snapshot",
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,

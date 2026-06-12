@@ -192,11 +192,10 @@ fn preview_lane() -> HistoricalDiffLane {
     .expect("preview binding should succeed");
     let foundation = admit_preview_workflow_foundation(&preview_binding)
         .expect("preview foundation should admit");
+    let preview_session_identity = foundation.preview_session_identity().evidence_identity();
     let context = admit_query_basis_context(
         bind_query_basis_context(
-            QueryBasisContextRequest::preview_derived_historical(
-                foundation.preview_session_identity().as_str(),
-            ),
+            QueryBasisContextRequest::preview_derived_historical(preview_session_identity.as_str()),
             QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
         )
         .expect("preview-derived context should bind"),
@@ -470,11 +469,10 @@ fn preview_lane_context() -> crate::query_context::AdmittedQueryBasisContext {
     .expect("preview binding should succeed");
     let foundation = admit_preview_workflow_foundation(&preview_binding)
         .expect("preview foundation should admit");
+    let preview_session_identity = foundation.preview_session_identity().evidence_identity();
     admit_query_basis_context(
         bind_query_basis_context(
-            QueryBasisContextRequest::preview_derived_historical(
-                foundation.preview_session_identity().as_str(),
-            ),
+            QueryBasisContextRequest::preview_derived_historical(preview_session_identity.as_str()),
             QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
         )
         .expect("preview-derived context should bind"),

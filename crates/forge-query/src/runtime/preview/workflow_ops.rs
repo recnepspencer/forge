@@ -26,15 +26,15 @@ impl<'a> ForgeQueryPreviewSession<'a> {
 
     pub fn promote(mut self) -> Result<ForgeQueryPreviewOutcome, ForgeQueryRuntimeError> {
         let staged_preview_write_count = self.pending_commands.len();
-        let promotion_snapshot_token = self.runtime.snapshot_token();
+        let promotion_snapshot_identity = self.runtime.current_snapshot_identity();
         let residue_snapshot = self.residue_snapshot();
-        if promotion_snapshot_token != self.basis_snapshot_token {
+        if promotion_snapshot_identity != self.basis_snapshot_identity {
             return Err(ForgeQueryRuntimeError::PreviewPromotionStaleBasis(
                 ForgeQueryPreviewPromotionDenialEvidence::stale_basis(
                     self.effect_policy,
                     &self.basis_admission,
-                    &self.basis_snapshot_token,
-                    &promotion_snapshot_token,
+                    &self.basis_snapshot_identity,
+                    &promotion_snapshot_identity,
                     staged_preview_write_count,
                     self.handle_bindings.len(),
                 ),
@@ -46,8 +46,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     ForgeQueryPreviewPromotionDenialEvidence::atomic_batch_unsupported(
                         self.effect_policy,
                         &self.basis_admission,
-                        &self.basis_snapshot_token,
-                        &promotion_snapshot_token,
+                        &self.basis_snapshot_identity,
+                        &promotion_snapshot_identity,
                         staged_preview_write_count,
                         self.handle_bindings.len(),
                     ),
@@ -62,13 +62,13 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     ForgeQueryEvidenceTag::new("session_label_identity"),
                     self.basis_admission.label_identity().as_str(),
                 )
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("basis_snapshot_token"),
-                    self.basis_snapshot_token.as_str(),
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("basis_snapshot_identity"),
+                    &self.basis_snapshot_identity.evidence_identity(),
                 )
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("promotion_snapshot_token"),
-                    promotion_snapshot_token.as_str(),
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("promotion_snapshot_identity"),
+                    &promotion_snapshot_identity.evidence_identity(),
                 )
                 .field_usize(
                     ForgeQueryEvidenceTag::new("crossed_authoritative_residue_count"),
@@ -84,8 +84,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 ForgeQueryPreviewPromotionDenialEvidence::rebinding_required(
                     self.effect_policy,
                     &self.basis_admission,
-                    &self.basis_snapshot_token,
-                    &promotion_snapshot_token,
+                    &self.basis_snapshot_identity,
+                    &promotion_snapshot_identity,
                     staged_preview_write_count,
                     self.handle_bindings.len(),
                     crossed_authoritative_residue_count,
@@ -108,8 +108,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                         evidence: ForgeQueryPreviewPromotionDenialEvidence::write_failed(
                             self.effect_policy,
                             &self.basis_admission,
-                            &self.basis_snapshot_token,
-                            &promotion_snapshot_token,
+                            &self.basis_snapshot_identity,
+                            &promotion_snapshot_identity,
                             staged_preview_write_count,
                             promoted_writes,
                             index + 1,
@@ -131,7 +131,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             staged_preview_write_count,
             promoted_writes,
             residue_snapshot,
-            &promotion_snapshot_token,
+            &promotion_snapshot_identity,
             Some(promotion_rebinding_digest),
         );
         Ok(ForgeQueryPreviewOutcome {
@@ -165,7 +165,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             staged_preview_write_count,
             0,
             residue_snapshot,
-            &self.basis_snapshot_token,
+            &self.basis_snapshot_identity,
             None,
         );
         ForgeQueryPreviewOutcome {
@@ -220,7 +220,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 declaration.name(),
                 ForgeQueryAuthorityLane::PendingWriteIntent,
                 ForgeQueryAuthorityLane::PreviewTruth,
-                receipt.receipt_digest().as_str(),
+                receipt.receipt_identity(),
                 vec![declaration.strategy_name().to_string()],
             ));
         Ok(receipt)

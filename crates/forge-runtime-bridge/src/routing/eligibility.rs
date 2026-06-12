@@ -166,7 +166,6 @@ mod tests {
     use crate::input::envelope::{
         BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
         BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeProducerMetadata,
-        TruthBranchIdentity, TruthPatchIdentity,
     };
     use crate::mapping::{
         BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeMappingId,
@@ -174,17 +173,16 @@ mod tests {
         FrozenMappingRegistry, MappingSelector, SignalInvalidationScope, SliceWideningPolicy,
         SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope, TruthPatchTargetSelector,
     };
-    use crate::snapshot::TruthSnapshotIdentity;
 
     #[test]
     fn missing_mapping_registration_retains_native_patch_target_coordinate() {
         let envelope = BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
                 BridgeProducerMetadata::bridge_harness_fixture(),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
             ),
             vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
@@ -317,10 +315,10 @@ mod tests {
         BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
                 BridgeProducerMetadata::bridge_harness_fixture(),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
             ),
             vec![BridgeCommittedPatchItem::with_target("entity-1", target)],
         )

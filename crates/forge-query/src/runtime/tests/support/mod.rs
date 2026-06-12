@@ -2,6 +2,7 @@ pub(in crate::runtime::tests) use super::super::*;
 pub(in crate::runtime::tests) use crate::declarative_live::{
     DeclarativeLiveViewShape, DeclarativeProjectionField,
 };
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 pub(in crate::runtime::tests) use crate::program::{
     ForgeQueryAspectValueTemplate, ForgeQueryOperation, ForgeQueryPortType,
     ForgeQueryProgramSource, ForgeQuerySchemaAdapter, ForgeQueryTypedPort, ForgeQueryValueExpr,
@@ -38,7 +39,7 @@ mod schema;
 mod stateful_bridge_runtime;
 
 pub(in crate::runtime::tests) use adapters::*;
-pub(in crate::runtime::tests) use bridge::*;
+pub(crate) use bridge::*;
 pub(in crate::runtime::tests) use commands::*;
 pub(in crate::runtime::tests) use domains::*;
 pub(in crate::runtime::tests) use graph_composition::*;
@@ -52,6 +53,34 @@ pub(in crate::runtime::tests) fn test_session_label(
 ) -> ForgeQuerySessionLabel {
     ForgeQuerySessionLabel::scoped_strs("forge-query-runtime-tests", [label.as_ref()])
         .expect("test session label should build")
+}
+
+pub(in crate::runtime::tests) fn test_entity_identity(
+    identity: impl AsRef<str>,
+) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::authored_command(identity)
+}
+
+pub(in crate::runtime::tests) fn test_write_adjacent_origin_identity(
+    class: ForgeQueryEffectWriteAdjacentTriggerClass,
+    origin: impl AsRef<str>,
+) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+    crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+        crate::evidence_identity::ForgeQueryEvidenceScope::EffectIntentReceiptPhase,
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+        "test_effect_write_adjacent_origin_v1",
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("class"),
+        class.as_str(),
+    )
+    .field_value(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("origin_fixture"),
+        origin.as_ref(),
+    )
+    .seal()
 }
 
 pub(in crate::runtime::tests) fn live_subscription_async_identity(

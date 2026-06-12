@@ -16,17 +16,17 @@ pub(crate) fn lower_lineage_authority(
             let canonical_subject = authority
                 .canonical_resolved_lineage_identities()
                 .first()
-                .map(|identity| identity.as_str())
-                .unwrap_or(authority.lineage_digest());
+                .map(|identity| identity.evidence_identity().as_str().to_string())
+                .unwrap_or_else(|| authority.lineage_digest().to_string());
             let authoritative_counterpart = authority
                 .canonical_resolved_record_identities()
                 .first()
-                .map(|identity| identity.as_str())
-                .unwrap_or(authority.lineage_digest());
+                .map(|identity| identity.evidence_identity().as_str().to_string())
+                .unwrap_or_else(|| authority.lineage_digest().to_string());
 
             LineageEvidenceInput::AuthoritativeContinuity {
-                canonical_subject: canonical_subject.to_string(),
-                authoritative_counterpart: authoritative_counterpart.to_string(),
+                canonical_subject,
+                authoritative_counterpart,
             }
         }
         BridgeHistoricalLineageTopology::NoAuthoritativeSuccessor => {

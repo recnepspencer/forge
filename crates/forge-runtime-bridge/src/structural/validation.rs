@@ -113,8 +113,8 @@ impl ValidatedStructuralIdentityDeclaration {
 #[cfg(test)]
 mod tests {
     use super::ValidatedStructuralIdentityDeclaration;
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::structural::{
         StructuralComparisonMode, StructuralFingerprintEquivalenceContract,
         StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
@@ -141,8 +141,12 @@ mod tests {
             StructuralSchemaIdentity::new("schema:geometry"),
             contract("schema:geometry"),
             StructuralTruthViewBasis::explicit_branch_pair(
-                BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("left")),
-                BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("right")),
+                BridgeTruthViewSelector::branch_head(
+                    crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                ),
+                BridgeTruthViewSelector::branch_head(
+                    crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                ),
             ),
         );
 
@@ -162,12 +166,12 @@ mod tests {
             contract("schema:geometry"),
             StructuralTruthViewBasis::explicit_branch_pair(
                 BridgeTruthViewSelector::branch_snapshot(
-                    TruthBranchIdentity::new("left"),
-                    TruthSnapshotIdentity::new("snapshot-left"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-left"),
                 ),
                 BridgeTruthViewSelector::branch_snapshot(
-                    TruthBranchIdentity::new("right"),
-                    TruthSnapshotIdentity::new("snapshot-right"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-right"),
                 ),
             ),
         );

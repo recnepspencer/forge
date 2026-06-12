@@ -11,6 +11,7 @@ fn remasked_runtime(projection: ForgeQueryRuntimeRemaskProjection) -> ForgeQuery
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(RemaskingSubscriptionActivation { projection })
@@ -96,9 +97,9 @@ fn runtime_downstream_delivery_projects_mixed_cause_and_async_truth_without_recl
         &bridge,
         forge_signal::facade::NodeId::new(301, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );

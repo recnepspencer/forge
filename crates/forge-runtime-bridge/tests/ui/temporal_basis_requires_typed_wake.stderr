@@ -1,3 +1,47 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/temporal_basis_requires_typed_wake.rs:9:30
+  |
+9 |         TruthBranchIdentity::new("branch-a"),
+  |                              ^^^ private associated function
+  |
+ ::: src/identity.rs
+  |
+  |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+  |     ----------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/temporal_basis_requires_typed_wake.rs:10:30
+   |
+10 |         TruthCommitIdentity::new("commit-a"),
+   |                              ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+   |     ----------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/temporal_basis_requires_typed_wake.rs:11:32
+   |
+11 |         TruthSnapshotIdentity::new("snapshot-a"),
+   |                                ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+   |     ----------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/temporal_basis_requires_typed_wake.rs:14:30
+   |
+14 |         TruthBranchIdentity::new("branch-a"),
+   |                              ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+   |     ----------------------------------------------------- private associated function defined here
+
 error[E0308]: mismatched types
   --> tests/ui/temporal_basis_requires_typed_wake.rs:24:14
    |

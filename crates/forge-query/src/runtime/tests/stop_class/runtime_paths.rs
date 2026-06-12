@@ -36,11 +36,21 @@ fn intent_execution_routing_stop_class_preserves_stage_evidence_and_source() {
         .execute_intent(binding.declaration())
         .expect("backend execution should succeed");
     let admitted_handoff = ForgeQueryAdmittedIntentExecutionHandoff::from(handoff);
-    let execution_provenance = ForgeQueryIntentExecutionProvenance::for_authoritative_binding(
-        &binding,
-        execution.outcome_digest(),
-        execution.mutation_receipt().snapshot_token.as_str(),
-    );
+    let snapshot_evidence_identity = execution
+        .mutation_receipt()
+        .snapshot_identity
+        .evidence_identity();
+    let execution_provenance =
+        ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+            binding.family(),
+            binding.entrypoint(),
+            binding.execution_seam(),
+            binding.handoff().decision_digest(),
+            binding.handoff().handoff_digest(),
+            binding.binding_digest(),
+            execution.outcome_digest(),
+            &snapshot_evidence_identity,
+        );
     let decision_trace_envelope = ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution(
         &admitted_handoff,
         &execution,

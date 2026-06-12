@@ -13,7 +13,6 @@ use crate::facade::{
     BridgeParallelLegalityReason, BridgeParallelProfitabilityClass,
     BridgeParallelProfitabilityReason, BridgePreparationMode, BridgeRouteRequest,
     BridgeRuntimePolicy, ContinuityLineageSource, FineGrainedMatchStatus, SubscriptionSliceKind,
-    TruthSnapshotIdentity,
 };
 
 use super::support::{
@@ -54,8 +53,8 @@ impl ContinuityLineageSource for TestMismatchedAuthorityLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             BridgeContinuityAuthorityBasis::new(
-                crate::facade::TruthBranchIdentity::new("wrong-branch"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("wrong-branch"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             vec![BridgeHistoricalResolvedLineageIdentity::new(
                 "lineage:test-successor",

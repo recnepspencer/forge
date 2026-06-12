@@ -62,8 +62,8 @@ fn merge_declaration(
             "rel-merge-v1",
             "schema-policy-v1",
             crate::facade::BridgeMergeParentOrderProof::new(vec![
-                crate::facade::TruthCommitIdentity::new("parent-a"),
-                crate::facade::TruthCommitIdentity::new("parent-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
             ]),
         ),
     )

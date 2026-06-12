@@ -8,25 +8,149 @@ use crate::clone_budget::CheapClone;
 
 pub struct BridgeIdentity<Tag> {
     value: Arc<str>,
+    payload: BridgeIdentityPayload,
     _tag: PhantomData<Tag>,
 }
 
-impl<Tag> BridgeIdentity<Tag> {
-    pub fn new(value: impl Into<Arc<str>>) -> Self {
+pub struct BridgeIdentityEvidence {
+    value: Arc<str>,
+    payload: BridgeIdentityEvidencePayload,
+}
+
+impl BridgeIdentityEvidence {
+    pub fn as_str(&self) -> &str {
+        self.value.as_ref()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.value.is_empty()
+    }
+
+    pub fn from_external_authority(value: impl AsRef<str>) -> Self {
+        Self {
+            value: Arc::from(value.as_ref()),
+            payload: BridgeIdentityEvidencePayload::ExternalAuthority,
+        }
+    }
+
+    pub(crate) fn from_arc(value: &Arc<str>) -> Self {
+        Self {
+            value: Arc::clone(value),
+            payload: BridgeIdentityEvidencePayload::ExternalAuthority,
+        }
+    }
+
+    pub(crate) fn from_canonical_bridge_evidence(
+        value: impl Into<Arc<str>>,
+        scope: &'static str,
+    ) -> Self {
         Self {
             value: value.into(),
+            payload: BridgeIdentityEvidencePayload::CanonicalBridgeEvidence { scope },
+        }
+    }
+}
+
+impl Clone for BridgeIdentityEvidence {
+    fn clone(&self) -> Self {
+        Self {
+            value: Arc::clone(&self.value),
+            payload: self.payload.clone(),
+        }
+    }
+}
+
+impl PartialEq for BridgeIdentityEvidence {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value && self.payload == other.payload
+    }
+}
+
+impl Eq for BridgeIdentityEvidence {}
+
+impl PartialOrd for BridgeIdentityEvidence {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for BridgeIdentityEvidence {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.payload
+            .cmp(&other.payload)
+            .then_with(|| self.value.cmp(&other.value))
+    }
+}
+
+impl Hash for BridgeIdentityEvidence {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.payload.hash(state);
+        self.value.hash(state);
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+enum BridgeIdentityEvidencePayload {
+    ExternalAuthority,
+    CanonicalBridgeEvidence { scope: &'static str },
+}
+
+impl AsRef<str> for BridgeIdentityEvidence {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl fmt::Debug for BridgeIdentityEvidence {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("BridgeIdentityEvidence")
+            .field(&"<opaque>")
+            .finish()
+    }
+}
+
+impl fmt::Display for BridgeIdentityEvidence {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl<Tag> BridgeIdentity<Tag> {
+    pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+        Self {
+            value: value.into(),
+            payload: BridgeIdentityPayload::OpaqueText,
             _tag: PhantomData,
         }
     }
 
-    pub fn as_str(&self) -> &str {
+    pub(crate) fn with_payload(value: impl Into<Arc<str>>, payload: BridgeIdentityPayload) -> Self {
+        Self {
+            value: value.into(),
+            payload,
+            _tag: PhantomData,
+        }
+    }
+
+    pub(crate) fn as_str(&self) -> &str {
         self.value.as_ref()
+    }
+
+    pub(crate) fn payload(&self) -> &BridgeIdentityPayload {
+        &self.payload
+    }
+
+    pub fn evidence_identity(&self) -> BridgeIdentityEvidence {
+        BridgeIdentityEvidence {
+            value: Arc::clone(&self.value),
+            payload: BridgeIdentityEvidencePayload::ExternalAuthority,
+        }
     }
 }
 
 impl<Tag> Clone for BridgeIdentity<Tag> {
     fn clone(&self) -> Self {
-        Self::new(Arc::clone(&self.value))
+        Self::with_payload(Arc::clone(&self.value), self.payload.clone())
     }
 }
 
@@ -34,7 +158,12 @@ impl<Tag> CheapClone for BridgeIdentity<Tag> {}
 
 impl<Tag> PartialEq for BridgeIdentity<Tag> {
     fn eq(&self, other: &Self) -> bool {
-        self.value == other.value
+        match (&self.payload, &other.payload) {
+            (BridgeIdentityPayload::OpaqueText, BridgeIdentityPayload::OpaqueText) => {
+                self.value == other.value
+            }
+            _ => self.payload == other.payload,
+        }
     }
 }
 
@@ -48,39 +177,64 @@ impl<Tag> PartialOrd for BridgeIdentity<Tag> {
 
 impl<Tag> Ord for BridgeIdentity<Tag> {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.value.cmp(&other.value)
+        match (&self.payload, &other.payload) {
+            (BridgeIdentityPayload::OpaqueText, BridgeIdentityPayload::OpaqueText) => {
+                self.value.cmp(&other.value)
+            }
+            _ => self.payload.cmp(&other.payload),
+        }
     }
 }
 
 impl<Tag> Hash for BridgeIdentity<Tag> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.value.hash(state);
+        match &self.payload {
+            BridgeIdentityPayload::OpaqueText => self.value.hash(state),
+            payload => payload.hash(state),
+        }
     }
 }
 
 impl<Tag> fmt::Debug for BridgeIdentity<Tag> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("BridgeIdentity")
-            .field(&self.value.as_ref())
-            .finish()
+        f.debug_tuple("BridgeIdentity").field(&"<opaque>").finish()
     }
 }
 
-impl<Tag> fmt::Display for BridgeIdentity<Tag> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.value)
-    }
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) enum BridgeIdentityPayload {
+    OpaqueText,
+    RelationalBranch { branch_id: Arc<str> },
+    RelationalCommit { commit_id: u64 },
+    RelationalPatch { patch_position: u64 },
+    RelationalSnapshot { snapshot_id: u64, version_id: u64 },
 }
 
-impl<Tag> PartialEq<&str> for BridgeIdentity<Tag> {
-    fn eq(&self, other: &&str) -> bool {
-        self.as_str() == *other
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::{BridgeIdentity, BridgeIdentityPayload, TruthCommitTag};
 
-impl<Tag> PartialEq<BridgeIdentity<Tag>> for &str {
-    fn eq(&self, other: &BridgeIdentity<Tag>) -> bool {
-        *self == other.as_str()
+    #[test]
+    fn debug_does_not_expose_identity_payload() {
+        let identity = BridgeIdentity::<TruthCommitTag>::new("commit-1");
+
+        let debug = format!("{identity:?}");
+
+        assert!(!debug.contains("commit-1"));
+        assert!(debug.contains("<opaque>"));
+    }
+
+    #[test]
+    fn relational_truth_identity_can_store_typed_payload() {
+        let identity = BridgeIdentity::<TruthCommitTag>::with_payload(
+            "relational-commit:7",
+            BridgeIdentityPayload::RelationalCommit { commit_id: 7 },
+        );
+
+        assert_eq!(
+            identity.payload(),
+            &BridgeIdentityPayload::RelationalCommit { commit_id: 7 }
+        );
     }
 }
 

@@ -158,11 +158,10 @@ fn preview_derived_context_binding_preserves_preview_identity() {
     .expect("preview binding should succeed");
     let foundation =
         admit_preview_workflow_foundation(&binding).expect("preview foundation should admit");
+    let preview_session_identity = foundation.preview_session_identity().evidence_identity();
 
     let binding = bind_query_basis_context(
-        QueryBasisContextRequest::preview_derived_historical(
-            foundation.preview_session_identity().as_str(),
-        ),
+        QueryBasisContextRequest::preview_derived_historical(preview_session_identity.as_str()),
         QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
     )
     .expect("preview-derived context should bind");
@@ -187,7 +186,7 @@ fn preview_derived_context_binding_preserves_preview_identity() {
     );
     assert_eq!(
         admitted.preview_provenance_identity_source(),
-        Some(foundation.preview_session_identity().as_str())
+        Some(preview_session_identity.as_str())
     );
 }
 
@@ -206,12 +205,11 @@ fn preview_derived_execution_is_query_owned_and_provenance_explicit() {
     .expect("preview binding should succeed");
     let foundation =
         admit_preview_workflow_foundation(&binding).expect("preview foundation should admit");
+    let preview_session_identity = foundation.preview_session_identity().evidence_identity();
 
     let admitted = admit_query_basis_context(
         bind_query_basis_context(
-            QueryBasisContextRequest::preview_derived_historical(
-                foundation.preview_session_identity().as_str(),
-            ),
+            QueryBasisContextRequest::preview_derived_historical(preview_session_identity.as_str()),
             QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
         )
         .expect("preview-derived context should bind"),
@@ -228,7 +226,7 @@ fn preview_derived_execution_is_query_owned_and_provenance_explicit() {
     );
     assert_eq!(
         execution.preview_provenance_identity(),
-        Some(foundation.preview_session_identity().as_str())
+        Some(preview_session_identity.as_str())
     );
     assert_eq!(
         execution.prediction_drift_outcome(),
@@ -236,7 +234,7 @@ fn preview_derived_execution_is_query_owned_and_provenance_explicit() {
     );
     assert_eq!(
         metadata.preview_provenance_identity(),
-        Some(foundation.preview_session_identity().as_str())
+        Some(preview_session_identity.as_str())
     );
     assert_eq!(
         metadata.prediction_drift_outcome(),

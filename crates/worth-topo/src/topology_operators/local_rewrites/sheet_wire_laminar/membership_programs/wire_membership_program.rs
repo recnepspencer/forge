@@ -36,7 +36,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             ),
         );
         let created_wire_key = program.create_key.clone();
-        let retired_wire_identity = retired_wire_binding.query_identity.clone();
+        let retired_wire_identity = retired_wire_binding.query_identity_label.clone();
         let retire_contract = members
             .last()
             .expect("wire rehome program always ends with retire contract");
@@ -59,7 +59,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             let incoming_relation_ids =
                 crate::topology_operators::application::bindings::query_incoming_relation_ids(
                     bindings,
-                    &half_edge_binding.query_identity,
+                    &half_edge_binding.query_identity_label,
                     TopologyRelationKind::WireOwnsHalfEdge,
                 )?;
             let [relation_id] = incoming_relation_ids.as_slice() else {
@@ -84,10 +84,10 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 bind_existing_relation_handle(
                     self,
                     *relation_id,
-                    &relation_binding.query_identity,
+                    relation_binding.query_identity.clone(),
                 )?,
                 *relation_id,
-                half_edge_binding.query_identity,
+                half_edge_binding.query_identity_label,
             ));
         }
         self.workspace
@@ -181,7 +181,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             ),
         );
         let created_wire_key = program.create_key.clone();
-        let retained_wire_identity = retained_wire_binding.query_identity.clone();
+        let retained_wire_identity = retained_wire_binding.query_identity_label.clone();
         let mut moved_relations = Vec::with_capacity(program.half_edge_ids.len());
         for half_edge_id in &program.half_edge_ids {
             let half_edge_binding =
@@ -195,7 +195,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             let incoming_relation_ids =
                 crate::topology_operators::application::bindings::query_incoming_relation_ids(
                     bindings,
-                    &half_edge_binding.query_identity,
+                    &half_edge_binding.query_identity_label,
                     TopologyRelationKind::WireOwnsHalfEdge,
                 )?;
             let [relation_id] = incoming_relation_ids.as_slice() else {
@@ -220,10 +220,10 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 bind_existing_relation_handle(
                     self,
                     *relation_id,
-                    &relation_binding.query_identity,
+                    relation_binding.query_identity.clone(),
                 )?,
                 *relation_id,
-                half_edge_binding.query_identity,
+                half_edge_binding.query_identity_label,
             ));
         }
         self.workspace

@@ -240,7 +240,9 @@ pub(super) fn route_live_subscription_delivery(
                 state.active_lane_handle.lane_digest().clone(),
                 format!(
                     "{}:{}:{}",
-                    receipt.commit_identity, delta.collection, delta.entity_identity
+                    receipt.commit_identity.evidence_identity(),
+                    delta.collection,
+                    delta.entity_identity.evidence_identity()
                 ),
                 MaintenanceDeltaWidth::measured(patch_width),
             );

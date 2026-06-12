@@ -3,7 +3,9 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use crate::error::BridgeSpeculationError;
-use crate::identity::{BridgeIdentity, PreviewSessionDeclarationIdentityTag};
+use crate::identity::{
+    BridgeIdentity, BridgeIdentityEvidence, PreviewSessionDeclarationIdentityTag,
+};
 
 use super::binding::BridgeSpeculativeBranchBinding;
 use super::declaration_basis::{
@@ -14,6 +16,19 @@ use super::BridgeRequestKind;
 
 pub type BridgePreviewSessionDeclarationIdentity =
     BridgeIdentity<PreviewSessionDeclarationIdentityTag>;
+
+impl BridgePreviewSessionDeclarationIdentity {
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
+        Self::new(format!(
+            "bridge-preview-session-declaration:external-authority-evidence:{}",
+            evidence_identity.as_str()
+        ))
+    }
+
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::new(value)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgePreviewSessionDeclaration {
@@ -161,8 +176,8 @@ impl BridgePreviewSessionDeclaration {
 
 #[cfg(test)]
 mod tests {
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::source::{BridgeSourceCapability, BridgeSourceCapabilitySet};
     use crate::speculation::{BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity};
 
@@ -175,8 +190,8 @@ mod tests {
     fn preview_session_basis() -> BridgePreviewSessionBasis {
         BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::committed_snapshot(
-                TruthBranchIdentity::new("truth-branch"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
             BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
@@ -190,7 +205,7 @@ mod tests {
             BridgeRequestKind::Preview,
             BridgeSpeculativeBranchBinding::new(
                 BridgeSpeculativeBranchBindingIdentity::new("binding"),
-                TruthBranchIdentity::new("truth-branch"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
                 BridgeSignalBranchIdentity::new("signal-branch"),
             ),
             preview_session_basis(),
@@ -200,7 +215,7 @@ mod tests {
             BridgeRequestKind::Preview,
             BridgeSpeculativeBranchBinding::new(
                 BridgeSpeculativeBranchBindingIdentity::new("binding"),
-                TruthBranchIdentity::new("truth-branch"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
                 BridgeSignalBranchIdentity::new("signal-branch"),
             ),
             preview_session_basis(),

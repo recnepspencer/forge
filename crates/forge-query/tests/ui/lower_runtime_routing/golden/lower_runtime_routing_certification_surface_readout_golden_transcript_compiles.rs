@@ -5,6 +5,15 @@ use forge_query::facade::{
 };
 
 fn main() {
+    std::thread::Builder::new()
+        .stack_size(16 * 1024 * 1024)
+        .spawn(run)
+        .expect("golden transcript thread should spawn")
+        .join()
+        .expect("golden transcript should run");
+}
+
+fn run() {
     let acceptance = forge_query_lower_runtime_acceptance_suite();
     let reconciliation = forge_query_lower_runtime_boundary_reconciliation_report();
     let synthetic_tail = forge_query_lower_runtime_synthetic_tail_report();

@@ -1,4 +1,6 @@
+use forge_query::facade::ForgeQueryEntityIdentity;
 use forge_relational::facade::identity::{EntityId, PartitionId};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::RelationKind;
 use serde_json::Value;
@@ -68,6 +70,26 @@ pub(crate) fn parse_entity_identity(
         )));
     }
     Ok(EntityId::new(PartitionId(partition), slot, generation))
+}
+
+pub(crate) fn entity_id_from_query_identity(
+    identity: &ForgeQueryEntityIdentity,
+) -> Result<EntityId, TopologyMaterializationError> {
+    let parts = identity.relational_record_parts().ok_or_else(|| {
+        TopologyMaterializationError::new(format!(
+            "expected relational forge-query entity identity, found `{identity}`"
+        ))
+    })?;
+    if parts.kind() != RelationalBridgeRecordIdentityKind::Entity {
+        return Err(TopologyMaterializationError::new(format!(
+            "expected forge-query entity identity, found `{identity}`"
+        )));
+    }
+    Ok(EntityId::new(
+        PartitionId(parts.partition_id()),
+        parts.local_slot(),
+        parts.generation(),
+    ))
 }
 
 pub(crate) fn query_entity_identity(entity_id: EntityId) -> String {

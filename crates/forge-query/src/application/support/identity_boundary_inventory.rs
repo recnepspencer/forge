@@ -1,6 +1,14 @@
 //! Single source of truth for Milestone 9.6 identity-boundary covered inventory,
 //! folklore residue scanning, and session-entrypoint audits.
 
+#[path = "identity_boundary_inventory_sources.rs"]
+mod identity_boundary_inventory_sources;
+
+pub use identity_boundary_inventory_sources::{
+    source_for_format_digest_path, source_for_session_admission_path,
+    source_for_string_carried_session_identity_path, source_for_string_matching_path,
+};
+
 pub const EVIDENCE_IDENTITY_COVERED_SURFACES: &[&str] = &[
     "runtime_public_support_matrix_row",
     "runtime_public_support_matrix",
@@ -15,6 +23,24 @@ pub const EVIDENCE_IDENTITY_COVERED_SURFACES: &[&str] = &[
     "branch_basis_admission",
     "preview_intent_admission",
     "preview_intent_receipt",
+    "intent_execution_provenance_chain",
+    "authoritative_intent_receipt",
+    "effect_intent_receipt",
+    "preview_intent_receipt_inspection_basis",
+    "preview_intent_receipt_inspection",
+    "intent_inspection_delivery_counters",
+    "intent_receipt_inspection",
+    "intent_denial_inspection",
+    "effect_intent_receipt_phase",
+    "effect_intent_receipt_inspection",
+    "feedback_phase_graph",
+    "feedback_phase_graph_inspection",
+    "branch_intent_receipt_inspection_basis",
+    "branch_intent_receipt_inspection",
+    "generic_inspection_intent_seed",
+    "authoritative_mutation_intent_seed",
+    "authoritative_mutation_batch_intent_seed",
+    "authoritative_mutation_execution_handoff",
     "branch_intent_admission",
     "branch_intent_receipt",
     "intent_denial_evidence",
@@ -22,6 +48,15 @@ pub const EVIDENCE_IDENTITY_COVERED_SURFACES: &[&str] = &[
     "preview_promotion_denial_evidence",
     "preview_execution_evidence",
     "preview_promotion_rebinding",
+    "write_receipt_inspection_artifact",
+    "write_receipt_declared_aspect_operation",
+    "write_receipt_mutation_metadata_entry",
+    "batch_write_receipt",
+    "batch_write_receipt_inspection_artifact",
+    "batch_write_receipt_component",
+    "batch_write_receipt_symbolic_aspect_resolution",
+    "batch_write_receipt_graph_resolution",
+    "retained_existing_truth_assertion_evidence",
     "graph_composition_domain_invariant_denial",
     "read_domain_invariant_denial",
     "application_support_report",
@@ -73,24 +108,195 @@ pub const EXACT_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
     "runtime/public_api.rs",
     "runtime/support/profile.rs",
     "runtime/public_api_naming.rs",
+    "application/declaration_bridge_routing/digest.rs",
+    "application/declaration_bridge_routing/lower.rs",
+    "application/declaration_bridge_routing/lower_identity.rs",
+    "application/support/registry.rs",
+    "continuation_pipeline/execution/execute.rs",
+    "continuation_pipeline/execution/readmission.rs",
+    "continuation_pipeline/execution/support.rs",
     "runtime/intent/preview.rs",
+    "runtime/intent/preview_receipt_identity.rs",
+    "runtime/intent/receipt.rs",
+    "runtime/intent/receipt_identity.rs",
+    "runtime/intent/effect_triggered.rs",
+    "runtime/intent/provenance.rs",
+    "runtime/intent/provenance_identity.rs",
     "runtime/intent/denial.rs",
+    "runtime/intent/failure.rs",
     "runtime/intent/branch.rs",
+    "runtime/branch.rs",
+    "preview/scoped.rs",
+    "intent_admission/handoffs/bindings/mod.rs",
+    "intent_admission/handoffs/bindings/read.rs",
+    "intent_admission/handoffs/bindings/inspection.rs",
+    "intent_admission/handoffs/bindings/routing.rs",
+    "intent_admission/handoffs/bindings/unified_inspection.rs",
+    "intent_admission/eligibility/seeds/generic_inspection.rs",
     "runtime/support/authority_artifacts.rs",
+    "runtime/support/authority_artifacts/basis_admission.rs",
+    "runtime/support/authority_artifacts/bridge_imports.rs",
+    "runtime/support/bridge_artifact_identity.rs",
+    "runtime/backend/receipts.rs",
+    "runtime/backend/signal_routing_receipt.rs",
+    "runtime/backend/mutation_authority.rs",
+    "runtime/runtime_writes.rs",
+    "runtime/runtime_helpers.rs",
+    "runtime/runtime_read_intents.rs",
+    "runtime/runtime_unified_inspection_intents.rs",
+    "runtime/runtime_batch_writes.rs",
+    "runtime/runtime_probe_routing_intents.rs",
+    "runtime/runtime_inspection_materialization_intents.rs",
+    "runtime/runtime_sessions.rs",
     "runtime/preview/evidence/closeout.rs",
     "runtime/preview/evidence/promotion.rs",
     "runtime/preview/evidence/execution.rs",
+    "runtime/preview/mod.rs",
+    "runtime/preview/basics.rs",
+    "runtime/preview/mutation_ops.rs",
+    "runtime/preview/session_execution.rs",
     "runtime/preview/workflow_ops.rs",
+    "runtime/live_subscription.rs",
+    "runtime/inspection/unified/write_receipt/digest.rs",
+    "runtime/inspection/unified/write_receipt/digest_components.rs",
+    "runtime/inspection/unified/write_receipt/digest_mutation_evidence.rs",
+    "runtime/inspection/unified/write_receipt.rs",
+    "runtime/inspection/unified/batch_write_digest.rs",
+    "runtime/inspection/unified/batch_write_digest_components.rs",
+    "runtime/inspection/feedback.rs",
+    "runtime/inspection/feedback_identity.rs",
+    "runtime/inspection/intent_identity.rs",
+    "runtime/inspection/intent.rs",
+    "runtime/inspection/intent_denial.rs",
+    "runtime/inspection/intent_delivery_counters.rs",
+    "runtime/inspection/preview/intent_receipt.rs",
+    "runtime/inspection/preview/intent_receipt_identity.rs",
     "runtime/inspection/causal/request.rs",
     "runtime/inspection/causal/admission_decision.rs",
     "runtime/inspection/causal/admission_trace.rs",
     "runtime/inspection/causal/admission.rs",
+    "runtime/inspection/causal/builder_bridge.rs",
+    "runtime/inspection/causal/receipt.rs",
+    "runtime/inspection/causal/receipt_helpers.rs",
+    "runtime/inspection/causal/observation_identity.rs",
+    "runtime/inspection/causal/identity.rs",
     "runtime/inspection/causal/materialization/mod.rs",
+    "runtime/inspection/causal/materialization/policy.rs",
+    "runtime/inspection/causal/materialization/bridge_denial.rs",
+    "runtime/inspection/causal/materialization/performance.rs",
+    "runtime/inspection/causal/materialization/receipt.rs",
+    "runtime/inspection/causal/materialization/proof.rs",
+    "runtime/inspection/causal/materialization/artifacts/denied.rs",
+    "runtime/inspection/causal/materialization/artifacts/bridge_backed.rs",
     "runtime/inspection/causal/certification/artifacts/performance.rs",
     "runtime/mutation/graph_composition/domain_invariant_denial.rs",
+    "runtime/mutation/graph_composition/denial.rs",
     "runtime/mutation/graph_composition/hooks.rs",
+    "runtime/mutation/assertion.rs",
+    "runtime/mutation/binding/existing_truth.rs",
+    "runtime/mutation/binding/symbolic_reference.rs",
+    "runtime/mutation/continuity.rs",
+    "runtime/mutation/lowering.rs",
+    "runtime/mutation/naming.rs",
+    "runtime/mutation/probe.rs",
+    "runtime/bridge_mutation_lowering.rs",
+    "runtime/runtime_batch_write_bridge_refs.rs",
+    "domain_capabilities/canonical_runtime/continuity.rs",
+    "intent_admission/eligibility/seeds/mutation.rs",
+    "intent_admission/handoffs/mutation.rs",
     "runtime/read_composition_hooks.rs",
+    "lower_runtime_routing/protocol.rs",
+    "lower_runtime_routing/adapters/runtime_backend.rs",
+    "lower_runtime_routing/adapters/runtime_backend/subject_digest.rs",
+    "lower_runtime_routing/eligibility/mod.rs",
+    "lower_runtime_routing/plans/mod.rs",
+    "lower_runtime_routing/receipts/mod.rs",
+    "lower_runtime_routing/envelopes.rs",
+    "lower_runtime_routing/support.rs",
+    "lower_runtime_routing/certification/surface/acceptance_cardinality.rs",
+    "lower_runtime_routing/certification/surface/fixtures/bridge_fixture.rs",
+    "runtime/surface/graph_composition_breadth.rs",
+    "runtime/surface/graph_composition_program.rs",
+    "runtime/surface/graph_composition_admission_trace.rs",
+    "runtime/surface/graph_composition_domain_invariant_summary.rs",
+    "runtime/surface/graph_composition_lifecycle_outcomes.rs",
+    "runtime/surface/graph_composition_assumption_summary.rs",
+    "runtime/surface/graph_composition_lineage_summary.rs",
+    "runtime/surface/graph_composition_resolution_map.rs",
+    "runtime/surface/graph_composition_evidence.rs",
+    "runtime/surface/naming_mutation_evidence.rs",
+    "runtime/surface/continuity_mutation_evidence.rs",
+    "runtime/surface/symbolic_target_reference_evidence.rs",
+    "runtime/surface/symbolic_aspect_resolution_evidence.rs",
+    "runtime/surface/read_domain_invariant_summary.rs",
+    "runtime/surface/verified_assumption_set.rs",
+    "runtime/surface/mutation_evidence/binding.rs",
+    "runtime/surface/mutation_evidence/causality.rs",
+    "runtime/surface/mutation_evidence/provenance.rs",
+    "runtime/surface/mutation_evidence/target.rs",
+    "runtime/surface/mutation_evidence/batch.rs",
+    "runtime/surface/mutation_evidence/batch_digest_helpers.rs",
+    "runtime/surface/read_composition.rs",
     "runtime/surface/read_domain_invariant_denial.rs",
+    "runtime/surface/mutation/batch_receipt.rs",
+    "runtime/surface/mutation/write_receipt/helpers.rs",
+    "runtime/effect/inspection.rs",
+    "runtime/effect/declaration.rs",
+    "runtime/effect/follow_on.rs",
+    "runtime/effect/inspection_identity.rs",
+    "effect_lifecycle/execution_bridge.rs",
+    "effect_lifecycle/execution_relational_scalar.rs",
+    "view_shape_live/grouped_execution.rs",
+    "lower_runtime_routing/inventory/crossing_types.rs",
+    "lower_runtime_routing/inventory/closeout_types.rs",
+    "lower_runtime_routing/inventory/gap_types.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/mod.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/evidence_reference.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/binding.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/denial.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/counters.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/explanation_envelope.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/identity.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/receipt.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/assembly/request.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/assembly/mod.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/mod.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/digest_basis.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/planning_checkpoint.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/route_history_preview.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/source_structural_stream.rs",
+    "forge-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/writeback.rs",
+];
+
+#[allow(dead_code)]
+pub const LOWER_RUNTIME_IDENTITY_SHIM_PATHS: &[&str] = &[
+    "lower_runtime_routing/protocol.rs",
+    "lower_runtime_routing/adapters/runtime_backend.rs",
+    "lower_runtime_routing/adapters/runtime_backend/subject_digest.rs",
+    "lower_runtime_routing/eligibility/mod.rs",
+    "lower_runtime_routing/plans/mod.rs",
+    "lower_runtime_routing/receipts/mod.rs",
+    "lower_runtime_routing/envelopes.rs",
+    "lower_runtime_routing/support.rs",
+    "lower_runtime_routing/inventory/crossing_types.rs",
+    "lower_runtime_routing/inventory/closeout_types.rs",
+    "lower_runtime_routing/inventory/gap_types.rs",
+    "lower_runtime_routing/certification/surface/acceptance_cardinality.rs",
+    "lower_runtime_routing/certification/surface/fixtures/bridge_fixture.rs",
+    "lower_runtime_routing/certification/surface/fixtures/core.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/mod.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/causal_signal.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/effect.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/effect_support.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/historical.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/intent.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/live_aggregate.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/projection.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/projection_bridge_runtime.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/read_execution.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/readmission.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/readmission_support.rs",
+    "lower_runtime_routing/certification/surface/fixtures/phase_six/subscription.rs",
 ];
 
 pub const EXACT_ZERO_STRING_MATCHING_PATHS: &[&str] =
@@ -111,21 +317,25 @@ pub const EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS: &[&str] = &[
 ];
 
 /// Paths that retain pre-9.6 joined-string digest folklore by explicit milestone scope.
+#[allow(dead_code)]
 pub const EXCLUDED_FOLKLORE_PATHS: &[&str] = &[
     "subscription/",
     "projection_consumption/",
     "workflow/",
     "domain_capabilities/",
     "harness/milestone_nine_five_",
-    "runtime/intent/receipt.rs",
-    "runtime/intent/effect_triggered.rs",
-    "runtime/intent/failure.rs",
     "runtime/intent/declaration.rs",
-    "runtime/intent/provenance.rs",
 ];
 
 const FORBIDDEN_DIGEST_FOLKLORE_PATTERNS: &[&str] = &[
     "hash_parts(",
+    "causal_envelope_digest",
+    "retained_mapping_digest",
+    "derive_causal_envelope_identity",
+    "derive_retained_mapping_identity",
+    "format!(\"{digest_domain}:sha256:",
+    "from_external_authority(format!",
+    "canonical.push('|')",
     "digest_owned_parts(",
     ".join(\"|\")",
     "format!(\"{}|",
@@ -133,8 +343,42 @@ const FORBIDDEN_DIGEST_FOLKLORE_PATTERNS: &[&str] = &[
     "format!(\"{:?}|",
     "format!(\"{:#?}\"",
     "format!(\"{:#?}|",
+    "optional_identity(",
+    "bridge_digest",
+    "query_observation_digest: &str",
+    "reference_digest: &str",
+    "source_identity: impl AsRef<str>",
+    "performance_digest: String",
+    "reference_digest().as_str()",
+    "field_identity(ForgeQueryEvidenceTag::new(\"artifact\")",
+    "field_identity(ForgeQueryEvidenceTag::new(\"causality\")",
+    "field_identity(ForgeQueryEvidenceTag::new(\"performance\")",
+    "field_identity(ForgeQueryEvidenceTag::new(\"source\")",
+    "field_identity(ForgeQueryEvidenceTag::new(\"write_adjacent_trigger\")",
+    "reference_identity: Arc<str>",
+    "identity: Arc<str>",
+    "CausalResultShapeContextHandle::from_rendered(\n                inspection.",
+    "CausalObservationTargetHandle::from_rendered(\n                inspection.",
+    ".evidence_identity().as_str()",
+    "evidence_identity.as_str()",
+    "posture_detail_identity.as_str()",
+    "ForgeQueryLowerRuntimeSubjectIdentity::from_digest(",
+    "ForgeQueryLowerRuntimeRouteSubjectIdentity::from_digest(",
+    "ForgeQueryLowerRuntimeCapabilityEligibility::admitted(",
 ];
 
+#[allow(dead_code)]
+const FORBIDDEN_LOWER_RUNTIME_IDENTITY_SHIM_PATTERNS: &[&str] = &[
+    "hash_parts(",
+    "from_bridge_harness_label",
+    "ForgeQueryLowerRuntimeSubjectIdentity::from_digest(",
+    "ForgeQueryLowerRuntimeRouteSubjectIdentity::from_digest(",
+    "ForgeQueryLowerRuntimeCapabilityEligibility::admitted(",
+    "pub(crate) fn from_digest(",
+    "pub(crate) fn admitted(",
+];
+
+#[allow(dead_code)]
 const REQUIRED_TYPED_SESSION_LABEL_SIGNATURES: &[&str] = &[
     "pub fn preview<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
     "pub fn branch<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
@@ -146,6 +390,7 @@ const REQUIRED_TYPED_SESSION_LABEL_SIGNATURES: &[&str] = &[
     "pub fn try_branch_with_options<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
 ];
 
+#[allow(dead_code)]
 const FORBIDDEN_RAW_SESSION_LABEL_SIGNATURES: &[&str] = &[
     "pub fn preview<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
     "pub fn branch<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
@@ -161,117 +406,12 @@ pub fn normalize_source_text(source: &str) -> String {
     source.replace("\r\n", "\n")
 }
 
-pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
-    match path {
-        "application/support/report.rs" => Some(include_str!("report.rs")),
-        "runtime/support_matrix.rs" => Some(include_str!("../../runtime/support_matrix.rs")),
-        "runtime/state_snapshot.rs" => Some(include_str!("../../runtime/state_snapshot.rs")),
-        "runtime/public_api_transcript.rs" => {
-            Some(include_str!("../../runtime/public_api_transcript.rs"))
-        }
-        "runtime/public_api.rs" => Some(include_str!("../../runtime/public_api.rs")),
-        "runtime/support/profile.rs" => Some(include_str!("../../runtime/support/profile.rs")),
-        "runtime/public_api_naming.rs" => Some(include_str!("../../runtime/public_api_naming.rs")),
-        "runtime/intent/preview.rs" => Some(include_str!("../../runtime/intent/preview.rs")),
-        "runtime/intent/denial.rs" => Some(include_str!("../../runtime/intent/denial.rs")),
-        "runtime/intent/branch.rs" => Some(include_str!("../../runtime/intent/branch.rs")),
-        "runtime/support/authority_artifacts.rs" => {
-            Some(include_str!("../../runtime/support/authority_artifacts.rs"))
-        }
-        "runtime/preview/evidence/closeout.rs" => {
-            Some(include_str!("../../runtime/preview/evidence/closeout.rs"))
-        }
-        "runtime/preview/evidence/promotion.rs" => {
-            Some(include_str!("../../runtime/preview/evidence/promotion.rs"))
-        }
-        "runtime/preview/evidence/execution.rs" => {
-            Some(include_str!("../../runtime/preview/evidence/execution.rs"))
-        }
-        "runtime/preview/workflow_ops.rs" => {
-            Some(include_str!("../../runtime/preview/workflow_ops.rs"))
-        }
-        "runtime/inspection/causal/request.rs" => {
-            Some(include_str!("../../runtime/inspection/causal/request.rs"))
-        }
-        "runtime/inspection/causal/admission_decision.rs" => Some(include_str!(
-            "../../runtime/inspection/causal/admission_decision.rs"
-        )),
-        "runtime/inspection/causal/admission_trace.rs" => Some(include_str!(
-            "../../runtime/inspection/causal/admission_trace.rs"
-        )),
-        "runtime/inspection/causal/admission.rs" => {
-            Some(include_str!("../../runtime/inspection/causal/admission.rs"))
-        }
-        "runtime/inspection/causal/materialization/mod.rs" => Some(include_str!(
-            "../../runtime/inspection/causal/materialization/mod.rs"
-        )),
-        "runtime/inspection/causal/certification/artifacts/performance.rs" => Some(include_str!(
-            "../../runtime/inspection/causal/certification/artifacts/performance.rs"
-        )),
-        "runtime/mutation/graph_composition/domain_invariant_denial.rs" => Some(include_str!(
-            "../../runtime/mutation/graph_composition/domain_invariant_denial.rs"
-        )),
-        "runtime/mutation/graph_composition/hooks.rs" => Some(include_str!(
-            "../../runtime/mutation/graph_composition/hooks.rs"
-        )),
-        "runtime/read_composition_hooks.rs" => {
-            Some(include_str!("../../runtime/read_composition_hooks.rs"))
-        }
-        "runtime/surface/read_domain_invariant_denial.rs" => Some(include_str!(
-            "../../runtime/surface/read_domain_invariant_denial.rs"
-        )),
-        _ => None,
-    }
-}
-
-pub fn source_for_string_matching_path(path: &str) -> Option<&'static str> {
-    match path {
-        "runtime/tests/stop_class/consumer_support/routing.rs" => Some(include_str!(
-            "../../runtime/tests/stop_class/consumer_support/routing.rs"
-        )),
-        _ => None,
-    }
-}
-
-pub fn source_for_session_admission_path(path: &str) -> Option<&'static str> {
-    match path {
-        "runtime/runtime_sessions.rs" => Some(include_str!("../../runtime/runtime_sessions.rs")),
-        "runtime/workspace.rs" => Some(include_str!("../../runtime/workspace.rs")),
-        _ => None,
-    }
-}
-
-pub fn source_for_string_carried_session_identity_path(path: &str) -> Option<&'static str> {
-    match path {
-        "runtime/error.rs" => Some(include_str!("../../runtime/error.rs")),
-        "runtime/preview/workflow_ops.rs" => {
-            Some(include_str!("../../runtime/preview/workflow_ops.rs"))
-        }
-        "runtime/preview/binding.rs" => Some(include_str!("../../runtime/preview/binding.rs")),
-        "runtime/preview/session_execution.rs" => {
-            Some(include_str!("../../runtime/preview/session_execution.rs"))
-        }
-        "runtime/preview/mutation_ops.rs" => {
-            Some(include_str!("../../runtime/preview/mutation_ops.rs"))
-        }
-        "runtime/surface/mutation/write_receipt/preview.rs" => Some(include_str!(
-            "../../runtime/surface/mutation/write_receipt/preview.rs"
-        )),
-        "runtime/inspection/preview/binding.rs" => {
-            Some(include_str!("../../runtime/inspection/preview/binding.rs"))
-        }
-        "runtime/inspection/preview/outcome.rs" => {
-            Some(include_str!("../../runtime/inspection/preview/outcome.rs"))
-        }
-        _ => None,
-    }
-}
-
 pub fn format_digest_folklore_pattern_in(source: &str) -> Option<&'static str> {
+    let normalized = normalize_source_text(source);
     FORBIDDEN_DIGEST_FOLKLORE_PATTERNS
         .iter()
         .copied()
-        .find(|pattern| source.contains(pattern))
+        .find(|pattern| normalized.contains(pattern))
 }
 
 pub fn scan_format_digest_residue_paths() -> Vec<&'static str> {
@@ -282,6 +422,39 @@ pub fn scan_format_digest_residue_paths() -> Vec<&'static str> {
             continue;
         };
         if format_digest_folklore_pattern_in(source).is_some() {
+            remaining.push(path);
+        }
+    }
+    remaining
+}
+
+#[cfg(test)]
+pub fn scan_format_digest_residue_path_patterns() -> Vec<(&'static str, &'static str)> {
+    let mut remaining = Vec::new();
+    for &path in EXACT_ZERO_FORMAT_DIGEST_PATHS {
+        let Some(source) = source_for_format_digest_path(path) else {
+            remaining.push((path, "<missing-source>"));
+            continue;
+        };
+        if let Some(pattern) = format_digest_folklore_pattern_in(source) {
+            remaining.push((path, pattern));
+        }
+    }
+    remaining
+}
+
+#[allow(dead_code)]
+pub fn scan_lower_runtime_identity_shim_paths() -> Vec<&'static str> {
+    let mut remaining = Vec::new();
+    for &path in LOWER_RUNTIME_IDENTITY_SHIM_PATHS {
+        let Some(source) = source_for_format_digest_path(path) else {
+            remaining.push(path);
+            continue;
+        };
+        if FORBIDDEN_LOWER_RUNTIME_IDENTITY_SHIM_PATTERNS
+            .iter()
+            .any(|pattern| source.contains(pattern))
+        {
             remaining.push(path);
         }
     }
@@ -349,6 +522,7 @@ pub fn scan_string_carried_session_identity_residue_paths() -> Vec<&'static str>
     remaining
 }
 
+#[allow(dead_code)]
 pub fn ordinary_session_entrypoint_audit_violations(
     runtime_sessions: &str,
     workspace: &str,
@@ -371,29 +545,5 @@ pub fn ordinary_session_entrypoint_audit_violations(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn inventory_lists_are_non_empty_and_unique() {
-        assert!(!EVIDENCE_IDENTITY_COVERED_SURFACES.is_empty());
-        assert!(!EXACT_ZERO_FORMAT_DIGEST_PATHS.is_empty());
-        assert_eq!(
-            EXACT_ZERO_FORMAT_DIGEST_PATHS.len(),
-            EXACT_ZERO_FORMAT_DIGEST_PATHS
-                .iter()
-                .collect::<std::collections::BTreeSet<_>>()
-                .len()
-        );
-    }
-
-    #[test]
-    fn every_format_digest_path_has_embedded_source() {
-        for path in EXACT_ZERO_FORMAT_DIGEST_PATHS {
-            assert!(
-                source_for_format_digest_path(path).is_some(),
-                "missing embedded source for {path}"
-            );
-        }
-    }
-}
+#[path = "identity_boundary_inventory_tests.rs"]
+mod tests;

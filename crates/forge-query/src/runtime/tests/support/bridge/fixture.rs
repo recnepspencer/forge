@@ -96,35 +96,36 @@ pub(in crate::runtime::tests) fn test_bridge() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(TestBridgeSource)
         .with_signal_sink(TestBridgeSink)
+        .with_writeback_authority(StaticWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("external-test"),
+            BridgeMappingId::from_stable_name("external-test"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
                 aspect_key("aspect"),
                 field_key("field"),
             ),
             SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),
-            SignalInvalidationScope::new("external-test"),
+            SignalInvalidationScope::from_stable_name("external-test"),
             CoarseRoutingMode::Direct,
         ))
         .build()
         .expect("test bridge should build")
 }
 
-pub(in crate::runtime::tests) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
+pub(crate) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(TestBridgeSource)
         .with_signal_sink(TestBridgeSink)
         .with_writeback_authority(StaticWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("external-test"),
+            BridgeMappingId::from_stable_name("external-test"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
                 aspect_key("aspect"),
                 field_key("field"),
             ),
             SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),
-            SignalInvalidationScope::new("external-test"),
+            SignalInvalidationScope::from_stable_name("external-test"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -139,13 +140,16 @@ fn native_patch_envelope(
     aspect: &str,
     field: &str,
 ) -> BridgeCommittedPatchEnvelope {
-    let patch_identity = TruthPatchIdentity::new(format!("patch:{}", commit_identity.as_str()));
+    let patch_identity = TruthPatchIdentity::from_bridge_harness_label(format!(
+        "patch:{}",
+        commit_identity.evidence_identity().as_str()
+    ));
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
             commit_identity,
             patch_identity,
-            TruthSnapshotIdentity::new(snapshot_identity),
-            TruthBranchIdentity::new(branch_identity),
+            TruthSnapshotIdentity::from_bridge_harness_label(snapshot_identity),
+            TruthBranchIdentity::from_bridge_harness_label(branch_identity),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             entity_identity,

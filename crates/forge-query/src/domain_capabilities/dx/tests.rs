@@ -124,7 +124,9 @@ fn common_intent_preview_inspection_lane_matches_proof_lane_materialization() {
         .for_intent(&declaration)
         .inspects_query_preview(
             "topology.preview_conflict",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:42",
+            ),
         )
         .because("preview should stay read-only while topology is inspected")
         .materialize()
@@ -133,7 +135,9 @@ fn common_intent_preview_inspection_lane_matches_proof_lane_materialization() {
     let proof_requested = ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
         "worth.spatial.topology.preview_conflict",
         "preview should stay read-only while topology is inspected",
-        crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:42"),
+        crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+            "preview-session:42",
+        ),
     )
     .for_intent_declaration(&declaration);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
@@ -158,7 +162,9 @@ fn common_intent_preview_mutation_lane_matches_proof_lane_materialization() {
         .for_intent(&declaration)
         .plans_preview_mutation(
             "topology.preview_mutation",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:77",
+            ),
         )
         .because("promotion-eligible preview can plan a bounded mutation workflow")
         .materialize()
@@ -168,7 +174,9 @@ fn common_intent_preview_mutation_lane_matches_proof_lane_materialization() {
         ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
             "worth.spatial.topology.preview_mutation",
             "promotion-eligible preview can plan a bounded mutation workflow",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:77",
+            ),
         )
         .for_intent_declaration(&declaration);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(

@@ -1,12 +1,16 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::lower_runtime_routing::support::support_posture_for_classification;
 
 use super::{
     forge_query_lower_runtime_crossing_inventory, ForgeQueryLowerRuntimeArtifactStrength,
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
     ForgeQueryLowerRuntimeCrossingClassification, ForgeQueryLowerRuntimeReadmissionReceipt,
-    ForgeQueryLowerRuntimeRouteKind, ForgeQueryLowerRuntimeRoutePlan,
-    ForgeQueryLowerRuntimeSeamKey, ForgeQueryLowerRuntimeSupportPosture,
+    ForgeQueryLowerRuntimeRetainedEvidenceIdentity, ForgeQueryLowerRuntimeRouteKind,
+    ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
+    ForgeQueryLowerRuntimeSupportPosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -54,16 +58,16 @@ pub struct ForgeQueryLowerRuntimeBoundaryEnvelope {
     route_kind: ForgeQueryLowerRuntimeRouteKind,
     support_posture: ForgeQueryLowerRuntimeSupportPosture,
     artifact_strength: ForgeQueryLowerRuntimeArtifactStrength,
-    request_digest: String,
-    eligibility_digest: String,
-    route_or_handoff_digest: String,
-    boundary_execution_digest: String,
-    retained_evidence_digest: String,
-    route_authority_digest: String,
-    route_evidence_digest: String,
+    request_identity: ForgeQueryEvidenceIdentity,
+    eligibility_identity: ForgeQueryEvidenceIdentity,
+    route_or_handoff_identity: ForgeQueryEvidenceIdentity,
+    boundary_execution_identity: ForgeQueryEvidenceIdentity,
+    retained_evidence_identity: ForgeQueryLowerRuntimeRetainedEvidenceIdentity,
+    route_authority_identity: ForgeQueryEvidenceIdentity,
+    route_evidence_identity: ForgeQueryEvidenceIdentity,
     route_cost_posture: ForgeQueryLowerRuntimeCostPosture,
     route_failure_topology: ForgeQueryLowerRuntimeFailureTopology,
-    envelope_digest: String,
+    envelope_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryLowerRuntimeBoundaryEnvelope {
@@ -71,16 +75,30 @@ impl ForgeQueryLowerRuntimeBoundaryEnvelope {
         seam_key: ForgeQueryLowerRuntimeSeamKey,
         route_plan: &ForgeQueryLowerRuntimeRoutePlan,
         boundary_execution_receipt: &ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
-        retained_evidence_digest: &str,
+        retained_evidence_identity: &ForgeQueryLowerRuntimeRetainedEvidenceIdentity,
     ) -> Self {
         let row = crossing_row(seam_key);
         Self::new(
             row,
-            route_plan.eligibility().request().request_digest(),
-            route_plan.eligibility().eligibility_digest(),
-            route_plan.route_digest(),
-            boundary_execution_receipt.boundary_execution_digest(),
-            retained_evidence_digest,
+            route_plan.eligibility().request().request_identity(),
+            route_plan.eligibility().eligibility_identity(),
+            route_plan.route_identity(),
+            boundary_execution_receipt.boundary_execution_identity(),
+            retained_evidence_identity,
+        )
+    }
+
+    pub(crate) fn from_route_plan_with_retained_evidence_identity(
+        seam_key: ForgeQueryLowerRuntimeSeamKey,
+        route_plan: &ForgeQueryLowerRuntimeRoutePlan,
+        boundary_execution_receipt: &ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
+        retained_evidence_identity: &ForgeQueryLowerRuntimeRetainedEvidenceIdentity,
+    ) -> Self {
+        Self::from_route_plan(
+            seam_key,
+            route_plan,
+            boundary_execution_receipt,
+            retained_evidence_identity,
         )
     }
 
@@ -92,55 +110,112 @@ impl ForgeQueryLowerRuntimeBoundaryEnvelope {
         let row = crossing_row(seam_key);
         Self::new(
             row,
-            readmission_receipt.eligibility().request().request_digest(),
-            readmission_receipt.eligibility().eligibility_digest(),
-            readmission_receipt.handoff_digest(),
-            boundary_execution_receipt.boundary_execution_digest(),
-            readmission_receipt.retained_evidence_digest(),
+            readmission_receipt
+                .eligibility()
+                .request()
+                .request_identity(),
+            readmission_receipt.eligibility().eligibility_identity(),
+            readmission_receipt.handoff_identity(),
+            boundary_execution_receipt.boundary_execution_identity(),
+            readmission_receipt.retained_evidence_identity(),
         )
     }
 
     fn new(
         row: crate::lower_runtime_routing::ForgeQueryLowerRuntimeCrossingRow,
-        request_digest: &str,
-        eligibility_digest: &str,
-        route_or_handoff_digest: &str,
-        boundary_execution_digest: &str,
-        retained_evidence_digest: &str,
+        request_identity: &ForgeQueryEvidenceIdentity,
+        eligibility_identity: &ForgeQueryEvidenceIdentity,
+        route_or_handoff_identity: &ForgeQueryEvidenceIdentity,
+        boundary_execution_identity: &ForgeQueryEvidenceIdentity,
+        retained_evidence_identity: &ForgeQueryLowerRuntimeRetainedEvidenceIdentity,
     ) -> Self {
         let support_posture = support_posture_for_classification(row.classification());
         let route_cost_posture = cost_posture_for_classification(row.classification());
         let route_failure_topology = failure_topology_for_route_kind(row.route_kind());
-        let route_authority_digest = hash_parts(&[
-            "lower_runtime_boundary_authority_v1".to_string(),
-            format!("seam:{}", row.seam_key().as_str()),
-            format!("owner:{}", row.lower_runtime_owner().as_str()),
-            format!("classification:{}", row.classification().as_str()),
-        ]);
-        let route_evidence_digest = hash_parts(&[
-            "lower_runtime_boundary_evidence_v1".to_string(),
-            format!("boundary:{boundary_execution_digest}"),
-            format!("retained:{retained_evidence_digest}"),
-        ]);
-        let envelope_digest = hash_parts(&[
-            "lower_runtime_boundary_envelope_v1".to_string(),
-            format!("seam:{}", row.seam_key().as_str()),
-            format!("capability:{}", row.capability_label()),
-            format!("classification:{}", row.classification().as_str()),
-            format!("owner:{}", row.lower_runtime_owner().as_str()),
-            format!("route_kind:{}", row.route_kind().as_str()),
-            format!("support:{}", support_posture.as_str()),
-            format!("artifact:{}", row.current_artifact_strength().as_str()),
-            format!("request:{request_digest}"),
-            format!("eligibility:{eligibility_digest}"),
-            format!("route_or_handoff:{route_or_handoff_digest}"),
-            format!("boundary:{boundary_execution_digest}"),
-            format!("retained:{retained_evidence_digest}"),
-            format!("authority:{route_authority_digest}"),
-            format!("evidence:{route_evidence_digest}"),
-            format!("cost:{}", route_cost_posture.as_str()),
-            format!("failure:{}", route_failure_topology.as_str()),
-        ]);
+        let route_authority_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryAuthority)
+                .field_shape(ForgeQueryEvidenceTag::new("seam"), row.seam_key().as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("owner"),
+                    row.lower_runtime_owner().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("classification"),
+                    row.classification().as_str(),
+                )
+                .seal();
+        let route_evidence_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("boundary"),
+                    boundary_execution_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("retained"),
+                    retained_evidence_identity.evidence_identity(),
+                )
+                .seal();
+        let envelope_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEnvelope)
+                .field_shape(ForgeQueryEvidenceTag::new("seam"), row.seam_key().as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("capability"),
+                    row.capability_label(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("classification"),
+                    row.classification().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("owner"),
+                    row.lower_runtime_owner().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("route_kind"),
+                    row.route_kind().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("support"),
+                    support_posture.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("artifact"),
+                    row.current_artifact_strength().as_str(),
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("request"), request_identity)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("eligibility"),
+                    eligibility_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("route_or_handoff"),
+                    route_or_handoff_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("boundary"),
+                    boundary_execution_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("retained"),
+                    retained_evidence_identity.evidence_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("authority"),
+                    &route_authority_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("evidence"),
+                    &route_evidence_identity,
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("cost"),
+                    route_cost_posture.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("failure"),
+                    route_failure_topology.as_str(),
+                )
+                .seal();
         Self {
             seam_key: row.seam_key(),
             capability_label: row.capability_label(),
@@ -149,16 +224,16 @@ impl ForgeQueryLowerRuntimeBoundaryEnvelope {
             route_kind: row.route_kind(),
             support_posture,
             artifact_strength: row.current_artifact_strength(),
-            request_digest: request_digest.to_string(),
-            eligibility_digest: eligibility_digest.to_string(),
-            route_or_handoff_digest: route_or_handoff_digest.to_string(),
-            boundary_execution_digest: boundary_execution_digest.to_string(),
-            retained_evidence_digest: retained_evidence_digest.to_string(),
-            route_authority_digest,
-            route_evidence_digest,
+            request_identity: request_identity.clone(),
+            eligibility_identity: eligibility_identity.clone(),
+            route_or_handoff_identity: route_or_handoff_identity.clone(),
+            boundary_execution_identity: boundary_execution_identity.clone(),
+            retained_evidence_identity: retained_evidence_identity.clone(),
+            route_authority_identity,
+            route_evidence_identity,
             route_cost_posture,
             route_failure_topology,
-            envelope_digest,
+            envelope_identity,
         }
     }
 
@@ -190,32 +265,32 @@ impl ForgeQueryLowerRuntimeBoundaryEnvelope {
         self.artifact_strength
     }
 
-    pub fn request_digest(&self) -> &str {
-        &self.request_digest
+    pub fn request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.request_identity
     }
 
-    pub fn eligibility_digest(&self) -> &str {
-        &self.eligibility_digest
+    pub fn eligibility_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.eligibility_identity
     }
 
-    pub fn route_or_handoff_digest(&self) -> &str {
-        &self.route_or_handoff_digest
+    pub fn route_or_handoff_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.route_or_handoff_identity
     }
 
-    pub fn boundary_execution_digest(&self) -> &str {
-        &self.boundary_execution_digest
+    pub fn boundary_execution_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.boundary_execution_identity
     }
 
-    pub fn retained_evidence_digest(&self) -> &str {
-        &self.retained_evidence_digest
+    pub fn retained_evidence_identity(&self) -> &ForgeQueryLowerRuntimeRetainedEvidenceIdentity {
+        &self.retained_evidence_identity
     }
 
-    pub fn route_authority_digest(&self) -> &str {
-        &self.route_authority_digest
+    pub fn route_authority_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.route_authority_identity
     }
 
-    pub fn route_evidence_digest(&self) -> &str {
-        &self.route_evidence_digest
+    pub fn route_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.route_evidence_identity
     }
 
     pub fn route_cost_posture(&self) -> ForgeQueryLowerRuntimeCostPosture {
@@ -226,8 +301,8 @@ impl ForgeQueryLowerRuntimeBoundaryEnvelope {
         self.route_failure_topology
     }
 
-    pub fn envelope_digest(&self) -> &str {
-        &self.envelope_digest
+    pub fn envelope_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.envelope_identity
     }
 }
 
@@ -279,9 +354,11 @@ fn failure_topology_for_route_kind(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::evidence_identity::ForgeQueryEvidenceIdentity;
     use crate::lower_runtime_routing::{
         forge_query_lower_runtime_support_matrix, ForgeQueryLowerRuntimeCapabilityEligibility,
         ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeRoutePlan,
+        ForgeQueryLowerRuntimeRouteSubjectIdentity, ForgeQueryLowerRuntimeSubjectIdentity,
     };
 
     #[test]
@@ -291,18 +368,48 @@ mod tests {
             ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
             ForgeQueryLowerRuntimeAuthorityOwner::Signal,
             "frontier-evidence-intake",
-            "subject-1",
+            ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
+                .field_identity(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
+                .seal(),
         );
+        let detail_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("test_detail"), "detail-1")
+        .seal();
         let eligibility =
-            ForgeQueryLowerRuntimeCapabilityEligibility::admitted(request, "detail-1");
-        let plan = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, "signal-frontier");
-        let boundary =
-            ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&plan, "evidence-1");
+            ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+                request,
+                &detail_identity,
+            );
+        let plan = ForgeQueryLowerRuntimeRoutePlan::new(
+            eligibility,
+            ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+                "test-route",
+                &detail_identity,
+            ),
+        );
+        let retained_evidence =
+            crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+                "envelope-route-test",
+                &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+                    crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+                )
+                .field_identity(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
+                    "evidence-1",
+                )
+                .seal(),
+            );
+        let boundary = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
+            &plan,
+            &retained_evidence,
+        );
         let envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
             ForgeQueryLowerRuntimeSeamKey::FrontierEvidenceIntake,
             &plan,
             &boundary,
-            "evidence-1",
+            &retained_evidence,
         );
         let support_matrix = forge_query_lower_runtime_support_matrix();
         let support = support_matrix
@@ -327,11 +434,34 @@ mod tests {
             ForgeQueryLowerRuntimeRouteKind::ReadmissionHandoff,
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "live-view-schema-admission",
-            "subject-2",
+            ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
+                .field_identity(ForgeQueryEvidenceTag::new("test_subject"), "subject-2")
+                .seal(),
         );
+        let detail_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("test_detail"), "detail-2")
+        .seal();
         let eligibility =
-            ForgeQueryLowerRuntimeCapabilityEligibility::admitted(request, "detail-2");
-        let readmission = ForgeQueryLowerRuntimeReadmissionReceipt::new(eligibility, "evidence-2");
+            ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+                request,
+                &detail_identity,
+            );
+        let retained_evidence =
+            crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+                "envelope-test",
+                &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+                    crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+                )
+                .field_identity(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
+                    "evidence-2",
+                )
+                .seal(),
+            );
+        let readmission =
+            ForgeQueryLowerRuntimeReadmissionReceipt::new(eligibility, &retained_evidence);
         let boundary =
             ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_readmission_receipt(&readmission);
         let envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_readmission_receipt(

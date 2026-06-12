@@ -42,7 +42,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let incoming_region_relation_ids =
             crate::topology_operators::application::bindings::query_incoming_relation_ids(
                 bindings,
-                &retired_shell_binding.query_identity,
+                &retired_shell_binding.query_identity_label,
                 TopologyRelationKind::RegionOwnsShell,
             )?;
         let [region_relation_id] = incoming_region_relation_ids.as_slice() else {
@@ -76,14 +76,14 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             ),
         );
         let created_shell_key = program.create_key.clone();
-        let retired_shell_identity = retired_shell_binding.query_identity.clone();
+        let retired_shell_identity = retired_shell_binding.query_identity_label.clone();
         let retire_contract = members
             .last()
             .expect("shell rehome program always ends with retire contract");
         let region_handle = bind_existing_relation_handle(
             self,
             *region_relation_id,
-            &region_relation_binding.query_identity,
+            region_relation_binding.query_identity.clone(),
         )?;
         let retired_shell_handle = bind_existing_entity_handle(
             self,
@@ -101,7 +101,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             let incoming_face_relation_ids =
                 crate::topology_operators::application::bindings::query_incoming_relation_ids(
                     bindings,
-                    &face_binding.query_identity,
+                    &face_binding.query_identity_label,
                     TopologyRelationKind::ShellOwnsFace,
                 )?;
             let [face_relation_id] = incoming_face_relation_ids.as_slice() else {
@@ -128,10 +128,10 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 bind_existing_relation_handle(
                     self,
                     *face_relation_id,
-                    &face_relation_binding.query_identity,
+                    face_relation_binding.query_identity.clone(),
                 )?,
                 *face_relation_id,
-                face_binding.query_identity,
+                face_binding.query_identity_label,
             ));
         }
 
@@ -153,7 +153,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                             )
                             .aspect(
                                 "topology.source_identity",
-                                region_binding.query_identity.clone(),
+                                region_binding.query_identity_label.clone(),
                             )
                             .aspect("topology.target_identity", retired_shell_identity.clone());
                         if let Some(path) = region_dependency_path {
@@ -174,7 +174,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                             )
                             .aspect(
                                 "topology.source_identity",
-                                region_binding.query_identity.clone(),
+                                region_binding.query_identity_label.clone(),
                             )
                             .symbolic_entity_identity(
                                 "topology.target_identity",
@@ -267,7 +267,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let incoming_face_relation_ids =
             crate::topology_operators::application::bindings::query_incoming_relation_ids(
                 bindings,
-                &face_binding.query_identity,
+                &face_binding.query_identity_label,
                 TopologyRelationKind::ShellOwnsFace,
             )?;
         let [face_relation_id] = incoming_face_relation_ids.as_slice() else {
@@ -310,7 +310,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let face_handle = bind_existing_relation_handle(
             self,
             *face_relation_id,
-            &face_relation_binding.query_identity,
+            face_relation_binding.query_identity.clone(),
         )?;
 
         self.workspace
@@ -352,11 +352,11 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                             )
                             .aspect(
                                 "topology.source_identity",
-                                retained_shell_binding.query_identity.clone(),
+                                retained_shell_binding.query_identity_label.clone(),
                             )
                             .aspect(
                                 "topology.target_identity",
-                                face_binding.query_identity.clone(),
+                                face_binding.query_identity_label.clone(),
                             );
                         if let Some(path) = face_dependency_path {
                             verify.aspect(path, TopologyRelationKind::ShellOwnsFace.kind_name())
@@ -381,7 +381,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                             )
                             .aspect(
                                 "topology.target_identity",
-                                face_binding.query_identity.clone(),
+                                face_binding.query_identity_label.clone(),
                             );
                         if let Some(path) = face_dependency_path {
                             update.aspect(path, TopologyRelationKind::ShellOwnsFace.kind_name())

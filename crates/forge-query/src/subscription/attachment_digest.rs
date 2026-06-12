@@ -1,12 +1,18 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SubscriptionConsumerAttachmentDigest(String);
+pub struct SubscriptionConsumerAttachmentDigest(ForgeQueryEvidenceIdentity);
 
 impl SubscriptionConsumerAttachmentDigest {
-    pub(super) fn new(value: String) -> Self {
+    pub(super) fn new(value: ForgeQueryEvidenceIdentity) -> Self {
         Self(value)
     }
 
     pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.0
     }
 }

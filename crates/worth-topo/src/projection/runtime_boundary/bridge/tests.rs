@@ -43,8 +43,10 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
     assert_eq!(aspects.len(), declarations.len());
     for declaration in declarations {
         assert!(mappings.iter().any(|registration| {
-            registration.mapping_id().as_str() == format!(":m2:{}", declaration.declaration_id)
-                && registration.signal_scope().as_str() == declaration.target.bridge_scope()
+            registration.mapping_id().evidence_identity().as_str()
+                == format!(":m2:{}", declaration.declaration_id)
+                && registration.signal_scope().evidence_identity().as_str()
+                    == declaration.target.bridge_scope()
                 && registration.truth_scope().aspect_selector()
                     == &native_aspect_selector(declaration.truth_patch_field)
                 && registration.truth_scope().target_selector()
@@ -53,7 +55,7 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
                     == &native_snapshot_read_contract(declaration.truth_patch_field)
         }));
         assert!(aspects.iter().any(|registration| {
-            registration.registration_id().as_str()
+            registration.registration_id().evidence_identity().as_str()
                 == format!(":m2:aspect:{}", declaration.declaration_id)
                 && registration.truth_scope().aspect_selector()
                     == &native_aspect_selector(declaration.truth_patch_field)
@@ -155,14 +157,13 @@ fn milestone_one_bridge_routes_and_evaluates_seeded_commit() {
         .expect(" bridge should build");
 
     let route = bridge
-        .route(TruthCommitIdentity::new(format!(
-            "commit-{}",
-            head_commit_id.0
-        )))
+        .route(TruthCommitIdentity::from_relational_commit_id(
+            head_commit_id.0,
+        ))
         .expect(" bridge should route a seeded commit");
     let evaluation = bridge
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::new("main"),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ))
         .expect(" bridge should evaluate current main branch head");
 
@@ -195,14 +196,13 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
     let bridge = build_milestone_one_bridge(Arc::clone(&runtime), RecordingSink)
         .expect(" bridge should build");
     let _route = bridge
-        .route(TruthCommitIdentity::new(format!(
-            "commit-{}",
-            head_commit_id.0
-        )))
+        .route(TruthCommitIdentity::from_relational_commit_id(
+            head_commit_id.0,
+        ))
         .expect(" bridge should route a seeded commit");
     let _evaluation = bridge
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::new("main"),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ))
         .expect(" bridge should evaluate current main branch head");
 
@@ -211,26 +211,51 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
     let anchor = BridgeTraceAnchor::new(
         route_records
             .iter()
-            .map(|record| record.route_identity().to_string())
+            .map(|record| {
+                record
+                    .route_identity()
+                    .evidence_identity()
+                    .as_str()
+                    .to_string()
+            })
             .collect(),
         route_records
             .iter()
-            .map(|record| record.invalidation_identity().to_string())
+            .map(|record| {
+                record
+                    .invalidation_identity()
+                    .evidence_identity()
+                    .as_str()
+                    .to_string()
+            })
             .collect(),
         route_records
             .iter()
-            .map(|record| record.source_snapshot().as_str().to_string())
+            .map(|record| {
+                record
+                    .source_snapshot()
+                    .evidence_identity()
+                    .as_str()
+                    .to_string()
+            })
             .chain(historical_records.iter().map(|record| {
                 record
                     .decision_log()
                     .snapshot_identity()
+                    .evidence_identity()
                     .as_str()
                     .to_string()
             }))
             .collect(),
         historical_records
             .iter()
-            .map(|record| record.record_identity().to_string())
+            .map(|record| {
+                record
+                    .record_identity()
+                    .evidence_identity()
+                    .as_str()
+                    .to_string()
+            })
             .collect(),
     );
     assert_eq!(anchor.route_identities.len(), 1);

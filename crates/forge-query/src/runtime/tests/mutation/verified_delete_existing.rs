@@ -24,7 +24,7 @@ fn delete_existing_verified_preserves_backend_verified_assertion_evidence_on_del
     let binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -122,7 +122,7 @@ fn delete_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
     let binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -195,7 +195,7 @@ fn batch_delete_existing_verified_preserves_aggregate_assertion_digest() {
     let binding_one = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed_one.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -206,7 +206,7 @@ fn batch_delete_existing_verified_preserves_aggregate_assertion_digest() {
     let binding_two = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-2",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed_two.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -262,7 +262,7 @@ fn delete_existing_verified_denies_unsupported_backend_typed_and_early() {
         .expect("workspace should open");
     let binding = workspace
         .bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new("authority:task-1", "Task:1")
+            ForgeQueryExistingEntityTarget::new(crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"), test_entity_identity("Task:1"))
                 .expect("existing entity target should build")
                 .in_target_collection("Task")
                 .expect("existing entity target collection should build"),
@@ -314,7 +314,7 @@ fn preview_delete_existing_verified_requires_authoritative_lane() {
     let binding = preview
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")

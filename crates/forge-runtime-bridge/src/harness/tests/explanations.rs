@@ -1,18 +1,17 @@
-use crate::facade::{
-    BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis,
-    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
-    BridgeHistoricalResolvedLineageIdentity, BridgeHistoricalResolvedRecordIdentity,
-    BridgeLineageContext, BridgeLineageSourceError, BridgePreparationMode, BridgeRouteRequest,
-    ContinuityLineageSource, FineGrainedMatchStatus, SliceWideningPolicy, SubscriptionSliceKind,
-    TruthDeltaSurfaceKind, TruthSnapshotIdentity,
-};
-
 use super::support::{
     build_runtime, build_runtime_with_aspects, committed_patch, field_aspect_registration,
     field_slice_snapshot, registration, snapshot, surface_widening_registration,
 };
+use crate::facade::{
+    BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis,
+    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
+    BridgeHistoricalResolvedLineageIdentity, BridgeHistoricalResolvedRecordIdentity,
+    BridgeLineageContext, BridgeLineageSourceError, BridgePreparationMode,
+    BridgeRouteRecordEntityIdentity as RouteEntityIdentity, BridgeRouteRequest,
+    ContinuityLineageSource, FineGrainedMatchStatus, SliceWideningPolicy, SubscriptionSliceKind,
+    TruthDeltaSurfaceKind,
+};
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
-
 #[derive(Debug, Clone, Default)]
 struct ExplanationContinuityLineageSource;
 
@@ -38,12 +37,15 @@ fn bridge_route_explanation_reconstructs_patch_to_invalidation_mapping() {
     let avatar_field = forge_foundational::facade::FieldKey::new("avatar".to_owned())
         .expect("valid harness field key");
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         avatar_field.clone(),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -52,7 +54,7 @@ fn bridge_route_explanation_reconstructs_patch_to_invalidation_mapping() {
 
     let route = runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("bridge should plan route for explanation reconstruction");
     runtime
@@ -66,9 +68,15 @@ fn bridge_route_explanation_reconstructs_patch_to_invalidation_mapping() {
 
     assert_eq!(explanation.route_entries().len(), 1);
     assert_eq!(explanation.invalidation_targets().len(), 1);
-    assert_eq!(explanation.snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        explanation.snapshot_identity().as_str(),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a").as_str()
+    );
     let entry = &explanation.route_entries()[0];
-    assert_eq!(entry.entity_identity(), "user");
+    assert!(matches!(
+        entry.entity_identity(),
+        RouteEntityIdentity::TruthSurface(_)
+    ));
     assert_eq!(entry.aspect_key().as_str(), "profile");
     assert_eq!(
         entry.target_canonical_basis(),
@@ -96,20 +104,19 @@ fn bridge_route_explanation_reconstructs_patch_to_invalidation_mapping() {
         "signal.profile.widening"
     );
 }
-
 #[test]
 fn bridge_route_explanation_exposes_fine_grained_match_status() {
     let source = InMemoryRelationalBridgeSource::default();
     let name_field = forge_foundational::facade::FieldKey::new("name".to_owned())
         .expect("valid harness field key");
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         name_field.clone(),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = build_runtime_with_aspects(
@@ -121,7 +128,7 @@ fn bridge_route_explanation_exposes_fine_grained_match_status() {
 
     let route = runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("bridge should plan route with fine-grained aspect registration");
     runtime
@@ -171,19 +178,18 @@ fn expected_field_target_basis(field: &forge_foundational::facade::FieldKey) -> 
         "committed-patch-target|locator=version=bridge.committed-patch-target.v1;domain=locator;entries=[locus=named:aspect_field.aspect_key,kind=locator,value=exact-text:profile;locus=named:aspect_field.authority,kind=locator,value=exact-text:authoritative;locus=named:aspect_field.field_path,kind=locator,value=exact-text:{field};locus=named:aspect_field.kind,kind=locator,value=exact-text:aspect]|mutation-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:profile.mutation.field.{field},kind=mask,value=exact-text:{field}]|projection-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:profile.projection.field.{field},kind=mask,value=exact-text:{field}]|kind=entity-field"
     )
 }
-
 #[test]
 fn bridge_continuity_explanation_reconstructs_canonical_continuity_truth() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = crate::facade::RuntimeBridgeBuilder::new()
@@ -197,11 +203,13 @@ fn bridge_continuity_explanation_reconstructs_canonical_continuity_truth() {
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
+            BridgeRouteRequest::for_commit(crate::truth_identity_fixtures::truth_commit_fixture(
+                "commit-a",
+            )),
             crate::facade::BridgeMappingContext::default().with_lineage_context(
                 BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
-                    crate::facade::TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 )),
             ),
         )
@@ -228,8 +236,14 @@ fn bridge_continuity_explanation_reconstructs_canonical_continuity_truth() {
     let explanation = runtime.diagnostics().explain_continuity_record(&canonical);
 
     assert_eq!(explanation.route_identity(), route_record.route_identity());
-    assert_eq!(explanation.source_snapshot().as_str(), "snapshot-a");
-    assert_eq!(explanation.source_branch().as_str(), "main");
+    assert_eq!(
+        explanation.source_snapshot().as_str(),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a").as_str()
+    );
+    assert_eq!(
+        explanation.source_branch().as_str(),
+        crate::truth_identity_fixtures::truth_branch("main").as_str()
+    );
     assert_eq!(explanation.continuity_outcomes().len(), 1);
     assert_eq!(
         explanation.continuity_outcomes()[0].outcome_class(),
@@ -241,26 +255,31 @@ fn bridge_continuity_explanation_reconstructs_canonical_continuity_truth() {
         "entity:0:4:2"
     );
 }
-
 #[test]
 fn bridge_bulk_explanation_reconstructs_canonical_bulk_plan_truth() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        "bob",
+    ));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -270,10 +289,10 @@ fn bridge_bulk_explanation_reconstructs_canonical_bulk_plan_truth() {
     let plan = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
             )),
         ]))
         .expect("bulk workload should plan before explanation reconstruction");
@@ -321,25 +340,27 @@ fn bridge_bulk_explanation_reconstructs_canonical_bulk_plan_truth() {
     assert!(explanation.planning_failures().is_empty());
     assert_eq!(explanation.planning_failure_count(), 0);
 }
-
 #[test]
 fn bridge_bulk_explanation_retains_typed_parallel_serial_reduction_failures() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -349,10 +370,10 @@ fn bridge_bulk_explanation_retains_typed_parallel_serial_reduction_failures() {
     let plan = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
             )),
         ]))
         .expect("bulk workload should plan before explanation reconstruction");

@@ -111,8 +111,13 @@ impl TodoWorkspace {
                 let entity_identity = self
                     .task_entity_identity(&task_id)
                     .ok_or_else(|| ForgeQueryWorkspaceError::new("task not found"))?;
-                self.tasks
-                    .update_aspect(&entity_identity, &format!("{aspect}.{field}"), value)
+                self.tasks.update_aspects(
+                    &entity_identity,
+                    vec![
+                        ForgeQueryAspectValue::new(format!("{aspect}.{field}"), value)
+                            .expect("todo aspect value should serialize"),
+                    ],
+                )
             }
             TodoCommand::DeleteTask(task_id) => {
                 let entity_identity = self
@@ -185,16 +190,17 @@ impl TodoWorkspace {
             .entities()
             .into_iter()
             .find(|entity| {
-                string_path(&entity.payload, &["identity", "id"]).as_deref() == Some(task_id)
+                string_path(entity.external_row(), &["identity", "id"]).as_deref() == Some(task_id)
             })
-            .map(|entity| entity.identity)
+            .map(|entity| entity.identity().to_string())
     }
 }
 
 fn task_from_entity(entity: ForgeQueryEntity) -> Option<Task> {
-    let payload = entity.payload;
+    let identity = entity.identity().to_string();
+    let payload = entity.external_row().clone();
     Some(Task {
-        id: string_path(&payload, &["identity", "id"]).unwrap_or(entity.identity),
+        id: string_path(&payload, &["identity", "id"]).unwrap_or(identity),
         title: string_path(&payload, &["title", "value"])?,
         column_id: string_path(&payload, &["column", "id"])?,
         assignee_id: non_empty_string_path(&payload, &["assignee", "id"]),
@@ -205,9 +211,10 @@ fn task_from_entity(entity: ForgeQueryEntity) -> Option<Task> {
 }
 
 fn column_from_entity(entity: ForgeQueryEntity) -> Option<BoardColumn> {
-    let payload = entity.payload;
+    let identity = entity.identity().to_string();
+    let payload = entity.external_row().clone();
     Some(BoardColumn {
-        id: string_path(&payload, &["identity", "id"]).unwrap_or(entity.identity),
+        id: string_path(&payload, &["identity", "id"]).unwrap_or(identity),
         name: string_path(&payload, &["name", "value"])?,
         order: payload
             .pointer("/order/index")
@@ -217,9 +224,10 @@ fn column_from_entity(entity: ForgeQueryEntity) -> Option<BoardColumn> {
 }
 
 fn user_from_entity(entity: ForgeQueryEntity) -> Option<BoardUser> {
-    let payload = entity.payload;
+    let identity = entity.identity().to_string();
+    let payload = entity.external_row().clone();
     Some(BoardUser {
-        id: string_path(&payload, &["identity", "id"]).unwrap_or(entity.identity),
+        id: string_path(&payload, &["identity", "id"]).unwrap_or(identity),
         name: string_path(&payload, &["name", "value"])?,
     })
 }

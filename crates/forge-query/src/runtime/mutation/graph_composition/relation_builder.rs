@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 use super::symbols::ForgeQueryGraphEntitySymbol;
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::mutation::ForgeQueryAspectMutationBuilder;
 
 #[derive(Clone, Debug, Default)]
@@ -21,9 +22,11 @@ impl ForgeQueryGraphRelationMutationBuilder {
     pub fn existing_entity_identity(
         mut self,
         path: impl Into<String>,
-        entity_identity: impl Into<String>,
+        entity_identity: ForgeQueryEntityIdentity,
     ) -> Self {
-        self.inner = self.inner.aspect(path, entity_identity.into());
+        self.inner = self
+            .inner
+            .aspect(path, entity_identity.evidence_identity().to_string());
         self
     }
 

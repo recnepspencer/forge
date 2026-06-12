@@ -9,6 +9,15 @@ use super::{BridgeDiagnosticsTier, BridgeExecutionPolicyClass};
 
 pub type BridgePolicyDeclarationIdentity = BridgeIdentity<PolicyDeclarationIdentityTag>;
 
+impl BridgePolicyDeclarationIdentity {
+    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+        Self::new(format!(
+            "bridge-policy-declaration:external-authority-evidence:{}",
+            evidence_identity.as_ref()
+        ))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgePolicyDeclaration {
     declaration_identity: BridgePolicyDeclarationIdentity,

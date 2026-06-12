@@ -68,10 +68,11 @@ impl ForgeQueryRuntime {
         binding: ForgeQueryUnifiedInspectionExecutionBinding,
     ) -> Result<ForgeQueryUnifiedInspectionResult, ForgeQueryRuntimeError> {
         let inspection = self.inspect_from_generic_seed(binding.seed())?;
+        let snapshot_identity = self.current_snapshot_identity();
         let receipt = ForgeQueryUnifiedInspectionReceipt::from_inspection(
             binding.seed().request_label().clone(),
             &inspection,
-            self.backend.snapshot_token(),
+            snapshot_identity.clone(),
         );
         let mut result = ForgeQueryUnifiedInspectionResult::new(inspection, receipt);
         let decision_trace_envelope =
@@ -88,16 +89,18 @@ impl ForgeQueryRuntime {
                 result.receipt().result_digest(),
                 "unified-inspection",
             );
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
-            binding.family(),
-            binding.entrypoint(),
-            binding.execution_seam(),
-            binding.handoff().decision_digest(),
-            binding.handoff().handoff_digest(),
-            binding.binding_digest(),
-            result.receipt().result_digest(),
-            result.receipt().snapshot_token(),
-        );
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
+        let execution_provenance =
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                binding.family(),
+                binding.entrypoint(),
+                binding.execution_seam(),
+                binding.handoff().decision_digest(),
+                binding.handoff().handoff_digest(),
+                binding.binding_digest(),
+                result.receipt().result_digest(),
+                &snapshot_evidence_identity,
+            );
         result.attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
         Ok(result)
     }

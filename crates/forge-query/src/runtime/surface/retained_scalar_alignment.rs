@@ -208,6 +208,7 @@ mod tests {
 
     use serde_json::json;
 
+    use crate::memory_workspace::ForgeQuerySnapshotIdentity;
     use crate::runtime::surface::{
         ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationBundle,
         ForgeQueryDerivedMaterializationReceipt, ForgeQueryDerivedMaterializationResult,
@@ -215,16 +216,18 @@ mod tests {
     };
 
     fn binding(row: serde_json::Value) -> ForgeQueryDerivedArtifactBinding {
+        let snapshot_identity =
+            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test");
         let materialization = ForgeQueryDerivedMaterializationResult::new(
             vec![row],
             ForgeQueryDerivedMaterializationReceipt::test_only(
                 "surface:test",
-                "snapshot:test",
+                snapshot_identity.clone(),
                 "result:test",
             ),
         );
         let bundle = ForgeQueryDerivedMaterializationBundle::new(
-            "snapshot:test",
+            snapshot_identity,
             BTreeMap::from([("surface:test".to_string(), materialization)]),
         );
         ForgeQueryDerivedArtifactBinding::bind(

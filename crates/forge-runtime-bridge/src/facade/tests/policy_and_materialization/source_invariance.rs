@@ -11,8 +11,8 @@ fn source_builder_order_does_not_change_materialized_source_truth() {
         .register_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -50,8 +50,8 @@ fn source_builder_order_does_not_change_materialized_source_truth() {
         .register_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::ReplayContinuityRead,
@@ -84,8 +84,8 @@ fn source_builder_order_does_not_change_materialized_source_truth() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -99,8 +99,8 @@ fn source_builder_order_does_not_change_materialized_source_truth() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -142,8 +142,8 @@ fn source_diagnostics_richness_preserves_source_truth() {
     let declaration = registered_source(
         "source:analysis-history",
         BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         vec![
             BridgeSourceCapability::SnapshotRead,

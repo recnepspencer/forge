@@ -1,25 +1,30 @@
 use super::*;
-use crate::facade::TruthSnapshotIdentity;
 
 #[test]
 fn replayed_bulk_plan_matches_original_canonical_artifact() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        "bob",
+    ));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -29,10 +34,10 @@ fn replayed_bulk_plan_matches_original_canonical_artifact() {
     let planned = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
             )),
         ]))
         .expect("bulk workload should plan before canonical bulk replay");
@@ -65,21 +70,27 @@ fn replayed_bulk_plan_matches_original_canonical_artifact() {
 fn bulk_replay_rejects_drift_after_restart_shaped_truth_change() {
     let original_source = InMemoryRelationalBridgeSource::default();
     original_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     original_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    original_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    original_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
+    original_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
+    original_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        "bob",
+    ));
     let original_runtime = build_runtime(
         original_source,
         RecordingSignalBridgeSink::default(),
@@ -89,10 +100,10 @@ fn bulk_replay_rejects_drift_after_restart_shaped_truth_change() {
     let planned = original_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
             )),
         ]))
         .expect("original bulk workload should plan");
@@ -100,9 +111,9 @@ fn bulk_replay_rejects_drift_after_restart_shaped_truth_change() {
 
     let restarted_source = InMemoryRelationalBridgeSource::default();
     restarted_source.insert_committed_patch(committed_patch_items(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![
             crate::facade::BridgeCommittedPatchItem::with_target(
                 "user",
@@ -135,14 +146,20 @@ fn bulk_replay_rejects_drift_after_restart_shaped_truth_change() {
         ],
     ));
     restarted_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    restarted_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    restarted_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
+    restarted_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
+    restarted_source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        "bob",
+    ));
     let restarted_runtime = build_runtime(
         restarted_source,
         RecordingSignalBridgeSink::default(),

@@ -3,8 +3,7 @@ use crate::facade::{
     BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
     BridgePreviewSessionIdentity, BridgeRequestKind, BridgeSignalBranchIdentity,
     BridgeSourceCapability, BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
-    BridgeSpeculativeBranchBindingIdentity, BridgeTruthViewSelector, TruthBranchIdentity,
-    TruthSnapshotIdentity,
+    BridgeSpeculativeBranchBindingIdentity, BridgeTruthViewSelector,
 };
 
 #[test]
@@ -32,13 +31,13 @@ fn bridge_speculation_promotion_truth_is_invariant_across_diagnostics_tiers() {
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
             BridgeSpeculativeBranchBindingIdentity::new("cert:binding"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
             BridgeSignalBranchIdentity::new("signal:cert"),
         ),
         crate::facade::BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot:cert"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:cert"),
             ),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,

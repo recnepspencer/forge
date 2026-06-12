@@ -12,6 +12,7 @@ use crate::authorized_projection::{
     PolicyInfluenceSet,
 };
 use crate::canonicalization::CanonicalResultShapeArtifact;
+use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQueryEntityIdentity};
 use crate::projection_consumption::{ProjectMaterializedFacts, ProjectionFactConsumptionAttempt};
 
 use super::support::*;
@@ -43,7 +44,9 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
                 materialization.replace_rows([published_title_row(title)]);
                 ForgeQueryDerivedPatch::whole_refresh_materialized(
                     view.name(),
-                    format!("shared-read-refresh-{next}"),
+                    ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                        "shared-read-refresh-{next}"
+                    )),
                     ["title.value".to_string()],
                     json!({"published": true, "title": title}),
                     format!("shared-read-publication-{next}"),
@@ -53,7 +56,9 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
                 materialization.replace_rows(std::iter::empty());
                 ForgeQueryDerivedPatch::whole_refresh_materialized(
                     view.name(),
-                    format!("shared-read-empty-{next}"),
+                    ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                        "shared-read-empty-{next}"
+                    )),
                     ["title.value".to_string()],
                     json!({"published": true, "rows": 0}),
                     format!("shared-read-empty-publication-{next}"),
@@ -67,7 +72,9 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
                 materialization.replace_rows([published_title_row(title)]);
                 ForgeQueryDerivedPatch::whole_refresh_materialized(
                     view.name(),
-                    format!("shared-read-sequenced-{next}"),
+                    ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                        "shared-read-sequenced-{next}"
+                    )),
                     ["title.value".to_string()],
                     json!({"published": true, "title": title}),
                     format!("shared-read-sequenced-publication-{next}"),
@@ -77,8 +84,10 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
                 materialization.replace_rows([published_title_row(title)]);
                 ForgeQueryDerivedPatch::incremental(
                     view.name(),
-                    format!("shared-read-stale-{next}"),
-                    format!("entity-{next}"),
+                    ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                        "shared-read-stale-{next}"
+                    )),
+                    ForgeQueryEntityIdentity::authored_command(format!("entity-{next}")),
                     ["title.value".to_string()],
                     json!({"published": true, "title": title}),
                 )
@@ -153,7 +162,10 @@ fn shared_read_unpublished_artifact_fails_closed_with_typed_pending_state() {
     match consume_display_title_attempt(&unpublished) {
         ForgeQueryPublishedProjectionConsumption::ResultState(state) => {
             assert_eq!(state.kind(), ForgeQueryRuntimeAsyncResultStateKind::Pending);
-            assert_eq!(state.basis_digest(), unpublished.snapshot_token());
+            assert_eq!(
+                state.basis_digest(),
+                unpublished.snapshot_identity().evidence_identity().as_str()
+            );
         }
         other => panic!("expected pending async posture, got {other:?}"),
     }
@@ -304,17 +316,17 @@ fn shared_read_context_fails_closed_when_runtime_retires_its_snapshot_generation
     let read_ctx = workspace
         .shared_read_context()
         .expect("shared read context should mint");
-    let snapshot_token = read_ctx.snapshot_token().to_string();
+    let expected_snapshot_identity = read_ctx.snapshot_identity().clone();
     workspace
         .runtime
-        .force_retire_shared_read_snapshot_for_tests(&snapshot_token);
+        .force_retire_shared_read_snapshot_for_tests(&expected_snapshot_identity);
 
     let error = read_ctx
         .published_derived_artifact(&derived)
         .expect_err("retired shared-read basis must fail closed");
     match error.stop_class() {
-        ForgeQueryStopClass::SharedReadStaleBasis { snapshot_token } => {
-            assert_eq!(snapshot_token, "stateful-bridge-snapshot:1");
+        ForgeQueryStopClass::SharedReadStaleBasis { snapshot_identity } => {
+            assert_eq!(snapshot_identity, &expected_snapshot_identity);
         }
         other => panic!("expected shared-read stale-basis stop class, got {other:?}"),
     }

@@ -4,7 +4,9 @@ use crate::runtime::retained_rows::decode_single_retained_row;
 use crate::runtime::ForgeQueryRuntimeError;
 
 use crate::identity::hash_parts;
-use crate::memory_workspace::ForgeQueryEntity;
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
+};
 use serde::de::DeserializeOwned;
 use std::collections::BTreeMap;
 
@@ -314,9 +316,9 @@ pub enum ForgeQueryDerivedPatchFamily {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedPatch {
     view_name: String,
-    commit_identity: String,
+    commit_identity: ForgeQueryCommitIdentity,
     authority_lane: ForgeQueryAuthorityLane,
-    entity_identity: Option<String>,
+    entity_identity: Option<ForgeQueryEntityIdentity>,
     aspect_paths: Vec<String>,
     family: ForgeQueryDerivedPatchFamily,
     payload: Value,
@@ -326,16 +328,16 @@ pub struct ForgeQueryDerivedPatch {
 impl ForgeQueryDerivedPatch {
     pub fn incremental(
         view_name: impl Into<String>,
-        commit_identity: impl Into<String>,
-        entity_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
+        entity_identity: ForgeQueryEntityIdentity,
         aspect_paths: impl IntoIterator<Item = String>,
         payload: Value,
     ) -> Self {
         Self {
             view_name: view_name.into(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
-            entity_identity: Some(entity_identity.into()),
+            entity_identity: Some(entity_identity),
             aspect_paths: aspect_paths.into_iter().collect(),
             family: ForgeQueryDerivedPatchFamily::Incremental,
             payload,
@@ -345,12 +347,12 @@ impl ForgeQueryDerivedPatch {
 
     pub fn whole_refresh_fallback(
         view_name: impl Into<String>,
-        commit_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
         reason: impl Into<String>,
     ) -> Self {
         Self {
             view_name: view_name.into(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
             entity_identity: None,
             aspect_paths: Vec::new(),
@@ -362,14 +364,14 @@ impl ForgeQueryDerivedPatch {
 
     pub fn whole_refresh_materialized(
         view_name: impl Into<String>,
-        commit_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
         aspect_paths: impl IntoIterator<Item = String>,
         payload: Value,
         reason: impl Into<String>,
     ) -> Self {
         Self {
             view_name: view_name.into(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
             entity_identity: None,
             aspect_paths: aspect_paths.into_iter().collect(),
@@ -383,12 +385,15 @@ impl ForgeQueryDerivedPatch {
         match self.family {
             ForgeQueryDerivedPatchFamily::Incremental => format!(
                 "incremental:{}:{}",
-                self.commit_identity,
-                self.entity_identity.as_deref().unwrap_or("unknown")
+                self.commit_identity.evidence_identity(),
+                self.entity_identity
+                    .as_ref()
+                    .map(|identity| identity.evidence_identity().as_str().to_string())
+                    .unwrap_or_else(|| "unknown".to_string())
             ),
             ForgeQueryDerivedPatchFamily::RefreshFallback => format!(
                 "whole-refresh-fallback:{}:{}",
-                self.commit_identity,
+                self.commit_identity.evidence_identity(),
                 self.reason.as_deref().unwrap_or("unspecified")
             ),
         }
@@ -406,7 +411,7 @@ impl ForgeQueryDerivedPatch {
         &self.view_name
     }
 
-    pub fn commit_identity(&self) -> &str {
+    pub fn commit_identity(&self) -> &ForgeQueryCommitIdentity {
         &self.commit_identity
     }
 
@@ -418,8 +423,11 @@ impl ForgeQueryDerivedPatch {
         self.authority_lane
     }
 
-    pub(in crate::runtime) fn bind_commit_identity(&mut self, commit_identity: impl Into<String>) {
-        self.commit_identity = commit_identity.into();
+    pub(in crate::runtime) fn bind_commit_identity(
+        &mut self,
+        commit_identity: ForgeQueryCommitIdentity,
+    ) {
+        self.commit_identity = commit_identity;
     }
 
     pub(in crate::runtime) fn to_mutation_delta(
@@ -431,7 +439,7 @@ impl ForgeQueryDerivedPatch {
             entity_identity: self
                 .entity_identity
                 .clone()
-                .unwrap_or_else(|| upstream_view.to_string()),
+                .unwrap_or_else(|| ForgeQueryEntityIdentity::authored_command(upstream_view)),
             kind: ForgeQueryMutationKind::Updated,
             aspect_paths: self.aspect_paths.clone(),
         }

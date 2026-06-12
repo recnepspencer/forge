@@ -6,8 +6,7 @@ use super::{runtime, BridgeRuntimePolicy};
 use crate::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceReferenceIdentity,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity,
-    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity, TruthBranchIdentity,
-    TruthSnapshotIdentity,
+    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity,
 };
 
 #[test]
@@ -27,16 +26,20 @@ fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {
                         BridgeSpeculativeBranchBindingIdentity::new(format!(
                             "binding:noise-{index}"
                         )),
-                        TruthBranchIdentity::new(format!("truth:noise-{index}")),
+                        crate::truth_identity_fixtures::truth_branch_fixture(format!(
+                            "truth:noise-{index}"
+                        )),
                         BridgeSignalBranchIdentity::new(format!("signal:noise-{index}")),
-                        TruthSnapshotIdentity::new(format!("snapshot:noise-{index}")),
+                        crate::truth_identity_fixtures::truth_snapshot_fixture(format!(
+                            "snapshot:noise-{index}"
+                        )),
                     ),
                 )
                 .expect("unrelated preview should admit");
             runtime.activate_preview_session(admitted, 1, 0, 0);
         }
         let routed = runtime
-            .route(crate::facade::TruthCommitIdentity::new(
+            .route(crate::truth_identity_fixtures::truth_commit_fixture(
                 "commit-causal-preview-scale",
             ))
             .expect("route should succeed");
@@ -46,23 +49,29 @@ fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {
                 preview_declaration(
                     BridgePreviewSessionDeclarationIdentity::new("preview:causal-scale"),
                     BridgeSpeculativeBranchBindingIdentity::new("binding:causal-scale"),
-                    TruthBranchIdentity::new("truth:causal-scale"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("truth:causal-scale"),
                     BridgeSignalBranchIdentity::new("signal:causal-scale"),
-                    TruthSnapshotIdentity::new("snapshot:causal-scale"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:causal-scale"),
                 ),
             )
             .expect("target preview should admit");
         let (_, execution_record) = runtime.activate_preview_session(admitted, 2, 1, 1);
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-                "query-admission:preview-scale",
-                "causal-anchor:preview-scale",
+                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    "query-admission:preview-scale",
+                ),
+                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    "causal-anchor:preview-scale",
+                ),
             )
             .expect("query admission summary should be valid"),
             vec![
                 query_observation_reference(
                     BridgeCausalEvidenceReferenceIdentity::query_observation(
-                        "query-observation:preview-scale",
+                        crate::facade::BridgeIdentityEvidence::from_external_authority(
+                            "query-observation:preview-scale",
+                        ),
                     )
                     .expect("query observation reference identity should be valid"),
                 ),

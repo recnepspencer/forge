@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
-use forge_runtime_bridge::facade::{SnapshotReadContract, SnapshotReadSource};
+use forge_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityParts, SnapshotReadContract, SnapshotReadSource,
+};
 
 use crate::config::data::CascadeDeletePolicy;
 use crate::facade::identity::PartitionId;
@@ -31,7 +33,7 @@ fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_com
         .open_snapshot(&active_snapshot_identity)
         .expect("active snapshot should remain bridge-readable after later commit id collision");
     let packet = forge_runtime_bridge::facade::SnapshotReadPacket::new(vec![
-        forge_runtime_bridge::facade::SnapshotReadRequest::for_coarse(
+        forge_runtime_bridge::facade::SnapshotReadRequest::for_relational_record(
             active_entity_identity,
             SnapshotReadContract::scalar(aspect_key("name"), ScalarAspectType::String),
         ),
@@ -48,11 +50,14 @@ fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_com
     );
 }
 
-fn active_entity_identity(result: &crate::facade::transactions::CommitResult) -> String {
+fn active_entity_identity(
+    result: &crate::facade::transactions::CommitResult,
+) -> RelationalBridgeRecordIdentityParts {
     let entity = changed_entities(result)[0];
-    format!(
-        "entity:{}:{}:{}",
-        entity.partition_id.0, entity.local_slot.0, entity.generation.0
+    RelationalBridgeRecordIdentityParts::entity(
+        entity.partition_id.0,
+        entity.local_slot.0,
+        entity.generation.0,
     )
 }
 

@@ -81,9 +81,9 @@ fn runtime_state_and_inspection_share_mixed_async_compact_posture() {
         &bridge,
         forge_signal::facade::NodeId::new(243, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );

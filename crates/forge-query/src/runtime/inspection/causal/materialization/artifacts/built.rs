@@ -1,3 +1,4 @@
+use super::super::super::identity::CausalInspectionArtifactIdentity;
 use super::super::{
     CausalBridgeReadmissionProof, CausalInspectionBoundaryEnvelopeCategory,
     CausalInspectionPerformanceEnvelope, CausalMaterializationReceipt,
@@ -15,6 +16,8 @@ pub(in crate::runtime::inspection::causal::materialization) struct BuiltBridgeBa
         CausalMaterializationReceipt,
     pub(in crate::runtime::inspection::causal::materialization) readmission_proof:
         CausalBridgeReadmissionProof,
-    pub(in crate::runtime::inspection::causal::materialization) causal_identity_digest: String,
-    pub(in crate::runtime::inspection::causal::materialization) artifact_digest: String,
+    pub(in crate::runtime::inspection::causal::materialization) causal_identity:
+        CausalInspectionArtifactIdentity,
+    pub(in crate::runtime::inspection::causal::materialization) artifact_identity:
+        CausalInspectionArtifactIdentity,
 }

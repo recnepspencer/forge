@@ -152,7 +152,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_merge_bundle_fro
         .replay_canonical_merge_record(&canonical_record)
         .expect("pricing merge canonical replay should succeed");
     runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit:pricing-merged-aspect",
         ))
         .expect("pricing merged aspect route should succeed");
@@ -175,8 +175,8 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_merge_bundle_fro
     let main_premerge_eval = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("main"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-main"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
             )
             .with_read_packet(pricing_component_read_packet("rubber")),
         )
@@ -184,8 +184,8 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_merge_bundle_fro
     let speculative_eval = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("pricing-shock"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             )
             .with_read_packet(pricing_component_read_packet("rubber")),
         )
@@ -193,8 +193,8 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_merge_bundle_fro
     let merged_eval = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("main"),
-                crate::facade::TruthCommitIdentity::new("commit:pricing-merged"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:pricing-merged"),
             )
             .with_read_packet(pricing_component_read_packet("rubber")),
         )
@@ -248,10 +248,10 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_workload_certifi
     let hostile_source = InMemoryRelationalBridgeSource::default();
     hostile_source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:steel-missing-snapshot"),
-            TruthPatchIdentity::new("patch:steel-missing-snapshot"),
-            TruthSnapshotIdentity::new("snapshot:pricing-missing"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-missing-snapshot"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-missing-snapshot"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-missing"),
         ),
         "steel",
     ));
@@ -287,8 +287,8 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_historical_source_declar
     SourceDeclaration::new(
         SourceDeclarationIdentity::new(declaration_id),
         BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("main"),
-            crate::facade::TruthCommitIdentity::new("commit:steel-main"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"),
         ),
         BridgeSourceCapabilitySet::new(vec![
             BridgeSourceCapability::SnapshotRead,
@@ -323,19 +323,19 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_harness_fixture(
         ]))
         .with_committed_patch(pricing_patch(
             pricing_patch_envelope_identity(
-                TruthBranchIdentity::new("main"),
-                TruthCommitIdentity::new("commit:steel-main"),
-                TruthPatchIdentity::new("patch:steel-main"),
-                TruthSnapshotIdentity::new("snapshot:pricing-main"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-main"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main"),
             ),
             "steel",
         ))
         .with_committed_patch(pricing_patch(
             pricing_patch_envelope_identity(
-                TruthBranchIdentity::new("main"),
-                TruthCommitIdentity::new("commit:rubber-main"),
-                TruthPatchIdentity::new("patch:rubber-main"),
-                TruthSnapshotIdentity::new("snapshot:pricing-main"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch:rubber-main"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main"),
             ),
             "rubber",
         ))

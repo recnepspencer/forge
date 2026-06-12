@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::intent_admission::certification_runtime;
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
@@ -15,11 +17,12 @@ use forge_relational::facade::grouped_truth::{
 };
 use forge_runtime_bridge::facade::{
     materialize_bridge_grouped_truth_view_from_projection, materialize_bridge_row_set,
-    AdmittedSourceRegistry, BridgeSourceCapability, BridgeSourceCapabilitySet,
-    BridgeTruthViewSelector, GroupedProjectionMemberSource, GroupedProjectionSource,
-    SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
-    SnapshotReadRequest, SourceDeclaration, SourceDeclarationIdentity, TruthBranchIdentity,
-    TruthSnapshotIdentity,
+    AdmittedSourceRegistry, BridgeIdentityEvidence, BridgeSourceCapability,
+    BridgeSourceCapabilitySet, BridgeTruthViewSelector, GroupedProjectionMemberSource,
+    GroupedProjectionSource, RelationalBridgeRecordIdentityParts,
+    RelationalBridgeSnapshotIdentityParts, SnapshotReadContract, SnapshotReadPacket,
+    SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest, SourceDeclaration,
+    SourceDeclarationIdentity, TruthBranchIdentity, TruthSnapshotIdentity,
 };
 
 use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts};
@@ -33,34 +36,24 @@ pub(crate) fn representative_projection_query_receipts_row() -> RepresentativeAr
         ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromQueryReceipts,
         ForgeQueryLowerRuntimeAuthorityOwner::Query,
         "Projection source intake from Query receipts",
-        &[
-            "projection_query_receipt_route_subject_v1".to_string(),
-            format!("family:{}", source.family().as_str()),
-            format!("basis:{}", source.basis_digest().unwrap_or("none")),
-            format!("source:{}", source.source_identity()),
-            format!(
-                "references:{}",
-                source
-                    .source_reference_identities()
-                    .iter()
-                    .map(|identity| format!("{}:{}", identity.label(), identity.identity()))
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-        ],
-        source.source_identity().to_string(),
+        projection_source_evidence_identity(&source, "query-receipt-source"),
+        projection_source_evidence_identity(&source, "query-receipt-retained"),
     )
 }
 
 pub(crate) fn representative_projection_relational_row() -> RepresentativeArtifacts {
+    let entity_one = RelationalBridgeRecordIdentityParts::entity(1, 1, 1);
+    let entity_two = RelationalBridgeRecordIdentityParts::entity(1, 2, 1);
     let packet = SnapshotReadPacket::new(vec![
-        string_read("entity-1", "identity.id"),
-        string_read("entity-1", "status.lane"),
-        string_read("entity-2", "identity.id"),
-        string_read("entity-2", "status.lane"),
+        string_read(entity_one, "identity.id"),
+        string_read(entity_one, "status.lane"),
+        string_read(entity_two, "identity.id"),
+        string_read(entity_two, "status.lane"),
     ]);
     let result = SnapshotReadPacketResult::new(
-        TruthSnapshotIdentity::new("relational-snapshot-a"),
+        TruthSnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(6, 1),
+        ),
         vec![
             read_record(&packet, 0, AspectValue::String("task-1".into())),
             read_record(&packet, 1, AspectValue::String("todo".into())),
@@ -81,23 +74,18 @@ pub(crate) fn representative_projection_relational_row() -> RepresentativeArtifa
         ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromRelationalArtifacts,
         ForgeQueryLowerRuntimeAuthorityOwner::Relational,
         "Projection source intake from relational artifacts",
-        &[
-            "projection_relational_route_subject_v1".to_string(),
-            format!("family:{}", source.family().as_str()),
-            format!("basis:{}", source.basis_digest().unwrap_or("none")),
-            format!("source:{}", source.source_identity()),
-        ],
-        grouped.digest().as_str().to_string(),
+        relational_grouped_projection_evidence(&source, grouped.digest().as_str(), "source"),
+        relational_grouped_projection_evidence(&source, grouped.digest().as_str(), "retained"),
     )
 }
 
 pub(crate) fn representative_projection_bridge_row() -> RepresentativeArtifacts {
     let bridge = projection_bridge_runtime();
     let declaration = SourceDeclaration::new(
-        SourceDeclarationIdentity::new("source:lower-runtime-certification"),
+        SourceDeclarationIdentity::from_stable_name("source:lower-runtime-certification"),
         BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("main"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_relational_branch_id("main"),
+            projection_snapshot_identity(),
         ),
         BridgeSourceCapabilitySet::new(vec![
             BridgeSourceCapability::SnapshotRead,
@@ -109,11 +97,13 @@ pub(crate) fn representative_projection_bridge_row() -> RepresentativeArtifacts 
     let contract = registry
         .contract_for_declaration(&declaration)
         .expect("bridge source contract should exist");
+    let entity_one = RelationalBridgeRecordIdentityParts::entity(1, 1, 1);
+    let entity_two = RelationalBridgeRecordIdentityParts::entity(1, 2, 1);
     let packet = SnapshotReadPacket::new(vec![
-        string_read("entity-1", "identity.id"),
-        string_read("entity-1", "status"),
-        string_read("entity-2", "identity.id"),
-        string_read("entity-2", "status"),
+        string_read(entity_one, "identity.id"),
+        string_read(entity_one, "status"),
+        string_read(entity_two, "identity.id"),
+        string_read(entity_two, "status"),
     ]);
     let materialized = bridge
         .materialize_source_packet_batch(contract, vec![packet])
@@ -123,13 +113,13 @@ pub(crate) fn representative_projection_bridge_row() -> RepresentativeArtifacts 
     let grouped = materialize_bridge_grouped_truth_view_from_projection(
         &row_set,
         &BridgeProjection {
-            snapshot_identity: TruthSnapshotIdentity::new("snapshot-a"),
+            snapshot_identity: projection_snapshot_identity(),
             grouping_aspect: aspect_key("status"),
             identity_binding_aspect_key: aspect_key("identity.id"),
             grouping_binding_aspect_key: aspect_key("status"),
             members: vec![
-                BridgeProjectionMember::new("entity-1", "task-1", "todo"),
-                BridgeProjectionMember::new("entity-2", "task-2", "doing"),
+                BridgeProjectionMember::new(entity_one, "task-1", "todo"),
+                BridgeProjectionMember::new(entity_two, "task-2", "doing"),
             ],
         },
     )
@@ -140,13 +130,16 @@ pub(crate) fn representative_projection_bridge_row() -> RepresentativeArtifacts 
         ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromBridgeArtifacts,
         ForgeQueryLowerRuntimeAuthorityOwner::RuntimeBridge,
         "Projection source intake from bridge artifacts",
-        &[
-            "projection_bridge_route_subject_v1".to_string(),
-            format!("family:{}", source.family().as_str()),
-            format!("basis:{}", source.basis_digest().unwrap_or("none")),
-            format!("source:{}", source.source_identity()),
-        ],
-        grouped.digest().as_str().to_string(),
+        bridge_grouped_projection_evidence(
+            &source,
+            &grouped.digest().evidence_identity(),
+            "source",
+        ),
+        bridge_grouped_projection_evidence(
+            &source,
+            &grouped.digest().evidence_identity(),
+            "retained",
+        ),
     )
 }
 
@@ -154,23 +147,32 @@ fn readmission_projection_row(
     seam_key: ForgeQueryLowerRuntimeSeamKey,
     owner: ForgeQueryLowerRuntimeAuthorityOwner,
     capability_label: &str,
-    subject_parts: &[String],
-    retained_evidence_digest: String,
+    subject_identity: ForgeQueryEvidenceIdentity,
+    retained_evidence_source: ForgeQueryEvidenceIdentity,
 ) -> RepresentativeArtifacts {
     let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
         seam_key,
         ForgeQueryLowerRuntimeRouteKind::ReadmissionHandoff,
         owner,
         capability_label,
-        hash_parts(subject_parts),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "phase-six-projection-route-subject",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), &subject_identity)
+        .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
         request.clone(),
-        retained_evidence_digest.clone(),
+        &retained_evidence_source,
     );
+    let retained_evidence_identity =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "phase-six-projection-readmission",
+            &retained_evidence_source,
+        );
     let handoff = ForgeQueryLowerRuntimeReadmissionReceipt::new(
         eligibility.clone(),
-        retained_evidence_digest,
+        &retained_evidence_identity,
     );
     let boundary_receipt =
         ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_readmission_receipt(&handoff);
@@ -219,9 +221,13 @@ struct BridgeProjectionMember {
 }
 
 impl BridgeProjectionMember {
-    fn new(row_identity: &str, identity_value: &str, grouping_value: &str) -> Self {
+    fn new(
+        row_identity: RelationalBridgeRecordIdentityParts,
+        identity_value: &str,
+        grouping_value: &str,
+    ) -> Self {
         Self {
-            row_identity: row_identity.to_string(),
+            row_identity: relational_row_identity(row_identity),
             identity_value: AspectValue::String(identity_value.into()),
             grouping_value: AspectValue::String(grouping_value.into()),
         }
@@ -278,10 +284,89 @@ fn read_record(
     SnapshotReadRecord::for_request(&packet.reads()[index], aspect_value(value))
 }
 
-fn string_read(entity_identity: &str, aspect: &str) -> SnapshotReadRequest {
-    SnapshotReadRequest::for_coarse(
+fn string_read(
+    entity_identity: RelationalBridgeRecordIdentityParts,
+    aspect: &str,
+) -> SnapshotReadRequest {
+    SnapshotReadRequest::for_relational_record(
         entity_identity,
         SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
+    )
+}
+
+fn projection_source_evidence_identity(
+    source: &ProjectionConsumptionSource,
+    role: &'static str,
+) -> ForgeQueryEvidenceIdentity {
+    let mut builder =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("family"),
+                source.family().as_str(),
+            );
+    if let Some(basis) = source.basis_digest() {
+        builder = builder.field_identity(ForgeQueryEvidenceTag::new("basis"), basis);
+    }
+    if let Some(identity) = source.source_identity_handle().evidence_identity() {
+        builder = builder.field_evidence_identity(ForgeQueryEvidenceTag::new("source"), identity);
+    } else {
+        builder = builder.field_identity(
+            ForgeQueryEvidenceTag::new("source"),
+            source.source_identity(),
+        );
+    }
+    for reference in source.source_reference_identities() {
+        builder = builder.field_identity(
+            ForgeQueryEvidenceTag::new(reference.label()),
+            reference.identity(),
+        );
+    }
+    builder.seal()
+}
+
+fn relational_grouped_projection_evidence(
+    source: &ProjectionConsumptionSource,
+    grouped_digest: &str,
+    role: &'static str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("source"),
+            &projection_source_evidence_identity(source, "relational-grouped"),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+        .field_identity(ForgeQueryEvidenceTag::new("grouped"), grouped_digest)
+        .seal()
+}
+
+fn bridge_grouped_projection_evidence(
+    source: &ProjectionConsumptionSource,
+    grouped_identity: &BridgeIdentityEvidence,
+    role: &'static str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("source"),
+            &projection_source_evidence_identity(source, "bridge-grouped"),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+        .field_bridge_identity(ForgeQueryEvidenceTag::new("grouped"), grouped_identity)
+        .seal()
+}
+
+fn projection_snapshot_identity() -> TruthSnapshotIdentity {
+    TruthSnapshotIdentity::from_relational_snapshot(RelationalBridgeSnapshotIdentityParts::new(
+        6, 2,
+    ))
+}
+
+fn relational_row_identity(entity_identity: RelationalBridgeRecordIdentityParts) -> String {
+    format!(
+        "entity:{}:{}:{}",
+        entity_identity.partition_id(),
+        entity_identity.local_slot(),
+        entity_identity.generation()
     )
 }
 

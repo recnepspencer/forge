@@ -47,10 +47,10 @@ fn runtime_rejects_preview_lane_window_for_authoritative_shared_delivery() {
         BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
     );
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("truth-preview"),
-        TruthSnapshotIdentity::new("snapshot-preview"),
-        TruthCommitIdentity::new("commit-preview"),
-        TruthPatchIdentity::new("patch-preview"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-preview"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-preview"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-preview"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-preview"),
     );
     let ordering =
         runtime.order_mixed_causes(&crate::facade::BridgeMixedCauseOrderingRequest::new(
@@ -177,10 +177,10 @@ fn runtime_rejects_shared_delivery_acknowledgement_from_wrong_bundle_projection(
         BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
     );
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-b"),
-        TruthCommitIdentity::new("commit-b"),
-        TruthPatchIdentity::new("patch-b"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
     );
     let ordering =
         runtime.order_mixed_causes(&crate::facade::BridgeMixedCauseOrderingRequest::new(

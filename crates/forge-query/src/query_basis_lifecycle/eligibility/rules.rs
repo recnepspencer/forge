@@ -18,6 +18,7 @@ pub fn evaluate_basis_eligibility(
             normalized_basis_intent_digest: intent.canonical_digest().to_string(),
             family: intent.family().clone(),
             authority_posture: intent.authority_posture().clone(),
+            normalized_subject: intent.normalized_subject().clone(),
             normalized_label: intent.normalized_label().to_string(),
             operation_lane: intent.operation_lane().clone(),
             tenant_schema_posture: intent.tenant_schema_posture().clone(),

@@ -26,6 +26,14 @@ impl ForgeQueryEvidenceIdentity {
         ForgeQueryEvidenceIdentityEncoder::new(scope, ForgeQueryEvidenceIdentityScheme::V1)
     }
 
+    #[cfg(test)]
+    pub(crate) fn compose_with_scheme(
+        scope: ForgeQueryEvidenceScope,
+        scheme: ForgeQueryEvidenceIdentityScheme,
+    ) -> ForgeQueryEvidenceIdentityEncoder {
+        ForgeQueryEvidenceIdentityEncoder::new(scope, scheme)
+    }
+
     pub(crate) fn new(sealed: SealedForgeQueryEvidenceIdentity) -> Self {
         Self {
             scope: sealed.scope,

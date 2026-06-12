@@ -32,7 +32,7 @@ pub struct ForgeQueryPreviewExecutionEvidence {
     handle_name: String,
     source_lane: ForgeQueryAuthorityLane,
     preview_lane: ForgeQueryAuthorityLane,
-    commit_identity: String,
+    source_evidence_identity: ForgeQueryEvidenceIdentity,
     aspect_paths: Vec<String>,
     execution_identity: ForgeQueryEvidenceIdentity,
 }
@@ -44,7 +44,7 @@ impl ForgeQueryPreviewExecutionEvidence {
         handle_name: &str,
         source_lane: ForgeQueryAuthorityLane,
         preview_lane: ForgeQueryAuthorityLane,
-        commit_identity: &str,
+        source_evidence_identity: &ForgeQueryEvidenceIdentity,
         aspect_paths: Vec<String>,
     ) -> Self {
         let execution_identity =
@@ -63,9 +63,9 @@ impl ForgeQueryPreviewExecutionEvidence {
                     ForgeQueryEvidenceTag::new("preview_lane"),
                     preview_lane.as_str(),
                 )
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("commit_identity"),
-                    commit_identity,
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("source_evidence_identity"),
+                    source_evidence_identity,
                 )
                 .field_identity_sequence(
                     ForgeQueryEvidenceTag::new("aspect_path"),
@@ -78,7 +78,7 @@ impl ForgeQueryPreviewExecutionEvidence {
             handle_name: handle_name.to_string(),
             source_lane,
             preview_lane,
-            commit_identity: commit_identity.to_string(),
+            source_evidence_identity: source_evidence_identity.clone(),
             aspect_paths,
             execution_identity,
         }
@@ -112,8 +112,8 @@ impl ForgeQueryPreviewExecutionEvidence {
         self.preview_lane
     }
 
-    pub fn commit_identity(&self) -> &str {
-        &self.commit_identity
+    pub fn source_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_evidence_identity
     }
 
     pub fn aspect_paths(&self) -> &[String] {

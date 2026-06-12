@@ -58,7 +58,7 @@ fn retained_binding_declaration_preserves_binding_identity_and_target_refs() {
     assert_eq!(declaration.source().query_digest(), None);
     assert_eq!(
         declaration.source().basis_digest(),
-        Some(binding.snapshot_token())
+        Some(binding.snapshot_identity().evidence_identity().as_str())
     );
     assert_eq!(
         declaration.source().source_identity(),

@@ -1,6 +1,6 @@
 use forge_query::facade::{
-    ForgeQueryAspectMutationBuilder, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
-    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryAspectMutationBuilder, ForgeQueryCommitIdentity, ForgeQueryDerivedPatch,
+    ForgeQueryDerivedView, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag, ForgeQueryLiveView, ForgeQueryPublishedDerivedArtifactHandle,
     ForgeQueryRuntime, ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand,
@@ -33,7 +33,10 @@ impl ForgeQueryDerivedViewMaintainer for PublicHostileMaintainer {
         materialization.replace_rows([json!({ "title": { "value": title } })]);
         ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            format!("public-hostile-refresh-{}", next + 1),
+            ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                "public-hostile-refresh-{}",
+                next + 1
+            )),
             ["title.value".to_string()],
             json!({ "published": true, "title": title }),
             format!("public-hostile-publication-{}", next + 1),
@@ -182,12 +185,12 @@ pub fn certify_public_bridge_hostile_schedule(
     )
     .field_identity(
         ForgeQueryEvidenceTag::new("receipt_one"),
-        first.commit_identity(),
+        first.commit_identity().evidence_identity().as_str(),
     )
     .field_shape(ForgeQueryEvidenceTag::new("title_one"), &first_title)
     .field_identity(
         ForgeQueryEvidenceTag::new("receipt_two"),
-        second.commit_identity(),
+        second.commit_identity().evidence_identity().as_str(),
     )
     .field_shape(ForgeQueryEvidenceTag::new("title_two"), &second_title)
     .field_identity(
@@ -231,9 +234,9 @@ fn published_artifact_digest(
     ForgeQueryEvidenceIdentity::compose(
         ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
     )
-    .field_identity(
+    .field_evidence_identity(
         ForgeQueryEvidenceTag::new("snapshot"),
-        artifact.snapshot_token(),
+        &artifact.snapshot_identity().evidence_identity(),
     )
     .field_identity(
         ForgeQueryEvidenceTag::new("binding"),

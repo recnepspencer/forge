@@ -2,6 +2,11 @@ use std::collections::BTreeMap;
 
 use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::canonicalization::CanonicalResultShapeArtifact;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::projection_consumption::{
     ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
 };
@@ -24,7 +29,8 @@ pub enum ForgeQueryPublishedProjectionConsumption {
 pub struct ForgeQueryPublishedProjectionInspection {
     published: bool,
     artifact_binding_digest: Option<String>,
-    snapshot_token: String,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    snapshot_evidence_identity: ForgeQueryEvidenceIdentity,
     async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
 }
 
@@ -37,8 +43,12 @@ impl ForgeQueryPublishedProjectionInspection {
         self.artifact_binding_digest.as_deref()
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn snapshot_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.snapshot_evidence_identity
     }
 
     pub fn async_result_state(&self) -> Option<&ForgeQueryRuntimeAsyncResultState> {
@@ -59,8 +69,8 @@ impl ForgeQueryPublishedDerivedArtifactHandle {
         &self.view_name
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        self.lease.generation().snapshot_token()
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        self.lease.generation().snapshot_identity()
     }
 
     pub fn published_binding(&self) -> Option<&ForgeQueryDerivedArtifactBinding> {
@@ -78,7 +88,8 @@ impl ForgeQueryPublishedDerivedArtifactHandle {
                 .published_binding
                 .as_ref()
                 .map(|binding| binding.binding_digest().to_string()),
-            snapshot_token: self.snapshot_token().to_string(),
+            snapshot_identity: self.snapshot_identity().clone(),
+            snapshot_evidence_identity: self.snapshot_identity().evidence_identity(),
             async_result_state: self.async_result_state.clone(),
         }
     }
@@ -112,8 +123,8 @@ pub struct ForgeQuerySharedReadContext {
 }
 
 impl ForgeQuerySharedReadContext {
-    pub fn snapshot_token(&self) -> &str {
-        self.lease.generation().snapshot_token()
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        self.lease.generation().snapshot_identity()
     }
 
     pub fn published_derived_artifact<T>(
@@ -122,7 +133,7 @@ impl ForgeQuerySharedReadContext {
     ) -> Result<ForgeQueryPublishedDerivedArtifactHandle, ForgeQueryRuntimeError> {
         if !self.lease.is_generation_live() {
             return Err(super::forge_query_shared_read_stale_basis_error(
-                self.snapshot_token().to_string(),
+                self.snapshot_identity().clone(),
             ));
         }
         let Some(derived_view) = self.lease.snapshot().derived_views().get(view.name()) else {
@@ -138,14 +149,14 @@ impl ForgeQuerySharedReadContext {
                 async_result_state: Some(ForgeQueryRuntimeAsyncResultState::new(
                     ForgeQueryRuntimeAsyncResultStateKind::Pending,
                     format!("shared-read:unpublished:{}", view.name()),
-                    self.snapshot_token().to_string(),
-                    shared_read_generation_digest(self.snapshot_token()),
+                    self.snapshot_identity().evidence_identity().to_string(),
+                    shared_read_generation_digest(self.snapshot_identity()),
                 )),
             });
         }
 
         let binding = bind_shared_read_artifact(
-            self.snapshot_token(),
+            self.snapshot_identity(),
             view.name(),
             derived_view.materialization.clone(),
         )?;
@@ -153,7 +164,8 @@ impl ForgeQuerySharedReadContext {
             lease: self.lease.clone(),
             view_name: view.name().to_string(),
             published_binding: Some(binding),
-            async_result_state: derived_view.async_result_state(self.snapshot_token(), view.name()),
+            async_result_state: derived_view
+                .async_result_state(self.snapshot_identity(), view.name()),
         })
     }
 
@@ -176,7 +188,7 @@ pub(in crate::runtime) struct SharedReadDerivedViewState {
 impl SharedReadDerivedViewState {
     fn async_result_state(
         &self,
-        snapshot_token: &str,
+        snapshot_identity: &ForgeQuerySnapshotIdentity,
         view_name: &str,
     ) -> Option<ForgeQueryRuntimeAsyncResultState> {
         if self.pending_patch_count == 0 {
@@ -192,14 +204,17 @@ impl SharedReadDerivedViewState {
         Some(ForgeQueryRuntimeAsyncResultState::new(
             kind,
             format!("shared-read:republishing:{view_name}:{}", kind.as_str()),
-            snapshot_token.to_string(),
-            shared_read_generation_digest(snapshot_token),
+            snapshot_identity.evidence_identity().to_string(),
+            shared_read_generation_digest(snapshot_identity),
         ))
     }
 }
 
 impl ForgeQueryRuntime {
-    pub(in crate::runtime) fn capture_shared_read_generation(&mut self, snapshot_token: &str) {
+    pub(in crate::runtime) fn capture_shared_read_generation(
+        &mut self,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
+    ) {
         let derived_views = self
             .derived_views
             .iter()
@@ -208,7 +223,7 @@ impl ForgeQueryRuntime {
                     super::ForgeQueryComputedInspectionEvidence::from_runtime(runtime_view);
                 let receipt = ForgeQueryDerivedMaterializationReceipt::from_evidence(
                     &evidence,
-                    snapshot_token.to_string(),
+                    snapshot_identity.clone(),
                 );
                 let materialization = ForgeQueryDerivedMaterializationResult::new(
                     runtime_view.materialization.rows().to_vec(),
@@ -226,13 +241,13 @@ impl ForgeQueryRuntime {
             })
             .collect::<BTreeMap<_, _>>();
         self.shared_read_pins
-            .capture_committed_snapshot(snapshot_token.to_string(), derived_views);
+            .capture_committed_snapshot(snapshot_identity, derived_views);
     }
 
     pub(in crate::runtime) fn mint_shared_read_context(
         &self,
     ) -> Result<ForgeQuerySharedReadContext, ForgeQueryRuntimeError> {
-        let snapshot_token = self.backend.snapshot_token();
+        let snapshot_identity = self.current_snapshot_identity();
         if !self.shared_read_pins.has_current_generation() {
             let derived_views = self
                 .derived_views
@@ -242,7 +257,7 @@ impl ForgeQueryRuntime {
                         super::ForgeQueryComputedInspectionEvidence::from_runtime(runtime_view);
                     let receipt = ForgeQueryDerivedMaterializationReceipt::from_evidence(
                         &evidence,
-                        snapshot_token.clone(),
+                        snapshot_identity.clone(),
                     );
                     let materialization = ForgeQueryDerivedMaterializationResult::new(
                         runtime_view.materialization.rows().to_vec(),
@@ -261,7 +276,7 @@ impl ForgeQueryRuntime {
                 })
                 .collect::<BTreeMap<_, _>>();
             self.shared_read_pins
-                .capture_committed_snapshot(snapshot_token, derived_views);
+                .capture_committed_snapshot(snapshot_identity, derived_views);
         }
         let lease = self
             .shared_read_pins
@@ -282,19 +297,22 @@ impl ForgeQueryRuntime {
     }
 
     #[cfg(test)]
-    pub(crate) fn force_retire_shared_read_snapshot_for_tests(&self, snapshot_token: &str) {
+    pub(crate) fn force_retire_shared_read_snapshot_for_tests(
+        &self,
+        snapshot_identity: &ForgeQuerySnapshotIdentity,
+    ) {
         self.shared_read_pins
-            .force_retire_snapshot_token(snapshot_token);
+            .force_retire_snapshot_identity(snapshot_identity);
     }
 }
 
 fn bind_shared_read_artifact(
-    snapshot_token: &str,
+    snapshot_identity: &ForgeQuerySnapshotIdentity,
     view_name: &str,
     materialization: ForgeQueryDerivedMaterializationResult,
 ) -> Result<ForgeQueryDerivedArtifactBinding, ForgeQueryRuntimeError> {
     let bundle = ForgeQueryDerivedMaterializationBundle::new(
-        snapshot_token.to_string(),
+        snapshot_identity.clone(),
         BTreeMap::from([(view_name.to_string(), materialization)]),
     );
     bundle.bind_retained_artifact(
@@ -303,6 +321,12 @@ fn bind_shared_read_artifact(
     )
 }
 
-fn shared_read_generation_digest(snapshot_token: &str) -> String {
-    format!("shared-read-generation:{snapshot_token}")
+fn shared_read_generation_digest(snapshot_identity: &ForgeQuerySnapshotIdentity) -> String {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::SharedReadGeneration)
+        .field_identity(
+            ForgeQueryEvidenceTag::new("snapshot_identity"),
+            snapshot_identity.evidence_identity().as_str(),
+        )
+        .seal()
+        .to_string()
 }

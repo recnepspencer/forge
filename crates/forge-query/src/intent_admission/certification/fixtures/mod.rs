@@ -6,6 +6,7 @@ mod neighbors;
 mod read;
 mod routing;
 mod runtime;
+mod write_authority;
 
 use serde_json::json;
 
@@ -32,12 +33,40 @@ pub(crate) use runtime::{
     certification_task_live_request, certification_task_schema,
 };
 
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::facade::runtime::{
     admit_runtime_intent_request, ForgeQueryEffectDeclaration, ForgeQueryEffectTrigger,
     ForgeQueryIntentAdmissionDecision, ForgeQueryIntentAdvisoryDecision,
     ForgeQueryIntentDeclaration, ForgeQueryRawIntentAdmissionRequest, ForgeQueryWriteCommand,
 };
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
+};
+
+pub(super) fn certification_commit_identity(label: impl AsRef<str>) -> ForgeQueryCommitIdentity {
+    ForgeQueryCommitIdentity::preview(
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WriteReceiptCommitIdentity)
+            .field_identity(ForgeQueryEvidenceTag::new("certification_commit"), label)
+            .seal(),
+    )
+}
+
+pub(super) fn certification_snapshot_identity(
+    label: impl AsRef<str>,
+) -> ForgeQuerySnapshotIdentity {
+    ForgeQuerySnapshotIdentity::preview(
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity)
+            .field_identity(ForgeQueryEvidenceTag::new("certification_snapshot"), label)
+            .seal(),
+    )
+}
+
+pub(super) fn certification_entity_identity(label: impl AsRef<str>) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::authored_command(label)
+}
 
 #[derive(Clone)]
 pub(super) struct CertifiedAdmittedIntentFixture {
@@ -243,7 +272,7 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
         .expect("effect should declare");
     delegated_effect_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: certification_entity_identity("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from delegated effect"),
         })
@@ -269,7 +298,7 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
         .expect("canonical effect should declare");
     canonical_effect_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: certification_entity_identity("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from delegated effect"),
         })

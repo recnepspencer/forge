@@ -14,8 +14,8 @@ use crate::domain_capabilities::{
 };
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context,
-    scoped_runtime_preflight_workflow_binding, synthetic_runtime_workflow_binding_scoped,
-    QueryWorkflowDeclaration, WorkflowBindingSource, WorkflowDeclarationRequest,
+    scoped_runtime_preflight_workflow_binding_for_binding_identity, QueryWorkflowDeclaration,
+    WorkflowBindingSource, WorkflowDeclarationRequest,
 };
 
 use self::semantics::{
@@ -62,14 +62,17 @@ where
     let source_label = workflow_source_label(target, payload);
     let binding = match runtime_semantics.binding() {
         ForgeQueryWorkflowRuntimeBindingSemantics::RuntimePreflight {
-            runtime_snapshot_token,
-        } => synthetic_runtime_workflow_binding_scoped(
+            runtime_snapshot_identity,
+        } => crate::workflow::synthetic_runtime_workflow_binding_scoped_for_snapshot_binding_identity(
             source_label.as_str(),
-            target.binding_digest(),
-            runtime_snapshot_token,
+            &target.binding_identity(),
+            runtime_snapshot_identity.clone(),
         ),
         ForgeQueryWorkflowRuntimeBindingSemantics::RuntimePreflightBundle { preflight } =>
-            match scoped_runtime_preflight_workflow_binding(preflight, target.binding_digest()) {
+            match scoped_runtime_preflight_workflow_binding_for_binding_identity(
+                preflight,
+                &target.binding_identity(),
+            ) {
                 Ok(binding) => binding,
                 Err(error) => {
                     return TransitionOutcome::Denied(

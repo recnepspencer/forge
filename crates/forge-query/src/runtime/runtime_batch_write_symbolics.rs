@@ -1,7 +1,8 @@
 use super::*;
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 
 pub(super) fn admit_atomic_batch_symbolic_references(
-    planned_symbolic_targets: &BTreeMap<String, (String, Option<String>)>,
+    planned_symbolic_targets: &BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
     command: &ForgeQueryWriteCommand,
 ) -> Result<(), ForgeQueryRuntimeError> {
     if let Some(reference) = command.symbolic_target_reference() {
@@ -16,7 +17,7 @@ pub(super) fn admit_atomic_batch_symbolic_references(
 }
 
 pub(super) fn record_planned_same_batch_symbolic_target(
-    planned_symbolic_targets: &mut BTreeMap<String, (String, Option<String>)>,
+    planned_symbolic_targets: &mut BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
     command: &ForgeQueryWriteCommand,
 ) {
     if !matches!(command.mutation_family(), ForgeQueryMutationFamily::Insert) {
@@ -25,7 +26,10 @@ pub(super) fn record_planned_same_batch_symbolic_target(
     let Some(reference) = command.symbolic_target_reference() else {
         return;
     };
-    let planned_identity = format!("planned-symbolic:{}", reference.symbol());
+    let planned_identity = ForgeQueryEntityIdentity::authored_command(format!(
+        "planned-symbolic:{}",
+        reference.symbol()
+    ));
     planned_symbolic_targets.insert(
         reference.symbol().to_string(),
         (planned_identity, command.declared_collection()),
@@ -33,7 +37,7 @@ pub(super) fn record_planned_same_batch_symbolic_target(
 }
 
 pub(super) fn symbolic_aspect_resolution_evidence_for_command(
-    symbolic_targets: &BTreeMap<String, (String, Option<String>)>,
+    symbolic_targets: &BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
     command: &ForgeQueryWriteCommand,
 ) -> Result<Vec<ForgeQuerySymbolicAspectResolutionEvidence>, ForgeQueryRuntimeError> {
     symbolic_aspect_resolution_evidence_for_references(
@@ -43,7 +47,7 @@ pub(super) fn symbolic_aspect_resolution_evidence_for_command(
 }
 
 pub(super) fn symbolic_aspect_resolution_evidence_for_references(
-    symbolic_targets: &BTreeMap<String, (String, Option<String>)>,
+    symbolic_targets: &BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
     symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
 ) -> Result<Vec<ForgeQuerySymbolicAspectResolutionEvidence>, ForgeQueryRuntimeError> {
     symbolic_aspect_references
@@ -53,7 +57,7 @@ pub(super) fn symbolic_aspect_resolution_evidence_for_references(
                 resolve_same_batch_symbolic_target(symbolic_targets, reference.reference())?;
             Ok(ForgeQuerySymbolicAspectResolutionEvidence::from_reference(
                 reference,
-                resolved_entity_identity,
+                &resolved_entity_identity,
             ))
         })
         .collect()

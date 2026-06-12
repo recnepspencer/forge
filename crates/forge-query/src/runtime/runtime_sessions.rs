@@ -1,3 +1,4 @@
+use super::live_subscription::live_subscription_digest_source_identity;
 use super::*;
 use crate::subscription::SubscriptionActivationInput;
 
@@ -230,23 +231,23 @@ impl ForgeQueryRuntime {
 
         let installation = ForgeQueryRuntimeLiveSubscriptionInstallation::new(
             view_name,
-            lowered_subscription.query_digest.as_str(),
-            lowered_subscription.live_view_digest.as_str(),
+            lowered_subscription.query_identity,
+            lowered_subscription.live_view_identity,
             lowered_subscription.subscription_family,
-            lowered_subscription.subscription_declaration_digest,
-            lowered_subscription.bridge_declaration_digest,
-            lowered_subscription.admission_digest,
-            activation_digest,
-            lowered_subscription.basis_binding_digest,
-            lowered_subscription.signal_strategy_digest,
-            active_lane_digest,
+            lowered_subscription.subscription_declaration_identity,
+            lowered_subscription.bridge_declaration_identity,
+            lowered_subscription.admission_identity,
+            live_subscription_digest_source_identity("activation", &activation_digest),
+            lowered_subscription.basis_binding_identity,
+            lowered_subscription.signal_strategy_identity,
+            live_subscription_digest_source_identity("active_lane", &active_lane_digest),
             &consumer_attachment,
             runtime_subscription_budget_policy(),
-            RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY,
-            RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY,
+            runtime_active_lifecycle_budget_policy(),
+            runtime_consumer_attachment_budget_policy(),
             active_lane_counters,
             consumer_attachment_counters,
-            support_evidence,
+            live_subscription_digest_source_identity("support", &support_evidence),
             counters,
         );
 
@@ -261,14 +262,14 @@ impl ForgeQueryRuntime {
 }
 
 struct LoweredRuntimeLiveSubscriptionRequest {
-    query_digest: String,
-    live_view_digest: String,
-    subscription_family: String,
-    subscription_declaration_digest: String,
-    admission_digest: String,
-    bridge_declaration_digest: String,
-    basis_binding_digest: String,
-    signal_strategy_digest: String,
+    query_identity: crate::ForgeQueryEvidenceIdentity,
+    live_view_identity: crate::ForgeQueryEvidenceIdentity,
+    subscription_family: crate::subscription::QuerySubscriptionFamily,
+    subscription_declaration_identity: crate::ForgeQueryEvidenceIdentity,
+    admission_identity: crate::ForgeQueryEvidenceIdentity,
+    bridge_declaration_identity: crate::ForgeQueryEvidenceIdentity,
+    basis_binding_identity: crate::ForgeQueryEvidenceIdentity,
+    signal_strategy_identity: crate::ForgeQueryEvidenceIdentity,
     activation: SubscriptionActivationInput,
 }
 
@@ -281,7 +282,7 @@ fn lower_runtime_live_subscription_request(
     let session = declare_runtime_live_query_session_with_grouped_baseline(
         request.clone(),
         schema_view,
-        backend.snapshot_token(),
+        backend.current_snapshot_identity(),
         grouped_baseline_members_or_error(backend, view_name, request)?,
     )
     .map_err(|error| live_subscription_error(view_name, "live-lowering", error))?;
@@ -295,7 +296,7 @@ fn lower_runtime_live_subscription_request(
             dimensions,
         );
     let selection = select_runtime_subscription_family(view_name, live_admission)?;
-    let subscription_family = selection.family().as_str().to_string();
+    let subscription_family = selection.family().clone();
     let declaration =
         declare_query_subscription(selection, runtime_slice_budget()).map_err(|error| {
             ForgeQueryRuntimeError::LiveSubscriptionInstallation {
@@ -323,14 +324,35 @@ fn lower_runtime_live_subscription_request(
         )?;
 
     Ok(LoweredRuntimeLiveSubscriptionRequest {
-        query_digest: session.canonical().query().digest().as_str().to_string(),
-        live_view_digest: session.live_view().lowering().digest().to_string(),
+        query_identity: live_subscription_digest_source_identity(
+            "query",
+            session.canonical().query().digest().as_str(),
+        ),
+        live_view_identity: live_subscription_digest_source_identity(
+            "live_view",
+            session.live_view().lowering().digest(),
+        ),
         subscription_family,
-        subscription_declaration_digest,
-        admission_digest: admission.admission_digest().to_string(),
-        bridge_declaration_digest: admission.bridge_declaration_digest().to_string(),
-        basis_binding_digest: admission.basis_binding_digest().to_string(),
-        signal_strategy_digest: admission.signal_strategy_digest().to_string(),
+        subscription_declaration_identity: live_subscription_digest_source_identity(
+            "subscription_declaration",
+            subscription_declaration_digest.as_str(),
+        ),
+        admission_identity: live_subscription_digest_source_identity(
+            "admission",
+            admission.admission_digest(),
+        ),
+        bridge_declaration_identity: live_subscription_digest_source_identity(
+            "bridge_declaration",
+            admission.bridge_declaration_digest(),
+        ),
+        basis_binding_identity: live_subscription_digest_source_identity(
+            "basis_binding",
+            admission.basis_binding_digest(),
+        ),
+        signal_strategy_identity: live_subscription_digest_source_identity(
+            "signal_strategy",
+            admission.signal_strategy_digest(),
+        ),
         activation: prepare_subscription_activation(admission),
     })
 }

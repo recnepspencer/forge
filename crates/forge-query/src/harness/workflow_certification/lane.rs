@@ -129,7 +129,7 @@ impl WorkflowCertificationLane {
             preview_session_identity: declaration
                 .binding()
                 .preview_session_identity()
-                .map(|identity| identity.as_str().to_string()),
+                .map(|identity| identity.evidence_identity().as_str().to_string()),
             lowered_request_digest: None,
             lowered_freshness_binding: None,
             authority_outcome_family: None,

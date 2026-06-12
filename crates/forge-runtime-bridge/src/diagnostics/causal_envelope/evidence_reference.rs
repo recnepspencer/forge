@@ -1,30 +1,31 @@
-use std::sync::Arc;
-
 use super::authority::{BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner};
 use super::counters::BridgeCausalEnvelopeCounters;
 use super::denial::{BridgeCausalEnvelopeDenial, BridgeCausalEnvelopeDenialKind};
-use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
+use super::{
+    compose_bridge_causal_envelope_evidence_identity,
+    digest_basis::BridgeCausalEnvelopeDigestArtifact, evidence_part, shape_part,
+};
+use crate::identity::BridgeIdentityEvidence;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeCausalEvidenceReferenceIdentity {
     family: BridgeCausalEvidenceFamily,
-    identity: Arc<str>,
+    identity: BridgeIdentityEvidence,
 }
 
 impl BridgeCausalEvidenceReferenceIdentity {
     fn for_owner(
         owner: BridgeCausalEvidenceOwner,
         family: BridgeCausalEvidenceFamily,
-        identity: impl Into<Arc<str>>,
+        identity: BridgeIdentityEvidence,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
-        let identity = identity.into();
         if identity.is_empty() {
             return Err(BridgeCausalEnvelopeDenial::new(
                 BridgeCausalEnvelopeDenialKind::EmptyEvidenceReference,
                 family,
                 owner,
                 family.expected_owner(),
-                identity,
+                identity.clone(),
                 BridgeCausalEnvelopeCounters::empty(),
             ));
         }
@@ -34,7 +35,7 @@ impl BridgeCausalEvidenceReferenceIdentity {
                 family,
                 owner,
                 family.expected_owner(),
-                identity,
+                identity.clone(),
                 BridgeCausalEnvelopeCounters::empty(),
             ));
         }
@@ -42,7 +43,7 @@ impl BridgeCausalEvidenceReferenceIdentity {
     }
 
     pub fn query_observation(
-        identity: impl Into<Arc<str>>,
+        identity: BridgeIdentityEvidence,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
         Self::for_owner(
             BridgeCausalEvidenceOwner::Query,
@@ -53,13 +54,13 @@ impl BridgeCausalEvidenceReferenceIdentity {
 
     pub fn runtime_bridge(
         family: BridgeCausalEvidenceFamily,
-        identity: impl Into<Arc<str>>,
+        identity: BridgeIdentityEvidence,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
         Self::for_owner(BridgeCausalEvidenceOwner::RuntimeBridge, family, identity)
     }
 
     pub fn relational_authority(
-        identity: impl Into<Arc<str>>,
+        identity: BridgeIdentityEvidence,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
         Self::for_owner(
             BridgeCausalEvidenceOwner::Relational,
@@ -70,7 +71,7 @@ impl BridgeCausalEvidenceReferenceIdentity {
 
     pub fn signal(
         family: BridgeCausalEvidenceFamily,
-        identity: impl Into<Arc<str>>,
+        identity: BridgeIdentityEvidence,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
         Self::for_owner(BridgeCausalEvidenceOwner::Signal, family, identity)
     }
@@ -79,8 +80,8 @@ impl BridgeCausalEvidenceReferenceIdentity {
         self.family
     }
 
-    pub fn as_str(&self) -> &str {
-        self.identity.as_ref()
+    pub fn evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.identity
     }
 }
 
@@ -88,8 +89,8 @@ impl BridgeCausalEvidenceReferenceIdentity {
 pub struct BridgeCausalEvidenceReference {
     owner: BridgeCausalEvidenceOwner,
     family: BridgeCausalEvidenceFamily,
-    reference_digest: Arc<str>,
-    reference_identity: Arc<str>,
+    reference_digest_identity: BridgeIdentityEvidence,
+    reference_identity: BridgeIdentityEvidence,
 }
 
 impl BridgeCausalEvidenceReference {
@@ -104,7 +105,7 @@ impl BridgeCausalEvidenceReference {
                 family,
                 owner,
                 reference_identity.family().expected_owner(),
-                Arc::from(reference_identity.as_str()),
+                reference_identity.evidence_identity().clone(),
                 BridgeCausalEnvelopeCounters::empty(),
             ));
         }
@@ -114,19 +115,24 @@ impl BridgeCausalEvidenceReference {
                 family,
                 owner,
                 family.expected_owner(),
-                Arc::from(reference_identity.as_str()),
+                reference_identity.evidence_identity().clone(),
                 BridgeCausalEnvelopeCounters::empty(),
             ));
         }
-        let reference_digest = causal_envelope_digest(
+        let reference_identity = reference_identity.identity.clone();
+        let reference_digest_identity = compose_bridge_causal_envelope_evidence_identity(
             BridgeCausalEnvelopeDigestArtifact::EvidenceReference,
-            &[owner.as_str(), family.as_str(), reference_identity.as_str()],
+            &[
+                shape_part(owner.as_str()),
+                shape_part(family.as_str()),
+                evidence_part(&reference_identity),
+            ],
         );
         Ok(Self {
             owner,
             family,
-            reference_digest: Arc::from(reference_digest),
-            reference_identity: Arc::from(reference_identity.as_str()),
+            reference_digest_identity,
+            reference_identity,
         })
     }
 
@@ -138,11 +144,11 @@ impl BridgeCausalEvidenceReference {
         self.family
     }
 
-    pub fn reference_digest(&self) -> &str {
-        self.reference_digest.as_ref()
+    pub fn reference_digest_evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.reference_digest_identity
     }
 
-    pub fn reference_identity(&self) -> &str {
-        self.reference_identity.as_ref()
+    pub fn reference_evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.reference_identity
     }
 }

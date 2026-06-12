@@ -105,7 +105,7 @@ fn scaled_evidence(scale: usize) -> ForgeQueryDomainCapabilityScaledEvidence {
             .for_intent(&declaration)
             .plans_preview_mutation(
                 format!("workflow.scale_{scale}"),
-                crate::facade::runtime::BridgePreviewSessionIdentity::new(format!(
+                crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(format!(
                     "preview-session:scale-{scale}"
                 )),
             )
@@ -132,7 +132,12 @@ fn scaled_evidence(scale: usize) -> ForgeQueryDomainCapabilityScaledEvidence {
             .because("scaled continuity evidence should remain canonical")
             .materialize()
             .expect("scaled continuity should materialize");
-        contribution_digests.push(continuity.continuity_resolution_digest().to_string());
+        contribution_digests.push(
+            continuity
+                .continuity_resolution_digest()
+                .as_str()
+                .to_string(),
+        );
     }
 
     if categories.contains(&ForgeQueryDomainCapabilityCategory::ConsequenceAftermath) {

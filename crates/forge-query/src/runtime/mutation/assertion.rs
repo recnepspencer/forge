@@ -1,4 +1,8 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 
 use super::super::ForgeQueryAspectValue;
@@ -70,27 +74,45 @@ impl ForgeQueryExistingTruthAssertionDenial {
         message: impl Into<String>,
     ) -> Self {
         let message = message.into();
-        let denial_digest = hash_parts(&[
-            "forge_query_existing_truth_assertion_denial_v1".to_string(),
-            format!("family:{}", binding.family()),
-            format!("authoritative:{}", binding.authoritative_identity()),
-            format!("resolved:{}", binding.resolved_target_identity()),
-            format!("collection:{}", binding.target_collection().unwrap_or("")),
-            format!("kind:{kind}"),
-            format!(
-                "aspect:{}",
-                asserted_aspect_path.as_deref().unwrap_or("none")
-            ),
-            format!(
-                "expected:{}",
-                expected_external_value_json.as_deref().unwrap_or("none")
-            ),
-            format!(
-                "found:{}",
-                found_external_value_json.as_deref().unwrap_or("none")
-            ),
-            format!("message:{message}"),
-        ]);
+        let denial_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "existing-truth-assertion-denial",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("family"),
+                    binding.family().as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("authoritative"),
+                    binding.authoritative_identity().evidence_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("resolved"),
+                    &binding.resolved_target_identity().evidence_identity(),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("collection"),
+                    binding.target_collection(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("aspect"),
+                    asserted_aspect_path.as_deref(),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("expected"),
+                    expected_external_value_json.as_deref(),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("found"),
+                    found_external_value_json.as_deref(),
+                )
+                .field_value(ForgeQueryEvidenceTag::new("message"), &message)
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             binding: binding.clone(),
             kind,
@@ -136,7 +158,7 @@ impl std::fmt::Display for ForgeQueryExistingTruthAssertionDenial {
         write!(
             f,
             "existing-truth assertion denied for authoritative `{}` during {}: {}",
-            self.binding.authoritative_identity(),
+            self.binding.authoritative_identity().as_str(),
             self.kind,
             self.message
         )
@@ -148,15 +170,23 @@ impl std::error::Error for ForgeQueryExistingTruthAssertionDenial {}
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryVerifiedExistingTruthAssertion {
     asserted_aspect_count: usize,
-    verification_digest: String,
+    verification_digest: ForgeQueryEvidenceIdentity,
     verified_assumption_set: crate::runtime::ForgeQueryVerifiedAssumptionSet,
 }
 
 impl ForgeQueryVerifiedExistingTruthAssertion {
+    pub fn from_snapshot_identity(
+        binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
+        aspects: &[ForgeQueryAspectValue],
+        snapshot_identity: &ForgeQuerySnapshotIdentity,
+    ) -> Result<Self, ForgeQueryWorkspaceError> {
+        Self::new(binding, aspects, snapshot_identity.clone())
+    }
+
     pub(crate) fn new(
         binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
         aspects: &[ForgeQueryAspectValue],
-        snapshot_token: &str,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
     ) -> Result<Self, ForgeQueryWorkspaceError> {
         let asserted_aspect_count = aspects.len();
         let asserted_aspect_paths = aspects
@@ -167,45 +197,36 @@ impl ForgeQueryVerifiedExistingTruthAssertion {
             .iter()
             .filter(|aspect| aspect.clears_existing_value())
             .count();
+        let aspect_evidence_rows = aspects
+            .iter()
+            .map(existing_truth_assertion_aspect_evidence)
+            .collect::<Vec<_>>();
         let verified_assumption_set = crate::runtime::ForgeQueryVerifiedAssumptionSet::new(
-            binding.binding_digest(),
+            binding.binding_evidence_identity().clone(),
             asserted_aspect_paths,
-            aspects
-                .iter()
-                .map(|aspect| {
-                    format!(
-                        "{}:{}:{}",
-                        aspect.aspect_path(),
-                        aspect.clears_existing_value(),
-                        serde_json::to_string(aspect.value())
-                            .unwrap_or_else(|_| aspect.value().to_string())
-                    )
-                })
-                .collect::<Vec<_>>(),
+            aspect_evidence_rows.clone(),
             cleared_assertion_count,
-            snapshot_token,
+            snapshot_identity,
         );
-        let verification_digest = hash_parts(
-            &std::iter::once("forge_query_existing_truth_assertion_verification_v1".to_string())
-                .chain(std::iter::once(format!(
-                    "binding:{}",
-                    binding.binding_digest()
-                )))
-                .chain(std::iter::once(format!(
-                    "assumption-set:{}",
-                    verified_assumption_set.verified_assumption_digest()
-                )))
-                .chain(aspects.iter().map(|aspect| {
-                    format!(
-                        "{}:{}:{}",
-                        aspect.aspect_path(),
-                        aspect.clears_existing_value(),
-                        serde_json::to_string(aspect.value())
-                            .unwrap_or_else(|_| aspect.value().to_string())
-                    )
-                }))
-                .collect::<Vec<_>>(),
-        );
+        let verification_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "existing-truth-assertion-verification",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("binding"),
+                    binding.binding_evidence_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("assumption_set"),
+                    verified_assumption_set.verified_assumption_evidence_digest(),
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("aspect"),
+                    aspect_evidence_rows.iter(),
+                )
+                .seal();
         Ok(Self {
             asserted_aspect_count,
             verification_digest,
@@ -218,6 +239,10 @@ impl ForgeQueryVerifiedExistingTruthAssertion {
     }
 
     pub fn verification_digest(&self) -> &str {
+        self.verification_digest.as_str()
+    }
+
+    pub fn verification_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.verification_digest
     }
 
@@ -238,4 +263,26 @@ impl ForgeQueryVerifiedExistingTruthAssertion {
     ) -> &crate::runtime::ForgeQueryVerificationReadSetBreadth {
         self.verified_assumption_set.verification_read_set_breadth()
     }
+}
+
+fn existing_truth_assertion_aspect_evidence(
+    aspect: &ForgeQueryAspectValue,
+) -> ForgeQueryEvidenceIdentity {
+    let value_json =
+        serde_json::to_string(aspect.value()).unwrap_or_else(|_| aspect.value().to_string());
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "existing-truth-assertion-aspect",
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("aspect_path"),
+            aspect.aspect_path(),
+        )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("clears_existing_value"),
+            aspect.clears_existing_value(),
+        )
+        .field_value(ForgeQueryEvidenceTag::new("value"), value_json)
+        .seal()
 }

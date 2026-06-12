@@ -1,6 +1,7 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+#[cfg(test)]
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
-    ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]

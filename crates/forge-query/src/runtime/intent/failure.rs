@@ -1,5 +1,10 @@
 use super::*;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::ForgeQueryIntentConsumerInspection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -18,10 +23,10 @@ pub struct ForgeQueryIntentExecutionFailureEvidence {
     execution_kind: ForgeQueryIntentExecutionKind,
     attempt_digest: String,
     invariant_evidence: Vec<String>,
-    snapshot_token: String,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
     execution_provenance: ForgeQueryIntentExecutionProvenance,
     decision_trace_envelope: ForgeQueryIntentDecisionTraceEnvelope,
-    failure_digest: String,
+    failure_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryIntentExecutionFailureEvidence {
@@ -33,35 +38,74 @@ impl ForgeQueryIntentExecutionFailureEvidence {
         execution_provenance: ForgeQueryIntentExecutionProvenance,
         decision_trace_envelope: ForgeQueryIntentDecisionTraceEnvelope,
     ) -> Self {
-        let snapshot_token = execution.mutation_receipt().snapshot_token.clone();
+        let snapshot_identity = execution.mutation_receipt().snapshot_identity.clone();
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         let invariant_evidence = execution.invariant_evidence().to_vec();
-        let invariant_evidence_digest_part = invariant_evidence.join("|");
-        let failure_digest = hash_parts(&[
-            "forge_query_intent_execution_failure_evidence_v1".to_string(),
-            format!("intent:{}", declaration.name()),
-            format!("stage:{stage}"),
-            format!("message:{message}"),
-            format!("strategy:{}", declaration.strategy_name()),
-            format!("version:{}", declaration.strategy_version()),
-            format!("returned-strategy:{}", execution.strategy_identity()),
-            format!("returned-version:{}", execution.strategy_version()),
-            format!(
-                "returned-descriptor:{}",
-                execution.strategy_descriptor_digest()
-            ),
-            format!("input:{}", declaration.input_digest()),
-            format!("source:{}", declaration.source_lane().as_str()),
-            format!("target:{}", declaration.target_lane()),
-            format!("execution-kind:{}", execution.execution_kind().as_str()),
-            format!("attempt:{}", execution.outcome_digest()),
-            format!("invariants:{invariant_evidence_digest_part}"),
-            format!("snapshot:{snapshot_token}"),
-            format!(
-                "execution-provenance:{}",
-                execution_provenance.execution_provenance_chain_digest()
-            ),
-            format!("decision-trace:{}", decision_trace_envelope.trace_digest()),
-        ]);
+        let failure_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::IntentExecutionFailureEvidence)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("intent_name"),
+                    declaration.name(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("stage"), stage)
+                .field_value(ForgeQueryEvidenceTag::new("message"), &message)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("strategy_identity"),
+                    declaration.strategy_name(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("strategy_version"),
+                    declaration.strategy_version(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("returned_strategy_identity"),
+                    execution.strategy_identity(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("returned_strategy_version"),
+                    execution.strategy_version(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("returned_strategy_descriptor_digest"),
+                    execution.strategy_descriptor_digest(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("canonical_input_digest"),
+                    declaration.input_digest(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("source_lane"),
+                    declaration.source_lane().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("target_lane"),
+                    declaration.target_lane().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("execution_kind"),
+                    execution.execution_kind().as_str(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("attempt_digest"),
+                    execution.outcome_digest(),
+                )
+                .field_identity_sequence(
+                    ForgeQueryEvidenceTag::new("invariant_evidence"),
+                    invariant_evidence.iter().map(String::as_str),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("snapshot_identity"),
+                    &snapshot_evidence_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("execution_provenance"),
+                    execution_provenance.execution_provenance_chain_identity(),
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("decision_trace_digest"),
+                    decision_trace_envelope.trace_digest(),
+                )
+                .seal();
         Self {
             intent_name: declaration.name().to_string(),
             stage,
@@ -77,7 +121,7 @@ impl ForgeQueryIntentExecutionFailureEvidence {
             execution_kind: execution.execution_kind(),
             attempt_digest: execution.outcome_digest().to_string(),
             invariant_evidence,
-            snapshot_token,
+            snapshot_identity,
             execution_provenance,
             decision_trace_envelope,
             failure_digest,
@@ -140,8 +184,12 @@ impl ForgeQueryIntentExecutionFailureEvidence {
         &self.invariant_evidence
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn snapshot_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        self.snapshot_identity.evidence_identity()
     }
 
     pub fn execution_provenance(&self) -> &ForgeQueryIntentExecutionProvenance {
@@ -157,6 +205,10 @@ impl ForgeQueryIntentExecutionFailureEvidence {
     }
 
     pub fn failure_digest(&self) -> &str {
+        self.failure_digest.as_str()
+    }
+
+    pub fn failure_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.failure_digest
     }
 }

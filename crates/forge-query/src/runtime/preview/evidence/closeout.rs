@@ -63,8 +63,8 @@ pub struct ForgeQueryPreviewCloseoutEvidence {
     kind: ForgeQueryPreviewCloseoutKind,
     effect_policy: ForgeQueryEffectPolicy,
     basis_evidence: Vec<String>,
-    preview_basis_snapshot_token: String,
-    target_basis_snapshot_token: String,
+    preview_basis_snapshot_identity: ForgeQuerySnapshotIdentity,
+    target_basis_snapshot_identity: ForgeQuerySnapshotIdentity,
     preview_binding_count: usize,
     live_binding_count: usize,
     computed_binding_count: usize,
@@ -90,8 +90,8 @@ impl ForgeQueryPreviewCloseoutEvidence {
         kind: ForgeQueryPreviewCloseoutKind,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
-        preview_basis_snapshot_token: &str,
-        target_basis_snapshot_token: &str,
+        preview_basis_snapshot_identity: &ForgeQuerySnapshotIdentity,
+        target_basis_snapshot_identity: &ForgeQuerySnapshotIdentity,
         preview_binding_count: usize,
         live_binding_count: usize,
         computed_binding_count: usize,
@@ -135,13 +135,13 @@ impl ForgeQueryPreviewCloseoutEvidence {
                         .iter()
                         .map(|row| row.row_digest().as_str()),
                 )
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("preview_basis_snapshot_token"),
-                    preview_basis_snapshot_token,
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("preview_basis_snapshot_identity"),
+                    &preview_basis_snapshot_identity.evidence_identity(),
                 )
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("target_basis_snapshot_token"),
-                    target_basis_snapshot_token,
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("target_basis_snapshot_identity"),
+                    &target_basis_snapshot_identity.evidence_identity(),
                 )
                 .field_usize(
                     ForgeQueryEvidenceTag::new("preview_binding_count"),
@@ -216,8 +216,8 @@ impl ForgeQueryPreviewCloseoutEvidence {
             kind,
             effect_policy,
             basis_evidence,
-            preview_basis_snapshot_token: preview_basis_snapshot_token.to_string(),
-            target_basis_snapshot_token: target_basis_snapshot_token.to_string(),
+            preview_basis_snapshot_identity: preview_basis_snapshot_identity.clone(),
+            target_basis_snapshot_identity: target_basis_snapshot_identity.clone(),
             preview_binding_count,
             live_binding_count,
             computed_binding_count,
@@ -262,12 +262,12 @@ impl ForgeQueryPreviewCloseoutEvidence {
         &self.basis_evidence
     }
 
-    pub fn preview_basis_snapshot_token(&self) -> &str {
-        &self.preview_basis_snapshot_token
+    pub fn preview_basis_snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.preview_basis_snapshot_identity
     }
 
-    pub fn target_basis_snapshot_token(&self) -> &str {
-        &self.target_basis_snapshot_token
+    pub fn target_basis_snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.target_basis_snapshot_identity
     }
 
     pub fn preview_binding_count(&self) -> usize {

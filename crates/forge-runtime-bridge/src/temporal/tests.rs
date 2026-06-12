@@ -6,18 +6,17 @@ use forge_signal::facade::{
 use crate::facade::{
     AdmittedBridgeTemporalBasis, BridgeTemporalBasisDenial, BridgeTemporalCdcCursorIdentity,
     BridgeTemporalSignalBasis, BridgeTemporalTruthViewBasis, BridgeTemporalWakeEvidence,
-    TruthBranchIdentity, TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
 #[test]
 fn temporal_basis_admission_is_stable_for_equal_inputs() {
     let truth_basis = BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("branch-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let signal_basis = BridgeTemporalSignalBasis::new(
-        TruthBranchIdentity::new("branch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
         ClockDomain::MonotonicExecution,
         ClockTick::new(7),
         ClockAdvanceOrdinal::new(3),
@@ -55,12 +54,12 @@ fn temporal_basis_admission_is_stable_for_equal_inputs() {
 #[test]
 fn temporal_basis_denies_branch_mismatch() {
     let truth_basis = BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("branch-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let signal_basis = BridgeTemporalSignalBasis::new(
-        TruthBranchIdentity::new("branch-b"),
+        crate::truth_identity_fixtures::truth_branch_fixture("branch-b"),
         ClockDomain::MonotonicExecution,
         ClockTick::new(3),
         ClockAdvanceOrdinal::new(1),
@@ -86,12 +85,12 @@ fn temporal_basis_denies_branch_mismatch() {
 #[test]
 fn temporal_basis_denies_missing_wake_evidence() {
     let truth_basis = BridgeTemporalTruthViewBasis::branch_head(
-        TruthBranchIdentity::new("branch-a"),
-        TruthCommitIdentity::new("commit-head"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-head"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let signal_basis = BridgeTemporalSignalBasis::new(
-        TruthBranchIdentity::new("branch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
         ClockDomain::MonotonicExecution,
         ClockTick::new(4),
         ClockAdvanceOrdinal::new(2),
@@ -110,12 +109,12 @@ fn temporal_basis_denies_missing_wake_evidence() {
 fn temporal_basis_denies_regressed_wake_tick() {
     let outcome = AdmittedBridgeTemporalBasis::admit(
         BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("branch-a"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeTemporalSignalBasis::new(
-            TruthBranchIdentity::new("branch-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
             ClockDomain::MonotonicExecution,
             ClockTick::new(9),
             ClockAdvanceOrdinal::new(4),
@@ -140,7 +139,7 @@ fn temporal_basis_denies_regressed_wake_tick() {
 #[test]
 fn temporal_basis_keeps_historical_and_branch_head_distinct() {
     let signal_basis = BridgeTemporalSignalBasis::new(
-        TruthBranchIdentity::new("branch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
         ClockDomain::MonotonicExecution,
         ClockTick::new(10),
         ClockAdvanceOrdinal::new(4),
@@ -153,18 +152,18 @@ fn temporal_basis_keeps_historical_and_branch_head_distinct() {
     );
     let branch_head = admit(
         BridgeTemporalTruthViewBasis::branch_head(
-            TruthBranchIdentity::new("branch-a"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         signal_basis.clone(),
         Some(wake.clone()),
     );
     let historical = admit(
         BridgeTemporalTruthViewBasis::historical(
-            TruthBranchIdentity::new("branch-a"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         signal_basis,
         Some(wake),
@@ -178,12 +177,12 @@ fn temporal_basis_keeps_historical_and_branch_head_distinct() {
 fn temporal_basis_accepts_cdc_cursor_as_first_class_truth_family() {
     let admitted = admit(
         BridgeTemporalTruthViewBasis::cdc_cursor(
-            TruthBranchIdentity::new("branch-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
             BridgeTemporalCdcCursorIdentity::new("cursor-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeTemporalSignalBasis::new(
-            TruthBranchIdentity::new("branch-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
             ClockDomain::MonotonicExecution,
             ClockTick::new(15),
             ClockAdvanceOrdinal::new(8),
@@ -206,12 +205,12 @@ fn temporal_basis_accepts_cdc_cursor_as_first_class_truth_family() {
 fn temporal_basis_equality_ignores_host_wall_clock_noise() {
     let admitted = admit(
         BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("branch-a"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeTemporalSignalBasis::new(
-            TruthBranchIdentity::new("branch-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
             ClockDomain::MonotonicExecution,
             ClockTick::new(21),
             ClockAdvanceOrdinal::new(12),
@@ -226,12 +225,12 @@ fn temporal_basis_equality_ignores_host_wall_clock_noise() {
     let host_noise = std::time::SystemTime::now();
     let same = admit(
         BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("branch-a"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeTemporalSignalBasis::new(
-            TruthBranchIdentity::new("branch-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
             ClockDomain::MonotonicExecution,
             ClockTick::new(21),
             ClockAdvanceOrdinal::new(12),
@@ -252,12 +251,12 @@ fn temporal_basis_equality_ignores_host_wall_clock_noise() {
 fn temporal_basis_denies_empty_identity_fields_before_merged_construction() {
     let outcome = AdmittedBridgeTemporalBasis::admit(
         BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new(" "),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::malformed_empty_truth_branch_for_validation(),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeTemporalSignalBasis::new(
-            TruthBranchIdentity::new(" "),
+            crate::truth_identity_fixtures::malformed_empty_truth_branch_for_validation(),
             ClockDomain::MonotonicExecution,
             ClockTick::new(21),
             ClockAdvanceOrdinal::new(12),
@@ -280,12 +279,12 @@ fn temporal_basis_denies_empty_identity_fields_before_merged_construction() {
 fn temporal_basis_denies_metadata_only_clock_domains() {
     let outcome = AdmittedBridgeTemporalBasis::admit(
         BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("branch-a"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeTemporalSignalBasis::new(
-            TruthBranchIdentity::new("branch-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
             ClockDomain::WallClock,
             ClockTick::new(21),
             ClockAdvanceOrdinal::new(12),

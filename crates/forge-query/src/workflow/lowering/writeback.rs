@@ -1,12 +1,14 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::workflow::{
     QueryWorkflowDeclaration, WorkflowBasisFamily, WorkflowContextBinding, WorkflowFreshnessPolicy,
     WorkflowLoweringCounters,
 };
 use forge_runtime_bridge::facade::{
-    BridgeRequestKind, BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity,
-    BridgeWritebackEffectClass, BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
-    BridgeWritebackStrategyClass,
+    BridgeIdentityEvidence, BridgeRequestKind, BridgeWritebackDeclaration,
+    BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackFamilyKind,
+    BridgeWritebackIdempotenceClass, BridgeWritebackStrategyClass,
 };
 
 use super::counters::{
@@ -22,16 +24,16 @@ use super::terms::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WritebackCausalityBinding {
-    binding_digest: String,
+    binding_identity: ForgeQueryEvidenceIdentity,
     basis_family: WorkflowBasisFamily,
-    basis_digest: String,
     request_kind: BridgeRequestKind,
-    causality_digest: String,
+    causality_identity: ForgeQueryEvidenceIdentity,
+    basis_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl WritebackCausalityBinding {
     pub fn binding_digest(&self) -> &str {
-        &self.binding_digest
+        self.binding_identity.as_str()
     }
 
     pub fn basis_family(&self) -> &WorkflowBasisFamily {
@@ -39,7 +41,7 @@ impl WritebackCausalityBinding {
     }
 
     pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+        self.basis_identity.as_str()
     }
 
     pub fn request_kind(&self) -> BridgeRequestKind {
@@ -47,7 +49,19 @@ impl WritebackCausalityBinding {
     }
 
     pub fn causality_digest(&self) -> &str {
-        &self.causality_digest
+        self.causality_identity.as_str()
+    }
+
+    pub fn causality_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.causality_identity
+    }
+
+    pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.binding_identity
+    }
+
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
     }
 }
 
@@ -60,6 +74,7 @@ pub struct QueryWritebackDeclaration {
     freshness_binding: WorkflowFreshnessBinding,
     staleness_class: WorkflowStalenessClass,
     lowering_digest: String,
+    lowering_identity: ForgeQueryEvidenceIdentity,
     counters: WorkflowLoweringCounters,
 }
 
@@ -92,6 +107,10 @@ impl QueryWritebackDeclaration {
         &self.lowering_digest
     }
 
+    pub fn lowering_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lowering_identity
+    }
+
     pub fn counters(&self) -> &WorkflowLoweringCounters {
         &self.counters
     }
@@ -106,30 +125,34 @@ pub fn lower_query_writeback_declaration(
         declaration.binding(),
         declaration.request().freshness_policy(),
     )?;
-    let causality_digest = writeback_causality_digest(declaration, request_kind);
+    let binding_identity = writeback_source_identity("binding", declaration.binding().digest());
+    let causality_identity = writeback_causality_identity(declaration, request_kind);
+    let basis_identity = writeback_basis_identity(declaration);
     let bridge_declaration =
-        writeback_bridge_declaration(declaration, input.family(), &causality_digest, request_kind);
-    let lowering_digest = writeback_lowering_digest(
+        writeback_bridge_declaration(declaration, input.family(), request_kind);
+    let lowering_identity = writeback_lowering_identity(
         declaration,
         input.family(),
         &bridge_declaration,
-        &causality_digest,
+        &causality_identity,
     );
+    let lowering_digest = lowering_identity.as_str().to_string();
 
     Ok(QueryWritebackDeclaration {
         declaration: declaration.clone(),
         family: input.family().clone(),
         causality_binding: WritebackCausalityBinding {
-            binding_digest: declaration.binding().digest().to_string(),
+            binding_identity,
             basis_family: declaration.binding().basis_family().clone(),
-            basis_digest: declaration.binding().basis_digest().to_string(),
             request_kind,
-            causality_digest,
+            causality_identity,
+            basis_identity,
         },
         bridge_declaration,
         freshness_binding: WorkflowFreshnessBinding::RuntimeBasisExact,
         staleness_class: WorkflowStalenessClass::AuthorityValidationRequired,
         lowering_digest,
+        lowering_identity,
         counters: writeback_lowering_success_counters(1),
     })
 }
@@ -188,16 +211,25 @@ fn writeback_preview_freshness_denial(
 fn writeback_bridge_declaration(
     declaration: &QueryWorkflowDeclaration,
     family: &WritebackDeclarationFamily,
-    _causality_digest: &str,
     request_kind: BridgeRequestKind,
 ) -> BridgeWritebackDeclaration {
     let (family_kind, effect_class, strategy_class, idempotence_class) =
         writeback_bridge_family_terms(family);
+    let bridge_declaration_identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "workflow_writeback_bridge_declaration_v1",
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("declaration"),
+                declaration.report().declaration_digest(),
+            )
+            .seal();
     BridgeWritebackDeclaration::writeback_capable(
-        BridgeWritebackDeclarationIdentity::new(format!(
-            "forge-query:{}",
-            declaration.report().declaration_digest()
-        )),
+        BridgeWritebackDeclarationIdentity::from_bridge_evidence(
+            &BridgeIdentityEvidence::from_external_authority(bridge_declaration_identity),
+        ),
         request_kind,
         family_kind,
         effect_class,
@@ -224,31 +256,71 @@ fn writeback_bridge_family_terms(
     }
 }
 
-fn writeback_causality_digest(
+fn writeback_causality_identity(
     declaration: &QueryWorkflowDeclaration,
     request_kind: BridgeRequestKind,
-) -> String {
-    hash_parts(&[
-        format!("binding:{}", declaration.binding().digest()),
-        format!(
-            "basis_family:{}",
-            declaration.binding().basis_family().as_str()
-        ),
-        format!("basis_digest:{}", declaration.binding().basis_digest()),
-        format!("request_kind:{request_kind:?}"),
-    ])
+) -> ForgeQueryEvidenceIdentity {
+    let binding_identity = writeback_source_identity("binding", declaration.binding().digest());
+    let basis_identity = writeback_source_identity("basis", declaration.binding().basis_digest());
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_causality")
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("basis_family"),
+            declaration.binding().basis_family().as_str(),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), &basis_identity)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("request_kind"),
+            format!("{request_kind:?}"),
+        )
+        .seal()
 }
 
-fn writeback_lowering_digest(
+fn writeback_basis_identity(declaration: &QueryWorkflowDeclaration) -> ForgeQueryEvidenceIdentity {
+    let basis_identity = writeback_source_identity("basis", declaration.binding().basis_digest());
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_basis")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("basis_family"),
+            declaration.binding().basis_family().as_str(),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), &basis_identity)
+        .seal()
+}
+
+fn writeback_lowering_identity(
     declaration: &QueryWorkflowDeclaration,
     family: &WritebackDeclarationFamily,
     bridge_declaration: &BridgeWritebackDeclaration,
-    causality_digest: &str,
-) -> String {
-    hash_parts(&[
-        format!("declaration:{}", declaration.report().declaration_digest()),
-        format!("writeback_family:{}", family.as_str()),
-        format!("bridge_declaration:{}", bridge_declaration.digest()),
-        format!("causality:{causality_digest}"),
-    ])
+    causality_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    let declaration_identity =
+        writeback_source_identity("declaration", declaration.report().declaration_digest());
+    let bridge_declaration_identity =
+        writeback_source_identity("bridge_declaration", bridge_declaration.digest());
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_lowering")
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("declaration"),
+            &declaration_identity,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("writeback_family"),
+            family.as_str(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("bridge_declaration"),
+            &bridge_declaration_identity,
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("causality"), causality_identity)
+        .seal()
+}
+
+fn writeback_source_identity(role: &str, source_value: &str) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_source")
+        .field_shape(ForgeQueryEvidenceTag::new("source_role"), role)
+        .field_identity(ForgeQueryEvidenceTag::new("source_identity"), source_value)
+        .seal()
 }

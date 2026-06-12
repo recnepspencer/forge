@@ -693,7 +693,11 @@ fn bind_preview_context(
         historical_materialization_cost_class: None,
         materialization_path_identity_source: None,
         preview_provenance_identity_source: Some(
-            foundation.preview_session_identity().as_str().to_string(),
+            foundation
+                .preview_session_identity()
+                .evidence_identity()
+                .as_str()
+                .to_string(),
         ),
         prediction_report: Some(QueryContextPredictionReport::for_preview_binding()),
         prediction_drift_outcome: Some(QueryContextPredictionDriftOutcome::PendingExecution),

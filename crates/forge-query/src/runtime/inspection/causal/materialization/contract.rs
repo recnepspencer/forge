@@ -1,15 +1,17 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner, BridgeCausalExplanationEnvelope,
+    BridgeIdentityEvidence,
 };
 
 use super::policy::{
     CausalInspectionMaterializationError, CausalInspectionMaterializationErrorKind,
     CausalInspectionMaterializationPolicy,
 };
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::runtime::inspection::causal::inventory::CausalEvidenceFamily;
 
 pub(super) fn validate_materialization_contract(
-    query_observation_digest: &str,
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
     requested_families: &[CausalEvidenceFamily],
     envelope: &BridgeCausalExplanationEnvelope,
     materialization_policy: CausalInspectionMaterializationPolicy,
@@ -24,16 +26,18 @@ pub(super) fn validate_materialization_contract(
             ],
         ));
     }
-    validate_query_observation_binding(query_observation_digest, envelope)?;
+    validate_query_observation_binding(query_observation_identity, envelope)?;
     validate_requested_replay_posture(requested_families, envelope)
 }
 
 fn validate_query_observation_binding(
-    query_observation_digest: &str,
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
     envelope: &BridgeCausalExplanationEnvelope,
 ) -> Result<(), CausalInspectionMaterializationError> {
     let mut query_observation_binding_count = 0;
     let mut query_observation_matches_subject = false;
+    let expected_query_observation_identity =
+        BridgeIdentityEvidence::from_external_authority(query_observation_identity);
     for binding in envelope.bindings() {
         if binding.owner() != BridgeCausalEvidenceOwner::Query
             || binding.family() != BridgeCausalEvidenceFamily::QueryObservation
@@ -42,7 +46,7 @@ fn validate_query_observation_binding(
         }
         query_observation_binding_count += 1;
         query_observation_matches_subject |=
-            binding.reference_identity() == query_observation_digest;
+            binding.reference_evidence_identity() == expected_query_observation_identity;
     }
 
     match (
@@ -51,20 +55,20 @@ fn validate_query_observation_binding(
     ) {
         (0, _) => Err(query_observation_binding_error(
             CausalInspectionMaterializationErrorKind::QueryObservationBindingMissing,
-            query_observation_digest,
+            query_observation_identity,
             envelope,
             0,
         )),
         (1, true) => Ok(()),
         (1, false) => Err(query_observation_binding_error(
             CausalInspectionMaterializationErrorKind::QueryObservationBindingMismatch,
-            query_observation_digest,
+            query_observation_identity,
             envelope,
             1,
         )),
         (binding_count, _) => Err(query_observation_binding_error(
             CausalInspectionMaterializationErrorKind::QueryObservationBindingOverclaim,
-            query_observation_digest,
+            query_observation_identity,
             envelope,
             binding_count,
         )),
@@ -73,14 +77,17 @@ fn validate_query_observation_binding(
 
 fn query_observation_binding_error(
     kind: CausalInspectionMaterializationErrorKind,
-    query_observation_digest: &str,
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
     envelope: &BridgeCausalExplanationEnvelope,
     query_observation_binding_count: usize,
 ) -> CausalInspectionMaterializationError {
     CausalInspectionMaterializationError::new(
         kind,
         &[
-            format!("expected-query-observation:{query_observation_digest}"),
+            format!(
+                "expected-query-observation:{}",
+                query_observation_identity.as_str()
+            ),
             format!("query-observation-binding-count:{query_observation_binding_count}"),
             format!("envelope:{}", envelope.envelope_digest()),
         ],

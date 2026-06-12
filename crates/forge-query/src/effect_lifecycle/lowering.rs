@@ -258,8 +258,8 @@ pub fn lower_authority_scoped_effect_plan(
             authority_scoped_plan
                 .admitted()
                 .normalized()
-                .expected_lower_runtime_binding_digest()
-                .expect("admitted mutation effects must preserve a lower-runtime binding digest"),
+                .expected_lower_runtime_binding_identity()
+                .expect("admitted mutation effects must preserve a lower-runtime binding identity"),
             input.clone(),
         )
         .map(LoweredEffectExecutionArtifact::Mutation),

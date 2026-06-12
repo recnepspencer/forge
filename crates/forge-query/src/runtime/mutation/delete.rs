@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use serde::Serialize;
 
 use super::ForgeQueryMutationMetadata;
-use crate::memory_workspace::ForgeQueryWorkspaceError;
+use crate::memory_workspace::{ForgeQueryEntityIdentity, ForgeQueryWorkspaceError};
 use crate::runtime::{
     ForgeQueryAspectValue, ForgeQueryExistingTruthTargetBinding, ForgeQueryNamingMutationIntent,
     ForgeQueryRuntimeError, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
@@ -90,34 +90,22 @@ impl ForgeQueryDeleteMutationBuilder {
 
     pub fn naming_remove(
         self,
-        attachment_identity: impl Into<String>,
-        prior_authoritative_identity: impl Into<String>,
+        attachment_identity: crate::runtime::ForgeQueryMutationAuthorityIdentity,
+        prior_authoritative_identity: crate::runtime::ForgeQueryMutationAuthorityIdentity,
     ) -> Self {
-        match ForgeQueryNamingMutationIntent::remove(
+        self.naming_intent(ForgeQueryNamingMutationIntent::remove(
             attachment_identity,
             prior_authoritative_identity,
-        ) {
-            Ok(intent) => self.naming_intent(intent),
-            Err(error) => Self {
-                error: Some(error.to_string()),
-                ..self
-            },
-        }
+        ))
     }
 
     pub fn build_delete(
         self,
-        entity_identity: impl Into<String>,
+        entity_identity: ForgeQueryEntityIdentity,
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         if let Some(error) = self.error {
             return Err(ForgeQueryRuntimeError::Workspace(
                 ForgeQueryWorkspaceError::new(error),
-            ));
-        }
-        let entity_identity = entity_identity.into();
-        if entity_identity.trim().is_empty() {
-            return Err(ForgeQueryRuntimeError::Workspace(
-                ForgeQueryWorkspaceError::new("entity identity may not be empty"),
             ));
         }
         Ok(ForgeQueryWriteCommand::DeleteAspects {

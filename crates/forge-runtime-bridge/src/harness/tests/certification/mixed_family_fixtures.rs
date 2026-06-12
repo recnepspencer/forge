@@ -10,7 +10,7 @@ use crate::facade::{
     StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
     StructuralFingerprintOmissionPolicy, StructuralFingerprintOrderingRule,
     StructuralIdentityDeclaration, StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity,
-    StructuralTruthViewBasis, TruthBranchIdentity, TruthSnapshotIdentity,
+    StructuralTruthViewBasis, TruthSnapshotIdentity,
 };
 use crate::harness::fixtures::BridgeHarnessFixture;
 use crate::source::{SourceDeclaration, SourceDeclarationIdentity};
@@ -23,20 +23,23 @@ pub(crate) fn mixed_stream_fixture(
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
-                crate::facade::TruthPatchIdentity::new("patch-b"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("stream")
     .declare_observation("stream")
@@ -47,8 +50,8 @@ fn mixed_source_declaration(declaration_identity: SourceDeclarationIdentity) -> 
     SourceDeclaration::new(
         declaration_identity,
         BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         BridgeSourceCapabilitySet::new(vec![
             BridgeSourceCapability::SnapshotRead,
@@ -76,14 +79,17 @@ pub(crate) fn mixed_source_fixture(
                 BridgeSourceCapability::ReplayContinuityRead,
             ]))
             .with_committed_patch(committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("source")
     .declare_observation("source")
@@ -134,8 +140,8 @@ fn mixed_structural_remap_declaration(
             StructuralFingerprintOmissionPolicy::SchemaDeclaredOmissionPolicy,
         ),
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     )
 }
@@ -151,27 +157,27 @@ pub(crate) fn mixed_structural_fixture(
                 StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-b"),
-                crate::facade::TruthPatchIdentity::new("patch-b"),
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_snapshot(mixed_structural_snapshot(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 "alice",
             ))
             .with_snapshot(mixed_structural_snapshot(
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                 "bob",
             )),
     )
@@ -191,16 +197,16 @@ pub(crate) fn mixed_merge_fixture(
                 MergeHistoryDeclarationIdentity::new("merge:m13-mixed"),
                 crate::facade::BridgeMergeConsumptionClass::AspectReconciliationMerge,
                 [
-                    crate::facade::TruthCommitIdentity::new("parent-a"),
-                    crate::facade::TruthCommitIdentity::new("parent-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
                 ],
             ))
             .with_merge_declaration(merge_declaration(
                 MergeHistoryDeclarationIdentity::new("merge:m13-topology-denial"),
                 crate::facade::BridgeMergeConsumptionClass::TopologyRewireMerge,
                 [
-                    crate::facade::TruthCommitIdentity::new("parent-a"),
-                    crate::facade::TruthCommitIdentity::new("parent-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
                 ],
             )),
     )
@@ -217,13 +223,16 @@ pub(crate) fn mixed_policy_fixture(
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("policy")
     .declare_observation("policy")
@@ -238,13 +247,16 @@ pub(crate) fn mixed_speculation_fixture(
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("speculation")
     .declare_observation("speculation")
@@ -259,13 +271,16 @@ pub(crate) fn mixed_writeback_fixture(
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("writeback")
     .declare_observation("writeback")

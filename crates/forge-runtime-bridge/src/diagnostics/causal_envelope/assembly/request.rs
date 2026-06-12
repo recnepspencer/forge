@@ -5,7 +5,11 @@ use super::super::authority::{BridgeCausalEvidenceFamily, BridgeCausalEvidenceOw
 use super::super::counters::BridgeCausalEnvelopeCounters;
 use super::super::denial::{BridgeCausalEnvelopeDenial, BridgeCausalEnvelopeDenialKind};
 use super::super::evidence_reference::BridgeCausalEvidenceReference;
-use super::super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
+use super::super::{
+    compose_bridge_causal_envelope_evidence_identity,
+    digest_basis::BridgeCausalEnvelopeDigestArtifact, evidence_part, shape_part,
+};
+use crate::identity::BridgeIdentityEvidence;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeCausalInspectionAdmissionSummaryKind {
@@ -25,58 +29,56 @@ impl BridgeCausalInspectionAdmissionSummaryKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeCausalInspectionAdmissionSummary {
     kind: BridgeCausalInspectionAdmissionSummaryKind,
-    query_admission_digest: Arc<str>,
-    causal_observation_anchor_digest: Arc<str>,
-    summary_digest: Arc<str>,
+    query_admission_identity: BridgeIdentityEvidence,
+    causal_observation_anchor_identity: BridgeIdentityEvidence,
+    summary_identity: BridgeIdentityEvidence,
 }
 
 impl BridgeCausalInspectionAdmissionSummary {
     pub fn admitted(
-        query_admission_digest: impl Into<Arc<str>>,
-        causal_observation_anchor_digest: impl Into<Arc<str>>,
+        query_admission_identity: BridgeIdentityEvidence,
+        causal_observation_anchor_identity: BridgeIdentityEvidence,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
         Self::new(
             BridgeCausalInspectionAdmissionSummaryKind::Admitted,
-            query_admission_digest,
-            causal_observation_anchor_digest,
+            query_admission_identity,
+            causal_observation_anchor_identity,
         )
     }
 
     pub fn advisory(
-        query_admission_digest: impl Into<Arc<str>>,
-        causal_observation_anchor_digest: impl Into<Arc<str>>,
+        query_admission_identity: BridgeIdentityEvidence,
+        causal_observation_anchor_identity: BridgeIdentityEvidence,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
         Self::new(
             BridgeCausalInspectionAdmissionSummaryKind::Advisory,
-            query_admission_digest,
-            causal_observation_anchor_digest,
+            query_admission_identity,
+            causal_observation_anchor_identity,
         )
     }
 
     fn new(
         kind: BridgeCausalInspectionAdmissionSummaryKind,
-        query_admission_digest: impl Into<Arc<str>>,
-        causal_observation_anchor_digest: impl Into<Arc<str>>,
+        query_admission_identity: BridgeIdentityEvidence,
+        causal_observation_anchor_identity: BridgeIdentityEvidence,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
-        let query_admission_digest = query_admission_digest.into();
-        let causal_observation_anchor_digest = causal_observation_anchor_digest.into();
         validate_admission_summary_inputs(
-            query_admission_digest.as_ref(),
-            causal_observation_anchor_digest.as_ref(),
+            query_admission_identity.as_ref(),
+            causal_observation_anchor_identity.as_ref(),
         )?;
-        let summary_digest = causal_envelope_digest(
+        let summary_identity = compose_bridge_causal_envelope_evidence_identity(
             BridgeCausalEnvelopeDigestArtifact::AdmissionSummary,
             &[
-                kind.as_str(),
-                query_admission_digest.as_ref(),
-                causal_observation_anchor_digest.as_ref(),
+                shape_part(kind.as_str()),
+                evidence_part(&query_admission_identity),
+                evidence_part(&causal_observation_anchor_identity),
             ],
         );
         Ok(Self {
             kind,
-            query_admission_digest,
-            causal_observation_anchor_digest,
-            summary_digest: Arc::from(summary_digest),
+            query_admission_identity,
+            causal_observation_anchor_identity,
+            summary_identity,
         })
     }
 
@@ -85,15 +87,27 @@ impl BridgeCausalInspectionAdmissionSummary {
     }
 
     pub fn query_admission_digest(&self) -> &str {
-        self.query_admission_digest.as_ref()
+        self.query_admission_identity.as_ref()
     }
 
     pub fn causal_observation_anchor_digest(&self) -> &str {
-        self.causal_observation_anchor_digest.as_ref()
+        self.causal_observation_anchor_identity.as_ref()
+    }
+
+    pub fn query_admission_identity(&self) -> &BridgeIdentityEvidence {
+        &self.query_admission_identity
+    }
+
+    pub fn causal_observation_anchor_identity(&self) -> &BridgeIdentityEvidence {
+        &self.causal_observation_anchor_identity
     }
 
     pub fn summary_digest(&self) -> &str {
-        self.summary_digest.as_ref()
+        self.summary_identity.as_str()
+    }
+
+    pub fn summary_evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.summary_identity
     }
 }
 
@@ -101,7 +115,7 @@ impl BridgeCausalInspectionAdmissionSummary {
 pub struct BridgeCausalEnvelopeAssemblyRequest {
     admission_summary: BridgeCausalInspectionAdmissionSummary,
     references: Arc<[BridgeCausalEvidenceReference]>,
-    request_digest: Arc<str>,
+    request_identity: BridgeIdentityEvidence,
 }
 
 impl BridgeCausalEnvelopeAssemblyRequest {
@@ -110,19 +124,22 @@ impl BridgeCausalEnvelopeAssemblyRequest {
         references: Vec<BridgeCausalEvidenceReference>,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
         validate_request_inputs(&references)?;
-        let reference_part = references
-            .iter()
-            .map(BridgeCausalEvidenceReference::reference_digest)
-            .collect::<Vec<_>>()
-            .join("|");
-        let request_digest = causal_envelope_digest(
+        let mut request_parts = Vec::with_capacity(references.len() + 1);
+        request_parts.push(evidence_part(admission_summary.summary_evidence_identity()));
+        request_parts.extend(
+            references
+                .iter()
+                .map(BridgeCausalEvidenceReference::reference_digest_evidence_identity)
+                .map(evidence_part),
+        );
+        let request_identity = compose_bridge_causal_envelope_evidence_identity(
             BridgeCausalEnvelopeDigestArtifact::AssemblyRequest,
-            &[admission_summary.summary_digest(), &reference_part],
+            &request_parts,
         );
         Ok(Self {
             admission_summary,
             references: Arc::from(references),
-            request_digest: Arc::from(request_digest),
+            request_identity,
         })
     }
 
@@ -143,7 +160,11 @@ impl BridgeCausalEnvelopeAssemblyRequest {
     }
 
     pub fn request_digest(&self) -> &str {
-        self.request_digest.as_ref()
+        self.request_identity.as_str()
+    }
+
+    pub fn request_evidence_identity(&self) -> &BridgeIdentityEvidence {
+        &self.request_identity
     }
 }
 
@@ -157,7 +178,10 @@ fn validate_admission_summary_inputs(
             BridgeCausalEvidenceFamily::QueryObservation,
             BridgeCausalEvidenceOwner::Query,
             BridgeCausalEvidenceOwner::Query,
-            Arc::from("empty-query-admission-or-anchor"),
+            denial_sentinel_identity(
+                BridgeCausalEnvelopeDenialKind::EmptyAssemblyRequestDigest,
+                "empty-query-admission-or-anchor",
+            ),
             BridgeCausalEnvelopeCounters::empty(),
         ));
     }
@@ -173,7 +197,10 @@ fn validate_request_inputs(
             BridgeCausalEvidenceFamily::BridgeRoute,
             BridgeCausalEvidenceOwner::RuntimeBridge,
             BridgeCausalEvidenceOwner::RuntimeBridge,
-            Arc::from("missing-evidence-reference"),
+            denial_sentinel_identity(
+                BridgeCausalEnvelopeDenialKind::MissingEvidenceReference,
+                "missing-evidence-reference",
+            ),
             BridgeCausalEnvelopeCounters::empty(),
         ));
     }
@@ -190,7 +217,7 @@ fn validate_unique_references(
         let reference_key = (
             reference.owner(),
             reference.family(),
-            reference.reference_identity(),
+            reference.reference_evidence_identity(),
         );
         if !seen_references.insert(reference_key) {
             return Err(BridgeCausalEnvelopeDenial::new(
@@ -198,7 +225,7 @@ fn validate_unique_references(
                 reference.family(),
                 reference.owner(),
                 reference.family().expected_owner(),
-                Arc::from(reference.reference_identity()),
+                reference.reference_evidence_identity().clone(),
                 BridgeCausalEnvelopeCounters::empty(),
             ));
         }
@@ -223,7 +250,10 @@ fn validate_query_observation_anchor(
             BridgeCausalEvidenceFamily::QueryObservation,
             BridgeCausalEvidenceOwner::Query,
             BridgeCausalEvidenceOwner::Query,
-            Arc::from("missing-query-observation-anchor"),
+            denial_sentinel_identity(
+                BridgeCausalEnvelopeDenialKind::MissingQueryObservationAnchor,
+                "missing-query-observation-anchor",
+            ),
             BridgeCausalEnvelopeCounters::empty(),
         )),
         count => Err(BridgeCausalEnvelopeDenial::new(
@@ -231,8 +261,31 @@ fn validate_query_observation_anchor(
             BridgeCausalEvidenceFamily::QueryObservation,
             BridgeCausalEvidenceOwner::Query,
             BridgeCausalEvidenceOwner::Query,
-            Arc::from(format!("query-observation-anchor-count:{count}")),
+            overclaimed_query_observation_anchor_identity(count),
             BridgeCausalEnvelopeCounters::empty(),
         )),
     }
+}
+
+fn denial_sentinel_identity(
+    kind: BridgeCausalEnvelopeDenialKind,
+    label: &'static str,
+) -> BridgeIdentityEvidence {
+    compose_bridge_causal_envelope_evidence_identity(
+        BridgeCausalEnvelopeDigestArtifact::Denial,
+        &[shape_part(kind.as_str()), shape_part(label)],
+    )
+}
+
+fn overclaimed_query_observation_anchor_identity(count: usize) -> BridgeIdentityEvidence {
+    let count_text = count.to_string();
+    compose_bridge_causal_envelope_evidence_identity(
+        BridgeCausalEnvelopeDigestArtifact::Denial,
+        &[
+            shape_part(BridgeCausalEnvelopeDenialKind::QueryObservationAnchorOverclaim.as_str()),
+            shape_part(BridgeCausalEvidenceFamily::QueryObservation.as_str()),
+            shape_part("query-observation-anchor-count"),
+            shape_part(count_text.as_str()),
+        ],
+    )
 }

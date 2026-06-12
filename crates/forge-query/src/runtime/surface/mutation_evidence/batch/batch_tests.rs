@@ -2,6 +2,7 @@ use super::super::batch_digest_helpers::{
     batch_continuity_mutation_digest, batch_existing_truth_binding_digest,
     batch_naming_mutation_digest, batch_symbolic_target_reference_digest,
 };
+use crate::memory_workspace::{ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity};
 use crate::runtime::{
     ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationFamily,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
@@ -11,24 +12,27 @@ use crate::runtime::{
 use forge_runtime_bridge::facade::{
     BridgeContinuityAuthoritativeIdentity, BridgeContinuityMutationBundle,
     BridgeContinuityOutcomeClass, BridgeContinuityResolvedTargetIdentity,
-    BridgeContinuityTargetCollection, BridgeExistingTruthBindingBundle, BridgeNamingMutationBundle,
-    BridgeSymbolicTargetReferenceBundle,
+    BridgeContinuityTargetCollection, BridgeExistingTruthBindingAuthoritativeIdentity,
+    BridgeExistingTruthBindingBundle, BridgeExistingTruthBindingResolvedTargetIdentity,
+    BridgeExistingTruthBindingTargetCollection, BridgeNamingAttachmentIdentity,
+    BridgeNamingMutationBundle, BridgeNamingResolvedTargetIdentity, BridgeNamingTargetCollection,
+    RelationalBridgeRecordIdentityParts,
 };
 
 #[test]
 fn existing_truth_binding_batch_digest_changes_with_authoritative_identity() {
     let left = ForgeQueryExistingTruthBindingEvidence::from_bridge(
         &BridgeExistingTruthBindingBundle::direct_entity(
-            "authority:left",
-            "entity:task",
-            Some("Task"),
+            bridge_existing_truth_authority("authority:left"),
+            bridge_existing_truth_target(RelationalBridgeRecordIdentityParts::entity(1, 1, 0)),
+            Some(bridge_existing_truth_collection("Task")),
         ),
     );
     let right = ForgeQueryExistingTruthBindingEvidence::from_bridge(
         &BridgeExistingTruthBindingBundle::direct_entity(
-            "authority:right",
-            "entity:task",
-            Some("Task"),
+            bridge_existing_truth_authority("authority:right"),
+            bridge_existing_truth_target(RelationalBridgeRecordIdentityParts::entity(1, 1, 0)),
+            Some(bridge_existing_truth_collection("Task")),
         ),
     );
 
@@ -41,20 +45,53 @@ fn existing_truth_binding_batch_digest_changes_with_authoritative_identity() {
 }
 
 #[test]
-fn symbolic_target_batch_digest_changes_with_symbol_identity() {
-    let left = ForgeQuerySymbolicTargetReferenceEvidence::from_bridge(
-        &BridgeSymbolicTargetReferenceBundle::same_batch_target(
-            "draft:left",
-            "entity:task",
-            Some("Task"),
+fn bridge_existing_truth_binding_preserves_relational_record_identity() {
+    let evidence = ForgeQueryExistingTruthBindingEvidence::from_bridge(
+        &BridgeExistingTruthBindingBundle::direct_entity(
+            bridge_existing_truth_authority("authority:relational"),
+            bridge_existing_truth_target(RelationalBridgeRecordIdentityParts::entity(7, 42, 3)),
+            Some(bridge_existing_truth_collection("Task")),
         ),
     );
-    let right = ForgeQuerySymbolicTargetReferenceEvidence::from_bridge(
-        &BridgeSymbolicTargetReferenceBundle::same_batch_target(
-            "draft:right",
-            "entity:task",
-            Some("Task"),
-        ),
+
+    assert_eq!(
+        evidence
+            .resolved_target_identity()
+            .relational_record_parts(),
+        Some(RelationalBridgeRecordIdentityParts::entity(7, 42, 3))
+    );
+}
+
+#[test]
+#[should_panic(
+    expected = "existing-truth binding evidence must carry a relational record target identity"
+)]
+fn existing_truth_binding_evidence_rejects_non_relational_target_identity() {
+    let binding = crate::runtime::ForgeQueryExistingTruthTargetBinding::direct_entity(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:left")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
+        ForgeQueryEntityIdentity::authored_command("Task:legacy"),
+    )
+    .expect("binding constructor should still expose the boundary failure to evidence");
+
+    let _ = ForgeQueryExistingTruthBindingEvidence::from_binding(&binding);
+}
+
+#[test]
+fn symbolic_target_batch_digest_changes_with_symbol_identity() {
+    let resolved_identity = ForgeQueryEntityIdentity::authored_command("entity:task");
+    let left = ForgeQuerySymbolicTargetReferenceEvidence::test_only(
+        "draft:left",
+        resolved_identity.clone(),
+        Some("Task"),
+    );
+    let right = ForgeQuerySymbolicTargetReferenceEvidence::test_only(
+        "draft:right",
+        resolved_identity,
+        Some("Task"),
     );
 
     let left_digest =
@@ -69,16 +106,16 @@ fn symbolic_target_batch_digest_changes_with_symbol_identity() {
 fn naming_batch_digest_changes_with_attachment_identity() {
     let left = ForgeQueryNamingMutationEvidence::from_bridge(
         &BridgeNamingMutationBundle::attach_new_target(
-            "persistent-name:left",
-            "entity:task",
-            Some("Task"),
+            bridge_naming_attachment("persistent-name:left"),
+            bridge_naming_target(RelationalBridgeRecordIdentityParts::entity(1, 2, 0)),
+            Some(bridge_naming_collection("Task")),
         ),
     );
     let right = ForgeQueryNamingMutationEvidence::from_bridge(
         &BridgeNamingMutationBundle::attach_new_target(
-            "persistent-name:right",
-            "entity:task",
-            Some("Task"),
+            bridge_naming_attachment("persistent-name:right"),
+            bridge_naming_target(RelationalBridgeRecordIdentityParts::entity(1, 2, 0)),
+            Some(bridge_naming_collection("Task")),
         ),
     );
 
@@ -202,13 +239,70 @@ fn target_collection(value: &str) -> BridgeContinuityTargetCollection {
     BridgeContinuityTargetCollection::new(value).expect("test target collection should be native")
 }
 
+fn bridge_existing_truth_authority(value: &str) -> BridgeExistingTruthBindingAuthoritativeIdentity {
+    BridgeExistingTruthBindingAuthoritativeIdentity::from_external_authority_evidence(value)
+}
+
+fn bridge_existing_truth_target(
+    parts: RelationalBridgeRecordIdentityParts,
+) -> BridgeExistingTruthBindingResolvedTargetIdentity {
+    BridgeExistingTruthBindingResolvedTargetIdentity::from_relational_record(parts)
+}
+
+fn bridge_existing_truth_collection(value: &str) -> BridgeExistingTruthBindingTargetCollection {
+    BridgeExistingTruthBindingTargetCollection::new(value)
+}
+
+fn bridge_naming_attachment(value: &str) -> BridgeNamingAttachmentIdentity {
+    BridgeNamingAttachmentIdentity::from_external_authority_evidence(value)
+}
+
+fn bridge_naming_target(
+    parts: RelationalBridgeRecordIdentityParts,
+) -> BridgeNamingResolvedTargetIdentity {
+    BridgeNamingResolvedTargetIdentity::from_relational_record(parts)
+}
+
+fn bridge_naming_collection(value: &str) -> BridgeNamingTargetCollection {
+    BridgeNamingTargetCollection::new(value)
+}
+
+fn relational_entity(
+    partition_id: u32,
+    local_slot: u64,
+    generation: u32,
+) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        partition_id,
+        local_slot,
+        generation,
+    ))
+}
+
+fn retained_assertion_identity(
+    label: &'static str,
+) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+    crate::evidence_identity::forge_query_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceScope::RetainedExistingTruthAssertionEvidence,
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("role"),
+        "retained-assertion-test",
+    )
+    .field_value(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("label"),
+        label,
+    )
+    .seal()
+}
+
 #[test]
 fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
     let backend_verified = ForgeQueryExistingTruthAssertionEvidence::backend_verified(
         &crate::runtime::ForgeQueryVerifiedExistingTruthAssertion::new(
             &crate::runtime::ForgeQueryExistingTruthTargetBinding::direct_entity(
-                "authority:task-1",
-                "Task:1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:left").expect("existing-truth authority label")).expect("existing-truth authority identity"),
+                relational_entity(1, 1, 0),
             )
             .expect("binding should build"),
             &[crate::runtime::ForgeQueryAspectValue::new(
@@ -216,7 +310,7 @@ fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
                 serde_json::json!("Seed title"),
             )
             .expect("aspect should build")],
-            "snapshot:test",
+            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test"),
         )
         .expect("verified assertion should build"),
     );
@@ -237,13 +331,13 @@ fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
 fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
     let retained = ForgeQueryExistingTruthAssertionEvidence::retained_assertion(
         1,
-        "retained-assertion-digest",
+        retained_assertion_identity("retained-assertion"),
     );
     let backend_verified = ForgeQueryExistingTruthAssertionEvidence::backend_verified(
         &crate::runtime::ForgeQueryVerifiedExistingTruthAssertion::new(
             &crate::runtime::ForgeQueryExistingTruthTargetBinding::direct_entity(
-                "authority:task-1",
-                "Task:1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:left").expect("existing-truth authority label")).expect("existing-truth authority identity"),
+                relational_entity(1, 1, 0),
             )
             .expect("binding should build"),
             &[crate::runtime::ForgeQueryAspectValue::new(
@@ -251,7 +345,7 @@ fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
                 serde_json::json!("Seed title"),
             )
             .expect("aspect should build")],
-            "snapshot:test",
+            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test"),
         )
         .expect("verified assertion should build"),
     );
@@ -273,7 +367,7 @@ fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
 fn existing_truth_mode_summary_panics_on_invalid_family_mode_pair() {
     let retained = ForgeQueryExistingTruthAssertionEvidence::retained_assertion(
         1,
-        "retained-assertion-digest",
+        retained_assertion_identity("retained-assertion"),
     );
 
     let _ = super::summarize_existing_truth_modes(

@@ -238,13 +238,13 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_preview_declaration(
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
             BridgeSpeculativeBranchBindingIdentity::new("pricing:binding"),
-            TruthBranchIdentity::new("pricing-shock"),
+            crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
             BridgeSignalBranchIdentity::new("signal:pricing-shock"),
         ),
         crate::facade::BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("pricing-shock"),
-                TruthSnapshotIdentity::new("snapshot:pricing-shock"),
+                crate::truth_identity_fixtures::truth_branch_fixture("pricing-shock"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-shock"),
             ),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -267,8 +267,8 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_merge_declaration(
             "rel-merge-v1",
             "schema-policy-v1",
             BridgeMergeParentOrderProof::new(vec![
-                crate::facade::TruthCommitIdentity::new("commit:rubber-main"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             ]),
         ),
     )
@@ -287,8 +287,8 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_topology_denial_merge_de
             "rel-merge-v1",
             "schema-policy-v1",
             BridgeMergeParentOrderProof::new(vec![
-                crate::facade::TruthCommitIdentity::new("commit:rubber-main"),
-                crate::facade::TruthCommitIdentity::new("commit:rubber-shock"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock"),
             ]),
         ),
     )

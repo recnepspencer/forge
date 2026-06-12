@@ -267,8 +267,8 @@ fn lower_batch_mutation_component(
         admitted.workflow_declaration(),
         admitted
             .normalized()
-            .expected_lower_runtime_binding_digest()
-            .expect("admitted mutation effects must preserve a lower-runtime binding digest"),
+            .expected_lower_runtime_binding_identity()
+            .expect("admitted mutation effects must preserve a lower-runtime binding identity"),
         input,
     )
     .map_err(|error| {

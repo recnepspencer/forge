@@ -1,4 +1,5 @@
 use super::*;
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::mutation::admit_naming_intent;
 use crate::runtime::{ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget};
 
@@ -41,7 +42,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             &self.label,
             self.pending_commands.len() + 1,
             &command,
-            self.runtime.snapshot_token(),
+            self.runtime.current_snapshot_identity(),
         );
         self.pending_commands.push(command);
         self.writes.push(receipt.clone());
@@ -61,7 +62,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
 
     pub fn update(
         &mut self,
-        entity_identity: impl Into<String>,
+        entity_identity: ForgeQueryEntityIdentity,
         declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let command =
@@ -117,13 +118,13 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         entity_identity: impl Into<String>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         self.write(ForgeQueryWriteCommand::Delete {
-            entity_identity: entity_identity.into(),
+            entity_identity: ForgeQueryEntityIdentity::authored_command(entity_identity.into()),
         })
     }
 
     pub fn delete_with(
         &mut self,
-        entity_identity: impl Into<String>,
+        entity_identity: ForgeQueryEntityIdentity,
         declaration: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let command =
@@ -171,7 +172,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         declaration: impl FnOnce(ForgeQueryMutationBatchBuilder) -> ForgeQueryMutationBatchBuilder,
     ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
         let commands = declaration(ForgeQueryMutationBatchBuilder::new()).finish()?;
-        let mut symbolic_targets = BTreeMap::<String, (String, Option<String>)>::new();
+        let mut symbolic_targets =
+            BTreeMap::<String, (ForgeQueryEntityIdentity, Option<String>)>::new();
         let mut receipts = Vec::with_capacity(commands.len());
         for command in commands {
             deny_preview_assertion(&command)?;
@@ -198,7 +200,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                         &self.label,
                         self.pending_commands.len() + 1,
                         &concrete,
-                        self.runtime.snapshot_token(),
+                        self.runtime.current_snapshot_identity(),
                     )
                     .with_symbolic_target_reference(
                         reference,
@@ -225,7 +227,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                         &self.label,
                         self.pending_commands.len() + 1,
                         &concrete,
-                        self.runtime.snapshot_token(),
+                        self.runtime.current_snapshot_identity(),
                     )
                     .with_symbolic_target_reference(
                         reference,
@@ -240,7 +242,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                         &self.label,
                         self.pending_commands.len() + 1,
                         &command,
-                        self.runtime.snapshot_token(),
+                        self.runtime.current_snapshot_identity(),
                     )
                 }
             };
@@ -257,7 +259,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
 }
 
 fn record_preview_symbolic_target(
-    symbolic_targets: &mut BTreeMap<String, (String, Option<String>)>,
+    symbolic_targets: &mut BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
     reference: &ForgeQuerySymbolicTargetReference,
     receipt: &ForgeQueryWriteReceipt,
 ) {
@@ -270,16 +272,16 @@ fn record_preview_symbolic_target(
     symbolic_targets.insert(
         reference.symbol().to_string(),
         (
-            target_entity_identity.to_string(),
+            target_entity_identity.clone(),
             receipt.target_collection().map(str::to_string),
         ),
     );
 }
 
 fn resolve_preview_symbolic_target(
-    symbolic_targets: &BTreeMap<String, (String, Option<String>)>,
+    symbolic_targets: &BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
     reference: &ForgeQuerySymbolicTargetReference,
-) -> Result<(String, Option<String>), ForgeQueryRuntimeError> {
+) -> Result<(ForgeQueryEntityIdentity, Option<String>), ForgeQueryRuntimeError> {
     let Some((resolved_entity_identity, resolved_collection)) =
         symbolic_targets.get(reference.symbol())
     else {

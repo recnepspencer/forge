@@ -1,6 +1,7 @@
 use crate::harness::certification::{
     CanonicalCertificationRow, HostileExpectation, ParityAnchor, RejectionCertificationRow,
 };
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{
     ForgeQueryAuthorityLane, ForgeQueryIntentDeclaration, ForgeQueryLiveView,
     ForgeQueryPreviewOptions, ForgeQueryRuntimeError,
@@ -411,9 +412,10 @@ fn duplicate_aspect_authoring_rejection() -> AspectApiFinalizationRejectionBundl
     let report = workspace.public_mutation_surface_report();
     let closeout = workspace.public_aspect_api_finalization_closeout();
     let error = workspace
-        .update("entity:1:1:1", |task| {
-            task.clear("title.value").aspect("title.value", "Buy milk")
-        })
+        .update(
+            ForgeQueryEntityIdentity::authored_command("entity:1:1:1"),
+            |task| task.clear("title.value").aspect("title.value", "Buy milk"),
+        )
         .expect_err("duplicate aspect authoring should fail closed");
 
     match error {

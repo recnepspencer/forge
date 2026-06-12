@@ -3,7 +3,10 @@ use crate::projection::runtime_boundary::query_runtime::{
 };
 use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
-use forge_query::facade::ForgeQueryBridgeBackedVerificationSupportStatus;
+use forge_query::facade::{
+    ForgeQueryBridgeBackedVerificationSupportStatus, ForgeQueryEntityIdentity,
+};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
 #[test]
 fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
@@ -187,16 +190,22 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
         .expect("relation verified delete should execute");
 }
 
-fn entity_identity(entity: forge_relational::facade::identity::EntityId) -> String {
-    format!(
-        "entity:{}:{}:{}",
-        entity.partition_id.0, entity.local_slot.0, entity.generation.0
-    )
+fn entity_identity(
+    entity: forge_relational::facade::identity::EntityId,
+) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        entity.partition_id.0,
+        entity.local_slot.0,
+        entity.generation.0,
+    ))
 }
 
-fn relation_identity(relation: forge_relational::facade::identity::RelationId) -> String {
-    format!(
-        "relation:{}:{}:{}",
-        relation.partition_id.0, relation.local_slot.0, relation.generation.0
-    )
+fn relation_identity(
+    relation: forge_relational::facade::identity::RelationId,
+) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::relation(
+        relation.partition_id.0,
+        relation.local_slot.0,
+        relation.generation.0,
+    ))
 }

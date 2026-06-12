@@ -156,11 +156,11 @@ impl TopologySnapshotReadOnlyReadHandleExt for TopologySnapshotReadOnlyConfigure
         &'a self,
         workspace: &'a mut ForgeQueryWorkspace,
     ) -> TopologySnapshotReadOnlyReadSession<'a> {
-        let snapshot_token = workspace.snapshot_token().to_string();
+        let snapshot_identity = workspace.snapshot_identity();
         TopologyConfiguredDomainReadSession::new(
             self,
             workspace,
-            TopologyReadExecutionTarget::historical_snapshot(snapshot_token),
+            TopologyReadExecutionTarget::historical_snapshot(snapshot_identity),
         )
     }
 }

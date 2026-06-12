@@ -1,6 +1,10 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use forge_runtime_bridge::facade::BridgeCausalEnvelopeDenial;
+
+use super::super::identity::compose_bridge_causal_denial_identity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CausalInspectionArtifactKind {
@@ -100,19 +104,49 @@ impl CausalInspectionMaterializationErrorKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalInspectionMaterializationError {
     kind: CausalInspectionMaterializationErrorKind,
-    failure_digest: String,
+    failure_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl CausalInspectionMaterializationError {
     pub(super) fn new(kind: CausalInspectionMaterializationErrorKind, evidence: &[String]) -> Self {
-        let mut parts = vec![
-            "causal_inspection_materialization_error_v1".to_string(),
-            kind.as_str().to_string(),
-        ];
-        parts.extend(evidence.iter().cloned());
         Self {
             kind,
-            failure_digest: hash_parts(&parts),
+            failure_identity: ForgeQueryEvidenceIdentity::compose(
+                ForgeQueryEvidenceScope::CausalInspectionDeniedArtifactDetail,
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+            .field_identity_sequence(
+                ForgeQueryEvidenceTag::new("evidence"),
+                evidence.iter().map(String::as_str),
+            )
+            .seal(),
+        }
+    }
+
+    fn from_typed_bridge_denial(
+        kind: CausalInspectionMaterializationErrorKind,
+        denial: &BridgeCausalEnvelopeDenial,
+    ) -> Self {
+        let bridge_denial_identity = compose_bridge_causal_denial_identity(denial);
+        Self {
+            kind,
+            failure_identity: ForgeQueryEvidenceIdentity::compose(
+                ForgeQueryEvidenceScope::CausalInspectionDeniedArtifactDetail,
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("bridge_denial"),
+                &bridge_denial_identity,
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("bridge_denial_kind"),
+                denial.kind().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("bridge_denial_family"),
+                denial.family().as_str(),
+            )
+            .seal(),
         }
     }
 
@@ -121,17 +155,13 @@ impl CausalInspectionMaterializationError {
     }
 
     pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+        self.failure_identity.as_str()
     }
 
     pub(crate) fn from_bridge_assembly_denial(denial: &BridgeCausalEnvelopeDenial) -> Self {
-        Self::new(
+        Self::from_typed_bridge_denial(
             CausalInspectionMaterializationErrorKind::MaterializationPolicyOverclaim,
-            &[
-                format!("bridge-denial:{}", denial.failure_digest()),
-                format!("bridge-denial-kind:{}", denial.kind().as_str()),
-                format!("bridge-denial-family:{}", denial.family().as_str()),
-            ],
+            denial,
         )
     }
 }

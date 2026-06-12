@@ -6,7 +6,9 @@ use crate::application::{
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationFutureProjection,
     ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRoutePlanDenialCause,
 };
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::{
     artifact::ForgeQueryDeclarationBridgeRoutingClass,
@@ -34,53 +36,132 @@ pub(crate) fn derive_bridge_routing_digest<
     future_projection: &ForgeQueryDeclarationFutureProjection,
     basis_lifecycle_support_digest: &str,
 ) -> String {
-    hash_parts(&[
-        format!("handle:{}", envelope.handle_identity_digest()),
-        format!(
-            "operating_context:{}",
-            envelope.operating_context_identity_digest()
-        ),
-        format!("family:{}", envelope.declaration_family_key()),
-        format!("declaration:{}", envelope.declaration_digest()),
-        format!(
-            "progression:{}",
-            envelope.progression_digest().unwrap_or("none")
-        ),
-        format!(
-            "route_plan:{}",
-            envelope.route_plan_digest().unwrap_or("none")
-        ),
-        format!(
-            "receipt:{}",
-            canonical_digest_token(envelope.receipt_digest())
-        ),
-        format!(
-            "envelope:{}",
-            canonical_digest_token(envelope.envelope_digest())
-        ),
-        format!("class:{class:?}"),
-        format!("mode:{}", continuation_request.mode().as_str()),
-        format!(
-            "truth_context:{}",
-            continuation_request.truth_context().as_str()
-        ),
-        format!("continuation_family:{}", continuation_family.as_str()),
-        format!("binding_surface:{binding_surface}"),
-        format!("aspect_contract:{aspect_contract:?}"),
-        format!("aspect_coverage:{aspect_coverage:?}"),
-        format!("aspect_coverage_basis:{aspect_coverage_basis:?}"),
-        format!("aspect_fit:{aspect_fit:?}"),
-        format!("mapped_aspects:{mapped_aspects:?}"),
-        format!("mapping_fit:{mapping_fit:?}"),
-        format!(
-            "future_projection:{}",
-            future_projection.projection_digest()
-        ),
-        format!("basis_lifecycle_support:{basis_lifecycle_support_digest}"),
-        format!("evidence_origin:{:?}", envelope.evidence_origin()),
-        format!("route_cause:{route_cause:?}"),
-        format!("receipt_cause:{receipt_cause:?}"),
-    ])
+    let receipt_digest = canonical_digest_token(envelope.receipt_digest());
+    let envelope_digest = canonical_digest_token(envelope.envelope_digest());
+
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::DeclarationBridgeRoutingDigest)
+        .field_identity(
+            ForgeQueryEvidenceTag::new("handle"),
+            envelope.handle_identity_digest(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("operating_context"),
+            envelope.operating_context_identity_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            envelope.declaration_family_key(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("declaration"),
+            envelope.declaration_digest(),
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("progression"),
+            envelope.progression_digest(),
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("route_plan"),
+            envelope.route_plan_digest(),
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("receipt"), &receipt_digest)
+        .field_identity(ForgeQueryEvidenceTag::new("envelope"), &envelope_digest)
+        .field_shape(ForgeQueryEvidenceTag::new("class"), class.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("mode"),
+            continuation_request.mode().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("truth_context"),
+            continuation_request.truth_context().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("continuation_family"),
+            continuation_family.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("binding_surface"),
+            binding_surface,
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_contract_required"),
+            aspect_contract.required().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_contract_preserved"),
+            aspect_contract.preserved().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_contract_published"),
+            aspect_contract.published().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_contract_masked"),
+            aspect_contract.masked().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_contract_incompatible"),
+            aspect_contract.incompatible().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_coverage_present"),
+            aspect_coverage.present().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_coverage_masked"),
+            aspect_coverage.masked().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_coverage_conflicting"),
+            aspect_coverage.conflicting().iter().map(String::as_str),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("aspect_coverage_basis"),
+            aspect_coverage_basis.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("aspect_fit"),
+            aspect_fit.as_str(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("mapped_aspect_present"),
+            mapped_aspects.present().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("mapped_aspect_masked"),
+            mapped_aspects.masked().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("mapped_aspect_conflicting"),
+            mapped_aspects.conflicting().iter().map(String::as_str),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("mapping_fit"),
+            mapping_fit.as_str(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("future_projection"),
+            future_projection.projection_digest(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("basis_lifecycle_support"),
+            basis_lifecycle_support_digest,
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("evidence_origin"),
+            envelope.evidence_origin().as_str(),
+        )
+        .optional_shape(
+            ForgeQueryEvidenceTag::new("route_cause"),
+            route_cause.map(ForgeQueryDeclarationRoutePlanDenialCause::as_str),
+        )
+        .optional_shape(
+            ForgeQueryEvidenceTag::new("receipt_cause"),
+            receipt_cause.map(ForgeQueryDeclarationReceiptDenialCause::as_str),
+        )
+        .seal()
+        .as_str()
+        .to_string()
 }
 
 fn canonical_digest_token(digest: &CanonicalDerivedDigest) -> String {

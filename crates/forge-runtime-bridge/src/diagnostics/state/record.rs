@@ -3,18 +3,12 @@ use super::*;
 impl BridgeDiagnosticsState {
     pub(crate) fn record_route(&mut self, record: BridgeRouteRecord, limit: usize) {
         let record = Arc::new(record);
-        self.latest_route_by_route_identity.insert(
-            record.route_identity().as_str().to_string(),
-            Arc::clone(&record),
-        );
-        self.latest_route_by_invalidation_identity.insert(
-            record.invalidation_identity().as_str().to_string(),
-            Arc::clone(&record),
-        );
-        self.latest_route_by_source_commit.insert(
-            record.source_commit().as_str().to_string(),
-            Arc::clone(&record),
-        );
+        self.latest_route_by_route_identity
+            .insert(record.route_identity().clone(), Arc::clone(&record));
+        self.latest_route_by_invalidation_identity
+            .insert(record.invalidation_identity().clone(), Arc::clone(&record));
+        self.latest_route_by_source_commit
+            .insert(record.source_commit().clone(), Arc::clone(&record));
         self.route_records.push_back(record);
         while self.route_records.len() > limit.max(1) {
             if let Some(evicted) = self.route_records.pop_front() {
@@ -48,10 +42,8 @@ impl BridgeDiagnosticsState {
         limit: usize,
     ) {
         let record = Arc::new(record);
-        self.latest_continuity_by_route_identity.insert(
-            record.route_identity().as_str().to_string(),
-            Arc::clone(&record),
-        );
+        self.latest_continuity_by_route_identity
+            .insert(record.route_identity().clone(), Arc::clone(&record));
         self.continuity_records.push_back(record);
         while self.continuity_records.len() > limit.max(1) {
             if let Some(evicted) = self.continuity_records.pop_front() {

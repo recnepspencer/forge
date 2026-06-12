@@ -100,22 +100,33 @@ fn raw_intent_for(
 ) -> RawBasisIntent {
     match family {
         NormalizedBasisFamily::CurrentHead => RawBasisIntent::current_head(lane),
-        NormalizedBasisFamily::BranchHead => RawBasisIntent::branch_head("branch:main", lane),
-        NormalizedBasisFamily::BranchSnapshot => {
-            RawBasisIntent::branch_snapshot("branch:main", "snapshot:1", lane)
+        NormalizedBasisFamily::BranchHead => {
+            RawBasisIntent::branch_head(super::test_branch_identity("branch:main"), lane)
         }
-        NormalizedBasisFamily::RuntimeSnapshot => {
-            RawBasisIntent::runtime_snapshot("runtime:snapshot:1", lane)
-        }
-        NormalizedBasisFamily::HistoricalSnapshot => {
-            RawBasisIntent::historical_snapshot("history:snapshot:1", lane)
-        }
+        NormalizedBasisFamily::BranchSnapshot => RawBasisIntent::branch_snapshot(
+            super::test_branch_identity("branch:main"),
+            super::test_snapshot_identity("snapshot:1"),
+            lane,
+        ),
+        NormalizedBasisFamily::RuntimeSnapshot => RawBasisIntent::runtime_snapshot(
+            super::test_snapshot_identity("runtime:snapshot:1"),
+            lane,
+        ),
+        NormalizedBasisFamily::HistoricalSnapshot => RawBasisIntent::historical_snapshot(
+            super::test_snapshot_identity("history:snapshot:1"),
+            lane,
+        ),
         NormalizedBasisFamily::HistoricalCommit => {
-            RawBasisIntent::historical_commit("commit:1", lane)
+            RawBasisIntent::historical_commit(super::test_commit_identity("commit:1"), lane)
         }
-        NormalizedBasisFamily::Preview => RawBasisIntent::preview("preview:session-1", lane),
+        NormalizedBasisFamily::Preview => {
+            RawBasisIntent::preview(super::test_preview_identity("preview:session-1"), lane)
+        }
         NormalizedBasisFamily::PreviewDerivedHistorical => {
-            RawBasisIntent::preview_derived_historical("preview:session-1", lane)
+            RawBasisIntent::preview_derived_historical(
+                super::test_preview_identity("preview:session-1"),
+                lane,
+            )
         }
     }
 }
@@ -177,7 +188,7 @@ fn common_path_observation_admits_without_manual_phase_assembly() {
 #[test]
 fn common_path_mutation_preparation_denies_preview_before_capability_construction() {
     let denial = admit_mutation_preparation_basis_intent(RawBasisIntent::preview(
-        "preview:session-1",
+        super::test_preview_identity("preview:session-1"),
         BasisOperationLaneRequest::MutationPreparation,
     ))
     .expect_err("preview mutation preparation should deny at the common path");

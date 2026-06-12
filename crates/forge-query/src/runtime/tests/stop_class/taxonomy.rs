@@ -121,13 +121,29 @@ fn runtime_stop_class_preserves_multiple_denial_kinds_within_the_same_family() {
 
     let naming_denials = [
         ForgeQueryNamingMutationDenial::new(
-            &ForgeQueryNamingMutationIntent::attach_new_target("attachment-1").expect("intent"),
+            &ForgeQueryNamingMutationIntent::attach_new_target(
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+                    crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("attachment-1")
+                        .expect("naming attachment authority label"),
+                )
+                .expect("naming attachment identity"),
+            ),
             ForgeQueryNamingMutationDenialKind::RequiresSameBatchTargetReference,
             "naming needs a same-batch target",
         ),
         ForgeQueryNamingMutationDenial::new(
-            &ForgeQueryNamingMutationIntent::remove("attachment-1", "Task:1")
-                .expect("remove intent"),
+            &ForgeQueryNamingMutationIntent::remove(
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+                    crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("attachment-1")
+                        .expect("naming attachment authority label"),
+                )
+                .expect("naming attachment identity"),
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_prior_authority(
+                    crate::runtime::ForgeQueryNamingPriorAuthorityLabel::new("attachment-1")
+                        .expect("naming prior authority label"),
+                )
+                .expect("naming prior authority identity"),
+            ),
             ForgeQueryNamingMutationDenialKind::RequiresDeleteFamily,
             "naming requires delete family",
         ),

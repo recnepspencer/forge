@@ -3,6 +3,11 @@ use forge_relational::facade::runtime::InvariantCatalog;
 
 use crate::identity::hash_parts;
 
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+
 use crate::domain_capabilities::denials::{
     ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
 };
@@ -258,10 +263,24 @@ fn graph_invariant_summary(
         semantics.declared_symbols().to_vec(),
         semantics.target_combination_families().to_vec(),
         semantics.lifecycle_families().to_vec(),
-        semantics.program_digest().to_string(),
-        semantics.breadth_digest().to_string(),
+        graph_invariant_semantics_digest("program", semantics.program_digest()),
+        graph_invariant_semantics_digest("breadth", semantics.breadth_digest()),
         semantics.counter_snapshot().to_string(),
     )
+}
+
+fn graph_invariant_semantics_digest(
+    role: &'static str,
+    digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "graph-invariant-runtime-semantics",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("semantic_digest_role"), role)
+        .field_identity(ForgeQueryEvidenceTag::new("semantic_digest"), digest)
+        .seal()
 }
 
 fn missing_runtime_semantics_denial(

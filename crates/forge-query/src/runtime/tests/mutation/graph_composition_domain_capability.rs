@@ -64,7 +64,10 @@ fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifac
                 graph.insert_relation("TaskEdge", |edge| {
                     edge.aspect("edge.kind", "depends_on")
                         .symbolic_entity_identity("edge.source_identity", &task)
-                        .existing_entity_identity("edge.target_identity", "task-existing")
+                        .existing_entity_identity(
+                            "edge.target_identity",
+                            test_entity_identity("task-existing"),
+                        )
                 })?;
                 Ok(())
             },
@@ -97,19 +100,84 @@ fn ready_lower_runtime_invariant(
 ) -> crate::domain_capabilities::ForgeQueryMaterializationReadyInvariantCapabilityContribution<
     crate::domain_capabilities::ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
 > {
-    let requested = authoring.bind_to_lower_runtime_boundary_target(
-        crate::domain_capabilities::ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::from_digest(
-            "boundary-graph",
-        ),
-    );
+    let target = lower_runtime_target("boundary-graph");
+    let requested = authoring.bind_to_lower_runtime_boundary_target(target.clone());
     let eligible = success(evaluate_requested_domain_capability_contribution(requested));
     let admitted = success(admit_eligible_domain_capability_contribution(eligible));
-    success(prepare_admitted_domain_capability_contribution_for_materialization(
-        admitted,
-        crate::domain_capabilities::ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::from_digest(
-            "boundary-graph",
+    success(prepare_admitted_domain_capability_contribution_for_materialization(admitted, target))
+}
+
+fn lower_runtime_target(
+    label: &str,
+) -> crate::domain_capabilities::ForgeQueryLowerRuntimeBoundaryBoundContributionTarget {
+    crate::domain_capabilities::ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::for_lower_runtime_boundary_envelope(
+        &lower_runtime_envelope(label),
+    )
+}
+
+fn lower_runtime_envelope(
+    label: &str,
+) -> crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryEnvelope {
+    let subject_identity =
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "graph-composition-domain-capability-fixture-subject",
+        )
+        .field_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture"),
+            label,
+        )
+        .seal();
+    let request = crate::lower_runtime_routing::ForgeQueryLowerRuntimeCapabilityRequest::new(
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeAuthorityOwner::Query,
+        "signal-invalidation-routing",
+        subject_identity,
+    );
+    let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+        crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+    )
+    .field_identity(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture_detail"),
+        label,
+    )
+    .seal();
+    let eligibility =
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+            request,
+            &detail_identity,
+        );
+    let route = crate::lower_runtime_routing::ForgeQueryLowerRuntimeRoutePlan::new(
+        eligibility,
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "graph-composition-domain-capability-fixture-route",
+            &detail_identity,
         ),
-    ))
+    );
+    let retained_evidence =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "graph-composition-domain-capability-fixture",
+            &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+                crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+            )
+            .field_identity(
+                crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture_retained"),
+                label,
+            )
+            .seal(),
+        );
+    let boundary =
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
+            &route,
+            &retained_evidence,
+        );
+
+    crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
+        &route,
+        &boundary,
+        &retained_evidence,
+    )
 }
 
 fn success<T, D, S, R, F, O>(outcome: TransitionOutcome<T, D, S, R, F, O>) -> T

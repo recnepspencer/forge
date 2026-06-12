@@ -197,6 +197,7 @@ pub mod core {
         TemporalWakeAdmissionSummary, TemporalWakeOwner, TemporalWakeReschedule,
         TemporalWakeRetirementBatch, TemporalWakeReuse, ThrottleCondition, ValidatedClockAdvance,
     };
+    pub use crate::data::trace::TraceSummary;
     pub use crate::logic::invalidation::mark_dirty_batch;
 
     pub fn mark_dirty(

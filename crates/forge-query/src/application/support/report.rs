@@ -241,19 +241,19 @@ impl ForgeQuerySupportReport {
                         .iter()
                         .map(ForgeQuerySupportSectionPosture::posture_digest),
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("query_composition_profile_digest"),
                     query_composition_support_profile
                         .as_ref()
                         .map(ForgeQueryQueryCompositionSupportProfile::profile_digest),
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("query_context_profile_digest"),
                     query_context_support_profile
                         .as_ref()
                         .map(ForgeQueryQueryContextSupportProfile::profile_digest),
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("identity_evolution_profile_digest"),
                     identity_evolution_support_profile
                         .as_ref()

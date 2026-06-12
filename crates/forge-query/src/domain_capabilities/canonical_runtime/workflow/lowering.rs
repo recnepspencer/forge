@@ -38,7 +38,7 @@ where
         Ok(lowering) => lowering.clone(),
         Err(denial) => return TransitionOutcome::Denied(denial),
     };
-    let (authority_binding_digest, input) = match lowering.mutation_parts() {
+    let (authority_binding_identity, input) = match lowering.mutation_parts() {
         Some(parts) => parts,
         None => {
             return TransitionOutcome::Denied(inconsistent_workflow_lowering_semantics_denial(
@@ -60,7 +60,7 @@ where
         TransitionOutcome::Deferred(never) => match never {},
     };
 
-    lower_mutation_intent_declaration(&declaration, authority_binding_digest, input.clone())
+    lower_mutation_intent_declaration(&declaration, authority_binding_identity, input.clone())
         .map_or_else(
             |error| {
                 lowering_error_outcome(

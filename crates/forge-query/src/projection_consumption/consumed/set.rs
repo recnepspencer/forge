@@ -11,7 +11,7 @@ use crate::runtime::ForgeQueryMutationTargetClass;
 use serde_json::Value;
 
 use super::super::contracts::ProjectionContractSupportPosture;
-use super::super::source::ProjectionSourceFamily;
+use super::super::source::{ProjectionSourceFamily, ProjectionSourceIdentity};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ProjectionFactExtractionCounters {
@@ -83,7 +83,7 @@ pub struct ConsumedProjectionFactSet {
     declaration_digest: String,
     contract_digest: String,
     source_family: ProjectionSourceFamily,
-    source_identity: String,
+    source_identity: ProjectionSourceIdentity,
     support_posture: ProjectionContractSupportPosture,
     materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     counters: ProjectionFactExtractionCounters,
@@ -113,6 +113,10 @@ impl ConsumedProjectionFactSet {
     }
 
     pub fn source_identity(&self) -> &str {
+        self.source_identity.as_str()
+    }
+
+    pub fn source_identity_handle(&self) -> &ProjectionSourceIdentity {
         &self.source_identity
     }
 
@@ -176,7 +180,7 @@ impl ConsumedProjectionFactSet {
         declaration_digest: impl Into<String>,
         contract_digest: impl Into<String>,
         source_family: ProjectionSourceFamily,
-        source_identity: impl Into<String>,
+        source_identity: ProjectionSourceIdentity,
         support_posture: ProjectionContractSupportPosture,
         materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
         counters: ProjectionFactExtractionCounters,
@@ -192,12 +196,11 @@ impl ConsumedProjectionFactSet {
     ) -> Self {
         let declaration_digest = declaration_digest.into();
         let contract_digest = contract_digest.into();
-        let source_identity = source_identity.into();
         let fact_set_digest = fact_set_digest(
             &declaration_digest,
             &contract_digest,
             source_family,
-            &source_identity,
+            source_identity.as_str(),
             &support_posture,
             materialized_fact_posture.as_ref(),
             &counters,
@@ -283,7 +286,7 @@ fn fact_set_digest(
                 format!(
                     "entity_identity:{}:{}",
                     fact.source_row_identity(),
-                    fact.entity_identity()
+                    fact.entity_identity().evidence_identity()
                 )
             }))
             .chain(view_local_identities.iter().map(|fact| {
@@ -307,11 +310,12 @@ fn fact_set_digest(
                     .iter()
                     .map(field_digest("derived_scalar")),
             )
-            .chain(
-                target_identities
-                    .iter()
-                    .map(|fact| format!("target_identity:{}", fact.target_identity())),
-            )
+            .chain(target_identities.iter().map(|fact| {
+                format!(
+                    "target_identity:{}",
+                    fact.target_identity().evidence_identity()
+                )
+            }))
             .chain(
                 source_references
                     .iter()
@@ -322,8 +326,18 @@ fn fact_set_digest(
                     "effect_continuity:{}:{}:{}",
                     fact.family() as u8,
                     fact.outcome_class() as u8,
-                    fact.prior_authoritative_identity()
+                    fact.prior_authoritative_identity().evidence_identity()
                 )
+            }))
+            .chain(effect_continuity_facts.iter().flat_map(|fact| {
+                fact.successor_authoritative_identities()
+                    .iter()
+                    .map(|identity| {
+                        format!(
+                            "effect_continuity_successor:{}",
+                            identity.evidence_identity()
+                        )
+                    })
             }))
             .chain(relation_endpoints.iter().map(relation_endpoint_digest))
             .collect::<Vec<_>>(),
@@ -351,7 +365,10 @@ fn relation_endpoint_digest(fact: &ConsumedRelationEndpointFact) -> String {
             "relation_endpoint:mutation:{:?}:{}:{}",
             target_class,
             collection.as_deref().unwrap_or("none"),
-            entity_identity.as_deref().unwrap_or("none")
+            entity_identity
+                .as_ref()
+                .map(|identity| identity.evidence_identity().to_string())
+                .unwrap_or_else(|| "none".to_string())
         ),
         ConsumedRelationEndpointFact::GroupedProjection {
             source_row_identity,

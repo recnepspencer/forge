@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::adoption::{
     CausalityCarryPolicy, RetainedArtifactCarryPolicy, RuntimeArtifactCarryPolicy,
@@ -19,7 +19,7 @@ use super::strategy_witness_denial::{
     ensure_non_empty_digest, SignalMergeStrategyWitnessDenial, SignalMergeStrategyWitnessDenialKind,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignalAspectPolicyInventoryEntry {
     policy_name: AspectMergePolicyName,
     policy_digest: String,
@@ -52,7 +52,7 @@ impl SignalAspectPolicyInventoryEntry {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignalMergeStrategyIdentity {
     merge_strategy: BranchMergeStrategy,
     selected_strategy_name: MergeStrategyName,
@@ -136,7 +136,7 @@ impl SignalMergeStrategyIdentity {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignalInvalidationStrategyIdentity {
     boundary_witness_kind: MergeBoundaryWitnessKind,
     conflict_isolation_name: ConflictIsolationPolicyName,
@@ -208,7 +208,7 @@ impl SignalInvalidationStrategyIdentity {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignalDeliveryStrategyIdentity {
     conflict_policy_name: ConflictPolicyName,
     conflict_policy_digest: String,

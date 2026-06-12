@@ -12,6 +12,9 @@ use crate::relational_aspect_boundary::{entity_record_domain_label, entity_recor
 use crate::topology_operators::topology_relation_dependency_path;
 
 use super::binding::TopologyRuntimeBinding;
+use super::write_support::{
+    entity_identity, entity_identity_label, relation_identity, relation_identity_label,
+};
 
 pub(super) fn topology_entity_rows(binding: &TopologyRuntimeBinding) -> Vec<ForgeQueryEntity> {
     let names = topology_entity_persistent_name_map(binding);
@@ -49,7 +52,7 @@ fn entity_identity_map(binding: &TopologyRuntimeBinding) -> BTreeMap<EntityId, S
         .filter_map(|entity| {
             EntityKind::from_kind_id(entity.kind.kind_id)
                 .filter(|kind| kind.is_topological())
-                .map(|_| (entity.entity_id, entity_identity(entity.entity_id)))
+                .map(|_| (entity.entity_id, entity_identity_label(entity.entity_id)))
         })
         .collect()
 }
@@ -192,7 +195,7 @@ fn topology_entity_relation_identity_map(
         };
         relations.entry(relation.source).or_default().insert(
             topology_kind.kind_name().to_string(),
-            relation_identity(relation.relation_id),
+            relation_identity_label(relation.relation_id),
         );
     }
     relations
@@ -255,18 +258,4 @@ fn relation_row(
         relation_identity(relation.relation_id),
         payload,
     ))
-}
-
-fn entity_identity(entity: EntityId) -> String {
-    format!(
-        "entity:{}:{}:{}",
-        entity.partition_id.0, entity.local_slot.0, entity.generation.0
-    )
-}
-
-fn relation_identity(relation: forge_relational::facade::identity::RelationId) -> String {
-    format!(
-        "relation:{}:{}:{}",
-        relation.partition_id.0, relation.local_slot.0, relation.generation.0
-    )
 }

@@ -1,10 +1,12 @@
 use super::*;
 use crate::error::BridgeRouteError;
 use crate::mapping::TruthDeltaSurfaceKind;
+use crate::relational_identity::RelationalBridgeRecordIdentityParts;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeCommittedPatchItem {
     entity_identity: Arc<str>,
+    relational_record_identity: Option<RelationalBridgeRecordIdentityParts>,
     target: BridgeCommittedPatchTarget,
 }
 
@@ -15,12 +17,29 @@ impl BridgeCommittedPatchItem {
     ) -> Self {
         Self {
             entity_identity: entity_identity.into(),
+            relational_record_identity: None,
             target,
         }
     }
 
     pub fn entity_identity(&self) -> &str {
         self.entity_identity.as_ref()
+    }
+
+    pub fn relational_record_identity_parts(&self) -> Option<RelationalBridgeRecordIdentityParts> {
+        self.relational_record_identity
+    }
+
+    pub(crate) fn from_relational_record_parts(
+        entity_identity: impl Into<Arc<str>>,
+        relational_record_identity: RelationalBridgeRecordIdentityParts,
+        target: BridgeCommittedPatchTarget,
+    ) -> Self {
+        Self {
+            entity_identity: entity_identity.into(),
+            relational_record_identity: Some(relational_record_identity),
+            target,
+        }
     }
 
     pub fn target(&self) -> &BridgeCommittedPatchTarget {

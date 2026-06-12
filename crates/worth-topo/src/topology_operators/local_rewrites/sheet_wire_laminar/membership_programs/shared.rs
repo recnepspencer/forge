@@ -1,5 +1,5 @@
 use forge_query::facade::{
-    ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
+    ForgeQueryEntityIdentity, ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionBuilder,
     ForgeQueryRuntimeError,
 };
@@ -15,7 +15,7 @@ use crate::topology_operators::mutation_sequence::TopologyDeclaredMutationMember
 pub(super) fn bind_existing_relation_handle(
     runner: &TopologyMutationApplicationRunner<'_, '_>,
     relation_id: RelationId,
-    query_identity: &str,
+    query_identity: ForgeQueryEntityIdentity,
 ) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
     runner.workspace.bind_existing_relation(
         ForgeQueryExistingRelationTarget::new(format!("{relation_id:?}"), query_identity)?

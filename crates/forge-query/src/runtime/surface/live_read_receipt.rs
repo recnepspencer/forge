@@ -1,4 +1,5 @@
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::runtime::{
     ForgeQueryIntentConsumerInspection, ForgeQueryIntentExecutionProvenance,
@@ -15,7 +16,8 @@ pub struct ForgeQueryLiveReadReceipt {
     view_shape_digest: String,
     subscription_family_digest: String,
     result_digest: String,
-    snapshot_token: String,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    snapshot_evidence_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     row_count: usize,
     materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
@@ -25,10 +27,11 @@ pub struct ForgeQueryLiveReadReceipt {
 impl ForgeQueryLiveReadReceipt {
     pub(in crate::runtime) fn from_rows(
         installation: &ForgeQueryRuntimeLiveSubscriptionInstallation,
-        snapshot_token: String,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
         rows: &[crate::memory_workspace::ForgeQueryEntity],
     ) -> Self {
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         Self {
             view_name: installation.view_name().to_string(),
             installation_digest: installation.installation_digest().to_string(),
@@ -42,7 +45,8 @@ impl ForgeQueryLiveReadReceipt {
             )
             .as_str()
             .to_string(),
-            snapshot_token,
+            snapshot_identity,
+            snapshot_evidence_identity,
             row_count: rows.len(),
             materialized_fact_posture,
             decision_trace_envelope: None,
@@ -74,8 +78,14 @@ impl ForgeQueryLiveReadReceipt {
         &self.result_digest
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn snapshot_evidence_identity(
+        &self,
+    ) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        &self.snapshot_evidence_identity
     }
 
     pub fn row_count(&self) -> usize {
@@ -114,9 +124,10 @@ impl ForgeQueryLiveReadReceipt {
         view_shape_digest: impl Into<String>,
         subscription_family_digest: impl Into<String>,
         result_digest: impl Into<String>,
-        snapshot_token: impl Into<String>,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         row_count: usize,
     ) -> Self {
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         Self {
             view_name: view_name.into(),
             installation_digest: installation_digest.into(),
@@ -124,7 +135,8 @@ impl ForgeQueryLiveReadReceipt {
             view_shape_digest: view_shape_digest.into(),
             subscription_family_digest: subscription_family_digest.into(),
             result_digest: result_digest.into(),
-            snapshot_token: snapshot_token.into(),
+            snapshot_identity,
+            snapshot_evidence_identity,
             row_count,
             materialized_fact_posture: None,
             decision_trace_envelope: None,

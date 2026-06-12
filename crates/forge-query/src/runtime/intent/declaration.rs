@@ -1,4 +1,5 @@
 use super::*;
+use crate::identity::hash_parts;
 use crate::runtime::ForgeQueryEffectWriteAdjacentTrigger;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

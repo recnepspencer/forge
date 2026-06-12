@@ -147,10 +147,10 @@ fn pricing_shock_missing_snapshot_fails_with_typed_delivery_record() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:steel-missing-snapshot"),
-            TruthPatchIdentity::new("patch:steel-missing-snapshot"),
-            TruthSnapshotIdentity::new("snapshot:pricing-missing"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-missing-snapshot"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-missing-snapshot"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-missing"),
         ),
         "steel",
     ));
@@ -169,10 +169,10 @@ fn pricing_shock_missing_snapshot_fails_with_typed_delivery_record() {
     );
     assert_eq!(
         failure.source_commit,
-        TruthCommitIdentity::new("commit:steel-missing-snapshot")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-missing-snapshot")
     );
     assert_eq!(
         failure.source_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-missing")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-missing")
     );
 }

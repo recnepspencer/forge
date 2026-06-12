@@ -12,7 +12,7 @@ pub(in crate::runtime::tests) fn graph_composition_resolution_snapshot(
             (
                 entry.component_index(),
                 entry.aspect_path().map(str::to_string),
-                entry.symbol().to_string(),
+                entry.symbol().as_str().to_string(),
                 entry.resolved_entity_identity().to_string(),
             )
         })

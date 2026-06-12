@@ -1,7 +1,10 @@
 use serde_json::Value;
 
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::memory_workspace::ForgeQueryWorkspaceError;
+use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;
 
 use super::ForgeQueryExistingTruthTargetBinding;
 
@@ -64,19 +67,42 @@ impl ForgeQueryExistingTruthProbeDenial {
         message: impl Into<String>,
     ) -> Self {
         let message = message.into();
-        let denial_digest = hash_parts(&[
-            "forge_query_existing_truth_probe_denial_v1".to_string(),
-            format!("family:{}", binding.family()),
-            format!("authoritative:{}", binding.authoritative_identity()),
-            format!("resolved:{}", binding.resolved_target_identity()),
-            format!(
-                "collection:{}",
-                binding.target_collection().unwrap_or("none")
-            ),
-            format!("kind:{kind}"),
-            format!("aspect:{}", probed_aspect_path.as_deref().unwrap_or("none")),
-            format!("message:{message}"),
-        ]);
+        let target_collection_identity = binding.target_collection().map(|collection| {
+            ForgeQueryMutationTargetCollectionIdentity::new("existing-truth-probe", collection)
+        });
+        let denial_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "existing-truth-probe-denial",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("family"),
+                    binding.family().as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("authoritative"),
+                    binding.authoritative_identity().evidence_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("resolved"),
+                    &binding.resolved_target_identity().evidence_identity(),
+                )
+                .optional_evidence_identity(
+                    ForgeQueryEvidenceTag::new("collection"),
+                    target_collection_identity
+                        .as_ref()
+                        .map(ForgeQueryMutationTargetCollectionIdentity::evidence_identity),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("aspect"),
+                    probed_aspect_path.as_deref(),
+                )
+                .field_value(ForgeQueryEvidenceTag::new("message"), &message)
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             binding: binding.clone(),
             kind,
@@ -112,7 +138,7 @@ impl std::fmt::Display for ForgeQueryExistingTruthProbeDenial {
         write!(
             f,
             "existing-truth probe denied for authoritative `{}` during {}: {}",
-            self.binding.authoritative_identity(),
+            self.binding.authoritative_identity().as_str(),
             self.kind,
             self.message
         )
@@ -148,15 +174,23 @@ impl ForgeQueryExistingTruthProbeRequest {
                 "existing-truth probe must declare at least one aspect path",
             ));
         }
-        let request_digest = hash_parts(
-            &std::iter::once("forge_query_existing_truth_probe_request_v1".to_string())
-                .chain(std::iter::once(format!(
-                    "binding:{}",
-                    binding.binding_digest()
-                )))
-                .chain(aspect_paths.iter().map(|path| format!("aspect:{path}")))
-                .collect::<Vec<_>>(),
-        );
+        let request_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "existing-truth-probe-request",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("binding"),
+                    binding.binding_evidence_identity(),
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("aspect"),
+                    aspect_paths.iter().map(String::as_str),
+                )
+                .seal()
+                .as_str()
+                .to_string();
         Ok(Self {
             binding,
             aspect_paths,
@@ -189,11 +223,17 @@ impl ForgeQueryExistingTruthProbeField {
     fn new(aspect_path: String, value: Value) -> Self {
         let external_value_json =
             serde_json::to_string(&value).unwrap_or_else(|_| value.to_string());
-        let value_digest = hash_parts(&[
-            "forge_query_existing_truth_probe_field_v1".to_string(),
-            format!("aspect:{aspect_path}"),
-            format!("value:{external_value_json}"),
-        ]);
+        let value_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "existing-truth-probe-field",
+                )
+                .field_value(ForgeQueryEvidenceTag::new("aspect"), &aspect_path)
+                .field_value(ForgeQueryEvidenceTag::new("value"), &external_value_json)
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             aspect_path,
             value,
@@ -236,23 +276,43 @@ impl ForgeQueryExistingTruthProbe {
             .into_iter()
             .map(|(aspect_path, value)| ForgeQueryExistingTruthProbeField::new(aspect_path, value))
             .collect::<Vec<_>>();
+        let field_identities = fields
+            .iter()
+            .map(|field| {
+                forge_query_evidence_identity(
+                    ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "existing-truth-probe-row",
+                )
+                .field_value(ForgeQueryEvidenceTag::new("aspect"), field.aspect_path())
+                .field_value(ForgeQueryEvidenceTag::new("field"), field.value_digest())
+                .seal()
+            })
+            .collect::<Vec<_>>();
         let probe_digest =
-            hash_parts(
-                &std::iter::once("forge_query_existing_truth_probe_v1".to_string())
-                    .chain(std::iter::once(format!(
-                        "binding:{}",
-                        request.binding().binding_digest()
-                    )))
-                    .chain(std::iter::once(format!(
-                        "request:{}",
-                        request.request_digest()
-                    )))
-                    .chain(std::iter::once("mode:backend_verified_probe".to_string()))
-                    .chain(fields.iter().map(|field| {
-                        format!("field:{}:{}", field.aspect_path(), field.value_digest())
-                    }))
-                    .collect::<Vec<_>>(),
-            );
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(ForgeQueryEvidenceTag::new("role"), "existing-truth-probe")
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("binding"),
+                    request.binding().binding_evidence_identity(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("request"),
+                    request.request_digest(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("mode"),
+                    ForgeQueryExistingTruthProbeMode::BackendVerifiedProbe.as_str(),
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("field"),
+                    field_identities.iter(),
+                )
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             binding: request.binding().clone(),
             mode: ForgeQueryExistingTruthProbeMode::BackendVerifiedProbe,

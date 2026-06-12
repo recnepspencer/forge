@@ -1,5 +1,4 @@
 use super::super::support::{build_runtime, committed_patch, registration, snapshot};
-use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeParallelAdmissionClass,
     BridgeParallelAdmissionReason, BridgeRouteRequest,
@@ -9,21 +8,27 @@ use crate::facade::{
 fn bridge_bulk_certifies_exact_counters_for_parallel_admitted_workload() {
     let source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        "bob",
+    ));
     let runtime = build_runtime(
         source,
         crate::harness::fixtures::RecordingSignalBridgeSink::default(),
@@ -33,10 +38,10 @@ fn bridge_bulk_certifies_exact_counters_for_parallel_admitted_workload() {
     let plan = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
             )),
         ]))
         .expect("parallel-admitted workload should plan");
@@ -119,20 +124,23 @@ fn bridge_bulk_certifies_exact_counters_for_parallel_admitted_workload() {
 fn bridge_bulk_certifies_exact_counters_for_serial_reduction_workload() {
     let source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let runtime = build_runtime(
         source,
         crate::harness::fixtures::RecordingSignalBridgeSink::default(),
@@ -142,10 +150,10 @@ fn bridge_bulk_certifies_exact_counters_for_serial_reduction_workload() {
     let plan = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             )),
             BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
             )),
         ]))
         .expect("serial-reduction workload should plan");

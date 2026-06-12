@@ -1,7 +1,7 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily,
     BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary,
-    TruthCommitIdentity,
+    BridgeIdentityEvidence, TruthCommitIdentity,
 };
 
 use super::super::super::*;
@@ -11,11 +11,13 @@ use super::materialization::support::*;
 fn common_changed_observation_plans_and_materializes_admitted() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-causal-dx-changed"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-causal-dx-changed",
+        ))
         .unwrap();
     let plan = CausalInspection::for_observation(receipt_with_route(
         CausalObservationOutcome::Changed,
-        routed.route_identity().as_str(),
+        routed.route_identity().evidence_identity(),
     ))
     .why_changed()
     .reference_only()
@@ -76,11 +78,13 @@ fn support_discovery_names_supported_advisory_and_deferred_lanes() {
 fn common_suppressed_observation_uses_reason_helper() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-causal-dx-suppressed"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-causal-dx-suppressed",
+        ))
         .unwrap();
     let plan = CausalInspection::for_observation(receipt_with_route(
         CausalObservationOutcome::Suppressed,
-        routed.route_identity().as_str(),
+        routed.route_identity().evidence_identity(),
     ))
     .why_suppressed()
     .reference_only()
@@ -99,22 +103,28 @@ fn common_suppressed_observation_uses_reason_helper() {
 fn temporal_async_reason_helpers_materialize_bridge_backed_explanations() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-causal-dx-temporal-async"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-causal-dx-temporal-async",
+        ))
         .unwrap();
     let temporal_artifact = CausalInspection::for_observation(QueryObservationReceipt::fixture(
         CausalObservationOutcome::Changed,
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:dx-temporal-wake",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:dx-temporal-wake",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,
-                routed.route_identity().as_str(),
+                routed.route_identity().evidence_identity(),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::SignalInvalidation,
-                "signal-invalidation:dx-temporal-wake",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "signal-invalidation:dx-temporal-wake",
+                ),
             ),
         ],
     ))
@@ -129,15 +139,19 @@ fn temporal_async_reason_helpers_materialize_bridge_backed_explanations() {
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:dx-async-completion",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:dx-async-completion",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,
-                routed.route_identity().as_str(),
+                routed.route_identity().evidence_identity(),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::SignalEvaluation,
-                "signal-evaluation:dx-async-completion",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "signal-evaluation:dx-async-completion",
+                ),
             ),
         ],
     ))
@@ -162,11 +176,13 @@ fn temporal_async_reason_helpers_materialize_bridge_backed_explanations() {
 fn materialized_detail_common_path_is_advisory_before_bridge_materialization() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-causal-dx-advisory"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-causal-dx-advisory",
+        ))
         .unwrap();
     let plan = CausalInspection::for_observation(receipt_with_route(
         CausalObservationOutcome::Changed,
-        routed.route_identity().as_str(),
+        routed.route_identity().evidence_identity(),
     ))
     .why_changed()
     .materialized_detail()
@@ -201,7 +217,9 @@ fn unsupported_durable_family_denies_without_bridge_assembly() {
         CausalObservationOutcome::Changed,
         vec![CausalObservationEvidenceIdentity::new(
             CausalEvidenceFamily::QueryInspection,
-            "query-inspection:durable-denied",
+            crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                "query-inspection:durable-denied",
+            ),
         )],
     ))
     .why_changed()
@@ -255,7 +273,7 @@ fn bridge_envelope_denial_materializes_denied_artifact_with_bridge_fields() {
     let runtime = bridge_runtime();
     let plan = CausalInspection::for_observation(receipt_with_route(
         CausalObservationOutcome::Changed,
-        "route:causal-dx-missing",
+        BridgeIdentityEvidence::from_external_authority("route:causal-dx-missing"),
     ))
     .why_changed()
     .reference_only()
@@ -276,11 +294,13 @@ fn bridge_envelope_denial_materializes_denied_artifact_with_bridge_fields() {
 fn common_path_preserves_core_digests_from_explicit_pipeline() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-causal-dx-parity"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-causal-dx-parity",
+        ))
         .unwrap();
     let receipt = receipt_with_route(
         CausalObservationOutcome::Changed,
-        routed.route_identity().as_str(),
+        routed.route_identity().evidence_identity(),
     );
     let plan = CausalInspection::for_observation(receipt.clone())
         .why_changed()
@@ -336,8 +356,12 @@ fn common_path_preserves_core_digests_from_explicit_pipeline() {
     );
 
     let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        explicit_admitted.admitted_inspection_digest(),
-        explicit_admitted.subject().anchor_digest(),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            explicit_admitted.admitted_inspection_digest(),
+        ),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            explicit_admitted.subject().anchor_digest(),
+        ),
     )
     .expect("summary should be valid");
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
@@ -345,14 +369,18 @@ fn common_path_preserves_core_digests_from_explicit_pipeline() {
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    explicit_admitted.subject().query_observation_digest(),
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        explicit_admitted
+                            .subject()
+                            .query_observation_bridge_evidence_identity(),
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().as_str(),
+                    routed.route_identity().evidence_identity(),
                 )
                 .expect("route evidence reference identity should be valid"),
             ),
@@ -390,14 +418,17 @@ fn common_path_preserves_core_digests_from_explicit_pipeline() {
 
 fn receipt_with_route(
     outcome: CausalObservationOutcome,
-    route_identity: &str,
+    route_identity: BridgeIdentityEvidence,
 ) -> QueryObservationReceipt {
     QueryObservationReceipt::fixture(
         outcome,
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                format!("query-inspection:{}", outcome.as_str()),
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(format!(
+                    "query-inspection:{}",
+                    outcome.as_str()
+                )),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,

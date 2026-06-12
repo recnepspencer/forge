@@ -16,7 +16,23 @@ fn milestone_nine_six_adapter_emits_named_matrix() {
 
 #[test]
 fn milestone_nine_six_matrix_exports_required_row_names() {
-    assert_eq!(MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES.len(), 5);
+    for row_name in [
+        "evidence-identity-delimiter-collision-resistance",
+        "authoritative-intent-receipt-identity-delimiter-boundaries",
+        "effect-intent-receipt-identity-delimiter-boundaries",
+        "intent-provenance-chain-identity-delimiter-boundaries",
+        "preview-intent-receipt-inspection-basis-identity-delimiter-boundaries",
+        "preview-intent-receipt-inspection-identity-delimiter-boundaries",
+        "family-admission-message-rewording-stability",
+        "graph-domain-invariant-message-rewording-stability",
+        "session-label-render-collision-distinctness",
+        "session-label-same-family-replay-collision",
+    ] {
+        assert!(
+            MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES.contains(&row_name),
+            "missing canonical row {row_name}"
+        );
+    }
     assert_eq!(MILESTONE_NINE_SIX_REQUIRED_REJECTION_ROW_NAMES.len(), 2);
 }
 

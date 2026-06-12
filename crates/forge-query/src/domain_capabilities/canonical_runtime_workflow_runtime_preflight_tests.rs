@@ -30,8 +30,16 @@ fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_ba
         expected.source_digest()
     );
     assert_eq!(
-        declaration.binding().runtime_snapshot_token(),
-        Some(preflight.basis().identity().snapshot_token())
+        declaration
+            .binding()
+            .runtime_snapshot_identity()
+            .map(|identity| identity.evidence_identity()),
+        Some(
+            crate::memory_workspace::ForgeQuerySnapshotIdentity::preview(
+                preflight.basis().identity().snapshot_identity().clone(),
+            )
+            .evidence_identity()
+        )
     );
     assert_eq!(
         declaration.binding().query_identity_digest(),
@@ -45,7 +53,10 @@ fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_ba
 
 #[test]
 fn workflow_runtime_preflight_materializer_is_stronger_than_snapshot_only_surrogate() {
-    let preflight = execution_preflights::runtime_preflight_with_snapshot_token("snapshot-1");
+    let snapshot_identity = crate::harness::fixtures::resolved_bases::primary_snapshot_identity();
+    let snapshot_evidence = snapshot_identity.evidence_identity();
+    let preflight =
+        execution_preflights::runtime_preflight_with_snapshot_identity(snapshot_identity);
 
     let real = success(materialize_query_workflow_declaration(ready(
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection_from_preflight(
@@ -59,7 +70,7 @@ fn workflow_runtime_preflight_materializer_is_stronger_than_snapshot_only_surrog
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection(
             "spatial.runtime.preflight.synthetic",
             "snapshot-token-only workflow semantics remain a weaker surrogate path",
-            "snapshot-1",
+            crate::memory_workspace::ForgeQuerySnapshotIdentity::preview(snapshot_evidence),
         )
         .bind_to_declaration_target(declaration_target("intent-workflow-runtime-synthetic")),
     )));
@@ -70,21 +81,38 @@ fn workflow_runtime_preflight_materializer_is_stronger_than_snapshot_only_surrog
         surrogate.binding().query_identity_digest()
     );
     assert_eq!(
-        real.binding().runtime_snapshot_token(),
-        surrogate.binding().runtime_snapshot_token()
+        real.binding()
+            .runtime_snapshot_identity()
+            .map(|identity| identity.evidence_identity()),
+        surrogate
+            .binding()
+            .runtime_snapshot_identity()
+            .map(|identity| identity.evidence_identity())
     );
 }
 
 #[test]
 fn workflow_runtime_preflight_lowering_from_bundle_preserves_real_runtime_authority() {
     let preflight = execution_preflights::direct_runtime_preflight();
+    let authority_binding_identity = crate::ForgeQueryEvidenceIdentity::compose(
+        crate::ForgeQueryEvidenceScope::WorkflowMutationLowering,
+    )
+    .field_shape(
+        crate::ForgeQueryEvidenceTag::new("test_authority_binding"),
+        "runtime-preflight",
+    )
+    .field_identity(
+        crate::ForgeQueryEvidenceTag::new("binding"),
+        "authority-binding:preflight",
+    )
+    .seal();
 
     let lowered = success(materialize_lowered_mutation_intent_declaration(ready(
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_mutation_reconciliation_from_preflight(
             "spatial.runtime.preflight.lowering",
             "mutation lowering should preserve real runtime preflight authority",
             preflight.clone(),
-            "authority-binding:preflight",
+            authority_binding_identity.clone(),
             EntityId::new(PartitionId(7), 11, 0),
             json!({"name":"after"}),
         )
@@ -92,12 +120,20 @@ fn workflow_runtime_preflight_lowering_from_bundle_preserves_real_runtime_author
     )));
 
     assert_eq!(
-        lowered.authority_binding().runtime_snapshot_token(),
-        Some(preflight.basis().identity().snapshot_token())
+        lowered
+            .authority_binding()
+            .runtime_snapshot_identity()
+            .map(|identity| identity.evidence_identity()),
+        Some(
+            crate::memory_workspace::ForgeQuerySnapshotIdentity::preview(
+                preflight.basis().identity().snapshot_identity().clone(),
+            )
+            .evidence_identity()
+        )
     );
     assert_eq!(
         lowered.authority_binding().binding_digest(),
-        "authority-binding:preflight"
+        authority_binding_identity.as_str()
     );
     assert_eq!(lowered.counters().workflow_mutation_lowering_count(), 1);
 }

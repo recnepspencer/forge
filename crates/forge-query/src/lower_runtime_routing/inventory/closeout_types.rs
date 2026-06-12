@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeRouteKind,
@@ -88,17 +90,39 @@ impl ForgeQueryLowerRuntimeCloseoutRow {
     }
 
     pub fn row_digest(&self) -> String {
-        hash_parts(&[
-            "lower_runtime_closeout_row_v1".to_string(),
-            format!("seam:{}", self.seam_key.as_str()),
-            format!("capability:{}", self.capability_label),
-            format!("posture:{}", self.posture.as_str()),
-            format!("owner:{}", self.owner.as_str()),
-            format!("route_kind:{}", self.route_kind.as_str()),
-            format!("closeout_target:{}", self.closeout_target),
-            format!("required_closeout:{}", self.required_closeout),
-            format!("certification_row:{}", self.certification_row),
-        ])
+        self.row_identity().as_str().to_string()
+    }
+
+    fn row_identity(&self) -> ForgeQueryEvidenceIdentity {
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "lower_runtime_closeout_row_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("seam"), self.seam_key.as_str())
+            .field_shape(
+                ForgeQueryEvidenceTag::new("capability"),
+                self.capability_label,
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("posture"), self.posture.as_str())
+            .field_shape(ForgeQueryEvidenceTag::new("owner"), self.owner.as_str())
+            .field_shape(
+                ForgeQueryEvidenceTag::new("route_kind"),
+                self.route_kind.as_str(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("closeout_target"),
+                self.closeout_target,
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("required_closeout"),
+                self.required_closeout,
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("certification_row"),
+                self.certification_row,
+            )
+            .seal()
     }
 }
 
@@ -117,22 +141,48 @@ impl ForgeQueryLowerRuntimeCloseoutRegistry {
     }
 
     pub fn registry_digest(&self) -> String {
-        hash_parts(
-            &self
-                .rows
-                .iter()
-                .map(ForgeQueryLowerRuntimeCloseoutRow::row_digest)
-                .collect::<Vec<_>>(),
-        )
+        let row_identities = self
+            .rows
+            .iter()
+            .map(ForgeQueryLowerRuntimeCloseoutRow::row_identity)
+            .collect::<Vec<_>>();
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "lower_runtime_closeout_registry_v1",
+            )
+            .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("rows"), &row_identities)
+            .seal()
+            .as_str()
+            .to_string()
     }
 
     pub fn required_closeout_digest(&self) -> String {
-        hash_parts(
-            &self
-                .rows
-                .iter()
-                .map(|row| row.required_closeout().to_string())
-                .collect::<Vec<_>>(),
-        )
+        let closeout_identities = self
+            .rows
+            .iter()
+            .map(|row| {
+                ForgeQueryEvidenceIdentity::compose(
+                    ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+                )
+                .field_identity(
+                    ForgeQueryEvidenceTag::new("required_closeout"),
+                    row.required_closeout(),
+                )
+                .seal()
+            })
+            .collect::<Vec<_>>();
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "lower_runtime_required_closeout_v1",
+            )
+            .field_evidence_identity_sequence(
+                ForgeQueryEvidenceTag::new("rows"),
+                &closeout_identities,
+            )
+            .seal()
+            .as_str()
+            .to_string()
     }
 }

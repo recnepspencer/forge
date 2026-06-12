@@ -1,11 +1,15 @@
-use std::collections::BTreeSet;
-
 use crate::declarative_live::DeclarativeLiveQueryRequest;
-use crate::identity::hash_parts;
-use crate::memory_workspace::ForgeQueryMutationReceipt;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::runtime::remask_posture::ForgeQueryRuntimeRemaskProjection;
 use crate::runtime::ForgeQueryRuntimeRemaskPosture;
 use crate::subscription::SubscriptionActivationInput;
+
+#[path = "signal_routing_receipt.rs"]
+mod signal_routing_receipt;
+
+pub use signal_routing_receipt::SignalInvalidationRoutingReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LiveViewDeclarationAdmissionReceipt {
@@ -17,6 +21,7 @@ pub struct LiveViewDeclarationAdmissionReceipt {
     predicate_filter_count: usize,
     traversal_count: usize,
     ordering_count: usize,
+    receipt_identity: ForgeQueryEvidenceIdentity,
     receipt_digest: String,
 }
 
@@ -33,17 +38,35 @@ impl LiveViewDeclarationAdmissionReceipt {
         let predicate_filter_count = request.predicate_filters().len();
         let traversal_count = request.traversal().len();
         let ordering_count = request.ordering().len();
-        let receipt_digest = hash_parts(&[
-            "live_view_declaration_admission_receipt_v1".to_string(),
-            format!("view:{view_name}"),
-            format!("target:{target_collection}"),
-            format!("shape:{view_shape}"),
-            format!("query_projection_count:{query_projection_count}"),
-            format!("result_field_count:{result_field_count}"),
-            format!("predicate_filter_count:{predicate_filter_count}"),
-            format!("traversal_count:{traversal_count}"),
-            format!("ordering_count:{ordering_count}"),
-        ]);
+        let receipt_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "live-view-declaration-admission-receipt",
+        )
+        .field_value(ForgeQueryEvidenceTag::new("view"), &view_name)
+        .field_value(ForgeQueryEvidenceTag::new("target"), &target_collection)
+        .field_shape(ForgeQueryEvidenceTag::new("shape"), &view_shape)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("query_projection_count"),
+            query_projection_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("result_field_count"),
+            result_field_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("predicate_filter_count"),
+            predicate_filter_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("traversal_count"),
+            traversal_count,
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("ordering_count"), ordering_count)
+        .seal();
+        let receipt_digest = receipt_identity.as_str().to_string();
 
         Self {
             view_name,
@@ -54,6 +77,7 @@ impl LiveViewDeclarationAdmissionReceipt {
             predicate_filter_count,
             traversal_count,
             ordering_count,
+            receipt_identity,
             receipt_digest,
         }
     }
@@ -88,6 +112,10 @@ impl LiveViewDeclarationAdmissionReceipt {
 
     pub fn ordering_count(&self) -> usize {
         self.ordering_count
+    }
+
+    pub fn receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
     }
 
     pub fn receipt_digest(&self) -> &str {
@@ -128,91 +156,16 @@ impl LiveViewDeclarationAdmissionReceipt {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SignalInvalidationRoutingReceipt {
-    commit_identity: String,
-    snapshot_token: String,
-    delta_count: usize,
-    routed_collection_count: usize,
-    receipt_digest: String,
-}
-
-impl SignalInvalidationRoutingReceipt {
-    pub(crate) fn from_mutation_receipt(receipt: &ForgeQueryMutationReceipt) -> Self {
-        let routed_collection_count = receipt
-            .deltas
-            .iter()
-            .map(|delta| delta.collection.clone())
-            .collect::<BTreeSet<_>>()
-            .len();
-        let delta_count = receipt.deltas.len();
-        let commit_identity = receipt.commit_identity.clone();
-        let snapshot_token = receipt.snapshot_token.clone();
-        let receipt_digest = hash_parts(&[
-            "signal_invalidation_routing_receipt_v1".to_string(),
-            format!("commit:{commit_identity}"),
-            format!("snapshot:{snapshot_token}"),
-            format!("delta_count:{delta_count}"),
-            format!("routed_collection_count:{routed_collection_count}"),
-        ]);
-
-        Self {
-            commit_identity,
-            snapshot_token,
-            delta_count,
-            routed_collection_count,
-            receipt_digest,
-        }
-    }
-
-    pub fn commit_identity(&self) -> &str {
-        &self.commit_identity
-    }
-
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
-    }
-
-    pub fn delta_count(&self) -> usize {
-        self.delta_count
-    }
-
-    pub fn routed_collection_count(&self) -> usize {
-        self.routed_collection_count
-    }
-
-    pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
-    }
-
-    pub(crate) fn drift_from_mutation_receipt(
-        &self,
-        receipt: &ForgeQueryMutationReceipt,
-    ) -> Option<String> {
-        if self.commit_identity() != receipt.commit_identity
-            || self.snapshot_token() != receipt.snapshot_token
-        {
-            return Some(format!(
-                "signal invalidation routing receipt drifted from write receipt: expected commit `{}` / snapshot `{}`, found commit `{}` / snapshot `{}`",
-                receipt.commit_identity,
-                receipt.snapshot_token,
-                self.commit_identity(),
-                self.snapshot_token()
-            ));
-        }
-        None
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubscriptionActivationReceipt {
     view_name: String,
-    activation_digest: String,
-    query_declaration_digest: String,
-    bridge_declaration_digest: String,
-    basis_binding_digest: String,
-    signal_strategy_digest: String,
-    support_evidence: String,
+    activation_identity: ForgeQueryEvidenceIdentity,
+    query_declaration_identity: ForgeQueryEvidenceIdentity,
+    bridge_declaration_identity: ForgeQueryEvidenceIdentity,
+    basis_binding_identity: ForgeQueryEvidenceIdentity,
+    signal_strategy_identity: ForgeQueryEvidenceIdentity,
+    support_identity: ForgeQueryEvidenceIdentity,
     remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
+    receipt_identity: ForgeQueryEvidenceIdentity,
     receipt_digest: String,
 }
 
@@ -230,6 +183,24 @@ impl SubscriptionActivationReceipt {
         let basis_binding_digest = activation.basis_binding_digest().to_string();
         let signal_strategy_digest = activation.signal_strategy_digest().to_string();
         let support_evidence = support_evidence.into();
+        let activation_identity =
+            subscription_activation_receipt_source_identity("activation", &activation_digest);
+        let query_declaration_identity = subscription_activation_receipt_source_identity(
+            "query_declaration",
+            &query_declaration_digest,
+        );
+        let bridge_declaration_identity = subscription_activation_receipt_source_identity(
+            "bridge_declaration",
+            &bridge_declaration_digest,
+        );
+        let basis_binding_identity =
+            subscription_activation_receipt_source_identity("basis_binding", &basis_binding_digest);
+        let signal_strategy_identity = subscription_activation_receipt_source_identity(
+            "signal_strategy",
+            &signal_strategy_digest,
+        );
+        let support_identity =
+            subscription_activation_receipt_source_identity("support", &support_evidence);
         let remask_posture = remask_projection.map(|projection| {
             ForgeQueryRuntimeRemaskPosture::from_activation_projection(
                 &projection,
@@ -237,32 +208,54 @@ impl SubscriptionActivationReceipt {
                 &basis_binding_digest,
             )
         });
-        let receipt_digest = hash_parts(&[
-            "subscription_activation_receipt_v1".to_string(),
-            format!("view:{view_name}"),
-            format!("activation:{activation_digest}"),
-            format!("query_declaration:{query_declaration_digest}"),
-            format!("bridge_declaration:{bridge_declaration_digest}"),
-            format!("basis_binding:{basis_binding_digest}"),
-            format!("signal_strategy:{signal_strategy_digest}"),
-            format!("support:{support_evidence}"),
-            format!(
-                "remask:{}",
-                remask_posture
-                    .as_ref()
-                    .map_or("none", |posture| posture.remask_digest())
-            ),
-        ]);
+        let receipt_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "subscription-activation-receipt",
+        )
+        .field_value(ForgeQueryEvidenceTag::new("view"), &view_name)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("activation"),
+            &activation_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("query_declaration"),
+            &query_declaration_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("bridge_declaration"),
+            &bridge_declaration_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("basis_binding"),
+            &basis_binding_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("signal_strategy"),
+            &signal_strategy_identity,
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("support"), &support_identity)
+        .optional_value(
+            ForgeQueryEvidenceTag::new("remask"),
+            remask_posture
+                .as_ref()
+                .map(|posture| posture.remask_digest()),
+        )
+        .seal();
+        let receipt_digest = receipt_identity.as_str().to_string();
 
         Self {
             view_name,
-            activation_digest,
-            query_declaration_digest,
-            bridge_declaration_digest,
-            basis_binding_digest,
-            signal_strategy_digest,
-            support_evidence,
+            activation_identity,
+            query_declaration_identity,
+            bridge_declaration_identity,
+            basis_binding_identity,
+            signal_strategy_identity,
+            support_identity,
             remask_posture,
+            receipt_identity,
             receipt_digest,
         }
     }
@@ -272,31 +265,35 @@ impl SubscriptionActivationReceipt {
     }
 
     pub fn activation_digest(&self) -> &str {
-        &self.activation_digest
+        self.activation_identity.as_str()
     }
 
     pub fn query_declaration_digest(&self) -> &str {
-        &self.query_declaration_digest
+        self.query_declaration_identity.as_str()
     }
 
     pub fn bridge_declaration_digest(&self) -> &str {
-        &self.bridge_declaration_digest
+        self.bridge_declaration_identity.as_str()
     }
 
     pub fn basis_binding_digest(&self) -> &str {
-        &self.basis_binding_digest
+        self.basis_binding_identity.as_str()
     }
 
     pub fn signal_strategy_digest(&self) -> &str {
-        &self.signal_strategy_digest
+        self.signal_strategy_identity.as_str()
     }
 
     pub fn support_evidence(&self) -> &str {
-        &self.support_evidence
+        self.support_identity.as_str()
     }
 
     pub fn remask_posture(&self) -> Option<&ForgeQueryRuntimeRemaskPosture> {
         self.remask_posture.as_ref()
+    }
+
+    pub fn receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
     }
 
     pub fn receipt_digest(&self) -> &str {
@@ -328,50 +325,20 @@ impl SubscriptionActivationReceipt {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
-    use crate::memory_workspace::{ForgeQueryMutationDelta, ForgeQueryMutationKind};
-
-    #[test]
-    fn live_view_declaration_receipt_captures_request_shape() {
-        let request = DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::table());
-        let receipt = LiveViewDeclarationAdmissionReceipt::from_request("tasks.table", &request);
-
-        assert_eq!(receipt.view_name(), "tasks.table");
-        assert_eq!(receipt.target_collection(), "Task");
-        assert_eq!(receipt.view_shape(), "table");
-        assert!(!receipt.receipt_digest().is_empty());
-    }
-
-    #[test]
-    fn signal_invalidation_routing_receipt_summarizes_delta_width() {
-        let receipt = ForgeQueryMutationReceipt {
-            commit_identity: "commit-1".to_string(),
-            snapshot_token: "snapshot-1".to_string(),
-            deltas: vec![
-                ForgeQueryMutationDelta {
-                    collection: "Task".to_string(),
-                    entity_identity: "task-1".to_string(),
-                    kind: ForgeQueryMutationKind::Created,
-                    aspect_paths: vec!["title.value".to_string()],
-                },
-                ForgeQueryMutationDelta {
-                    collection: "Task".to_string(),
-                    entity_identity: "task-2".to_string(),
-                    kind: ForgeQueryMutationKind::Updated,
-                    aspect_paths: vec!["status.value".to_string()],
-                },
-            ],
-            bridge_authority: None,
-        };
-
-        let routed = SignalInvalidationRoutingReceipt::from_mutation_receipt(&receipt);
-
-        assert_eq!(routed.commit_identity(), "commit-1");
-        assert_eq!(routed.delta_count(), 2);
-        assert_eq!(routed.routed_collection_count(), 1);
-        assert!(!routed.receipt_digest().is_empty());
-    }
+fn subscription_activation_receipt_source_identity(
+    role: &str,
+    source_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_activation_receipt_source_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+        .field_identity(ForgeQueryEvidenceTag::new("source_digest"), source_digest)
+        .seal()
 }
+
+#[cfg(test)]
+#[path = "receipts_tests.rs"]
+mod tests;

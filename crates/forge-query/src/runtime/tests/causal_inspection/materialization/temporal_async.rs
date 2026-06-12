@@ -1,7 +1,7 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner,
     BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary,
-    TruthCommitIdentity,
+    BridgeIdentityEvidence, TruthCommitIdentity,
 };
 
 use super::super::super::super::*;
@@ -30,7 +30,9 @@ fn reference_set_for(
 fn admitted_temporal_wake_materialization_projects_query_owned_temporal_explanation() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-query-temporal-wake"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-query-temporal-wake",
+        ))
         .expect("temporal wake route should resolve");
     let reference_set = reference_set_for(
         CausalObservationOutcome::Changed,
@@ -38,15 +40,19 @@ fn admitted_temporal_wake_materialization_projects_query_owned_temporal_explanat
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:temporal-wake",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:temporal-wake",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,
-                routed.route_identity().as_str(),
+                routed.route_identity().evidence_identity(),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::SignalInvalidation,
-                "signal-invalidation:temporal-wake",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "signal-invalidation:temporal-wake",
+                ),
             ),
         ],
         &[
@@ -66,8 +72,12 @@ fn admitted_temporal_wake_materialization_projects_query_owned_temporal_explanat
         panic!("reference-only temporal wake should admit");
     };
     let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        admitted.admitted_inspection_digest(),
-        admitted.subject().anchor_digest(),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            admitted.admitted_inspection_digest(),
+        ),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            admitted.subject().anchor_digest(),
+        ),
     )
     .expect("temporal wake admission summary should be valid");
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
@@ -75,14 +85,18 @@ fn admitted_temporal_wake_materialization_projects_query_owned_temporal_explanat
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    admitted.subject().query_observation_digest(),
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        admitted
+                            .subject()
+                            .query_observation_bridge_evidence_identity(),
+                    ),
                 )
                 .expect("query observation reference should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().as_str(),
+                    routed.route_identity().evidence_identity(),
                 )
                 .expect("bridge route reference should be valid"),
             ),
@@ -90,7 +104,9 @@ fn admitted_temporal_wake_materialization_projects_query_owned_temporal_explanat
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalInvalidation,
-                    "signal-invalidation:temporal-wake",
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        bridge_evidence("signal-invalidation:temporal-wake"),
+                    ),
                 )
                 .expect("signal invalidation reference should be valid"),
             ),
@@ -123,7 +139,9 @@ fn admitted_temporal_wake_materialization_projects_query_owned_temporal_explanat
 fn advisory_async_completion_materialization_projects_query_owned_async_explanation() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-query-async-completion"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-query-async-completion",
+        ))
         .expect("async completion route should resolve");
     let reference_set = reference_set_for(
         CausalObservationOutcome::Changed,
@@ -131,15 +149,19 @@ fn advisory_async_completion_materialization_projects_query_owned_async_explanat
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:async-completion",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:async-completion",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,
-                routed.route_identity().as_str(),
+                routed.route_identity().evidence_identity(),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::SignalEvaluation,
-                "signal-evaluation:async-completion",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "signal-evaluation:async-completion",
+                ),
             ),
         ],
         &[
@@ -159,8 +181,12 @@ fn advisory_async_completion_materialization_projects_query_owned_async_explanat
         panic!("materialized async completion should narrow to advisory");
     };
     let summary = BridgeCausalInspectionAdmissionSummary::advisory(
-        advisory.advisory_inspection_digest(),
-        advisory.subject().anchor_digest(),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            advisory.advisory_inspection_digest(),
+        ),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            advisory.subject().anchor_digest(),
+        ),
     )
     .expect("async completion advisory summary should be valid");
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
@@ -168,14 +194,18 @@ fn advisory_async_completion_materialization_projects_query_owned_async_explanat
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    advisory.subject().query_observation_digest(),
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        advisory
+                            .subject()
+                            .query_observation_bridge_evidence_identity(),
+                    ),
                 )
                 .expect("query observation reference should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().as_str(),
+                    routed.route_identity().evidence_identity(),
                 )
                 .expect("bridge route reference should be valid"),
             ),
@@ -183,7 +213,9 @@ fn advisory_async_completion_materialization_projects_query_owned_async_explanat
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalEvaluation,
-                    "signal-evaluation:async-completion",
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        bridge_evidence("signal-evaluation:async-completion"),
+                    ),
                 )
                 .expect("signal evaluation reference should be valid"),
             ),
@@ -216,7 +248,9 @@ fn advisory_async_completion_materialization_projects_query_owned_async_explanat
 fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-query-mixed-suppressed"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-query-mixed-suppressed",
+        ))
         .expect("mixed suppression route should resolve");
     let reference_set = reference_set_for(
         CausalObservationOutcome::Suppressed,
@@ -224,19 +258,25 @@ fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:mixed-suppressed",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:mixed-suppressed",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,
-                routed.route_identity().as_str(),
+                routed.route_identity().evidence_identity(),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::SignalInvalidation,
-                "signal-invalidation:mixed-suppressed",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "signal-invalidation:mixed-suppressed",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::SignalEvaluation,
-                "signal-evaluation:mixed-suppressed",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "signal-evaluation:mixed-suppressed",
+                ),
             ),
         ],
         &[
@@ -258,8 +298,12 @@ fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity
         panic!("reference-only mixed suppression should admit");
     };
     let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        admitted.admitted_inspection_digest(),
-        admitted.subject().anchor_digest(),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            admitted.admitted_inspection_digest(),
+        ),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            admitted.subject().anchor_digest(),
+        ),
     )
     .expect("mixed suppression summary should be valid");
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
@@ -267,14 +311,18 @@ fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    admitted.subject().query_observation_digest(),
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        admitted
+                            .subject()
+                            .query_observation_bridge_evidence_identity(),
+                    ),
                 )
                 .expect("query observation reference should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().as_str(),
+                    routed.route_identity().evidence_identity(),
                 )
                 .expect("bridge route reference should be valid"),
             ),
@@ -282,7 +330,9 @@ fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalInvalidation,
-                    "signal-invalidation:mixed-suppressed",
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        bridge_evidence("signal-invalidation:mixed-suppressed"),
+                    ),
                 )
                 .expect("signal invalidation reference should be valid"),
             ),
@@ -290,7 +340,9 @@ fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalEvaluation,
-                    "signal-evaluation:mixed-suppressed",
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        bridge_evidence("signal-evaluation:mixed-suppressed"),
+                    ),
                 )
                 .expect("signal evaluation reference should be valid"),
             ),
@@ -316,11 +368,15 @@ fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity
     );
 }
 
+fn bridge_evidence(value: impl AsRef<str>) -> BridgeIdentityEvidence {
+    BridgeIdentityEvidence::from_external_authority(value)
+}
+
 #[test]
 fn retained_temporal_evidence_projects_same_explanation_for_all_retained_and_explicit_requests() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new(
+        .route(TruthCommitIdentity::from_bridge_harness_label(
             "commit-query-temporal-request-parity",
         ))
         .expect("temporal parity route should resolve");
@@ -329,15 +385,19 @@ fn retained_temporal_evidence_projects_same_explanation_for_all_retained_and_exp
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection:temporal-request-parity",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection:temporal-request-parity",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,
-                routed.route_identity().as_str(),
+                routed.route_identity().evidence_identity(),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::SignalInvalidation,
-                "signal-invalidation:temporal-request-parity",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "signal-invalidation:temporal-request-parity",
+                ),
             ),
         ],
     );

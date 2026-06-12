@@ -7,15 +7,16 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryLiveView, ForgeQueryLiveViewBuilder, ForgeQueryRuntimeError,
-    ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
+    ForgeQueryEntity, ForgeQueryEntityIdentity, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
+    ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
 };
 use forge_relational::facade::identity::EntityId;
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
 use schema::facade::{QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis};
 use serde::{Deserialize, Serialize};
 
-use crate::projection::{parse_entity_identity, required_text};
+use crate::projection::{entity_id_from_query_identity, required_text};
 
 use super::TopologyQuerySurfaceError;
 
@@ -98,7 +99,7 @@ pub(crate) fn naming_attachment_report_from_query_input(
     let mut topology_identities = BTreeMap::new();
     for row in input.entity_rows() {
         let external_row = row.external_row();
-        let entity_id = parse_entity_identity(row.identity())
+        let entity_id = entity_id_from_query_identity(row.identity())
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         let kind_name = required_text(external_row, "topology.kind")
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
@@ -110,7 +111,7 @@ pub(crate) fn naming_attachment_report_from_query_input(
         if !topology_kind_names.contains(entity_kind) {
             continue;
         }
-        topology_identities.insert(row.identity().to_string(), entity_id);
+        topology_identities.insert(query_identity_label(row.identity())?, entity_id);
         topology_entities.push((entity_id, kind_name.to_string()));
     }
 
@@ -119,7 +120,7 @@ pub(crate) fn naming_attachment_report_from_query_input(
     let mut orphan_persistent_name_ids = Vec::new();
     for row in input.persistent_name_rows() {
         let external_row = row.external_row();
-        let persistent_name_id = parse_entity_identity(row.identity())
+        let persistent_name_id = entity_id_from_query_identity(row.identity())
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         let kind_name = required_text(external_row, "topology.kind")
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
@@ -189,8 +190,29 @@ pub(crate) fn naming_attachment_report_from_query_input(
     })
 }
 
+fn query_identity_label(
+    identity: &ForgeQueryEntityIdentity,
+) -> Result<String, TopologyQuerySurfaceError> {
+    let parts = identity.relational_record_parts().ok_or_else(|| {
+        TopologyQuerySurfaceError::new(format!(
+            "persistent naming requires relational query identity, got `{identity}`"
+        ))
+    })?;
+    let kind = match parts.kind() {
+        RelationalBridgeRecordIdentityKind::Entity => "entity",
+        RelationalBridgeRecordIdentityKind::Relation => "relation",
+    };
+    Ok(format!(
+        "{kind}:{}:{}:{}",
+        parts.partition_id(),
+        parts.local_slot(),
+        parts.generation()
+    ))
+}
+
 #[cfg(test)]
 mod tests {
+    use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
     use schema::facade::platform::entities::TopologyEntityKind;
     use serde_json::json;
 
@@ -199,7 +221,9 @@ mod tests {
     #[test]
     fn naming_attachment_report_rejects_unknown_query_target_identity() {
         let entity_rows = vec![ForgeQueryEntity::from_external_projection(
-            "entity:0:1:0",
+            ForgeQueryEntityIdentity::from_relational_record(
+                RelationalBridgeRecordIdentityParts::entity(0, 1, 0),
+            ),
             json!({
                 "topology": {
                     "kind": TopologyEntityKind::Vertex.kind_name(),
@@ -208,7 +232,9 @@ mod tests {
             }),
         )];
         let persistent_name_rows = vec![ForgeQueryEntity::from_external_projection(
-            "entity:0:2:0",
+            ForgeQueryEntityIdentity::from_relational_record(
+                RelationalBridgeRecordIdentityParts::entity(0, 2, 0),
+            ),
             json!({
                 "topology": {
                     "kind": EntityKind::Naming(NamingEntityKind::PersistentName).kind_name(),

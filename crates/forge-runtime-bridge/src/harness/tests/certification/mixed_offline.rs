@@ -1,6 +1,5 @@
 use forge_harness::facade::ExecutionProfile;
 
-use crate::facade::TruthCommitIdentity;
 use crate::harness::adapter::BridgeHarnessTargetId;
 use crate::merge::MergeHistoryDeclarationIdentity;
 use crate::source::SourceDeclarationIdentity;
@@ -21,8 +20,8 @@ fn bridge_m13_mixed_offline_certification_exports_every_family_without_json_proo
         baseline.clone(),
         "mixed-stream-routing",
         BridgeHarnessTargetId::stream_routing([
-            TruthCommitIdentity::new("commit-a"),
-            TruthCommitIdentity::new("commit-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
         ]),
     );
     let stream_replay = execute_harness_run(
@@ -30,8 +29,8 @@ fn bridge_m13_mixed_offline_certification_exports_every_family_without_json_proo
         baseline.clone(),
         "mixed-stream-replay",
         BridgeHarnessTargetId::stream_replay_audit([
-            TruthCommitIdentity::new("commit-a"),
-            TruthCommitIdentity::new("commit-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
         ]),
     );
     let source_control = execute_harness_run(

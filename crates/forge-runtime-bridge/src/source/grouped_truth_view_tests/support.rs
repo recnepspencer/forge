@@ -4,7 +4,6 @@ use forge_foundational::facade::{
 };
 
 use crate::diagnostics::BridgeHistoricalMaterializationPath;
-use crate::input::envelope::TruthBranchIdentity;
 use crate::policy::BridgeDiagnosticsTier;
 use crate::snapshot::{
     AdmittedSnapshotContext, BridgeDeliveryIntent, BridgeReplayMode, BridgeSnapshotContext,
@@ -33,7 +32,7 @@ enum FixtureBindingValueShape {
 
 impl TruthSnapshotReader for FixtureReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
     }
 
     fn read_packet(
@@ -73,7 +72,7 @@ impl TruthSnapshotReader for FixtureReader {
             })
             .collect();
         Ok(SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             records,
         ))
     }
@@ -193,8 +192,8 @@ fn row_set_from_packet(
 ) -> crate::source::BridgeMaterializedRowSetArtifact {
     let declaration = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         BridgeReplayMode::Disabled,
         BridgeDiagnosticsTier::Standard,
@@ -210,8 +209,8 @@ fn row_set_from_packet(
         ),
         BridgeTruthViewAuthorityBasis::from_resolved_envelope(
             declaration.selector(),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         read_packet,
     );
@@ -219,13 +218,15 @@ fn row_set_from_packet(
         identity_binding_shape,
         grouping_binding_shape,
     }) as Box<dyn TruthSnapshotReader>);
-    let admitted =
-        AdmittedSnapshotContext::admit_for(snapshot, &TruthSnapshotIdentity::new("snapshot-a"))
-            .expect("snapshot should admit");
+    let admitted = AdmittedSnapshotContext::admit_for(
+        snapshot,
+        &crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+    )
+    .expect("snapshot should admit");
     let observation = crate::snapshot::MaterializedTruthViewObservation::new(
         packet,
         BridgeSnapshotToken::issued(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             "grouped-truth-test",
         ),
         BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot,
@@ -257,7 +258,9 @@ pub(super) fn projection_with_grouping(
     members: Vec<TestProjectionMember>,
 ) -> TestProjection {
     TestProjection {
-        snapshot_identity: TruthSnapshotIdentity::new(snapshot_identity),
+        snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+            snapshot_identity,
+        ),
         grouping_aspect: native_aspect_key(grouping_aspect),
         identity_binding_aspect_key: native_aspect_key(identity_binding_aspect_key),
         grouping_binding_aspect_key: native_aspect_key(grouping_binding_aspect_key),

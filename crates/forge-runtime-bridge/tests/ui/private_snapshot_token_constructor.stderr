@@ -11,3 +11,14 @@ error[E0624]: associated function `issued` is private
   | |         token_value: impl Into<Arc<str>>,
   | |     ) -> Self {
   | |_____________- private associated function defined here
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/private_snapshot_token_constructor.rs:4:64
+  |
+4 |     let _ = BridgeSnapshotToken::issued(TruthSnapshotIdentity::new("snapshot"), "token");
+  |                                                                ^^^ private associated function
+  |
+ ::: src/identity.rs
+  |
+  |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+  |     ----------------------------------------------------- private associated function defined here

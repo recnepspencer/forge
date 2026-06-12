@@ -1,4 +1,7 @@
 use crate::basis_lifecycle::{BasisAuthorityPosture, BasisFamily, BasisLifecyclePosture};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::identity::hash_parts;
 use crate::workflow::{
     MergeLoweringInput, MutationLoweringInput, WorkflowContextBinding, WorkflowDeclarationRequest,
@@ -25,7 +28,7 @@ pub struct NormalizedEffectIntent {
     basis_lifecycle: BasisLifecyclePosture,
     capability_digest: String,
     scoped_basis_digest: String,
-    expected_lower_runtime_binding_digest: Option<String>,
+    expected_lower_runtime_binding_identity: Option<ForgeQueryEvidenceIdentity>,
     workflow_binding: WorkflowContextBinding,
     workflow_request: WorkflowDeclarationRequest,
     operation_input: EffectOperationInput,
@@ -79,9 +82,9 @@ impl NormalizedEffectIntent {
             basis_lifecycle: authoring_basis.lifecycle(),
             capability_digest,
             scoped_basis_digest: authoring_basis.scoped_basis_digest().to_string(),
-            expected_lower_runtime_binding_digest: authoring_basis
+            expected_lower_runtime_binding_identity: authoring_basis
                 .expected_lower_runtime_binding_digest()
-                .map(str::to_string),
+                .map(expected_lower_runtime_binding_identity),
             workflow_binding,
             workflow_request,
             operation_input,
@@ -120,7 +123,13 @@ impl NormalizedEffectIntent {
     }
 
     pub fn expected_lower_runtime_binding_digest(&self) -> Option<&str> {
-        self.expected_lower_runtime_binding_digest.as_deref()
+        self.expected_lower_runtime_binding_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn expected_lower_runtime_binding_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.expected_lower_runtime_binding_identity.as_ref()
     }
 
     pub fn workflow_binding(&self) -> &WorkflowContextBinding {
@@ -153,6 +162,16 @@ impl NormalizedEffectIntent {
             format!("normalized:{}", self.normalized_digest()),
         ])
     }
+}
+
+fn expected_lower_runtime_binding_identity(binding_digest: &str) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "expected_lower_runtime_binding_v1",
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("binding"), binding_digest)
+        .seal()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

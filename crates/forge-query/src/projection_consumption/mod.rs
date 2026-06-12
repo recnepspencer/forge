@@ -35,10 +35,10 @@ pub(crate) use certification::{
     intent_admission_warning_projection_declaration,
 };
 pub use consumed::{
-    ConsumedEffectContinuityFact, ConsumedEntityIdentityFact, ConsumedFieldValueFact,
-    ConsumedMembershipFact, ConsumedProjectionFactSet, ConsumedRelationEndpointFact,
-    ConsumedSourceReferenceFact, ConsumedTargetIdentityFact, ConsumedViewLocalIdentityFact,
-    ProjectionFactExtractionCounters,
+    ConsumedContinuityAuthorityIdentity, ConsumedEffectContinuityFact, ConsumedEntityIdentityFact,
+    ConsumedFieldValueFact, ConsumedMembershipFact, ConsumedProjectionFactSet,
+    ConsumedRelationEndpointFact, ConsumedSourceReferenceFact, ConsumedTargetIdentityFact,
+    ConsumedViewLocalIdentityFact, ProjectionFactExtractionCounters,
 };
 pub use contracts::{
     BoundProjectionFactFamily, MaterializedProjectionContract, ProjectionContractSourcePosture,

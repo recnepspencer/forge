@@ -18,12 +18,26 @@ use super::{
 
 #[test]
 fn mutation_lowering_materializer_builds_runtime_lowered_declaration() {
+    let authority_binding_identity = crate::ForgeQueryEvidenceIdentity::compose(
+        crate::ForgeQueryEvidenceScope::WorkflowMutationLowering,
+    )
+    .field_shape(
+        crate::ForgeQueryEvidenceTag::new("test_authority_binding"),
+        "mutation-lowering",
+    )
+    .field_identity(
+        crate::ForgeQueryEvidenceTag::new("binding"),
+        "authority-binding:42",
+    )
+    .seal();
     let lowered = success(materialize_lowered_mutation_intent_declaration(ready(
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_mutation_reconciliation(
             "spatial.workflow.mutation",
             "runtime preflight should lower a relational mutation intent",
-            "runtime-snapshot:42",
-            "authority-binding:42",
+            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+                "runtime-snapshot:42",
+            ),
+            authority_binding_identity.clone(),
             EntityId::new(PartitionId(1), 41, 0),
             json!({"name":"after"}),
         )
@@ -36,11 +50,19 @@ fn mutation_lowering_materializer_builds_runtime_lowered_declaration() {
     );
     assert_eq!(
         lowered.authority_binding().binding_digest(),
-        "authority-binding:42"
+        authority_binding_identity.as_str()
     );
     assert_eq!(
-        lowered.authority_binding().runtime_snapshot_token(),
-        Some("runtime-snapshot:42")
+        lowered
+            .authority_binding()
+            .runtime_snapshot_identity()
+            .map(|identity| identity.evidence_identity()),
+        Some(
+            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+                "runtime-snapshot:42",
+            )
+            .evidence_identity()
+        )
     );
     assert_eq!(lowered.counters().workflow_mutation_lowering_count(), 1);
 }
@@ -51,7 +73,9 @@ fn merge_lowering_materializer_builds_preview_bound_lowering() {
         ForgeQueryWorkflowContributionAuthoring::promotion_eligible_merge_reconciliation(
             "spatial.workflow.merge",
             "preview promotion should lower a merge workflow declaration",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:77"),
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:77",
+            ),
             BranchId("main".to_string()),
             BranchId("candidate".to_string()),
         )
@@ -87,7 +111,9 @@ fn writeback_lowering_materializer_builds_bridge_writeback_declaration() {
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_writeback_projected_state_diff(
             "spatial.workflow.writeback",
             "runtime preflight should lower a bridge writeback declaration",
-            "runtime-snapshot:58",
+            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+                "runtime-snapshot:58",
+            ),
         )
         .bind_to_declaration_target(declaration_target("intent-workflow-writeback")),
     )));
@@ -113,8 +139,10 @@ fn workflow_lowering_materializer_denies_missing_lowering_semantics() {
                 "spatial.workflow.mutation",
                 "missing lowering semantics should deny",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
-                    ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight(
-                        "runtime-snapshot:42",
+                    ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
+                        crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+                            "runtime-snapshot:42",
+                        ),
                     ),
                     crate::workflow::WorkflowDeclarationFamily::MutationLoweringNarrow,
                     crate::workflow::WorkflowAuthorityTargetFamily::RelationalMutation,
@@ -144,7 +172,9 @@ fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
             "preview promotion writeback should preserve stale posture at lowering time",
             Some(ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:88"),
+                    crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                        "preview-session:88",
+                    ),
                     crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::WritebackLoweringNarrow,
@@ -177,7 +207,9 @@ fn discard_required_writeback_lowering_preserves_preview_stale_posture() {
         ForgeQueryWorkflowContributionAuthoring::discard_required_writeback_projected_state_diff(
             "spatial.workflow.writeback.discard",
             "discard-required preview writeback should stay stale until authoritative revalidation",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:91"),
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                "preview-session:91",
+            ),
         )
         .bind_to_declaration_target(declaration_target("intent-workflow-writeback-discard")),
     ));
@@ -204,7 +236,9 @@ fn workflow_lowering_materializer_preserves_runtime_rebind_posture() {
             "preview-scoped writeback should preserve explicit rebind posture",
             Some(ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:89"),
+                    crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                        "preview-session:89",
+                    ),
                     crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::WritebackLoweringNarrow,

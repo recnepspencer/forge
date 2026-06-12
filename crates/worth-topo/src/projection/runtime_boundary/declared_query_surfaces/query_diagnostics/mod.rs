@@ -1,6 +1,6 @@
 use forge_query::facade::{
-    ForgeQueryComputedBuilder, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
-    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryCommitIdentity, ForgeQueryComputedBuilder, ForgeQueryDerivedPatch,
+    ForgeQueryDerivedView, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedRefreshContext,
     ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
@@ -127,17 +127,19 @@ impl ForgeQueryDerivedViewMaintainer for TopologyDiagnosticsMaintainer {
         let payload = json!({
             QUERY_SURFACE_FAILURE_ROW_KEY: format!(
                 "incremental delivery reached `{}` for `{}`; whole-refresh fallback was expected",
-                delta.collection,
+                delta.collection(),
                 view.name(),
             ),
         });
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "topology-diagnostics-incremental-unexpected",
-            delta.entity_identity.clone(),
+            ForgeQueryCommitIdentity::from_external_authority_label(
+                "topology-diagnostics-incremental-unexpected",
+            ),
+            delta.entity_identity().clone(),
             if view.produced_aspects().is_empty() {
-                delta.aspect_paths.clone()
+                delta.aspect_paths().to_vec()
             } else {
                 view.produced_aspects().to_vec()
             },
@@ -167,7 +169,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyDiagnosticsMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            "topology-diagnostics",
+            ForgeQueryCommitIdentity::from_external_authority_label("topology-diagnostics"),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {
@@ -202,17 +204,19 @@ impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
         let payload = json!({
             QUERY_SURFACE_FAILURE_ROW_KEY: format!(
                 "incremental delivery reached `{}` for `{}`; whole-refresh fallback was expected",
-                delta.collection,
+                delta.collection(),
                 view.name(),
             ),
         });
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "topology-equivalence-incremental-unexpected",
-            delta.entity_identity.clone(),
+            ForgeQueryCommitIdentity::from_external_authority_label(
+                "topology-equivalence-incremental-unexpected",
+            ),
+            delta.entity_identity().clone(),
             if view.produced_aspects().is_empty() {
-                delta.aspect_paths.clone()
+                delta.aspect_paths().to_vec()
             } else {
                 view.produced_aspects().to_vec()
             },
@@ -239,7 +243,9 @@ impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            "topology-equivalence-contract",
+            ForgeQueryCommitIdentity::from_external_authority_label(
+                "topology-equivalence-contract",
+            ),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {

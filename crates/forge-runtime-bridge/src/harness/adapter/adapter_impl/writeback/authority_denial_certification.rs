@@ -48,7 +48,7 @@ pub(super) fn execute_authority_denial_certification(
         runtime_bridge,
         fixture,
         "harness:writeback-authority-denial:causality",
-        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         "unbound-authority",
     )?;
     let authority_effect = unbound_runtime.lower_writeback_effect(
@@ -118,7 +118,7 @@ pub(super) fn execute_authority_denial_certification(
         &merge_rejecting_runtime,
         fixture,
         "harness:writeback-authority-denial:merge-rejected:causality",
-        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         "merge-rejected",
     )?;
     let merge_effect = merge_rejecting_runtime.lower_writeback_effect(
@@ -179,7 +179,7 @@ pub(super) fn execute_authority_denial_certification(
         &unsafe_feedback_runtime,
         fixture,
         "harness:writeback-authority-denial:unsafe-feedback:causality",
-        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         "unsafe-feedback",
     )?;
     let unsafe_feedback_effect = unsafe_feedback_runtime.lower_writeback_effect(

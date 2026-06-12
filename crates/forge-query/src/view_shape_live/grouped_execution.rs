@@ -1,8 +1,11 @@
 use crate::basis::ResolvedSnapshotBasis;
-use crate::identity::{hash_parts, BasisDigest};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::identity::BasisDigest;
 use crate::view_shape::{GroupedViewPlanningArtifact, ViewShapePlanArtifact, ViewShapePlanDigest};
 use forge_foundational::facade::{AspectKey, AspectValue, InternedString};
-use forge_runtime_bridge::facade::BridgeGroupedTruthViewArtifact;
+use forge_runtime_bridge::facade::{BridgeGroupedTruthViewArtifact, BridgeIdentityEvidence};
 
 use super::counters::ViewShapeLiveCounters;
 use super::error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
@@ -45,17 +48,21 @@ impl GroupedExecutionMemberRow {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GroupedExecutionSurfaceArtifact {
-    digest: String,
+    identity: ForgeQueryEvidenceIdentity,
     plan_digest: ViewShapePlanDigest,
     basis_digest: BasisDigest,
-    truth_view_digest: String,
+    truth_view_evidence_identity: ForgeQueryEvidenceIdentity,
     grouped_planning: GroupedViewPlanningArtifact,
     member_rows: Vec<GroupedExecutionMemberRow>,
 }
 
 impl GroupedExecutionSurfaceArtifact {
     pub fn digest(&self) -> &str {
-        &self.digest
+        self.identity.as_str()
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.identity
     }
 
     pub fn plan_digest(&self) -> &ViewShapePlanDigest {
@@ -66,8 +73,8 @@ impl GroupedExecutionSurfaceArtifact {
         &self.basis_digest
     }
 
-    pub fn truth_view_digest(&self) -> &str {
-        &self.truth_view_digest
+    pub fn truth_view_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.truth_view_evidence_identity
     }
 
     pub fn grouped_planning(&self) -> &GroupedViewPlanningArtifact {
@@ -125,13 +132,22 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
             ViewShapeLiveCounters::default(),
         ));
     }
-    if truth_view.basis_snapshot_identity().as_str() != basis.identity().snapshot_token() {
+    let truth_view_snapshot_identity =
+        crate::basis::bridge_snapshot_evidence_identity(truth_view.basis_snapshot_identity())
+            .map_err(|error| {
+                ViewShapeLiveError::new(
+                    ViewShapeLiveFailureClass::GroupedBaselineMismatch,
+                    format!("grouped truth-view snapshot identity cannot be lowered: {error:?}"),
+                    ViewShapeLiveCounters::default(),
+                )
+            })?;
+    if &truth_view_snapshot_identity != basis.identity().snapshot_identity() {
         return Err(ViewShapeLiveError::new(
             ViewShapeLiveFailureClass::GroupedBaselineMismatch,
             format!(
                 "grouped truth-view snapshot '{}' does not match grouped execution basis snapshot '{}'",
-                truth_view.basis_snapshot_identity().as_str(),
-                basis.identity().snapshot_token()
+                truth_view_snapshot_identity.as_str(),
+                basis.identity().snapshot_identity().as_str()
             ),
             ViewShapeLiveCounters::default(),
         ));
@@ -186,21 +202,44 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
         ));
     }
 
-    let digest = hash_parts(&[
-        format!("plan:{}", plan.view_plan_digest().as_str()),
-        format!("basis:{}", basis.proof().digest().as_str()),
-        format!("grouped_truth:{}", truth_view.digest().as_str()),
-        format!("members:{}", member_rows.len()),
-    ]);
+    let plan_evidence_identity = plan.view_plan_digest().evidence_identity();
+    let basis_evidence_identity = basis.proof().digest().evidence_identity();
+    let grouped_truth_view_evidence_identity =
+        bridge_grouped_truth_view_evidence_identity(truth_view.digest().evidence_identity());
+    let identity = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::GroupedExecutionSurfaceArtifact,
+    )
+    .field_evidence_identity(ForgeQueryEvidenceTag::new("plan"), &plan_evidence_identity)
+    .field_evidence_identity(
+        ForgeQueryEvidenceTag::new("basis"),
+        &basis_evidence_identity,
+    )
+    .field_evidence_identity(
+        ForgeQueryEvidenceTag::new("grouped_truth"),
+        &grouped_truth_view_evidence_identity,
+    )
+    .field_usize(ForgeQueryEvidenceTag::new("members"), member_rows.len())
+    .seal();
 
     Ok(GroupedExecutionSurfaceArtifact {
-        digest,
+        identity,
         plan_digest: plan.view_plan_digest().clone(),
         basis_digest: basis.proof().digest().clone(),
-        truth_view_digest: truth_view.digest().as_str().to_string(),
+        truth_view_evidence_identity: grouped_truth_view_evidence_identity,
         grouped_planning,
         member_rows,
     })
+}
+
+fn bridge_grouped_truth_view_evidence_identity(
+    bridge_identity: BridgeIdentityEvidence,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::BridgeGroupedTruthViewDigest)
+        .field_bridge_identity(
+            ForgeQueryEvidenceTag::new("bridge_grouped_truth"),
+            &bridge_identity,
+        )
+        .seal()
 }
 
 fn canonical_value_text(value: &AspectValue) -> String {

@@ -197,8 +197,8 @@ mod tests {
     fn merge_history_declaration_is_canonical_for_same_inputs() {
         let mapping = BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1");
         let parent_order = BridgeMergeParentOrderProof::new(vec![
-            crate::facade::TruthCommitIdentity::new("parent-a"),
-            crate::facade::TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ]);
         let authority = BridgeMergeAuthorityBasis::new(
             BridgeMergeAuthorityBasisKind::OrderedMergeCommit,
@@ -229,8 +229,8 @@ mod tests {
         assert_eq!(
             left.authority_basis().parent_order_proof().parents(),
             &[
-                crate::facade::TruthCommitIdentity::new("parent-a"),
-                crate::facade::TruthCommitIdentity::new("parent-b")
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-b")
             ]
         );
     }
@@ -247,8 +247,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    crate::facade::TruthCommitIdentity::new("parent-a"),
-                    crate::facade::TruthCommitIdentity::new("parent-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
                 ]),
             ),
         )

@@ -1,3 +1,7 @@
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::identity::hash_parts;
 use crate::query_context::{QueryBasisContextRequest, QueryContextFamily};
 
@@ -14,21 +18,34 @@ pub fn try_raw_basis_intent_from_query_context_request(
     let intent = match request.family() {
         QueryContextFamily::CurrentBranchHead => RawBasisIntent::current_head(operation_lane),
         QueryContextFamily::BranchHead => {
-            RawBasisIntent::branch_head(request.declared_basis_label(), operation_lane)
+            RawBasisIntent::branch_head(compatibility_identity(request), operation_lane)
         }
         QueryContextFamily::HistoricalSnapshot => {
-            RawBasisIntent::historical_snapshot(request.declared_basis_label(), operation_lane)
+            RawBasisIntent::historical_snapshot(compatibility_identity(request), operation_lane)
         }
         QueryContextFamily::HistoricalCommit => {
-            RawBasisIntent::historical_commit(request.declared_basis_label(), operation_lane)
+            RawBasisIntent::historical_commit(compatibility_identity(request), operation_lane)
         }
         QueryContextFamily::PreviewDerivedHistorical => RawBasisIntent::preview_derived_historical(
-            request.declared_basis_label(),
+            compatibility_identity(request),
             operation_lane,
         ),
         QueryContextFamily::DiffComparison => return Err(diff_comparison_denial(operation_lane)),
     };
     Ok(intent.with_source_path(RawBasisSourcePath::QueryContextCompatibility))
+}
+
+fn compatibility_identity(request: &QueryBasisContextRequest) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::QueryContextCompatibilityBasisLabel)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            request.family().as_str(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("declared_basis_label"),
+            request.declared_basis_label(),
+        )
+        .seal()
 }
 
 pub fn normalize_query_context_request(

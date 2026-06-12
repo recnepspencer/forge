@@ -8,20 +8,22 @@ use forge_runtime_bridge::facade::{
     BridgeSnapshotReadError, BridgeSourceAdapter, BridgeSourceCapability,
     BridgeSourceCapabilitySet, BridgeTruthViewEvaluationRequest, BridgeTruthViewSelector,
     CoarseRoutingMode, HistoricalEvaluationDeclaration, InvalidationSink,
-    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
-    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
-    SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource, SourceDeclaration,
-    SourceDeclarationIdentity, TruthBranchHeadSource, TruthBranchIdentity, TruthCommitIdentity,
-    TruthPatchIdentity, TruthPatchScope, TruthPatchTargetSelector, TruthSnapshotIdentity,
-    TruthSnapshotReader,
+    RelationalBridgeSnapshotIdentityParts, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacketResult, SnapshotReadRecord,
+    SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity, TruthBranchHeadSource,
+    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
+    TruthPatchTargetSelector, TruthSnapshotIdentity, TruthSnapshotReader,
 };
 
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::historical::{
     admit_historical_evaluation_path, lower_materialization_from_decision_log,
     lower_policy_resolution, resolve_historical_materialization_path, HistoricalEvaluationRequest,
     HistoricalPathReuseDescriptor,
 };
-use crate::identity::hash_parts;
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
     ForgeQueryLowerRuntimeBoundaryExecutionReceipt, ForgeQueryLowerRuntimeCapabilityEligibility,
@@ -34,16 +36,16 @@ use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, Represent
 pub(crate) fn representative_historical_bridge_lowering_row() -> RepresentativeArtifacts {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            TruthCommitIdentity::new("commit-a"),
-        ),
+        BridgeTruthViewSelector::historical_commit(analysis_branch_identity(), commit_a_identity()),
         BridgeReplayMode::Required,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
     );
     let request = HistoricalEvaluationRequest::delta_replay(
-        declaration.declaration_identity().as_str(),
+        declaration
+            .declaration_identity()
+            .evidence_identity()
+            .as_str(),
         4,
         8,
         HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
@@ -60,8 +62,8 @@ pub(crate) fn representative_historical_bridge_lowering_row() -> RepresentativeA
     let evaluation = runtime
         .evaluate(
             BridgeTruthViewEvaluationRequest::for_historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                analysis_branch_identity(),
+                commit_a_identity(),
             )
             .with_replay_mode(BridgeReplayMode::Required),
         )
@@ -71,45 +73,68 @@ pub(crate) fn representative_historical_bridge_lowering_row() -> RepresentativeA
     let resolved = resolve_historical_materialization_path(admission, lowered)
         .expect("historical path should resolve");
 
-    let retained_evidence = hash_parts(&[
-        declaration.declaration_identity().as_str().to_string(),
-        resolved.resolved_path_class().as_str().to_string(),
-        resolved.complexity_contract().contract_name().to_string(),
-    ]);
+    let historical_evidence =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_bridge_identity(
+                ForgeQueryEvidenceTag::new("declaration"),
+                &declaration.declaration_identity().evidence_identity(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("admitted_path_class"),
+                resolved.admitted_path_class().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("resolved_path_class"),
+                resolved.resolved_path_class().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("complexity_contract"),
+                resolved.complexity_contract().contract_name(),
+            )
+            .seal();
     let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
         ForgeQueryLowerRuntimeSeamKey::HistoricalBridgeLowering,
         ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
         ForgeQueryLowerRuntimeAuthorityOwner::RuntimeBridge,
         "Historical policy lowering",
-        hash_parts(&[
-            "historical_bridge_lowering_subject_v1".to_string(),
-            format!(
-                "declaration:{}",
-                declaration.declaration_identity().as_str()
-            ),
-            format!("resolved:{}", resolved.resolved_path_class().as_str()),
-        ]),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "historical-bridge-lowering-subject",
+        )
+        .field_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("declaration"),
+            &historical_evidence,
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("resolved_path_class"),
+            resolved.resolved_path_class().as_str(),
+        )
+        .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
         request.clone(),
-        hash_parts(&[
-            resolved.admitted_path_class().as_str().to_string(),
-            resolved.resolved_path_class().as_str().to_string(),
-        ]),
+        &historical_evidence,
     );
     let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
         eligibility.clone(),
-        resolved.complexity_contract().contract_name(),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "historical-bridge-lowering-route",
+            &historical_evidence,
+        ),
     );
+    let retained_evidence_identity =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "phase-six-historical-route",
+            &historical_evidence,
+        );
     let boundary_receipt = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
         &route_plan,
-        retained_evidence.clone(),
+        &retained_evidence_identity,
     );
     let envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
         ForgeQueryLowerRuntimeSeamKey::HistoricalBridgeLowering,
         &route_plan,
         &boundary_receipt,
-        &retained_evidence,
+        &retained_evidence_identity,
     );
     RepresentativeArtifacts {
         seam_key: ForgeQueryLowerRuntimeSeamKey::HistoricalBridgeLowering,
@@ -133,9 +158,9 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for StaticSource {
         Ok(BridgeCommittedPatchEnvelope::new(
             forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
                 request.commit_identity().clone(),
-                TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("analysis"),
+                TruthPatchIdentity::from_relational_patch_position(136),
+                snapshot_a_identity(),
+                analysis_branch_identity(),
             ),
             vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
@@ -161,12 +186,12 @@ impl SnapshotReadSource for StaticSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if identity.relational_snapshot_parts().is_some() {
             Ok(Box::new(StaticSnapshotReader))
         } else {
             Err(RelationalBridgeSourceError::new(format!(
-                "unknown snapshot `{}`",
-                identity.as_str()
+                "unknown snapshot `{:?}`",
+                identity
             )))
         }
     }
@@ -179,9 +204,9 @@ impl TruthBranchHeadSource for StaticSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new(
-                TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-                TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthCommitIdentity::from_relational_commit_id(136),
+                TruthPatchIdentity::from_relational_patch_position(137),
+                snapshot_a_identity(),
                 branch_identity.clone(),
             ),
             vec![profile_name_patch_item("entity-1")],
@@ -195,7 +220,7 @@ struct StaticSnapshotReader;
 
 impl TruthSnapshotReader for StaticSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        snapshot_a_identity()
     }
 
     fn read_packet(
@@ -203,7 +228,7 @@ impl TruthSnapshotReader for StaticSnapshotReader {
         request: &forge_runtime_bridge::facade::SnapshotReadPacket,
     ) -> Result<SnapshotReadPacketResult, BridgeSnapshotReadError> {
         Ok(SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            snapshot_a_identity(),
             request
                 .reads()
                 .iter()
@@ -235,12 +260,12 @@ impl BridgeSourceAdapter for StaticSourceAdapter {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if identity.relational_snapshot_parts().is_some() {
             Ok(Box::new(StaticSnapshotReader))
         } else {
             Err(RelationalBridgeSourceError::new(format!(
-                "unknown snapshot `{}`",
-                identity.as_str()
+                "unknown snapshot `{:?}`",
+                identity
             )))
         }
     }
@@ -270,8 +295,8 @@ fn runtime(policy: BridgeRuntimePolicy) -> RuntimeBridge {
         .register_source(registered_source(
             "source:analysis-snapshot",
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                analysis_branch_identity(),
+                snapshot_a_identity(),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -281,8 +306,8 @@ fn runtime(policy: BridgeRuntimePolicy) -> RuntimeBridge {
         .register_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                analysis_branch_identity(),
+                commit_a_identity(),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -293,14 +318,14 @@ fn runtime(policy: BridgeRuntimePolicy) -> RuntimeBridge {
         ))
         .register_mapping(
             forge_runtime_bridge::facade::BridgeMappingRegistration::new(
-                forge_runtime_bridge::facade::BridgeMappingId::new("mapping"),
+                forge_runtime_bridge::facade::BridgeMappingId::from_stable_name("mapping"),
                 TruthPatchScope::new(
                     forge_runtime_bridge::facade::MappingSelector::exact("entity-1"),
                     AspectKeySelector::exact(aspect_key("profile")),
                     TruthPatchTargetSelector::entity_field(field_key("name")),
                 ),
                 SnapshotReadContract::scalar(aspect_key("profile"), ScalarAspectType::String),
-                SignalInvalidationScope::new("signal:profile"),
+                SignalInvalidationScope::from_stable_name("signal:profile"),
                 CoarseRoutingMode::Direct,
             ),
         )
@@ -326,13 +351,27 @@ fn field_key(value: &str) -> FieldKey {
     FieldKey::new(value.to_owned()).expect("valid historical fixture field key")
 }
 
+fn analysis_branch_identity() -> TruthBranchIdentity {
+    TruthBranchIdentity::from_relational_branch_id("analysis")
+}
+
+fn commit_a_identity() -> TruthCommitIdentity {
+    TruthCommitIdentity::from_relational_commit_id(6)
+}
+
+fn snapshot_a_identity() -> TruthSnapshotIdentity {
+    TruthSnapshotIdentity::from_relational_snapshot(RelationalBridgeSnapshotIdentityParts::new(
+        6, 1,
+    ))
+}
+
 fn registered_source(
     id: &str,
     selector: BridgeTruthViewSelector,
     capabilities: Vec<BridgeSourceCapability>,
 ) -> SourceDeclaration {
     SourceDeclaration::new(
-        SourceDeclarationIdentity::new(id),
+        SourceDeclarationIdentity::from_stable_name(id),
         selector,
         BridgeSourceCapabilitySet::new(capabilities),
     )

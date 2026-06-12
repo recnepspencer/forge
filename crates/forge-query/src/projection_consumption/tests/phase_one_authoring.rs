@@ -66,7 +66,7 @@ fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
     materialize_relational_authoritative_row_set(
         &packet,
         &SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             vec![
                 SnapshotReadRecord::for_request(
                     &entity_one_identity,

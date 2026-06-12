@@ -16,9 +16,9 @@ fn runtime_mixed_cause_delivery_replays_canonically_across_shuffled_bridge_input
         &bridge,
         forge_signal::facade::NodeId::new(241, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );
@@ -223,9 +223,9 @@ fn runtime_state_and_inspection_retain_mixed_cause_delivery_projection_after_dra
         &bridge,
         forge_signal::facade::NodeId::new(242, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );

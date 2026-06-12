@@ -263,6 +263,75 @@ early.
 
 ## Milestone 9.6 Named Certification Suites
 
+### 9.6. Bridge Truth Identity Hard Exposure Gate Test
+
+Purpose
+
+Prove that the bridge-truth identity lowering milestone begins with a real
+compile-time break at the public string folklore boundaries rather than a soft
+migration that leaves string construction or string receipt fields available to
+ordinary callers.
+
+Scenario
+
+- exercise public caller attempts to:
+  - construct bridge truth identities from raw string literals
+  - read bridge truth identities back as raw string text
+  - construct Query mutation receipts and deltas with public string fields
+  - implement runtime backend/source adapter snapshot-token methods returning
+    owned strings
+- run the hard-break workspace exposure command after deleting the public
+  string gates
+- compare the surfaced errors against the milestone Collapse Matrix
+
+Required concrete lanes
+
+- bridge facade compile-fail lane where `TruthCommitIdentity::new("commit-1")`
+  and `TruthCommitIdentity::as_str()` are rejected for an external caller
+- query receipt compile-fail lane where struct literals with
+  `commit_identity: String`, `snapshot_token: String`, and
+  `entity_identity: String` have installed trybuild fixtures and expected
+  stderr during the red exposure phase, then execute once the query crate
+  compile frontier reaches the fixture runner
+- adapter trait compile-fail lane where `snapshot_token(&self) -> String` is no
+  longer a trait member, with installed trybuild fixtures during the red
+  exposure phase and execution once the query crate compile frontier reaches
+  the fixture runner
+- workspace-red exposure lane where `cargo check --workspace --keep-going`
+  records the first hard dependency frontier and maps every surfaced error to
+  the Collapse Matrix
+
+Must verify
+
+- the hard break is applied at bridge/query facade choke points only
+- no downstream production call sites are fixed in the hard-break phase
+- the workspace is red after the gates land
+- query compile-fail fixtures and expected stderr are installed before Phase 2
+  closes; their execution is a hard Phase 5/6 certification gate because Phase
+  2 intentionally leaves `forge-relational` red
+- every surfaced compile error is grouped by crate and error kind in
+  `_docs/forge-query/bridge_truth_identity_exposure_report.md`
+- any surfaced path missing from the Collapse Matrix is added before the phase
+  closes
+- the exposure report is a one-time break catalog, not an incremental greening
+  scoreboard
+
+Required verification output
+
+- `bridge_truth_identity_compile_fail_boundary_digest`
+- `query_receipt_string_field_compile_fail_boundary_digest`
+- `adapter_snapshot_token_compile_fail_boundary_digest`
+- `workspace_red_exposure_digest`
+- `collapse_matrix_cross_check_digest`
+
+Pass condition
+
+The hard exposure gate is certified only when ordinary external callers cannot
+mint or read truth-routing identity through strings, Query receipt string
+fields are not public construction authority, adapter snapshot-token string
+methods are gone, and the resulting workspace-red exposure is fully cataloged
+against the authoritative Collapse Matrix.
+
 ### 9.6. Phase 1 Canonical Evidence Identity Stability Test
 
 Purpose

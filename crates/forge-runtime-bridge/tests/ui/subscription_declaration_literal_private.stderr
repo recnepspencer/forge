@@ -1,3 +1,14 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/subscription_declaration_literal_private.rs:11:70
+   |
+11 |         declaration_identity: BridgeSubscriptionDeclarationIdentity::new("subscription:literal"),
+   |                                                                      ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+   |     ----------------------------------------------------- private associated function defined here
+
 error: cannot construct `BridgeSubscriptionDeclaration` with struct literal syntax due to private fields
   --> tests/ui/subscription_declaration_literal_private.rs:10:13
    |

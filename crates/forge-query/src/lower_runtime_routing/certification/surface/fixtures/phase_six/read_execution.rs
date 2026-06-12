@@ -1,11 +1,13 @@
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::facade::{
     admit_query_basis_context, bind_query_basis_context, preflight_execution_basis,
     resolve_snapshot_basis, AdmittedQueryBasisContext, BasisAuthorityFamily, BasisResolutionMode,
     ExecutionBasisIntent, QueryBasisContextRequest, QueryContextBindingSource,
     ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
-use crate::identity::hash_parts;
 use crate::intent_admission::certification_runtime;
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
@@ -13,9 +15,7 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeRouteKind,
     ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
 };
-use crate::runtime::{
-    ForgeQueryReadExecutionEngine, ForgeQueryReadFamily, ForgeQueryReadResult, ForgeQueryWorkspace,
-};
+use crate::runtime::{ForgeQueryReadFamily, ForgeQueryReadResult, ForgeQueryWorkspace};
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
 use std::cell::Cell;
 
@@ -31,11 +31,6 @@ pub(crate) fn representative_compose_read_row() -> RepresentativeArtifacts {
         ForgeQueryLowerRuntimeSeamKey::ComposeRead,
         "Composed current read",
         &result,
-        &[
-            "compose_read_subject_v1".to_string(),
-            format!("query:{}", result.receipt().query_digest()),
-            format!("graph:{}", result.receipt().read_graph_digest()),
-        ],
     )
 }
 
@@ -57,11 +52,6 @@ pub(crate) fn representative_compose_read_with_invariant_pack_row() -> Represent
         ForgeQueryLowerRuntimeSeamKey::ComposeReadWithInvariantPack,
         "Composed current read with invariant pack",
         &result,
-        &[
-            "compose_read_with_invariant_pack_subject_v1".to_string(),
-            format!("query:{}", result.receipt().query_digest()),
-            format!("graph:{}", result.receipt().read_graph_digest()),
-        ],
     )
 }
 
@@ -76,18 +66,15 @@ pub(crate) fn representative_execute_read_family_row() -> RepresentativeArtifact
         ForgeQueryLowerRuntimeSeamKey::ExecuteReadFamily,
         "Defined read-family execution",
         &result,
-        &[
-            "execute_read_family_subject_v1".to_string(),
-            format!("family:{}", family.family_name()),
-            format!("query:{}", result.receipt().query_digest()),
-        ],
     )
 }
 
 pub(crate) fn representative_execute_read_family_in_basis_context_row() -> RepresentativeArtifacts {
     let mut workspace = certification_workspace("lower-runtime-execute-read-family-basis");
     let family = certification_read_family(&mut workspace, "lower-runtime-basis-family");
-    let context = branch_context_for_family(&family, workspace.snapshot_token().as_str());
+    let snapshot_identity = workspace.snapshot_identity();
+    let snapshot_evidence_identity = snapshot_identity.evidence_identity();
+    let context = branch_context_for_family(&family, snapshot_evidence_identity.as_ref());
     let result = workspace
         .execute_read_family_in_basis_context(&family, &context)
         .expect("execute-read-family-in-basis-context fixture should execute");
@@ -96,11 +83,6 @@ pub(crate) fn representative_execute_read_family_in_basis_context_row() -> Repre
         ForgeQueryLowerRuntimeSeamKey::ExecuteReadFamilyInBasisContext,
         "Basis-context read-family execution",
         &result,
-        &[
-            "execute_read_family_in_basis_context_subject_v1".to_string(),
-            format!("family:{}", family.family_name()),
-            format!("basis:{}", context.basis_digest()),
-        ],
     )
 }
 
@@ -115,18 +97,15 @@ pub(crate) fn representative_runtime_current_read_graph_row() -> RepresentativeA
         ForgeQueryLowerRuntimeSeamKey::ExecuteRuntimeCurrentReadGraph,
         "Current read execution",
         &result,
-        &[
-            "execute_runtime_current_read_graph_subject_v1".to_string(),
-            format!("family:{}", family.family_name()),
-            format!("snapshot:{}", result.receipt().snapshot_token()),
-        ],
     )
 }
 
 pub(crate) fn representative_runtime_basis_context_read_graph_row() -> RepresentativeArtifacts {
     let mut workspace = certification_workspace("lower-runtime-runtime-basis-read");
     let family = certification_read_family(&mut workspace, "lower-runtime-runtime-basis-family");
-    let context = branch_context_for_family(&family, workspace.snapshot_token().as_str());
+    let snapshot_identity = workspace.snapshot_identity();
+    let snapshot_evidence_identity = snapshot_identity.evidence_identity();
+    let context = branch_context_for_family(&family, snapshot_evidence_identity.as_ref());
     let result = workspace
         .execute_read_family_in_basis_context(&family, &context)
         .expect("runtime basis-context read fixture should execute");
@@ -135,11 +114,6 @@ pub(crate) fn representative_runtime_basis_context_read_graph_row() -> Represent
         ForgeQueryLowerRuntimeSeamKey::ExecuteRuntimeBasisContextReadGraph,
         "Basis-context read execution",
         &result,
-        &[
-            "execute_runtime_basis_context_read_graph_subject_v1".to_string(),
-            format!("family:{}", family.family_name()),
-            format!("basis:{}", context.basis_digest()),
-        ],
     )
 }
 
@@ -147,39 +121,44 @@ fn route_planned_read_row(
     seam_key: ForgeQueryLowerRuntimeSeamKey,
     capability_label: &str,
     result: &ForgeQueryReadResult,
-    subject_parts: &[String],
 ) -> RepresentativeArtifacts {
-    let retained = result
-        .receipt()
-        .execution_provenance_chain_digest()
-        .unwrap_or_else(|| result.receipt().result_digest())
-        .to_string();
+    let read_evidence = read_result_evidence_identity(result);
     let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
         seam_key,
         ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
         ForgeQueryLowerRuntimeAuthorityOwner::RuntimeBridge,
         capability_label,
-        hash_parts(subject_parts),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "phase-six-read-execution-route-subject",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("read"), &read_evidence)
+        .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
         request.clone(),
-        hash_parts(&[
-            result.receipt().query_digest().to_string(),
-            result.receipt().basis_digest().to_string(),
-            retained.clone(),
-        ]),
+        &read_evidence,
     );
     let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
         eligibility.clone(),
-        execution_engine_label(result.receipt().execution_engine()),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "read-execution-engine-route",
+            &read_evidence,
+        ),
     );
-    let boundary_receipt =
-        ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&route_plan, &retained);
+    let retained_evidence_identity =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "phase-six-read-execution-route",
+            &read_evidence,
+        );
+    let boundary_receipt = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
+        &route_plan,
+        &retained_evidence_identity,
+    );
     let envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
         seam_key,
         &route_plan,
         &boundary_receipt,
-        &retained,
+        &retained_evidence_identity,
     );
     RepresentativeArtifacts {
         seam_key,
@@ -192,15 +171,29 @@ fn route_planned_read_row(
     }
 }
 
-fn execution_engine_label(engine: &ForgeQueryReadExecutionEngine) -> &'static str {
-    match engine {
-        ForgeQueryReadExecutionEngine::QueryRuntimeCurrent => "query-runtime-current",
-        ForgeQueryReadExecutionEngine::QueryRuntimeBranch => "query-runtime-branch",
-        ForgeQueryReadExecutionEngine::QueryRuntimeHistorical => "query-runtime-historical",
-        ForgeQueryReadExecutionEngine::QueryRuntimePreviewDerived => {
-            "query-runtime-preview-derived"
-        }
+fn read_result_evidence_identity(result: &ForgeQueryReadResult) -> ForgeQueryEvidenceIdentity {
+    let receipt = result.receipt();
+    let snapshot_evidence_identity = receipt.snapshot_evidence_identity();
+    let mut builder =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("engine"),
+                receipt.execution_engine().as_str(),
+            )
+            .field_identity(ForgeQueryEvidenceTag::new("query"), receipt.query_digest())
+            .field_identity(ForgeQueryEvidenceTag::new("basis"), receipt.basis_digest())
+            .field_identity(
+                ForgeQueryEvidenceTag::new("result"),
+                receipt.result_digest(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("snapshot"),
+                &snapshot_evidence_identity,
+            );
+    if let Some(provenance) = receipt.execution_provenance_chain_digest() {
+        builder = builder.field_identity(ForgeQueryEvidenceTag::new("provenance"), provenance);
     }
+    builder.seal()
 }
 
 fn certification_workspace(label: &str) -> ForgeQueryWorkspace {
@@ -276,7 +269,14 @@ fn runtime_preflight_for_family(
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        snapshot_token.to_string(),
+        crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity,
+        )
+        .field_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture_snapshot"),
+            snapshot_token,
+        )
+        .seal(),
         family.read_graph().schema_basis().clone(),
         SnapshotLineageClass::CurrentHead,
     );

@@ -4,13 +4,17 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::{
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId,
     BridgeMappingRegistration, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
-    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadPacket,
-    SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity,
-    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
+    RelationalBridgeSnapshotIdentityParts, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    SnapshotReadSource, TruthBranchIdentity, TruthPatchIdentity, TruthPatchScope,
+    TruthSnapshotIdentity, TruthSnapshotReader,
 };
 use serde_json::Value;
 
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryAuthorityLane, ForgeQueryBasisAdmissionEvidenceRow,
     ForgeQueryEffectPolicy, ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration,
@@ -20,13 +24,14 @@ use crate::facade::{
     ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
-    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspaceError, ForgeQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
-    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
+    ForgeQueryRuntimeSnapshotIdentityAdapter, ForgeQueryRuntimeSourceAdapter,
+    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeSupportProfile,
+    ForgeQueryWorkspaceError, ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
+    QuerySchemaView, SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
     SubscriptionActivationInput,
 };
 use crate::identity::hash_parts;
+use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
 use crate::ForgeQuerySessionLabel;
 
@@ -39,6 +44,7 @@ pub(super) fn transcript_runtime() -> ForgeQueryRuntime {
         .runtime_bridge(transcript_bridge())
         .schema_adapter(TranscriptSchemaAdapter)
         .source_adapter(TranscriptSourceAdapter::default())
+        .snapshot_identity(TranscriptSnapshotIdentity)
         .write_authority(TranscriptWriteAuthority)
         .signal_sink(TranscriptSignalSink)
         .subscription_activation(TranscriptSubscriptionActivation)
@@ -70,6 +76,25 @@ fn intent_support_profile() -> ForgeQueryRuntimeSupportProfile {
 }
 
 struct TranscriptSchemaAdapter;
+
+struct TranscriptSnapshotIdentity;
+
+impl ForgeQueryRuntimeSnapshotIdentityAdapter for TranscriptSnapshotIdentity {
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        ForgeQuerySnapshotIdentity::preview(
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("transcript_snapshot_authority"),
+                    "runtime-api-stabilization",
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("transcript_snapshot_sequence"),
+                    1,
+                )
+                .seal(),
+        )
+    }
+}
 
 impl ForgeQueryRuntimeSchemaAdapter for TranscriptSchemaAdapter {
     fn admit_live_view(
@@ -123,10 +148,6 @@ impl ForgeQueryRuntimeSourceAdapter for TranscriptSourceAdapter {
         affected.dedup();
         affected
     }
-
-    fn snapshot_token(&self) -> String {
-        "transcript-external-snapshot".to_string()
-    }
 }
 
 struct TranscriptIntentAuthority;
@@ -145,11 +166,18 @@ impl ForgeQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
             .unwrap_or("TranscriptEntity")
             .to_string();
         let mutation_receipt = ForgeQueryMutationReceipt {
-            commit_identity: format!("transcript-intent-commit:{collection}"),
-            snapshot_token: format!("transcript-intent-snapshot:{collection}"),
+            commit_identity: ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                "transcript-intent-commit:{collection}"
+            )),
+            snapshot_identity: ForgeQuerySnapshotIdentity::from_external_authority_label(format!(
+                "transcript-intent-snapshot:{collection}"
+            )),
             deltas: vec![ForgeQueryMutationDelta {
                 collection,
-                entity_identity: "transcript-intent-entity-1".to_string(),
+                entity_identity:
+                    crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                        "transcript-intent-entity-1",
+                    ),
                 kind: ForgeQueryMutationKind::Updated,
                 aspect_paths: Vec::new(),
             }],
@@ -162,8 +190,16 @@ impl ForgeQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
             declaration.input_digest(),
             hash_parts(&[
                 "transcript-intent-produced-mutation".to_string(),
-                mutation_receipt.commit_identity.clone(),
-                mutation_receipt.snapshot_token.clone(),
+                mutation_receipt
+                    .commit_identity
+                    .evidence_identity()
+                    .as_str()
+                    .to_string(),
+                mutation_receipt
+                    .snapshot_identity
+                    .evidence_identity()
+                    .as_str()
+                    .to_string(),
             ]),
             [
                 "transcript-relational-invariant:acyclic",
@@ -181,8 +217,8 @@ impl ForgeQueryRuntimeSignalSinkAdapter for TranscriptSignalSink {
         &mut self,
         receipt: &ForgeQueryMutationReceipt,
     ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
-        let routed = self.build_signal_invalidation_routing_receipt(receipt);
-        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routed))
+        let routed = self.build_signal_invalidation_routing_receipt(receipt)?;
+        self.build_signal_invalidation_boundary_receipt(receipt, routed)
     }
 }
 
@@ -249,9 +285,11 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for TranscriptBridgeSour
         Ok(BridgeCommittedPatchEnvelope::new(
             forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
                 request.commit_identity().clone(),
-                TruthPatchIdentity::new(format!("patch:{}", request.commit_identity())),
-                TruthSnapshotIdentity::new("transcript-external-snapshot"),
-                TruthBranchIdentity::new("main"),
+                TruthPatchIdentity::from_relational_patch_position(1),
+                TruthSnapshotIdentity::from_relational_snapshot(
+                    RelationalBridgeSnapshotIdentityParts::new(1, 1),
+                ),
+                TruthBranchIdentity::from_relational_branch_id("main"),
             ),
             vec![BridgeCommittedPatchItem::with_target(
                 "transcript-entity",
@@ -327,12 +365,31 @@ impl InvalidationSink for TranscriptBridgeSink {
     }
 }
 
+#[derive(Clone, Debug)]
+struct TranscriptWritebackAuthority;
+
+impl forge_runtime_bridge::facade::TruthWritebackAuthority for TranscriptWritebackAuthority {
+    fn execute_writeback(
+        &self,
+        request: forge_runtime_bridge::facade::TruthWritebackRequest,
+    ) -> Result<
+        forge_runtime_bridge::facade::TruthWritebackReceipt,
+        forge_runtime_bridge::facade::TruthWritebackAuthorityError,
+    > {
+        Ok(forge_runtime_bridge::facade::TruthWritebackReceipt::new(
+            forge_runtime_bridge::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
+            &request,
+        ))
+    }
+}
+
 fn transcript_bridge() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(TranscriptBridgeSource)
         .with_signal_sink(TranscriptBridgeSink)
+        .with_writeback_authority(TranscriptWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("transcript-external"),
+            BridgeMappingId::from_stable_name("transcript-external"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
                 forge_foundational::facade::AspectKey::new("transcript-aspect")
@@ -345,7 +402,7 @@ fn transcript_bridge() -> RuntimeBridge {
                     .expect("valid transcript bridge snapshot aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("transcript-external"),
+            SignalInvalidationScope::from_stable_name("transcript-external"),
             CoarseRoutingMode::Direct,
         ))
         .build()

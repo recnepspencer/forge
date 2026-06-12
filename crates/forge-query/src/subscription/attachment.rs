@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::acknowledgement::{
     QueryDeliveryBatchReceipt, QueryDeliverySequence, SubscriptionAcknowledgementFrontier,
@@ -25,8 +27,8 @@ pub struct SubscriptionConsumerAttachment {
     future_selection: QuerySubscriptionFutureSelection,
     basis_binding_digest: String,
     checkpoint_identity_digest: String,
-    consumer_digest: String,
-    delivery_cursor_digest: String,
+    consumer_identity: ForgeQueryEvidenceIdentity,
+    delivery_cursor_identity: ForgeQueryEvidenceIdentity,
     attachment_index: u64,
     acknowledgement_frontier: SubscriptionAcknowledgementFrontier,
     next_delivery_sequence: QueryDeliverySequence,
@@ -104,29 +106,74 @@ impl SubscriptionConsumerAttachment {
         counters.subscription_performance_receipt_count = 1;
         counters.subscription_budget_consumption_width = performance_receipt.consumed_width();
         counters.subscription_budget_remaining_width = performance_receipt.remaining_width();
-        let delivery_cursor_digest = hash_parts(&[
-            "subscription_delivery_cursor_v1".to_string(),
-            format!("lane:{}", lane_digest.as_str()),
-            format!("consumer:{}", request.consumer_digest()),
-            format!("seed:{}", request.delivery_cursor_seed()),
-            format!("pacing_width:{}", budget.delivery_pacing_width()),
-            format!("backpressure:{}", budget.backpressure_policy().as_str()),
-        ]);
-        let attachment_digest = SubscriptionConsumerAttachmentDigest::new(hash_parts(&[
-            "subscription_consumer_attachment_v1".to_string(),
-            format!("lane:{}", lane_digest.as_str()),
-            format!("consumer:{}", request.consumer_digest()),
-            format!("cursor:{}", delivery_cursor_digest),
-            format!("attachment_index:{}", attachment_index),
-            format!("handle_index:{}", handle.lane_index()),
-            format!("handle_generation:{}", handle.registry_generation()),
-            format!("fanout_report:{}", fanout_report.report_digest()),
-            format!("allocation:{}", allocation_posture.as_str()),
-            format!(
-                "performance:{}",
-                performance_receipt.performance_receipt_digest()
-            ),
-        ]));
+        let delivery_cursor_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_delivery_cursor_v1",
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("lane"), lane_digest.as_str())
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("consumer"),
+            request.consumer_identity(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("seed"),
+            request.delivery_cursor_seed(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("pacing_width"),
+            budget.delivery_pacing_width().to_string(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("backpressure"),
+            budget.backpressure_policy().as_str(),
+        )
+        .seal();
+        let attachment_digest = SubscriptionConsumerAttachmentDigest::new(
+            ForgeQueryEvidenceIdentity::compose(
+                ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "subscription_consumer_attachment_v1",
+            )
+            .field_identity(ForgeQueryEvidenceTag::new("lane"), lane_digest.as_str())
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("consumer"),
+                request.consumer_identity(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("cursor"),
+                &delivery_cursor_identity,
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("attachment_index"),
+                attachment_index.to_string(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("handle_index"),
+                handle.lane_index().to_string(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("handle_generation"),
+                handle.registry_generation().to_string(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("fanout_report"),
+                fanout_report.report_digest(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("allocation"),
+                allocation_posture.as_str(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("performance"),
+                performance_receipt.performance_receipt_digest(),
+            )
+            .seal(),
+        );
         let acknowledgement_frontier =
             SubscriptionAcknowledgementFrontier::initial(attachment_digest.clone());
 
@@ -137,8 +184,8 @@ impl SubscriptionConsumerAttachment {
                 future_selection: handle.future_selection().clone(),
                 basis_binding_digest: handle.basis_binding_digest().to_string(),
                 checkpoint_identity_digest: handle.checkpoint_identity_digest().to_string(),
-                consumer_digest: request.consumer_digest().to_string(),
-                delivery_cursor_digest,
+                consumer_identity: request.consumer_identity().clone(),
+                delivery_cursor_identity,
                 attachment_index,
                 acknowledgement_frontier,
                 next_delivery_sequence: QueryDeliverySequence::initial().next(),
@@ -201,11 +248,19 @@ impl SubscriptionConsumerAttachment {
     }
 
     pub fn consumer_digest(&self) -> &str {
-        &self.consumer_digest
+        self.consumer_identity.as_str()
+    }
+
+    pub fn consumer_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.consumer_identity
     }
 
     pub fn delivery_cursor_digest(&self) -> &str {
-        &self.delivery_cursor_digest
+        self.delivery_cursor_identity.as_str()
+    }
+
+    pub fn delivery_cursor_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_cursor_identity
     }
 
     pub fn attachment_index(&self) -> u64 {

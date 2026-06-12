@@ -14,9 +14,19 @@ fn consumer_router_handles_all_representative_runtime_stop_errors() {
 #[test]
 fn consumer_router_handles_manually_constructed_stop_classes_without_string_matching() {
     let binding = existing_binding();
-    let continuity_intent =
-        ForgeQueryContinuityMutationIntent::rebind_existing_target("authority:task-1", "Task:2")
-            .expect("continuity intent should build");
+    let continuity_intent = ForgeQueryContinuityMutationIntent::rebind_existing_target(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
+            crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1")
+                .expect("continuity prior authority label"),
+        )
+        .expect("continuity prior authority identity"),
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+            crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-1")
+                .expect("continuity successor authority label"),
+        )
+        .expect("continuity successor authority identity"),
+    )
+    .expect("continuity intent should build");
     let target_reference =
         ForgeQuerySymbolicTargetReference::new("task_symbol").expect("reference should build");
     let effect_policy_denial = ForgeQueryEffectPolicy::DeriveOnly
@@ -105,8 +115,8 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
                         vec!["task_symbol".to_string()],
                         vec!["same_batch_entity_relation_identity_edges".to_string()],
                         vec!["mixed_existing_target_followup_mutation".to_string()],
-                        "program-digest".to_string(),
-                        "breadth-digest".to_string(),
+                        graph_domain_fixture_digest("program"),
+                        graph_domain_fixture_digest("breadth"),
                         "components=1".to_string(),
                     ),
                 ),
@@ -118,7 +128,7 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
         ),
         (
             ForgeQueryRuntimeError::MutationNamingDenied(ForgeQueryNamingMutationDenial::new(
-                &ForgeQueryNamingMutationIntent::attach_new_target("attachment-1").expect("intent"),
+                &ForgeQueryNamingMutationIntent::attach_new_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("attachment-1").expect("naming attachment authority label")).expect("naming attachment identity")),
                 ForgeQueryNamingMutationDenialKind::RequiresSameBatchTargetReference,
                 "naming needs a same-batch target",
             )),
@@ -167,7 +177,7 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
         ),
         (
             ForgeQueryRuntimeError::SharedReadStaleBasis {
-                snapshot_token: "shared-read-stale".to_string(),
+                snapshot_identity: crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label("shared-read-stale"),
             },
             ConsumerStopRoute::SharedReadStaleBasis,
         ),
@@ -226,4 +236,21 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
     for (error, expected) in manual_cases {
         assert_eq!(route_consumer_stop_class(&error), expected);
     }
+}
+
+fn graph_domain_fixture_digest(
+    role: &'static str,
+) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+    crate::evidence_identity::forge_query_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("role"),
+        "consumer-graph-domain-fixture",
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture"),
+        role,
+    )
+    .seal()
 }

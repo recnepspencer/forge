@@ -125,19 +125,15 @@ fn reference_set_digest(
     references: &[CausalEvidenceReference],
 ) -> CausalEvidenceReferenceDigest {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("anchor"),
-            anchor.anchor_digest().as_str(),
+            anchor.anchor_digest().evidence_identity(),
         )
-        .field_identity_sequence(
+        .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("references"),
-            references.iter().flat_map(|reference| {
-                [
-                    reference.owner().as_str(),
-                    reference.family().as_str(),
-                    reference.reference_digest().as_str(),
-                ]
-            }),
+            references
+                .iter()
+                .map(CausalEvidenceReference::evidence_identity),
         )
         .seal()
         .into()

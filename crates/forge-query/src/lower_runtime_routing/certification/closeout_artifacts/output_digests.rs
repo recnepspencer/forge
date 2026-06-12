@@ -52,10 +52,13 @@ pub(super) fn certification_output_digests(
             "lower_runtime_boundary_envelope_digest",
             digest_envelopes(surface),
         ),
-        output("crossing_inventory_digest", crossings.inventory_digest()),
+        output(
+            "crossing_inventory_digest",
+            crossings.inventory_digest().to_string(),
+        ),
         output(
             "crossing_classification_digest",
-            crossings.classification_digest(),
+            crossings.classification_digest().to_string(),
         ),
         output("compatibility_debt_registry_digest", gaps.registry_digest()),
         output(
@@ -270,7 +273,7 @@ fn digest_eligibilities(surface: &ForgeQueryLowerRuntimeRepresentativeSurface) -
         &surface
             .eligibilities()
             .iter()
-            .map(|eligibility| eligibility.eligibility_digest().to_string())
+            .map(|eligibility| eligibility.eligibility_identity().as_ref().to_string())
             .collect::<Vec<_>>(),
     )
 }
@@ -290,7 +293,7 @@ fn digest_boundary_receipts(surface: &ForgeQueryLowerRuntimeRepresentativeSurfac
         &surface
             .boundary_receipts()
             .iter()
-            .map(|receipt| receipt.boundary_execution_digest().to_string())
+            .map(|receipt| receipt.boundary_execution_identity().as_ref().to_string())
             .collect::<Vec<_>>(),
     )
 }
@@ -300,7 +303,7 @@ fn digest_envelopes(surface: &ForgeQueryLowerRuntimeRepresentativeSurface) -> St
         &surface
             .envelopes()
             .iter()
-            .map(|envelope| envelope.envelope_digest().to_string())
+            .map(|envelope| envelope.envelope_identity().as_ref().to_string())
             .collect::<Vec<_>>(),
     )
 }
@@ -333,8 +336,8 @@ fn digest_envelope_field(
             .envelopes()
             .iter()
             .map(|envelope| match field {
-                "authority" => envelope.route_authority_digest().to_string(),
-                "evidence" => envelope.route_evidence_digest().to_string(),
+                "authority" => envelope.route_authority_identity().as_ref().to_string(),
+                "evidence" => envelope.route_evidence_identity().as_ref().to_string(),
                 "cost" => envelope.route_cost_posture().as_str().to_string(),
                 _ => envelope.route_failure_topology().as_str().to_string(),
             })

@@ -61,6 +61,7 @@ pub(in super::super) fn intent_commit_denied_error() -> ForgeQueryRuntimeError {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -109,11 +110,21 @@ pub(in super::super) fn intent_execution_routing_failed_error() -> ForgeQueryRun
         .execute_intent(binding.declaration())
         .expect("backend execution should succeed");
     let admitted_handoff = ForgeQueryAdmittedIntentExecutionHandoff::from(handoff);
-    let execution_provenance = ForgeQueryIntentExecutionProvenance::for_authoritative_binding(
-        &binding,
-        execution.outcome_digest(),
-        execution.mutation_receipt().snapshot_token.as_str(),
-    );
+    let snapshot_evidence_identity = execution
+        .mutation_receipt()
+        .snapshot_identity
+        .evidence_identity();
+    let execution_provenance =
+        ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+            binding.family(),
+            binding.entrypoint(),
+            binding.execution_seam(),
+            binding.handoff().decision_digest(),
+            binding.handoff().handoff_digest(),
+            binding.binding_digest(),
+            execution.outcome_digest(),
+            &snapshot_evidence_identity,
+        );
     let decision_trace_envelope = ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution(
         &admitted_handoff,
         &execution,
@@ -137,6 +148,7 @@ pub(in super::super) fn preview_promotion_write_failed_error() -> ForgeQueryRunt
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(DenyingWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -165,7 +177,8 @@ pub(in super::super) fn preview_promotion_stale_basis_error() -> ForgeQueryRunti
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
-        .source_adapter(DriftingSnapshotSourceAdapter::default())
+        .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(DriftingSnapshotIdentityAdapter::default())
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -198,6 +211,7 @@ pub(in super::super) fn preview_promotion_atomic_batch_unsupported_error() -> Fo
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(CountingWriteAuthority {
             attempted_writes: attempted_writes.clone(),
         })

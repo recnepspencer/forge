@@ -8,12 +8,14 @@ use super::observation_identity::{
     CausalEvidenceReferenceDigest, CausalObservationAnchorCountersIdentity,
     CausalObservationAnchorDigest, CausalObservationQueryIdentity,
     CausalObservationReceiptIdentity, CausalObservationTargetHandle,
-    CausalResultShapeContextHandle, CausalResultShapeContextIdentity,
+    CausalObservationTargetIdentity, CausalResultShapeContextHandle,
+    CausalResultShapeContextIdentity,
 };
 use super::receipt_types::{CausalInspectionReason, CausalObservationOutcome};
 use super::request::{
     CausalInspectionExplanationFamily, CausalInspectionRequest, CausalInspectionRichness,
 };
+use forge_runtime_bridge::facade::BridgeIdentityEvidence;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CausalInspectionAdmissionDecisionKind {
@@ -164,6 +166,10 @@ impl CausalInspectionAdmissionSubject {
         self.request_identity.as_str()
     }
 
+    pub(super) fn request_identity(&self) -> &CausalInspectionRequestIdentity {
+        &self.request_identity
+    }
+
     pub fn anchor_digest(&self) -> &str {
         self.anchor_digest.as_str()
     }
@@ -176,6 +182,10 @@ impl CausalInspectionAdmissionSubject {
         self.anchor_counter_identity.as_str()
     }
 
+    pub(super) fn anchor_counter_identity(&self) -> &CausalObservationAnchorCountersIdentity {
+        &self.anchor_counter_identity
+    }
+
     pub fn anchor_reference_family_count(&self) -> usize {
         self.anchor_reference_family_count
     }
@@ -186,6 +196,10 @@ impl CausalInspectionAdmissionSubject {
 
     pub fn query_digest(&self) -> &str {
         self.query_identity.as_str()
+    }
+
+    pub(super) fn query_identity(&self) -> &CausalObservationQueryIdentity {
+        &self.query_identity
     }
 
     pub fn query_observation_digest(&self) -> &str {
@@ -204,6 +218,10 @@ impl CausalInspectionAdmissionSubject {
         self.reference_set_digest.as_str()
     }
 
+    pub(super) fn reference_set_identity(&self) -> &CausalEvidenceReferenceDigest {
+        &self.reference_set_digest
+    }
+
     pub fn resolved_reference_count(&self) -> usize {
         self.resolved_reference_count
     }
@@ -220,12 +238,20 @@ impl CausalInspectionAdmissionSubject {
         self.observation_target.identity().as_str()
     }
 
+    pub(super) fn observation_target_identity(&self) -> &CausalObservationTargetIdentity {
+        self.observation_target.identity()
+    }
+
     pub fn result_shape_context_digest(&self) -> &str {
         self.result_shape_context.identity().as_str()
     }
 
     pub fn target_digest(&self) -> &str {
         self.target_identity.as_str()
+    }
+
+    pub(super) fn target_identity(&self) -> &CausalInspectionTargetIdentity {
+        &self.target_identity
     }
 
     pub fn explanation_family(&self) -> CausalInspectionExplanationFamily {
@@ -246,6 +272,14 @@ impl CausalInspectionAdmissionSubject {
 
     pub(super) fn query_observation_identity(&self) -> &CausalObservationReceiptIdentity {
         &self.query_observation_identity
+    }
+
+    pub(super) fn query_observation_evidence_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        self.query_observation_identity.evidence_identity()
+    }
+
+    pub fn query_observation_bridge_evidence_identity(&self) -> BridgeIdentityEvidence {
+        BridgeIdentityEvidence::from_external_authority(self.query_observation_evidence_identity())
     }
 
     pub(super) fn result_shape_context_identity(&self) -> &CausalResultShapeContextIdentity {

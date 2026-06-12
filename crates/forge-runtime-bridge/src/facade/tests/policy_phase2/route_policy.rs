@@ -25,7 +25,9 @@ fn runtime_projects_route_planning_policy_and_stamps_planned_route() {
         .expect("route policy projection should succeed");
     let planned = runtime
         .plan_committed_patch_with_route_policy(
-            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
+            BridgeRouteRequest::for_commit(crate::truth_identity_fixtures::truth_commit_fixture(
+                "commit-a",
+            )),
             &route_policy,
         )
         .expect("route planning under lowered policy should succeed");
@@ -86,10 +88,10 @@ fn bulk_route_planning_policy_is_carried_by_every_planned_route() {
         .expect("bulk route policy projection should succeed");
     let workload = BridgeBulkWorkloadRequest::new(vec![
         BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         )),
         BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         )),
     ]);
 
@@ -127,9 +129,9 @@ fn policy_scoped_route_round_trips_through_canonical_replay() {
         .deliver_invalidation(
             runtime
                 .plan_committed_patch_with_route_policy(
-                    BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new(
-                        "commit-a",
-                    )),
+                    BridgeRouteRequest::for_commit(
+                        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    ),
                     &route_policy,
                 )
                 .expect("policy scoped route should plan"),
@@ -187,9 +189,9 @@ fn policy_scoped_route_without_route_artifacts_does_not_retain_canonical_record(
         .deliver_invalidation(
             runtime
                 .plan_committed_patch_with_route_policy(
-                    BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new(
-                        "commit-a",
-                    )),
+                    BridgeRouteRequest::for_commit(
+                        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    ),
                     &route_policy,
                 )
                 .expect("policy scoped route should plan"),

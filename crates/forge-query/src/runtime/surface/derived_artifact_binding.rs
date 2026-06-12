@@ -5,6 +5,7 @@ use super::{
     ForgeQueryDerivedMaterializationTarget,
 };
 use crate::identity::hash_parts;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::computed::ForgeQueryDerivedViewHandle;
 use crate::runtime::ForgeQueryRuntimeError;
 #[cfg(test)]
@@ -79,8 +80,8 @@ impl ForgeQueryDerivedArtifactBinding {
         &self.binding_digest
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        self.bundle.snapshot_token()
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        self.bundle.snapshot_identity()
     }
 
     pub fn target_count(&self) -> usize {
@@ -164,6 +165,7 @@ mod tests {
     use serde_json::json;
 
     use super::ForgeQueryDerivedArtifactBinding;
+    use crate::memory_workspace::ForgeQuerySnapshotIdentity;
     use crate::runtime::computed::ForgeQueryDerivedViewHandle;
     use crate::runtime::surface::{
         ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationReceipt,
@@ -178,7 +180,7 @@ mod tests {
             vec![value],
             ForgeQueryDerivedMaterializationReceipt::test_only(
                 view_name,
-                "snapshot-test",
+                ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-test"),
                 &format!("{view_name}-digest"),
             ),
         )
@@ -194,7 +196,7 @@ mod tests {
         let second = ForgeQueryDerivedViewHandle::new("derived.second");
         let third = ForgeQueryDerivedViewHandle::new("derived.third");
         let bundle = ForgeQueryDerivedMaterializationBundle::new(
-            "snapshot-test",
+            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-test"),
             BTreeMap::from([
                 (
                     first.name().to_string(),

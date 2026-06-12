@@ -1,4 +1,5 @@
 use crate::canonicalization::CanonicalResultShapeArtifact;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 use crate::runtime::{
     ForgeQueryDerivedArtifactBinding, ForgeQueryLiveArtifactBinding, ForgeQueryLiveReadReceipt,
@@ -9,13 +10,13 @@ use forge_relational::facade::grouped_truth::{
     RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
-    BridgeGroupedTruthViewArtifact, BridgeMaterializedRowSetArtifact,
+    BridgeGroupedTruthViewArtifact, BridgeMaterializedRowSetArtifact, TruthSnapshotIdentity,
 };
 
 use super::{
     ProjectionConsumptionSource, ProjectionSourceCapabilityProfile,
-    ProjectionSourceExecutionPosture, ProjectionSourceFamily, ProjectionSourceReferenceIdentity,
-    ProjectionWriteReceiptCapabilities,
+    ProjectionSourceExecutionPosture, ProjectionSourceFamily, ProjectionSourceIdentity,
+    ProjectionSourceReferenceIdentity, ProjectionWriteReceiptCapabilities,
 };
 
 impl ProjectionConsumptionSource {
@@ -33,7 +34,7 @@ impl ProjectionConsumptionSource {
             basis_digest: Some(receipt.basis_digest().to_string()),
             result_digest: Some(receipt.result_digest().to_string()),
             result_shape_digest: Some(result_shape.digest().as_str().to_string()),
-            source_identity: receipt.read_graph_digest().to_string(),
+            source_identity: ProjectionSourceIdentity::artifact(receipt.read_graph_digest()),
             materialized_fact_posture: receipt.materialized_fact_posture().cloned(),
         }
     }
@@ -45,10 +46,10 @@ impl ProjectionConsumptionSource {
                 execution_posture: ProjectionSourceExecutionPosture::Current,
             },
             query_digest: Some(receipt.query_digest().to_string()),
-            basis_digest: Some(receipt.snapshot_token().to_string()),
+            basis_digest: Some(receipt.snapshot_evidence_identity().as_str().to_string()),
             result_digest: Some(receipt.result_digest().to_string()),
             result_shape_digest: Some(receipt.view_shape_digest().to_string()),
-            source_identity: receipt.installation_digest().to_string(),
+            source_identity: ProjectionSourceIdentity::artifact(receipt.installation_digest()),
             source_reference_identities: Vec::new(),
             materialized_fact_posture: receipt.materialized_fact_posture().cloned(),
         }
@@ -60,13 +61,13 @@ impl ProjectionConsumptionSource {
         if let Some(provenance) = receipt.provenance_evidence() {
             source_reference_identities.push(ProjectionSourceReferenceIdentity::synthetic(
                 "bridge_provenance_execution_record",
-                provenance.execution_record_digest(),
+                provenance.execution_record_digest().as_str(),
             ));
         }
         if let Some(symbolic_reference) = receipt.symbolic_target_reference_evidence() {
             source_reference_identities.push(ProjectionSourceReferenceIdentity::synthetic(
                 "symbolic_target_reference",
-                symbolic_reference.symbol(),
+                symbolic_reference.symbol().as_str(),
             ));
         }
         Self {
@@ -85,10 +86,12 @@ impl ProjectionConsumptionSource {
                 },
             },
             query_digest: None,
-            basis_digest: Some(receipt.snapshot_token().to_string()),
+            basis_digest: Some(receipt.snapshot_evidence_identity().as_str().to_string()),
             result_digest: None,
             result_shape_digest: None,
-            source_identity: receipt.commit_identity().to_string(),
+            source_identity: ProjectionSourceIdentity::from_evidence_identity(
+                receipt.commit_evidence_identity().clone(),
+            ),
             source_reference_identities,
             materialized_fact_posture: None,
         }
@@ -118,10 +121,11 @@ impl ProjectionConsumptionSource {
             basis_digest: Some(execution.basis_digest().to_string()),
             result_digest: Some(execution.result_digest().to_string()),
             result_shape_digest: Some(execution.result_shape_digest().to_string()),
-            source_identity: execution
-                .materialization_path_identity()
-                .unwrap_or_else(|| execution.family().as_str())
-                .to_string(),
+            source_identity: ProjectionSourceIdentity::artifact(
+                execution
+                    .materialization_path_identity()
+                    .unwrap_or_else(|| execution.family().as_str()),
+            ),
             materialized_fact_posture: execution.materialized_fact_posture().cloned(),
         }
     }
@@ -132,10 +136,10 @@ impl ProjectionConsumptionSource {
             family: ProjectionSourceFamily::RelationalRowSet,
             capability_profile: ProjectionSourceCapabilityProfile::RelationalRowSet,
             query_digest: None,
-            basis_digest: Some(row_set.snapshot_identity().as_str().to_string()),
+            basis_digest: Some(snapshot_identity_digest(row_set.snapshot_identity())),
             result_digest: None,
             result_shape_digest: None,
-            source_identity: row_set.digest().as_str().to_string(),
+            source_identity: ProjectionSourceIdentity::artifact(row_set.digest().as_str()),
             materialized_fact_posture: None,
         }
     }
@@ -148,10 +152,14 @@ impl ProjectionConsumptionSource {
             family: ProjectionSourceFamily::RelationalGroupedProjection,
             capability_profile: ProjectionSourceCapabilityProfile::RelationalGroupedProjection,
             query_digest: None,
-            basis_digest: Some(grouped_projection.snapshot_identity().as_str().to_string()),
+            basis_digest: Some(snapshot_identity_digest(
+                grouped_projection.snapshot_identity(),
+            )),
             result_digest: None,
             result_shape_digest: None,
-            source_identity: grouped_projection.digest().as_str().to_string(),
+            source_identity: ProjectionSourceIdentity::artifact(
+                grouped_projection.digest().as_str(),
+            ),
             materialized_fact_posture: None,
         }
     }
@@ -162,10 +170,10 @@ impl ProjectionConsumptionSource {
             family: ProjectionSourceFamily::BridgeTruthViewRowSet,
             capability_profile: ProjectionSourceCapabilityProfile::BridgeTruthViewRowSet,
             query_digest: None,
-            basis_digest: Some(row_set.basis_snapshot_identity().as_str().to_string()),
+            basis_digest: Some(snapshot_identity_digest(row_set.basis_snapshot_identity())),
             result_digest: None,
             result_shape_digest: None,
-            source_identity: row_set.digest().as_str().to_string(),
+            source_identity: ProjectionSourceIdentity::artifact(row_set.digest().as_str()),
             materialized_fact_posture: None,
         }
     }
@@ -178,15 +186,14 @@ impl ProjectionConsumptionSource {
             family: ProjectionSourceFamily::BridgeGroupedTruthView,
             capability_profile: ProjectionSourceCapabilityProfile::BridgeGroupedTruthView,
             query_digest: None,
-            basis_digest: Some(
-                grouped_truth_view
-                    .basis_snapshot_identity()
-                    .as_str()
-                    .to_string(),
-            ),
+            basis_digest: Some(snapshot_identity_digest(
+                grouped_truth_view.basis_snapshot_identity(),
+            )),
             result_digest: None,
             result_shape_digest: None,
-            source_identity: grouped_truth_view.digest().as_str().to_string(),
+            source_identity: ProjectionSourceIdentity::artifact(
+                grouped_truth_view.digest().as_str(),
+            ),
             materialized_fact_posture: None,
         }
     }
@@ -202,10 +209,16 @@ impl ProjectionConsumptionSource {
             family: ProjectionSourceFamily::RetainedDerivedArtifactBinding,
             capability_profile: ProjectionSourceCapabilityProfile::RetainedDerivedArtifactBinding,
             query_digest: None,
-            basis_digest: Some(binding.snapshot_token().to_string()),
+            basis_digest: Some(
+                binding
+                    .snapshot_identity()
+                    .evidence_identity()
+                    .as_str()
+                    .to_string(),
+            ),
             result_digest: None,
             result_shape_digest: None,
-            source_identity: binding.binding_digest().to_string(),
+            source_identity: ProjectionSourceIdentity::artifact(binding.binding_digest()),
             materialized_fact_posture: None,
         }
     }
@@ -219,13 +232,29 @@ impl ProjectionConsumptionSource {
             family: ProjectionSourceFamily::LiveArtifactBinding,
             capability_profile: ProjectionSourceCapabilityProfile::LiveArtifactBinding,
             query_digest: None,
-            basis_digest: Some(binding.snapshot_token().to_string()),
+            basis_digest: Some(
+                binding
+                    .snapshot_identity()
+                    .evidence_identity()
+                    .as_str()
+                    .to_string(),
+            ),
             result_digest: None,
             result_shape_digest: None,
-            source_identity: binding.binding_digest().to_string(),
+            source_identity: ProjectionSourceIdentity::artifact(binding.binding_digest()),
             materialized_fact_posture: None,
         }
     }
+}
+
+fn snapshot_identity_digest(snapshot_identity: &TruthSnapshotIdentity) -> String {
+    let parts = snapshot_identity
+        .relational_snapshot_parts()
+        .expect("projection consumption source must carry typed relational snapshot identity");
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(parts)
+        .evidence_identity()
+        .as_str()
+        .to_string()
 }
 
 pub(crate) fn execution_posture_from_read_engine(

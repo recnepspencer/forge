@@ -10,6 +10,15 @@ use crate::writeback::{
 
 pub type BridgeWritebackEffectIdentity = BridgeIdentity<WritebackEffectIdentityTag>;
 
+impl BridgeWritebackEffectIdentity {
+    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+        Self::new(format!(
+            "bridge-writeback-effect:external-authority-evidence:{}",
+            evidence_identity.as_ref()
+        ))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeDerivedWritebackEffect {
     effect_identity: BridgeWritebackEffectIdentity,

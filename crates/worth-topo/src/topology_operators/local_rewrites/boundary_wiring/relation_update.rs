@@ -61,7 +61,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 },
             );
         }
-        if relation_binding.source_query_identity != source_half_edge_binding.query_identity {
+        if relation_binding.source_query_identity != source_half_edge_binding.query_identity_label {
             return Err(
                 TopologyMutationApplicationError::ExistingRelationSourceMismatch {
                     relation_id,
@@ -88,13 +88,13 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let source_loop_identity = single_incoming_relation_source_identity(
             bindings,
             half_edge_id,
-            &source_half_edge_binding.query_identity,
+            &source_half_edge_binding.query_identity_label,
             TopologyRelationKind::LoopOwnsHalfEdge,
         )?;
         let target_loop_identity = single_incoming_relation_source_identity(
             bindings,
             successor_half_edge_id,
-            &target_half_edge_binding.query_identity,
+            &target_half_edge_binding.query_identity_label,
             TopologyRelationKind::LoopOwnsHalfEdge,
         )?;
         if source_loop_identity != target_loop_identity {
@@ -121,9 +121,9 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             relation_kind,
             authoritative_identity: authoritative_identity.clone(),
             successor_authoritative_identity: format!("{authoritative_identity}:successor"),
-            source_query_identity: source_half_edge_binding.query_identity,
+            source_query_identity: source_half_edge_binding.query_identity_label,
             current_target_query_identity: relation_binding.target_query_identity,
-            updated_target_query_identity: target_half_edge_binding.query_identity,
+            updated_target_query_identity: target_half_edge_binding.query_identity_label,
             dependency_path: topology_relation_dependency_path(
                 schema::facade::platform::relations::RelationKind::Topology(relation_kind),
             ),
@@ -210,7 +210,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 },
             );
         }
-        if relation_binding.source_query_identity != half_edge_binding.query_identity {
+        if relation_binding.source_query_identity != half_edge_binding.query_identity_label {
             return Err(
                 TopologyMutationApplicationError::ExistingRelationSourceMismatch {
                     relation_id,
@@ -237,10 +237,10 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             )?
             .in_target_collection("TopologyRelation")?,
         )?;
-        let source_query_identity = half_edge_binding.query_identity;
+        let source_query_identity = half_edge_binding.query_identity_label;
         let verified_source_query_identity = source_query_identity.clone();
         let current_target_query_identity = relation_binding.target_query_identity;
-        let updated_target_query_identity = vertex_binding.query_identity;
+        let updated_target_query_identity = vertex_binding.query_identity_label;
         let dependency_path = topology_relation_dependency_path(
             schema::facade::platform::relations::RelationKind::Topology(endpoint.relation_kind()),
         );

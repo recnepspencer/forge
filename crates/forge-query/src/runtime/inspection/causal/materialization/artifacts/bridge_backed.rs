@@ -1,8 +1,17 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
-use forge_runtime_bridge::facade::{BridgeCausalEvidenceBinding, BridgeCausalExplanationEnvelope};
+use forge_runtime_bridge::facade::{
+    BridgeCausalEvidenceBinding, BridgeCausalEvidenceBindingClass, BridgeCausalEvidenceFamily,
+    BridgeCausalEvidenceOwner, BridgeCausalExplanationEnvelope,
+};
 
-use super::super::super::identity::CausalInspectionOutcomeIdentity;
+use super::super::super::identity::{
+    compose_bridge_causal_envelope_identity, compose_bridge_causal_envelope_receipt_identity,
+    compose_bridge_causal_explanation_envelope_identity, CausalInspectionArtifactIdentity,
+    CausalInspectionOutcomeIdentity,
+};
 use super::super::super::observation_identity::{
     CausalObservationReceiptIdentity, CausalResultShapeContextIdentity,
 };
@@ -17,13 +26,13 @@ use super::denied::DeniedQueryCausalInspectionArtifact;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryCausalEvidenceReferenceArtifact {
-    owner: String,
-    family: String,
-    reference_identity: String,
-    binding_digest: String,
-    retained_record_digest: Option<String>,
+    owner: BridgeCausalEvidenceOwner,
+    family: BridgeCausalEvidenceFamily,
+    reference_identity: ForgeQueryEvidenceIdentity,
+    binding_identity: ForgeQueryEvidenceIdentity,
+    retained_record_identity: Option<ForgeQueryEvidenceIdentity>,
     detail_redacted: bool,
-    reference_digest: String,
+    reference_receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QueryCausalEvidenceReferenceArtifact {
@@ -32,52 +41,126 @@ impl QueryCausalEvidenceReferenceArtifact {
         redaction_policy: CausalInspectionRedactionPolicy,
     ) -> Self {
         let detail_redacted = redaction_policy == CausalInspectionRedactionPolicy::DigestOnly;
-        let retained_record_digest = if detail_redacted {
+        let retained_record_identity = if detail_redacted {
             None
         } else {
-            binding.retained_record_digest().map(str::to_string)
+            binding.retained_record_evidence_identity()
         };
-        let reference_digest = hash_parts(&[
-            "query_causal_evidence_reference_artifact_v1".to_string(),
-            format!("owner:{}", binding.owner().as_str()),
-            format!("family:{}", binding.family().as_str()),
-            format!("reference:{}", binding.reference_identity()),
-            format!("binding:{}", binding.binding_digest()),
-            format!(
-                "retained:{}",
-                retained_record_digest.as_deref().unwrap_or("redacted")
-            ),
-            format!("redacted:{detail_redacted}"),
-        ]);
+        let bridge_reference_identity = binding.reference_evidence_identity();
+        let bridge_binding_identity = binding.binding_evidence_identity();
+        let reference_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "bridge-causal-evidence-reference",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("owner"),
+            binding.owner().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            binding.family().as_str(),
+        )
+        .field_bridge_identity(
+            ForgeQueryEvidenceTag::new("reference"),
+            &bridge_reference_identity,
+        )
+        .seal();
+        let binding_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "bridge-causal-evidence-binding",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("binding_class"),
+            bridge_causal_evidence_binding_class_label(binding.binding_class()),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("reference"), &reference_identity)
+        .field_bridge_identity(
+            ForgeQueryEvidenceTag::new("binding"),
+            &bridge_binding_identity,
+        )
+        .seal();
+        let retained_record_identity = retained_record_identity.as_ref().map(|retained_record| {
+            ForgeQueryEvidenceIdentity::compose(
+                ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt,
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("role"), "retained-bridge-record")
+            .field_shape(
+                ForgeQueryEvidenceTag::new("owner"),
+                binding.owner().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("family"),
+                binding.family().as_str(),
+            )
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("reference"), &reference_identity)
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
+            .field_bridge_identity(ForgeQueryEvidenceTag::new("retained"), retained_record)
+            .seal()
+        });
+        let reference_receipt_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("owner"),
+            binding.owner().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            binding.family().as_str(),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("reference"), &reference_identity)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("retained"),
+            retained_record_identity.as_ref(),
+        )
+        .field_bool(ForgeQueryEvidenceTag::new("redacted"), detail_redacted)
+        .seal();
         Self {
-            owner: binding.owner().as_str().to_string(),
-            family: binding.family().as_str().to_string(),
-            reference_identity: binding.reference_identity().to_string(),
-            binding_digest: binding.binding_digest().to_string(),
-            retained_record_digest,
+            owner: binding.owner(),
+            family: binding.family(),
+            reference_identity,
+            binding_identity,
+            retained_record_identity,
             detail_redacted,
-            reference_digest,
+            reference_receipt_identity,
         }
     }
 
     pub fn owner(&self) -> &str {
-        &self.owner
+        self.owner.as_str()
+    }
+
+    pub fn owner_kind(&self) -> BridgeCausalEvidenceOwner {
+        self.owner
     }
 
     pub fn family(&self) -> &str {
-        &self.family
+        self.family.as_str()
+    }
+
+    pub fn family_kind(&self) -> BridgeCausalEvidenceFamily {
+        self.family
     }
 
     pub fn reference_identity(&self) -> &str {
-        &self.reference_identity
+        self.reference_identity.as_str()
     }
 
     pub fn binding_digest(&self) -> &str {
-        &self.binding_digest
+        self.binding_identity.as_str()
     }
 
     pub fn retained_record_digest(&self) -> Option<&str> {
-        self.retained_record_digest.as_deref()
+        self.retained_record_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
     pub fn detail_redacted(&self) -> bool {
@@ -85,7 +168,18 @@ impl QueryCausalEvidenceReferenceArtifact {
     }
 
     pub fn reference_digest(&self) -> &str {
-        &self.reference_digest
+        self.reference_receipt_identity.as_str()
+    }
+}
+
+fn bridge_causal_evidence_binding_class_label(
+    binding_class: BridgeCausalEvidenceBindingClass,
+) -> &'static str {
+    match binding_class {
+        BridgeCausalEvidenceBindingClass::RetainedBridgeRecord => "retained_bridge_record",
+        BridgeCausalEvidenceBindingClass::ExternalAuthorityReference => {
+            "external_authority_reference"
+        }
     }
 }
 
@@ -94,17 +188,17 @@ pub struct AdmittedQueryCausalInspectionArtifact {
     query_admission_identity: CausalInspectionOutcomeIdentity,
     query_observation_identity: CausalObservationReceiptIdentity,
     result_shape_context_identity: CausalResultShapeContextIdentity,
-    bridge_envelope_identity_digest: String,
-    bridge_envelope_digest: String,
-    bridge_receipt_digest: String,
+    bridge_identity: ForgeQueryEvidenceIdentity,
+    bridge_envelope_identity: ForgeQueryEvidenceIdentity,
+    bridge_receipt_identity: ForgeQueryEvidenceIdentity,
     boundary_categories: Vec<CausalInspectionBoundaryEnvelopeCategory>,
     evidence_references: Vec<QueryCausalEvidenceReferenceArtifact>,
     temporal_async_explanation: QueryCausalTemporalAsyncExplanation,
     performance: CausalInspectionPerformanceEnvelope,
     receipt: CausalMaterializationReceipt,
     readmission_proof: CausalBridgeReadmissionProof,
-    causal_identity_digest: String,
-    artifact_digest: String,
+    causal_identity: CausalInspectionArtifactIdentity,
+    artifact_identity: CausalInspectionArtifactIdentity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -113,17 +207,17 @@ pub struct AdvisoryQueryCausalInspectionArtifact {
     query_observation_identity: CausalObservationReceiptIdentity,
     result_shape_context_identity: CausalResultShapeContextIdentity,
     advisory_reason: String,
-    bridge_envelope_identity_digest: String,
-    bridge_envelope_digest: String,
-    bridge_receipt_digest: String,
+    bridge_identity: ForgeQueryEvidenceIdentity,
+    bridge_envelope_identity: ForgeQueryEvidenceIdentity,
+    bridge_receipt_identity: ForgeQueryEvidenceIdentity,
     boundary_categories: Vec<CausalInspectionBoundaryEnvelopeCategory>,
     evidence_references: Vec<QueryCausalEvidenceReferenceArtifact>,
     temporal_async_explanation: QueryCausalTemporalAsyncExplanation,
     performance: CausalInspectionPerformanceEnvelope,
     receipt: CausalMaterializationReceipt,
     readmission_proof: CausalBridgeReadmissionProof,
-    causal_identity_digest: String,
-    artifact_digest: String,
+    causal_identity: CausalInspectionArtifactIdentity,
+    artifact_identity: CausalInspectionArtifactIdentity,
 }
 
 impl AdmittedQueryCausalInspectionArtifact {
@@ -135,21 +229,26 @@ impl AdmittedQueryCausalInspectionArtifact {
         temporal_async_explanation: QueryCausalTemporalAsyncExplanation,
         built: BuiltBridgeBackedArtifact,
     ) -> Self {
+        let bridge_identity = compose_bridge_causal_envelope_identity(envelope.identity());
+        let bridge_envelope_identity =
+            compose_bridge_causal_explanation_envelope_identity(envelope);
+        let bridge_receipt_identity =
+            compose_bridge_causal_envelope_receipt_identity(envelope.receipt());
         Self {
             query_admission_identity: query_admission_identity.clone(),
             query_observation_identity: query_observation_identity.clone(),
             result_shape_context_identity: result_shape_context_identity.clone(),
-            bridge_envelope_identity_digest: envelope.identity().identity_digest().to_string(),
-            bridge_envelope_digest: envelope.envelope_digest().to_string(),
-            bridge_receipt_digest: envelope.receipt().receipt_digest().to_string(),
+            bridge_identity,
+            bridge_envelope_identity,
+            bridge_receipt_identity,
             boundary_categories: built.boundary_categories,
             evidence_references: built.evidence_references,
             temporal_async_explanation,
             performance: built.performance,
             receipt: built.receipt,
             readmission_proof: built.readmission_proof,
-            causal_identity_digest: built.causal_identity_digest,
-            artifact_digest: built.artifact_digest,
+            causal_identity: built.causal_identity,
+            artifact_identity: built.artifact_identity,
         }
     }
 
@@ -166,7 +265,7 @@ impl AdmittedQueryCausalInspectionArtifact {
     }
 
     pub fn bridge_envelope_identity_digest(&self) -> &str {
-        &self.bridge_envelope_identity_digest
+        self.bridge_identity.as_str()
     }
 }
 
@@ -180,22 +279,27 @@ impl AdvisoryQueryCausalInspectionArtifact {
         temporal_async_explanation: QueryCausalTemporalAsyncExplanation,
         built: BuiltBridgeBackedArtifact,
     ) -> Self {
+        let bridge_identity = compose_bridge_causal_envelope_identity(envelope.identity());
+        let bridge_envelope_identity =
+            compose_bridge_causal_explanation_envelope_identity(envelope);
+        let bridge_receipt_identity =
+            compose_bridge_causal_envelope_receipt_identity(envelope.receipt());
         Self {
             query_advisory_identity: query_advisory_identity.clone(),
             query_observation_identity: query_observation_identity.clone(),
             result_shape_context_identity: result_shape_context_identity.clone(),
             advisory_reason,
-            bridge_envelope_identity_digest: envelope.identity().identity_digest().to_string(),
-            bridge_envelope_digest: envelope.envelope_digest().to_string(),
-            bridge_receipt_digest: envelope.receipt().receipt_digest().to_string(),
+            bridge_identity,
+            bridge_envelope_identity,
+            bridge_receipt_identity,
             boundary_categories: built.boundary_categories,
             evidence_references: built.evidence_references,
             temporal_async_explanation,
             performance: built.performance,
             receipt: built.receipt,
             readmission_proof: built.readmission_proof,
-            causal_identity_digest: built.causal_identity_digest,
-            artifact_digest: built.artifact_digest,
+            causal_identity: built.causal_identity,
+            artifact_identity: built.artifact_identity,
         }
     }
 
@@ -216,7 +320,7 @@ impl AdvisoryQueryCausalInspectionArtifact {
     }
 
     pub fn bridge_envelope_identity_digest(&self) -> &str {
-        &self.bridge_envelope_identity_digest
+        self.bridge_identity.as_str()
     }
 }
 
@@ -236,11 +340,11 @@ macro_rules! bridge_backed_accessors {
             }
 
             pub fn bridge_envelope_digest(&self) -> &str {
-                &self.bridge_envelope_digest
+                self.bridge_envelope_identity.as_str()
             }
 
             pub fn bridge_receipt_digest(&self) -> &str {
-                &self.bridge_receipt_digest
+                self.bridge_receipt_identity.as_str()
             }
 
             pub fn performance(&self) -> &CausalInspectionPerformanceEnvelope {
@@ -259,12 +363,22 @@ macro_rules! bridge_backed_accessors {
                 self.readmission_proof.readmission_proof_digest()
             }
 
+            pub(in crate::runtime) fn bridge_readmission_proof_identity(
+                &self,
+            ) -> &ForgeQueryEvidenceIdentity {
+                self.readmission_proof.readmission_proof_identity()
+            }
+
             pub fn causal_identity_digest(&self) -> &str {
-                &self.causal_identity_digest
+                self.causal_identity.as_str()
             }
 
             pub fn artifact_digest(&self) -> &str {
-                &self.artifact_digest
+                self.artifact_identity.as_str()
+            }
+
+            pub fn artifact_identity(&self) -> &CausalInspectionArtifactIdentity {
+                &self.artifact_identity
             }
         }
     };
@@ -294,6 +408,14 @@ impl QueryCausalInspectionArtifact {
             Self::Admitted(artifact) => artifact.artifact_digest(),
             Self::Advisory(artifact) => artifact.artifact_digest(),
             Self::Denied(artifact) => artifact.artifact_digest(),
+        }
+    }
+
+    pub fn artifact_identity(&self) -> &CausalInspectionArtifactIdentity {
+        match self {
+            Self::Admitted(artifact) => artifact.artifact_identity(),
+            Self::Advisory(artifact) => artifact.artifact_identity(),
+            Self::Denied(artifact) => artifact.artifact_identity(),
         }
     }
 
@@ -349,6 +471,16 @@ impl QueryCausalInspectionArtifact {
         match self {
             Self::Admitted(artifact) => Some(artifact.bridge_readmission_proof_digest()),
             Self::Advisory(artifact) => Some(artifact.bridge_readmission_proof_digest()),
+            Self::Denied(_) => None,
+        }
+    }
+
+    pub(in crate::runtime) fn bridge_readmission_proof_identity(
+        &self,
+    ) -> Option<&ForgeQueryEvidenceIdentity> {
+        match self {
+            Self::Admitted(artifact) => Some(artifact.bridge_readmission_proof_identity()),
+            Self::Advisory(artifact) => Some(artifact.bridge_readmission_proof_identity()),
             Self::Denied(_) => None,
         }
     }

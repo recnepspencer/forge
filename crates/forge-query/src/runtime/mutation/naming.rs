@@ -1,7 +1,7 @@
-use std::sync::Arc;
-
-use crate::identity::hash_parts;
-use crate::memory_workspace::ForgeQueryWorkspaceError;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::runtime::ForgeQueryMutationAuthorityIdentity;
 
 use super::super::{ForgeQueryMutationFamily, ForgeQueryWriteCommand};
 
@@ -27,86 +27,72 @@ impl ForgeQueryNamingMutationFamily {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryNamingMutationIntent {
     family: ForgeQueryNamingMutationFamily,
-    attachment_identity: Arc<str>,
-    prior_authoritative_identity: Option<Arc<str>>,
-    target_authoritative_identity: Option<Arc<str>>,
+    attachment_identity: ForgeQueryMutationAuthorityIdentity,
+    prior_authoritative_identity: Option<ForgeQueryMutationAuthorityIdentity>,
+    target_authoritative_identity: Option<ForgeQueryMutationAuthorityIdentity>,
 }
 
 impl ForgeQueryNamingMutationIntent {
-    pub fn attach_new_target(
-        attachment_identity: impl Into<String>,
-    ) -> Result<Self, ForgeQueryWorkspaceError> {
-        Ok(Self {
+    pub fn attach_new_target(attachment_identity: ForgeQueryMutationAuthorityIdentity) -> Self {
+        Self {
             family: ForgeQueryNamingMutationFamily::AttachNewTarget,
-            attachment_identity: validate_identity("attachment identity", attachment_identity)?,
+            attachment_identity,
             prior_authoritative_identity: None,
             target_authoritative_identity: None,
-        })
+        }
     }
 
     pub fn attach_existing_target(
-        attachment_identity: impl Into<String>,
-        target_authoritative_identity: impl Into<String>,
-    ) -> Result<Self, ForgeQueryWorkspaceError> {
-        Ok(Self {
+        attachment_identity: ForgeQueryMutationAuthorityIdentity,
+        target_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+    ) -> Self {
+        Self {
             family: ForgeQueryNamingMutationFamily::AttachExistingTarget,
-            attachment_identity: validate_identity("attachment identity", attachment_identity)?,
+            attachment_identity,
             prior_authoritative_identity: None,
-            target_authoritative_identity: Some(validate_identity(
-                "target authoritative identity",
-                target_authoritative_identity,
-            )?),
-        })
+            target_authoritative_identity: Some(target_authoritative_identity),
+        }
     }
 
     pub fn rebind_target(
-        attachment_identity: impl Into<String>,
-        prior_authoritative_identity: impl Into<String>,
-        target_authoritative_identity: impl Into<String>,
-    ) -> Result<Self, ForgeQueryWorkspaceError> {
-        Ok(Self {
+        attachment_identity: ForgeQueryMutationAuthorityIdentity,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+        target_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+    ) -> Self {
+        Self {
             family: ForgeQueryNamingMutationFamily::RebindTarget,
-            attachment_identity: validate_identity("attachment identity", attachment_identity)?,
-            prior_authoritative_identity: Some(validate_identity(
-                "prior authoritative identity",
-                prior_authoritative_identity,
-            )?),
-            target_authoritative_identity: Some(validate_identity(
-                "target authoritative identity",
-                target_authoritative_identity,
-            )?),
-        })
+            attachment_identity,
+            prior_authoritative_identity: Some(prior_authoritative_identity),
+            target_authoritative_identity: Some(target_authoritative_identity),
+        }
     }
 
     pub fn remove(
-        attachment_identity: impl Into<String>,
-        prior_authoritative_identity: impl Into<String>,
-    ) -> Result<Self, ForgeQueryWorkspaceError> {
-        Ok(Self {
+        attachment_identity: ForgeQueryMutationAuthorityIdentity,
+        prior_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+    ) -> Self {
+        Self {
             family: ForgeQueryNamingMutationFamily::Remove,
-            attachment_identity: validate_identity("attachment identity", attachment_identity)?,
-            prior_authoritative_identity: Some(validate_identity(
-                "prior authoritative identity",
-                prior_authoritative_identity,
-            )?),
+            attachment_identity,
+            prior_authoritative_identity: Some(prior_authoritative_identity),
             target_authoritative_identity: None,
-        })
+        }
     }
 
     pub fn family(&self) -> ForgeQueryNamingMutationFamily {
         self.family
     }
 
-    pub fn attachment_identity(&self) -> &str {
-        self.attachment_identity.as_ref()
+    pub fn attachment_identity(&self) -> &ForgeQueryMutationAuthorityIdentity {
+        &self.attachment_identity
     }
 
-    pub fn prior_authoritative_identity(&self) -> Option<&str> {
-        self.prior_authoritative_identity.as_deref()
+    pub fn prior_authoritative_identity(&self) -> Option<&ForgeQueryMutationAuthorityIdentity> {
+        self.prior_authoritative_identity.as_ref()
     }
 
-    pub fn target_authoritative_identity(&self) -> Option<&str> {
-        self.target_authoritative_identity.as_deref()
+    pub fn target_authoritative_identity(&self) -> Option<&ForgeQueryMutationAuthorityIdentity> {
+        self.target_authoritative_identity.as_ref()
     }
 }
 
@@ -130,7 +116,7 @@ impl ForgeQueryNamingMutationDenialKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryNamingMutationDenial {
     family: ForgeQueryNamingMutationFamily,
-    attachment_identity: String,
+    attachment_identity: ForgeQueryMutationAuthorityIdentity,
     kind: ForgeQueryNamingMutationDenialKind,
     reason: String,
     denial_digest: String,
@@ -143,16 +129,25 @@ impl ForgeQueryNamingMutationDenial {
         reason: impl Into<String>,
     ) -> Self {
         let reason = reason.into();
-        let denial_digest = hash_parts(&[
-            "forge_query_naming_mutation_denial_v1".to_string(),
-            format!("family:{}", intent.family().as_str()),
-            format!("attachment:{}", intent.attachment_identity()),
-            format!("kind:{}", kind.as_str()),
-            format!("reason:{reason}"),
-        ]);
+        let denial_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(ForgeQueryEvidenceTag::new("role"), "naming-mutation-denial")
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("family"),
+                    intent.family().as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("attachment"),
+                    intent.attachment_identity().evidence_identity(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_value(ForgeQueryEvidenceTag::new("reason"), &reason)
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             family: intent.family(),
-            attachment_identity: intent.attachment_identity().to_string(),
+            attachment_identity: intent.attachment_identity().clone(),
             kind,
             reason,
             denial_digest,
@@ -163,7 +158,7 @@ impl ForgeQueryNamingMutationDenial {
         self.family
     }
 
-    pub fn attachment_identity(&self) -> &str {
+    pub fn attachment_identity(&self) -> &ForgeQueryMutationAuthorityIdentity {
         &self.attachment_identity
     }
 
@@ -185,7 +180,7 @@ impl std::fmt::Display for ForgeQueryNamingMutationDenial {
         write!(
             f,
             "naming mutation `{}` denied during {}: {}",
-            self.attachment_identity,
+            self.attachment_identity.as_str(),
             self.kind.as_str(),
             self.reason
         )
@@ -262,17 +257,4 @@ pub(crate) fn admit_naming_intent(
         }
     }
     Ok(())
-}
-
-fn validate_identity(
-    label: &str,
-    value: impl Into<String>,
-) -> Result<Arc<str>, ForgeQueryWorkspaceError> {
-    let value = value.into();
-    if value.trim().is_empty() {
-        return Err(ForgeQueryWorkspaceError::new(format!(
-            "{label} may not be empty"
-        )));
-    }
-    Ok(Arc::from(value))
 }

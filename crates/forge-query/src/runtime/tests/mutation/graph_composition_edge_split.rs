@@ -16,7 +16,11 @@ fn edge_split_runtime(binding: &ForgeQueryExistingTruthTargetBinding) -> ForgeQu
 #[test]
 fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
     let binding = geometry_relation_binding("authority:edge-main", "Edge:1", "Edge");
-    let binding_digest = binding.binding_digest();
+    let expected_basis_binding_digest = ForgeQueryMutationEvidenceDigest::source_identity(
+        "continuity-basis-binding",
+        binding.binding_evidence_identity(),
+    );
+    let expected_edge_identity = binding.resolved_relation_identity().clone();
     let runtime = edge_split_runtime(&binding);
     let mut workspace = runtime
         .workspace("topology.graph-composition-edge-split")
@@ -67,7 +71,7 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
             })?;
             graph.insert_relation("VertexEdgeAdjacency", |relation| {
                 relation
-                    .existing_entity_identity("vertex.id", "vertex-a")
+                    .existing_entity_identity("vertex.id", test_entity_identity("vertex-a"))
                     .symbolic_entity_identity("edge.id", &left_edge)
                     .aspect("role.value", "source")
             })?;
@@ -85,7 +89,7 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
             })?;
             graph.insert_relation("VertexEdgeAdjacency", |relation| {
                 relation
-                    .existing_entity_identity("vertex.id", "vertex-b")
+                    .existing_entity_identity("vertex.id", test_entity_identity("vertex-b"))
                     .symbolic_entity_identity("edge.id", &right_edge)
                     .aspect("role.value", "target")
             })?;
@@ -98,8 +102,20 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
                 },
                 |edge| {
                     edge.continuity_split_successors(
-                        "authority:edge-main",
-                        ["authority:edge-left", "authority:edge-right"],
+                        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new(
+                            "authority:edge-main",
+                        )
+                        .expect("continuity prior authority label")).expect("continuity prior authority identity"),
+                        [
+                            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                                "authority:edge-left",
+                            )
+                            .expect("continuity successor authority label")).expect("continuity successor authority identity"),
+                            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                                "authority:edge-right",
+                            )
+                            .expect("continuity successor authority label")).expect("continuity successor authority identity"),
+                        ],
                     )
                     .aspect("kind.value", "split-parent")
                 },
@@ -157,10 +173,16 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
         Some("Edge")
     );
     assert_eq!(
-        continuity.basis_binding_digest(),
-        Some(binding_digest.as_str())
+        continuity
+            .basis_binding_digest()
+            .expect("continuity should retain typed binding basis digest")
+            .as_str(),
+        expected_basis_binding_digest.as_str()
     );
-    assert_eq!(continuity.resolved_target_entity_identity(), Some("Edge:1"));
+    assert_eq!(
+        continuity.resolved_target_entity_identity(),
+        Some(&expected_edge_identity)
+    );
     assert_eq!(
         program.steps()[7].kind(),
         ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedSupersession
@@ -198,17 +220,23 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
         ForgeQueryContinuityOutcomeClass::ContinuesAsSplitSuccessors
     );
     assert_eq!(
-        lineage.entries()[0].prior_authoritative_identity(),
+        lineage.entries()[0].prior_authoritative_identity().as_str(),
         "authority:edge-main"
     );
     assert_eq!(
-        lineage.entries()[0].successor_authoritative_identities(),
-        &[
-            "authority:edge-left".to_string(),
-            "authority:edge-right".to_string()
-        ]
+        lineage.entries()[0]
+            .successor_authoritative_identities()
+            .iter()
+            .map(|identity| identity.as_str())
+            .collect::<Vec<_>>(),
+        vec!["authority:edge-left", "authority:edge-right"]
     );
-    assert_eq!(lineage.entries()[0].target_collection(), Some("Edge"));
+    assert_eq!(
+        lineage.entries()[0]
+            .target_collection()
+            .map(|collection| collection.as_str()),
+        Some("Edge")
+    );
     assert_eq!(
         lineage.entries()[0].lineage_digest(),
         continuity.lineage_digest()
@@ -323,14 +351,17 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
                 lineage.lineage_summary_digest()
             );
             assert_eq!(
-                inspection_lineage.entries()[0].successor_authoritative_identities(),
-                &[
-                    "authority:edge-left".to_string(),
-                    "authority:edge-right".to_string()
-                ]
+                inspection_lineage.entries()[0]
+                    .successor_authoritative_identities()
+                    .iter()
+                    .map(|identity| identity.as_str())
+                    .collect::<Vec<_>>(),
+                vec!["authority:edge-left", "authority:edge-right"]
             );
             assert_eq!(
-                inspection_lineage.entries()[0].target_collection(),
+                inspection_lineage.entries()[0]
+                    .target_collection()
+                    .map(|collection| collection.as_str()),
                 Some("Edge")
             );
             assert_eq!(

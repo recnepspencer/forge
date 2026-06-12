@@ -75,8 +75,9 @@ fn retain_lower_runtime_slot_evidence(
     commit_identity: &TruthCommitIdentity,
 ) -> RetainedLowerRuntimeSlotEvidence {
     let (preview_execution_record_identity, preview_discard_record_identity) =
-        retain_preview_record_identities(runtime, commit_identity.as_str());
-    let writeback = retain_writeback_record_identities(runtime, commit_identity.as_str());
+        retain_preview_record_identities(runtime, commit_identity.evidence_identity().as_str());
+    let writeback =
+        retain_writeback_record_identities(runtime, commit_identity.evidence_identity().as_str());
     RetainedLowerRuntimeSlotEvidence {
         historical_evaluation_record_identity: retain_historical_evaluation_record_identity(
             runtime,
@@ -103,11 +104,12 @@ fn retain_lower_runtime_slot_evidence(
 fn retain_historical_evaluation_record_identity(runtime: &RuntimeBridge) -> String {
     runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::new("analysis"),
+            TruthBranchIdentity::from_bridge_harness_label("analysis"),
         ))
         .expect("historical evaluation should retain evidence")
         .record()
         .record_identity()
+        .evidence_identity()
         .as_str()
         .to_string()
 }
@@ -115,7 +117,7 @@ fn retain_historical_evaluation_record_identity(runtime: &RuntimeBridge) -> Stri
 fn retain_preview_record_identities(runtime: &RuntimeBridge, suffix: &str) -> (String, String) {
     let preview_admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new(format!("preview-session:{suffix}")),
+            BridgePreviewSessionIdentity::from_stable_name(format!("preview-session:{suffix}")),
             preview_declaration(suffix),
         )
         .expect("preview declaration should admit");
@@ -133,8 +135,16 @@ fn retain_preview_record_identities(runtime: &RuntimeBridge, suffix: &str) -> (S
         )
         .expect("preview discard should retain evidence");
     (
-        preview_execution.record_identity().as_str().to_string(),
-        preview_discard.record_identity().as_str().to_string(),
+        preview_execution
+            .record_identity()
+            .evidence_identity()
+            .as_str()
+            .to_string(),
+        preview_discard
+            .record_identity()
+            .evidence_identity()
+            .as_str()
+            .to_string(),
     )
 }
 
@@ -143,8 +153,8 @@ fn retain_source_materialization_record_identity(runtime: &RuntimeBridge) -> Str
         .admit_source(registered_source(
             "source:causal-materialization-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                TruthCommitIdentity::from_bridge_harness_label("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -161,6 +171,7 @@ fn retain_source_materialization_record_identity(runtime: &RuntimeBridge) -> Str
         .canonicalize_source_materialization_record(&source_contract, &source_observation)
         .expect("source materialization should retain evidence")
         .record_identity()
+        .evidence_identity()
         .as_str()
         .to_string()
 }
@@ -171,8 +182,8 @@ fn retain_structural_remap_record_identity(runtime: &RuntimeBridge) -> String {
             "structural:causal-materialization-snapshot",
             StructuralFingerprintFamily::TopologyFingerprint,
             StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-causal-materialization"),
+                TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-causal-materialization"),
             )),
         ))
         .expect("structural declaration should admit");
@@ -205,6 +216,7 @@ fn retain_structural_remap_record_identity(runtime: &RuntimeBridge) -> String {
             &structural_artifact,
         )
         .record_identity()
+        .evidence_identity()
         .as_str()
         .to_string()
 }
@@ -228,9 +240,12 @@ fn retain_stream_replay_record_identity(
         .resolve_change_stream_consumer_contract(&stream_protocol)
         .expect("stream contract should resolve");
     let stream_envelope = runtime
-        .ingest_committed_patch(BridgeRouteRequest::for_commit(TruthCommitIdentity::new(
-            format!("commit-stream-{}", commit_identity.as_str()),
-        )))
+        .ingest_committed_patch(BridgeRouteRequest::for_commit(
+            TruthCommitIdentity::from_bridge_harness_label(format!(
+                "commit-stream-{}",
+                commit_identity.evidence_identity()
+            )),
+        ))
         .expect("stream commit should ingest");
     let stream_window = runtime
         .plan_change_stream_window(&stream_contract, vec![stream_envelope])
@@ -244,23 +259,26 @@ fn retain_stream_replay_record_identity(
         .canonicalize_stream_replay_record(&stream_contract, &stream_window, &stream_checkpoint)
         .expect("stream replay should retain evidence")
         .replay_record_identity()
+        .evidence_identity()
         .as_str()
         .to_string()
 }
 
 fn preview_declaration(suffix: &str) -> BridgePreviewSessionDeclaration {
     BridgePreviewSessionDeclaration::new(
-        BridgePreviewSessionDeclarationIdentity::new(format!("preview:slot:{suffix}")),
+        BridgePreviewSessionDeclarationIdentity::from_stable_name(format!("preview:slot:{suffix}")),
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
-            BridgeSpeculativeBranchBindingIdentity::new(format!("binding:slot:{suffix}")),
-            TruthBranchIdentity::new("truth:analysis"),
-            BridgeSignalBranchIdentity::new("signal:analysis"),
+            BridgeSpeculativeBranchBindingIdentity::from_stable_name(format!(
+                "binding:slot:{suffix}"
+            )),
+            TruthBranchIdentity::from_bridge_harness_label("truth:analysis"),
+            BridgeSignalBranchIdentity::from_stable_name("signal:analysis"),
         ),
         BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("truth:analysis"),
-                TruthSnapshotIdentity::new("snapshot-causal-materialization"),
+                TruthBranchIdentity::from_bridge_harness_label("truth:analysis"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-causal-materialization"),
             ),
             BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
             BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,

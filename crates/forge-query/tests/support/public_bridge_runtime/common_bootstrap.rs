@@ -26,6 +26,7 @@ impl PublicBridgeRuntimeHarness {
                 self.state.clone(),
             ))
             .write_authority(PublicWriteAuthorityAdapter::new(self.state.clone()))
+            .snapshot_identity(PublicSnapshotIdentityAdapter::new(self.state.clone()))
             .signal_sink(PublicSignalSinkAdapter)
             .subscription_activation(PublicSubscriptionActivationAdapter)
             .preview_basis(PublicPreviewBasisAdapter)

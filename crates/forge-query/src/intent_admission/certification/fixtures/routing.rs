@@ -186,10 +186,18 @@ fn seeded_probe_binding(
                 .aspect("title.value", "Seed title")
         })
         .expect("routing certification seed insert should execute");
+    let authority_label =
+        crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+            .expect("routing certification authority label should build");
+    let authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            authority_label,
+        )
+        .expect("routing certification authority identity should build");
     workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                authority,
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("routing certification existing entity target should build")

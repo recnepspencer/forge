@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use forge_query::facade::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt,
-    ForgeQueryReadScopeClass,
+    ForgeQueryReadScopeClass, ForgeQuerySnapshotIdentity,
 };
 
 use super::fallback::TopologyReadFallbackPosture;
@@ -52,7 +52,7 @@ pub struct TopologyReadRequestReport {
     pub(crate) executed_scope_class: Option<ForgeQueryReadScopeClass>,
     pub(crate) executed_query_digest: Option<String>,
     pub(crate) executed_basis_digest: Option<String>,
-    pub(crate) executed_snapshot_token: Option<String>,
+    pub(crate) executed_snapshot_identity: Option<ForgeQuerySnapshotIdentity>,
     pub(crate) executed_built_in_operator_coverage: Vec<ForgeQueryReadBuiltInOperator>,
     pub(crate) fallback_posture: TopologyReadFallbackPosture,
     pub(crate) query_execution_count: usize,
@@ -74,7 +74,7 @@ impl TopologyReadRequestReport {
             executed_scope_class: Some(receipt.scope_class().clone()),
             executed_query_digest: Some(receipt.query_digest().to_string()),
             executed_basis_digest: Some(receipt.basis_digest().to_string()),
-            executed_snapshot_token: Some(receipt.snapshot_token().to_string()),
+            executed_snapshot_identity: Some(receipt.snapshot_identity().clone()),
             executed_built_in_operator_coverage: receipt.built_in_operator_coverage().to_vec(),
             lowered_traversal_count: lowering_artifact.traversal_steps().len(),
             relationship_proof_admission_count: lowering_artifact

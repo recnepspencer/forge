@@ -129,7 +129,9 @@ fn future_explanation_families_deny_without_bridge_assembly() {
 fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-causal-adversarial-policy"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-causal-adversarial-policy",
+        ))
         .unwrap();
     let mut causal_identity_digest = None;
     let mut policy_digests = Vec::new();
@@ -139,6 +141,7 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
         CausalInspectionRedactionPolicy::PreserveDetail,
         CausalInspectionRedactionPolicy::DigestOnly,
     ] {
+        let route_identity = routed.route_identity().evidence_identity();
         for materialization_policy in [
             CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
             CausalInspectionMaterializationPolicy::DigestReferenceOnly,
@@ -147,10 +150,7 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
                 CausalObservationOutcome::Changed,
                 &[
                     (CausalEvidenceFamily::QueryInspection, "query-inspection"),
-                    (
-                        CausalEvidenceFamily::BridgeRoute,
-                        routed.route_identity().as_str(),
-                    ),
+                    (CausalEvidenceFamily::BridgeRoute, route_identity.as_str()),
                 ],
             ))
             .why_changed()
@@ -201,7 +201,12 @@ fn receipt_with_evidence(
         outcome,
         evidence
             .iter()
-            .map(|(family, digest)| CausalObservationEvidenceIdentity::new(*family, *digest))
+            .map(|(family, digest)| {
+                CausalObservationEvidenceIdentity::new(
+                    *family,
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(digest),
+                )
+            })
             .collect(),
     )
 }

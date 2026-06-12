@@ -1,7 +1,7 @@
-use crate::identity::hash_parts;
 use crate::query_context::AdmittedQueryBasisContext;
 use crate::runtime::{ForgeQueryReadFamily, ForgeQueryRuntimeLiveSubscriptionInstallation};
 
+use super::handoff_execution_binding_identity;
 use crate::intent_admission::{
     ForgeQueryIntentAdmissionCoveredEntrypoint, ForgeQueryIntentAdmissionExecutionSeam,
     ForgeQueryIntentAdmissionFamily, ForgeQueryLiveReadExecutionHandoff,
@@ -22,10 +22,8 @@ pub struct ForgeQueryLiveReadExecutionBinding {
 
 impl ForgeQueryReadExecutionBinding {
     pub(crate) fn from_handoff(handoff: ForgeQueryReadExecutionHandoff) -> Self {
-        let binding_digest = hash_parts(&[
-            "forge_query_read_execution_binding_v1".to_string(),
-            format!("handoff:{}", handoff.handoff_digest()),
-        ]);
+        let binding_digest =
+            handoff_execution_binding_identity("read-execution", handoff.handoff_digest());
         Self {
             handoff,
             binding_digest,
@@ -63,10 +61,8 @@ impl ForgeQueryReadExecutionBinding {
 
 impl ForgeQueryLiveReadExecutionBinding {
     pub(crate) fn from_handoff(handoff: ForgeQueryLiveReadExecutionHandoff) -> Self {
-        let binding_digest = hash_parts(&[
-            "forge_query_live_read_execution_binding_v1".to_string(),
-            format!("handoff:{}", handoff.handoff_digest()),
-        ]);
+        let binding_digest =
+            handoff_execution_binding_identity("live-read-execution", handoff.handoff_digest());
         Self {
             handoff,
             binding_digest,

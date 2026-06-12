@@ -1,3 +1,37 @@
+use crate::memory_workspace::ForgeQueryEntityIdentity;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConsumedContinuityAuthorityIdentity {
+    label: String,
+    evidence_identity: ForgeQueryEvidenceIdentity,
+}
+
+impl ConsumedContinuityAuthorityIdentity {
+    pub(crate) fn new(label: impl Into<String>) -> Self {
+        let label = label.into();
+        let evidence_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::ProjectionConsumedContinuityAuthorityIdentity,
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("authority_identity"),
+            label.as_str(),
+        )
+        .seal();
+        Self {
+            label,
+            evidence_identity,
+        }
+    }
+
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.evidence_identity
+    }
+}
 use crate::runtime::{
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityOutcomeClass,
     ForgeQueryMutationTargetClass,
@@ -8,7 +42,7 @@ use serde_json::Value;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConsumedEntityIdentityFact {
     source_row_identity: String,
-    entity_identity: String,
+    entity_identity: ForgeQueryEntityIdentity,
 }
 
 impl ConsumedEntityIdentityFact {
@@ -16,17 +50,17 @@ impl ConsumedEntityIdentityFact {
         &self.source_row_identity
     }
 
-    pub fn entity_identity(&self) -> &str {
+    pub fn entity_identity(&self) -> &ForgeQueryEntityIdentity {
         &self.entity_identity
     }
 
     pub(crate) fn new(
         source_row_identity: impl Into<String>,
-        entity_identity: impl Into<String>,
+        entity_identity: ForgeQueryEntityIdentity,
     ) -> Self {
         Self {
             source_row_identity: source_row_identity.into(),
-            entity_identity: entity_identity.into(),
+            entity_identity,
         }
     }
 }
@@ -136,18 +170,16 @@ impl ConsumedFieldValueFact {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConsumedTargetIdentityFact {
-    target_identity: String,
+    target_identity: ForgeQueryEntityIdentity,
 }
 
 impl ConsumedTargetIdentityFact {
-    pub fn target_identity(&self) -> &str {
+    pub fn target_identity(&self) -> &ForgeQueryEntityIdentity {
         &self.target_identity
     }
 
-    pub(crate) fn new(target_identity: impl Into<String>) -> Self {
-        Self {
-            target_identity: target_identity.into(),
-        }
+    pub(crate) fn new(target_identity: ForgeQueryEntityIdentity) -> Self {
+        Self { target_identity }
     }
 }
 
@@ -178,9 +210,9 @@ impl ConsumedSourceReferenceFact {
 pub struct ConsumedEffectContinuityFact {
     family: ForgeQueryContinuityMutationFamily,
     outcome_class: ForgeQueryContinuityOutcomeClass,
-    prior_authoritative_identity: String,
-    successor_authoritative_identities: Vec<String>,
-    resolved_target_entity_identity: Option<String>,
+    prior_authoritative_identity: ConsumedContinuityAuthorityIdentity,
+    successor_authoritative_identities: Vec<ConsumedContinuityAuthorityIdentity>,
+    resolved_target_entity_identity: Option<ForgeQueryEntityIdentity>,
     target_collection: Option<String>,
     lineage_digest: String,
     continuity_resolution_digest: String,
@@ -195,16 +227,20 @@ impl ConsumedEffectContinuityFact {
         self.outcome_class
     }
 
-    pub fn prior_authoritative_identity(&self) -> &str {
+    pub fn prior_authoritative_identity(&self) -> &ConsumedContinuityAuthorityIdentity {
         &self.prior_authoritative_identity
     }
 
-    pub fn successor_authoritative_identities(&self) -> &[String] {
+    pub fn prior_authoritative_identity_label(&self) -> &str {
+        self.prior_authoritative_identity.label()
+    }
+
+    pub fn successor_authoritative_identities(&self) -> &[ConsumedContinuityAuthorityIdentity] {
         &self.successor_authoritative_identities
     }
 
-    pub fn resolved_target_entity_identity(&self) -> Option<&str> {
-        self.resolved_target_entity_identity.as_deref()
+    pub fn resolved_target_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
+        self.resolved_target_entity_identity.as_ref()
     }
 
     pub fn target_collection(&self) -> Option<&str> {
@@ -222,9 +258,9 @@ impl ConsumedEffectContinuityFact {
     pub(crate) fn new(
         family: ForgeQueryContinuityMutationFamily,
         outcome_class: ForgeQueryContinuityOutcomeClass,
-        prior_authoritative_identity: impl Into<String>,
-        successor_authoritative_identities: Vec<String>,
-        resolved_target_entity_identity: Option<String>,
+        prior_authoritative_identity: ConsumedContinuityAuthorityIdentity,
+        successor_authoritative_identities: Vec<ConsumedContinuityAuthorityIdentity>,
+        resolved_target_entity_identity: Option<ForgeQueryEntityIdentity>,
         target_collection: Option<String>,
         lineage_digest: impl Into<String>,
         continuity_resolution_digest: impl Into<String>,
@@ -232,7 +268,7 @@ impl ConsumedEffectContinuityFact {
         Self {
             family,
             outcome_class,
-            prior_authoritative_identity: prior_authoritative_identity.into(),
+            prior_authoritative_identity,
             successor_authoritative_identities,
             resolved_target_entity_identity,
             target_collection,
@@ -247,7 +283,7 @@ pub enum ConsumedRelationEndpointFact {
     MutationTarget {
         target_class: ForgeQueryMutationTargetClass,
         collection: Option<String>,
-        entity_identity: Option<String>,
+        entity_identity: Option<ForgeQueryEntityIdentity>,
     },
     GroupedProjection {
         source_row_identity: String,
@@ -272,11 +308,11 @@ impl ConsumedRelationEndpointFact {
         }
     }
 
-    pub fn entity_identity(&self) -> Option<&str> {
+    pub fn entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
         match self {
             Self::MutationTarget {
                 entity_identity, ..
-            } => entity_identity.as_deref(),
+            } => entity_identity.as_ref(),
             Self::GroupedProjection { .. } => None,
         }
     }
@@ -328,7 +364,7 @@ impl ConsumedRelationEndpointFact {
     pub(crate) fn new(
         target_class: ForgeQueryMutationTargetClass,
         collection: Option<String>,
-        entity_identity: Option<String>,
+        entity_identity: Option<ForgeQueryEntityIdentity>,
     ) -> Self {
         Self::MutationTarget {
             target_class,

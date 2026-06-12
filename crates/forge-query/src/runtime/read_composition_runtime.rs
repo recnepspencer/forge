@@ -4,6 +4,7 @@ use crate::basis::{
 };
 use crate::declarative_live::canonicalize_declarative_request;
 use crate::execution::execute_preflight_bundle;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::query_context::{
     execute_query_basis_context, AdmittedQueryBasisContext, QueryContextFamily,
@@ -72,11 +73,12 @@ pub(in crate::runtime) fn execute_runtime_current_read_graph(
     runtime: &mut ForgeQueryRuntime,
     read_graph: &ForgeQueryReadGraph,
 ) -> Result<ForgeQueryReadResult, ForgeQueryReadDenial> {
-    let snapshot_token = runtime.snapshot_token();
+    let snapshot_identity = runtime.current_snapshot_identity();
+    let snapshot_evidence_identity = snapshot_identity.evidence_identity();
     let identity = crate::basis::ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        snapshot_token.clone(),
+        snapshot_identity.evidence_identity(),
         read_graph.schema_basis().clone(),
         SnapshotLineageClass::CurrentHead,
     );
@@ -107,14 +109,14 @@ pub(in crate::runtime) fn execute_runtime_current_read_graph(
     let rows = materialize_read_rows(runtime, read_graph)?;
     let receipt = crate::runtime::ForgeQueryReadReceipt::from_materialized_rows(
         read_graph,
-        snapshot_token,
+        snapshot_identity,
         &execution,
         &rows,
     )
     .with_materialized_fact_posture(materialized_fact_posture_for_read_graph(
         runtime,
         read_graph,
-        execution.report().basis_digest().as_str(),
+        &snapshot_evidence_identity,
     ));
     Ok(ForgeQueryReadResult::new(rows, receipt))
 }
@@ -131,18 +133,21 @@ pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
             format!("{error:?}"),
         )
     })?;
-    let context_execution = context_execution.with_materialized_fact_posture(
-        materialized_fact_posture_for_read_graph(runtime, read_graph, context.basis_digest()),
-    );
-    let snapshot_token = runtime.snapshot_token();
-    let rows = if context_allows_runtime_materialization(snapshot_token.as_str(), context) {
+    let context_execution =
+        context_execution.with_materialized_fact_posture(materialized_fact_posture_for_read_graph(
+            runtime,
+            read_graph,
+            &query_context_basis_digest_identity(context.basis_digest()),
+        ));
+    let receipt_snapshot_identity = runtime.current_snapshot_identity();
+    let rows = if context_allows_runtime_materialization(&receipt_snapshot_identity, context) {
         materialize_read_rows(runtime, read_graph)?
     } else {
         materialize_query_context_rows(&context_execution)
     };
     let receipt = crate::runtime::ForgeQueryReadReceipt::from_query_context_execution(
         read_graph,
-        snapshot_token,
+        receipt_snapshot_identity,
         &context_execution,
         &rows,
     );
@@ -152,7 +157,7 @@ pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
 fn materialized_fact_posture_for_read_graph(
     runtime: &ForgeQueryRuntime,
     read_graph: &ForgeQueryReadGraph,
-    basis_digest: &str,
+    basis_identity: &crate::ForgeQueryEvidenceIdentity,
 ) -> Option<ProjectionMaterializedFactPosture> {
     let lower_declaration_digest =
         canonicalize_declarative_request(read_graph.declarative_request())
@@ -183,8 +188,19 @@ fn materialized_fact_posture_for_read_graph(
     };
     Some(materialized_fact_posture_from_live_subscription_state(
         state,
-        basis_digest,
+        basis_identity,
     ))
+}
+
+fn query_context_basis_digest_identity(basis_digest: &str) -> crate::ForgeQueryEvidenceIdentity {
+    crate::ForgeQueryEvidenceIdentity::compose(
+        crate::ForgeQueryEvidenceScope::QueryContextCompatibilityBasisLabel,
+    )
+    .field_identity(
+        crate::ForgeQueryEvidenceTag::new("basis_digest"),
+        basis_digest,
+    )
+    .seal()
 }
 
 fn ensure_context_matches_read_graph(
@@ -201,13 +217,13 @@ fn ensure_context_matches_read_graph(
 }
 
 fn context_allows_runtime_materialization(
-    runtime_snapshot_token: &str,
+    runtime_snapshot_identity: &ForgeQuerySnapshotIdentity,
     context: &AdmittedQueryBasisContext,
 ) -> bool {
     match context.family() {
         QueryContextFamily::CurrentBranchHead => true,
         QueryContextFamily::HistoricalSnapshot => {
-            context.declared_basis_label() == runtime_snapshot_token
+            context.declared_basis_label() == runtime_snapshot_identity.evidence_identity().as_str()
         }
         QueryContextFamily::BranchHead
         | QueryContextFamily::HistoricalCommit

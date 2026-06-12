@@ -3,6 +3,7 @@ use std::sync::{
     Arc,
 };
 
+use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::projection_consumption::ProjectionFactConsumptionAttempt;
 use crate::runtime::tests::support::*;
 
@@ -28,7 +29,10 @@ impl ForgeQueryDerivedViewMaintainer for HostileCertificationMaintainer {
         materialization.replace_rows([json!({ "title": { "value": title } })]);
         ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            format!("hostile-certification-refresh-{}", next + 1),
+            ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                "hostile-certification-refresh-{}",
+                next + 1
+            )),
             ["title.value".to_string()],
             json!({ "published": true, "title": title }),
             format!("hostile-certification-publication-{}", next + 1),

@@ -87,13 +87,13 @@ impl PlannedSourceReadPacketSet {
 #[cfg(test)]
 mod tests {
     use super::PlannedSourceReadPacketSet;
-    use crate::input::envelope::TruthBranchIdentity;
+
     use crate::policy::BridgeDiagnosticsTier;
     use crate::snapshot::{
         BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewAuthorityBasis,
         BridgeTruthViewSelector, HistoricalEvaluationDeclaration, PlannedTruthViewPacket,
-        ResolvedTruthViewPolicy, SnapshotReadPacket, TruthSnapshotIdentity,
-        TruthViewReplayContinuity, TruthViewRetentionAdmission, TruthViewSourceCapability,
+        ResolvedTruthViewPolicy, SnapshotReadPacket, TruthViewReplayContinuity,
+        TruthViewRetentionAdmission, TruthViewSourceCapability,
     };
     use crate::source::{
         AdmittedSourceContract, BridgeSourceCapability, BridgeSourceCapabilitySet,
@@ -104,8 +104,8 @@ mod tests {
         let declaration = SourceDeclaration::new(
             SourceDeclarationIdentity::new("source:analysis-history"),
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -137,8 +137,8 @@ mod tests {
             ),
             BridgeTruthViewAuthorityBasis::from_resolved_envelope(
                 declaration.selector(),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             SnapshotReadPacket::new(vec![]),
         )

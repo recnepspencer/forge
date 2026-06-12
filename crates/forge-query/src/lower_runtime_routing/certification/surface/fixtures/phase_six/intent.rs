@@ -1,6 +1,8 @@
 use serde_json::json;
 
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::intent_admission::certification_runtime;
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
@@ -17,14 +19,32 @@ pub(crate) fn representative_runtime_intent_authority_row() -> RepresentativeArt
     route_planned_row(
         ForgeQueryLowerRuntimeSeamKey::RuntimeIntentAuthorityAdapter,
         "Runtime intent authority seam",
-        &[
-            "runtime_intent_authority_subject_v1".to_string(),
-            format!("strategy:{}", receipt.strategy_identity()),
-            format!("outcome:{}", receipt.outcome_digest()),
-            format!("provenance:{}", receipt.execution_provenance_chain_digest()),
-        ],
-        receipt.execution_binding_digest().to_string(),
-        receipt.execution_provenance_chain_digest().to_string(),
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_identity(
+                ForgeQueryEvidenceTag::new("strategy"),
+                receipt.strategy_identity(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("outcome"),
+                receipt.outcome_digest(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("provenance"),
+                receipt.execution_provenance_chain_digest(),
+            )
+            .seal(),
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_identity(
+                ForgeQueryEvidenceTag::new("execution_binding"),
+                receipt.execution_binding_digest(),
+            )
+            .seal(),
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_identity(
+                ForgeQueryEvidenceTag::new("execution_provenance"),
+                receipt.execution_provenance_chain_digest(),
+            )
+            .seal(),
     )
 }
 
@@ -33,15 +53,28 @@ pub(crate) fn representative_intent_runtime_execution_row() -> RepresentativeArt
     route_planned_row(
         ForgeQueryLowerRuntimeSeamKey::IntentRuntimeExecution,
         "Intent runtime execution",
-        &[
-            "intent_runtime_execution_subject_v1".to_string(),
-            format!("intent:{}", receipt.intent_name()),
-            format!("commit:{}", receipt.commit_identity()),
-            format!("snapshot:{}", receipt.snapshot_token()),
-            format!("receipt:{}", receipt.receipt_digest()),
-        ],
-        receipt.admission_decision_digest().to_string(),
-        receipt.receipt_digest().to_string(),
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(ForgeQueryEvidenceTag::new("intent"), receipt.intent_name())
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("commit"),
+                receipt.commit_evidence_identity(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("snapshot"),
+                receipt.snapshot_evidence_identity(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("receipt"),
+                receipt.receipt_digest(),
+            )
+            .seal(),
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_identity(
+                ForgeQueryEvidenceTag::new("admission_decision"),
+                receipt.admission_decision_digest(),
+            )
+            .seal(),
+        receipt.receipt_identity().clone(),
     )
 }
 
@@ -65,31 +98,46 @@ fn certification_intent_receipt() -> crate::runtime::ForgeQueryIntentReceipt {
 fn route_planned_row(
     seam_key: ForgeQueryLowerRuntimeSeamKey,
     capability_label: &str,
-    subject_parts: &[String],
-    support_label: String,
-    retained_evidence_digest: String,
+    subject_identity: ForgeQueryEvidenceIdentity,
+    route_identity: ForgeQueryEvidenceIdentity,
+    retained_evidence_source: ForgeQueryEvidenceIdentity,
 ) -> RepresentativeArtifacts {
     let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
         seam_key,
         ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
         ForgeQueryLowerRuntimeAuthorityOwner::Query,
         capability_label,
-        hash_parts(subject_parts),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "phase-six-intent-route-subject",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("subject"), &subject_identity)
+        .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
         request.clone(),
-        retained_evidence_digest.clone(),
+        &retained_evidence_source,
     );
-    let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(eligibility.clone(), support_label);
+    let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
+        eligibility.clone(),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "phase-six-intent-route",
+            &route_identity,
+        ),
+    );
+    let retained_evidence_identity =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "phase-six-intent-route",
+            &retained_evidence_source,
+        );
     let boundary_receipt = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
         &route_plan,
-        retained_evidence_digest.clone(),
+        &retained_evidence_identity,
     );
     let envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
         seam_key,
         &route_plan,
         &boundary_receipt,
-        &retained_evidence_digest,
+        &retained_evidence_identity,
     );
     RepresentativeArtifacts {
         seam_key,

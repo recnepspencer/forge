@@ -10,6 +10,7 @@ use crate::facade::{
     TruthDeltaSurfaceKind, TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
 };
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, SnapshotFixture};
+use crate::truth_identity_fixtures::truth_branch;
 
 pub(super) fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
@@ -53,7 +54,7 @@ pub(super) fn committed_patch(
     field_key: forge_foundational::facade::FieldKey,
 ) -> BridgeCommittedPatchEnvelope {
     committed_patch_on_branch(
-        TruthBranchIdentity::new("main"),
+        truth_branch("main"),
         commit_identity,
         patch_identity,
         snapshot_identity,
@@ -147,7 +148,7 @@ pub(super) fn committed_patch_items(
             commit_identity,
             patch_identity,
             snapshot_identity,
-            TruthBranchIdentity::new("main"),
+            truth_branch("main"),
         ),
         items,
     )

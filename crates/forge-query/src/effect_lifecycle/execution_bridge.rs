@@ -5,9 +5,12 @@ use forge_runtime_bridge::facade::{
     BridgePolicyDeclaration, BridgePolicyDeclarationIdentity, BridgeRouteIdentity,
     BridgeWritebackCausalityIdentity, BridgeWritebackEffectIdentity, BridgeWritebackEffectIntent,
     BridgeWritebackIdempotenceIdentity, BridgeWritebackNativeCausalityInputs, RuntimeBridge,
-    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
+use crate::application::{query_truth_commit_identity, query_truth_snapshot_identity};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::workflow::QueryWritebackDeclaration;
 
 use super::execution::EffectExecutionDenialKind;
@@ -18,10 +21,9 @@ pub(super) fn execute_lowered_writeback(
 ) -> Result<BridgeAdmittedWritebackExecution, (EffectExecutionDenialKind, String)> {
     let request = BridgeAdmittedWritebackExecutionRequest::new(
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new(format!(
-                "policy:{}",
-                declaration.lowering_digest()
-            )),
+            BridgePolicyDeclarationIdentity::from_external_authority_evidence(
+                bridge_writeback_identity("policy", declaration.lowering_identity()),
+            ),
             declaration.causality_binding().request_kind(),
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -30,37 +32,58 @@ pub(super) fn execute_lowered_writeback(
         ),
         declaration.bridge_declaration().clone(),
         BridgeWritebackNativeCausalityInputs::new(
-            BridgeWritebackCausalityIdentity::new(format!(
-                "causality:{}",
-                declaration.lowering_digest()
-            )),
-            TruthCommitIdentity::new(
-                declaration
-                    .causality_binding()
-                    .causality_digest()
-                    .to_string(),
+            BridgeWritebackCausalityIdentity::from_external_authority_evidence(
+                bridge_writeback_identity("causality", declaration.lowering_identity()),
             ),
-            BridgeRouteIdentity::new(format!(
-                "route:{}",
-                declaration.declaration().report().declaration_digest()
+            query_truth_commit_identity(
+                "effect-causality",
+                bridge_writeback_identity(
+                    "truth-commit-causality",
+                    declaration.causality_binding().causality_identity(),
+                ),
+            ),
+            BridgeRouteIdentity::from_external_authority_evidence(bridge_writeback_identity(
+                "route",
+                declaration.lowering_identity(),
             )),
-            TruthSnapshotIdentity::new(format!(
-                "evaluation:{}",
-                declaration.bridge_declaration().digest()
-            )),
-            TruthSnapshotIdentity::new(declaration.causality_binding().basis_digest().to_string()),
+            query_truth_snapshot_identity(
+                "effect-evaluation",
+                bridge_writeback_identity(
+                    "truth-snapshot-evaluation",
+                    declaration.lowering_identity(),
+                ),
+            ),
+            query_truth_snapshot_identity(
+                "effect-basis",
+                bridge_writeback_identity(
+                    "truth-snapshot-basis",
+                    declaration.causality_binding().basis_identity(),
+                ),
+            ),
         ),
-        BridgeWritebackEffectIdentity::new(format!("effect:{}", declaration.lowering_digest())),
-        query_writeback_effect_intent(declaration)?,
-        BridgeWritebackIdempotenceIdentity::new(format!(
-            "idempotence:{}",
-            declaration.lowering_digest()
+        BridgeWritebackEffectIdentity::from_external_authority_evidence(bridge_writeback_identity(
+            "effect",
+            declaration.lowering_identity(),
         )),
+        query_writeback_effect_intent(declaration)?,
+        BridgeWritebackIdempotenceIdentity::from_external_authority_evidence(
+            bridge_writeback_identity("idempotence", declaration.lowering_identity()),
+        ),
         declaration.bridge_declaration().idempotence_class(),
     );
     runtime
         .execute_admitted_writeback(request)
         .map_err(map_bridge_writeback_execution_error)
+}
+
+fn bridge_writeback_identity(
+    role: &str,
+    source_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
+        .seal()
 }
 
 fn query_writeback_effect_intent(

@@ -168,9 +168,9 @@ fn observe_capability_eligibility(
         .zip(eligibilities.iter())
         .for_each(|(request, eligibility)| {
             assert_eq!(
-                eligibility.request().request_digest(),
-                request.request_digest(),
-                "eligibility profile must reuse the emitted request digest exactly"
+                eligibility.request().request_identity(),
+                request.request_identity(),
+                "eligibility profile must reuse the emitted request identity exactly"
             );
         });
     eligibilities.len()
@@ -189,8 +189,8 @@ fn observe_boundary_receipt_assembly(
     receipts.iter().for_each(|receipt| {
         assert!(
             eligibilities.iter().any(|eligibility| {
-                receipt.request_digest() == eligibility.request().request_digest()
-                    && receipt.eligibility_digest() == eligibility.eligibility_digest()
+                receipt.request_identity() == eligibility.request().request_identity()
+                    && receipt.eligibility_identity() == eligibility.eligibility_identity()
             }),
             "boundary receipt profile must be backed by an emitted eligibility/request pair"
         );
@@ -205,7 +205,7 @@ fn observe_boundary_envelope_assembly(
     envelopes.iter().for_each(|envelope| {
         assert!(
             receipts.iter().any(|receipt| {
-                receipt.boundary_execution_digest() == envelope.boundary_execution_digest()
+                receipt.boundary_execution_identity() == envelope.boundary_execution_identity()
             }),
             "boundary envelope profile must be backed by an emitted execution receipt"
         );

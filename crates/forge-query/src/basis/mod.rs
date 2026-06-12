@@ -1,5 +1,10 @@
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::identity::{BasisDigest, SchemaBasisDigest};
 use crate::planning::{ExecutionPlanBundle, PlannedExecutionRoute};
+use forge_runtime_bridge::facade::TruthSnapshotIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum BasisAuthorityFamily {
@@ -72,11 +77,11 @@ impl ExecutionBasisIntent {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedSnapshotIdentity {
     authority_family: BasisAuthorityFamily,
     workspace_scope: Option<String>,
-    snapshot_token: String,
+    snapshot_identity: ForgeQueryEvidenceIdentity,
     schema_basis: SchemaBasisDigest,
     lineage_class: SnapshotLineageClass,
 }
@@ -85,14 +90,14 @@ impl ResolvedSnapshotIdentity {
     pub(crate) fn new(
         authority_family: BasisAuthorityFamily,
         workspace_scope: Option<String>,
-        snapshot_token: impl Into<String>,
+        snapshot_identity: ForgeQueryEvidenceIdentity,
         schema_basis: SchemaBasisDigest,
         lineage_class: SnapshotLineageClass,
     ) -> Self {
         Self {
             authority_family,
             workspace_scope,
-            snapshot_token: snapshot_token.into(),
+            snapshot_identity,
             schema_basis,
             lineage_class,
         }
@@ -106,8 +111,8 @@ impl ResolvedSnapshotIdentity {
         self.workspace_scope.as_deref()
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.snapshot_identity
     }
 
     pub fn schema_basis(&self) -> &SchemaBasisDigest {
@@ -118,27 +123,44 @@ impl ResolvedSnapshotIdentity {
         &self.lineage_class
     }
 
-    fn digest_parts(&self) -> Vec<String> {
-        let mut parts = vec![
-            format!("authority:{}", self.authority_family.as_str()),
-            format!("snapshot:{}", self.snapshot_token),
-            format!("schema:{}", self.schema_basis.as_str()),
-            format!("lineage:{}", self.lineage_class.as_str()),
-        ];
-        if let Some(scope) = &self.workspace_scope {
-            parts.push(format!("workspace:{scope}"));
-        }
-        parts
+    fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::ResolvedSnapshotBasis)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("authority_family"),
+                self.authority_family.as_str(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("snapshot_identity"),
+                &self.snapshot_identity,
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("schema_basis"),
+                self.schema_basis().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("lineage_class"),
+                self.lineage_class.as_str(),
+            )
+            .optional_value(
+                ForgeQueryEvidenceTag::new("workspace_scope"),
+                self.workspace_scope.as_deref(),
+            )
+            .seal()
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedBasisProof {
+    identity: ForgeQueryEvidenceIdentity,
     digest: BasisDigest,
     resolution_mode: BasisResolutionMode,
 }
 
 impl ResolvedBasisProof {
+    pub fn identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.identity
+    }
+
     pub fn digest(&self) -> &BasisDigest {
         &self.digest
     }
@@ -147,8 +169,13 @@ impl ResolvedBasisProof {
         &self.resolution_mode
     }
 
-    pub(crate) fn new(digest: BasisDigest, resolution_mode: BasisResolutionMode) -> Self {
+    pub(crate) fn new(
+        identity: ForgeQueryEvidenceIdentity,
+        resolution_mode: BasisResolutionMode,
+    ) -> Self {
+        let digest = BasisDigest::from_evidence_identity(&identity);
         Self {
+            identity,
             digest,
             resolution_mode,
         }
@@ -185,8 +212,7 @@ impl ResolvedSnapshotBasis {
         identity: ResolvedSnapshotIdentity,
         resolution_mode: BasisResolutionMode,
     ) -> Self {
-        let digest = BasisDigest::from_parts(&identity.digest_parts());
-        let proof = ResolvedBasisProof::new(digest, resolution_mode.clone());
+        let proof = ResolvedBasisProof::new(identity.evidence_identity(), resolution_mode.clone());
         Self {
             intent,
             identity,
@@ -293,7 +319,7 @@ pub fn resolve_snapshot_basis(
 }
 
 pub fn resolve_runtime_current_snapshot_basis(
-    snapshot_token: impl Into<String>,
+    snapshot_identity: ForgeQueryEvidenceIdentity,
     schema_basis: SchemaBasisDigest,
 ) -> Result<ResolvedSnapshotBasis, BasisResolutionError> {
     resolve_snapshot_basis(
@@ -305,7 +331,7 @@ pub fn resolve_runtime_current_snapshot_basis(
         ResolvedSnapshotIdentity::new(
             BasisAuthorityFamily::Runtime,
             None,
-            snapshot_token,
+            snapshot_identity,
             schema_basis,
             SnapshotLineageClass::CurrentHead,
         ),
@@ -315,6 +341,18 @@ pub fn resolve_runtime_current_snapshot_basis(
 
 pub fn snapshot_resolution_report(basis: &ResolvedSnapshotBasis) -> SnapshotResolutionReport {
     SnapshotResolutionReport::from_resolved_basis(basis)
+}
+
+pub(crate) fn bridge_snapshot_evidence_identity(
+    snapshot_identity: &TruthSnapshotIdentity,
+) -> Result<ForgeQueryEvidenceIdentity, BasisResolutionError> {
+    let Some(parts) = snapshot_identity.relational_snapshot_parts() else {
+        return Err(BasisResolutionError::UnsupportedBasisKind);
+    };
+    Ok(
+        crate::memory_workspace::ForgeQuerySnapshotIdentity::from_relational_snapshot(parts)
+            .evidence_identity(),
+    )
 }
 
 pub fn preflight_execution_basis(

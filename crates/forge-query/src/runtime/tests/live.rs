@@ -366,6 +366,7 @@ fn redeclared_live_view_replaces_runtime_delivery_index_membership() {
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
         .write_authority(TestWriteAuthority)
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)

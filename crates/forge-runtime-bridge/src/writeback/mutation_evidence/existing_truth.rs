@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use crate::identity::BridgeIdentityEvidence;
+use crate::relational_identity::RelationalBridgeRecordIdentityParts;
+
 use super::digest::existing_truth_binding_digest;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,20 +17,84 @@ pub enum BridgeExistingTruthBindingOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeExistingTruthBindingAuthoritativeIdentity {
+    value: Arc<str>,
+}
+
+impl BridgeExistingTruthBindingAuthoritativeIdentity {
+    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+        Self {
+            value: Arc::from(format!(
+                "bridge-existing-truth-authority:{}",
+                evidence_identity.as_ref()
+            )),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.value.as_ref()
+    }
+
+    pub fn evidence_identity(&self) -> BridgeIdentityEvidence {
+        BridgeIdentityEvidence::from_arc(&self.value)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeExistingTruthBindingResolvedTargetIdentity {
+    value: Arc<str>,
+    parts: RelationalBridgeRecordIdentityParts,
+}
+
+impl BridgeExistingTruthBindingResolvedTargetIdentity {
+    pub fn from_relational_record(parts: RelationalBridgeRecordIdentityParts) -> Self {
+        Self {
+            value: Arc::from(parts.bridge_entity_identity()),
+            parts,
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.value.as_ref()
+    }
+
+    pub fn relational_record_parts(&self) -> RelationalBridgeRecordIdentityParts {
+        self.parts
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeExistingTruthBindingTargetCollection {
+    value: Arc<str>,
+}
+
+impl BridgeExistingTruthBindingTargetCollection {
+    pub fn new(value: impl Into<Arc<str>>) -> Self {
+        Self {
+            value: value.into(),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.value.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeExistingTruthBindingBundle {
     family: BridgeExistingTruthBindingFamily,
     outcome: BridgeExistingTruthBindingOutcome,
-    authoritative_identity: Arc<str>,
-    resolved_target_identity: Arc<str>,
-    target_collection: Option<Arc<str>>,
+    authoritative_identity: BridgeExistingTruthBindingAuthoritativeIdentity,
+    resolved_target_identity: BridgeExistingTruthBindingResolvedTargetIdentity,
+    target_collection: Option<BridgeExistingTruthBindingTargetCollection>,
     binding_digest: Arc<str>,
 }
 
 impl BridgeExistingTruthBindingBundle {
     pub fn direct_entity(
-        authoritative_identity: impl Into<Arc<str>>,
-        resolved_entity_identity: impl Into<Arc<str>>,
-        target_collection: Option<&str>,
+        authoritative_identity: BridgeExistingTruthBindingAuthoritativeIdentity,
+        resolved_entity_identity: BridgeExistingTruthBindingResolvedTargetIdentity,
+        target_collection: Option<BridgeExistingTruthBindingTargetCollection>,
     ) -> Self {
         Self::new(
             BridgeExistingTruthBindingFamily::DirectEntityIdentity,
@@ -38,9 +105,9 @@ impl BridgeExistingTruthBindingBundle {
     }
 
     pub fn direct_relation(
-        authoritative_identity: impl Into<Arc<str>>,
-        resolved_relation_identity: impl Into<Arc<str>>,
-        target_collection: Option<&str>,
+        authoritative_identity: BridgeExistingTruthBindingAuthoritativeIdentity,
+        resolved_relation_identity: BridgeExistingTruthBindingResolvedTargetIdentity,
+        target_collection: Option<BridgeExistingTruthBindingTargetCollection>,
     ) -> Self {
         Self::new(
             BridgeExistingTruthBindingFamily::DirectRelationIdentity,
@@ -52,15 +119,12 @@ impl BridgeExistingTruthBindingBundle {
 
     fn new(
         family: BridgeExistingTruthBindingFamily,
-        authoritative_identity: impl Into<Arc<str>>,
-        resolved_target_identity: impl Into<Arc<str>>,
-        target_collection: Option<&str>,
+        authoritative_identity: BridgeExistingTruthBindingAuthoritativeIdentity,
+        resolved_target_identity: BridgeExistingTruthBindingResolvedTargetIdentity,
+        target_collection: Option<BridgeExistingTruthBindingTargetCollection>,
     ) -> Self {
-        let authoritative_identity: Arc<str> = authoritative_identity.into();
-        let resolved_target_identity: Arc<str> = resolved_target_identity.into();
-        let target_collection = target_collection.map(|value| Arc::from(value.to_owned()));
         let target_collection_basis: &str = match target_collection.as_ref() {
-            Some(value) => value,
+            Some(value) => value.as_str(),
             None => "none",
         };
         let binding_digest = existing_truth_binding_digest([
@@ -69,8 +133,8 @@ impl BridgeExistingTruthBindingBundle {
                 "outcome:{:?}",
                 BridgeExistingTruthBindingOutcome::ExistingAuthoritativeTarget
             ),
-            format!("authoritative:{}", authoritative_identity.as_ref()),
-            format!("resolved:{}", resolved_target_identity.as_ref()),
+            format!("authoritative:{}", authoritative_identity.as_str()),
+            format!("resolved:{}", resolved_target_identity.as_str()),
             format!("collection:{target_collection_basis}"),
         ]);
         Self {
@@ -92,23 +156,41 @@ impl BridgeExistingTruthBindingBundle {
     }
 
     pub fn authoritative_identity(&self) -> &str {
-        self.authoritative_identity.as_ref()
+        self.authoritative_identity.as_str()
+    }
+
+    pub fn authoritative_identity_handle(
+        &self,
+    ) -> &BridgeExistingTruthBindingAuthoritativeIdentity {
+        &self.authoritative_identity
     }
 
     pub fn resolved_target_identity(&self) -> &str {
-        self.resolved_target_identity.as_ref()
+        self.resolved_target_identity.as_str()
+    }
+
+    pub fn resolved_target_identity_handle(
+        &self,
+    ) -> &BridgeExistingTruthBindingResolvedTargetIdentity {
+        &self.resolved_target_identity
     }
 
     pub fn resolved_entity_identity(&self) -> &str {
-        self.resolved_target_identity.as_ref()
+        self.resolved_target_identity.as_str()
     }
 
     pub fn resolved_relation_identity(&self) -> &str {
-        self.resolved_target_identity.as_ref()
+        self.resolved_target_identity.as_str()
     }
 
     pub fn target_collection(&self) -> Option<&str> {
-        self.target_collection.as_deref()
+        self.target_collection
+            .as_ref()
+            .map(BridgeExistingTruthBindingTargetCollection::as_str)
+    }
+
+    pub fn target_collection_handle(&self) -> Option<&BridgeExistingTruthBindingTargetCollection> {
+        self.target_collection.as_ref()
     }
 
     pub fn binding_digest(&self) -> &str {

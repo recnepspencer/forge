@@ -7,13 +7,13 @@ fn runtime_admits_preview_temporal_subscription_for_matching_preview_scope() {
     let preview_basis = admitted_preview_basis_for_truth(
         &runtime,
         "preview-temporal-match",
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
 
     let temporal = runtime
@@ -59,13 +59,13 @@ fn runtime_rejects_preview_temporal_subscription_when_preview_branch_drifts() {
     let preview_basis = admitted_preview_basis_for_truth(
         &runtime,
         "preview-temporal-branch-drift",
-        TruthBranchIdentity::new("preview-branch"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("preview-branch"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
 
     let rejection = runtime
@@ -94,13 +94,13 @@ fn runtime_rejects_preview_temporal_subscription_when_preview_snapshot_drifts() 
     let preview_basis = admitted_preview_basis_for_truth(
         &runtime,
         "preview-temporal-snapshot-drift",
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-preview"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-preview"),
     );
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
 
     let rejection = runtime
@@ -125,13 +125,13 @@ fn runtime_rejects_preview_temporal_subscription_when_family_does_not_support_ba
     let preview_basis = admitted_preview_basis_for_truth(
         &runtime,
         "preview-temporal-family-mismatch",
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::historical(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-historical"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
 
     let rejection = runtime

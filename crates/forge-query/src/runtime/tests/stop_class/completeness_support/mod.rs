@@ -30,9 +30,19 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
         ForgeQueryExistingTruthBindingDenialKind::CollectionMismatch,
         "wrong collection",
     );
-    let continuity_intent =
-        ForgeQueryContinuityMutationIntent::rebind_existing_target("authority:task-1", "Task:2")
-            .expect("continuity intent should build");
+    let continuity_intent = ForgeQueryContinuityMutationIntent::rebind_existing_target(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
+            crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1")
+                .expect("continuity prior authority label"),
+        )
+        .expect("continuity prior authority identity"),
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+            crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-1")
+                .expect("continuity successor authority label"),
+        )
+        .expect("continuity successor authority identity"),
+    )
+    .expect("continuity intent should build");
     let continuity_denial = ForgeQueryContinuityMutationDenial::new(
         &continuity_intent,
         Some(&binding),
@@ -53,13 +63,18 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
             vec!["task_symbol".to_string()],
             vec!["same_batch_entity_relation_identity_edges".to_string()],
             vec!["mixed_existing_target_followup_mutation".to_string()],
-            "program-digest".to_string(),
-            "breadth-digest".to_string(),
+            graph_domain_fixture_digest("program"),
+            graph_domain_fixture_digest("breadth"),
             "components=1".to_string(),
         ),
     );
-    let naming_intent =
-        ForgeQueryNamingMutationIntent::attach_new_target("attachment-1").expect("intent");
+    let naming_intent = ForgeQueryNamingMutationIntent::attach_new_target(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+            crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("attachment-1")
+                .expect("naming attachment authority label"),
+        )
+        .expect("naming attachment identity"),
+    );
     let naming_denial = ForgeQueryNamingMutationDenial::new(
         &naming_intent,
         ForgeQueryNamingMutationDenialKind::RequiresSameBatchTargetReference,
@@ -121,7 +136,10 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
         ForgeQueryRuntimeError::MissingLiveSubscription("sub.live".to_string()),
         ForgeQueryRuntimeError::MissingDerivedView("view.derived".to_string()),
         ForgeQueryRuntimeError::SharedReadStaleBasis {
-            snapshot_token: "snapshot.stale".to_string(),
+            snapshot_identity:
+                crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+                    "snapshot.stale",
+                ),
         },
         ForgeQueryRuntimeError::MissingEffect("effect.name".to_string()),
         ForgeQueryRuntimeError::MissingPendingWriteIntent("effect.name".to_string()),
@@ -175,6 +193,23 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
     ]
 }
 
+fn graph_domain_fixture_digest(
+    role: &'static str,
+) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+    crate::evidence_identity::forge_query_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("role"),
+        "stop-class-graph-domain-fixture",
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture"),
+        role,
+    )
+    .seal()
+}
+
 pub(super) fn representative_runtime_generated_stop_errors() -> Vec<ForgeQueryRuntimeError> {
     vec![
         read_domain_invariant_denied_error(),
@@ -192,6 +227,9 @@ pub(super) fn runtime_error_variant_key(error: &ForgeQueryRuntimeError) -> &'sta
         ForgeQueryRuntimeError::MissingBackend => "missing_backend",
         ForgeQueryRuntimeError::MissingRuntimeBridge => "missing_runtime_bridge",
         ForgeQueryRuntimeError::MissingSchemaAdapter => "missing_schema_adapter",
+        ForgeQueryRuntimeError::MissingSnapshotIdentityAdapter => {
+            "missing_snapshot_identity_adapter"
+        }
         ForgeQueryRuntimeError::MissingSourceAdapter => "missing_source_adapter",
         ForgeQueryRuntimeError::MissingWriteAuthority => "missing_write_authority",
         ForgeQueryRuntimeError::MissingSignalSink => "missing_signal_sink",
@@ -311,8 +349,15 @@ pub(super) fn stop_class_variant_key(stop_class: ForgeQueryStopClass<'_>) -> &'s
 }
 
 pub(super) fn existing_binding() -> ForgeQueryExistingTruthTargetBinding {
-    ForgeQueryExistingTruthTargetBinding::direct_entity("authority:task-1", "Task:1")
-        .expect("binding should build")
-        .in_target_collection("Task")
-        .expect("collection should build")
+    ForgeQueryExistingTruthTargetBinding::direct_entity(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
+        test_entity_identity("Task:1"),
+    )
+    .expect("binding should build")
+    .in_target_collection("Task")
+    .expect("collection should build")
 }

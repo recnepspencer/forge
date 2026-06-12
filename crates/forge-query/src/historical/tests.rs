@@ -44,9 +44,9 @@ mod tests {
             Ok(BridgeCommittedPatchEnvelope::new(
                 forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
                     request.commit_identity().clone(),
-                    TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                    TruthBranchIdentity::new("analysis"),
+                    TruthPatchIdentity::from_relational_patch_position(1),
+                    TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
+                    TruthBranchIdentity::from_bridge_harness_label("analysis"),
                 ),
                 vec![BridgeCommittedPatchItem::with_target(
                     "entity-1",
@@ -72,7 +72,7 @@ mod tests {
 
     impl TruthSnapshotReader for StaticSnapshotReader {
         fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-            TruthSnapshotIdentity::new("snapshot-a")
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a")
         }
 
         fn read_packet(
@@ -80,7 +80,7 @@ mod tests {
             request: &forge_runtime_bridge::facade::SnapshotReadPacket,
         ) -> Result<SnapshotReadPacketResult, BridgeSnapshotReadError> {
             Ok(SnapshotReadPacketResult::new(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
                 request
                     .reads()
                     .iter()
@@ -100,12 +100,12 @@ mod tests {
             &self,
             identity: &TruthSnapshotIdentity,
         ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-            if identity.as_str() == "snapshot-a" {
+            if identity == &TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a") {
                 Ok(Box::new(StaticSnapshotReader))
             } else {
                 Err(RelationalBridgeSourceError::new(format!(
                     "unknown snapshot `{}`",
-                    identity.as_str()
+                    identity.evidence_identity().as_str()
                 )))
             }
         }
@@ -118,9 +118,9 @@ mod tests {
         ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
             Ok(BridgeCommittedPatchEnvelope::new(
                 forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
-                    TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-                    TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    TruthCommitIdentity::from_relational_commit_id(100),
+                    TruthPatchIdentity::from_relational_patch_position(100),
+                    TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
                     branch_identity.clone(),
                 ),
                 vec![BridgeCommittedPatchItem::with_target(
@@ -159,12 +159,12 @@ mod tests {
             &self,
             identity: &TruthSnapshotIdentity,
         ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-            if identity.as_str() == "snapshot-a" {
+            if identity.evidence_identity().as_str() == "snapshot-a" {
                 Ok(Box::new(StaticSnapshotReader))
             } else {
                 Err(RelationalBridgeSourceError::new(format!(
                     "unknown snapshot `{}`",
-                    identity.as_str()
+                    identity.evidence_identity().as_str()
                 )))
             }
         }
@@ -264,15 +264,18 @@ mod tests {
         let runtime = runtime(BridgeRuntimePolicy::default());
         let declaration = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             ),
             BridgeReplayMode::Disabled,
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
         let request = HistoricalEvaluationRequest::retained_snapshot(
-            declaration.declaration_identity().as_str(),
+            declaration
+                .declaration_identity()
+                .evidence_identity()
+                .as_str(),
             1,
             1,
             HistoricalPathReuseDescriptor::retained_reuse(),
@@ -308,8 +311,8 @@ mod tests {
         let evaluation = runtime
             .evaluate(
                 BridgeTruthViewEvaluationRequest::for_branch_snapshot(
-                    TruthBranchIdentity::new("analysis"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                    TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
                 )
                 .with_replay_mode(BridgeReplayMode::Disabled),
             )
@@ -353,15 +356,18 @@ mod tests {
         let runtime = runtime(BridgeRuntimePolicy::default());
         let declaration = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                TruthCommitIdentity::from_bridge_harness_label("commit-a"),
             ),
             BridgeReplayMode::Required,
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
         let request = HistoricalEvaluationRequest::delta_replay(
-            declaration.declaration_identity().as_str(),
+            declaration
+                .declaration_identity()
+                .evidence_identity()
+                .as_str(),
             4,
             8,
             HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
@@ -388,8 +394,8 @@ mod tests {
         let evaluation = runtime
             .evaluate(
                 BridgeTruthViewEvaluationRequest::for_historical_commit(
-                    TruthBranchIdentity::new("analysis"),
-                    TruthCommitIdentity::new("commit-a"),
+                    TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                    TruthCommitIdentity::from_bridge_harness_label("commit-a"),
                 )
                 .with_replay_mode(BridgeReplayMode::Required),
             )
@@ -413,13 +419,18 @@ mod tests {
     fn reconstruction_request_admits_full_reconstruction_path() {
         let runtime = runtime(BridgeRuntimePolicy::default());
         let declaration = HistoricalEvaluationDeclaration::new(
-            BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("analysis")),
+            BridgeTruthViewSelector::branch_head(TruthBranchIdentity::from_bridge_harness_label(
+                "analysis",
+            )),
             BridgeReplayMode::Enabled,
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
         let request = HistoricalEvaluationRequest::full_reconstruction(
-            declaration.declaration_identity().as_str(),
+            declaration
+                .declaration_identity()
+                .evidence_identity()
+                .as_str(),
             3,
             10,
             HistoricalPathReuseDescriptor::no_reuse(),
@@ -450,15 +461,18 @@ mod tests {
         let runtime = runtime(BridgeRuntimePolicy::default());
         let declaration = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
             ),
             BridgeReplayMode::Disabled,
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
         let request = HistoricalEvaluationRequest::delta_replay(
-            declaration.declaration_identity().as_str(),
+            declaration
+                .declaration_identity()
+                .evidence_identity()
+                .as_str(),
             2,
             2,
             HistoricalPathReuseDescriptor::no_reuse(),
@@ -512,15 +526,18 @@ mod tests {
         let runtime = runtime(BridgeRuntimePolicy::default());
         let declaration = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                TruthCommitIdentity::from_bridge_harness_label("commit-a"),
             ),
             BridgeReplayMode::Required,
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
         let request = HistoricalEvaluationRequest::delta_replay(
-            declaration.declaration_identity().as_str(),
+            declaration
+                .declaration_identity()
+                .evidence_identity()
+                .as_str(),
             4,
             8,
             HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
@@ -536,7 +553,10 @@ mod tests {
             .expect("replay path should admit");
 
         let wrong_path = HistoricalMaterializationDescriptor::new(
-            declaration.declaration_identity().as_str(),
+            declaration
+                .declaration_identity()
+                .evidence_identity()
+                .as_str(),
             ResolvedHistoricalPathClass::ResolvedFullReconstructionPath,
         );
 
@@ -631,8 +651,8 @@ mod tests {
         let evaluation = runtime
             .evaluate(
                 BridgeTruthViewEvaluationRequest::for_historical_commit(
-                    TruthBranchIdentity::new("analysis"),
-                    TruthCommitIdentity::new("commit-a"),
+                    TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                    TruthCommitIdentity::from_bridge_harness_label("commit-a"),
                 )
                 .with_replay_mode(BridgeReplayMode::Required),
             )
@@ -660,8 +680,8 @@ mod tests {
             .register_source(registered_source(
                 "source:analysis-snapshot",
                 BridgeTruthViewSelector::branch_snapshot(
-                    TruthBranchIdentity::new("analysis"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                    TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
                 ),
                 vec![
                     BridgeSourceCapability::SnapshotRead,
@@ -671,8 +691,8 @@ mod tests {
             .register_source(registered_source(
                 "source:analysis-history",
                 BridgeTruthViewSelector::historical_commit(
-                    TruthBranchIdentity::new("analysis"),
-                    TruthCommitIdentity::new("commit-a"),
+                    TruthBranchIdentity::from_bridge_harness_label("analysis"),
+                    TruthCommitIdentity::from_bridge_harness_label("commit-a"),
                 ),
                 vec![
                     BridgeSourceCapability::SnapshotRead,
@@ -683,7 +703,7 @@ mod tests {
             ))
             .register_mapping(
                 forge_runtime_bridge::facade::BridgeMappingRegistration::new(
-                    forge_runtime_bridge::facade::BridgeMappingId::new("mapping"),
+                    forge_runtime_bridge::facade::BridgeMappingId::from_stable_name("mapping"),
                     TruthPatchScope::new(
                         forge_runtime_bridge::facade::MappingSelector::exact("entity-1"),
                         forge_runtime_bridge::facade::AspectKeySelector::exact(
@@ -700,7 +720,7 @@ mod tests {
                             .expect("valid native snapshot aspect key"),
                         forge_foundational::facade::ScalarAspectType::String,
                     ),
-                    SignalInvalidationScope::new("signal:profile"),
+                    SignalInvalidationScope::from_stable_name("signal:profile"),
                     CoarseRoutingMode::Direct,
                 ),
             )
@@ -714,7 +734,7 @@ mod tests {
         capabilities: Vec<BridgeSourceCapability>,
     ) -> SourceDeclaration {
         SourceDeclaration::new(
-            SourceDeclarationIdentity::new(id),
+            SourceDeclarationIdentity::from_stable_name(id),
             selector,
             BridgeSourceCapabilitySet::new(capabilities),
         )

@@ -307,9 +307,10 @@ pub use crate::live_performance::{
     RefreshCostClass, VerifiedPerformance,
 };
 pub use crate::memory_workspace::{
-    ForgeQueryAspect, ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
-    ForgeQueryMemoryWorkspace, ForgeQueryMutationDelta, ForgeQueryMutationKind,
-    ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
+    ForgeQueryAspect, ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
+    ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMemoryWorkspace,
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
+    ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError,
 };
 pub use crate::projection_consumption::{
     certify_projection_consumption_closeout_core, declare_projection_consumption,
@@ -317,10 +318,11 @@ pub use crate::projection_consumption::{
     projection_consumption_family_inventory, projection_consumption_phase_progression_digest,
     projection_consumption_proof_shape_audit, projection_consumption_public_boundary_audit,
     projection_consumption_support_matrix, AdmittedProjectionConsumption,
-    BoundProjectionFactFamily, CompletedProjectionFactConsumption, ConsumedEffectContinuityFact,
-    ConsumedEntityIdentityFact, ConsumedFieldValueFact, ConsumedMembershipFact,
-    ConsumedProjectionFactSet, ConsumedRelationEndpointFact, ConsumedSourceReferenceFact,
-    ConsumedTargetIdentityFact, ConsumedViewLocalIdentityFact, DeferredProjectionConsumption,
+    BoundProjectionFactFamily, CompletedProjectionFactConsumption,
+    ConsumedContinuityAuthorityIdentity, ConsumedEffectContinuityFact, ConsumedEntityIdentityFact,
+    ConsumedFieldValueFact, ConsumedMembershipFact, ConsumedProjectionFactSet,
+    ConsumedRelationEndpointFact, ConsumedSourceReferenceFact, ConsumedTargetIdentityFact,
+    ConsumedViewLocalIdentityFact, DeferredProjectionConsumption,
     DeferredProjectionConsumptionReason, DeniedProjectionConsumption,
     MaterializedProjectionContract, ProjectMaterializedFacts,
     ProjectionConsumptionAuthoringSurface, ProjectionConsumptionBindingContext,

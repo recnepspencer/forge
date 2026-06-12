@@ -121,14 +121,14 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 ForgeQueryProgramEffect::Write(command) => {
                     self.admit_preview_write_intent()?;
                     let receipt = self.stage_command(command);
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::WriteTemplate(template) => {
                     self.admit_preview_write_intent()?;
                     let command = template.bind(&bound_inputs)?;
                     let receipt = self.stage_command(command);
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::ReadLive { view_name } => {

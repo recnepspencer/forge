@@ -179,7 +179,7 @@ pub fn forge_query_domain_capability_representative_report(
         .for_intent(&declaration)
         .plans_preview_mutation(
             "workflow.preview_mutation",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                 "preview-session:certification",
             ),
         )
@@ -330,6 +330,7 @@ pub fn forge_query_domain_capability_representative_report(
             .to_string(),
         continuity_artifact_digest: continuity_evidence
             .continuity_resolution_digest()
+            .as_str()
             .to_string(),
         aftermath_artifact_digest: projection_contract.contract_digest().to_string(),
         explanation_artifact_digest: explanation_artifact.artifact_digest().to_string(),

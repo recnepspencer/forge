@@ -9,6 +9,12 @@ use super::BridgeSourceCapabilitySet;
 
 pub type SourceDeclarationIdentity = BridgeIdentity<SourceDeclarationIdentityTag>;
 
+impl SourceDeclarationIdentity {
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::new(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceDeclaration {
     declaration_identity: SourceDeclarationIdentity,
@@ -65,8 +71,8 @@ impl SourceDeclaration {
 #[cfg(test)]
 mod tests {
     use super::{SourceDeclaration, SourceDeclarationIdentity};
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::source::{BridgeSourceCapability, BridgeSourceCapabilitySet};
 
     #[test]
@@ -74,16 +80,16 @@ mod tests {
         let left = SourceDeclaration::new(
             SourceDeclarationIdentity::new("source:profile"),
             BridgeTruthViewSelector::committed_snapshot(
-                TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
         );
         let right = SourceDeclaration::new(
             SourceDeclarationIdentity::new("source:profile"),
             BridgeTruthViewSelector::committed_snapshot(
-                TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
         );

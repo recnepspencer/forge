@@ -9,6 +9,7 @@ use crate::facade::{
     ForgeQueryWorkspace,
 };
 use crate::identity::hash_parts;
+use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::ForgeQuerySessionLabel;
 
 use super::transcript_runtime::transcript_runtime;
@@ -480,7 +481,7 @@ impl ForgeQueryDerivedViewMaintainer for TranscriptMaintainer {
     ) -> ForgeQueryDerivedPatch {
         let row = json!({
             "family": self.prefix,
-            "entity": delta.entity_identity,
+            "entity": delta.entity_identity.evidence_identity().as_str().to_string(),
             "view": view.name(),
         });
         if self.replace {
@@ -490,7 +491,10 @@ impl ForgeQueryDerivedViewMaintainer for TranscriptMaintainer {
         }
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            format!("transcript-derived-commit:{}", self.prefix),
+            ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                "transcript-derived-commit:{}",
+                self.prefix
+            )),
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()

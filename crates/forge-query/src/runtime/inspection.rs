@@ -1,8 +1,12 @@
 mod basis_lifecycle;
 mod causal;
 mod feedback;
+mod feedback_identity;
 mod intent;
 mod intent_consumer;
+mod intent_delivery_counters;
+mod intent_denial;
+mod intent_identity;
 mod live;
 mod live_counters;
 mod preview;
@@ -49,8 +53,7 @@ pub use causal::{
     CausalInspectionViolationKind, CausalMaterializationReceipt, CausalObservationAnchor,
     CausalObservationAnchorCounters, CausalObservationAnchorDigest, CausalObservationAnchorError,
     CausalObservationAnchorErrorKind, CausalObservationEvidenceIdentity,
-    CausalObservationMissingReferencePosture, CausalObservationOutcome,
-    CausalObservationTargetHandle, CausalResultShapeContextHandle, DeniedCausalInspection,
+    CausalObservationMissingReferencePosture, CausalObservationOutcome, DeniedCausalInspection,
     DeniedQueryCausalInspectionArtifact, QueryCausalEvidenceReferenceArtifact,
     QueryCausalInspectionArtifact, QueryCausalTemporalAsyncExplanation,
     QueryCausalTemporalAsyncExplanationKind, QueryObservationReceipt,
@@ -60,18 +63,21 @@ pub use causal::{
 pub(in crate::runtime) use causal::{
     causal_evidence_reference_index, causal_evidence_reference_index_record,
 };
+#[cfg(test)]
+pub(crate) use causal::{CausalObservationTargetHandle, CausalResultShapeContextHandle};
 pub use feedback::{
     ForgeQueryFeedbackPhaseGraphInspection, ForgeQueryFeedbackPhaseNode,
     ForgeQueryFeedbackTermination,
 };
 pub use intent::{
     ForgeQueryBranchIntentReceiptInspection, ForgeQueryEffectIntentReceiptInspection,
-    ForgeQueryIntentDenialInspection, ForgeQueryIntentInspectionDeliveryCounters,
     ForgeQueryIntentReceiptInspection,
 };
 pub use intent_consumer::{
     ForgeQueryIntentConsumerInspection, ForgeQueryIntentConsumerOutcomeClass,
 };
+pub use intent_delivery_counters::ForgeQueryIntentInspectionDeliveryCounters;
+pub use intent_denial::ForgeQueryIntentDenialInspection;
 pub use live::ForgeQueryLiveViewInspection;
 pub use live_counters::ForgeQueryLiveSubscriptionInspectionCounters;
 pub use preview::{

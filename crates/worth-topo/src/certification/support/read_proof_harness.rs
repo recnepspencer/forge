@@ -126,9 +126,7 @@ impl TopologyReadProofHarness {
                 TopologyReadExecutionTarget::current_head()
             }
             TopologyReadProofHarnessExecutionMode::HistoricalFromWorkspaceToken => {
-                TopologyReadExecutionTarget::historical_snapshot(
-                    workspace.snapshot_token().to_string(),
-                )
+                TopologyReadExecutionTarget::historical_snapshot(workspace.snapshot_identity())
             }
         }
     }

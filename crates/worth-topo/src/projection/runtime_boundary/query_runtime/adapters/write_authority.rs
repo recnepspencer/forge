@@ -1,15 +1,16 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::{
-    ForgeQueryAspectValue, ForgeQueryMutationReceipt, ForgeQueryRuntimeWriteAuthorityAdapter,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, WriteAuthorityExecutionReceipt,
+    ForgeQueryAspectValue, ForgeQueryCommitIdentity, ForgeQueryMutationReceipt,
+    ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError,
+    ForgeQueryWriteCommand, WriteAuthorityExecutionReceipt,
 };
-use forge_relational::facade::bridge::bridge_snapshot_identity_for_commit;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{
     CreateIntent, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
     MutationIntent, RelationMutationIntent,
 };
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use forge_runtime_bridge::facade::RuntimeBridge;
 
 mod command_lowering;
@@ -20,8 +21,8 @@ use self::command_lowering::lower_write_command;
 use self::write_lowering::{lower_topology_entity_insert, lower_topology_relation_insert};
 use super::schema_write_boundary::commit_topology_mutation_set_through_schema_runtime_boundary;
 use super::write_support::{
-    aspect_map, mutation_deltas_from_commit, mutation_deltas_from_patch_records,
-    parse_entity_identity, parse_relation_identity, write_command_label,
+    aspect_map, entity_id_from_query_identity, mutation_deltas_from_commit,
+    mutation_deltas_from_patch_records, relation_id_from_query_identity, write_command_label,
 };
 use super::TopologyRuntimeBinding;
 
@@ -91,12 +92,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
                 .collect(),
         )?;
 
-        let snapshot_token = bridge_snapshot_identity_for_commit(
-            commit.envelope().commit.commit_id,
-            commit.envelope().commit.version_id,
-        )
-        .as_str()
-        .to_string();
+        let receipt_identity = mutation_receipt_identity_from_commit(&commit);
         let patch = commit.patch();
         let mut used_patch_indexes = std::collections::BTreeSet::new();
         lowered
@@ -137,12 +133,11 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
                         command.mutation_label, error
                     ))
                 })?;
-                let mutation_receipt = ForgeQueryMutationReceipt {
-                    commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),
-                    snapshot_token: snapshot_token.clone(),
+                let mutation_receipt = ForgeQueryMutationReceipt::from_authoritative_parts(
+                    receipt_identity.0.clone(),
+                    receipt_identity.1.clone(),
                     deltas,
-                    bridge_authority: None,
-                };
+                );
                 Ok(self.build_write_authority_execution_receipt(
                     &authored_command,
                     mutation_receipt,
@@ -209,17 +204,12 @@ impl TopologyRuntimeWriteAuthority {
         let commit = self.commit_mutation_intents("query-runtime-mutation-insert", intents)?;
 
         let deltas = mutation_deltas_from_commit(&runtime, &commit, &declared_aspect_paths, None)?;
-        Ok(ForgeQueryMutationReceipt {
-            commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),
-            snapshot_token: bridge_snapshot_identity_for_commit(
-                commit.envelope().commit.commit_id,
-                commit.envelope().commit.version_id,
-            )
-            .as_str()
-            .to_string(),
+        let (commit_identity, snapshot_identity) = mutation_receipt_identity_from_commit(&commit);
+        Ok(ForgeQueryMutationReceipt::from_authoritative_parts(
+            commit_identity,
+            snapshot_identity,
             deltas,
-            bridge_authority: None,
-        })
+        ))
     }
 
     fn write_delete_existing(
@@ -239,12 +229,14 @@ impl TopologyRuntimeWriteAuthority {
         let intent = match collection.as_str() {
             "TopologyEntity" => {
                 MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
-                    entity_id: parse_entity_identity(binding.resolved_target_identity())?,
+                    entity_id: entity_id_from_query_identity(binding.resolved_target_identity())?,
                 }))
             }
             "TopologyRelation" => {
                 MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
-                    relation_id: parse_relation_identity(binding.resolved_target_identity())?,
+                    relation_id: relation_id_from_query_identity(
+                        binding.resolved_target_identity(),
+                    )?,
                 }))
             }
             other => {
@@ -262,17 +254,12 @@ impl TopologyRuntimeWriteAuthority {
             &touched_aspect_paths,
             Some(collection.as_str()),
         )?;
-        Ok(ForgeQueryMutationReceipt {
-            commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),
-            snapshot_token: bridge_snapshot_identity_for_commit(
-                commit.envelope().commit.commit_id,
-                commit.envelope().commit.version_id,
-            )
-            .as_str()
-            .to_string(),
+        let (commit_identity, snapshot_identity) = mutation_receipt_identity_from_commit(&commit);
+        Ok(ForgeQueryMutationReceipt::from_authoritative_parts(
+            commit_identity,
+            snapshot_identity,
             deltas,
-            bridge_authority: None,
-        })
+        ))
     }
 
     fn write_update_existing(
@@ -302,16 +289,25 @@ impl TopologyRuntimeWriteAuthority {
             &declared_aspect_paths,
             Some("TopologyRelation"),
         )?;
-        Ok(ForgeQueryMutationReceipt {
-            commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),
-            snapshot_token: bridge_snapshot_identity_for_commit(
-                commit.envelope().commit.commit_id,
-                commit.envelope().commit.version_id,
-            )
-            .as_str()
-            .to_string(),
+        let (commit_identity, snapshot_identity) = mutation_receipt_identity_from_commit(&commit);
+        Ok(ForgeQueryMutationReceipt::from_authoritative_parts(
+            commit_identity,
+            snapshot_identity,
             deltas,
-            bridge_authority: None,
-        })
+        ))
     }
+}
+
+fn mutation_receipt_identity_from_commit(
+    commit: &forge_relational::facade::transactions::CommitResult,
+) -> (ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity) {
+    (
+        ForgeQueryCommitIdentity::from_relational_commit_id(commit.envelope().commit.commit_id.0),
+        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(
+                commit.envelope().commit.commit_id.0,
+                commit.envelope().commit.version_id.0,
+            ),
+        ),
+    )
 }

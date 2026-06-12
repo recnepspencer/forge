@@ -3,8 +3,7 @@ use crate::facade::{
     BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
     BridgeHistoricalResolvedLineageIdentity, BridgeHistoricalResolvedRecordIdentity,
     BridgeLineageContext, BridgeLineageSourceError, BridgeRouteRequest, ContinuityLineageSource,
-    SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthSnapshotIdentity,
-    BRIDGE_CANONICAL_BULK_PLAN_RECORD_SCHEMA_V1,
+    SubscriptionSliceKind, TruthDeltaSurfaceKind, BRIDGE_CANONICAL_BULK_PLAN_RECORD_SCHEMA_V1,
 };
 use forge_harness::facade::{ExecutionProfile, ExecutionRequest, ReplayRequest, ScenarioPlan};
 use forge_harness::runtime::{HarnessAdapter, ReplayHarnessAdapter};

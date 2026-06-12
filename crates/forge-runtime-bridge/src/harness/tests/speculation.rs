@@ -1,9 +1,8 @@
-use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeRequestKind,
     BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
-    BridgeSpeculativeBranchBindingIdentity, TruthBranchIdentity,
+    BridgeSpeculativeBranchBindingIdentity,
 };
 
 use super::support::{build_runtime, registration};
@@ -15,13 +14,13 @@ fn preview_declaration() -> BridgePreviewSessionDeclaration {
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
             BridgeSpeculativeBranchBindingIdentity::new("harness:binding"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
             BridgeSignalBranchIdentity::new("signal:harness"),
         ),
         crate::facade::BridgePreviewSessionBasis::new(
             crate::facade::BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot:harness"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:harness"),
             ),
             crate::facade::BridgeSourceCapabilitySet::new(vec![
                 crate::facade::BridgeSourceCapability::SnapshotRead,

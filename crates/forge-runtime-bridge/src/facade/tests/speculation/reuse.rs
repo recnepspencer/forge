@@ -4,8 +4,7 @@ use crate::facade::tests::speculation::{
 };
 use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewSessionIdentity, BridgeRuntimePolicy,
-    StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity, TruthBranchIdentity,
-    TruthSnapshotIdentity,
+    StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity,
 };
 
 #[test]
@@ -70,8 +69,12 @@ fn runtime_rejects_preview_reuse_when_target_basis_drifts() {
                 declaration_identity: StructuralIdentityDeclarationIdentity::new(
                     "structural:drift",
                 ),
-                truth_branch_identity: TruthBranchIdentity::new("truth:drift"),
-                snapshot_identity: TruthSnapshotIdentity::new("snapshot:drift"),
+                truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture(
+                    "truth:drift",
+                ),
+                snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+                    "snapshot:drift",
+                ),
                 semantics_version: StructuralSemanticsVersion::Drift,
             })),
         )

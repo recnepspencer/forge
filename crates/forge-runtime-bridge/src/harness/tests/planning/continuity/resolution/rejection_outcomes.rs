@@ -4,14 +4,14 @@ use super::*;
 fn bridge_resolved_lineage_continuity_rejects_ambiguous_successor_sets() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let sink = RecordingSignalBridgeSink::default();
@@ -26,11 +26,13 @@ fn bridge_resolved_lineage_continuity_rejects_ambiguous_successor_sets() {
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
+            BridgeRouteRequest::for_commit(crate::truth_identity_fixtures::truth_commit_fixture(
+                "commit-a",
+            )),
             BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
-                    crate::facade::TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             )),
         )
@@ -65,14 +67,14 @@ fn bridge_resolved_lineage_continuity_rejects_ambiguous_successor_sets() {
 fn bridge_resolved_lineage_continuity_rejects_no_authoritative_successor() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let sink = RecordingSignalBridgeSink::default();
@@ -87,11 +89,13 @@ fn bridge_resolved_lineage_continuity_rejects_no_authoritative_successor() {
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
+            BridgeRouteRequest::for_commit(crate::truth_identity_fixtures::truth_commit_fixture(
+                "commit-a",
+            )),
             BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
-                    crate::facade::TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             )),
         )

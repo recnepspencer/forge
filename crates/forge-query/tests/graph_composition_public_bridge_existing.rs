@@ -1,8 +1,11 @@
 use forge_query::facade::{
-    ForgeQueryContinuityMutationFamily, ForgeQueryExistingRelationTarget,
-    ForgeQueryExistingTruthAssertionMode, ForgeQueryGraphCompositionLifecycleOutcomeKind,
-    ForgeQueryGraphCompositionProgramStepKind, ForgeQueryInspection, ForgeQueryLiveView,
-    ForgeQueryNamingMutationFamily,
+    ForgeQueryContinuityMutationFamily, ForgeQueryContinuityPriorAuthorityLabel,
+    ForgeQueryContinuitySuccessorAuthorityLabel, ForgeQueryExistingRelationTarget,
+    ForgeQueryExistingTruthAssertionMode, ForgeQueryExistingTruthBindingAuthorityLabel,
+    ForgeQueryGraphCompositionLifecycleOutcomeKind, ForgeQueryGraphCompositionProgramStepKind,
+    ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
+    ForgeQueryNamingAttachmentAuthorityLabel, ForgeQueryNamingMutationFamily,
+    ForgeQueryNamingPriorAuthorityLabel, ForgeQueryNamingTargetAuthorityLabel,
 };
 use serde_json::{json, Value};
 
@@ -26,6 +29,50 @@ fn public_multi_verified_relation_profile() -> forge_query::facade::ForgeQueryRu
                 )
             },
         )
+}
+
+fn existing_authority(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+        ForgeQueryExistingTruthBindingAuthorityLabel::new(label)
+            .expect("existing-truth authority label"),
+    )
+    .expect("existing-truth authority identity")
+}
+
+fn naming_attachment(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::naming_attachment(
+        ForgeQueryNamingAttachmentAuthorityLabel::new(label).expect("naming attachment label"),
+    )
+    .expect("naming attachment identity")
+}
+
+fn naming_prior(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::naming_prior_authority(
+        ForgeQueryNamingPriorAuthorityLabel::new(label).expect("naming prior label"),
+    )
+    .expect("naming prior identity")
+}
+
+fn naming_target(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::naming_target_authority(
+        ForgeQueryNamingTargetAuthorityLabel::new(label).expect("naming target label"),
+    )
+    .expect("naming target identity")
+}
+
+fn continuity_prior(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
+        ForgeQueryContinuityPriorAuthorityLabel::new(label).expect("continuity prior label"),
+    )
+    .expect("continuity prior identity")
+}
+
+fn continuity_successor(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+        ForgeQueryContinuitySuccessorAuthorityLabel::new(label)
+            .expect("continuity successor label"),
+    )
+    .expect("continuity successor identity")
 }
 
 #[test]
@@ -58,8 +105,8 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-next",
-                seed.deltas()[0].entity_identity.clone(),
+                existing_authority("authority:rel-next"),
+                seed.deltas()[0].entity_identity().clone(),
             )
             .expect("existing relation target should build")
             .in_target_collection("TaskRelation")
@@ -76,13 +123,13 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
             graph.retarget_existing(binding, |relation| {
                 relation
                     .naming_rebind_target(
-                        "attachment:loop-next",
-                        "authority:loop-b",
-                        "authority:loop-c",
+                        naming_attachment("attachment:loop-next"),
+                        naming_prior("authority:loop-b"),
+                        naming_target("authority:loop-c"),
                     )
                     .continuity_rebind_existing_target(
-                        "authority:rel-next",
-                        "authority:rel-next-successor",
+                        continuity_prior("authority:rel-next"),
+                        continuity_successor("authority:rel-next-successor"),
                     )
                     .aspect("target.id", "loop-c")
             })?;
@@ -160,8 +207,8 @@ fn graph_composition_public_bridge_supports_verified_existing_followup_and_retir
     let update_binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-1",
-                update_seed.deltas()[0].entity_identity.clone(),
+                existing_authority("authority:rel-1"),
+                update_seed.deltas()[0].entity_identity().clone(),
             )
             .expect("existing relation target should build")
             .in_target_collection("TaskRelation")
@@ -171,8 +218,8 @@ fn graph_composition_public_bridge_supports_verified_existing_followup_and_retir
     let delete_binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-2",
-                delete_seed.deltas()[0].entity_identity.clone(),
+                existing_authority("authority:rel-2"),
+                delete_seed.deltas()[0].entity_identity().clone(),
             )
             .expect("existing relation target should build")
             .in_target_collection("TaskRelation")

@@ -1,9 +1,14 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::runtime::{
     command_declared_aspect_value_digest, ForgeQueryContinuityMutationDenial,
     ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthBindingDenial,
     ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
-    ForgeQueryNamingMutationDenial, ForgeQuerySymbolicTargetReferenceDenial,
+    ForgeQueryMutationSymbolIdentity, ForgeQueryMutationTargetCollectionIdentity,
+    ForgeQueryNamingMutationDenial, ForgeQuerySymbolicAspectReference,
+    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceDenial,
     ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand,
 };
 
@@ -116,81 +121,166 @@ impl ForgeQueryAuthoritativeMutationBatchIntentSeed {
     }
 
     pub fn batch_input_digest(&self) -> String {
-        hash_parts(
-            &std::iter::once("forge_query_authoritative_mutation_batch_input_v1".to_string())
-                .chain(
-                    self.commands
-                        .iter()
-                        .map(|command| format!("command:{}", mutation_input_digest(command))),
-                )
-                .chain(std::iter::once(format!(
-                    "graph-breadth:{}",
-                    self.graph_composition_breadth.breadth_digest()
-                )))
-                .chain(std::iter::once(format!(
-                    "graph-program:{}",
-                    self.graph_composition_program.program_digest()
-                )))
-                .collect::<Vec<_>>(),
-        )
+        let command_identities = self
+            .commands
+            .iter()
+            .map(mutation_input_identity)
+            .collect::<Vec<_>>();
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationBatchIntentSeed)
+            .field_evidence_identity_sequence(
+                ForgeQueryEvidenceTag::new("commands"),
+                command_identities.iter(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("graph_breadth"),
+                self.graph_composition_breadth.breadth_evidence_digest(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("graph_program"),
+                self.graph_composition_program.program_evidence_digest(),
+            )
+            .seal()
+            .as_str()
+            .to_string()
     }
 }
 
 fn mutation_intent_name(command: &ForgeQueryWriteCommand) -> String {
     let family = command.mutation_family().as_str();
-    let target = command
-        .declared_entity_identity_ref()
-        .or_else(|| command.declared_collection_ref())
-        .unwrap_or("unspecified-target");
+    let target = mutation_target_label(command);
     format!("mutation.{family}.{target}")
 }
 
 fn mutation_input_digest(command: &ForgeQueryWriteCommand) -> String {
-    let operations = command
-        .declared_aspect_operations()
-        .into_iter()
-        .map(|operation| format!("{}:{}", operation.kind().as_str(), operation.aspect_path()))
-        .collect::<Vec<_>>();
-    let declared_collection = command.declared_collection_ref().unwrap_or("none");
-    let declared_entity_identity = command.declared_entity_identity_ref().unwrap_or("none");
-    let existing_truth_binding = command
-        .existing_truth_binding()
-        .map(|binding| binding.binding_digest().to_string())
-        .unwrap_or_else(|| "none".to_string());
+    mutation_input_identity(command).as_str().to_string()
+}
+
+fn mutation_input_identity(command: &ForgeQueryWriteCommand) -> ForgeQueryEvidenceIdentity {
+    let declared_entity_identity = command
+        .declared_entity_identity_ref()
+        .map(|identity| identity.evidence_identity());
+    let declared_collection_identity = command.declared_collection_ref().map(|collection| {
+        ForgeQueryMutationTargetCollectionIdentity::new(
+            "authoritative-mutation-seed-declared",
+            collection,
+        )
+    });
+    let aspect_value_identity = command_declared_aspect_value_digest(command).map(|digest| {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationIntentSeed)
+            .field_shape(ForgeQueryEvidenceTag::new("role"), "declared-aspect-values")
+            .field_value(ForgeQueryEvidenceTag::new("digest"), digest)
+            .seal()
+    });
     let symbolic_target = command
         .symbolic_target_reference()
-        .map(|reference| {
-            format!(
-                "{}:{}",
-                reference.symbol(),
-                reference.target_collection().unwrap_or("none")
-            )
-        })
-        .unwrap_or_else(|| "none".to_string());
+        .map(symbolic_target_reference_identity);
     let symbolic_aspects = command
         .symbolic_aspect_references()
         .iter()
-        .map(|reference| {
-            format!(
-                "{}:{}:{}",
-                reference.aspect_path(),
-                reference.family(),
-                reference.reference().symbol()
-            )
-        })
+        .map(symbolic_aspect_reference_identity)
         .collect::<Vec<_>>();
-    hash_parts(&[
-        "forge_query_authoritative_mutation_intent_input_v1".to_string(),
-        format!("family:{}", command.mutation_family().as_str()),
-        format!("collection:{declared_collection}"),
-        format!("entity:{declared_entity_identity}"),
-        format!("binding:{existing_truth_binding}"),
-        format!("operations:{}", operations.join("|")),
-        format!(
-            "aspect-values:{}",
-            command_declared_aspect_value_digest(command).unwrap_or_else(|| "none".to_string())
-        ),
-        format!("symbolic-target:{symbolic_target}"),
-        format!("symbolic-aspects:{}", symbolic_aspects.join("|")),
-    ])
+    let mut identity =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationIntentSeed)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("family"),
+                command.mutation_family().as_str(),
+            )
+            .optional_evidence_identity(
+                ForgeQueryEvidenceTag::new("collection"),
+                declared_collection_identity
+                    .as_ref()
+                    .map(ForgeQueryMutationTargetCollectionIdentity::evidence_identity),
+            )
+            .optional_evidence_identity(
+                ForgeQueryEvidenceTag::new("declared_entity_identity"),
+                declared_entity_identity.as_ref(),
+            )
+            .optional_evidence_identity(
+                ForgeQueryEvidenceTag::new("existing_truth_binding"),
+                command
+                    .existing_truth_binding()
+                    .map(|binding| binding.binding_evidence_identity()),
+            )
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("operations"),
+                command
+                    .declared_aspect_operations()
+                    .into_iter()
+                    .map(|operation| {
+                        format!("{}:{}", operation.kind().as_str(), operation.aspect_path())
+                    }),
+            )
+            .optional_evidence_identity(
+                ForgeQueryEvidenceTag::new("aspect_values"),
+                aspect_value_identity.as_ref(),
+            )
+            .optional_evidence_identity(
+                ForgeQueryEvidenceTag::new("symbolic_target"),
+                symbolic_target.as_ref(),
+            )
+            .field_evidence_identity_sequence(
+                ForgeQueryEvidenceTag::new("symbolic_aspects"),
+                symbolic_aspects.iter(),
+            );
+    if let Some(identity_evidence) = declared_entity_identity {
+        identity = identity.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("target_label_identity"),
+            &identity_evidence,
+        );
+    }
+    identity.seal()
+}
+
+fn symbolic_target_reference_identity(
+    reference: &ForgeQuerySymbolicTargetReference,
+) -> ForgeQueryEvidenceIdentity {
+    let symbol_identity =
+        ForgeQueryMutationSymbolIdentity::new("authoritative-mutation-seed", reference.symbol());
+    let collection_identity = reference.target_collection().map(|collection| {
+        ForgeQueryMutationTargetCollectionIdentity::new(
+            "authoritative-mutation-seed-symbolic-target",
+            collection,
+        )
+    });
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationIntentSeed)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "symbolic-target")
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("symbol"),
+            symbol_identity.evidence_identity(),
+        )
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("collection"),
+            collection_identity
+                .as_ref()
+                .map(ForgeQueryMutationTargetCollectionIdentity::evidence_identity),
+        )
+        .seal()
+}
+
+fn symbolic_aspect_reference_identity(
+    reference: &ForgeQuerySymbolicAspectReference,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationIntentSeed)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "symbolic-aspect")
+        .field_value(
+            ForgeQueryEvidenceTag::new("aspect_path"),
+            reference.aspect_path(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            reference.family().as_str(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("target"),
+            &symbolic_target_reference_identity(reference.reference()),
+        )
+        .seal()
+}
+
+fn mutation_target_label(command: &ForgeQueryWriteCommand) -> String {
+    command
+        .declared_entity_identity_ref()
+        .map(ToString::to_string)
+        .or_else(|| command.declared_collection_ref().map(str::to_string))
+        .unwrap_or_else(|| "unspecified-target".to_string())
 }

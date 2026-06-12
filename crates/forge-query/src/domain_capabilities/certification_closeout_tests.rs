@@ -64,7 +64,7 @@ fn certification_bundle_matches_equivalent_public_and_proof_outputs() {
         .for_intent(&declaration)
         .plans_preview_mutation(
             "workflow.preview_mutation",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                 "preview-session:certification",
             ),
         )
@@ -75,7 +75,7 @@ fn certification_bundle_matches_equivalent_public_and_proof_outputs() {
         ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
             "worth.spatial.workflow.preview_mutation",
             "preview mutation planning should preserve canonical workflow semantics",
-            crate::facade::runtime::BridgePreviewSessionIdentity::new(
+            crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                 "preview-session:certification",
             ),
         )
@@ -239,7 +239,7 @@ fn certification_bundle_matches_admission_continuity_and_aftermath_outputs() {
     assert_eq!(continuity, continuity_proof);
     assert_eq!(
         bundle.output_digest("continuity_artifact_digest"),
-        Some(continuity.continuity_resolution_digest())
+        Some(continuity.continuity_resolution_digest().as_str())
     );
 
     let aftermath = forge_query_domain("worth.spatial")

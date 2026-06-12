@@ -1,6 +1,6 @@
-use crate::identity::hash_parts;
 use crate::runtime::ForgeQueryExistingTruthProbeRequest;
 
+use super::handoff_execution_binding_identity;
 use crate::intent_admission::{
     ForgeQueryExistingTruthProbeExecutionHandoff, ForgeQueryIntentAdmissionCoveredEntrypoint,
     ForgeQueryIntentAdmissionExecutionSeam, ForgeQueryIntentAdmissionFamily,
@@ -14,10 +14,10 @@ pub struct ForgeQueryExistingTruthProbeExecutionBinding {
 
 impl ForgeQueryExistingTruthProbeExecutionBinding {
     pub(crate) fn from_handoff(handoff: ForgeQueryExistingTruthProbeExecutionHandoff) -> Self {
-        let binding_digest = hash_parts(&[
-            "forge_query_existing_truth_probe_execution_binding_v1".to_string(),
-            format!("handoff:{}", handoff.handoff_digest()),
-        ]);
+        let binding_digest = handoff_execution_binding_identity(
+            "existing-truth-probe-execution",
+            handoff.handoff_digest(),
+        );
         Self {
             handoff,
             binding_digest,

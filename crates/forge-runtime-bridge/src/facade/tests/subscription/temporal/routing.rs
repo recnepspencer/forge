@@ -5,9 +5,9 @@ fn runtime_routes_time_only_temporal_cause_for_authoritative_lane() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -53,9 +53,9 @@ fn runtime_routes_truth_plus_time_temporal_cause_for_authoritative_lane() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -67,10 +67,10 @@ fn runtime_routes_truth_plus_time_temporal_cause_for_authoritative_lane() {
     let ready = runtime.prepare_temporal_subscription_activation(&temporal);
     let request = runtime.prepare_temporal_wake_routing(&ready);
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
     );
 
     let cause = runtime
@@ -98,9 +98,9 @@ fn runtime_rejects_duplicate_temporal_wake_submission() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -137,9 +137,9 @@ fn runtime_rejects_stale_temporal_wake_submission() {
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let later_basis = admitted_temporal_basis_with_wake(
         BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("analysis"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         21,
         8,
@@ -160,9 +160,9 @@ fn runtime_rejects_stale_temporal_wake_submission() {
 
     let earlier_basis = admitted_temporal_basis_with_wake(
         BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("analysis"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         20,
         7,
@@ -199,9 +199,9 @@ fn runtime_rejects_temporal_truth_plus_time_patch_snapshot_drift() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -213,10 +213,10 @@ fn runtime_rejects_temporal_truth_plus_time_patch_snapshot_drift() {
     let ready = runtime.prepare_temporal_subscription_activation(&temporal);
     let request = runtime.prepare_temporal_wake_routing(&ready);
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-b"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
     );
 
     let rejection = runtime
@@ -234,9 +234,9 @@ fn runtime_rejects_temporal_truth_plus_time_patch_branch_drift() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -248,10 +248,10 @@ fn runtime_rejects_temporal_truth_plus_time_patch_branch_drift() {
     let ready = runtime.prepare_temporal_subscription_activation(&temporal);
     let request = runtime.prepare_temporal_wake_routing(&ready);
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("analysis-drift"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis-drift"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
     );
 
     let rejection = runtime
@@ -269,9 +269,9 @@ fn runtime_routes_preview_temporal_wake_and_rejects_lane_mismatch_prior_cause() 
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let authoritative_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-branch:preview"),
-        TruthCommitIdentity::new("commit-preview"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-branch:preview"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-preview"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -289,14 +289,14 @@ fn runtime_routes_preview_temporal_wake_and_rejects_lane_mismatch_prior_cause() 
     let preview_basis = admitted_preview_basis_for_truth(
         &runtime,
         "preview",
-        TruthBranchIdentity::new("truth-branch:preview"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-branch:preview"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let preview_temporal_basis =
         admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-branch:preview"),
-            TruthCommitIdentity::new("commit-preview"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-branch:preview"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-preview"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ));
     let preview_temporal = runtime
         .admit_preview_temporal_subscription(

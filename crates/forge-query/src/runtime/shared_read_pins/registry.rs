@@ -5,6 +5,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::shared_read::SharedReadDerivedViewState;
 
 #[cfg(test)]
@@ -34,11 +35,11 @@ impl Default for ForgeQuerySharedReadPinRegistry {
 impl ForgeQuerySharedReadPinRegistry {
     pub(in crate::runtime) fn capture_committed_snapshot(
         &self,
-        snapshot_token: impl Into<String>,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         derived_views: BTreeMap<String, SharedReadDerivedViewState>,
     ) {
         let mut state = self.state.lock().expect("shared-read pin registry lock");
-        state.capture_committed_snapshot(snapshot_token.into(), derived_views);
+        state.capture_committed_snapshot(snapshot_identity, derived_views);
     }
 
     pub(in crate::runtime) fn pin_current_generation(
@@ -81,9 +82,12 @@ impl ForgeQuerySharedReadPinRegistry {
     }
 
     #[cfg(test)]
-    pub(crate) fn force_retire_snapshot_token(&self, snapshot_token: &str) {
+    pub(crate) fn force_retire_snapshot_identity(
+        &self,
+        snapshot_identity: &ForgeQuerySnapshotIdentity,
+    ) {
         let mut state = self.state.lock().expect("shared-read pin registry lock");
-        state.force_retire_snapshot_token(snapshot_token);
+        state.force_retire_snapshot_identity(snapshot_identity);
     }
 }
 
@@ -91,17 +95,17 @@ impl ForgeQuerySharedReadPinRegistry {
 struct ForgeQuerySharedReadPinRegistryState {
     next_generation_ordinal: u64,
     current_generation_ordinal: Option<u64>,
-    current_snapshot_token: Option<String>,
+    current_snapshot_identity: Option<ForgeQuerySnapshotIdentity>,
     generations: BTreeMap<u64, Arc<ForgeQuerySharedReadGenerationEntry>>,
 }
 
 impl ForgeQuerySharedReadPinRegistryState {
     fn capture_committed_snapshot(
         &mut self,
-        snapshot_token: String,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         derived_views: BTreeMap<String, SharedReadDerivedViewState>,
     ) {
-        if self.current_snapshot_token.as_deref() == Some(snapshot_token.as_str()) {
+        if self.current_snapshot_identity.as_ref() == Some(&snapshot_identity) {
             return;
         }
 
@@ -113,10 +117,10 @@ impl ForgeQuerySharedReadPinRegistryState {
 
         self.next_generation_ordinal += 1;
         let generation =
-            ForgeQuerySharedReadGenerationId::new(self.next_generation_ordinal, snapshot_token);
+            ForgeQuerySharedReadGenerationId::new(self.next_generation_ordinal, snapshot_identity);
         let ordinal = generation.ordinal();
         let snapshot = ForgeQuerySharedReadPinnedSnapshot::new(generation, derived_views);
-        self.current_snapshot_token = Some(snapshot.generation().snapshot_token().to_string());
+        self.current_snapshot_identity = Some(snapshot.generation().snapshot_identity().clone());
         self.current_generation_ordinal = Some(ordinal);
         self.generations.insert(
             ordinal,
@@ -165,12 +169,12 @@ impl ForgeQuerySharedReadPinRegistryState {
     }
 
     #[cfg(test)]
-    fn force_retire_snapshot_token(&mut self, snapshot_token: &str) {
+    fn force_retire_snapshot_identity(&mut self, snapshot_identity: &ForgeQuerySnapshotIdentity) {
         let affected = self
             .generations
             .iter()
             .filter_map(|(ordinal, entry)| {
-                (entry.snapshot().generation().snapshot_token() == snapshot_token)
+                (entry.snapshot().generation().snapshot_identity() == snapshot_identity)
                     .then_some(*ordinal)
             })
             .collect::<Vec<_>>();
@@ -181,7 +185,7 @@ impl ForgeQuerySharedReadPinRegistryState {
             entry.retire();
             if self.current_generation_ordinal == Some(ordinal) {
                 self.current_generation_ordinal = None;
-                self.current_snapshot_token = None;
+                self.current_snapshot_identity = None;
             }
         }
         self.collect_retired_zero_pin_generations();

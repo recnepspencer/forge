@@ -53,7 +53,7 @@
 //!         ))
 //!         .build()?;
 //!
-//!     let route = bridge.route(TruthCommitIdentity::new("commit:steel-main"))?;
+//!     let route = bridge.route(crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"))?;
 //!     let evaluation = bridge.evaluate_current(route.target())?;
 //!     let diagnostics = bridge.diagnostics().explain_last();
 //!
@@ -80,6 +80,7 @@ mod input;
 mod mapping;
 mod merge;
 mod policy;
+mod relational_identity;
 mod routing;
 mod snapshot;
 mod source;
@@ -92,6 +93,8 @@ mod writeback;
 
 #[cfg(test)]
 mod harness;
+#[cfg(test)]
+mod truth_identity_fixtures;
 
 #[cfg(test)]
 mod tests {}

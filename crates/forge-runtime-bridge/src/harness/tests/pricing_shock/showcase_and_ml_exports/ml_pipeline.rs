@@ -49,7 +49,7 @@ fn pricing_shock_ml_pipeline_export_contains_full_traceable_simulation_artifacts
     );
     assert_eq!(
         bundle.provenance.shock_commit,
-        TruthCommitIdentity::new("commit:rubber-shock")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock")
     );
     assert!(!bundle.matrix.reference.source_commit.as_str().is_empty());
     assert!(!bundle

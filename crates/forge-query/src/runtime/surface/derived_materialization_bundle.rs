@@ -4,7 +4,10 @@ use serde::de::DeserializeOwned;
 
 use super::derived_artifact_binding::ForgeQueryDerivedArtifactBinding;
 use super::derived_materialization_result::ForgeQueryDerivedMaterializationResult;
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::computed::ForgeQueryDerivedViewHandle;
 use crate::runtime::ForgeQueryRuntimeError;
 
@@ -33,34 +36,47 @@ impl<T> From<&ForgeQueryDerivedViewHandle<T>> for ForgeQueryDerivedMaterializati
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedMaterializationBundle {
-    snapshot_token: String,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    snapshot_evidence_identity: ForgeQueryEvidenceIdentity,
     bundle_digest: String,
     materializations: BTreeMap<String, ForgeQueryDerivedMaterializationResult>,
 }
 
 impl ForgeQueryDerivedMaterializationBundle {
     pub(in crate::runtime) fn new(
-        snapshot_token: impl Into<String>,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         materializations: BTreeMap<String, ForgeQueryDerivedMaterializationResult>,
     ) -> Self {
-        let snapshot_token = snapshot_token.into();
-        let bundle_digest = hash_parts(
-            &std::iter::once("forge_query_derived_materialization_bundle_v1".to_string())
-                .chain(std::iter::once(format!("snapshot:{snapshot_token}")))
-                .chain(materializations.iter().map(|(view_name, result)| {
-                    format!("{view_name}:{}", result.receipt().result_digest())
-                }))
-                .collect::<Vec<_>>(),
-        );
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
+        let bundle_digest = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::DerivedMaterializationBundle,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("snapshot_identity"),
+            &snapshot_evidence_identity,
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("materialization_result"),
+            materializations.iter().map(|(view_name, result)| {
+                format!("{view_name}:{}", result.receipt().result_digest())
+            }),
+        )
+        .seal()
+        .to_string();
         Self {
-            snapshot_token,
+            snapshot_identity,
+            snapshot_evidence_identity,
             bundle_digest,
             materializations,
         }
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn snapshot_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.snapshot_evidence_identity
     }
 
     pub fn bundle_digest(&self) -> &str {
@@ -119,9 +135,9 @@ impl ForgeQueryDerivedMaterializationBundle {
 
     #[cfg(test)]
     pub(crate) fn test_only(
-        snapshot_token: impl Into<String>,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
         materializations: BTreeMap<String, ForgeQueryDerivedMaterializationResult>,
     ) -> Self {
-        Self::new(snapshot_token, materializations)
+        Self::new(snapshot_identity, materializations)
     }
 }

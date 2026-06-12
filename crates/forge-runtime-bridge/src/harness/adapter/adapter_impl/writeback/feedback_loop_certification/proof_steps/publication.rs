@@ -15,11 +15,12 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
     original_commit: &crate::facade::BridgeCommittedPatchEnvelope,
     feedback_context: &crate::facade::BridgeWritebackFeedbackContext,
 ) -> Result<FeedbackPublicationProof, BridgeHarnessError> {
-    let feedback_commit_identity = crate::facade::TruthCommitIdentity::new("commit-feedback");
+    let feedback_commit_identity =
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-feedback");
     let feedback_commit = bridge_feedback_patch(
         crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
             feedback_commit_identity.clone(),
-            crate::facade::TruthPatchIdentity::new("patch-feedback"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch-feedback"),
             original_commit.snapshot_identity().clone(),
             original_commit.branch_identity().clone(),
         ),
@@ -33,7 +34,8 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
             )
         })?;
 
-    let ordinary_commit_identity = crate::facade::TruthCommitIdentity::new("commit-ordinary");
+    let ordinary_commit_identity =
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-ordinary");
     runtime
         .source
         .insert_committed_patch(ordinary_truth_commit_for_feedback_interleaving(
@@ -80,7 +82,7 @@ fn ordinary_truth_commit_for_feedback_interleaving(
         crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             crate::facade::BridgeProducerMetadata::bridge_harness_fixture(),
             ordinary_commit_identity.clone(),
-            crate::facade::TruthPatchIdentity::new("patch-ordinary"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch-ordinary"),
             original_commit.snapshot_identity().clone(),
             original_commit.branch_identity().clone(),
         ),

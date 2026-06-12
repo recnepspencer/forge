@@ -9,10 +9,15 @@ use crate::domain_capabilities::payloads::{
 };
 use crate::domain_capabilities::targets::{
     ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDomainCapabilityTargetBinding,
+    ForgeQueryDomainCapabilityTargetKind,
 };
 use crate::domain_capabilities::{
     ForgeQueryCanonicalContinuityArtifact, ForgeQueryDomainCapabilityTransitionOutcome,
     ForgeQueryMaterializationReadyContinuityContribution,
+};
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 use crate::runtime::{ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent};
 
@@ -32,7 +37,10 @@ pub fn materialize_runtime_continuity_evidence(
 ) -> ForgeQueryDomainCapabilityTransitionOutcome<ForgeQueryContinuityMutationEvidence> {
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
-    let binding_digest = domain_contribution.target().binding_digest().to_string();
+    let binding_identity = domain_capability_continuity_binding_identity(
+        domain_contribution.target().kind(),
+        &domain_contribution.target().binding_identity(),
+    );
     let Some(runtime_semantics) = payload.runtime_semantics() else {
         return TransitionOutcome::Denied(missing_runtime_semantics_denial(
             payload,
@@ -55,10 +63,27 @@ pub fn materialize_runtime_continuity_evidence(
 
     TransitionOutcome::Success(ForgeQueryContinuityMutationEvidence::from_intent(
         &intent,
-        Some(&binding_digest),
+        Some(&binding_identity),
         None,
         None,
     ))
+}
+
+fn domain_capability_continuity_binding_identity(
+    target_kind: ForgeQueryDomainCapabilityTargetKind,
+    binding_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "domain-capability-continuity-binding",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("target_kind"),
+            target_kind.as_str(),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), binding_identity)
+        .seal()
 }
 
 fn runtime_semantics_match_posture(
@@ -92,34 +117,65 @@ fn continuity_intent_from_runtime_semantics(
     runtime_semantics: &ForgeQueryContinuityRuntimeSemantics,
     payload: &ForgeQueryContinuityContributionPayload,
 ) -> Option<ForgeQueryContinuityMutationIntent> {
+    let prior_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
+            crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new(
+                runtime_semantics.prior_authoritative_identity(),
+            )
+            .ok()?,
+        )
+        .ok()?;
     match payload.posture() {
         ForgeQueryContinuityContributionPosture::Preserved => {
+            let successor_authority = crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+                crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                    runtime_semantics
+                        .successor_authoritative_identities()
+                        .first()?
+                        .as_str(),
+                )
+                .ok()?,
+            )
+            .ok()?;
             ForgeQueryContinuityMutationIntent::rebind_existing_target(
-                runtime_semantics.prior_authoritative_identity(),
-                runtime_semantics
-                    .successor_authoritative_identities()
-                    .first()?
-                    .as_str(),
+                prior_authority,
+                successor_authority,
             )
             .ok()
         }
         ForgeQueryContinuityContributionPosture::Split => {
+            let successor_authorities = runtime_semantics
+                .successor_authoritative_identities()
+                .iter()
+                .map(|identity| {
+                    crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+                        crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                            identity.as_str(),
+                        )?,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()
+                .ok()?;
             ForgeQueryContinuityMutationIntent::split_existing_target(
-                runtime_semantics.prior_authoritative_identity(),
-                runtime_semantics
-                    .successor_authoritative_identities()
-                    .iter()
-                    .cloned(),
+                prior_authority,
+                successor_authorities,
             )
             .ok()
         }
         ForgeQueryContinuityContributionPosture::Replaced => {
+            let successor_authority = crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+                crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                    runtime_semantics
+                        .successor_authoritative_identities()
+                        .first()?
+                        .as_str(),
+                )
+                .ok()?,
+            )
+            .ok()?;
             ForgeQueryContinuityMutationIntent::rebind_merge_successor(
-                runtime_semantics.prior_authoritative_identity(),
-                runtime_semantics
-                    .successor_authoritative_identities()
-                    .first()?
-                    .as_str(),
+                prior_authority,
+                successor_authority,
             )
             .ok()
         }

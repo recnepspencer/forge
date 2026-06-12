@@ -37,7 +37,7 @@ pub fn certify_lower_runtime_routing() -> ForgeQueryLowerRuntimeCertificationBun
     let rows = vec![
         certification_row(
             ForgeQueryLowerRuntimeCertificationLane::CrossingsSurface,
-            crossings.inventory_digest(),
+            crossings.inventory_digest().to_string(),
             format!(
                 "crossings={} support={} route_plans={} envelopes={}",
                 crossings.rows().len(),

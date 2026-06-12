@@ -11,6 +11,15 @@ use super::{
 
 pub type BridgeWritebackIdempotenceIdentity = BridgeIdentity<WritebackIdempotenceIdentityTag>;
 
+impl BridgeWritebackIdempotenceIdentity {
+    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+        Self::new(format!(
+            "bridge-writeback-idempotence:external-authority-evidence:{}",
+            evidence_identity.as_ref()
+        ))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeWritebackAuthoritativeStateBasis {
     canonical_basis: Arc<str>,

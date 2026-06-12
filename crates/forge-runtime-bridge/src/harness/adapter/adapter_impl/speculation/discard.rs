@@ -15,9 +15,11 @@ pub(super) fn execute_discard_certification(
                 crate::facade::BridgeSpeculativeBranchBindingIdentity::new(
                     "harness:speculation-discard:binding",
                 ),
-                crate::facade::TruthBranchIdentity::new("main"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
                 crate::facade::BridgeSignalBranchIdentity::new("signal:discard"),
-                crate::facade::TruthSnapshotIdentity::new("harness:speculation-discard:snapshot"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture(
+                    "harness:speculation-discard:snapshot",
+                ),
             ),
         )
         .map_err(|error| {

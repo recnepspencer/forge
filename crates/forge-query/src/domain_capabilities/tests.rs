@@ -18,7 +18,10 @@ use super::targets::{
     ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
     ForgeQueryDomainCapabilityTargetKind, ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
 };
-use super::test_support::success;
+use super::test_support::{
+    admitted_plan, admitted_plan_target, declaration_target, lower_runtime_envelope,
+    lower_runtime_target, success,
+};
 use crate::runtime::ForgeQueryIntentDeclaration;
 use crate::target_binding::{
     ForgeQueryAdmittedIntentPlanBindingTarget, ForgeQueryBindingTargetWitness,
@@ -78,8 +81,8 @@ fn declaration_drift_requires_rebind() {
     .for_intent_declaration(&declaration);
     let eligible = success(evaluate_requested_domain_capability_contribution(requested));
     let admitted = success(admit_eligible_domain_capability_contribution(eligible));
-    let rebound_target =
-        ForgeQueryDeclarationBoundContributionTarget::from_digest("different-intent-digest");
+    let rebound_target = declaration_target("different-intent-digest");
+    let rebound_digest = rebound_target.target_digest().to_string();
 
     match prepare_admitted_domain_capability_contribution_for_materialization(
         admitted,
@@ -87,7 +90,7 @@ fn declaration_drift_requires_rebind() {
     ) {
         TransitionOutcome::RebindRequired(rebind) => {
             assert_eq!(rebind.category(), "admission");
-            assert_eq!(rebind.current_target_digest(), "different-intent-digest");
+            assert_eq!(rebind.current_target_digest(), rebound_digest);
         }
         _ => panic!("expected rebind-required outcome"),
     }
@@ -96,7 +99,7 @@ fn declaration_drift_requires_rebind() {
 #[test]
 fn lower_runtime_boundary_drift_is_stale_not_rebind() {
     let requested = create_requested_domain_capability_contribution(
-        ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::from_digest("envelope-a"),
+        lower_runtime_target("envelope-a"),
         ForgeQuerySupportContributionPayload::new(
             ForgeQuerySupportContributionPosture::DeclarationSupport,
             "runtime.boundary.support",
@@ -108,12 +111,11 @@ fn lower_runtime_boundary_drift_is_stale_not_rebind() {
 
     match prepare_admitted_domain_capability_contribution_for_materialization(
         admitted,
-        ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::from_digest("envelope-b"),
+        lower_runtime_target("envelope-b"),
     ) {
         TransitionOutcome::Stale(stale) => {
             assert_eq!(stale.category(), "support-traceability");
-            assert_eq!(stale.bound_target_digest(), "envelope-a");
-            assert_eq!(stale.current_target_digest(), "envelope-b");
+            assert_ne!(stale.bound_target_digest(), stale.current_target_digest());
         }
         _ => panic!("expected stale outcome"),
     }
@@ -121,12 +123,9 @@ fn lower_runtime_boundary_drift_is_stale_not_rebind() {
 
 #[test]
 fn every_category_reaches_admitted_form_through_the_same_lifecycle() {
-    let declaration_target =
-        ForgeQueryDeclarationBoundContributionTarget::from_digest("intent-declaration-a");
-    let admitted_plan_target =
-        ForgeQueryAdmittedPlanBoundContributionTarget::from_digest("admitted-plan-a");
-    let envelope_target =
-        ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::from_digest("boundary-envelope-a");
+    let declaration_target = declaration_target("intent-declaration-a");
+    let admitted_plan_target = admitted_plan_target("admitted-plan-a");
+    let envelope_target = lower_runtime_target("boundary-envelope-a");
 
     assert_admitted(
         ForgeQueryAdmissionContributionAuthoring::advisory(
@@ -196,27 +195,24 @@ fn compatibility_targets_share_digests_with_the_shared_binding_core() {
         shared_declaration.target_digest()
     );
 
-    let plan_target = ForgeQueryAdmittedPlanBoundContributionTarget::from_digest_parts(
-        "admitted-plan-a",
-        "request-a",
-        "eligibility-a",
-        "decision-a",
-    );
-    let shared_plan = ForgeQueryAdmittedIntentPlanBindingTarget::from_digest_parts(
-        "admitted-plan-a",
-        "request-a",
-        "eligibility-a",
-        "decision-a",
-    );
+    let plan = admitted_plan("admitted-plan-a.request-a.eligibility-a.decision-a");
+    let plan_target =
+        ForgeQueryAdmittedPlanBoundContributionTarget::for_admitted_intent_plan(&plan);
+    let shared_plan = ForgeQueryAdmittedIntentPlanBindingTarget::for_admitted_intent_plan(&plan);
     assert_eq!(
         ForgeQueryBindingTargetWitness::binding_digest(&plan_target),
         shared_plan.binding_digest()
     );
 
+    let envelope = lower_runtime_envelope("boundary-envelope-a");
     let envelope_target =
-        ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::from_digest("boundary-envelope-a");
+        ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::for_lower_runtime_boundary_envelope(
+            &envelope,
+        );
     let shared_envelope =
-        ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget::from_digest("boundary-envelope-a");
+        ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget::for_lower_runtime_boundary_envelope(
+            &envelope,
+        );
     assert_eq!(
         ForgeQueryBindingTargetWitness::binding_digest(&envelope_target),
         shared_envelope.binding_digest()

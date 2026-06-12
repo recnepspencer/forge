@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadGraph, ForgeQueryReadGraphFamily,
@@ -33,18 +35,47 @@ impl ForgeQueryReadDomainInvariantSummary {
             .execution_plan()
             .counters()
             .planned_read_surface_count();
-        let summary_digest = hash_parts(&[
-            "forge_query_read_domain_invariant_summary_v1".to_string(),
-            format!("family:{graph_family:?}"),
-            format!("scope:{scope_class}"),
-            format!("schema:{schema_basis_digest}"),
-            format!("query:{query_digest}"),
-            format!("traversal_count:{declared_traversal_clause_count}"),
-            format!("traversal_depth:{declared_traversal_depth_limit}"),
-            format!("planned_surfaces:{planned_read_surface_count}"),
-            format!("operators:{operator_families:?}"),
-            format!("built_in_coverage:{built_in_operator_coverage:?}"),
-        ]);
+        let graph_family_label = match graph_family {
+            ForgeQueryReadGraphFamily::Detail => "detail",
+            ForgeQueryReadGraphFamily::Collection => "collection",
+        };
+        let summary_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::ReadInvariantViolation)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "read-domain-invariant-summary",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("family"), graph_family_label)
+                .field_shape(ForgeQueryEvidenceTag::new("scope"), &scope_class)
+                .field_identity(ForgeQueryEvidenceTag::new("schema"), &schema_basis_digest)
+                .field_identity(ForgeQueryEvidenceTag::new("query"), &query_digest)
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("declared_traversal_count"),
+                    declared_traversal_clause_count,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("declared_traversal_depth"),
+                    declared_traversal_depth_limit,
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("planned_read_surface_count"),
+                    planned_read_surface_count,
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("operator_family"),
+                    operator_families
+                        .iter()
+                        .map(ForgeQueryReadOperatorFamily::as_str),
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("built_in_operator"),
+                    built_in_operator_coverage
+                        .iter()
+                        .map(ForgeQueryReadBuiltInOperator::as_str),
+                )
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             graph_family,
             scope_class,

@@ -64,6 +64,23 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .build_backend_from_parts()
         .build();
     let error = match error {
+        Ok(_) => panic!("missing snapshot identity adapter should reject"),
+        Err(error) => error,
+    };
+    assert!(matches!(
+        error,
+        ForgeQueryRuntimeError::MissingSnapshotIdentityAdapter
+    ));
+    assert!(error.to_string().contains("snapshot_identity(...)"));
+
+    let error = ForgeQueryRuntime::builder()
+        .runtime_bridge(test_bridge())
+        .schema_adapter(TestSchemaAdapter)
+        .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
+        .build_backend_from_parts()
+        .build();
+    let error = match error {
         Ok(_) => panic!("missing write authority should reject"),
         Err(error) => error,
     };
@@ -77,6 +94,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .build_backend_from_parts()
         .build();
@@ -91,6 +109,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .build_backend_from_parts()
@@ -109,6 +128,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -126,6 +146,7 @@ fn runtime_builder_rejects_incomplete_backend_parts() {
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
         .write_authority(TestWriteAuthority)
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
@@ -149,6 +170,7 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
         .write_authority(TestWriteAuthority)
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
@@ -216,7 +238,7 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
     assert_eq!(
         view.subscription_installation()
             .subscription_budget_policy(),
-        runtime_subscription_budget_policy()
+        runtime_subscription_budget_policy().policy_label()
     );
     assert_eq!(
         view.subscription_installation()
@@ -239,7 +261,13 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         live_inspection.installation_digest(),
         view.subscription_installation().installation_digest()
     );
-    assert_eq!(receipt.commit_identity(), "external-commit-1");
+    assert_eq!(
+        receipt
+            .commit_identity()
+            .bridge_identity()
+            .and_then(|identity| identity.relational_commit_id()),
+        Some(1)
+    );
     assert_eq!(
         receipt.affected_live_view_ids(),
         &["external.tasks".to_string()]
@@ -280,6 +308,7 @@ fn runtime_builder_rejects_replacing_explicit_backend_with_backend_parts() {
             .schema_adapter(TestSchemaAdapter)
             .source_adapter(TestSourceAdapter::default())
             .write_authority(TestWriteAuthority)
+            .snapshot_identity(TestSnapshotIdentityAdapter)
             .signal_sink(TestSignalSink)
             .subscription_activation(TestSubscriptionActivation)
             .preview_basis(TestPreviewBasis)
@@ -292,6 +321,7 @@ fn runtime_builder_rejects_replacing_explicit_backend_with_backend_parts() {
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
         .write_authority(TestWriteAuthority)
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
@@ -322,6 +352,7 @@ fn runtime_builder_rejects_explicit_backend_with_stray_backend_parts() {
             .schema_adapter(TestSchemaAdapter)
             .source_adapter(TestSourceAdapter::default())
             .write_authority(TestWriteAuthority)
+            .snapshot_identity(TestSnapshotIdentityAdapter)
             .signal_sink(TestSignalSink)
             .subscription_activation(TestSubscriptionActivation)
             .preview_basis(TestPreviewBasis)

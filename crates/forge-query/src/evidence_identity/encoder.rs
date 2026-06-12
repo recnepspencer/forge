@@ -1,4 +1,5 @@
 use forge_foundational::facade::{CanonicalBasisEntry, CanonicalBasisEntryKind};
+use forge_runtime_bridge::facade::BridgeIdentityEvidence;
 
 use super::artifact::ForgeQueryEvidenceIdentity;
 use super::foundational::{derive_evidence_identity, text_entry};
@@ -60,6 +61,23 @@ impl ForgeQueryEvidenceIdentityEncoder {
         self
     }
 
+    pub fn field_evidence_identity(
+        self,
+        tag: ForgeQueryEvidenceTag,
+        value: &ForgeQueryEvidenceIdentity,
+    ) -> Self {
+        self.field_identity(tag, value)
+    }
+
+    pub fn field_bridge_identity(
+        mut self,
+        tag: ForgeQueryEvidenceTag,
+        value: &BridgeIdentityEvidence,
+    ) -> Self {
+        self.push_text(CanonicalBasisEntryKind::Identity, tag, value.as_ref());
+        self
+    }
+
     pub fn field_value(mut self, tag: ForgeQueryEvidenceTag, value: impl AsRef<str>) -> Self {
         self.push_text(CanonicalBasisEntryKind::Value, tag, value);
         self
@@ -97,6 +115,27 @@ impl ForgeQueryEvidenceIdentityEncoder {
         self
     }
 
+    pub fn field_evidence_identity_sequence<'a, I>(
+        mut self,
+        tag: ForgeQueryEvidenceTag,
+        values: I,
+    ) -> Self
+    where
+        I: IntoIterator<Item = &'a ForgeQueryEvidenceIdentity>,
+    {
+        let mut count = 0usize;
+        for (index, value) in values.into_iter().enumerate() {
+            self.entries.push(text_entry(
+                sequence_item_locus(tag, index),
+                CanonicalBasisEntryKind::Identity,
+                value.as_str(),
+            ));
+            count = index + 1;
+        }
+        self.push_sequence_count(tag, count);
+        self
+    }
+
     pub fn field_value_sequence<I, S>(mut self, tag: ForgeQueryEvidenceTag, values: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -125,6 +164,18 @@ impl ForgeQueryEvidenceIdentityEncoder {
     pub(crate) fn optional_identity(self, tag: ForgeQueryEvidenceTag, value: Option<&str>) -> Self {
         match value {
             Some(value) => self.field_identity(tag, value),
+            None => self,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn optional_evidence_identity(
+        self,
+        tag: ForgeQueryEvidenceTag,
+        value: Option<&ForgeQueryEvidenceIdentity>,
+    ) -> Self {
+        match value {
+            Some(value) => self.field_evidence_identity(tag, value),
             None => self,
         }
     }

@@ -6,6 +6,7 @@ pub enum ForgeQueryRuntimeMissingComponent {
     RuntimeBridge,
     SchemaAdapter,
     SourceAdapter,
+    SnapshotIdentityAdapter,
     WriteAuthority,
     SignalSink,
     SubscriptionActivation,
@@ -89,7 +90,7 @@ pub enum ForgeQueryStopClass<'a> {
         name: &'a str,
     },
     SharedReadStaleBasis {
-        snapshot_token: &'a str,
+        snapshot_identity: &'a crate::memory_workspace::ForgeQuerySnapshotIdentity,
     },
     RuntimeDeclarationFailed {
         kind: ForgeQueryRuntimeDeclarationFailureKind,

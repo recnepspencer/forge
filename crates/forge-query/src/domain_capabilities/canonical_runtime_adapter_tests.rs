@@ -11,6 +11,9 @@ use super::{
     materialize_runtime_continuity_evidence, ForgeQueryAdmissionContributionAuthoring,
     ForgeQueryContinuityContributionAuthoring, ForgeQuerySupportContributionAuthoring,
 };
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[test]
 fn admission_runtime_materializer_builds_query_decisions() {
@@ -154,16 +157,29 @@ fn continuity_runtime_materializer_builds_continuity_evidence() {
         preserved.outcome_class(),
         crate::runtime::ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
     );
-    assert_eq!(preserved.prior_authoritative_identity(), "edge:12");
+    assert_eq!(preserved.prior_authoritative_identity().as_str(), "edge:12");
+    let expected_binding_target = admitted_plan_target("plan-continuity");
+    let expected_binding_identity =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("role"),
+                "domain-capability-continuity-binding",
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("binding"),
+                expected_binding_target.binding_digest(),
+            )
+            .seal();
     assert_eq!(
-        preserved.basis_binding_digest(),
-        Some(
-            ForgeQueryAdmittedPlanBoundContributionTarget::from_digest("plan-continuity")
-                .binding_digest()
-        )
+        preserved
+            .basis_binding_digest()
+            .map(|digest| digest.as_str()),
+        Some(expected_binding_identity.as_str())
     );
     assert_eq!(
-        preserved.successor_authoritative_identity(),
+        preserved
+            .successor_authoritative_identity()
+            .map(|identity| identity.as_str()),
         Some("edge:14")
     );
 
@@ -172,8 +188,12 @@ fn continuity_runtime_materializer_builds_continuity_evidence() {
         crate::runtime::ForgeQueryContinuityOutcomeClass::ContinuesAsSplitSuccessors
     );
     assert_eq!(
-        split.successor_authoritative_identities(),
-        &["edge:14".to_string(), "edge:15".to_string()]
+        split
+            .successor_authoritative_identities()
+            .iter()
+            .map(|identity| identity.as_str())
+            .collect::<Vec<_>>(),
+        vec!["edge:14", "edge:15"]
     );
 }
 

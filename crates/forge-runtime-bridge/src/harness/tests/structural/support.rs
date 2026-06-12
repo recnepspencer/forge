@@ -7,7 +7,7 @@ use crate::facade::{
     StructuralFingerprintNormalizationRule, StructuralFingerprintOmissionPolicy,
     StructuralFingerprintOrderingRule, StructuralIdentityDeclaration,
     StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity, StructuralTruthViewBasis,
-    TruthBranchIdentity, TruthSnapshotIdentity,
+    TruthSnapshotIdentity,
 };
 use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessTargetId};
 use crate::harness::fixtures::{BridgeHarnessFixture, SnapshotFixture};
@@ -33,43 +33,43 @@ pub(super) fn structural_fixture(
                 ),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-b"),
-                crate::facade::TruthPatchIdentity::new("patch-b"),
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("left"),
-                crate::facade::TruthCommitIdentity::new("commit-left-a"),
-                crate::facade::TruthPatchIdentity::new("patch-left-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-left-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-left-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                crate::facade::TruthBranchIdentity::new("right"),
-                crate::facade::TruthCommitIdentity::new("commit-right-b"),
-                crate::facade::TruthPatchIdentity::new("patch-right-b"),
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-right-b"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-right-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
             .with_snapshot(structural_snapshot(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 "alice",
             ))
             .with_snapshot(structural_snapshot(
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                 "bob",
             )),
     )
@@ -133,8 +133,8 @@ fn remap_declaration(
             StructuralFingerprintOmissionPolicy::SchemaDeclaredOmissionPolicy,
         ),
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     )
 }
@@ -155,12 +155,12 @@ fn branch_declaration(
         ),
         StructuralTruthViewBasis::explicit_branch_pair(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("left"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("right"),
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
             ),
         ),
     )
@@ -181,8 +181,12 @@ fn branch_head_declaration(
             StructuralFingerprintOmissionPolicy::SchemaDeclaredOmissionPolicy,
         ),
         StructuralTruthViewBasis::explicit_branch_pair(
-            BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("left")),
-            BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("right")),
+            BridgeTruthViewSelector::branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+            ),
+            BridgeTruthViewSelector::branch_head(
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+            ),
         ),
     )
 }

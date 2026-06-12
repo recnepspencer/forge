@@ -15,6 +15,7 @@ use crate::identity_evolution::{
     LineageTraversalDescriptor,
 };
 use crate::live::{BridgeChangeSummary, BridgeFieldDelta};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
     ViewShapeComplexityStatus, ViewShapeDescriptor,
@@ -72,7 +73,8 @@ fn runtime_basis(schema_basis: SchemaBasisDigest) -> crate::basis::ResolvedSnaps
         ResolvedSnapshotIdentity::new(
             BasisAuthorityFamily::Runtime,
             None,
-            "phase-five-snapshot",
+            ForgeQuerySnapshotIdentity::from_external_authority_label("phase-five-snapshot")
+                .evidence_identity(),
             schema_basis,
             SnapshotLineageClass::CurrentHead,
         ),

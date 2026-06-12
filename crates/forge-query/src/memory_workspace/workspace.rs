@@ -78,10 +78,10 @@ impl ForgeQueryMemoryWorkspace {
 
     pub fn update_aspects(
         &mut self,
-        entity_identity: &str,
+        entity_identity: ForgeQueryEntityIdentity,
         aspects: Vec<ForgeQueryAspectValue>,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let entity_id = super::runtime_identity::parse_entity_identity(entity_identity)?;
+        let entity_id = super::runtime_identity::entity_id_from_identity(entity_identity)?;
         self.ensure_entity_exists(entity_id)?;
         let mut aspect_paths = Vec::with_capacity(aspects.len());
         for aspect in &aspects {
@@ -104,9 +104,9 @@ impl ForgeQueryMemoryWorkspace {
 
     pub fn delete(
         &mut self,
-        entity_identity: &str,
+        entity_identity: ForgeQueryEntityIdentity,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let entity_id = super::runtime_identity::parse_entity_identity(entity_identity)?;
+        let entity_id = super::runtime_identity::entity_id_from_identity(entity_identity.clone())?;
         let mut txn = self
             .runtime
             .begin_transaction(TransactionOptions::default());
@@ -123,7 +123,7 @@ impl ForgeQueryMemoryWorkspace {
         if receipt.deltas.is_empty() {
             receipt.deltas.push(ForgeQueryMutationDelta {
                 collection: self.kind_name.clone(),
-                entity_identity: entity_identity.to_string(),
+                entity_identity,
                 kind: ForgeQueryMutationKind::Deleted,
                 aspect_paths: Vec::new(),
             });
@@ -155,8 +155,8 @@ impl ForgeQueryMemoryWorkspace {
             })
     }
 
-    pub fn snapshot_token(&self) -> String {
-        super::runtime_identity::snapshot_token_from_runtime(&self.runtime)
+    pub fn snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        super::runtime_identity::snapshot_identity_from_runtime(&self.runtime)
     }
 
     fn ensure_entity_exists(&self, entity_id: EntityId) -> Result<(), ForgeQueryWorkspaceError> {
@@ -284,7 +284,7 @@ impl ForgeQueryMemoryWorkspace {
         kind: ForgeQueryMutationKind,
         aspect_paths: Vec<String>,
     ) -> ForgeQueryMutationReceipt {
-        let snapshot_token = self.snapshot_token();
+        let snapshot_identity = self.snapshot_identity();
         let deltas = result
             .changed_records
             .iter()
@@ -301,8 +301,10 @@ impl ForgeQueryMemoryWorkspace {
             })
             .collect::<Vec<_>>();
         ForgeQueryMutationReceipt {
-            commit_identity: format!("commit-{}", result.commit.commit_id.0),
-            snapshot_token,
+            commit_identity: ForgeQueryCommitIdentity::from_relational_commit_id(
+                result.commit.commit_id.0,
+            ),
+            snapshot_identity,
             deltas,
             bridge_authority: None,
         }

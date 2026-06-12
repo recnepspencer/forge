@@ -96,20 +96,26 @@ fn causal_envelope_full_writeback_chain_lookup_cost_ignores_unrelated_records() 
             },
         );
         let routed = runtime
-            .route(crate::facade::TruthCommitIdentity::new(
+            .route(crate::truth_identity_fixtures::truth_commit_fixture(
                 "commit-causal-writeback-full-scale",
             ))
             .expect("route should succeed");
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-                "query-admission:writeback-full-scale",
-                "causal-anchor:writeback-full-scale",
+                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    "query-admission:writeback-full-scale",
+                ),
+                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    "causal-anchor:writeback-full-scale",
+                ),
             )
             .expect("query admission summary should be valid"),
             vec![
                 query_observation_reference(
                     BridgeCausalEvidenceReferenceIdentity::query_observation(
-                        "query-observation:writeback-full-scale",
+                        crate::facade::BridgeIdentityEvidence::from_external_authority(
+                            "query-observation:writeback-full-scale",
+                        ),
                     )
                     .expect("query observation reference identity should be valid"),
                 ),

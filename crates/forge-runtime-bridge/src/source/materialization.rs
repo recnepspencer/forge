@@ -89,7 +89,7 @@ mod tests {
 
     use super::MaterializedTruthViewPacketSet;
     use crate::diagnostics::BridgeHistoricalMaterializationPath;
-    use crate::input::envelope::TruthBranchIdentity;
+
     use crate::policy::BridgeDiagnosticsTier;
     use crate::snapshot::{
         AdmittedSnapshotContext, BridgeDeliveryIntent, BridgeReplayMode, BridgeSnapshotContext,
@@ -109,7 +109,7 @@ mod tests {
 
     impl TruthSnapshotReader for FixtureReader {
         fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-            TruthSnapshotIdentity::new("snapshot-a")
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
         }
 
         fn read_packet(
@@ -117,7 +117,7 @@ mod tests {
             request: &SnapshotReadPacket,
         ) -> Result<SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError> {
             Ok(SnapshotReadPacketResult::new(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 request
                     .reads()
                     .iter()
@@ -136,8 +136,8 @@ mod tests {
         let declaration = SourceDeclaration::new(
             SourceDeclarationIdentity::new("source:analysis-history"),
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -169,8 +169,8 @@ mod tests {
             ),
             BridgeTruthViewAuthorityBasis::from_resolved_envelope(
                 declaration.selector(),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             SnapshotReadPacket::new(vec![]),
         );
@@ -187,13 +187,15 @@ mod tests {
         let planned = planned_source_packet_set(&contract);
         let snapshot =
             BridgeSnapshotContext::bind(Box::new(FixtureReader) as Box<dyn TruthSnapshotReader>);
-        let admitted =
-            AdmittedSnapshotContext::admit_for(snapshot, &TruthSnapshotIdentity::new("snapshot-a"))
-                .expect("snapshot should admit");
+        let admitted = AdmittedSnapshotContext::admit_for(
+            snapshot,
+            &crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        )
+        .expect("snapshot should admit");
         let observation = crate::snapshot::MaterializedTruthViewObservation::new(
             planned.first().clone(),
             BridgeSnapshotToken::issued(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 "test-materialized-source-packet-set",
             ),
             BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot,
@@ -203,13 +205,15 @@ mod tests {
         let left = MaterializedTruthViewPacketSet::new(planned.clone(), vec![observation]);
         let snapshot =
             BridgeSnapshotContext::bind(Box::new(FixtureReader) as Box<dyn TruthSnapshotReader>);
-        let admitted =
-            AdmittedSnapshotContext::admit_for(snapshot, &TruthSnapshotIdentity::new("snapshot-a"))
-                .expect("snapshot should admit");
+        let admitted = AdmittedSnapshotContext::admit_for(
+            snapshot,
+            &crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        )
+        .expect("snapshot should admit");
         let observation = crate::snapshot::MaterializedTruthViewObservation::new(
             planned.first().clone(),
             BridgeSnapshotToken::issued(
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 "test-materialized-source-packet-set",
             ),
             BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot,

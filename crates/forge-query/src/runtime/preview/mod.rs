@@ -20,7 +20,9 @@ use super::{
 };
 
 use crate::declarative_live::DeclarativeLiveQueryRequest;
-use crate::memory_workspace::{ForgeQueryMutationDelta, ForgeQueryMutationKind};
+use crate::memory_workspace::{
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQuerySnapshotIdentity,
+};
 use crate::session_label::ForgeQuerySessionLabel;
 mod aspects;
 mod basics;
@@ -50,7 +52,7 @@ pub struct ForgeQueryPreviewSession<'a> {
     runtime: &'a mut ForgeQueryRuntime,
     effect_policy: ForgeQueryEffectPolicy,
     basis_admission: ForgeQueryPreviewBasisAdmission,
-    basis_snapshot_token: String,
+    basis_snapshot_identity: ForgeQuerySnapshotIdentity,
     pending_commands: Vec<ForgeQueryWriteCommand>,
     writes: Vec<ForgeQueryWriteReceipt>,
     handle_bindings: Vec<ForgeQueryPreviewHandleBindingEvidence>,
@@ -67,13 +69,13 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: ForgeQueryPreviewBasisAdmission,
     ) -> Self {
-        let basis_snapshot_token = runtime.snapshot_token();
+        let basis_snapshot_identity = runtime.current_snapshot_identity();
         Self {
             label,
             runtime,
             effect_policy,
             basis_admission,
-            basis_snapshot_token,
+            basis_snapshot_identity,
             pending_commands: Vec::new(),
             writes: Vec::new(),
             handle_bindings: Vec::new(),

@@ -74,11 +74,12 @@ fn execute_one_churn_branch(
         crate::facade::BridgePreviewSessionDeclarationIdentity::new(session_id.clone());
     let binding_identity =
         crate::facade::BridgeSpeculativeBranchBindingIdentity::new(format!("{session_id}:binding"));
-    let truth_branch_identity = crate::facade::TruthBranchIdentity::new(format!("branch-{index}"));
+    let truth_branch_identity =
+        crate::truth_identity_fixtures::truth_branch_fixture(format!("branch-{index}"));
     let signal_branch_identity =
         crate::facade::BridgeSignalBranchIdentity::new(format!("signal:{index}"));
     let snapshot_identity =
-        crate::facade::TruthSnapshotIdentity::new(format!("{session_id}:snapshot"));
+        crate::truth_identity_fixtures::truth_snapshot_fixture(format!("{session_id}:snapshot"));
     let admitted = runtime_bridge
         .admit_preview_session(
             preview_session_identity.clone(),

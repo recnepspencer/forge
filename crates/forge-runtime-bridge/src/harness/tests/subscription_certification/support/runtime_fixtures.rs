@@ -11,7 +11,6 @@ use crate::mapping::{
     BridgeMappingId, BridgeMappingRegistration, CoarseRoutingMode, MappingSelector,
     SignalInvalidationScope, SubscriptionSliceKind, TruthPatchScope,
 };
-use crate::snapshot::TruthSnapshotIdentity;
 
 use super::source_fixtures::{
     profile_aspect_key, profile_name_field_key, StaticSink, StaticSource,
@@ -95,7 +94,9 @@ pub(crate) fn activation_ready_for(
     let admitted = runtime
         .admit_subscription(
             declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("subscription admission should succeed");
     runtime.prepare_subscription_activation(&admitted)

@@ -7,8 +7,7 @@ use super::support::{
 use crate::facade::{
     BridgeAsyncRequestTruthViewBasis, BridgeAsyncWritebackAdmissionRequest,
     BridgeAsyncWritebackNoopClass, BridgeAsyncWritebackRejectedClass,
-    BridgeAsyncWritebackRejectionKind, TruthBranchIdentity, TruthCommitIdentity,
-    TruthSnapshotIdentity,
+    BridgeAsyncWritebackRejectionKind,
 };
 use forge_signal::facade::NodeId;
 
@@ -96,9 +95,9 @@ fn truth_changed_completion_rejects_before_staging() {
             &completion,
             super::support::projected_state_diff_intent("commit-c"),
             BridgeAsyncRequestTruthViewBasis::authoritative(
-                TruthBranchIdentity::new("truth-main:c-newer"),
-                TruthCommitIdentity::new("commit:c-newer"),
-                TruthSnapshotIdentity::new("snapshot:c-newer"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-main:c-newer"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:c-newer"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:c-newer"),
             ),
         ))
         .expect_err("displaced authoritative completion should reject writeback");

@@ -1,7 +1,7 @@
 use crate::facade::{
     BridgeMergeConsumptionClass, BridgeMergeDenialClass, BridgeMergePrecedenceStage,
     BridgeMergeRoutingOutcomeClass, BridgeMergeStructuralAdvisoryDisposition,
-    MergeHistoryDeclarationIdentity, TruthCommitIdentity,
+    MergeHistoryDeclarationIdentity,
 };
 
 use super::super::support::merge_declaration;
@@ -13,8 +13,8 @@ fn ordered_parent_history_remains_deterministic_under_adapter_variation() {
         MergeHistoryDeclarationIdentity::new("merge:ordered-parent-determinism"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         [
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ],
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -95,8 +95,8 @@ fn unsupported_merge_classes_fail_without_branch_reconciliation_authority_escape
         MergeHistoryDeclarationIdentity::new("merge:topology-denial"),
         BridgeMergeConsumptionClass::TopologyRewireMerge,
         [
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ],
     );
     let runtime = runtime_with_merge(declaration.clone());
@@ -136,8 +136,8 @@ fn topology_rewire_denial_is_typed_and_keeps_counter_scope_local() {
         MergeHistoryDeclarationIdentity::new("merge:topology-rewire-denial"),
         BridgeMergeConsumptionClass::TopologyRewireMerge,
         [
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ],
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -182,8 +182,8 @@ fn merge_replay_preserves_routing_and_explanation_parity() {
         MergeHistoryDeclarationIdentity::new("merge:replay-parity"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         [
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ],
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);

@@ -389,6 +389,7 @@ fn missing_component_key(component: ForgeQueryRuntimeMissingComponent) -> &'stat
         ForgeQueryRuntimeMissingComponent::Backend => "backend",
         ForgeQueryRuntimeMissingComponent::RuntimeBridge => "runtime_bridge",
         ForgeQueryRuntimeMissingComponent::SchemaAdapter => "schema_adapter",
+        ForgeQueryRuntimeMissingComponent::SnapshotIdentityAdapter => "snapshot_identity_adapter",
         ForgeQueryRuntimeMissingComponent::SourceAdapter => "source_adapter",
         ForgeQueryRuntimeMissingComponent::WriteAuthority => "write_authority",
         ForgeQueryRuntimeMissingComponent::SignalSink => "signal_sink",

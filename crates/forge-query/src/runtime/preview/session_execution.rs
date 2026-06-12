@@ -17,7 +17,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             &self.label,
             self.pending_commands.len() + 1,
             &command,
-            self.runtime.snapshot_token(),
+            self.runtime.current_snapshot_identity(),
         );
         self.pending_commands.push(command);
         self.route_preview_execution(&receipt);
@@ -56,7 +56,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     binding.handle_name(),
                     binding.source_lane(),
                     ForgeQueryAuthorityLane::PreviewTruth,
-                    receipt.commit_identity(),
+                    receipt.commit_evidence_identity(),
                     affected_aspects,
                 ));
         }
@@ -82,7 +82,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     binding.handle_name(),
                     binding.source_lane(),
                     ForgeQueryAuthorityLane::PreviewTruth,
-                    receipt.commit_identity(),
+                    receipt.commit_evidence_identity(),
                     affected_aspects,
                 ));
         }
@@ -123,7 +123,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 binding.handle_name(),
                 binding.source_lane(),
                 ForgeQueryAuthorityLane::PreviewTruth,
-                receipt.commit_identity(),
+                receipt.commit_evidence_identity(),
                 affected_aspects,
             ));
         }

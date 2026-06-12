@@ -29,8 +29,8 @@ pub struct ForgeQueryPreviewPromotionDenialEvidence {
     kind: ForgeQueryPreviewPromotionDenialKind,
     effect_policy: ForgeQueryEffectPolicy,
     basis_evidence: Vec<String>,
-    basis_snapshot_token: String,
-    promotion_snapshot_token: String,
+    basis_snapshot_identity: ForgeQuerySnapshotIdentity,
+    promotion_snapshot_identity: ForgeQuerySnapshotIdentity,
     staged_preview_write_count: usize,
     promoted_write_count: usize,
     failed_write_sequence: Option<usize>,
@@ -48,8 +48,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         kind: ForgeQueryPreviewPromotionDenialKind,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
-        basis_snapshot_token: &str,
-        promotion_snapshot_token: &str,
+        basis_snapshot_identity: &ForgeQuerySnapshotIdentity,
+        promotion_snapshot_identity: &ForgeQuerySnapshotIdentity,
         staged_preview_write_count: usize,
         promoted_write_count: usize,
         failed_write_sequence: Option<usize>,
@@ -75,13 +75,13 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
                     ForgeQueryEvidenceTag::new("basis_admission_digest"),
                     basis_admission.admission_digest().as_str(),
                 )
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("basis_snapshot_token"),
-                    basis_snapshot_token,
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("basis_snapshot_identity"),
+                    &basis_snapshot_identity.evidence_identity(),
                 )
-                .field_identity(
-                    ForgeQueryEvidenceTag::new("promotion_snapshot_token"),
-                    promotion_snapshot_token,
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("promotion_snapshot_identity"),
+                    &promotion_snapshot_identity.evidence_identity(),
                 )
                 .field_identity_sequence(
                     ForgeQueryEvidenceTag::new("basis_evidence_row"),
@@ -129,8 +129,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             kind,
             effect_policy,
             basis_evidence,
-            basis_snapshot_token: basis_snapshot_token.to_string(),
-            promotion_snapshot_token: promotion_snapshot_token.to_string(),
+            basis_snapshot_identity: basis_snapshot_identity.clone(),
+            promotion_snapshot_identity: promotion_snapshot_identity.clone(),
             staged_preview_write_count,
             promoted_write_count,
             failed_write_sequence,
@@ -146,8 +146,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
     pub(in crate::runtime::preview) fn stale_basis(
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
-        basis_snapshot_token: &str,
-        promotion_snapshot_token: &str,
+        basis_snapshot_identity: &ForgeQuerySnapshotIdentity,
+        promotion_snapshot_identity: &ForgeQuerySnapshotIdentity,
         staged_preview_write_count: usize,
         preview_binding_count: usize,
     ) -> Self {
@@ -155,8 +155,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             ForgeQueryPreviewPromotionDenialKind::StaleBasis,
             effect_policy,
             basis_admission,
-            basis_snapshot_token,
-            promotion_snapshot_token,
+            basis_snapshot_identity,
+            promotion_snapshot_identity,
             staged_preview_write_count,
             0,
             None,
@@ -173,8 +173,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
     pub(in crate::runtime::preview) fn write_failed(
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
-        basis_snapshot_token: &str,
-        promotion_snapshot_token: &str,
+        basis_snapshot_identity: &ForgeQuerySnapshotIdentity,
+        promotion_snapshot_identity: &ForgeQuerySnapshotIdentity,
         staged_preview_write_count: usize,
         promoted_write_count: usize,
         failed_write_sequence: usize,
@@ -185,8 +185,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             ForgeQueryPreviewPromotionDenialKind::WriteFailed,
             effect_policy,
             basis_admission,
-            basis_snapshot_token,
-            promotion_snapshot_token,
+            basis_snapshot_identity,
+            promotion_snapshot_identity,
             staged_preview_write_count,
             promoted_write_count,
             Some(failed_write_sequence),
@@ -201,8 +201,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
     pub(in crate::runtime::preview) fn atomic_batch_unsupported(
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
-        basis_snapshot_token: &str,
-        promotion_snapshot_token: &str,
+        basis_snapshot_identity: &ForgeQuerySnapshotIdentity,
+        promotion_snapshot_identity: &ForgeQuerySnapshotIdentity,
         staged_preview_write_count: usize,
         preview_binding_count: usize,
     ) -> Self {
@@ -210,8 +210,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             ForgeQueryPreviewPromotionDenialKind::AtomicBatchUnsupported,
             effect_policy,
             basis_admission,
-            basis_snapshot_token,
-            promotion_snapshot_token,
+            basis_snapshot_identity,
+            promotion_snapshot_identity,
             staged_preview_write_count,
             0,
             None,
@@ -228,8 +228,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
     pub(in crate::runtime::preview) fn rebinding_required(
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
-        basis_snapshot_token: &str,
-        promotion_snapshot_token: &str,
+        basis_snapshot_identity: &ForgeQuerySnapshotIdentity,
+        promotion_snapshot_identity: &ForgeQuerySnapshotIdentity,
         staged_preview_write_count: usize,
         preview_binding_count: usize,
         crossed_authoritative_residue_count: usize,
@@ -239,8 +239,8 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             ForgeQueryPreviewPromotionDenialKind::RebindingRequired,
             effect_policy,
             basis_admission,
-            basis_snapshot_token,
-            promotion_snapshot_token,
+            basis_snapshot_identity,
+            promotion_snapshot_identity,
             staged_preview_write_count,
             0,
             None,
@@ -277,12 +277,12 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         &self.basis_evidence
     }
 
-    pub fn basis_snapshot_token(&self) -> &str {
-        &self.basis_snapshot_token
+    pub fn basis_snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.basis_snapshot_identity
     }
 
-    pub fn promotion_snapshot_token(&self) -> &str {
-        &self.promotion_snapshot_token
+    pub fn promotion_snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.promotion_snapshot_identity
     }
 
     pub fn staged_preview_write_count(&self) -> usize {

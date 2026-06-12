@@ -147,8 +147,8 @@ pub(crate) fn subscription_preview_declaration(
 ) -> crate::facade::BridgePreviewSessionDeclaration {
     subscription_preview_declaration_for_truth(
         suffix,
-        TruthBranchIdentity::new(format!("truth-branch:{suffix}")),
-        crate::facade::TruthSnapshotIdentity::new(format!("snapshot:{suffix}")),
+        crate::truth_identity_fixtures::truth_branch_fixture(format!("truth-branch:{suffix}")),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(format!("snapshot:{suffix}")),
     )
 }
 

@@ -1,4 +1,6 @@
-use super::super::super::identity::CausalInspectionOutcomeIdentity;
+use super::super::super::identity::{
+    CausalInspectionArtifactIdentity, CausalInspectionOutcomeIdentity,
+};
 use super::super::super::observation_identity::{
     CausalObservationReceiptIdentity, CausalResultShapeContextIdentity,
 };
@@ -7,6 +9,8 @@ use super::super::{
     CausalInspectionPerformanceEnvelope, CausalMaterializationReceipt,
     QueryCausalTemporalAsyncExplanation,
 };
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use forge_runtime_bridge::facade::{BridgeCausalEnvelopeDenialKind, BridgeCausalEvidenceFamily};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeniedQueryCausalInspectionArtifact {
@@ -14,15 +18,15 @@ pub struct DeniedQueryCausalInspectionArtifact {
     query_observation_identity: CausalObservationReceiptIdentity,
     result_shape_context_identity: CausalResultShapeContextIdentity,
     denial_reason: String,
-    bridge_denial_digest: Option<String>,
-    bridge_denial_kind: Option<String>,
-    bridge_denial_family: Option<String>,
+    bridge_denial_identity: Option<ForgeQueryEvidenceIdentity>,
+    bridge_denial_kind: Option<BridgeCausalEnvelopeDenialKind>,
+    bridge_denial_family: Option<BridgeCausalEvidenceFamily>,
     temporal_async_explanation: QueryCausalTemporalAsyncExplanation,
     boundary_categories: Vec<CausalInspectionBoundaryEnvelopeCategory>,
     performance: CausalInspectionPerformanceEnvelope,
     receipt: CausalMaterializationReceipt,
-    causal_identity_digest: String,
-    artifact_digest: String,
+    causal_identity: CausalInspectionArtifactIdentity,
+    artifact_identity: CausalInspectionArtifactIdentity,
 }
 
 impl DeniedQueryCausalInspectionArtifact {
@@ -31,19 +35,19 @@ impl DeniedQueryCausalInspectionArtifact {
         denial_reason: String,
         query_observation_identity: &CausalObservationReceiptIdentity,
         result_shape_context_identity: &CausalResultShapeContextIdentity,
-        bridge_denial_digest: Option<String>,
-        bridge_denial_kind: Option<String>,
-        bridge_denial_family: Option<String>,
+        bridge_denial_identity: Option<ForgeQueryEvidenceIdentity>,
+        bridge_denial_kind: Option<BridgeCausalEnvelopeDenialKind>,
+        bridge_denial_family: Option<BridgeCausalEvidenceFamily>,
         temporal_async_explanation: QueryCausalTemporalAsyncExplanation,
         boundary_categories: Vec<CausalInspectionBoundaryEnvelopeCategory>,
         performance: CausalInspectionPerformanceEnvelope,
         receipt: CausalMaterializationReceipt,
-        artifact_digest: String,
+        artifact_identity: CausalInspectionArtifactIdentity,
     ) -> Self {
-        let causal_identity_digest = causal_identity_digest(
+        let causal_identity = causal_identity_digest(
             CausalInspectionArtifactKind::Denied,
-            query_denial_identity.as_str(),
-            query_observation_identity.as_str(),
+            query_denial_identity,
+            query_observation_identity.evidence_identity(),
             None,
             None,
         );
@@ -52,15 +56,15 @@ impl DeniedQueryCausalInspectionArtifact {
             query_observation_identity: query_observation_identity.clone(),
             result_shape_context_identity: result_shape_context_identity.clone(),
             denial_reason,
-            bridge_denial_digest,
+            bridge_denial_identity,
             bridge_denial_kind,
             bridge_denial_family,
             temporal_async_explanation,
             boundary_categories,
             performance,
             receipt,
-            causal_identity_digest,
-            artifact_digest,
+            causal_identity,
+            artifact_identity,
         }
     }
 
@@ -81,15 +85,29 @@ impl DeniedQueryCausalInspectionArtifact {
     }
 
     pub fn bridge_denial_digest(&self) -> Option<&str> {
-        self.bridge_denial_digest.as_deref()
+        self.bridge_denial_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
     pub fn bridge_denial_kind(&self) -> Option<&str> {
-        self.bridge_denial_kind.as_deref()
+        self.bridge_denial_kind
+            .as_ref()
+            .map(BridgeCausalEnvelopeDenialKind::as_str)
+    }
+
+    pub fn bridge_denial_kind_type(&self) -> Option<BridgeCausalEnvelopeDenialKind> {
+        self.bridge_denial_kind
     }
 
     pub fn bridge_denial_family(&self) -> Option<&str> {
-        self.bridge_denial_family.as_deref()
+        self.bridge_denial_family
+            .as_ref()
+            .map(BridgeCausalEvidenceFamily::as_str)
+    }
+
+    pub fn bridge_denial_family_type(&self) -> Option<BridgeCausalEvidenceFamily> {
+        self.bridge_denial_family
     }
 
     pub fn temporal_async_explanation(&self) -> &QueryCausalTemporalAsyncExplanation {
@@ -109,10 +127,14 @@ impl DeniedQueryCausalInspectionArtifact {
     }
 
     pub fn causal_identity_digest(&self) -> &str {
-        &self.causal_identity_digest
+        self.causal_identity.as_str()
     }
 
     pub fn artifact_digest(&self) -> &str {
-        &self.artifact_digest
+        self.artifact_identity.as_str()
+    }
+
+    pub fn artifact_identity(&self) -> &CausalInspectionArtifactIdentity {
+        &self.artifact_identity
     }
 }

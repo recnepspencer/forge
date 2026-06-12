@@ -10,23 +10,23 @@ pub(super) fn representative_matrix(
     denied: &QueryCausalInspectionArtifact,
 ) -> CausalInspectionRepresentativeMatrix {
     let suppressed = admitted_artifact_for(
-        TruthCommitIdentity::new("commit-query-cert-suppressed"),
+        TruthCommitIdentity::from_bridge_harness_label("commit-query-cert-suppressed"),
         CausalObservationOutcome::Suppressed,
         CausalInspectionReason::SuppressedResult,
     );
     let branch_preview = admitted_artifact_for(
-        TruthCommitIdentity::new("commit-query-cert-branch-preview"),
+        TruthCommitIdentity::from_bridge_harness_label("commit-query-cert-branch-preview"),
         CausalObservationOutcome::BranchPreview,
         CausalInspectionReason::BranchPreviewResult,
     );
     let replay = admitted_artifact_for(
-        TruthCommitIdentity::new("commit-query-cert-replay"),
+        TruthCommitIdentity::from_bridge_harness_label("commit-query-cert-replay"),
         CausalObservationOutcome::Replayed,
         CausalInspectionReason::HistoricalReplayResult,
     );
-    let lower_runtime_slots = artifact_with_lower_runtime_slot_evidence(TruthCommitIdentity::new(
-        "commit-query-cert-lower-runtime-slots",
-    ));
+    let lower_runtime_slots = artifact_with_lower_runtime_slot_evidence(
+        TruthCommitIdentity::from_bridge_harness_label("commit-query-cert-lower-runtime-slots"),
+    );
     let missing_signal_invalidation =
         missing_evidence_digest(CausalEvidenceFamily::SignalInvalidation);
     let missing_signal_evaluation = missing_evidence_digest(CausalEvidenceFamily::SignalEvaluation);
@@ -146,7 +146,10 @@ fn missing_evidence_digest(family: CausalEvidenceFamily) -> String {
             CausalObservationOutcome::Changed,
             vec![CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                format!("query-inspection:missing-{}", family.as_str()),
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(format!(
+                    "query-inspection:missing-{}",
+                    family.as_str()
+                )),
             )],
         ),
         CausalInspectionReason::ChangedResult,

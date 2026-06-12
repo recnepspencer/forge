@@ -16,7 +16,7 @@ fn pricing_shock_showcase_artifact_explains_retained_commit_without_hidden_memor
 
     assert_eq!(
         bundle.provenance.shock_commit,
-        TruthCommitIdentity::new("commit:rubber-shock")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock")
     );
     assert_eq!(bundle.provenance.shock_multiplier_per_mille, 4000);
     assert_eq!(bundle.fanout.second_delivery_target_count, 100);

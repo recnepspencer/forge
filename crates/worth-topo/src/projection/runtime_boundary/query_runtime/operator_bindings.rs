@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
-use forge_query::facade::ForgeQueryEntity;
+use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity};
 use forge_relational::facade::identity::{EntityId, RelationId};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
@@ -28,13 +29,15 @@ impl TopologyQueryBindingIndex {
         for row in entity_rows {
             let entity_id = decode_entity_id(row, "existing entity binding")?;
             let kind = decode_entity_kind(row, "existing entity binding")?;
+            let query_identity_label = query_identity_label(row.identity())?;
             bindings
                 .entity_ids_by_identity
-                .insert(row.identity().to_string(), entity_id);
+                .insert(query_identity_label.clone(), entity_id);
             bindings.entity_bindings_by_id.insert(
                 entity_id,
                 QueryEntityBinding {
-                    query_identity: row.identity().to_string(),
+                    query_identity: row.identity().clone(),
+                    query_identity_label,
                     kind,
                 },
             );
@@ -71,7 +74,7 @@ impl TopologyQueryBindingIndex {
             bindings.relation_bindings_by_id.insert(
                 relation_id,
                 QueryRelationBinding {
-                    query_identity: row.identity().to_string(),
+                    query_identity: row.identity().clone(),
                     kind,
                     source_query_identity,
                     target_query_identity,
@@ -129,6 +132,26 @@ impl TopologyQueryBindingIndex {
 
 fn relation_key(identity: &str, kind: TopologyRelationKind) -> (String, String) {
     (identity.to_string(), kind.kind_name().to_string())
+}
+
+fn query_identity_label(
+    identity: &ForgeQueryEntityIdentity,
+) -> Result<String, TopologyMutationApplicationError> {
+    let parts = identity.relational_record_parts().ok_or_else(|| {
+        TopologyMutationApplicationError::MaterializedDecode(format!(
+            "topology operator bindings require relational query row identities, got `{identity}`"
+        ))
+    })?;
+    let kind = match parts.kind() {
+        RelationalBridgeRecordIdentityKind::Entity => "entity",
+        RelationalBridgeRecordIdentityKind::Relation => "relation",
+    };
+    Ok(format!(
+        "{kind}:{}:{}:{}",
+        parts.partition_id(),
+        parts.local_slot(),
+        parts.generation()
+    ))
 }
 
 pub(crate) fn decode_entity_id(

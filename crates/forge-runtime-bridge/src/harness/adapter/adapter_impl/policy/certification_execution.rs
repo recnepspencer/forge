@@ -210,7 +210,7 @@ pub(super) fn execute_ambient_leak_certification(
     let branch_local_resolution = runtime_bridge.resolve_truth_view_policy(
         &crate::facade::HistoricalEvaluationDeclaration::new(
             crate::facade::BridgeTruthViewSelector::branch_snapshot(
-                crate::facade::TruthBranchIdentity::new("analysis"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
                 first_snapshot_identity(fixture),
             ),
             crate::facade::BridgeReplayMode::Enabled,
@@ -232,7 +232,7 @@ pub(super) fn execute_ambient_leak_certification(
     let historical_resolution = runtime_bridge.resolve_truth_view_policy(
         &crate::facade::HistoricalEvaluationDeclaration::new(
             crate::facade::BridgeTruthViewSelector::branch_snapshot(
-                crate::facade::TruthBranchIdentity::new("history"),
+                crate::truth_identity_fixtures::truth_branch_fixture("history"),
                 first_snapshot_identity(fixture),
             ),
             crate::facade::BridgeReplayMode::Enabled,

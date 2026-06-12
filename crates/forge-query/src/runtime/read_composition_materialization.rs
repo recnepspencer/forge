@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::authoring::ScalarPredicateValue;
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativePredicateFilter};
-use crate::memory_workspace::ForgeQueryEntity;
+use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryEntityIdentity};
 use crate::query_context::QueryContextExecutionArtifact;
 use crate::runtime::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadDenial, ForgeQueryReadDenialKind,
@@ -33,11 +33,11 @@ pub(in crate::runtime) fn materialize_query_context_rows(
         .enumerate()
         .map(|(index, row)| {
             ForgeQueryEntity::from_external_projection(
-                format!(
+                ForgeQueryEntityIdentity::authored_command(format!(
                     "query-context:{}:{}",
                     context_execution.family().as_str(),
                     index
-                ),
+                )),
                 serde_json::json!({
                 "query_context": {
                     "basis_digest": context_execution.basis_digest(),
@@ -243,7 +243,7 @@ fn row_index(rows: &[ForgeQueryEntity]) -> BTreeMap<String, ForgeQueryEntity> {
 fn synthetic_rows_for_request(request: &DeclarativeLiveQueryRequest) -> Vec<ForgeQueryEntity> {
     let anchor_identity = identity_anchor(request).unwrap_or("synthetic-anchor");
     vec![ForgeQueryEntity::from_external_projection(
-        anchor_identity,
+        ForgeQueryEntityIdentity::authored_command(anchor_identity),
         serde_json::json!({
             "read": { "synthetic": true },
             "relations": {}

@@ -30,15 +30,21 @@ fn phase_one_anchors_cover_changed_suppressed_denied_preview_and_replay_observat
             vec![
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::QueryInspection,
-                    format!("query-inspection-{}", outcome.as_str()),
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        format!("query-inspection-{}", outcome.as_str()),
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::BridgeRoute,
-                    format!("bridge-route-{}", outcome.as_str()),
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        format!("bridge-route-{}", outcome.as_str()),
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::SignalInvalidation,
-                    format!("signal-invalidation-{}", outcome.as_str()),
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        format!("signal-invalidation-{}", outcome.as_str()),
+                    ),
                 ),
             ],
         );
@@ -63,19 +69,27 @@ fn anchor_counters_are_exact_and_width_bound_to_carried_reference_families() {
         vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection-a",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection-a",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-inspection-b",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-inspection-b",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::RelationalAuthority,
-                "relational-authority-a",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "relational-authority-a",
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,
-                "bridge-route-a",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "bridge-route-a",
+                ),
             ),
         ],
     );
@@ -114,24 +128,21 @@ fn anchor_derivation_denies_receipts_without_carried_evidence_identities() {
 }
 
 #[test]
-fn anchor_derivation_denies_empty_carried_evidence_reference_digests() {
+fn anchor_derivation_seals_empty_fixture_labels_into_typed_reference_digests() {
     let receipt = QueryObservationReceipt::fixture(
         CausalObservationOutcome::Changed,
         vec![CausalObservationEvidenceIdentity::new(
             CausalEvidenceFamily::BridgeRoute,
-            "",
+            crate::runtime::tests::causal_inspection::causal_test_reference_digest(""),
         )],
     );
 
-    let error =
-        anchor_causal_observation(receipt, CausalInspectionReason::ChangedResult).unwrap_err();
+    let anchor = anchor_causal_observation(receipt, CausalInspectionReason::ChangedResult)
+        .expect("typed fixture references should seal empty source labels");
 
-    assert_eq!(
-        error.kind(),
-        CausalObservationAnchorErrorKind::MissingRequiredEvidenceReference
-    );
-    assert!(error.message().contains("non-empty evidence reference"));
-    assert!(!error.failure_digest().is_empty());
+    let carried_reference =
+        anchor.observation_receipt().evidence_identities()[0].reference_digest();
+    assert!(!carried_reference.as_str().is_empty());
 }
 
 #[test]
@@ -140,7 +151,9 @@ fn anchor_derivation_denies_inspection_reason_outcome_mismatch() {
         CausalObservationOutcome::Denied,
         vec![CausalObservationEvidenceIdentity::new(
             CausalEvidenceFamily::QueryInspection,
-            "denied-inspection",
+            crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                "denied-inspection",
+            ),
         )],
     );
 
@@ -225,19 +238,27 @@ fn evidence_reference_resolution_consumes_anchor_and_emits_sealed_reference_set(
             vec![
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::QueryInspection,
-                    "query-inspection-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "query-inspection-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::RelationalAuthority,
-                    "relational-authority-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "relational-authority-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::BridgeRoute,
-                    "bridge-route-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "bridge-route-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::SignalInvalidation,
-                    "signal-invalidation-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "signal-invalidation-reference",
+                    ),
                 ),
             ],
         ),
@@ -268,7 +289,10 @@ fn evidence_reference_resolution_consumes_anchor_and_emits_sealed_reference_set(
     assert!(reference_set.references().iter().any(|reference| {
         reference.owner() == CausalEvidenceOwner::RuntimeBridge
             && reference.family() == CausalEvidenceFamily::BridgeRoute
-            && reference.reference_digest().as_str() == "bridge-route-reference"
+            && reference.reference_digest()
+                == &crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "bridge-route-reference",
+                )
     }));
     assert!(reference_set.references().iter().any(|reference| {
         reference.owner() == CausalEvidenceOwner::Relational
@@ -299,7 +323,9 @@ fn evidence_reference_resolution_denies_requested_family_missing_from_anchor() {
             CausalObservationOutcome::Denied,
             vec![CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                "query-denial-reference",
+                crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "query-denial-reference",
+                ),
             )],
         ),
         CausalInspectionReason::DeniedResult,
@@ -345,11 +371,15 @@ fn evidence_reference_resolution_defaults_to_anchor_carried_families() {
             vec![
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::QueryInspection,
-                    "replay-query-inspection-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "replay-query-inspection-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::BridgeReplay,
-                    "bridge-replay-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "bridge-replay-reference",
+                    ),
                 ),
             ],
         ),

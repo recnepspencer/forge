@@ -257,6 +257,7 @@ mod runtime_batching;
 mod runtime_declarations;
 mod runtime_helpers;
 mod runtime_inspection;
+mod runtime_inspection_materialization_identity;
 mod runtime_inspection_materialization_intents;
 mod runtime_intent_phase_four_execution;
 mod runtime_intent_phase_three_resolution;
@@ -282,6 +283,7 @@ mod workspace;
 mod workspace_contracts;
 mod workspace_declaration;
 mod workspace_graph;
+mod workspace_mutations;
 mod workspace_queries;
 mod workspace_read_composition_support;
 mod workspace_shared_read;
@@ -315,6 +317,7 @@ pub use authority::{
     ForgeQueryEffectAdmission, ForgeQueryEffectPolicy, ForgeQueryEffectPolicyDenial,
     ForgeQueryPreviewOptions,
 };
+pub(crate) use backend::build_bridge_authority_bundle;
 pub use backend::{
     ForgeQueryBridgeBackedRuntimeBackend, ForgeQueryIntentAuthorityAdapter,
     ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendParts,
@@ -322,11 +325,12 @@ pub use backend::{
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimeIntentAuthorityAdapter, ForgeQueryRuntimePreviewBasisAdapter,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
-    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryRuntimeWriteAuthorityAdapter, LiveViewDeclarationAdmissionBoundaryReceipt,
-    LiveViewDeclarationAdmissionReceipt, SignalInvalidationBoundaryReceipt,
-    SignalInvalidationRoutingReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationReceipt, WriteAuthorityExecutionReceipt,
+    ForgeQueryRuntimeSnapshotIdentityAdapter, ForgeQueryRuntimeSourceAdapter,
+    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
+    LiveViewDeclarationAdmissionBoundaryReceipt, LiveViewDeclarationAdmissionReceipt,
+    SignalInvalidationBoundaryReceipt, SignalInvalidationRoutingReceipt,
+    SubscriptionActivationBoundaryReceipt, SubscriptionActivationReceipt,
+    WriteAuthorityExecutionReceipt,
 };
 pub use branch::ForgeQueryBranchSession;
 use bridge_mutation_lowering::{bridge_continuity_mutation_bundle, bridge_naming_mutation_bundle};
@@ -423,8 +427,7 @@ pub use inspection::{
     CausalInspectionViolationKind, CausalMaterializationReceipt, CausalObservationAnchor,
     CausalObservationAnchorCounters, CausalObservationAnchorDigest, CausalObservationAnchorError,
     CausalObservationAnchorErrorKind, CausalObservationEvidenceIdentity,
-    CausalObservationMissingReferencePosture, CausalObservationOutcome,
-    CausalObservationTargetHandle, CausalResultShapeContextHandle, DeniedCausalInspection,
+    CausalObservationMissingReferencePosture, CausalObservationOutcome, DeniedCausalInspection,
     DeniedQueryCausalInspectionArtifact, ForgeQueryBasisLifecycleInspection,
     ForgeQueryBatchWriteComponentInspection, ForgeQueryBatchWriteReceiptInspection,
     ForgeQueryBranchIntentReceiptInspection, ForgeQueryEffectIntentReceiptInspection,
@@ -451,15 +454,20 @@ pub use intent::{
     ForgeQueryIntentExecutionProvenance, ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
     ForgeQueryPreviewIntentReceipt,
 };
-pub use live_subscription::ForgeQueryRuntimeLiveSubscriptionInstallation;
+pub(crate) use live_subscription::live_subscription_digest_source_identity;
+pub use live_subscription::{
+    ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,
+    ForgeQueryRuntimeLiveSubscriptionInstallation,
+};
 #[allow(unused_imports)]
 pub use mixed_cause_delivery::{
     ForgeQueryRuntimeDeliveryCoalescingKind, ForgeQueryRuntimeMixedCauseDelivery,
     ForgeQueryRuntimeMixedCauseLaneKind, ForgeQueryRuntimeMixedCauseMemberKind,
 };
-pub(crate) use mutation::command_declared_aspect_value_digest;
-pub(crate) use mutation::ForgeQueryVerifiedExistingTruthAssertion;
 use mutation::{admit_continuity_intent, admit_naming_intent};
+pub(crate) use mutation::{
+    command_declared_aspect_value_digest, command_declared_aspect_value_identity,
+};
 #[allow(unused_imports)]
 pub use mutation::{
     ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,
@@ -485,7 +493,7 @@ pub use mutation::{
     ForgeQueryNamingMutationIntent, ForgeQuerySymbolicAspectReference,
     ForgeQuerySymbolicAspectReferenceFamily, ForgeQuerySymbolicTargetReference,
     ForgeQuerySymbolicTargetReferenceDenial, ForgeQuerySymbolicTargetReferenceDenialKind,
-    ForgeQuerySymbolicTargetReferenceFamily,
+    ForgeQuerySymbolicTargetReferenceFamily, ForgeQueryVerifiedExistingTruthAssertion,
 };
 pub use mutation_surface::{
     ForgeQueryMutationSurfacePosture, ForgeQueryMutationSurfaceReport, ForgeQueryMutationSurfaceRow,
@@ -531,8 +539,9 @@ use runtime_helpers::{
     classify_receipt_mutation_summary, combined_batch_mutation_receipt, live_subscription_error,
     record_same_batch_symbolic_target, resolve_same_batch_symbolic_target,
     resolve_symbolic_aspect_references, runtime_active_lifecycle_budget,
-    runtime_bridge_lowering_budget, runtime_consumer_attachment_budget, runtime_family_budget,
-    runtime_slice_budget, runtime_subscription_admission_budget,
+    runtime_active_lifecycle_budget_policy, runtime_bridge_lowering_budget,
+    runtime_consumer_attachment_budget, runtime_consumer_attachment_budget_policy,
+    runtime_family_budget, runtime_slice_budget, runtime_subscription_admission_budget,
     runtime_subscription_budget_policy, subscription_dimensions_for_request,
     synthetic_existing_assertion_receipt,
 };
@@ -548,16 +557,22 @@ pub(in crate::runtime) use shared_read_pins::{
 };
 pub use state::ForgeQueryRuntimeStateTarget;
 pub use state_snapshot::{ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot};
+#[allow(unused_imports)]
 pub use support::{
     ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryBranchBasisAdmission,
+    ForgeQueryBridgeMutationArtifactIdentity, ForgeQueryContinuityPriorAuthorityLabel,
+    ForgeQueryContinuitySuccessorAuthorityLabel, ForgeQueryExistingTruthBindingAuthorityLabel,
     ForgeQueryGraphCompositionCapabilityClass, ForgeQueryGraphCompositionCapabilitySupportRow,
     ForgeQueryGraphCompositionExtensionHookBoundary,
-    ForgeQueryGraphCompositionExtensionHookSupportRow, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
-    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeFamilyTeachingPosture,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportDenial,
-    ForgeQueryRuntimeSupportProfile,
+    ForgeQueryGraphCompositionExtensionHookSupportRow, ForgeQueryMutationAuthorityIdentity,
+    ForgeQueryMutationEvidenceDigest, ForgeQueryMutationSymbolIdentity,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryNamingAttachmentAuthorityLabel,
+    ForgeQueryNamingPriorAuthorityLabel, ForgeQueryNamingTargetAuthorityLabel,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeBackendPosture,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeFamilySupportStatus,
+    ForgeQueryRuntimeFamilyTeachingPosture, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeSupportDenial, ForgeQueryRuntimeSupportProfile,
 };
 pub use support_matrix::{
     ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimePublicSupportMatrixRow,

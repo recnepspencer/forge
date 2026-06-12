@@ -163,8 +163,8 @@ impl ReducedStructuralMatchSet {
 #[cfg(test)]
 mod tests {
     use super::ReducedStructuralMatchSet;
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::structural::{
         AdmittedStructuralRegistry, PlannedStructuralMatchPacketSet, StructuralCandidateIdentity,
         StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
@@ -192,12 +192,12 @@ mod tests {
                 ),
                 StructuralTruthViewBasis::explicit_branch_pair(
                     BridgeTruthViewSelector::branch_snapshot(
-                        TruthBranchIdentity::new("left"),
-                        TruthSnapshotIdentity::new("snapshot-left"),
+                        crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-left"),
                     ),
                     BridgeTruthViewSelector::branch_snapshot(
-                        TruthBranchIdentity::new("right"),
-                        TruthSnapshotIdentity::new("snapshot-right"),
+                        crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-right"),
                     ),
                 ),
             )
@@ -215,8 +215,8 @@ mod tests {
                 ),
                 StructuralTruthViewBasis::explicit_snapshot(
                     BridgeTruthViewSelector::committed_snapshot(
-                        TruthBranchIdentity::new("main"),
-                        TruthSnapshotIdentity::new("snapshot-a"),
+                        crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                     ),
                 ),
             )

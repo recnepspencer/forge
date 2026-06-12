@@ -4,9 +4,13 @@ use crate::declarative_live::{
     declare_runtime_live_query_session_with_grouped_baseline, DeclarativeLiveQueryRequest,
     DeclarativeLiveViewShape, DeclarativeProjectionField,
 };
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeSeamKey, SubscriptionActivationBoundaryReceipt,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::SubscriptionActivationReceipt;
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
 use crate::subscription::{
@@ -34,7 +38,7 @@ pub(crate) fn representative_subscription_activation_row() -> RepresentativeArti
     let session = declare_runtime_live_query_session_with_grouped_baseline(
         request.clone(),
         schema_view,
-        "subscription-snapshot",
+        phase_six_snapshot_identity("subscription-snapshot"),
         None::<Vec<(String, String)>>,
     )
     .expect("subscription activation fixture should declare live session");
@@ -76,6 +80,14 @@ pub(crate) fn representative_subscription_activation_row() -> RepresentativeArti
         envelope: boundary.boundary_envelope().clone(),
         evidence_source: ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture,
     }
+}
+
+fn phase_six_snapshot_identity(label: &'static str) -> ForgeQuerySnapshotIdentity {
+    ForgeQuerySnapshotIdentity::preview(
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity)
+            .field_shape(ForgeQueryEvidenceTag::new("phase_six_fixture"), label)
+            .seal(),
+    )
 }
 
 fn work_budget() -> QuerySubscriptionWorkBudget {

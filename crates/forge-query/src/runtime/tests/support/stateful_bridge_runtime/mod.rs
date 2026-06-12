@@ -1,6 +1,5 @@
 use super::*;
 
-mod authority;
 mod backend;
 mod state;
 mod verification;

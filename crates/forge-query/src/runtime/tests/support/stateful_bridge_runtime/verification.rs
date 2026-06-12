@@ -1,11 +1,12 @@
 use super::super::*;
 use super::state::StatefulBridgeState;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 
 pub(super) fn verify_existing_truth_assertion(
     state: &StatefulBridgeState,
     binding: &ForgeQueryExistingTruthTargetBinding,
     aspects: &[ForgeQueryAspectValue],
-    snapshot_token: &str,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
 ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial> {
     let row = authoritative_row(state, binding).map_err(|message| {
         ForgeQueryExistingTruthAssertionDenial::new(
@@ -49,7 +50,7 @@ pub(super) fn verify_existing_truth_assertion(
             ));
         }
     }
-    ForgeQueryVerifiedExistingTruthAssertion::new(binding, aspects, snapshot_token).map_err(
+    ForgeQueryVerifiedExistingTruthAssertion::new(binding, aspects, snapshot_identity).map_err(
         |error| {
             ForgeQueryExistingTruthAssertionDenial::new(
                 binding,
@@ -96,23 +97,21 @@ fn authoritative_row<'a>(
     state: &'a StatefulBridgeState,
     binding: &ForgeQueryExistingTruthTargetBinding,
 ) -> Result<&'a Value, String> {
-    let Some(collection) = state
-        .collection_by_identity
-        .get(binding.resolved_target_identity())
-    else {
+    let resolved_target_identity = binding.resolved_target_identity().to_string();
+    let Some(collection) = state.collection_by_identity.get(&resolved_target_identity) else {
         return Err(format!(
             "resolved target `{}` is not present in authoritative truth",
-            binding.resolved_target_identity()
+            resolved_target_identity
         ));
     };
     state
         .rows_by_collection
         .get(collection)
-        .and_then(|rows| rows.get(binding.resolved_target_identity()))
+        .and_then(|rows| rows.get(&resolved_target_identity))
         .ok_or_else(|| {
             format!(
                 "resolved target `{}` is not present in authoritative truth",
-                binding.resolved_target_identity()
+                resolved_target_identity
             )
         })
 }

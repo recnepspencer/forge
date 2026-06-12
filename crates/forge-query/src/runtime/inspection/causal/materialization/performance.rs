@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use forge_runtime_bridge::facade::{BridgeCausalEnvelopeDenial, BridgeCausalExplanationEnvelope};
 
@@ -15,7 +17,7 @@ pub struct CausalInspectionPerformanceEnvelope {
     bridge_lookup_count: usize,
     bridge_unindexed_scan_count: usize,
     materialized_detail_count: usize,
-    performance_digest: String,
+    performance_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl CausalInspectionPerformanceEnvelope {
@@ -73,20 +75,48 @@ impl CausalInspectionPerformanceEnvelope {
         bridge_unindexed_scan_count: usize,
         materialized_detail_count: usize,
     ) -> Self {
-        let performance_digest = hash_parts(&[
-            "causal_inspection_performance_envelope_v1".to_string(),
-            format!("anchor:{anchor_derivation_count}"),
-            format!("references:{evidence_reference_resolution_count}"),
-            format!("admission:{admission_count}"),
-            format!("bridge-envelope:{bridge_envelope_assembly_count}"),
-            format!("redaction:{redaction_count}"),
-            format!("materialization:{materialization_count}"),
-            format!("artifact-serialization:{artifact_serialization_count}"),
-            format!("bridge-bindings:{bridge_binding_count}"),
-            format!("bridge-lookups:{bridge_lookup_count}"),
-            format!("bridge-unindexed-scan:{bridge_unindexed_scan_count}"),
-            format!("materialized-detail:{materialized_detail_count}"),
-        ]);
+        let performance_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalInspectionPerformanceSnapshot,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("anchor"),
+            anchor_derivation_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("references"),
+            evidence_reference_resolution_count,
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("admission"), admission_count)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("bridge_envelope"),
+            bridge_envelope_assembly_count,
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("redaction"), redaction_count)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("materialization"),
+            materialization_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("artifact_serialization"),
+            artifact_serialization_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("bridge_bindings"),
+            bridge_binding_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("bridge_lookups"),
+            bridge_lookup_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("bridge_unindexed_scan"),
+            bridge_unindexed_scan_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("materialized_detail"),
+            materialized_detail_count,
+        )
+        .seal();
         Self {
             anchor_derivation_count,
             evidence_reference_resolution_count,
@@ -99,7 +129,7 @@ impl CausalInspectionPerformanceEnvelope {
             bridge_lookup_count,
             bridge_unindexed_scan_count,
             materialized_detail_count,
-            performance_digest,
+            performance_identity,
         }
     }
 
@@ -148,6 +178,10 @@ impl CausalInspectionPerformanceEnvelope {
     }
 
     pub fn performance_digest(&self) -> &str {
-        &self.performance_digest
+        self.performance_identity.as_str()
+    }
+
+    pub(super) fn performance_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.performance_identity
     }
 }

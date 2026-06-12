@@ -1,4 +1,5 @@
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::{
     ForgeQueryExistingTruthProbe, ForgeQueryIntentConsumerInspection,
     ForgeQueryIntentExecutionProvenance,
@@ -10,7 +11,8 @@ pub struct ForgeQueryExistingTruthProbeReceipt {
     binding_digest: String,
     request_digest: String,
     probe_digest: String,
-    snapshot_token: String,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    snapshot_evidence_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     field_count: usize,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
@@ -20,14 +22,20 @@ impl ForgeQueryExistingTruthProbeReceipt {
     pub(in crate::runtime) fn from_probe(
         request: &crate::runtime::ForgeQueryExistingTruthProbeRequest,
         probe: &ForgeQueryExistingTruthProbe,
-        snapshot_token: String,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
     ) -> Self {
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         Self {
-            authoritative_identity: request.binding().authoritative_identity().to_string(),
+            authoritative_identity: request
+                .binding()
+                .authoritative_identity()
+                .as_str()
+                .to_string(),
             binding_digest: request.binding().binding_digest(),
             request_digest: request.request_digest().to_string(),
             probe_digest: probe.probe_digest().to_string(),
-            snapshot_token,
+            snapshot_identity,
+            snapshot_evidence_identity,
             field_count: probe.fields().len(),
             decision_trace_envelope: None,
             execution_provenance: None,
@@ -50,8 +58,14 @@ impl ForgeQueryExistingTruthProbeReceipt {
         &self.probe_digest
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn snapshot_evidence_identity(
+        &self,
+    ) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        &self.snapshot_evidence_identity
     }
 
     pub fn field_count(&self) -> usize {

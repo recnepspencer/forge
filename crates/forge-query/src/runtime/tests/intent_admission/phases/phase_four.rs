@@ -41,7 +41,9 @@ fn effect_admitted_handoff_materializes_self_contained_execution_binding() {
         .expect("write-intent effect should declare");
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                "task-1",
+            ),
             aspect_path: "title.value".to_string(),
             value: json!("title from binding"),
         })
@@ -89,7 +91,9 @@ fn effect_receipt_surfaces_provenance_without_nested_receipt_spelunking() {
         .expect("write-intent effect should declare");
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                "task-1",
+            ),
             aspect_path: "title.value".to_string(),
             value: json!("title from outer receipt"),
         })
@@ -170,11 +174,21 @@ fn post_execution_routing_failure_preserves_proof_chain() {
         .execute_intent(binding.declaration())
         .expect("backend execution should succeed");
     let admitted_handoff = ForgeQueryAdmittedIntentExecutionHandoff::from(handoff);
-    let execution_provenance = ForgeQueryIntentExecutionProvenance::for_authoritative_binding(
-        &binding,
-        execution.outcome_digest(),
-        execution.mutation_receipt().snapshot_token.as_str(),
-    );
+    let snapshot_evidence_identity = execution
+        .mutation_receipt()
+        .snapshot_identity
+        .evidence_identity();
+    let execution_provenance =
+        ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+            binding.family(),
+            binding.entrypoint(),
+            binding.execution_seam(),
+            binding.handoff().decision_digest(),
+            binding.handoff().handoff_digest(),
+            binding.binding_digest(),
+            execution.outcome_digest(),
+            &snapshot_evidence_identity,
+        );
     let decision_trace_envelope = ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution(
         &admitted_handoff,
         &execution,
@@ -236,7 +250,9 @@ fn stale_effect_execution_binding_fails_as_typed_handoff_violation() {
         .expect("write-intent effect should declare");
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                "task-1",
+            ),
             aspect_path: "title.value".to_string(),
             value: json!("title before stale execution"),
         })

@@ -5,9 +5,7 @@ use crate::facade::{
     BridgePolicyRejectionKind, BridgePolicyRejectionStage, BridgePolicyResolution,
     BridgePolicySourceClass, BridgeRequestKind, BridgeRuntimePolicy,
     BridgeTruthViewPolicyResolution, BridgeTruthViewSelector, HistoricalEvaluationDeclaration,
-    TruthSnapshotIdentity,
 };
-use crate::input::envelope::TruthBranchIdentity;
 use crate::snapshot::BridgeReplayMode;
 
 #[test]
@@ -197,8 +195,8 @@ fn policy_admission_remains_structurally_distinct_from_truth_view_policy_resolut
     let runtime = runtime(BridgeRuntimePolicy::default());
     let truth_view = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,

@@ -1,4 +1,5 @@
 use crate::identity::hash_parts;
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::projection_consumption::ConsumedProjectionFactSet;
 use serde_json::Value;
 
@@ -31,7 +32,8 @@ pub(super) fn row_set_control_expected_digest(row_count: usize) -> String {
                     format!(
                         "entity_identity:{}:{}",
                         row.row_identity().as_str(),
-                        entity_identity
+                        ForgeQueryEntityIdentity::authored_command(entity_identity)
+                            .evidence_identity()
                     ),
                     format!(
                         "display_field:{}:profile.display_name:{}",
@@ -53,7 +55,7 @@ pub(super) fn row_set_control_actual_digest(facts: &ConsumedProjectionFactSet) -
                 format!(
                     "entity_identity:{}:{}",
                     fact.source_row_identity(),
-                    fact.entity_identity()
+                    fact.entity_identity().evidence_identity()
                 )
             })
             .chain(facts.display_fields().iter().map(|fact| {

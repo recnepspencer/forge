@@ -38,9 +38,10 @@ fn runtime_mutation_lowering_emits_explicit_strategy_request() {
     )
     .expect("mutation declaration should admit");
 
+    let authority_binding_identity = binding.basis_identity();
     let lowered = lower_mutation_intent_declaration(
         &declaration,
-        binding.basis_digest(),
+        &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields_external_json: json!({"name":"after"}),

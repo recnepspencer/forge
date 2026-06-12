@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::runtime::{
     ForgeQueryAuthorityLane, ForgeQueryBatchMutationEvidence,
     ForgeQueryGraphCompositionAssumptionSummary, ForgeQueryGraphCompositionBreadth,
@@ -22,7 +25,7 @@ pub struct ForgeQueryBatchWriteReceipt {
     graph_composition_breadth: ForgeQueryGraphCompositionBreadth,
     graph_composition_program: ForgeQueryGraphCompositionProgram,
     graph_composition_resolution_map: ForgeQueryGraphCompositionResolutionMap,
-    batch_digest: String,
+    batch_digest: ForgeQueryEvidenceIdentity,
     touched_aspect_paths: Vec<String>,
     affected_live_view_ids: Vec<String>,
     affected_derived_view_ids: Vec<String>,
@@ -79,44 +82,46 @@ impl ForgeQueryBatchWriteReceipt {
 
         let graph_lifecycle_digest =
             ForgeQueryGraphCompositionLifecycleOutcomes::derive(&graph_composition_program)
-                .map(|outcomes| outcomes.lifecycle_digest().to_string())
-                .unwrap_or_else(|| "none".to_string());
-        let batch_digest = hash_parts(
-            &std::iter::once("forge_query_batch_write_receipt_v1".to_string())
-                .chain(std::iter::once(format!(
-                    "graph-breadth:{}",
-                    graph_composition_breadth.breadth_digest()
-                )))
-                .chain(std::iter::once(format!(
-                    "graph-program:{}",
-                    graph_composition_program.program_digest()
-                )))
-                .chain(std::iter::once(format!(
-                    "graph-lifecycle:{}",
-                    graph_lifecycle_digest
-                )))
-                .chain(
+                .map(|outcomes| outcomes.lifecycle_evidence_digest().clone());
+        let batch_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::BatchWriteReceipt)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("graph_breadth_digest"),
+                    graph_composition_breadth.breadth_evidence_digest(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("graph_program_digest"),
+                    graph_composition_program.program_evidence_digest(),
+                )
+                .optional_evidence_identity(
+                    ForgeQueryEvidenceTag::new("graph_lifecycle_digest"),
+                    graph_lifecycle_digest.as_ref(),
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("write_commit_identity"),
                     write_receipts
                         .iter()
-                        .map(|receipt| format!("commit:{}", receipt.commit_identity())),
+                        .map(ForgeQueryWriteReceipt::commit_evidence_identity),
                 )
-                .chain(
-                    touched_aspect_paths
-                        .iter()
-                        .map(|path| format!("aspect:{path}")),
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("touched_aspect_path"),
+                    evidence_value_identities("batch-touched-aspect-path", &touched_aspect_paths)
+                        .iter(),
                 )
-                .chain(
-                    affected_live_view_ids
-                        .iter()
-                        .map(|view| format!("live:{view}")),
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("affected_live_view_id"),
+                    evidence_value_identities("batch-affected-live-view", &affected_live_view_ids)
+                        .iter(),
                 )
-                .chain(
-                    affected_derived_view_ids
-                        .iter()
-                        .map(|view| format!("derived:{view}")),
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("affected_derived_view_id"),
+                    evidence_value_identities(
+                        "batch-affected-derived-view",
+                        &affected_derived_view_ids,
+                    )
+                    .iter(),
                 )
-                .collect::<Vec<_>>(),
-        );
+                .seal();
 
         let target_evidence = write_receipts
             .iter()
@@ -150,6 +155,14 @@ impl ForgeQueryBatchWriteReceipt {
             .iter()
             .map(|receipt| receipt.continuity_mutation_evidence().cloned())
             .collect::<Vec<_>>();
+        let causality_evidence = write_receipts
+            .iter()
+            .map(|receipt| receipt.causality_evidence().cloned())
+            .collect::<Vec<_>>();
+        let provenance_evidence = write_receipts
+            .iter()
+            .map(|receipt| receipt.provenance_evidence().cloned())
+            .collect::<Vec<_>>();
         let aggregate_bridge = batch_bridge_evidence_from_receipts(&write_receipts);
         let batch_mutation_evidence = ForgeQueryBatchMutationEvidence::from_components(
             &mutation_families,
@@ -160,6 +173,8 @@ impl ForgeQueryBatchWriteReceipt {
             &symbolic_aspect_resolutions,
             &naming_mutations,
             &continuity_mutations,
+            &causality_evidence,
+            &provenance_evidence,
             aggregate_bridge.as_ref(),
         )
         .expect("non-empty mutation batch must produce batch evidence");
@@ -257,6 +272,10 @@ impl ForgeQueryBatchWriteReceipt {
     }
 
     pub fn batch_digest(&self) -> &str {
+        self.batch_digest.as_str()
+    }
+
+    pub(in crate::runtime) fn batch_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.batch_digest
     }
 
@@ -373,4 +392,19 @@ impl ForgeQueryBatchWriteReceipt {
     pub fn execution_provenance(&self) -> Option<&ForgeQueryIntentExecutionProvenance> {
         self.execution_provenance.as_ref()
     }
+}
+
+fn evidence_value_identities(
+    role: &'static str,
+    values: &[String],
+) -> Vec<ForgeQueryEvidenceIdentity> {
+    values
+        .iter()
+        .map(|value| {
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::BatchWriteReceipt)
+                .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+                .field_value(ForgeQueryEvidenceTag::new("value"), value)
+                .seal()
+        })
+        .collect()
 }

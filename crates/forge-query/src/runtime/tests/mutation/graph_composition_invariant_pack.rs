@@ -53,7 +53,10 @@ fn compose_graph_with_invariant_pack_executes_when_pack_admits_program() {
                 graph.insert_relation("TaskEdge", |edge| {
                     edge.aspect("edge.kind", "depends_on")
                         .symbolic_entity_identity("edge.source_identity", &task)
-                        .existing_entity_identity("edge.target_identity", "task-existing")
+                        .existing_entity_identity(
+                            "edge.target_identity",
+                            test_entity_identity("task-existing"),
+                        )
                 })?;
                 Ok(())
             },
@@ -114,8 +117,14 @@ fn compose_graph_with_invariant_pack_does_not_overclaim_symbolic_relation_target
                 })?;
                 graph.insert_relation("TaskEdge", |edge| {
                     edge.aspect("edge.kind", "depends_on")
-                        .existing_entity_identity("edge.source_identity", "task-existing-left")
-                        .existing_entity_identity("edge.target_identity", "task-existing-right")
+                        .existing_entity_identity(
+                            "edge.source_identity",
+                            test_entity_identity("task-existing-left"),
+                        )
+                        .existing_entity_identity(
+                            "edge.target_identity",
+                            test_entity_identity("task-existing-right"),
+                        )
                 })?;
                 Ok(())
             },
@@ -133,11 +142,19 @@ fn compose_graph_with_invariant_pack_does_not_overclaim_symbolic_relation_target
 
 #[test]
 fn compose_graph_with_invariant_pack_denies_domain_invalid_program_distinctly() {
-    let binding =
-        ForgeQueryExistingRelationTarget::new("authority:loop-next-rel", "HalfEdgeNextRelation:1")
-            .expect("existing relation target should build")
-            .in_target_collection("HalfEdgeNextRelation")
-            .expect("existing relation target collection should build");
+    let binding = ForgeQueryExistingRelationTarget::new(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new(
+                "authority:loop-next-rel",
+            )
+            .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
+        test_entity_identity("HalfEdgeNextRelation:1"),
+    )
+    .expect("existing relation target should build")
+    .in_target_collection("HalfEdgeNextRelation")
+    .expect("existing relation target collection should build");
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(binding)
         .expect("relation binding should build");
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
@@ -169,9 +186,7 @@ fn compose_graph_with_invariant_pack_denies_domain_invalid_program_distinctly() 
                     |update| {
                         update
                             .aspect("source.id", "he-1")
-                            .continuity_rebind_existing_target(
-                                "authority:loop-next-rel",
-                                "authority:loop-next-rel-successor",
+                            .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:loop-next-rel").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:loop-next-rel-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                             )
                             .symbolic_entity_identity("target.id", successor.reference().clone())
                     },

@@ -171,7 +171,14 @@ fn current_context_for_family(
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        snapshot_token.to_string(),
+        crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity,
+        )
+        .field_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture_snapshot"),
+            snapshot_token,
+        )
+        .seal(),
         family.read_graph().schema_basis().clone(),
         SnapshotLineageClass::CurrentHead,
     );

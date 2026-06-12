@@ -8,7 +8,8 @@ use super::execution_support::{
 };
 use super::support::{
     admitted_branch_merge_effect, admitted_mutation_effect_for_entity_with_binding,
-    admitted_tenant_writeback_effect, runtime_workflow_binding_with_snapshot,
+    admitted_tenant_writeback_effect, runtime_workflow_binding_for_branch,
+    runtime_workflow_binding_with_snapshot,
 };
 use crate::aspect_field_authoring::aspect_key;
 use crate::effect_lifecycle::{
@@ -16,7 +17,7 @@ use crate::effect_lifecycle::{
     ExecutedEffectAuthorityArtifact,
 };
 
-pub(super) use super::execution_support::{branch_snapshot_token, runtime_snapshot_token};
+pub(super) use super::execution_support::{branch_snapshot_identity, runtime_snapshot_identity};
 
 #[test]
 fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
@@ -30,7 +31,7 @@ fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
         )
         .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot(&runtime_snapshot_token(&runtime)),
+        runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime)),
         entity_id,
         json!({ "name": "authority-plan" }),
     ))
@@ -133,7 +134,10 @@ fn lowered_mutation_execution_rejects_bridge_host_override() {
         )
         .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "authority-plan" }),
     ))

@@ -2,17 +2,19 @@ use forge_relational::facade::merge::RelationalMergeInspectionArtifact;
 use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
 use crate::basis::ExecutionPreflightBundle;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::workflow::{
     LoweredMergeWorkflowDeclaration, MergeLoweringInput, MutationLoweringInput,
     QueryWritebackDeclaration, WorkflowAuthorityTargetFamily, WorkflowBudgetClass,
     WorkflowCostClass, WorkflowDeclarationFamily, WorkflowFreshnessPolicy,
     WorkflowPreviewEvaluationClass, WritebackLoweringInput,
 };
+use crate::ForgeQueryEvidenceIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryWorkflowRuntimeBindingSemantics {
     RuntimePreflight {
-        runtime_snapshot_token: String,
+        runtime_snapshot_identity: ForgeQuerySnapshotIdentity,
     },
     RuntimePreflightBundle {
         preflight: ExecutionPreflightBundle,
@@ -24,9 +26,11 @@ pub enum ForgeQueryWorkflowRuntimeBindingSemantics {
 }
 
 impl ForgeQueryWorkflowRuntimeBindingSemantics {
-    pub fn runtime_preflight(runtime_snapshot_token: impl Into<String>) -> Self {
+    pub fn runtime_preflight_snapshot_identity(
+        runtime_snapshot_identity: ForgeQuerySnapshotIdentity,
+    ) -> Self {
         Self::RuntimePreflight {
-            runtime_snapshot_token: runtime_snapshot_token.into(),
+            runtime_snapshot_identity,
         }
     }
 
@@ -44,13 +48,15 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
         }
     }
 
-    pub fn runtime_snapshot_token(&self) -> Option<&str> {
+    pub fn runtime_snapshot_identity(&self) -> Option<ForgeQuerySnapshotIdentity> {
         match self {
             Self::RuntimePreflight {
-                runtime_snapshot_token,
-            } => Some(runtime_snapshot_token.as_str()),
+                runtime_snapshot_identity,
+            } => Some(runtime_snapshot_identity.clone()),
             Self::RuntimePreflightBundle { preflight } => {
-                Some(preflight.basis().identity().snapshot_token())
+                Some(ForgeQuerySnapshotIdentity::preview(
+                    preflight.basis().identity().snapshot_identity().clone(),
+                ))
             }
             Self::PreviewFoundation { .. } => None,
         }
@@ -81,8 +87,8 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
     pub(crate) fn digest_fragment(&self) -> String {
         match self {
             Self::RuntimePreflight {
-                runtime_snapshot_token,
-            } => format!("runtime:{runtime_snapshot_token}"),
+                runtime_snapshot_identity,
+            } => format!("runtime:{}", runtime_snapshot_identity.evidence_identity()),
             Self::RuntimePreflightBundle { preflight } => format!(
                 "runtime_preflight:{}:{}:{}",
                 preflight.plan().query().plan_digest().as_str(),
@@ -94,7 +100,7 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
                 evaluation_class,
             } => format!(
                 "preview:{}:{}",
-                preview_session_identity.as_str(),
+                preview_session_identity.evidence_identity().as_str(),
                 evaluation_class.as_str()
             ),
         }
@@ -104,7 +110,7 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryWorkflowLoweringSemantics {
     Mutation {
-        authority_binding_digest: String,
+        authority_binding_identity: ForgeQueryEvidenceIdentity,
         input: MutationLoweringInput,
     },
     Merge {
@@ -117,11 +123,11 @@ pub enum ForgeQueryWorkflowLoweringSemantics {
 
 impl ForgeQueryWorkflowLoweringSemantics {
     pub fn mutation(
-        authority_binding_digest: impl Into<String>,
+        authority_binding_identity: ForgeQueryEvidenceIdentity,
         input: MutationLoweringInput,
     ) -> Self {
         Self::Mutation {
-            authority_binding_digest: authority_binding_digest.into(),
+            authority_binding_identity,
             input,
         }
     }
@@ -134,12 +140,12 @@ impl ForgeQueryWorkflowLoweringSemantics {
         Self::Writeback { input }
     }
 
-    pub fn mutation_parts(&self) -> Option<(&str, &MutationLoweringInput)> {
+    pub fn mutation_parts(&self) -> Option<(&ForgeQueryEvidenceIdentity, &MutationLoweringInput)> {
         match self {
             Self::Mutation {
-                authority_binding_digest,
+                authority_binding_identity,
                 input,
-            } => Some((authority_binding_digest.as_str(), input)),
+            } => Some((authority_binding_identity, input)),
             _ => None,
         }
     }
@@ -161,7 +167,7 @@ impl ForgeQueryWorkflowLoweringSemantics {
     pub(crate) fn digest_fragment(&self) -> String {
         match self {
             Self::Mutation {
-                authority_binding_digest,
+                authority_binding_identity,
                 input,
             } => {
                 let input_digest = match input {
@@ -174,7 +180,10 @@ impl ForgeQueryWorkflowLoweringSemantics {
                             .unwrap_or_else(|_| "serialization_failed".to_string())
                     ),
                 };
-                format!("mutation:{authority_binding_digest}:{input_digest}")
+                format!(
+                    "mutation:{}:{input_digest}",
+                    authority_binding_identity.as_str()
+                )
             }
             Self::Merge { input } => format!(
                 "merge:{}:{}:{}",

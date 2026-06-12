@@ -5,8 +5,7 @@ use crate::facade::{
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeMappingId,
     BridgeMappingRegistration, BridgeProducerMetadata, CoarseRoutingMode, MappingSelector,
     RuntimeBridgeBuilder, SignalInvalidationScope, SnapshotReadRecord, SnapshotReadRequest,
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
-    TruthSnapshotIdentity,
+    TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
 };
 use crate::harness::fixtures::{
     InMemoryRelationalBridgeSource, RecordingSignalBridgeSink, SnapshotFixture,
@@ -16,16 +15,19 @@ use crate::stream::BackpressureDecisionRecord;
 fn runtime_with_stream_source() -> crate::facade::RuntimeBridge {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     source.insert_committed_patch(committed_patch(
-        TruthCommitIdentity::new("commit-b"),
-        TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     RuntimeBridgeBuilder::new()
         .with_relational_source(source.clone())
         .with_truth_branch_head_source(source)
@@ -64,7 +66,7 @@ fn committed_patch(
             commit_identity,
             patch_identity,
             snapshot_identity,
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             "user",
@@ -103,8 +105,8 @@ fn snapshot(snapshot_identity: TruthSnapshotIdentity, text: &str) -> SnapshotFix
 
 fn native_stream_window() -> NativeStreamCommitWindow {
     NativeStreamCommitWindow::from_commits([
-        TruthCommitIdentity::new("commit-a"),
-        TruthCommitIdentity::new("commit-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
     ])
     .expect("native stream commit window should construct")
 }

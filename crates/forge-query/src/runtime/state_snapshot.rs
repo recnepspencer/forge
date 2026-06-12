@@ -247,15 +247,15 @@ fn compute_state_digest(
             authority_lane.as_str(),
         )
         .field_value(ForgeQueryEvidenceTag::new("explanation"), explanation)
-        .optional_identity(
+        .optional_value(
             ForgeQueryEvidenceTag::new("ordinary_runtime_posture"),
             ordinary_runtime_posture.map(ForgeQueryOrdinaryRuntimePosture::posture_digest),
         )
-        .optional_identity(
+        .optional_value(
             ForgeQueryEvidenceTag::new("async_result_state"),
             async_result_state.map(ForgeQueryRuntimeAsyncResultState::result_state_digest),
         )
-        .optional_identity(
+        .optional_value(
             ForgeQueryEvidenceTag::new("remask_posture"),
             remask_posture.map(ForgeQueryRuntimeRemaskPosture::remask_digest),
         )

@@ -1,6 +1,7 @@
 use super::super::consumed::{
-    ConsumedEffectContinuityFact, ConsumedProjectionFactSet, ConsumedRelationEndpointFact,
-    ConsumedSourceReferenceFact, ConsumedTargetIdentityFact, ProjectionFactExtractionCounters,
+    ConsumedContinuityAuthorityIdentity, ConsumedEffectContinuityFact, ConsumedProjectionFactSet,
+    ConsumedRelationEndpointFact, ConsumedSourceReferenceFact, ConsumedTargetIdentityFact,
+    ProjectionFactExtractionCounters,
 };
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::ProjectionFactKind;
@@ -13,7 +14,9 @@ pub(super) fn extract_write_receipt_facts(
     receipt: &ForgeQueryWriteReceipt,
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
     super::ensure_contract_family(contract, ProjectionSourceFamily::QueryWriteReceipt)?;
-    super::ensure_source_identity(contract.source_identity(), receipt.commit_identity())?;
+    let receipt_commit_identity = receipt.commit_identity().evidence_identity();
+    super::ensure_source_identity(contract.source_identity(), receipt_commit_identity.as_str())?;
+    let receipt_source_identity = receipt_commit_identity.as_str().to_string();
 
     let mut target_identities = Vec::new();
     let mut source_references = Vec::new();
@@ -27,11 +30,11 @@ pub(super) fn extract_write_receipt_facts(
                 evidence_lookup_width += 1;
                 let Some(identity) = receipt.target_entity_identity() else {
                     return Err(ProjectionFactExtractionError::MissingWriteReceiptEvidence {
-                        source_identity: receipt.commit_identity().to_string(),
+                        source_identity: receipt_source_identity.clone(),
                         fact_kind: ProjectionFactKind::TargetIdentity,
                     });
                 };
-                target_identities.push(ConsumedTargetIdentityFact::new(identity));
+                target_identities.push(ConsumedTargetIdentityFact::new(identity.clone()));
             }
             ProjectionFactKind::SourceReference => {
                 evidence_lookup_width += 1;
@@ -41,21 +44,27 @@ pub(super) fn extract_write_receipt_facts(
                 evidence_lookup_width += 1;
                 let Some(continuity) = receipt.continuity_mutation_evidence() else {
                     return Err(ProjectionFactExtractionError::MissingWriteReceiptEvidence {
-                        source_identity: receipt.commit_identity().to_string(),
+                        source_identity: receipt_source_identity.clone(),
                         fact_kind: ProjectionFactKind::EffectContinuity,
                     });
                 };
                 effect_continuity_facts.push(ConsumedEffectContinuityFact::new(
                     continuity.family(),
                     continuity.outcome_class(),
-                    continuity.prior_authoritative_identity(),
-                    continuity.successor_authoritative_identities().to_vec(),
+                    ConsumedContinuityAuthorityIdentity::new(
+                        continuity.prior_authoritative_identity().as_str(),
+                    ),
                     continuity
-                        .resolved_target_entity_identity()
-                        .map(str::to_string),
-                    continuity.target_collection().map(str::to_string),
-                    continuity.lineage_digest(),
-                    continuity.continuity_resolution_digest(),
+                        .successor_authoritative_identities()
+                        .iter()
+                        .map(|identity| ConsumedContinuityAuthorityIdentity::new(identity.as_str()))
+                        .collect(),
+                    continuity.resolved_target_entity_identity().cloned(),
+                    continuity
+                        .target_collection()
+                        .map(|collection| collection.as_str().to_string()),
+                    continuity.lineage_digest().as_str(),
+                    continuity.continuity_resolution_digest().as_str(),
                 ));
             }
             ProjectionFactKind::RelationEndpoint => {
@@ -63,14 +72,16 @@ pub(super) fn extract_write_receipt_facts(
                 let resolved = receipt.target_evidence().resolved();
                 if resolved.collection().is_none() || resolved.entity_identity().is_none() {
                     return Err(ProjectionFactExtractionError::MissingWriteReceiptEvidence {
-                        source_identity: receipt.commit_identity().to_string(),
+                        source_identity: receipt_source_identity.clone(),
                         fact_kind: ProjectionFactKind::RelationEndpoint,
                     });
                 }
                 relation_endpoints.push(ConsumedRelationEndpointFact::new(
                     resolved.target_class(),
-                    resolved.collection().map(str::to_string),
-                    resolved.entity_identity().map(str::to_string),
+                    resolved
+                        .collection()
+                        .map(|collection| collection.as_str().to_string()),
+                    resolved.entity_identity().cloned(),
                 ));
             }
             ProjectionFactKind::EntityIdentity
@@ -97,7 +108,7 @@ pub(super) fn extract_write_receipt_facts(
         contract.declaration_digest(),
         contract.contract_digest(),
         contract.source_family(),
-        contract.source_identity(),
+        contract.source_identity_handle().clone(),
         contract.support_posture().clone(),
         contract.materialized_fact_posture().cloned(),
         ProjectionFactExtractionCounters::new(
@@ -129,13 +140,13 @@ fn write_receipt_source_references(
     if let Some(provenance) = receipt.provenance_evidence() {
         references.push(ConsumedSourceReferenceFact::new(
             "bridge_provenance_execution_record",
-            provenance.execution_record_digest(),
+            provenance.execution_record_digest().as_str(),
         ));
     }
     if let Some(symbolic) = receipt.symbolic_target_reference_evidence() {
         references.push(ConsumedSourceReferenceFact::new(
             "symbolic_target_reference",
-            symbolic.symbol(),
+            symbolic.symbol().as_str(),
         ));
     }
     references

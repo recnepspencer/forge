@@ -1,5 +1,7 @@
 use forge_proof::TransitionOutcome;
-use forge_runtime_bridge::facade::BridgePreviewSessionDeclarationIdentity;
+use forge_runtime_bridge::facade::{
+    BridgeIdentityEvidence, BridgePreviewSessionDeclarationIdentity,
+};
 
 use crate::domain_capabilities::denials::{
     ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
@@ -175,12 +177,16 @@ where
     let source_label = workflow_source_label(target, payload);
     let request_family = preview_request_family(payload.posture());
     let request_family_label = request_family.as_str();
-    let binding_digest = target.binding_digest().to_string();
+    let binding_identity = target.binding_identity();
+    let binding_digest = binding_identity.as_str().to_string();
     let canonical_query_digest = CanonicalQueryDigest::from_parts(&[
         "forge_query_domain_preview_query_v1".to_string(),
         format!("source:{source_label}"),
-        format!("binding:{binding_digest}"),
-        format!("preview_session:{}", preview_session_identity.as_str()),
+        format!("binding:{}", binding_identity.as_str()),
+        format!(
+            "preview_session:{}",
+            preview_session_identity.evidence_identity().as_str()
+        ),
         format!("evaluation:{}", evaluation_class.as_str()),
         format!("request_family:{request_family_label}"),
     ]);
@@ -188,15 +194,35 @@ where
         "forge_query_domain_preview_validated_query_v1".to_string(),
         format!("canonical:{}", canonical_query_digest.as_str()),
     ]);
-    let declaration_identity = BridgePreviewSessionDeclarationIdentity::new(format!(
-        "domain-preview-declaration:{}:{}:{}",
+    let preview_declaration_evidence = crate::ForgeQueryEvidenceIdentity::compose(
+        crate::ForgeQueryEvidenceScope::WorkflowContextBinding,
+    )
+    .field_shape(
+        crate::ForgeQueryEvidenceTag::new("identity_family"),
+        "domain_preview_declaration_v1",
+    )
+    .field_shape(
+        crate::ForgeQueryEvidenceTag::new("semantic_code"),
         payload.semantic_code(),
-        binding_digest,
+    )
+    .field_evidence_identity(
+        crate::ForgeQueryEvidenceTag::new("binding"),
+        &binding_identity,
+    )
+    .field_shape(
+        crate::ForgeQueryEvidenceTag::new("request_family"),
         request_family_label,
-    ));
+    )
+    .seal();
+    let declaration_identity = BridgePreviewSessionDeclarationIdentity::from_bridge_evidence(
+        &BridgeIdentityEvidence::from_external_authority(preview_declaration_evidence),
+    );
     let declaration_digest = hash_parts(&[
         "forge_query_domain_preview_declaration_v1".to_string(),
-        format!("identity:{}", declaration_identity.as_str()),
+        format!(
+            "identity:{}",
+            declaration_identity.evidence_identity().as_str()
+        ),
         format!("canonical:{}", canonical_query_digest.as_str()),
         format!("validated:{}", validated_query_digest.as_str()),
     ]);

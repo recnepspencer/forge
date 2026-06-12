@@ -2,7 +2,7 @@ use crate::identity::hash_parts;
 
 use super::{
     BasisAuthorityPosture, BasisOperationLaneRequest, BasisTenantSchemaPosture,
-    NormalizedBasisFamily, NormalizedBasisIntent,
+    NormalizedBasisFamily, NormalizedBasisIntent, NormalizedBasisSubject,
 };
 
 mod rules;
@@ -273,6 +273,7 @@ pub struct BasisEligibility {
     normalized_basis_intent_digest: String,
     family: NormalizedBasisFamily,
     authority_posture: BasisAuthorityPosture,
+    normalized_subject: NormalizedBasisSubject,
     normalized_label: String,
     operation_lane: BasisOperationLaneRequest,
     tenant_schema_posture: BasisTenantSchemaPosture,
@@ -293,6 +294,10 @@ impl BasisEligibility {
 
     pub fn authority_posture(&self) -> &BasisAuthorityPosture {
         &self.authority_posture
+    }
+
+    pub fn normalized_subject(&self) -> &NormalizedBasisSubject {
+        &self.normalized_subject
     }
 
     pub fn normalized_label(&self) -> &str {

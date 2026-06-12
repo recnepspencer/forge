@@ -1,7 +1,7 @@
-mod planning_checkpoint;
+pub(crate) mod planning_checkpoint;
 mod route_history_preview;
-mod source_structural_stream;
-mod writeback;
+pub(crate) mod source_structural_stream;
+pub(crate) mod writeback;
 
 pub(crate) use planning_checkpoint::{
     bulk_planning_record_digest, historical_evaluation_failure_record_digest,

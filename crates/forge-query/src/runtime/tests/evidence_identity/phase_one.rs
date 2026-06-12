@@ -122,8 +122,8 @@ fn basis_admissions_emit_canonical_evidence_tokens() {
         ]),
     );
 
-    assert_canonical_evidence_identity_token(preview.admission_digest());
-    assert_canonical_evidence_identity_token(branch.admission_digest());
+    assert_canonical_evidence_identity_token(preview.admission_identity());
+    assert_canonical_evidence_identity_token(branch.admission_identity());
 
     let manual_preview_identity = compose_basis_admission_identity(
         crate::ForgeQueryEvidenceScope::PreviewBasisAdmission,
@@ -133,7 +133,7 @@ fn basis_admissions_emit_canonical_evidence_tokens() {
         ["basis|one", "basis:two"],
     );
     assert_eq!(
-        preview.admission_digest().as_str(),
+        preview.admission_identity().as_str(),
         manual_preview_identity.as_str()
     );
 }
@@ -144,6 +144,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -161,7 +162,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview session should be admitted");
-    let preview_basis_admission_digest = preview.basis_admission().admission_digest().to_string();
+    let preview_basis_admission_identity = preview.basis_admission().admission_identity().clone();
     let admitted_receipt = preview
         .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
             "preview|receipt:test",
@@ -172,7 +173,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
         ))
         .expect("sandboxed preview intent should be admitted");
 
-    assert_canonical_evidence_identity_token(admitted_receipt.admission_digest());
+    assert_canonical_evidence_identity_token(admitted_receipt.admission_identity());
     assert_canonical_evidence_identity_token(admitted_receipt.receipt_digest());
 
     let manual_preview_admission = crate::ForgeQueryEvidenceIdentity::compose(
@@ -214,22 +215,29 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
         crate::ForgeQueryEvidenceTag::new("admitted_lane"),
         ForgeQueryAuthorityLane::PreviewTruth.as_str(),
     )
-    .field_identity(
-        crate::ForgeQueryEvidenceTag::new("basis_admission_digest"),
-        &preview_basis_admission_digest,
+    .field_evidence_identity(
+        crate::ForgeQueryEvidenceTag::new("basis_admission_identity"),
+        &preview_basis_admission_identity,
     )
     .seal();
     assert_eq!(
-        admitted_receipt.admission_digest().as_str(),
+        admitted_receipt.admission_identity().as_str(),
         manual_preview_admission.as_str()
     );
-    let manual_preview_receipt = compose_receipt_identity(
+    let manual_preview_receipt = crate::ForgeQueryEvidenceIdentity::compose(
         crate::ForgeQueryEvidenceScope::PreviewIntentReceipt,
-        admitted_receipt.admission_digest(),
+    )
+    .field_evidence_identity(
+        crate::ForgeQueryEvidenceTag::new("admission_identity"),
+        admitted_receipt.admission_identity(),
+    )
+    .field_shape(
+        crate::ForgeQueryEvidenceTag::new("posture"),
         "preview-local-staged-no-authoritative-execution",
-    );
+    )
+    .seal();
     assert_eq!(
-        admitted_receipt.receipt_digest().as_str(),
+        admitted_receipt.receipt_digest(),
         manual_preview_receipt.as_str()
     );
 
@@ -239,7 +247,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .expect("branch session should be admitted");
-    let branch_basis_admission_digest = branch.basis_admission().admission_digest().to_string();
+    let branch_basis_admission_identity = branch.basis_admission().admission_identity().clone();
     let branch_receipt = branch
         .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
             "branch|receipt:test",
@@ -250,7 +258,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
         ))
         .expect("branch intent should be admitted");
 
-    assert_canonical_evidence_identity_token(branch_receipt.admission_digest());
+    assert_canonical_evidence_identity_token(branch_receipt.admission_identity());
     assert_canonical_evidence_identity_token(branch_receipt.receipt_digest());
     let manual_branch_admission = crate::ForgeQueryEvidenceIdentity::compose(
         crate::ForgeQueryEvidenceScope::BranchIntentAdmission,
@@ -291,26 +299,26 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
         crate::ForgeQueryEvidenceTag::new("admitted_lane"),
         ForgeQueryAuthorityLane::BranchLocalTruth.as_str(),
     )
-    .field_identity(
-        crate::ForgeQueryEvidenceTag::new("basis_admission_digest"),
-        &branch_basis_admission_digest,
+    .field_evidence_identity(
+        crate::ForgeQueryEvidenceTag::new("basis_admission_identity"),
+        &branch_basis_admission_identity,
     )
-    .field_identity(
-        crate::ForgeQueryEvidenceTag::new("basis_snapshot_token"),
-        branch_receipt.basis_snapshot_token(),
+    .field_evidence_identity(
+        crate::ForgeQueryEvidenceTag::new("basis_snapshot_identity"),
+        &branch_receipt.basis_snapshot_identity().evidence_identity(),
     )
     .seal();
     assert_eq!(
-        branch_receipt.admission_digest().as_str(),
+        branch_receipt.admission_identity().as_str(),
         manual_branch_admission.as_str()
     );
     let manual_branch_receipt = compose_receipt_identity(
         crate::ForgeQueryEvidenceScope::BranchIntentReceipt,
-        branch_receipt.admission_digest(),
+        branch_receipt.admission_identity(),
         "branch-local-staged-no-authoritative-execution",
     );
     assert_eq!(
-        branch_receipt.receipt_digest().as_str(),
+        branch_receipt.receipt_digest(),
         manual_branch_receipt.as_str()
     );
 
@@ -372,8 +380,8 @@ fn runtime_surface_evidence_identities_resist_joined_string_folklore_collisions(
         ]),
     );
 
-    assert_ne!(left.admission_digest(), right.admission_digest());
-    assert_ne!(left.admission_digest(), branch.admission_digest());
+    assert_ne!(left.admission_identity(), right.admission_identity());
+    assert_ne!(left.admission_identity(), branch.admission_identity());
 }
 
 #[test]

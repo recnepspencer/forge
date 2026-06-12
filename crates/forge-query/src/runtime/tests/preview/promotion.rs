@@ -130,7 +130,8 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
-        .source_adapter(DriftingSnapshotSourceAdapter::default())
+        .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(DriftingSnapshotIdentityAdapter::default())
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -167,8 +168,8 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
             assert_eq!(evidence.staged_preview_write_count(), 1);
             assert_eq!(evidence.promoted_write_count(), 0);
             assert_ne!(
-                evidence.basis_snapshot_token(),
-                evidence.promotion_snapshot_token()
+                evidence.basis_snapshot_identity(),
+                evidence.promotion_snapshot_identity()
             );
             assert!(!evidence.denial_digest().is_empty());
         }
@@ -182,6 +183,7 @@ fn preview_promotion_write_failure_is_typed_and_not_silently_dropped() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(DenyingWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -232,6 +234,7 @@ fn preview_promotion_rejects_multi_write_batch_before_partial_authority_executio
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(CountingWriteAuthority {
             attempted_writes: attempted_writes.clone(),
         })

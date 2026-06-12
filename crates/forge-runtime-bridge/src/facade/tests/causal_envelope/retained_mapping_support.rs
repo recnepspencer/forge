@@ -61,8 +61,11 @@ pub(super) fn missing_bridge_reference(
     identity: &str,
 ) -> BridgeCausalEvidenceReference {
     bridge_reference(
-        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(family, identity)
-            .expect("bridge reference identity should be valid"),
+        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
+            family,
+            crate::facade::BridgeIdentityEvidence::from_external_authority(identity),
+        )
+        .expect("bridge reference identity should be valid"),
     )
 }
 
@@ -175,7 +178,7 @@ pub(super) fn binding_for<'a>(
         .find(|binding| {
             binding.owner() == BridgeCausalEvidenceOwner::RuntimeBridge
                 && binding.family() == family
-                && binding.reference_identity() == reference_identity
+                && binding.reference_evidence_identity().as_str() == reference_identity
         })
         .expect("expected retained bridge binding should be present")
 }
@@ -194,8 +197,8 @@ pub(super) fn registered_causal_merge(
             "rel-merge-v1",
             "schema-policy-v1",
             BridgeMergeParentOrderProof::new(vec![
-                crate::facade::TruthCommitIdentity::new("parent-a"),
-                crate::facade::TruthCommitIdentity::new("parent-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
             ]),
         ),
     )
@@ -218,12 +221,12 @@ pub(super) fn branch_comparison_declaration(
         ),
         StructuralTruthViewBasis::explicit_branch_pair(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("left"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("right"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
         ),
     )
@@ -243,8 +246,8 @@ pub(super) fn retained_runtime(
         .register_source(registered_source(
             "source:analysis-snapshot",
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -254,8 +257,8 @@ pub(super) fn retained_runtime(
         .register_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -268,8 +271,8 @@ pub(super) fn retained_runtime(
             "structural:analysis-snapshot",
             StructuralFingerprintFamily::TopologyFingerprint,
             StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             )),
         ))
         .register_structural(branch_declaration)

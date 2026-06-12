@@ -5,11 +5,13 @@ use forge_foundational::facade::{
 use forge_runtime_bridge::facade::{
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
     BridgeCommittedPatchTarget, BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration,
-    CoarseRoutingMode, InvalidationSink, MappingSelector, RelationalBridgeSourceError,
-    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
-    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult,
-    SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity, TruthCommitIdentity,
-    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
+    BridgeWritebackOutcomeClass, CoarseRoutingMode, InvalidationSink, MappingSelector,
+    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
+    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
+    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
+    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
+    TruthSnapshotIdentity, TruthSnapshotReader, TruthWritebackAuthority,
+    TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
 };
 
 #[derive(Clone, Debug)]
@@ -81,19 +83,35 @@ impl InvalidationSink for PublicBridgeSink {
     }
 }
 
+#[derive(Clone, Debug)]
+struct PublicBridgeWritebackAuthority;
+
+impl TruthWritebackAuthority for PublicBridgeWritebackAuthority {
+    fn execute_writeback(
+        &self,
+        request: TruthWritebackRequest,
+    ) -> Result<TruthWritebackReceipt, TruthWritebackAuthorityError> {
+        Ok(TruthWritebackReceipt::new(
+            BridgeWritebackOutcomeClass::AuthoritativeCommit,
+            &request,
+        ))
+    }
+}
+
 pub(super) fn public_bridge() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(PublicBridgeSource)
         .with_signal_sink(PublicBridgeSink)
+        .with_writeback_authority(PublicBridgeWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("public-graph"),
+            BridgeMappingId::from_stable_name("public-graph"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
                 aspect_key("aspect"),
                 field_key("field"),
             ),
             SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),
-            SignalInvalidationScope::new("public-graph"),
+            SignalInvalidationScope::from_stable_name("public-graph"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -111,9 +129,12 @@ fn native_patch_envelope(
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
             commit_identity.clone(),
-            TruthPatchIdentity::new(format!("patch:{}", commit_identity.as_str())),
-            TruthSnapshotIdentity::new(snapshot_identity),
-            TruthBranchIdentity::new(branch_identity),
+            TruthPatchIdentity::from_bridge_harness_label(format!(
+                "patch:{}",
+                commit_identity.evidence_identity().as_str()
+            )),
+            TruthSnapshotIdentity::from_bridge_harness_label(snapshot_identity),
+            TruthBranchIdentity::from_bridge_harness_label(branch_identity),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             entity_identity,

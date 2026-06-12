@@ -35,7 +35,10 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
             graph.insert_relation("TaskEdge", |edge| {
                 edge.aspect("edge.kind", "depends_on")
                     .symbolic_entity_identity("edge.source_identity", &draft)
-                    .existing_entity_identity("edge.target_identity", "task-existing")
+                    .existing_entity_identity(
+                        "edge.target_identity",
+                        test_entity_identity("task-existing"),
+                    )
             })?;
             Ok(())
         })
@@ -116,10 +119,10 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
         resolution_map.entries()[0].aspect_path(),
         Some("edge.source_identity")
     );
-    assert_eq!(resolution_map.entries()[0].symbol(), "draft-task");
+    assert_eq!(resolution_map.entries()[0].symbol().as_str(), "draft-task");
     assert_eq!(
         resolution_map.entries()[0].resolved_entity_identity(),
-        draft_identity.as_str()
+        &draft_identity
     );
     assert_eq!(composition_evidence.symbolic_resolution_count(), 1);
     assert_eq!(composition_evidence.affected_live_view_count(), 2);
@@ -141,11 +144,15 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
     assert_eq!(edge_rows.len(), 1);
     assert_eq!(
         edge_rows[0].external_row()["edge"]["source_identity"].as_str(),
-        Some(draft_identity.as_str())
+        Some(draft_identity.evidence_identity().as_str())
     );
     assert_eq!(
         edge_rows[0].external_row()["edge"]["target_identity"].as_str(),
-        Some("task-existing")
+        Some(
+            test_entity_identity("task-existing")
+                .evidence_identity()
+                .as_str()
+        )
     );
 
     let support = workspace.public_authoritative_mutation_evidence_support();

@@ -114,14 +114,12 @@ impl CausalEvidenceReferenceIndexRecord {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CausalEvidenceReferenceIndexErrorKind {
-    EmptyReferenceDigest,
     EvidenceOwnerMismatch,
 }
 
 impl CausalEvidenceReferenceIndexErrorKind {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::EmptyReferenceDigest => "empty_reference_digest",
             Self::EvidenceOwnerMismatch => "evidence_owner_mismatch",
         }
     }
@@ -210,17 +208,6 @@ pub(in crate::runtime) fn causal_evidence_reference_index_record(
     }
     let reference_digest = match reference_digest.into() {
         CausalEvidenceReferenceInput::Typed(identity) => identity,
-        CausalEvidenceReferenceInput::Source(source_reference) => {
-            if source_reference.is_empty() {
-                return Err(CausalEvidenceReferenceIndexError::new(
-                    CausalEvidenceReferenceIndexErrorKind::EmptyReferenceDigest,
-                    family,
-                    owner,
-                    expected_owner,
-                ));
-            }
-            CausalEvidenceReferenceDigest::from(source_reference)
-        }
     };
     Ok(CausalEvidenceReferenceIndexRecord::new(
         owner,

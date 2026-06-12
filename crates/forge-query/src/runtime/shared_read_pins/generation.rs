@@ -4,6 +4,7 @@ use std::sync::{
     Arc,
 };
 
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::shared_read::SharedReadDerivedViewState;
 
 use super::ForgeQuerySharedReadPinRegistry;
@@ -11,14 +12,17 @@ use super::ForgeQuerySharedReadPinRegistry;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::runtime) struct ForgeQuerySharedReadGenerationId {
     ordinal: u64,
-    snapshot_token: String,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
 }
 
 impl ForgeQuerySharedReadGenerationId {
-    pub(in crate::runtime) fn new(ordinal: u64, snapshot_token: impl Into<String>) -> Self {
+    pub(in crate::runtime) fn new(
+        ordinal: u64,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
+    ) -> Self {
         Self {
             ordinal,
-            snapshot_token: snapshot_token.into(),
+            snapshot_identity,
         }
     }
 
@@ -26,8 +30,8 @@ impl ForgeQuerySharedReadGenerationId {
         self.ordinal
     }
 
-    pub(in crate::runtime) fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub(in crate::runtime) fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
     }
 }
 

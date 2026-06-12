@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 use super::ForgeQueryLowerRuntimeCapabilityRequest;
 
@@ -6,40 +9,51 @@ use super::ForgeQueryLowerRuntimeCapabilityRequest;
 pub struct ForgeQueryLowerRuntimeCapabilityEligibility {
     request: ForgeQueryLowerRuntimeCapabilityRequest,
     posture: ForgeQueryLowerRuntimeCapabilityPosture,
-    posture_detail_digest: String,
-    eligibility_digest: String,
+    posture_detail_identity: ForgeQueryEvidenceIdentity,
+    eligibility_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryLowerRuntimeCapabilityEligibility {
-    pub(crate) fn admitted(
+    pub(crate) fn admitted_with_evidence_identity(
         request: ForgeQueryLowerRuntimeCapabilityRequest,
-        posture_detail_digest: impl Into<String>,
+        posture_detail_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
-        Self::new(
+        Self::new_with_evidence_identity(
             request,
             ForgeQueryLowerRuntimeCapabilityPosture::Admitted,
-            posture_detail_digest,
+            posture_detail_identity,
         )
     }
 
-    pub(crate) fn new(
+    pub(crate) fn new_with_evidence_identity(
         request: ForgeQueryLowerRuntimeCapabilityRequest,
         posture: ForgeQueryLowerRuntimeCapabilityPosture,
-        posture_detail_digest: impl Into<String>,
+        posture_detail_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
-        let posture_detail_digest = posture_detail_digest.into();
-        let eligibility_digest = hash_parts(&[
-            "lower_runtime_capability_eligibility_v1".to_string(),
-            format!("request:{}", request.request_digest()),
-            format!("posture:{}", posture.as_str()),
-            format!("detail:{posture_detail_digest}"),
-        ]);
+        let eligibility_identity = Self::digest_builder(&request, posture)
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("detail"),
+                posture_detail_identity,
+            )
+            .seal();
         Self {
             request,
             posture,
-            posture_detail_digest,
-            eligibility_digest,
+            posture_detail_identity: posture_detail_identity.clone(),
+            eligibility_identity,
         }
+    }
+
+    fn digest_builder(
+        request: &ForgeQueryLowerRuntimeCapabilityRequest,
+        posture: ForgeQueryLowerRuntimeCapabilityPosture,
+    ) -> crate::evidence_identity::ForgeQueryEvidenceIdentityEncoder {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeCapabilityEligibility)
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("request"),
+                request.request_identity(),
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
     }
 
     pub fn request(&self) -> &ForgeQueryLowerRuntimeCapabilityRequest {
@@ -50,12 +64,12 @@ impl ForgeQueryLowerRuntimeCapabilityEligibility {
         self.posture
     }
 
-    pub fn posture_detail_digest(&self) -> &str {
-        &self.posture_detail_digest
+    pub fn posture_detail_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.posture_detail_identity
     }
 
-    pub fn eligibility_digest(&self) -> &str {
-        &self.eligibility_digest
+    pub fn eligibility_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.eligibility_identity
     }
 }
 
@@ -83,7 +97,7 @@ mod tests {
     use super::*;
     use crate::lower_runtime_routing::{
         ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeRouteKind,
-        ForgeQueryLowerRuntimeSeamKey,
+        ForgeQueryLowerRuntimeSeamKey, ForgeQueryLowerRuntimeSubjectIdentity,
     };
 
     #[test]
@@ -93,13 +107,23 @@ mod tests {
             ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "write-authority",
-            "subject-1",
+            ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
+                .field_identity(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
+                .seal(),
         );
 
+        let detail_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("test_detail"), "detail-1")
+        .seal();
         let eligibility =
-            ForgeQueryLowerRuntimeCapabilityEligibility::admitted(request, "detail-1");
+            ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+                request,
+                &detail_identity,
+            );
 
         assert_eq!(eligibility.posture().as_str(), "admitted");
-        assert!(!eligibility.eligibility_digest().is_empty());
+        assert!(!eligibility.eligibility_identity().as_ref().is_empty());
     }
 }

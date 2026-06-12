@@ -9,13 +9,13 @@ use crate::effect_lifecycle::{
 };
 
 use super::execution_support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
-    runtime_snapshot_token, test_bridge_with_writeback_authority,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
+    runtime_snapshot_identity, test_bridge_with_writeback_authority,
 };
 use super::support::{
     admitted_branch_merge_effect, admitted_mutation_effect_for_entity_with_binding,
     admitted_tenant_writeback_effect, branch_mutation_basis, raw_mutation_effect_with_binding,
-    runtime_workflow_binding_with_snapshot,
+    runtime_workflow_binding_for_branch, runtime_workflow_binding_with_snapshot,
 };
 
 #[test]
@@ -30,7 +30,10 @@ fn mutation_execution_verifies_against_independent_relational_runtime_state() {
         )
         .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "oracle-plan" }),
     ))
@@ -143,7 +146,7 @@ fn mutation_batch_verifies_against_independent_relational_runtime_state() {
             &BranchId("main".to_string()),
         )
         .expect("branch-a should exist");
-    let binding = runtime_workflow_binding_with_snapshot(&runtime_snapshot_token(&runtime));
+    let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
 
     let executed = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
@@ -187,7 +190,10 @@ fn relational_oracle_rejects_independent_commit_mismatch() {
         )
         .expect("branch-a should exist");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "oracle-plan" }),
     ))

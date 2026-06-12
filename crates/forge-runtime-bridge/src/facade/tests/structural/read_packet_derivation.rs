@@ -7,8 +7,8 @@ fn runtime_derives_structural_candidates_from_read_packets() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let contract = runtime
@@ -60,8 +60,8 @@ fn runtime_derives_identity_authority_conflict_from_same_snapshot_same_structure
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let contract = runtime
@@ -113,8 +113,8 @@ fn runtime_materializes_structural_fingerprint_from_truth_view_read() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let contract = runtime
@@ -141,9 +141,12 @@ fn runtime_materializes_structural_fingerprint_from_truth_view_read() {
     );
     assert_eq!(
         fingerprint.snapshot_identity(),
-        &TruthSnapshotIdentity::new("snapshot-a")
+        &crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
     );
-    assert_eq!(fingerprint.snapshot_identity_text(), "snapshot-a");
+    assert_eq!(
+        fingerprint.snapshot_identity_text(),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a").as_str()
+    );
     assert!(fingerprint
         .digest()
         .starts_with("structural-fingerprint:sha256:"));
@@ -173,7 +176,7 @@ fn runtime_derives_branch_comparison_candidates_from_branch_pair_reads() {
 
     impl crate::snapshot::TruthSnapshotReader for SnapshotBReader {
         fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-            TruthSnapshotIdentity::new("snapshot-b")
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b")
         }
 
         fn read_packet(
@@ -184,7 +187,7 @@ fn runtime_derives_branch_comparison_candidates_from_branch_pair_reads() {
             crate::snapshot::BridgeSnapshotReadError,
         > {
             Ok(crate::snapshot::SnapshotReadPacketResult::new(
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                 request
                     .reads()
                     .iter()
@@ -212,9 +215,9 @@ fn runtime_derives_branch_comparison_candidates_from_branch_pair_reads() {
             crate::input::envelope::BridgeCommittedPatchEnvelope::new(
                 crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
                     request.commit_identity().clone(),
-                    crate::input::envelope::TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                    TruthBranchIdentity::new("analysis"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
                 ),
                 vec![
                     crate::input::envelope::BridgeCommittedPatchItem::with_target(
@@ -245,12 +248,21 @@ fn runtime_derives_branch_comparison_candidates_from_branch_pair_reads() {
             Box<dyn crate::snapshot::TruthSnapshotReader>,
             crate::adapter::RelationalBridgeSourceError,
         > {
-            match identity.as_str() {
-                "snapshot-a" => Ok(Box::new(StaticSnapshotReader)),
-                "snapshot-b" => Ok(Box::new(SnapshotBReader)),
-                other => Err(crate::adapter::RelationalBridgeSourceError::new(format!(
-                    "unknown snapshot `{other}`"
-                ))),
+            if crate::truth_identity_fixtures::truth_snapshot_fixture_matches(
+                identity,
+                "snapshot-a",
+            ) {
+                Ok(Box::new(StaticSnapshotReader))
+            } else if crate::truth_identity_fixtures::truth_snapshot_fixture_matches(
+                identity,
+                "snapshot-b",
+            ) {
+                Ok(Box::new(SnapshotBReader))
+            } else {
+                Err(crate::adapter::RelationalBridgeSourceError::new(format!(
+                    "unknown snapshot `{}`",
+                    identity.as_str()
+                )))
             }
         }
     }
@@ -263,19 +275,20 @@ fn runtime_derives_branch_comparison_candidates_from_branch_pair_reads() {
             crate::input::envelope::BridgeCommittedPatchEnvelope,
             crate::adapter::RelationalBridgeSourceError,
         > {
-            let snapshot = if branch_identity.as_str() == "right" {
+            let branch_label = branch_identity.relational_branch_id().unwrap_or("unknown");
+            let snapshot = if branch_label == "right" {
                 "snapshot-b"
             } else {
                 "snapshot-a"
             };
             crate::input::envelope::BridgeCommittedPatchEnvelope::new(
                 crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
-                    crate::input::envelope::TruthCommitIdentity::new(format!(
+                    crate::truth_identity_fixtures::truth_commit_fixture(format!(
                         "head-{}",
-                        branch_identity.as_str()
+                        branch_label
                     )),
-                    crate::input::envelope::TruthPatchIdentity::new("patch-head"),
-                    TruthSnapshotIdentity::new(snapshot),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-head"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture(snapshot),
                     branch_identity.clone(),
                 ),
                 vec![
@@ -312,12 +325,12 @@ fn runtime_derives_branch_comparison_candidates_from_branch_pair_reads() {
         ),
         StructuralTruthViewBasis::explicit_branch_pair(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("left"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("right"),
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
             ),
         ),
     );
@@ -331,8 +344,8 @@ fn runtime_derives_branch_comparison_candidates_from_branch_pair_reads() {
         .register_source(registered_source(
             "source:analysis-snapshot",
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,

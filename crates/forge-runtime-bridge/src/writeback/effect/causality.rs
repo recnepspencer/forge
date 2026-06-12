@@ -2,12 +2,27 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
-use crate::identity::{BridgeIdentity, WritebackCausalityIdentityTag};
+use crate::identity::{BridgeIdentity, BridgeIdentityEvidence, WritebackCausalityIdentityTag};
 use crate::input::envelope::TruthCommitIdentity;
 use crate::routing::BridgeRouteIdentity;
 use crate::snapshot::TruthSnapshotIdentity;
 
 pub type BridgeWritebackCausalityIdentity = BridgeIdentity<WritebackCausalityIdentityTag>;
+
+impl BridgeWritebackCausalityIdentity {
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
+        Self::new(format!(
+            "bridge-writeback-causality:external-authority-evidence:{}",
+            evidence_identity.as_str()
+        ))
+    }
+
+    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+        Self::from_bridge_evidence(&BridgeIdentityEvidence::from_external_authority(
+            evidence_identity,
+        ))
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeWritebackNativeCausalityInputs {

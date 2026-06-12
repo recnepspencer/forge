@@ -259,7 +259,7 @@ impl BridgePreviewReuseEquivalence {
 #[cfg(test)]
 mod tests {
     use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::source::{BridgeSourceCapability, BridgeSourceCapabilitySet};
     use crate::speculation::{
         BridgePreviewRetainedArtifactSchema, BridgePreviewSessionBasis,
@@ -288,7 +288,7 @@ mod tests {
             BridgePreviewSessionBasis::new(
                 BridgeTruthViewSelector::committed_snapshot(
                     truth_branch_identity,
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
                 BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
                 BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
@@ -305,7 +305,7 @@ mod tests {
             BridgePreviewSessionIdentity::new(session_identity),
             declaration(
                 &format!("declaration:{session_identity}"),
-                TruthBranchIdentity::new("truth-branch"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
                 BridgeSignalBranchIdentity::new("signal-branch"),
             ),
         );
@@ -322,7 +322,7 @@ mod tests {
             BridgePreviewSessionIdentity::new(session_identity),
             declaration(
                 &format!("declaration:{session_identity}"),
-                TruthBranchIdentity::new("truth-branch"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
                 BridgeSignalBranchIdentity::new("signal-branch"),
             ),
         )
@@ -336,7 +336,7 @@ mod tests {
 
         assert_eq!(
             proof.truth_branch_identity(),
-            &TruthBranchIdentity::new("truth-branch")
+            &crate::truth_identity_fixtures::truth_branch_fixture("truth-branch")
         );
         assert_eq!(
             proof.signal_branch_identity(),
@@ -353,7 +353,7 @@ mod tests {
 
         assert_eq!(
             equivalence.truth_branch_identity(),
-            &TruthBranchIdentity::new("truth-branch")
+            &crate::truth_identity_fixtures::truth_branch_fixture("truth-branch")
         );
         assert_eq!(
             equivalence.signal_branch_identity(),

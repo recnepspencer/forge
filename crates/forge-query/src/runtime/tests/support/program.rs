@@ -1,4 +1,5 @@
 use super::*;
+use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQueryEntityIdentity};
 
 pub(in crate::runtime::tests) struct FakeDsl;
 
@@ -42,6 +43,19 @@ pub(in crate::runtime::tests) struct TitleListMaintainer;
 pub(in crate::runtime::tests) struct SummaryMaintainer;
 pub(in crate::runtime::tests) struct RefreshCountMaintainer;
 
+fn test_delta_display_identity(delta: &crate::memory_workspace::ForgeQueryMutationDelta) -> String {
+    if let Some(upstream_view) = delta.collection.strip_prefix("derived:") {
+        if delta.entity_identity == ForgeQueryEntityIdentity::authored_command(upstream_view) {
+            return upstream_view.to_string();
+        }
+    }
+    delta
+        .entity_identity
+        .evidence_identity()
+        .as_str()
+        .to_string()
+}
+
 impl ForgeQueryDerivedViewMaintainer for TitleListMaintainer {
     fn maintain(
         &mut self,
@@ -49,11 +63,11 @@ impl ForgeQueryDerivedViewMaintainer for TitleListMaintainer {
         delta: &crate::memory_workspace::ForgeQueryMutationDelta,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> ForgeQueryDerivedPatch {
-        let row = Value::String(delta.entity_identity.clone());
+        let row = Value::String(test_delta_display_identity(delta));
         materialization.push_row(row.clone());
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "derived-test-commit",
+            ForgeQueryCommitIdentity::from_external_authority_label("derived-test-commit"),
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()
@@ -72,11 +86,11 @@ impl ForgeQueryDerivedViewMaintainer for SummaryMaintainer {
         delta: &crate::memory_workspace::ForgeQueryMutationDelta,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> ForgeQueryDerivedPatch {
-        let row = Value::String(format!("summary:{}", delta.entity_identity));
+        let row = Value::String(format!("summary:{}", test_delta_display_identity(delta)));
         materialization.replace_rows([row.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "derived-summary-commit",
+            ForgeQueryCommitIdentity::from_external_authority_label("derived-summary-commit"),
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()
@@ -95,11 +109,14 @@ impl ForgeQueryDerivedViewMaintainer for RefreshCountMaintainer {
         delta: &crate::memory_workspace::ForgeQueryMutationDelta,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> ForgeQueryDerivedPatch {
-        let row = Value::String(format!("incremental:{}", delta.entity_identity));
+        let row = Value::String(format!(
+            "incremental:{}",
+            test_delta_display_identity(delta)
+        ));
         materialization.replace_rows([row.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "refresh-count-incremental",
+            ForgeQueryCommitIdentity::from_external_authority_label("refresh-count-incremental"),
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()
@@ -125,7 +142,7 @@ impl ForgeQueryDerivedViewMaintainer for RefreshCountMaintainer {
         materialization.replace_rows([row.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            "refresh-count-rebuild",
+            ForgeQueryCommitIdentity::from_external_authority_label("refresh-count-rebuild"),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {

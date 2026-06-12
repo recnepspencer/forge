@@ -330,15 +330,23 @@ impl PreviewSessionBindingTuple {
                 validated_result_shape_digest.as_str()
             ),
             format!("evaluation_class:{}", evaluation_class.as_str()),
-            format!("preview_session:{}", preview_session_identity.as_str()),
-            format!("declaration_identity:{}", declaration_identity.as_str()),
+            format!(
+                "preview_session:{}",
+                preview_session_identity.evidence_identity().as_str()
+            ),
+            format!(
+                "declaration_identity:{}",
+                declaration_identity.evidence_identity().as_str()
+            ),
             format!("declaration_digest:{declaration_digest}"),
             format!("lifecycle:{lifecycle_state_kind:?}"),
             format!(
                 "execution_record:{}",
                 execution_record_identity
                     .as_ref()
-                    .map(PreviewExecutionRecordIdentity::as_str)
+                    .map(|identity| identity.evidence_identity())
+                    .map(|identity| identity.as_str().to_string())
+                    .as_deref()
                     .unwrap_or("none")
             ),
             format!(
@@ -1582,7 +1590,11 @@ impl PreviewPromotionSnapshot {
     #[cfg(test)]
     fn from_record(record: &BridgePreviewPromotionRecord) -> Self {
         Self {
-            record_identity: record.record_identity().as_str().to_string(),
+            record_identity: record
+                .record_identity()
+                .evidence_identity()
+                .as_str()
+                .to_string(),
             proof_digest: record.promotion_proof_digest().to_string(),
         }
     }
@@ -2222,15 +2234,24 @@ fn derive_preview_workflow_foundation(
         format!("request:{}", request.as_str()),
         format!(
             "preview_session:{}",
-            binding_tuple.preview_session_identity().as_str()
+            binding_tuple
+                .preview_session_identity()
+                .evidence_identity()
+                .as_str()
         ),
         format!(
             "declaration_identity:{}",
-            binding_tuple.declaration_identity().as_str()
+            binding_tuple
+                .declaration_identity()
+                .evidence_identity()
+                .as_str()
         ),
         format!("declaration_digest:{}", binding_tuple.declaration_digest()),
         format!("lifecycle:{:?}", binding_tuple.lifecycle_state_kind()),
-        format!("execution_record:{}", execution_record_identity.as_str()),
+        format!(
+            "execution_record:{}",
+            execution_record_identity.evidence_identity().as_str()
+        ),
         format!(
             "evaluation_class:{}",
             binding_tuple.evaluation_class().as_str()
@@ -2579,10 +2600,16 @@ pub(crate) fn execute_preview_session_plan(
             format!("basis:{}", execution.report().basis_digest().as_str()),
             format!(
                 "preview_session:{}",
-                binding_tuple.preview_session_identity().as_str()
+                binding_tuple
+                    .preview_session_identity()
+                    .evidence_identity()
+                    .as_str()
             ),
             format!("lifecycle:{:?}", binding_tuple.lifecycle_state_kind()),
-            format!("execution_record:{}", execution_record_identity.as_str()),
+            format!(
+                "execution_record:{}",
+                execution_record_identity.evidence_identity().as_str()
+            ),
             format!("result:{}", execution.report().result_digest().as_str()),
             format!("comparison:{}", comparison_eligibility.digest()),
             format!("workflow:{}", workflow_foundation.artifact().digest()),
@@ -2949,7 +2976,9 @@ pub fn bind_preflight_to_preview_session(
     if let Some(execution_record_session_identity) =
         source.execution_record_preview_session_identity.as_ref()
     {
-        if execution_record_session_identity != source.preview_session_identity.as_str() {
+        if execution_record_session_identity
+            != source.preview_session_identity.evidence_identity().as_str()
+        {
             let mut counters = PreviewBindingCounters::default();
             counters.preview_invalid_basis_denial_count = 1;
             counters.preview_broad_fallback_denial_count = 1;

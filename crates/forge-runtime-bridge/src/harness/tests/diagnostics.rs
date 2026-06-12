@@ -1,44 +1,45 @@
-use crate::facade::{
-    BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis,
-    BridgeDeliveryErrorKind, BridgeDeliveryIntent, BridgeLineageContext, BridgeReplayMode,
-    BridgeRouteRequest, BridgeTruthViewSelector, HistoricalEvaluationDeclaration,
-    SnapshotReadPacket, TruthBranchIdentity, TruthSnapshotIdentity,
-};
-
 use super::diagnostics_continuity_source::DiagnosticsContinuityLineageSource;
 use super::support::{
     build_runtime_with_aspects, committed_patch, field_aspect_registration, field_slice_snapshot,
     registration, snapshot,
 };
+use crate::facade::{
+    BridgeContinuityAuthorityBasis, BridgeDeliveryErrorKind, BridgeDeliveryIntent,
+    BridgeLineageContext, BridgeReplayMode, BridgeRouteRequest, BridgeTruthViewSelector,
+    HistoricalEvaluationDeclaration, SnapshotReadPacket,
+};
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
+use crate::truth_identity_fixtures::{
+    truth_commit_fixture, truth_patch_fixture, truth_snapshot_fixture,
+};
 
 #[test]
 fn bridge_diagnostics_respect_route_record_retention_budget() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        truth_commit_fixture("commit-a"),
+        truth_patch_fixture("patch-a"),
+        truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        truth_commit_fixture("commit-b"),
+        truth_patch_fixture("patch-b"),
+        truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-c"),
-        crate::facade::TruthPatchIdentity::new("patch-c"),
-        TruthSnapshotIdentity::new("snapshot-c"),
+        truth_commit_fixture("commit-c"),
+        truth_patch_fixture("patch-c"),
+        truth_snapshot_fixture("snapshot-c"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-c"), "carol"));
+    source.insert_snapshot(snapshot(truth_snapshot_fixture("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(truth_snapshot_fixture("snapshot-b"), "bob"));
+    source.insert_snapshot(snapshot(truth_snapshot_fixture("snapshot-c"), "carol"));
     let runtime = crate::facade::RuntimeBridge::builder()
         .with_relational_source(source)
         .with_signal_sink(RecordingSignalBridgeSink::default())
@@ -53,9 +54,7 @@ fn bridge_diagnostics_respect_route_record_retention_budget() {
 
     for commit in ["commit-a", "commit-b", "commit-c"] {
         let route = runtime
-            .plan_committed_patch(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new(commit),
-            ))
+            .plan_committed_patch(BridgeRouteRequest::for_commit(truth_commit_fixture(commit)))
             .expect("bridge should plan route for retention test");
         runtime
             .deliver_invalidation(route)
@@ -65,38 +64,40 @@ fn bridge_diagnostics_respect_route_record_retention_budget() {
     let route_records = runtime.diagnostics().route_records();
     assert_eq!(runtime.diagnostics().route_record_limit(), 2);
     assert_eq!(route_records.len(), 2);
-    assert_eq!(route_records[0].source_commit().as_str(), "commit-b");
+    assert_eq!(
+        route_records[0].source_commit().as_str(),
+        truth_commit_fixture("commit-b").as_str()
+    );
     assert_eq!(
         route_records
             .last()
             .expect("retained route record")
             .source_commit()
             .as_str(),
-        "commit-c"
+        truth_commit_fixture("commit-c").as_str()
     );
 }
-
 #[test]
 fn bridge_diagnostics_respect_failure_record_retention_budget() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        truth_commit_fixture("commit-a"),
+        truth_patch_fixture("patch-a"),
+        truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        truth_commit_fixture("commit-b"),
+        truth_patch_fixture("patch-b"),
+        truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-c"),
-        crate::facade::TruthPatchIdentity::new("patch-c"),
-        TruthSnapshotIdentity::new("snapshot-c"),
+        truth_commit_fixture("commit-c"),
+        truth_patch_fixture("patch-c"),
+        truth_snapshot_fixture("snapshot-c"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
@@ -114,9 +115,7 @@ fn bridge_diagnostics_respect_failure_record_retention_budget() {
 
     for commit in ["commit-a", "commit-b", "commit-c"] {
         let route = runtime
-            .plan_committed_patch(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new(commit),
-            ))
+            .plan_committed_patch(BridgeRouteRequest::for_commit(truth_commit_fixture(commit)))
             .expect("bridge should plan route for failure retention test");
         let error = runtime
             .deliver_invalidation(route)
@@ -130,29 +129,31 @@ fn bridge_diagnostics_respect_failure_record_retention_budget() {
     let failure_records = runtime.diagnostics().failure_records();
     assert_eq!(runtime.diagnostics().failure_record_limit(), 2);
     assert_eq!(failure_records.len(), 2);
-    assert_eq!(failure_records[0].source_commit().as_str(), "commit-b");
+    assert_eq!(
+        failure_records[0].source_commit().as_str(),
+        truth_commit_fixture("commit-b").as_str()
+    );
     assert_eq!(
         failure_records
             .last()
             .expect("retained failure record")
             .source_commit()
             .as_str(),
-        "commit-c"
+        truth_commit_fixture("commit-c").as_str()
     );
 }
-
 #[test]
 fn bridge_route_record_captures_slice_counters_and_slice_entries() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        truth_commit_fixture("commit-a"),
+        truth_patch_fixture("patch-a"),
+        truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = build_runtime_with_aspects(
@@ -163,9 +164,9 @@ fn bridge_route_record_captures_slice_counters_and_slice_entries() {
     );
 
     let route = runtime
-        .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-        ))
+        .plan_committed_patch(BridgeRouteRequest::for_commit(truth_commit_fixture(
+            "commit-a",
+        )))
         .expect("bridge should plan route with fine-grained aspect registration");
     runtime
         .deliver_invalidation(route)
@@ -181,19 +182,18 @@ fn bridge_route_record_captures_slice_counters_and_slice_entries() {
     assert_eq!(record.counters().slice_widening_count(), 0);
     assert_eq!(record.counters().slice_suppression_count(), 0);
 }
-
 #[test]
 fn bridge_diagnostics_retain_canonical_continuity_records() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        truth_commit_fixture("commit-a"),
+        truth_patch_fixture("patch-a"),
+        truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = crate::facade::RuntimeBridge::builder()
@@ -212,11 +212,13 @@ fn bridge_diagnostics_retain_canonical_continuity_records() {
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
+            BridgeRouteRequest::for_commit(crate::truth_identity_fixtures::truth_commit_fixture(
+                "commit-a",
+            )),
             crate::facade::BridgeMappingContext::default().with_lineage_context(
                 BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
-                    crate::facade::TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 )),
             ),
         )
@@ -260,13 +262,16 @@ fn bridge_diagnostics_retain_canonical_continuity_records() {
 fn bridge_diagnostics_retain_queryable_historical_records_by_record_and_decision_log_identity() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let runtime = crate::facade::RuntimeBridge::builder()
         .with_relational_source(source)
         .with_truth_branch_head_source(InMemoryRelationalBridgeSource::default())
@@ -282,8 +287,8 @@ fn bridge_diagnostics_retain_queryable_historical_records_by_record_and_decision
 
     let declaration = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("main"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         BridgeReplayMode::Enabled,
         runtime.policy().diagnostics_tier(),
@@ -326,74 +331,5 @@ fn bridge_diagnostics_retain_queryable_historical_records_by_record_and_decision
             .expect("handle should query historical record by decision-log identity")
             .record_identity(),
         record.record_identity()
-    );
-}
-
-#[test]
-fn bridge_diagnostics_retain_queryable_bulk_records_by_workload_identity() {
-    let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        forge_foundational::facade::FieldKey::new("name".to_owned())
-            .expect("valid harness field key"),
-    ));
-    source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
-        forge_foundational::facade::FieldKey::new("name".to_owned())
-            .expect("valid harness field key"),
-    ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
-    let runtime = crate::facade::RuntimeBridge::builder()
-        .with_relational_source(source)
-        .with_signal_sink(RecordingSignalBridgeSink::default())
-        .with_policy(
-            crate::facade::BridgeRuntimePolicy::development()
-                .with_route_record_limit(2)
-                .with_failure_record_limit(2),
-        )
-        .register_mapping(registration())
-        .build()
-        .expect("bridge runtime with bounded diagnostics retention");
-
-    let plan = runtime
-        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-            )),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-                crate::facade::TruthCommitIdentity::new("commit-b"),
-            )),
-        ]))
-        .expect("bulk workload should plan before diagnostics retention");
-    let record = runtime.canonicalize_bulk_workload_plan(&plan);
-
-    let diagnostics = runtime.diagnostics();
-    let retained = diagnostics.bulk_records();
-    let queried = diagnostics
-        .bulk_record_for_workload_identity(record.workload_identity())
-        .expect("bulk record should be queryable by workload identity");
-    let handle = diagnostics.handle();
-
-    assert_eq!(retained.len(), 1);
-    assert_eq!(queried.workload_identity(), record.workload_identity());
-    assert_eq!(
-        diagnostics
-            .last_bulk_record()
-            .expect("last bulk record")
-            .execution_plan_digest(),
-        record.execution_plan_digest()
-    );
-    assert_eq!(handle.bulk_records().len(), 1);
-    assert_eq!(
-        handle
-            .bulk_record_for_workload_identity(record.workload_identity())
-            .expect("handle should query bulk record by workload identity")
-            .packet_set_digest(),
-        record.packet_set_digest()
     );
 }

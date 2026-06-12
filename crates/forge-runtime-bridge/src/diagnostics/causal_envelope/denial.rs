@@ -1,8 +1,10 @@
-use std::sync::Arc;
-
 use super::authority::{BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner};
 use super::counters::BridgeCausalEnvelopeCounters;
-use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
+use super::{
+    compose_bridge_causal_envelope_evidence_identity,
+    digest_basis::BridgeCausalEnvelopeDigestArtifact, evidence_part, shape_part,
+};
+use crate::identity::BridgeIdentityEvidence;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeCausalEnvelopeDenialKind {
@@ -41,9 +43,9 @@ pub struct BridgeCausalEnvelopeDenial {
     family: BridgeCausalEvidenceFamily,
     supplied_owner: BridgeCausalEvidenceOwner,
     expected_owner: BridgeCausalEvidenceOwner,
-    reference_identity: Arc<str>,
+    reference_identity: BridgeIdentityEvidence,
     counters: BridgeCausalEnvelopeCounters,
-    failure_digest: Arc<str>,
+    failure_digest: BridgeIdentityEvidence,
 }
 
 impl BridgeCausalEnvelopeDenial {
@@ -52,18 +54,19 @@ impl BridgeCausalEnvelopeDenial {
         family: BridgeCausalEvidenceFamily,
         supplied_owner: BridgeCausalEvidenceOwner,
         expected_owner: BridgeCausalEvidenceOwner,
-        reference_identity: Arc<str>,
+        reference_identity: BridgeIdentityEvidence,
         counters: BridgeCausalEnvelopeCounters,
     ) -> Self {
-        let failure_digest = causal_envelope_digest(
+        let kind_text = format!("{kind:?}");
+        let failure_digest = compose_bridge_causal_envelope_evidence_identity(
             BridgeCausalEnvelopeDigestArtifact::Denial,
             &[
-                &format!("{kind:?}"),
-                family.as_str(),
-                supplied_owner.as_str(),
-                expected_owner.as_str(),
-                reference_identity.as_ref(),
-                counters.counter_digest(),
+                shape_part(&kind_text),
+                shape_part(family.as_str()),
+                shape_part(supplied_owner.as_str()),
+                shape_part(expected_owner.as_str()),
+                evidence_part(&reference_identity),
+                evidence_part(counters.counter_evidence_identity()),
             ],
         );
         Self {
@@ -73,7 +76,7 @@ impl BridgeCausalEnvelopeDenial {
             expected_owner,
             reference_identity,
             counters,
-            failure_digest: Arc::from(failure_digest),
+            failure_digest,
         }
     }
 
@@ -93,8 +96,12 @@ impl BridgeCausalEnvelopeDenial {
         self.expected_owner
     }
 
-    pub fn reference_identity(&self) -> &str {
-        self.reference_identity.as_ref()
+    pub fn reference_identity_for_reporting(&self) -> &str {
+        self.reference_identity.as_str()
+    }
+
+    pub fn reference_evidence_identity(&self) -> BridgeIdentityEvidence {
+        self.reference_identity.clone()
     }
 
     pub fn counters(&self) -> &BridgeCausalEnvelopeCounters {
@@ -102,6 +109,10 @@ impl BridgeCausalEnvelopeDenial {
     }
 
     pub fn failure_digest(&self) -> &str {
-        self.failure_digest.as_ref()
+        self.failure_digest.as_str()
+    }
+
+    pub fn failure_evidence_identity(&self) -> BridgeIdentityEvidence {
+        self.failure_digest.clone()
     }
 }

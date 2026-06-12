@@ -15,6 +15,7 @@ pub enum ForgeQueryRuntimeError {
     MissingRuntimeBridge,
     MissingSchemaAdapter,
     MissingSourceAdapter,
+    MissingSnapshotIdentityAdapter,
     MissingWriteAuthority,
     MissingSignalSink,
     MissingSubscriptionActivation,
@@ -42,7 +43,7 @@ pub enum ForgeQueryRuntimeError {
     MissingLiveSubscription(String),
     MissingDerivedView(String),
     SharedReadStaleBasis {
-        snapshot_token: String,
+        snapshot_identity: crate::memory_workspace::ForgeQuerySnapshotIdentity,
     },
     MissingEffect(String),
     MissingPendingWriteIntent(String),
@@ -127,6 +128,10 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 f,
                 "forge query bridge-backed runtime bootstrap requires source_adapter(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
             ),
+            Self::MissingSnapshotIdentityAdapter => write!(
+                f,
+                "forge query bridge-backed runtime bootstrap requires snapshot_identity(...); current snapshot truth must come from a typed backend authority before build_backend_from_parts()"
+            ),
             Self::MissingWriteAuthority => write!(
                 f,
                 "forge query bridge-backed runtime bootstrap requires write_authority(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
@@ -179,9 +184,10 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 )
             }
             Self::MissingDerivedView(view) => write!(f, "unknown computed view `{view}`"),
-            Self::SharedReadStaleBasis { snapshot_token } => write!(
+            Self::SharedReadStaleBasis { snapshot_identity } => write!(
                 f,
-                "shared read basis `{snapshot_token}` is stale and can no longer serve published artifacts"
+                "shared read basis `{}` is stale and can no longer serve published artifacts",
+                snapshot_identity.evidence_identity().as_str()
             ),
             Self::MissingEffect(effect) => write!(f, "unknown effect `{effect}`"),
             Self::MissingPendingWriteIntent(effect) => {

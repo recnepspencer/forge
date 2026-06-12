@@ -48,9 +48,9 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_writeback_causality_basi
 ) -> crate::facade::BridgeWritebackNativeCausalityInputs {
     crate::facade::BridgeWritebackNativeCausalityInputs::new(
         BridgeWritebackCausalityIdentity::new(identity),
-        crate::facade::TruthCommitIdentity::new(truth_trigger_evidence_text),
+        crate::truth_identity_fixtures::truth_commit_fixture(truth_trigger_evidence_text),
         crate::facade::BridgeRouteIdentity::new(identity),
-        crate::facade::TruthSnapshotIdentity::new(identity),
-        crate::facade::TruthSnapshotIdentity::new(identity),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(identity),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(identity),
     )
 }

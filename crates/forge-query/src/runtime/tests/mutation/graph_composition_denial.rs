@@ -119,7 +119,10 @@ fn compose_graph_denies_relation_symbol_reuse_across_compositions_typed_and_earl
                         relation
                             .aspect("edge.kind", "depends_on")
                             .symbolic_entity_identity("edge.source_identity", &draft)
-                            .existing_entity_identity("edge.target_identity", "task-existing")
+                            .existing_entity_identity(
+                                "edge.target_identity",
+                                test_entity_identity("task-existing"),
+                            )
                     })?,
                 );
             Ok(())
@@ -252,7 +255,10 @@ fn compose_graph_denies_symbolic_collection_mismatch_typed_and_early() {
             let _ = graph.insert_symbolic_relation("draft-edge", "TaskEdge", |edge| {
                 edge.aspect("edge.kind", "depends_on")
                     .symbolic_entity_identity("edge.source_identity", &task)
-                    .existing_entity_identity("edge.target_identity", "task-existing")
+                    .existing_entity_identity(
+                        "edge.target_identity",
+                        test_entity_identity("task-existing"),
+                    )
             })?;
             let leaked_entity = ForgeQueryGraphEntitySymbol::new(
                 ForgeQuerySymbolicTargetReference::new("draft-edge")?

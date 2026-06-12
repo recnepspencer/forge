@@ -2,7 +2,9 @@
 fn runtime_replays_canonical_historical_evaluation_record() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("analysis")),
+        BridgeTruthViewSelector::branch_head(crate::truth_identity_fixtures::truth_branch_fixture(
+            "analysis",
+        )),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
@@ -21,7 +23,12 @@ fn runtime_replays_canonical_historical_evaluation_record() {
         .expect("historical record replay should succeed");
 
     assert_eq!(replay.record_identity(), record.record_identity());
-    assert_eq!(replay.snapshot_identity().as_str(), "snapshot-a");
+    assert!(
+        crate::truth_identity_fixtures::truth_snapshot_fixture_matches(
+            replay.snapshot_identity(),
+            "snapshot-a"
+        )
+    );
 }
 
 #[test]
@@ -45,9 +52,9 @@ fn runtime_replay_rejects_historical_authority_drift_as_authority_mismatch() {
             crate::input::envelope::BridgeCommittedPatchEnvelope::new(
                 crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
                     request.commit_identity().clone(),
-                    crate::input::envelope::TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new(snapshot),
-                    TruthBranchIdentity::new("analysis"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture(snapshot),
+                    crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
                 ),
                 vec![
                     crate::input::envelope::BridgeCommittedPatchItem::with_target(
@@ -98,9 +105,9 @@ fn runtime_replay_rejects_historical_authority_drift_as_authority_mismatch() {
         > {
             crate::input::envelope::BridgeCommittedPatchEnvelope::new(
                 crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
-                    crate::input::envelope::TruthCommitIdentity::new("head-analysis"),
-                    crate::input::envelope::TruthPatchIdentity::new("patch-head"),
-                    TruthSnapshotIdentity::new("snapshot-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("head-analysis"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-head"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                     branch_identity.clone(),
                 ),
                 vec![
@@ -127,8 +134,8 @@ fn runtime_replay_rejects_historical_authority_drift_as_authority_mismatch() {
     let original = runtime(BridgeRuntimePolicy::default());
     let declaration = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         BridgeReplayMode::Enabled,
         BridgeDiagnosticsTier::Standard,
@@ -152,8 +159,8 @@ fn runtime_replay_rejects_historical_authority_drift_as_authority_mismatch() {
         .register_source(registered_source(
             "source:analysis-snapshot",
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -163,8 +170,8 @@ fn runtime_replay_rejects_historical_authority_drift_as_authority_mismatch() {
         .register_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,

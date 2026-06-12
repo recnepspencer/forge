@@ -9,6 +9,7 @@ use super::{
     binding::ForgeQueryExistingTruthBindingEvidence, target::ForgeQueryMutationTargetClass,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryMutationTargetEvidence,
 };
+use crate::runtime::ForgeQueryMutationEvidenceDigest;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBatchMutationEvidence {
@@ -27,21 +28,21 @@ pub struct ForgeQueryBatchMutationEvidence {
     resolved_target_count: usize,
     target_collection_count: usize,
     target_entity_count: usize,
-    aggregate_existing_truth_assertion_digest: Option<String>,
-    aggregate_existing_truth_mode_digest: Option<String>,
-    aggregate_existing_truth_binding_digest: Option<String>,
-    aggregate_symbolic_target_reference_digest: Option<String>,
-    aggregate_symbolic_resolution_digest: Option<String>,
-    aggregate_naming_mutation_digest: Option<String>,
-    aggregate_continuity_mutation_digest: Option<String>,
+    aggregate_existing_truth_assertion_digest: Option<ForgeQueryMutationEvidenceDigest>,
+    aggregate_existing_truth_mode_digest: Option<ForgeQueryMutationEvidenceDigest>,
+    aggregate_existing_truth_binding_digest: Option<ForgeQueryMutationEvidenceDigest>,
+    aggregate_symbolic_target_reference_digest: Option<ForgeQueryMutationEvidenceDigest>,
+    aggregate_symbolic_resolution_digest: Option<ForgeQueryMutationEvidenceDigest>,
+    aggregate_naming_mutation_digest: Option<ForgeQueryMutationEvidenceDigest>,
+    aggregate_continuity_mutation_digest: Option<ForgeQueryMutationEvidenceDigest>,
     causality_bundle_count: usize,
     provenance_bundle_count: usize,
     outcome_class_count: usize,
     authority_request_count: usize,
     authority_receipt_count: usize,
-    aggregate_target_digest: String,
-    aggregate_causality_digest: Option<String>,
-    aggregate_provenance_digest: Option<String>,
+    aggregate_target_digest: ForgeQueryMutationEvidenceDigest,
+    aggregate_causality_digest: Option<ForgeQueryMutationEvidenceDigest>,
+    aggregate_provenance_digest: Option<ForgeQueryMutationEvidenceDigest>,
 }
 
 impl ForgeQueryBatchMutationEvidence {
@@ -58,6 +59,8 @@ impl ForgeQueryBatchMutationEvidence {
         >],
         naming_mutations: &[Option<crate::runtime::ForgeQueryNamingMutationEvidence>],
         continuity_mutations: &[Option<crate::runtime::ForgeQueryContinuityMutationEvidence>],
+        causality_evidence: &[Option<crate::runtime::ForgeQueryMutationCausalityEvidence>],
+        provenance_evidence: &[Option<crate::runtime::ForgeQueryMutationProvenanceEvidence>],
         aggregate_bridge: Option<&BridgeBatchMutationAuthorityBundle>,
     ) -> Option<Self> {
         if components.is_empty() {
@@ -135,26 +138,20 @@ impl ForgeQueryBatchMutationEvidence {
                 existing_truth_assertions,
             ),
             aggregate_existing_truth_mode_digest,
-            aggregate_existing_truth_binding_digest: aggregate_bridge
-                .and_then(|bundle| bundle.aggregate_existing_truth_binding_digest())
-                .map(str::to_string)
-                .or_else(|| batch_existing_truth_binding_digest(existing_truth_bindings)),
-            aggregate_symbolic_target_reference_digest: aggregate_bridge
-                .and_then(|bundle| bundle.aggregate_symbolic_target_reference_digest())
-                .map(str::to_string)
-                .or_else(|| batch_symbolic_target_reference_digest(symbolic_target_references)),
+            aggregate_existing_truth_binding_digest: batch_existing_truth_binding_digest(
+                existing_truth_bindings,
+            ),
+            aggregate_symbolic_target_reference_digest: batch_symbolic_target_reference_digest(
+                symbolic_target_references,
+            ),
             aggregate_symbolic_resolution_digest: batch_symbolic_resolution_digest(
                 symbolic_target_references,
                 symbolic_aspect_resolutions,
             ),
-            aggregate_naming_mutation_digest: aggregate_bridge
-                .and_then(|bundle| bundle.aggregate_naming_mutation_digest())
-                .map(str::to_string)
-                .or_else(|| batch_naming_mutation_digest(naming_mutations)),
-            aggregate_continuity_mutation_digest: aggregate_bridge
-                .and_then(|bundle| bundle.aggregate_continuity_mutation_digest())
-                .map(str::to_string)
-                .or_else(|| batch_continuity_mutation_digest(continuity_mutations)),
+            aggregate_naming_mutation_digest: batch_naming_mutation_digest(naming_mutations),
+            aggregate_continuity_mutation_digest: batch_continuity_mutation_digest(
+                continuity_mutations,
+            ),
             causality_bundle_count: aggregate_bridge
                 .map_or(0, |bundle| bundle.causality_bundle_count()),
             provenance_bundle_count: aggregate_bridge
@@ -165,10 +162,14 @@ impl ForgeQueryBatchMutationEvidence {
             authority_receipt_count: aggregate_bridge
                 .map_or(0, |bundle| bundle.authority_receipt_count()),
             aggregate_target_digest: batch_target_digest(components),
-            aggregate_causality_digest: aggregate_bridge
-                .map(|bundle| bundle.aggregate_causality_digest().to_string()),
-            aggregate_provenance_digest: aggregate_bridge
-                .map(|bundle| bundle.aggregate_provenance_digest().to_string()),
+            aggregate_causality_digest: causality_evidence
+                .iter()
+                .find_map(Option::as_ref)
+                .map(|evidence| evidence.causality_digest().clone()),
+            aggregate_provenance_digest: provenance_evidence
+                .iter()
+                .find_map(Option::as_ref)
+                .map(|evidence| evidence.execution_record_digest().clone()),
         })
     }
 
@@ -232,32 +233,44 @@ impl ForgeQueryBatchMutationEvidence {
         self.target_entity_count
     }
 
-    pub fn aggregate_existing_truth_assertion_digest(&self) -> Option<&str> {
-        self.aggregate_existing_truth_assertion_digest.as_deref()
+    pub fn aggregate_existing_truth_assertion_digest(
+        &self,
+    ) -> Option<&ForgeQueryMutationEvidenceDigest> {
+        self.aggregate_existing_truth_assertion_digest.as_ref()
     }
 
-    pub fn aggregate_existing_truth_mode_digest(&self) -> Option<&str> {
-        self.aggregate_existing_truth_mode_digest.as_deref()
+    pub fn aggregate_existing_truth_mode_digest(
+        &self,
+    ) -> Option<&ForgeQueryMutationEvidenceDigest> {
+        self.aggregate_existing_truth_mode_digest.as_ref()
     }
 
-    pub fn aggregate_existing_truth_binding_digest(&self) -> Option<&str> {
-        self.aggregate_existing_truth_binding_digest.as_deref()
+    pub fn aggregate_existing_truth_binding_digest(
+        &self,
+    ) -> Option<&ForgeQueryMutationEvidenceDigest> {
+        self.aggregate_existing_truth_binding_digest.as_ref()
     }
 
-    pub fn aggregate_symbolic_target_reference_digest(&self) -> Option<&str> {
-        self.aggregate_symbolic_target_reference_digest.as_deref()
+    pub fn aggregate_symbolic_target_reference_digest(
+        &self,
+    ) -> Option<&ForgeQueryMutationEvidenceDigest> {
+        self.aggregate_symbolic_target_reference_digest.as_ref()
     }
 
-    pub fn aggregate_symbolic_resolution_digest(&self) -> Option<&str> {
-        self.aggregate_symbolic_resolution_digest.as_deref()
+    pub fn aggregate_symbolic_resolution_digest(
+        &self,
+    ) -> Option<&ForgeQueryMutationEvidenceDigest> {
+        self.aggregate_symbolic_resolution_digest.as_ref()
     }
 
-    pub fn aggregate_naming_mutation_digest(&self) -> Option<&str> {
-        self.aggregate_naming_mutation_digest.as_deref()
+    pub fn aggregate_naming_mutation_digest(&self) -> Option<&ForgeQueryMutationEvidenceDigest> {
+        self.aggregate_naming_mutation_digest.as_ref()
     }
 
-    pub fn aggregate_continuity_mutation_digest(&self) -> Option<&str> {
-        self.aggregate_continuity_mutation_digest.as_deref()
+    pub fn aggregate_continuity_mutation_digest(
+        &self,
+    ) -> Option<&ForgeQueryMutationEvidenceDigest> {
+        self.aggregate_continuity_mutation_digest.as_ref()
     }
 
     pub fn causality_bundle_count(&self) -> usize {
@@ -280,23 +293,29 @@ impl ForgeQueryBatchMutationEvidence {
         self.authority_receipt_count
     }
 
-    pub fn aggregate_target_digest(&self) -> &str {
+    pub fn aggregate_target_digest(&self) -> &ForgeQueryMutationEvidenceDigest {
         &self.aggregate_target_digest
     }
 
-    pub fn aggregate_causality_digest(&self) -> Option<&str> {
-        self.aggregate_causality_digest.as_deref()
+    pub fn aggregate_causality_digest(&self) -> Option<&ForgeQueryMutationEvidenceDigest> {
+        self.aggregate_causality_digest.as_ref()
     }
 
-    pub fn aggregate_provenance_digest(&self) -> Option<&str> {
-        self.aggregate_provenance_digest.as_deref()
+    pub fn aggregate_provenance_digest(&self) -> Option<&ForgeQueryMutationEvidenceDigest> {
+        self.aggregate_provenance_digest.as_ref()
     }
 }
 
 fn summarize_existing_truth_modes(
     mutation_families: &[crate::runtime::ForgeQueryMutationFamily],
     existing_truth_assertions: &[Option<ForgeQueryExistingTruthAssertionEvidence>],
-) -> (usize, usize, usize, usize, Option<String>) {
+) -> (
+    usize,
+    usize,
+    usize,
+    usize,
+    Option<ForgeQueryMutationEvidenceDigest>,
+) {
     let mut retained_authoritative_assertion_count = 0;
     let mut backend_verified_assertion_count = 0;
     let mut backend_verified_update_count = 0;
@@ -332,20 +351,44 @@ fn summarize_existing_truth_modes(
                     )
                 }
             }
-            Some(format!(
-                "{}:{}:{}",
-                family,
-                assertion.mode(),
-                assertion.verification_digest()
-            ))
+            Some(
+                crate::evidence_identity::forge_query_evidence_identity(
+                    crate::evidence_identity::ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+                )
+                .field_shape(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("role"),
+                    "batch-existing-truth-mode-entry",
+                )
+                .field_shape(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("family"),
+                    family.as_str(),
+                )
+                .field_shape(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("mode"),
+                    assertion.mode().as_str(),
+                )
+                .field_evidence_identity(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("verification"),
+                    assertion.verification_evidence_identity(),
+                )
+                .seal(),
+            )
         })
         .collect::<Vec<_>>();
     let digest = (!mode_parts.is_empty()).then(|| {
-        crate::identity::hash_parts(
-            &std::iter::once("forge-query-batch-existing-truth-mode-v1".to_string())
-                .chain(mode_parts)
-                .collect::<Vec<_>>(),
+        let identity = crate::evidence_identity::forge_query_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
         )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("role"),
+            "batch-existing-truth-mode",
+        )
+        .field_evidence_identity_sequence(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("entry"),
+            mode_parts.iter(),
+        )
+        .seal();
+        ForgeQueryMutationEvidenceDigest::aggregate("batch-existing-truth-mode", identity)
     });
     (
         retained_authoritative_assertion_count,

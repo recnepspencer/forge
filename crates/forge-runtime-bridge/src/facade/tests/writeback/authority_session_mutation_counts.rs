@@ -31,9 +31,11 @@ fn writeback_batch_mutation_authority_bundle_counts_naming_components() {
     )
     .with_naming_mutation(
         crate::facade::BridgeNamingMutationBundle::attach_new_target(
-            "persistent-name:first",
-            "entity:first",
-            Some("Task"),
+            bridge_naming_attachment("persistent-name:first"),
+            bridge_naming_target(crate::facade::RelationalBridgeRecordIdentityParts::entity(
+                1, 2, 0,
+            )),
+            Some(bridge_naming_collection("Task")),
         ),
     );
     let component_b = execute_bridge_mutation_bundle(
@@ -55,6 +57,20 @@ fn writeback_batch_mutation_authority_bundle_counts_naming_components() {
 
     assert_eq!(aggregate.component_count(), 2);
     assert_eq!(aggregate.naming_mutation_count(), 1);
+}
+
+fn bridge_naming_attachment(value: &str) -> crate::facade::BridgeNamingAttachmentIdentity {
+    crate::facade::BridgeNamingAttachmentIdentity::from_external_authority_evidence(value)
+}
+
+fn bridge_naming_target(
+    parts: crate::facade::RelationalBridgeRecordIdentityParts,
+) -> crate::facade::BridgeNamingResolvedTargetIdentity {
+    crate::facade::BridgeNamingResolvedTargetIdentity::from_relational_record(parts)
+}
+
+fn bridge_naming_collection(value: &str) -> crate::facade::BridgeNamingTargetCollection {
+    crate::facade::BridgeNamingTargetCollection::new(value)
 }
 
 #[test]
@@ -91,9 +107,13 @@ fn writeback_batch_mutation_authority_bundle_counts_existing_and_symbolic_compon
     )
     .with_existing_truth_binding(
         crate::facade::BridgeExistingTruthBindingBundle::direct_entity(
-            "authority:task-existing",
-            "entity:task-existing",
-            Some("Task"),
+            crate::facade::BridgeExistingTruthBindingAuthoritativeIdentity::from_external_authority_evidence(
+                "authority:task-existing",
+            ),
+            crate::facade::BridgeExistingTruthBindingResolvedTargetIdentity::from_relational_record(
+                crate::facade::RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
+            ),
+            Some(crate::facade::BridgeExistingTruthBindingTargetCollection::new("Task")),
         ),
     );
     let component_b = execute_bridge_mutation_bundle(
@@ -112,9 +132,13 @@ fn writeback_batch_mutation_authority_bundle_counts_existing_and_symbolic_compon
     )
     .with_symbolic_target_reference(
         crate::facade::BridgeSymbolicTargetReferenceBundle::same_batch_target(
-            "draft-task",
-            "entity:draft-task",
-            Some("Task"),
+            crate::facade::BridgeSymbolicTargetSymbolIdentity::from_external_symbol_evidence(
+                "draft-task",
+            ),
+            crate::facade::BridgeSymbolicTargetResolvedEntityIdentity::from_relational_record(
+                crate::facade::RelationalBridgeRecordIdentityParts::entity(1, 4, 0),
+            ),
+            Some(crate::facade::BridgeSymbolicTargetCollection::new("Task")),
         ),
     );
 

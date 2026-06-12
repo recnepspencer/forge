@@ -17,8 +17,9 @@ pub(crate) fn certification_bridge() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(CertificationBridgeSource)
         .with_signal_sink(CertificationBridgeSink)
+        .with_writeback_authority(CertificationWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("certification-external"),
+            BridgeMappingId::from_stable_name("certification-external"),
             TruthPatchScope::new(
                 MappingSelector::any(),
                 AspectKeySelector::exact(aspect_key("certification-aspect")),
@@ -28,7 +29,7 @@ pub(crate) fn certification_bridge() -> RuntimeBridge {
                 aspect_key("certification-aspect"),
                 ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("certification-external"),
+            SignalInvalidationScope::from_stable_name("certification-external"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -98,13 +99,13 @@ fn native_patch_envelope(
     aspect: &str,
     field: &str,
 ) -> BridgeCommittedPatchEnvelope {
-    let patch_identity = TruthPatchIdentity::new(format!("patch:{}", commit_identity.as_str()));
+    let patch_identity = TruthPatchIdentity::from_bridge_harness_label("patch:certification");
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
             commit_identity,
             patch_identity,
-            TruthSnapshotIdentity::new(snapshot_identity),
-            TruthBranchIdentity::new(branch_identity),
+            TruthSnapshotIdentity::from_bridge_harness_label(snapshot_identity),
+            TruthBranchIdentity::from_bridge_harness_label(branch_identity),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             entity_identity,
@@ -135,6 +136,24 @@ impl InvalidationSink for CertificationBridgeSink {
         Ok(BridgeDeliveryReceipt::new(
             delivery.invalidation_targets().len(),
             delivery.source_snapshot().clone(),
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+struct CertificationWritebackAuthority;
+
+impl forge_runtime_bridge::facade::TruthWritebackAuthority for CertificationWritebackAuthority {
+    fn execute_writeback(
+        &self,
+        request: forge_runtime_bridge::facade::TruthWritebackRequest,
+    ) -> Result<
+        forge_runtime_bridge::facade::TruthWritebackReceipt,
+        forge_runtime_bridge::facade::TruthWritebackAuthorityError,
+    > {
+        Ok(forge_runtime_bridge::facade::TruthWritebackReceipt::new(
+            forge_runtime_bridge::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
+            &request,
         ))
     }
 }

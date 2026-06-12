@@ -15,6 +15,7 @@ pub struct CausalEvidenceReference {
     owner: CausalEvidenceOwner,
     family: CausalEvidenceFamily,
     reference_digest: CausalEvidenceReferenceDigest,
+    evidence_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl CausalEvidenceReference {
@@ -23,10 +24,20 @@ impl CausalEvidenceReference {
         family: CausalEvidenceFamily,
         reference_digest: CausalEvidenceReferenceDigest,
     ) -> Self {
+        let evidence_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
+                .field_shape(ForgeQueryEvidenceTag::new("owner"), owner.as_str())
+                .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("reference"),
+                    reference_digest.evidence_identity(),
+                )
+                .seal();
         Self {
             owner,
             family,
             reference_digest,
+            evidence_identity,
         }
     }
 
@@ -40,6 +51,10 @@ impl CausalEvidenceReference {
 
     pub fn reference_digest(&self) -> &CausalEvidenceReferenceDigest {
         &self.reference_digest
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.evidence_identity
     }
 }
 
@@ -62,10 +77,13 @@ impl CausalEvidenceReferenceReceipt {
         let receipt_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt,
         )
-        .field_identity(ForgeQueryEvidenceTag::new("anchor"), anchor_digest.as_str())
-        .field_identity(
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("anchor"),
+            anchor_digest.evidence_identity(),
+        )
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("reference_set"),
-            reference_set_digest.as_str(),
+            reference_set_digest.evidence_identity(),
         )
         .field_usize(
             ForgeQueryEvidenceTag::new("resolved"),
@@ -277,7 +295,10 @@ impl CausalEvidenceReferenceResolutionDenial {
         let failure_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::CausalEvidenceReferenceResolutionDenial,
         )
-        .field_identity(ForgeQueryEvidenceTag::new("anchor"), anchor_digest.as_str())
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("anchor"),
+            anchor_digest.evidence_identity(),
+        )
         .field_identity_sequence(
             ForgeQueryEvidenceTag::new("missing"),
             missing_families.iter().map(CausalEvidenceFamily::as_str),

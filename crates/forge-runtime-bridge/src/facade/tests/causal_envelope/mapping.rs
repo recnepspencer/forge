@@ -12,8 +12,7 @@ use crate::facade::{
     BridgeCausalEvidenceBinding, BridgeCausalEvidenceBindingClass, BridgeCausalEvidenceFamily,
     BridgeCausalEvidenceOwner, BridgeCausalEvidenceReferenceIdentity, BridgePreviewResidueClass,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity,
-    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity, TruthBranchIdentity,
-    TruthSnapshotIdentity,
+    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity,
 };
 
 fn binding_for<'a>(
@@ -26,7 +25,7 @@ fn binding_for<'a>(
         .find(|binding| {
             binding.owner() == BridgeCausalEvidenceOwner::RuntimeBridge
                 && binding.family() == family
-                && binding.reference_identity() == reference_identity
+                && binding.reference_evidence_identity().as_str() == reference_identity
         })
         .expect("expected causal mapping binding should be present")
 }
@@ -34,7 +33,7 @@ fn binding_for<'a>(
 fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit-causal-preview-mapping",
         ))
         .expect("route should succeed");
@@ -44,9 +43,9 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
             preview_declaration(
                 BridgePreviewSessionDeclarationIdentity::new("preview:causal-discard"),
                 BridgeSpeculativeBranchBindingIdentity::new("binding:causal-discard"),
-                TruthBranchIdentity::new("truth:causal-discard"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth:causal-discard"),
                 BridgeSignalBranchIdentity::new("signal:causal-discard"),
-                TruthSnapshotIdentity::new("snapshot:causal-discard"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:causal-discard"),
             ),
         )
         .expect("discard preview should admit");
@@ -68,9 +67,9 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
             preview_declaration(
                 BridgePreviewSessionDeclarationIdentity::new("preview:causal-promotion"),
                 BridgeSpeculativeBranchBindingIdentity::new("binding:causal-promotion"),
-                TruthBranchIdentity::new("truth:causal-promotion"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth:causal-promotion"),
                 BridgeSignalBranchIdentity::new("signal:causal-promotion"),
-                TruthSnapshotIdentity::new("snapshot:causal-promotion"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:causal-promotion"),
             ),
         )
         .expect("promotion preview should admit");
@@ -83,14 +82,20 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
 
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            "query-admission:preview-mapping",
-            "causal-anchor:preview-mapping",
+            crate::facade::BridgeIdentityEvidence::from_external_authority(
+                "query-admission:preview-mapping",
+            ),
+            crate::facade::BridgeIdentityEvidence::from_external_authority(
+                "causal-anchor:preview-mapping",
+            ),
         )
         .expect("query admission summary should be valid"),
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:preview-mapping",
+                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        "query-observation:preview-mapping",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -124,7 +129,7 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
         BridgeCausalEvidenceBindingClass::RetainedBridgeRecord
     );
     assert_eq!(
-        execution_binding.retained_record_digest(),
+        execution_binding.retained_record_digest_for_reporting(),
         Some(
             expected_retained_causal_digest(
                 ExpectedRetainedCausalDigestArtifact::PreviewExecutionRecord,
@@ -146,7 +151,7 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
         discard_record.record_identity().as_str(),
     );
     assert_eq!(
-        discard_binding.retained_record_digest(),
+        discard_binding.retained_record_digest_for_reporting(),
         Some(
             expected_retained_causal_digest(
                 ExpectedRetainedCausalDigestArtifact::PreviewDiscardRecord,
@@ -168,7 +173,7 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
         promotion_record.record_identity().as_str(),
     );
     assert_eq!(
-        promotion_binding.retained_record_digest(),
+        promotion_binding.retained_record_digest_for_reporting(),
         Some(
             expected_retained_causal_digest(
                 ExpectedRetainedCausalDigestArtifact::PreviewPromotionRecord,
@@ -193,20 +198,26 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
 fn causal_envelope_denies_missing_preview_mapping_after_required_route_evidence() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit-causal-missing-preview",
         ))
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            "query-admission:missing-preview",
-            "causal-anchor:missing-preview",
+            crate::facade::BridgeIdentityEvidence::from_external_authority(
+                "query-admission:missing-preview",
+            ),
+            crate::facade::BridgeIdentityEvidence::from_external_authority(
+                "causal-anchor:missing-preview",
+            ),
         )
         .expect("query admission summary should be valid"),
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:missing-preview",
+                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        "query-observation:missing-preview",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -243,21 +254,29 @@ fn causal_envelope_request_denies_duplicate_preview_references_before_mapping() 
     let duplicate_reference = bridge_reference(
         BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
             BridgeCausalEvidenceFamily::BridgePreviewExecution,
-            "preview-execution:duplicate-reference",
+            crate::facade::BridgeIdentityEvidence::from_external_authority(
+                "preview-execution:duplicate-reference",
+            ),
         )
         .expect("bridge reference identity should be valid"),
     );
 
     let denial = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            "query-admission:duplicate-preview",
-            "causal-anchor:duplicate-preview",
+            crate::facade::BridgeIdentityEvidence::from_external_authority(
+                "query-admission:duplicate-preview",
+            ),
+            crate::facade::BridgeIdentityEvidence::from_external_authority(
+                "causal-anchor:duplicate-preview",
+            ),
         )
         .expect("query admission summary should be valid"),
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:duplicate-preview",
+                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        "query-observation:duplicate-preview",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -276,7 +295,7 @@ fn causal_envelope_request_denies_duplicate_preview_references_before_mapping() 
         BridgeCausalEvidenceFamily::BridgePreviewExecution
     );
     assert_eq!(
-        denial.reference_identity(),
+        denial.reference_identity_for_reporting(),
         "preview-execution:duplicate-reference"
     );
     assert_eq!(denial.counters().bridge_retained_lookup_count(), 0);

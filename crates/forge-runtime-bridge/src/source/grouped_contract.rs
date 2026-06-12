@@ -133,7 +133,9 @@ mod tests {
 
         fn basis_snapshot_identity(&self) -> &TruthSnapshotIdentity {
             static SNAPSHOT: std::sync::LazyLock<TruthSnapshotIdentity> =
-                std::sync::LazyLock::new(|| TruthSnapshotIdentity::new("snapshot-a"));
+                std::sync::LazyLock::new(|| {
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
+                });
             &SNAPSHOT
         }
 

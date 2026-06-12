@@ -11,6 +11,7 @@ mod inventory;
 mod materialization;
 mod observation_identity;
 mod receipt;
+mod receipt_helpers;
 mod receipt_types;
 mod reference;
 mod reference_index;
@@ -71,9 +72,10 @@ pub use materialization::{
     QueryCausalEvidenceReferenceArtifact, QueryCausalInspectionArtifact,
     QueryCausalTemporalAsyncExplanation, QueryCausalTemporalAsyncExplanationKind,
 };
-pub use observation_identity::{
-    CausalEvidenceReferenceDigest, CausalObservationAnchorDigest, CausalObservationTargetHandle,
-    CausalResultShapeContextHandle,
+pub use observation_identity::{CausalEvidenceReferenceDigest, CausalObservationAnchorDigest};
+#[cfg(test)]
+pub(crate) use observation_identity::{
+    CausalObservationTargetHandle, CausalResultShapeContextHandle,
 };
 pub use receipt_types::{
     CausalInspectionReason, CausalObservationEvidenceIdentity, CausalObservationOutcome,

@@ -1,4 +1,5 @@
 use super::super::super::*;
+use crate::runtime::inspection::{CausalObservationTargetHandle, CausalResultShapeContextHandle};
 
 fn changed_reference_set() -> CausalEvidenceReferenceSet {
     let anchor = anchor_causal_observation(
@@ -7,15 +8,21 @@ fn changed_reference_set() -> CausalEvidenceReferenceSet {
             vec![
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::QueryInspection,
-                    "admission-query-inspection-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "admission-query-inspection-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::BridgeRoute,
-                    "admission-bridge-route-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "admission-bridge-route-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::SignalInvalidation,
-                    "admission-signal-invalidation-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "admission-signal-invalidation-reference",
+                    ),
                 ),
             ],
         ),

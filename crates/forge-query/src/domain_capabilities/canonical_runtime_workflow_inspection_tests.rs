@@ -119,8 +119,10 @@ fn workflow_inspection_materializer_denies_missing_inspection_semantics() {
                 "spatial.workflow.missing_inspection",
                 "missing workflow inspection semantics should deny",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
-                    ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight(
-                        "runtime-snapshot:inspection",
+                    ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
+                        crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+                            "runtime-snapshot:inspection",
+                        ),
                     ),
                     WorkflowDeclarationFamily::ConflictInspectionNarrow,
                     WorkflowAuthorityTargetFamily::QueryInspection,
@@ -152,7 +154,7 @@ fn workflow_post_merge_inspection_denies_preview_bound_outcomes() {
                 "preview merge artifacts should not admit post-merge inspection declarations",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                        crate::facade::runtime::BridgePreviewSessionIdentity::new(
+                        crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
                             "preview-session:invalid-post-merge",
                         ),
                         crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,

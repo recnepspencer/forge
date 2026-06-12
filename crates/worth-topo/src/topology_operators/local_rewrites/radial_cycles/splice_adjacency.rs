@@ -45,7 +45,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 },
             );
         }
-        if relation_binding.source_query_identity != source_half_edge_binding.query_identity {
+        if relation_binding.source_query_identity != source_half_edge_binding.query_identity_label {
             return Err(
                 TopologyMutationApplicationError::ExistingRelationSourceMismatch {
                     relation_id,
@@ -72,13 +72,13 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let source_edge_identity = single_outgoing_relation_target_identity(
             bindings,
             half_edge_id,
-            &source_half_edge_binding.query_identity,
+            &source_half_edge_binding.query_identity_label,
             TopologyRelationKind::HalfEdgeUsesEdge,
         )?;
         let target_edge_identity = single_outgoing_relation_target_identity(
             bindings,
             radial_next_half_edge_id,
-            &target_half_edge_binding.query_identity,
+            &target_half_edge_binding.query_identity_label,
             TopologyRelationKind::HalfEdgeUsesEdge,
         )?;
         if source_edge_identity != target_edge_identity {
@@ -100,10 +100,10 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             )?
             .in_target_collection("TopologyRelation")?,
         )?;
-        let source_query_identity = source_half_edge_binding.query_identity;
+        let source_query_identity = source_half_edge_binding.query_identity_label;
         let verified_source_query_identity = source_query_identity.clone();
         let current_target_query_identity = relation_binding.target_query_identity;
-        let updated_target_query_identity = target_half_edge_binding.query_identity;
+        let updated_target_query_identity = target_half_edge_binding.query_identity_label;
         let dependency_path = topology_relation_dependency_path(
             schema::facade::platform::relations::RelationKind::Topology(relation_kind),
         );

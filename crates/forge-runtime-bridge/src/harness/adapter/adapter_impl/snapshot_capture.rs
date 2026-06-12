@@ -34,9 +34,9 @@ pub(super) fn capture_bridge_snapshot_record(
         time_marker: profile.time_marker.clone(),
         observations: vec![SnapshotObservation {
             target: request.targets.first().cloned().unwrap_or_else(|| {
-                BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new(
-                    "bridge",
-                ))
+                BridgeHarnessTargetId::committed_route(
+                    crate::truth_identity_fixtures::truth_commit_fixture("bridge"),
+                )
             }),
             status,
             detail,

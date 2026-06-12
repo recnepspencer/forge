@@ -38,9 +38,7 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
                 |update| {
                     update
                         .aspect("source.id", "he-1")
-                        .continuity_rebind_existing_target(
-                            "authority:loop-next-rel",
-                            "authority:loop-next-rel-successor",
+                        .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:loop-next-rel").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:loop-next-rel-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
                         .symbolic_entity_identity("target.id", successor.reference().clone())
                 },
@@ -113,10 +111,13 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
     assert_eq!(resolution_map.len(), 1);
     assert_eq!(resolution_map.entries()[0].component_index(), 1);
     assert_eq!(resolution_map.entries()[0].aspect_path(), Some("target.id"));
-    assert_eq!(resolution_map.entries()[0].symbol(), "draft-half-edge");
+    assert_eq!(
+        resolution_map.entries()[0].symbol().as_str(),
+        "draft-half-edge"
+    );
     assert_eq!(
         resolution_map.entries()[0].resolved_entity_identity(),
-        successor_identity.as_str()
+        &successor_identity
     );
 
     match workspace.inspect(&receipt).expect("receipt should inspect") {
@@ -186,7 +187,7 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
             );
             assert_eq!(
                 component.symbolic_aspect_resolution_evidence()[0].resolved_entity_identity(),
-                successor_identity.as_str()
+                &successor_identity
             );
         }
         other => panic!("expected batch receipt inspection, got {other:?}"),
@@ -201,8 +202,8 @@ fn compose_graph_denies_loop_successor_rewire_when_identity_preservation_is_unav
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:loop-next-rel",
-                "HalfEdgeNextRelation:1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:loop-next-rel").expect("existing-truth authority label")).expect("existing-truth authority identity"),
+                test_entity_identity("HalfEdgeNextRelation:1"),
             )
             .expect("existing relation target should build")
             .in_target_collection("HalfEdgeNextRelation")
@@ -222,8 +223,20 @@ fn compose_graph_denies_loop_successor_rewire_when_identity_preservation_is_unav
                 |update| {
                     update
                         .continuity_split_successors(
-                            "authority:loop-next-rel",
-                            ["authority:loop-next-left", "authority:loop-next-right"],
+                            crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new(
+                                "authority:loop-next-rel",
+                            )
+                            .expect("continuity prior authority label")).expect("continuity prior authority identity"),
+                            [
+                                crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                                    "authority:loop-next-left",
+                                )
+                                .expect("continuity successor authority label")).expect("continuity successor authority identity"),
+                                crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                                    "authority:loop-next-right",
+                                )
+                                .expect("continuity successor authority label")).expect("continuity successor authority identity"),
+                            ],
                         )
                         .aspect("target.id", "he-3")
                 },

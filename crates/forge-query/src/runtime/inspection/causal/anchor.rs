@@ -245,24 +245,6 @@ pub fn anchor_causal_observation(
             )],
         ));
     }
-    if let Some(missing_identity) = observation_receipt
-        .evidence_identities()
-        .iter()
-        .find(|identity| identity.source_reference_was_empty())
-    {
-        return Err(CausalObservationAnchorError::new(
-            CausalObservationAnchorErrorKind::MissingRequiredEvidenceReference,
-            "causal observation anchors require non-empty evidence reference digests carried by the source receipt",
-            &[
-                format!(
-                    "observation:{}",
-                    observation_receipt.observation_receipt_identity().as_str()
-                ),
-                format!("family:{}", missing_identity.family().as_str()),
-            ],
-        ));
-    }
-
     let unique_families = observation_receipt
         .evidence_identities()
         .iter()
@@ -278,48 +260,48 @@ pub fn anchor_causal_observation(
                 ForgeQueryEvidenceTag::new("receipt"),
                 observation_receipt.receipt_identity().as_str(),
             )
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("observation"),
-                observation_receipt.observation_receipt_identity().as_str(),
+                observation_receipt
+                    .observation_receipt_identity()
+                    .evidence_identity(),
             )
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("query"),
-                observation_receipt.query_identity().as_str(),
+                observation_receipt.query_identity().evidence_identity(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("basis_posture"),
                 observation_receipt.basis_posture(),
             )
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("basis"),
-                observation_receipt.basis_identity().as_str(),
+                observation_receipt.basis_identity().evidence_identity(),
             )
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("result_shape_context"),
                 observation_receipt
                     .result_shape_context()
                     .identity()
-                    .as_str(),
+                    .evidence_identity(),
             )
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("observation_target"),
-                observation_receipt.observation_target().identity().as_str(),
+                observation_receipt
+                    .observation_target()
+                    .identity()
+                    .evidence_identity(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("outcome"),
                 observation_receipt.outcome().as_str(),
             )
-            .field_identity_sequence(
+            .field_evidence_identity_sequence(
                 ForgeQueryEvidenceTag::new("evidence"),
                 observation_receipt
                     .evidence_identities()
                     .iter()
-                    .flat_map(|identity| {
-                        [
-                            identity.family().as_str(),
-                            identity.reference_digest().as_str(),
-                        ]
-                    }),
+                    .map(|identity| identity.evidence_identity()),
             )
             .seal()
             .into();

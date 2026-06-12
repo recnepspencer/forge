@@ -22,12 +22,16 @@ fn preview_declaration() -> BridgePreviewSessionDeclaration {
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
             BridgeSpeculativeBranchBindingIdentity::new("binding:analysis"),
-            TruthBranchIdentity::new("truth:analysis"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth:analysis"),
             BridgeSignalBranchIdentity::new("signal:analysis"),
         ),
         preview_session_basis(PreviewSessionBasisInput {
-            truth_branch_identity: TruthBranchIdentity::new("truth:analysis"),
-            snapshot_identity: TruthSnapshotIdentity::new("snapshot:analysis"),
+            truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture(
+                "truth:analysis",
+            ),
+            snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+                "snapshot:analysis",
+            ),
         }),
     )
 }

@@ -106,15 +106,15 @@ impl FeatureSignalPolicy {
                     context: None,
                 });
             }
-            EvaluationCondition::Debounce(_) => {
-                return Err(KernelError::InvalidInput {
-                    message: "FeatureTree does not support Debounce feature nodes yet".into(),
-                    context: None,
-                });
-            }
             EvaluationCondition::DeltaThreshold(_) => {
                 return Err(KernelError::InvalidInput {
                     message: "FeatureTree does not support DeltaThreshold feature nodes yet".into(),
+                    context: None,
+                });
+            }
+            EvaluationCondition::Temporal(_) => {
+                return Err(KernelError::InvalidInput {
+                    message: "FeatureTree does not support Temporal feature nodes yet".into(),
                     context: None,
                 });
             }

@@ -48,7 +48,7 @@ pub(crate) use graph_composition::{
 };
 pub(crate) use lowering::{
     command_declared_aspect_operations, command_declared_aspect_paths,
-    command_declared_aspect_value_digest,
+    command_declared_aspect_value_digest, command_declared_aspect_value_identity,
 };
 pub use metadata::ForgeQueryMutationMetadata;
 pub(crate) use naming::admit_naming_intent;

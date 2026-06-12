@@ -1,4 +1,4 @@
-use crate::history::data::CommitId;
+use crate::history::data::{BranchId, CommitId};
 use crate::logic::runtime::RelationalReplayRecord;
 use crate::publication::bundle::PublicationBundle;
 use crate::publication::patch::data::{
@@ -18,16 +18,15 @@ use super::identities::{
 
 pub fn publication_patch_to_bridge_envelope(
     commit_id: CommitId,
-    branch_identity: impl Into<String>,
-    snapshot_identity: impl Into<String>,
+    branch_id: &BranchId,
+    snapshot_identity: TruthSnapshotIdentity,
     patch: &PublishedAuthoritativePatchEnvelope,
 ) -> BridgeCommittedPatchEnvelope {
-    let snapshot_identity = TruthSnapshotIdentity::new(snapshot_identity.into());
     let envelope_identity = BridgeCommittedPatchEnvelopeIdentity::new(
-        TruthCommitIdentity::new(format!("commit-{}", commit_id.0)),
-        TruthPatchIdentity::new(format!("patch-{}", patch.position.0)),
+        TruthCommitIdentity::from_relational_commit_id(commit_id.0),
+        TruthPatchIdentity::from_relational_patch_position(patch.position.0),
         snapshot_identity,
-        TruthBranchIdentity::new(branch_identity.into()),
+        TruthBranchIdentity::from_relational_branch_id(branch_id.0.clone()),
     );
     BridgeCommittedPatchEnvelope::new(
         envelope_identity,
@@ -41,10 +40,8 @@ pub fn publication_bundle_to_bridge_envelope(
 ) -> BridgeCommittedPatchEnvelope {
     publication_patch_to_bridge_envelope(
         bundle.commit.commit_id,
-        bundle.commit.branch_id.0.clone(),
-        bridge_snapshot_identity_for_handle(&bundle.snapshot)
-            .as_str()
-            .to_string(),
+        &bundle.commit.branch_id,
+        bridge_snapshot_identity_for_handle(&bundle.snapshot),
         &bundle.patch,
     )
 }
@@ -54,10 +51,8 @@ pub fn commit_envelope_to_bridge_envelope(
 ) -> BridgeCommittedPatchEnvelope {
     publication_patch_to_bridge_envelope(
         envelope.commit.commit_id,
-        envelope.commit.branch_id.0.clone(),
-        bridge_snapshot_identity_for_commit(envelope.commit.commit_id, envelope.commit.version_id)
-            .as_str()
-            .to_string(),
+        &envelope.commit.branch_id,
+        bridge_snapshot_identity_for_commit(envelope.commit.commit_id, envelope.commit.version_id),
         &envelope.patch,
     )
 }
@@ -67,11 +62,11 @@ fn bridge_patch_items(
 ) -> Vec<BridgeCommittedPatchItem> {
     let mut items = Vec::new();
     for record in authoritative_record_patches {
-        let entity_identity = record_ref_identity(&record.target);
+        let record_identity = record_ref_identity(&record.target);
         let changed_aspects = record.authoritative_changed_aspects();
         if changed_aspects.is_empty() {
-            items.push(BridgeCommittedPatchItem::with_target(
-                entity_identity.clone(),
+            items.push(BridgeCommittedPatchItem::with_relational_record_target(
+                record_identity,
                 BridgeCommittedPatchTarget::entity_facet(authoritative_aspect_locator(
                     lifecycle_aspect_key(),
                 )),
@@ -80,8 +75,8 @@ fn bridge_patch_items(
         }
 
         for aspect in changed_aspects.iter() {
-            items.push(BridgeCommittedPatchItem::with_target(
-                entity_identity.clone(),
+            items.push(BridgeCommittedPatchItem::with_relational_record_target(
+                record_identity,
                 bridge_whole_aspect_target(
                     authoritative_aspect_locator(aspect.clone()),
                     structural_change_surface_kind(record),

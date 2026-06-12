@@ -68,7 +68,10 @@ fn scoped_preview_live_admission_denies_mismatched_scoped_basis_semantics() {
     )
     .expect("preview binding should succeed");
     let scoped_basis = scope_observation_basis_intent(RawBasisIntent::runtime_snapshot(
-        "snapshot:other",
+        forge_runtime_bridge::facade::TruthSnapshotIdentity::from_bridge_harness_label(
+            "snapshot:other",
+        )
+        .evidence_identity(),
         BasisOperationLaneRequest::Observation,
     ))
     .expect("runtime-snapshot observation basis should scope");

@@ -13,10 +13,10 @@ use crate::workflow::{
 
 use super::super::scenarios::{
     branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding,
-    runtime_workflow_binding_with_snapshot, workflow_request,
+    runtime_workflow_binding_for_branch, workflow_request,
 };
 use super::super::support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
     test_bridge_with_writeback_authority,
 };
 use super::{
@@ -36,7 +36,10 @@ pub(super) fn branch_mutation_execution_row() -> EffectLifecyclePhase4Certificat
         .expect("branch-a should exist");
     let basis = EffectAuthoringBasis::from(branch_mutation_basis("branch-a"));
     let raw = raw_mutation_effect_with_binding(
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         "phase4-branch-executed".to_string(),
     );
@@ -168,8 +171,10 @@ pub(super) fn batch_execution_row() -> EffectLifecyclePhase4CertificationRow {
         )
         .expect("branch-a should exist");
     let basis = EffectAuthoringBasis::from(branch_mutation_basis("branch-a"));
-    let binding =
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a"));
+    let binding = runtime_workflow_binding_for_branch(
+        branch_snapshot_identity(&runtime, "branch-a"),
+        "branch-a",
+    );
     let support = discover_effect_lifecycle_support(basis.family(), EffectFamily::Mutation);
     let executed = effect_batch()
         .using_basis(basis.clone())
@@ -220,9 +225,10 @@ pub(super) fn relational_oracle_row() -> EffectLifecyclePhase4CertificationRow {
             normalize_raw_effect_intent(
                 &basis,
                 raw_mutation_effect_with_binding(
-                    runtime_workflow_binding_with_snapshot(&branch_snapshot_token(
-                        &runtime, "branch-a",
-                    )),
+                    runtime_workflow_binding_for_branch(
+                        branch_snapshot_identity(&runtime, "branch-a"),
+                        "branch-a",
+                    ),
                     entity_id,
                     "oracle-mutation".to_string(),
                 ),

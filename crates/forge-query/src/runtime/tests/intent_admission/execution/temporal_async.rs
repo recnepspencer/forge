@@ -3,6 +3,10 @@ use super::*;
 #[test]
 fn effect_triggered_async_completion_receipt_preserves_write_adjacent_trigger_class() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
+    let origin_identity = test_write_adjacent_origin_identity(
+        ForgeQueryEffectWriteAdjacentTriggerClass::AsyncCompletion,
+        "async-completion:cause:task-title",
+    );
     let live = runtime
         .declare_live_view::<Value>("tasks.async-follow-on", task_live_request(), task_schema())
         .expect("live should declare");
@@ -15,14 +19,16 @@ fn effect_triggered_async_completion_receipt_preserves_write_adjacent_trigger_cl
             )
             .with_write_adjacent_trigger(
                 ForgeQueryEffectWriteAdjacentTriggerClass::AsyncCompletion,
-                "async-completion:cause:task-title",
+                origin_identity.clone(),
             ),
         )
         .expect("async completion write-intent effect should declare");
 
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                "task-1",
+            ),
             aspect_path: "title.value".to_string(),
             value: json!("title from async completion"),
         })
@@ -41,8 +47,8 @@ fn effect_triggered_async_completion_receipt_preserves_write_adjacent_trigger_cl
         ForgeQueryEffectWriteAdjacentTriggerClass::AsyncCompletion
     );
     assert_eq!(
-        receipt.write_adjacent_trigger().origin_identity(),
-        "async-completion:cause:task-title"
+        receipt.write_adjacent_trigger().origin_evidence_identity(),
+        &origin_identity
     );
     assert_eq!(
         receipt.intent_receipt().source_lane(),
@@ -55,14 +61,18 @@ fn effect_triggered_async_completion_receipt_preserves_write_adjacent_trigger_cl
     assert_eq!(
         inspection
             .feedback_graph()
-            .write_adjacent_trigger_origin_identity(),
-        "async-completion:cause:task-title"
+            .write_adjacent_trigger_origin_evidence_identity(),
+        &origin_identity
     );
 }
 
 #[test]
 fn consumed_pending_write_intent_cannot_admit_a_second_authority_path() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
+    let origin_identity = test_write_adjacent_origin_identity(
+        ForgeQueryEffectWriteAdjacentTriggerClass::ReplayDrift,
+        "replay-drift:cause:task-title",
+    );
     let live = runtime
         .declare_live_view::<Value>(
             "tasks.duplicate-follow-on",
@@ -79,14 +89,16 @@ fn consumed_pending_write_intent_cannot_admit_a_second_authority_path() {
             )
             .with_write_adjacent_trigger(
                 ForgeQueryEffectWriteAdjacentTriggerClass::ReplayDrift,
-                "replay-drift:cause:task-title",
+                origin_identity,
             ),
         )
         .expect("replay drift write-intent effect should declare");
 
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                "task-1",
+            ),
             aspect_path: "title.value".to_string(),
             value: json!("title from replay drift"),
         })

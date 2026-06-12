@@ -2,8 +2,7 @@ pub(crate) mod derived_read_diagnostics;
 mod equivalence_contract;
 
 pub use derived_read_diagnostics::{
-    DerivedFallbackReport, DerivedInvalidationReport, DerivedReadDiagnostics,
-    DerivedRebuildReport,
+    DerivedFallbackReport, DerivedInvalidationReport, DerivedReadDiagnostics, DerivedRebuildReport,
 };
 pub use equivalence_contract::{
     build_derived_equivalence_contract, build_derived_equivalence_contract_report,

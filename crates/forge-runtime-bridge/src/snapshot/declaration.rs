@@ -280,19 +280,18 @@ mod tests {
         BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewKind, BridgeTruthViewSelector,
         HistoricalEvaluationDeclaration,
     };
-    use crate::input::envelope::TruthBranchIdentity;
+
     use crate::policy::BridgeDiagnosticsTier;
-    use crate::snapshot::TruthSnapshotIdentity;
 
     #[test]
     fn truth_view_selector_is_canonical_for_same_inputs() {
         let left = BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         );
         let right = BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         );
 
         assert_eq!(left, right);
@@ -307,8 +306,8 @@ mod tests {
     fn declaration_identity_is_canonical_for_same_inputs() {
         let left = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("main"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             BridgeReplayMode::Required,
             BridgeDiagnosticsTier::Exhaustive,
@@ -316,8 +315,8 @@ mod tests {
         );
         let right = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("main"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             BridgeReplayMode::Required,
             BridgeDiagnosticsTier::Exhaustive,
@@ -337,8 +336,8 @@ mod tests {
     #[test]
     fn declaration_identity_is_invariant_across_diagnostics_tiers() {
         let selector = BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("main"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         );
         let left = HistoricalEvaluationDeclaration::new(
             selector.clone(),

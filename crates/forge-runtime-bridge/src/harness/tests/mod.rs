@@ -3,6 +3,7 @@ mod certification;
 mod counters;
 mod delivery;
 mod diagnostics;
+mod diagnostics_bulk;
 mod diagnostics_continuity_source;
 mod explanations;
 mod history;

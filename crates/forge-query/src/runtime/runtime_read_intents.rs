@@ -212,16 +212,18 @@ impl ForgeQueryRuntime {
                 result.receipt().result_digest(),
                 binding.execution_seam().as_str(),
             );
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
-            binding.family(),
-            binding.entrypoint(),
-            binding.execution_seam(),
-            binding.handoff().decision_digest(),
-            binding.handoff().handoff_digest(),
-            binding.binding_digest(),
-            result.receipt().result_digest(),
-            result.receipt().snapshot_token(),
-        );
+        let snapshot_evidence_identity = self.current_snapshot_identity().evidence_identity();
+        let execution_provenance =
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                binding.family(),
+                binding.entrypoint(),
+                binding.execution_seam(),
+                binding.handoff().decision_digest(),
+                binding.handoff().handoff_digest(),
+                binding.binding_digest(),
+                result.receipt().result_digest(),
+                &snapshot_evidence_identity,
+            );
         result.attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
         Ok(result)
     }
@@ -289,14 +291,15 @@ impl ForgeQueryRuntime {
         let rows = self
             .backend
             .live_entities(binding.installation().view_name());
-        let snapshot_token = self.backend.snapshot_token();
+        let snapshot_identity = self.current_snapshot_identity();
+        let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         let materialized_fact_posture = self.materialized_fact_posture_for_live_read(
             binding.installation().view_name(),
-            &snapshot_token,
+            &snapshot_evidence_identity,
         );
         let receipt = ForgeQueryLiveReadReceipt::from_rows(
             binding.installation(),
-            snapshot_token,
+            snapshot_identity,
             materialized_fact_posture,
             &rows,
         );
@@ -315,16 +318,18 @@ impl ForgeQueryRuntime {
                 result.receipt().result_digest(),
                 "live-view-read",
             );
-        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
-            binding.family(),
-            binding.entrypoint(),
-            binding.execution_seam(),
-            binding.handoff().decision_digest(),
-            binding.handoff().handoff_digest(),
-            binding.binding_digest(),
-            result.receipt().result_digest(),
-            result.receipt().snapshot_token(),
-        );
+        let snapshot_evidence_identity = self.current_snapshot_identity().evidence_identity();
+        let execution_provenance =
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+                binding.family(),
+                binding.entrypoint(),
+                binding.execution_seam(),
+                binding.handoff().decision_digest(),
+                binding.handoff().handoff_digest(),
+                binding.binding_digest(),
+                result.receipt().result_digest(),
+                &snapshot_evidence_identity,
+            );
         result.attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
         Ok(result)
     }
@@ -332,12 +337,12 @@ impl ForgeQueryRuntime {
     fn materialized_fact_posture_for_live_read(
         &self,
         view_name: &str,
-        basis_digest: &str,
+        basis_identity: &crate::ForgeQueryEvidenceIdentity,
     ) -> Option<crate::projection_consumption::ProjectionMaterializedFactPosture> {
         let state = self.live_subscriptions.get(view_name)?;
         Some(materialized_fact_posture_from_live_subscription_state(
             state,
-            basis_digest,
+            basis_identity,
         ))
     }
 }

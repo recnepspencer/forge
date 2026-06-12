@@ -31,11 +31,13 @@ pub(super) fn retain_writeback_record_identities(
         .last_writeback_admission_record()
         .expect("writeback admission record should be retained");
     let causality = BridgeWritebackNativeCausalityInputs::new(
-        BridgeWritebackCausalityIdentity::new(format!("causality:slot:{suffix}")),
-        TruthCommitIdentity::new(format!("query-trigger:{suffix}")),
-        BridgeRouteIdentity::new("query-route:slot"),
-        TruthSnapshotIdentity::new("query-evaluation:slot"),
-        TruthSnapshotIdentity::new("query-truth-view:slot"),
+        BridgeWritebackCausalityIdentity::from_external_authority_evidence(format!(
+            "causality:slot:{suffix}"
+        )),
+        TruthCommitIdentity::from_bridge_harness_label(format!("query-trigger:{suffix}")),
+        BridgeRouteIdentity::from_external_authority_evidence("query-route:slot"),
+        TruthSnapshotIdentity::from_bridge_harness_label("query-evaluation:slot"),
+        TruthSnapshotIdentity::from_bridge_harness_label("query-truth-view:slot"),
     );
     let mapped_input = runtime.map_writeback_family_input(
         &contract,
@@ -49,7 +51,9 @@ pub(super) fn retain_writeback_record_identities(
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new(format!("effect:slot:{suffix}")),
+        BridgeWritebackEffectIdentity::from_external_authority_evidence(format!(
+            "effect:slot:{suffix}"
+        )),
         writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, suffix),
     );
     let authoritative_state_basis = BridgeWritebackAuthoritativeStateBasis::from_effect(&effect);
@@ -57,7 +61,9 @@ pub(super) fn retain_writeback_record_identities(
         &effect,
         &lowered_policy,
         &authoritative_state_basis,
-        BridgeWritebackIdempotenceIdentity::new(format!("idempotence:slot:{suffix}")),
+        BridgeWritebackIdempotenceIdentity::from_external_authority_evidence(format!(
+            "idempotence:slot:{suffix}"
+        )),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let (outcome, _) = runtime
@@ -75,7 +81,9 @@ pub(super) fn retain_writeback_record_identities(
     let drifted_effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new(format!("effect:slot:{suffix}:drifted")),
+        BridgeWritebackEffectIdentity::from_external_authority_evidence(format!(
+            "effect:slot:{suffix}:drifted"
+        )),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             &format!("{suffix}:drifted"),
@@ -87,7 +95,9 @@ pub(super) fn retain_writeback_record_identities(
         &drifted_effect,
         &lowered_policy,
         &drifted_authoritative_state_basis,
-        BridgeWritebackIdempotenceIdentity::new(format!("idempotence:slot:{suffix}:drifted")),
+        BridgeWritebackIdempotenceIdentity::from_external_authority_evidence(format!(
+            "idempotence:slot:{suffix}:drifted"
+        )),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let drifted_bundle =
@@ -101,12 +111,36 @@ pub(super) fn retain_writeback_record_identities(
         .expect("writeback replay record should be retained");
 
     RetainedWritebackRecordIdentities {
-        admission_record_identity: admission.record_identity().as_str().to_string(),
-        mapper_envelope_identity: mapper_envelope.envelope_identity().as_str().to_string(),
-        mapped_family_input_identity: mapped_input.mapped_input_identity().as_str().to_string(),
-        mapper_record_identity: mapper_record.record_identity().as_str().to_string(),
-        execution_record_identity: execution.record_identity().as_str().to_string(),
-        replay_record_identity: replay.record_identity().as_str().to_string(),
+        admission_record_identity: admission
+            .record_identity()
+            .evidence_identity()
+            .as_str()
+            .to_string(),
+        mapper_envelope_identity: mapper_envelope
+            .envelope_identity()
+            .evidence_identity()
+            .as_str()
+            .to_string(),
+        mapped_family_input_identity: mapped_input
+            .mapped_input_identity()
+            .evidence_identity()
+            .as_str()
+            .to_string(),
+        mapper_record_identity: mapper_record
+            .record_identity()
+            .evidence_identity()
+            .as_str()
+            .to_string(),
+        execution_record_identity: execution
+            .record_identity()
+            .evidence_identity()
+            .as_str()
+            .to_string(),
+        replay_record_identity: replay
+            .record_identity()
+            .evidence_identity()
+            .as_str()
+            .to_string(),
     }
 }
 
@@ -126,7 +160,9 @@ fn writeback_effect_intent(
 fn lowered_writeback_policy(runtime: &RuntimeBridge) -> LoweredBridgeExecutionPolicy {
     let contract = runtime
         .admit_policy_declaration(BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:slot-writeback"),
+            BridgePolicyDeclarationIdentity::from_external_authority_evidence(
+                "policy:slot-writeback",
+            ),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -139,7 +175,9 @@ fn lowered_writeback_policy(runtime: &RuntimeBridge) -> LoweredBridgeExecutionPo
 
 fn writeback_declaration(suffix: &str) -> BridgeWritebackDeclaration {
     BridgeWritebackDeclaration::writeback_capable(
-        BridgeWritebackDeclarationIdentity::new(format!("writeback:slot:{suffix}")),
+        BridgeWritebackDeclarationIdentity::from_external_authority_evidence(format!(
+            "writeback:slot:{suffix}"
+        )),
         BridgeRequestKind::Authoritative,
         BridgeWritebackFamilyKind::ProjectedStateDiff,
         BridgeWritebackEffectClass::ProjectedStateDiff,

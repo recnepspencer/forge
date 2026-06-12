@@ -2,6 +2,7 @@ mod bootstrap;
 mod bridge_backed;
 mod contracts;
 mod intent_authority;
+mod mutation_authority;
 mod parts;
 mod receipts;
 
@@ -14,13 +15,15 @@ pub use contracts::{
     ForgeQueryRuntimeBackend, ForgeQueryRuntimeDeclarationInitializationAdapter,
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
-    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
+    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeWriteAuthorityAdapter,
 };
 pub use intent_authority::{
     ForgeQueryIntentAuthorityAdapter,
     ForgeQueryIntentAuthorityAdapter as ForgeQueryRuntimeIntentAuthorityAdapter,
 };
+pub(crate) use mutation_authority::build_bridge_authority_bundle;
 pub use parts::ForgeQueryRuntimeBackendParts;
 pub use receipts::{
     LiveViewDeclarationAdmissionReceipt, SignalInvalidationRoutingReceipt,

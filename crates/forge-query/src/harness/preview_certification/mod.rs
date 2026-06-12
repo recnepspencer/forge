@@ -160,6 +160,7 @@ impl PreviewCertificationLane {
                 .basis()
                 .binding_tuple()
                 .preview_session_identity()
+                .evidence_identity()
                 .as_str()
                 .to_string(),
             evaluation_class: match binding_tuple.evaluation_class() {

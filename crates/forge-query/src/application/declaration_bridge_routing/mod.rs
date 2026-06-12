@@ -8,6 +8,7 @@ mod digest;
 mod explain;
 mod handle_gate;
 mod lower;
+mod lower_identity;
 mod request;
 
 pub use artifact::{
@@ -35,6 +36,9 @@ pub use request::{
 
 pub(crate) use checked::forge_query_checked_declaration_bridge_routing_on_handle;
 pub(crate) use contract::derive_bridge_routing_support_report;
+pub(crate) use lower_identity::{
+    query_truth_branch_identity, query_truth_commit_identity, query_truth_snapshot_identity,
+};
 
 #[cfg(test)]
 mod tests;

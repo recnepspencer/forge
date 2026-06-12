@@ -29,12 +29,15 @@ fn source_fixture(name: &str) -> forge_harness::facade::ScenarioFixture<BridgeHa
                 BridgeSourceCapability::ReplayContinuityRead,
             ]))
             .with_committed_patch(committed_patch_on_branch(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("source")
     .declare_observation("source")
@@ -65,8 +68,8 @@ fn historical_source_declaration(
     SourceDeclaration::new(
         declaration_identity,
         BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("analysis"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         BridgeSourceCapabilitySet::new(vec![
             BridgeSourceCapability::SnapshotRead,

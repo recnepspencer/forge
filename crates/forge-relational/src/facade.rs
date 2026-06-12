@@ -145,9 +145,10 @@ pub mod inspection {
 
 pub mod indexes {
     pub use crate::indexes::data::{
-        DerivedIndexApplicability, DerivedIndexBuildOutcome, DerivedIndexBuildRequest,
-        DerivedIndexDefinition, DerivedIndexEntries, DerivedIndexGeneration,
-        DerivedIndexGenerationId, DerivedIndexId, DerivedIndexKind, DerivedIndexPublicationStatus,
+        DerivedIndexApplicability, DerivedIndexArtifacts, DerivedIndexBuildOutcome,
+        DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexEntries,
+        DerivedIndexGeneration, DerivedIndexGenerationId, DerivedIndexId, DerivedIndexKind,
+        DerivedIndexPublicationStatus,
     };
 }
 
@@ -342,17 +343,18 @@ pub mod schema {
         MinimumCardinalityEnforcement, PairMinimumSemantics, PartitionIsolationContractDeclaration,
         PartitionIsolationMode, ProposedSchemaTransition, RelationIntegrityDeclarations,
         RelationIntegrityPlanCatalog, RelationIntegrityPlanRevision, RelationKindRegistration,
-        RelationalSchemaRegistry, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
-        SchemaBridgeabilityClassification, SchemaContinuationAdmissionObservation,
-        SchemaContinuationClassification, SchemaContinuationDescriptor, SchemaDiffAtom,
-        SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaLineageArtifact,
-        SchemaLineageOrderingSemantics, SchemaPublicationImpact,
-        SchemaReconciliationClassification, SchemaReconciliationDescriptor,
-        SchemaReconciliationOrderingMode, SchemaReconciliationPolicy, SchemaRegistryError,
-        SchemaRegistryErrorClass, SchemaStratum, SchemaSubscriberImpact, SchemaTransitionArtifact,
-        SchemaTransitionBarrier, SchemaTransitionSummary, SchemaVersionId,
-        SubscriberBoundaryVisibility, SymmetryContractDeclaration, SymmetryMode,
-        UniquenessContractDeclaration, UniquenessScope, ValidatedSchemaTransition,
+        RelationalSchemaRegistry, SchemaAuthoritySnapshot, SchemaBoundaryFingerprint,
+        SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
+        SchemaContinuationAdmissionObservation, SchemaContinuationClassification,
+        SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaElementKind,
+        SchemaElementRef, SchemaId, SchemaLineageArtifact, SchemaLineageOrderingSemantics,
+        SchemaPublicationImpact, SchemaReconciliationClassification,
+        SchemaReconciliationDescriptor, SchemaReconciliationOrderingMode,
+        SchemaReconciliationPolicy, SchemaRegistryError, SchemaRegistryErrorClass, SchemaStratum,
+        SchemaSubscriberImpact, SchemaTransitionArtifact, SchemaTransitionBarrier,
+        SchemaTransitionSummary, SchemaVersionId, SubscriberBoundaryVisibility,
+        SymmetryContractDeclaration, SymmetryMode, UniquenessContractDeclaration, UniquenessScope,
+        ValidatedSchemaTransition,
     };
 }
 
@@ -390,11 +392,11 @@ pub mod transactions {
         EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,
         MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
         NamingStableBulkMutationBatch, PatchVsTruthDeltaReport, PlannedBulkMutationBatch,
-        PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef,
-        RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent, RollbackEffect,
-        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
-        TransactionOptions, UndoRecord, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
-        WorkerIntentBatch,
+        PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
+        PublishedMergeExecutionAuthority, RecordRef, RelationMutationIntent, RelationScope,
+        RelationSpec, ReplaceEntityIntent, RollbackEffect, RollbackOutcome, RollbackSummary,
+        SavepointId, TransactionCommitError, TransactionId, TransactionOptions, UndoRecord,
+        UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
     };
     pub use crate::transactions::logic::RelationalTransaction;
 }

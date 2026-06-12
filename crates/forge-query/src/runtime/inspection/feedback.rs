@@ -1,10 +1,14 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::super::{
     ForgeQueryAuthorityLane, ForgeQueryEffectDeliveryFamily, ForgeQueryEffectIdempotence,
     ForgeQueryEffectIntentReceipt, ForgeQueryEffectLoopPrevention, ForgeQueryEffectPolicy,
     ForgeQueryEffectRuntime, ForgeQueryEffectTriggerSourceKind,
     ForgeQueryEffectWriteAdjacentTriggerClass, ForgeQueryIntentExecutionKind,
+};
+use super::feedback_identity::{
+    feedback_phase_graph_identity, feedback_phase_graph_inspection_identity,
+    FeedbackPhaseGraphIdentityParts,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -64,8 +68,8 @@ pub struct ForgeQueryFeedbackPhaseGraphInspection {
     effect_name: String,
     trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
     write_adjacent_trigger_class: ForgeQueryEffectWriteAdjacentTriggerClass,
-    write_adjacent_trigger_origin_identity: String,
-    trigger_commit_identity: String,
+    write_adjacent_trigger_origin_identity: ForgeQueryEvidenceIdentity,
+    trigger_commit_evidence_identity: ForgeQueryEvidenceIdentity,
     source_lane: ForgeQueryAuthorityLane,
     terminal_lane: ForgeQueryAuthorityLane,
     effect_policy: Option<ForgeQueryEffectPolicy>,
@@ -76,8 +80,8 @@ pub struct ForgeQueryFeedbackPhaseGraphInspection {
     resubscribed_live_view_count: usize,
     resubscribed_derived_view_count: usize,
     pending_write_intent_count: usize,
-    graph_digest: String,
-    inspection_digest: String,
+    graph_digest: ForgeQueryEvidenceIdentity,
+    inspection_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryFeedbackPhaseGraphInspection {
@@ -113,8 +117,8 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
             runtime.name(),
             latest.trigger_source_kind(),
             latest.write_adjacent_trigger().class(),
-            latest.write_adjacent_trigger().origin_identity(),
-            latest.commit_identity(),
+            latest.write_adjacent_trigger().origin_evidence_identity(),
+            latest.trigger_commit_evidence_identity(),
             ForgeQueryAuthorityLane::AuthoritativeTruth,
             latest.authority_lane(),
             Some(runtime.effect_policy()),
@@ -165,8 +169,8 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
             receipt.effect_name(),
             receipt.trigger_source_kind(),
             receipt.write_adjacent_trigger_class(),
-            receipt.write_adjacent_trigger().origin_identity(),
-            receipt.trigger_commit_identity(),
+            receipt.write_adjacent_trigger().origin_evidence_identity(),
+            receipt.trigger_commit_evidence_identity(),
             ForgeQueryAuthorityLane::AuthoritativeTruth,
             receipt.target_lane(),
             Some(receipt.effect_policy()),
@@ -185,8 +189,8 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
         effect_name: &str,
         trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
         write_adjacent_trigger_class: ForgeQueryEffectWriteAdjacentTriggerClass,
-        write_adjacent_trigger_origin_identity: &str,
-        trigger_commit_identity: &str,
+        write_adjacent_trigger_origin_identity: &ForgeQueryEvidenceIdentity,
+        trigger_commit_evidence_identity: &ForgeQueryEvidenceIdentity,
         source_lane: ForgeQueryAuthorityLane,
         terminal_lane: ForgeQueryAuthorityLane,
         effect_policy: Option<ForgeQueryEffectPolicy>,
@@ -198,50 +202,30 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
         resubscribed_derived_view_count: usize,
         pending_write_intent_count: usize,
     ) -> Self {
-        let graph_digest = hash_parts(&[
-            "forge_query_feedback_phase_graph_v1".to_string(),
-            format!("effect:{effect_name}"),
-            format!("trigger-source-kind:{}", trigger_source_kind.as_str()),
-            format!(
-                "write-adjacent-trigger-class:{}",
-                write_adjacent_trigger_class.as_str()
-            ),
-            format!("write-adjacent-trigger-origin:{write_adjacent_trigger_origin_identity}"),
-            format!("trigger-commit:{trigger_commit_identity}"),
-            format!("source-lane:{source_lane}"),
-            format!("terminal-lane:{terminal_lane}"),
-            format!(
-                "policy:{}",
-                effect_policy
-                    .map(ForgeQueryEffectPolicy::as_str)
-                    .unwrap_or("none")
-            ),
-            format!("loop-prevention:{}", loop_prevention.as_str()),
-            format!("idempotence:{}", idempotence.as_str()),
-            format!("termination:{}", termination.as_str()),
-            format!(
-                "phases:{}",
-                phase_nodes
-                    .iter()
-                    .map(|node| node.as_str())
-                    .collect::<Vec<_>>()
-                    .join(">")
-            ),
-            format!("resub-live:{resubscribed_live_view_count}"),
-            format!("resub-derived:{resubscribed_derived_view_count}"),
-            format!("pending-write-intents:{pending_write_intent_count}"),
-        ]);
-        let inspection_digest = hash_parts(&[
-            "forge_query_feedback_phase_graph_inspection_v1".to_string(),
-            graph_digest.clone(),
-        ]);
+        let graph_digest = feedback_phase_graph_identity(FeedbackPhaseGraphIdentityParts {
+            effect_name,
+            trigger_source_kind,
+            write_adjacent_trigger_class,
+            write_adjacent_trigger_origin_identity,
+            trigger_commit_identity: trigger_commit_evidence_identity,
+            source_lane,
+            terminal_lane,
+            effect_policy,
+            loop_prevention,
+            idempotence,
+            termination,
+            phase_nodes: &phase_nodes,
+            resubscribed_live_view_count,
+            resubscribed_derived_view_count,
+            pending_write_intent_count,
+        });
+        let inspection_digest = feedback_phase_graph_inspection_identity(&graph_digest);
         Self {
             effect_name: effect_name.to_string(),
             trigger_source_kind,
             write_adjacent_trigger_class,
-            write_adjacent_trigger_origin_identity: write_adjacent_trigger_origin_identity
-                .to_string(),
-            trigger_commit_identity: trigger_commit_identity.to_string(),
+            write_adjacent_trigger_origin_identity: write_adjacent_trigger_origin_identity.clone(),
+            trigger_commit_evidence_identity: trigger_commit_evidence_identity.clone(),
             source_lane,
             terminal_lane,
             effect_policy,
@@ -269,12 +253,12 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
         self.write_adjacent_trigger_class
     }
 
-    pub fn write_adjacent_trigger_origin_identity(&self) -> &str {
+    pub fn write_adjacent_trigger_origin_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.write_adjacent_trigger_origin_identity
     }
 
-    pub fn trigger_commit_identity(&self) -> &str {
-        &self.trigger_commit_identity
+    pub fn trigger_commit_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.trigger_commit_evidence_identity
     }
 
     pub fn source_lane(&self) -> ForgeQueryAuthorityLane {
@@ -318,10 +302,18 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
     }
 
     pub fn graph_digest(&self) -> &str {
+        self.graph_digest.as_str()
+    }
+
+    pub fn graph_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.graph_digest
     }
 
     pub fn inspection_digest(&self) -> &str {
+        self.inspection_digest.as_str()
+    }
+
+    pub fn inspection_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.inspection_digest
     }
 }

@@ -1,57 +1,52 @@
-use crate::facade::BridgeBulkPlanningFailure;
-use std::sync::Arc;
+use crate::diagnostics::causal_envelope::retained_mapping::digest_basis::{
+    compose_retained_causal_mapping_evidence_identity, retained_mapping_identity_digest_part,
+    retained_mapping_shape_part, RetainedCausalMappingDigestArtifact,
+    RetainedCausalMappingIdentityPart,
+};
 
 #[derive(Clone, Copy)]
 pub(super) enum ExpectedRetainedCausalDigestArtifact {
-    BulkPlanningCounters,
-    BulkPlanningFailures,
-    BulkPlanningRecord,
     ContinuityRecord,
-    HistoricalEvaluationCounters,
-    HistoricalEvaluationFailureRecord,
     HistoricalEvaluationRecord,
     MergeRecord,
     PreviewDiscardRecord,
     PreviewExecutionRecord,
     PreviewPromotionRecord,
     RouteRecord,
-    SourceFailureRecord,
     SourceMaterializationRecord,
-    StreamCheckpointRecord,
-    StreamProtocolCounters,
     StreamReplayRecord,
     StructuralBranchComparisonRecord,
     StructuralRemapRecord,
 }
 
-impl ExpectedRetainedCausalDigestArtifact {
-    fn digest_domain(self) -> &'static str {
-        match self {
-            Self::BulkPlanningCounters => "bridge-bulk-planning-counters",
-            Self::BulkPlanningFailures => "bridge-bulk-planning-failures",
-            Self::BulkPlanningRecord => "bridge-causal-retained-bulk-planning-record",
-            Self::ContinuityRecord => "bridge-causal-retained-continuity-record",
-            Self::HistoricalEvaluationCounters => "bridge-historical-evaluation-counters",
-            Self::HistoricalEvaluationFailureRecord => {
-                "bridge-causal-retained-historical-evaluation-failure-record"
+impl From<ExpectedRetainedCausalDigestArtifact> for RetainedCausalMappingDigestArtifact {
+    fn from(value: ExpectedRetainedCausalDigestArtifact) -> Self {
+        match value {
+            ExpectedRetainedCausalDigestArtifact::ContinuityRecord => Self::ContinuityRecord,
+            ExpectedRetainedCausalDigestArtifact::HistoricalEvaluationRecord => {
+                Self::HistoricalEvaluationRecord
             }
-            Self::HistoricalEvaluationRecord => "bridge-causal-retained-historical-record",
-            Self::MergeRecord => "bridge-causal-retained-merge-record",
-            Self::PreviewDiscardRecord => "bridge-causal-retained-preview-discard-record",
-            Self::PreviewExecutionRecord => "bridge-causal-retained-preview-execution-record",
-            Self::PreviewPromotionRecord => "bridge-causal-retained-preview-promotion-record",
-            Self::RouteRecord => "bridge-causal-retained-route-record",
-            Self::SourceFailureRecord => "bridge-causal-retained-source-failure-record",
-            Self::SourceMaterializationRecord => {
-                "bridge-causal-retained-source-materialization-record"
+            ExpectedRetainedCausalDigestArtifact::MergeRecord => Self::MergeRecord,
+            ExpectedRetainedCausalDigestArtifact::PreviewDiscardRecord => {
+                Self::PreviewDiscardRecord
             }
-            Self::StreamCheckpointRecord => "bridge-causal-retained-stream-checkpoint-record",
-            Self::StreamProtocolCounters => "bridge-stream-protocol-counters",
-            Self::StreamReplayRecord => "bridge-causal-retained-stream-replay-record",
-            Self::StructuralBranchComparisonRecord => {
-                "bridge-causal-retained-structural-branch-comparison-record"
+            ExpectedRetainedCausalDigestArtifact::PreviewExecutionRecord => {
+                Self::PreviewExecutionRecord
             }
-            Self::StructuralRemapRecord => "bridge-causal-retained-structural-remap-record",
+            ExpectedRetainedCausalDigestArtifact::PreviewPromotionRecord => {
+                Self::PreviewPromotionRecord
+            }
+            ExpectedRetainedCausalDigestArtifact::RouteRecord => Self::RouteRecord,
+            ExpectedRetainedCausalDigestArtifact::SourceMaterializationRecord => {
+                Self::SourceMaterializationRecord
+            }
+            ExpectedRetainedCausalDigestArtifact::StreamReplayRecord => Self::StreamReplayRecord,
+            ExpectedRetainedCausalDigestArtifact::StructuralBranchComparisonRecord => {
+                Self::StructuralBranchComparisonRecord
+            }
+            ExpectedRetainedCausalDigestArtifact::StructuralRemapRecord => {
+                Self::StructuralRemapRecord
+            }
         }
     }
 }
@@ -60,95 +55,33 @@ pub(super) fn expected_retained_causal_digest(
     artifact: ExpectedRetainedCausalDigestArtifact,
     parts: &[&str],
 ) -> String {
-    expected_retained_causal_digest_for_parts(artifact, parts.iter().copied())
+    let typed_parts = parts
+        .iter()
+        .enumerate()
+        .map(|(index, part)| expected_part_kind(artifact, index, part))
+        .collect::<Vec<_>>();
+    compose_retained_causal_mapping_evidence_identity(artifact.into(), &typed_parts)
+        .as_str()
+        .to_string()
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct ExpectedRetainedCausalDigestBasis {
-    entries: Arc<[ExpectedRetainedCausalDigestBasisEntry]>,
-}
-
-impl ExpectedRetainedCausalDigestBasis {
-    pub(super) fn from_counter_values(entries: impl IntoIterator<Item = String>) -> Self {
-        Self::from_owned_entries(entries)
-    }
-
-    pub(super) fn from_bulk_planning_failure_records(
-        failures: &[BridgeBulkPlanningFailure],
-    ) -> Self {
-        Self::from_borrowed_entries(failures.iter().map(BridgeBulkPlanningFailure::digest))
-    }
-
-    fn from_owned_entries(entries: impl IntoIterator<Item = String>) -> Self {
-        let entries = entries
-            .into_iter()
-            .map(ExpectedRetainedCausalDigestBasisEntry::from_owned_entry)
-            .collect::<Vec<_>>();
-        Self {
-            entries: Arc::from(entries),
-        }
-    }
-
-    fn from_borrowed_entries<'a>(entries: impl IntoIterator<Item = &'a str>) -> Self {
-        let entries = entries
-            .into_iter()
-            .map(ExpectedRetainedCausalDigestBasisEntry::from_borrowed_entry)
-            .collect::<Vec<_>>();
-        Self {
-            entries: Arc::from(entries),
-        }
-    }
-
-    fn entries(&self) -> &[ExpectedRetainedCausalDigestBasisEntry] {
-        &self.entries
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct ExpectedRetainedCausalDigestBasisEntry {
-    value: Arc<str>,
-}
-
-impl ExpectedRetainedCausalDigestBasisEntry {
-    fn from_owned_entry(value: String) -> Self {
-        Self {
-            value: Arc::from(value),
-        }
-    }
-
-    fn from_borrowed_entry(value: &str) -> Self {
-        Self {
-            value: Arc::from(value),
-        }
-    }
-
-    fn as_str(&self) -> &str {
-        self.value.as_ref()
-    }
-}
-
-pub(super) fn expected_retained_causal_digest_for_basis(
+fn expected_part_kind<'a>(
     artifact: ExpectedRetainedCausalDigestArtifact,
-    basis: &ExpectedRetainedCausalDigestBasis,
-) -> String {
-    expected_retained_causal_digest_for_parts(
-        artifact,
-        basis.entries().iter().map(|entry| entry.as_str()),
-    )
-}
-
-fn expected_retained_causal_digest_for_parts<'a>(
-    artifact: ExpectedRetainedCausalDigestArtifact,
-    parts: impl IntoIterator<Item = &'a str>,
-) -> String {
-    use sha2::{Digest, Sha256};
-
-    let digest_domain = artifact.digest_domain();
-    let mut canonical = String::from(digest_domain);
-    for part in parts {
-        canonical.push('|');
-        canonical.push_str(part);
+    index: usize,
+    part: &'a str,
+) -> RetainedCausalMappingIdentityPart {
+    match artifact {
+        ExpectedRetainedCausalDigestArtifact::ContinuityRecord
+        | ExpectedRetainedCausalDigestArtifact::MergeRecord
+        | ExpectedRetainedCausalDigestArtifact::StructuralBranchComparisonRecord
+        | ExpectedRetainedCausalDigestArtifact::StructuralRemapRecord
+            if index == 1 =>
+        {
+            retained_mapping_shape_part(part)
+        }
+        ExpectedRetainedCausalDigestArtifact::StreamReplayRecord if index == 5 => {
+            retained_mapping_shape_part(part)
+        }
+        _ => retained_mapping_identity_digest_part(part),
     }
-    let digest = Sha256::digest(canonical.as_bytes());
-    format!("{digest_domain}:sha256:{digest:x}")
 }

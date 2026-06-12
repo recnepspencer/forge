@@ -177,7 +177,7 @@ impl BridgeDiagnosticsState {
         route_identity: &BridgeRouteIdentity,
     ) -> Option<BridgeRouteRecord> {
         self.latest_route_by_route_identity
-            .get(route_identity.as_str())
+            .get(route_identity)
             .cloned()
             .map(|record| (*record).clone())
     }
@@ -187,7 +187,7 @@ impl BridgeDiagnosticsState {
         invalidation_identity: &BridgeInvalidationIdentity,
     ) -> Option<BridgeRouteRecord> {
         self.latest_route_by_invalidation_identity
-            .get(invalidation_identity.as_str())
+            .get(invalidation_identity)
             .cloned()
             .map(|record| (*record).clone())
     }
@@ -197,7 +197,7 @@ impl BridgeDiagnosticsState {
         source_commit: &crate::input::envelope::TruthCommitIdentity,
     ) -> Option<BridgeRouteRecord> {
         self.latest_route_by_source_commit
-            .get(source_commit.as_str())
+            .get(source_commit)
             .cloned()
             .map(|record| (*record).clone())
     }
@@ -207,7 +207,7 @@ impl BridgeDiagnosticsState {
         route_identity: &BridgeRouteIdentity,
     ) -> Option<BridgeCanonicalContinuityRecord> {
         self.latest_continuity_by_route_identity
-            .get(route_identity.as_str())
+            .get(route_identity)
             .cloned()
             .map(|record| (*record).clone())
     }

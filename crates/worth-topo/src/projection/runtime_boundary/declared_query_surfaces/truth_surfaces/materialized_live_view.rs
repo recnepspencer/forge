@@ -1,6 +1,6 @@
 use forge_query::facade::{
-    ForgeQueryComputedBuilder, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
-    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryCommitIdentity, ForgeQueryComputedBuilder, ForgeQueryDerivedPatch,
+    ForgeQueryDerivedView, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
     ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
 };
@@ -41,17 +41,19 @@ impl ForgeQueryDerivedViewMaintainer for TopologyMaterializedMaintainer {
         let payload = json!({
             QUERY_SURFACE_FAILURE_ROW_KEY: format!(
                 "incremental delivery reached `{}` for `{}`; whole-refresh fallback was expected",
-                delta.collection,
+                delta.collection(),
                 view.name(),
             ),
         });
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "topology-materialized-incremental-unexpected",
-            delta.entity_identity.clone(),
+            ForgeQueryCommitIdentity::from_external_authority_label(
+                "topology-materialized-incremental-unexpected",
+            ),
+            delta.entity_identity().clone(),
             if view.produced_aspects().is_empty() {
-                delta.aspect_paths.clone()
+                delta.aspect_paths().to_vec()
             } else {
                 view.produced_aspects().to_vec()
             },
@@ -80,7 +82,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyMaterializedMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            "topology-materialized",
+            ForgeQueryCommitIdentity::from_external_authority_label("topology-materialized"),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {

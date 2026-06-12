@@ -48,7 +48,7 @@
 //!         ))
 //!         .build()?;
 //!
-//!     let route = bridge.route(TruthCommitIdentity::new("commit:steel-main"))?;
+//!     let route = bridge.route(crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"))?;
 //!     let evaluation = bridge.evaluate_current(route.target())?;
 //!     let diagnostics = bridge.diagnostics().explain_last();
 //!

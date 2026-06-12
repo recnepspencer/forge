@@ -183,24 +183,46 @@ fn raw_intent_for(
 ) -> RawBasisIntent {
     match family {
         NormalizedBasisFamily::CurrentHead => RawBasisIntent::current_head(lane),
-        NormalizedBasisFamily::BranchHead => RawBasisIntent::branch_head("branch:main", lane),
+        NormalizedBasisFamily::BranchHead => RawBasisIntent::branch_head(branch_identity(), lane),
         NormalizedBasisFamily::BranchSnapshot => {
-            RawBasisIntent::branch_snapshot("branch:main", "snapshot:1", lane)
+            RawBasisIntent::branch_snapshot(branch_identity(), snapshot_identity(), lane)
         }
         NormalizedBasisFamily::RuntimeSnapshot => {
-            RawBasisIntent::runtime_snapshot("runtime:snapshot:1", lane)
+            RawBasisIntent::runtime_snapshot(snapshot_identity(), lane)
         }
         NormalizedBasisFamily::HistoricalSnapshot => {
-            RawBasisIntent::historical_snapshot("history:snapshot:1", lane)
+            RawBasisIntent::historical_snapshot(snapshot_identity(), lane)
         }
         NormalizedBasisFamily::HistoricalCommit => {
-            RawBasisIntent::historical_commit("commit:1", lane)
+            RawBasisIntent::historical_commit(commit_identity(), lane)
         }
-        NormalizedBasisFamily::Preview => RawBasisIntent::preview("preview:session-1", lane),
+        NormalizedBasisFamily::Preview => RawBasisIntent::preview(preview_identity(), lane),
         NormalizedBasisFamily::PreviewDerivedHistorical => {
-            RawBasisIntent::preview_derived_historical("preview:session-1", lane)
+            RawBasisIntent::preview_derived_historical(preview_identity(), lane)
         }
     }
+}
+
+fn branch_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
+    forge_runtime_bridge::facade::TruthBranchIdentity::from_bridge_harness_label("branch:main")
+        .evidence_identity()
+}
+
+fn snapshot_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
+    forge_runtime_bridge::facade::TruthSnapshotIdentity::from_bridge_harness_label("snapshot:1")
+        .evidence_identity()
+}
+
+fn commit_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
+    forge_runtime_bridge::facade::TruthCommitIdentity::from_bridge_harness_label("commit:1")
+        .evidence_identity()
+}
+
+fn preview_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
+    forge_runtime_bridge::facade::BridgePreviewSessionIdentity::from_stable_name(
+        "preview:session-1",
+    )
+    .evidence_identity()
 }
 
 fn denial_label(kind: &DeniedBasisCapabilityKind) -> &'static str {

@@ -10,13 +10,12 @@ use crate::effect_lifecycle::{
 };
 
 use super::execution_support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
     test_bridge_with_writeback_authority,
 };
 use super::support::{
     admitted_mutation_effect_for_entity_with_binding, admitted_tenant_writeback_effect,
-    branch_mutation_basis, raw_mutation_effect_with_binding,
-    runtime_workflow_binding_with_snapshot,
+    branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding_for_branch,
 };
 
 #[test]
@@ -31,7 +30,10 @@ fn mutation_execution_mints_receipt_first_envelope_and_diagnostics() {
         )
         .expect("branch-a should be created");
     let receipt = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot("snapshot-1"),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "receipt-first" }),
     ))
@@ -175,12 +177,18 @@ fn batch_execution_mints_batch_write_receipt_family() {
             branch_mutation_basis(),
         ))
         .push(raw_mutation_effect_with_binding(
-            runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+            runtime_workflow_binding_for_branch(
+                branch_snapshot_identity(&runtime, "branch-a"),
+                "branch-a",
+            ),
             left,
             json!({ "name": "left-batch-receipt" }),
         ))
         .push(raw_mutation_effect_with_binding(
-            runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+            runtime_workflow_binding_for_branch(
+                branch_snapshot_identity(&runtime, "branch-a"),
+                "branch-a",
+            ),
             right,
             json!({ "name": "right-batch-receipt" }),
         ))

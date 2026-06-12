@@ -6,8 +6,10 @@ mod performance;
 
 pub use foundation::*;
 pub(crate) use foundation::{
-    scoped_runtime_preflight_workflow_binding, synthetic_preview_workflow_binding,
-    synthetic_runtime_workflow_binding, synthetic_runtime_workflow_binding_scoped,
+    scoped_runtime_preflight_workflow_binding_for_binding_identity,
+    synthetic_preview_workflow_binding, synthetic_runtime_workflow_binding_for_snapshot_identity,
+    synthetic_runtime_workflow_binding_scoped_for_branch_snapshot_identity,
+    synthetic_runtime_workflow_binding_scoped_for_snapshot_binding_identity,
 };
 pub use inspection::*;
 pub use lowering::*;

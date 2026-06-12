@@ -12,6 +12,7 @@ fn runtime_write_denies_when_signal_routing_receipt_drifts_from_write_receipt() 
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(DriftingSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -45,11 +46,44 @@ fn runtime_write_denies_when_signal_routing_receipt_drifts_from_write_receipt() 
 }
 
 #[test]
+fn runtime_write_denies_authority_less_receipt_at_signal_routing_boundary() {
+    let mut runtime = ForgeQueryRuntime::builder()
+        .runtime_bridge(test_bridge())
+        .schema_adapter(TestSchemaAdapter)
+        .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
+        .write_authority(AuthorityLessWriteAuthority)
+        .signal_sink(TestSignalSink)
+        .subscription_activation(TestSubscriptionActivation)
+        .preview_basis(TestPreviewBasis)
+        .inspector_evidence(TestInspectorEvidence)
+        .build_backend_from_parts()
+        .build()
+        .expect("backend with authority-less write authority should build");
+
+    let error = runtime
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("authority-less")),
+                ("title.value", json!("Authority-less receipt")),
+            ],
+        ))
+        .expect_err("authority-less write receipt must fail signal routing");
+
+    assert_workspace_write_error(
+        error,
+        "signal invalidation routing requires bridge-authored mutation authority",
+    );
+}
+
+#[test]
 fn runtime_batch_write_denies_when_signal_routing_batch_width_drifts_from_receipts() {
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TruncatingBatchSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -97,6 +131,7 @@ fn runtime_live_read_receipt_retains_materialized_remask_posture() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(RemaskingSubscriptionActivation {
@@ -132,7 +167,10 @@ fn runtime_live_read_receipt_retains_materialized_remask_posture() {
         ProjectionMaterializedFactPostureKind::Remasked
     );
     assert_eq!(posture.lower_declaration_digest(), receipt.query_digest());
-    assert_eq!(posture.basis_digest(), receipt.snapshot_token());
+    assert_eq!(
+        posture.basis_digest(),
+        receipt.snapshot_evidence_identity().as_str()
+    );
     assert_eq!(
         posture.runtime_origin_digest(),
         Some(view.subscription_installation().installation_digest())
@@ -173,7 +211,10 @@ fn runtime_live_read_receipt_retains_time_only_materialized_posture() {
         ProjectionMaterializedFactPostureKind::TimeOnly
     );
     assert_eq!(posture.lower_declaration_digest(), receipt.query_digest());
-    assert_eq!(posture.basis_digest(), receipt.snapshot_token());
+    assert_eq!(
+        posture.basis_digest(),
+        receipt.snapshot_evidence_identity().as_str()
+    );
     assert_eq!(
         posture.runtime_origin_digest(),
         Some(view.subscription_installation().installation_digest())
@@ -212,7 +253,10 @@ fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() 
         async_posture.kind(),
         ProjectionMaterializedFactPostureKind::AsyncBacked
     );
-    assert_eq!(async_posture.basis_digest(), async_receipt.snapshot_token());
+    assert_eq!(
+        async_posture.basis_digest(),
+        async_receipt.snapshot_evidence_identity().as_str()
+    );
 
     let bridge = test_bridge();
     let truth_patch = canonical_truth_patch("truth-main", "snapshot-a", "commit-a", "patch-a");
@@ -221,9 +265,9 @@ fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() 
         &bridge,
         forge_signal::facade::NodeId::new(243, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );
@@ -261,7 +305,10 @@ fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() 
         mixed_posture.kind(),
         ProjectionMaterializedFactPostureKind::MixedCause
     );
-    assert_eq!(mixed_posture.basis_digest(), mixed_receipt.snapshot_token());
+    assert_eq!(
+        mixed_posture.basis_digest(),
+        mixed_receipt.snapshot_evidence_identity().as_str()
+    );
     assert_eq!(
         mixed_posture.runtime_origin_digest(),
         Some(mixed_view.subscription_installation().installation_digest())

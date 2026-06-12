@@ -1,28 +1,32 @@
 use crate::diagnostics::history::BridgeHistoricalEvaluationRecordIdentity;
 use crate::diagnostics::BridgeDiagnosticsFacade;
+use crate::identity::BridgeIdentityEvidence;
 use crate::routing::BridgeRouteIdentity;
 use crate::speculation::{
     BridgePreviewDiscardRecordIdentity, BridgePreviewPromotionRecordIdentity,
     PreviewExecutionRecordIdentity,
 };
 
-use super::super::digest_basis::{retained_mapping_digest, RetainedCausalMappingDigestArtifact};
+use super::super::digest_basis::{
+    compose_retained_causal_mapping_evidence_identity, retained_mapping_identity_digest_part,
+    RetainedCausalMappingDigestArtifact,
+};
 
 pub(crate) fn route_record_digest(
     facade: &BridgeDiagnosticsFacade,
     reference_identity: &str,
-) -> Option<String> {
+) -> Option<BridgeIdentityEvidence> {
     facade
         .route_record_for_route_identity(&BridgeRouteIdentity::new(reference_identity))
         .map(|record| {
-            retained_mapping_digest(
+            compose_retained_causal_mapping_evidence_identity(
                 RetainedCausalMappingDigestArtifact::RouteRecord,
                 &[
-                    record.route_identity().as_str(),
-                    record.invalidation_identity().as_str(),
-                    record.source_commit().as_str(),
-                    record.planning_summary_digest(),
-                    record.lowering_summary_digest(),
+                    retained_mapping_identity_digest_part(record.route_identity().as_str()),
+                    retained_mapping_identity_digest_part(record.invalidation_identity().as_str()),
+                    retained_mapping_identity_digest_part(record.source_commit().as_str()),
+                    retained_mapping_identity_digest_part(record.planning_summary_digest()),
+                    retained_mapping_identity_digest_part(record.lowering_summary_digest()),
                 ],
             )
         })
@@ -31,18 +35,22 @@ pub(crate) fn route_record_digest(
 pub(crate) fn historical_evaluation_record_digest(
     facade: &BridgeDiagnosticsFacade,
     reference_identity: &str,
-) -> Option<String> {
+) -> Option<BridgeIdentityEvidence> {
     facade
         .historical_record_for_record_identity(&BridgeHistoricalEvaluationRecordIdentity::new(
             reference_identity,
         ))
         .map(|record| {
-            retained_mapping_digest(
+            compose_retained_causal_mapping_evidence_identity(
                 RetainedCausalMappingDigestArtifact::HistoricalEvaluationRecord,
                 &[
-                    record.record_identity().as_str(),
-                    record.decision_log().decision_log_identity().as_str(),
-                    record.decision_log().snapshot_identity().as_str(),
+                    retained_mapping_identity_digest_part(record.record_identity().as_str()),
+                    retained_mapping_identity_digest_part(
+                        record.decision_log().decision_log_identity().as_str(),
+                    ),
+                    retained_mapping_identity_digest_part(
+                        record.decision_log().snapshot_identity().as_str(),
+                    ),
                 ],
             )
         })
@@ -51,20 +59,20 @@ pub(crate) fn historical_evaluation_record_digest(
 pub(crate) fn preview_execution_record_digest(
     facade: &BridgeDiagnosticsFacade,
     reference_identity: &str,
-) -> Option<String> {
+) -> Option<BridgeIdentityEvidence> {
     facade
         .preview_execution_record_for_identity(&PreviewExecutionRecordIdentity::new(
             reference_identity,
         ))
         .map(|record| {
-            retained_mapping_digest(
+            compose_retained_causal_mapping_evidence_identity(
                 RetainedCausalMappingDigestArtifact::PreviewExecutionRecord,
                 &[
-                    record.record_identity().as_str(),
-                    record.preview_session_identity(),
-                    record.preview_declaration_digest(),
-                    record.branch_binding_digest(),
-                    record.digest(),
+                    retained_mapping_identity_digest_part(record.record_identity().as_str()),
+                    retained_mapping_identity_digest_part(record.preview_session_identity()),
+                    retained_mapping_identity_digest_part(record.preview_declaration_digest()),
+                    retained_mapping_identity_digest_part(record.branch_binding_digest()),
+                    retained_mapping_identity_digest_part(record.digest()),
                 ],
             )
         })
@@ -73,20 +81,22 @@ pub(crate) fn preview_execution_record_digest(
 pub(crate) fn preview_discard_record_digest(
     facade: &BridgeDiagnosticsFacade,
     reference_identity: &str,
-) -> Option<String> {
+) -> Option<BridgeIdentityEvidence> {
     facade
         .preview_discard_record_for_identity(&BridgePreviewDiscardRecordIdentity::new(
             reference_identity,
         ))
         .map(|record| {
-            retained_mapping_digest(
+            compose_retained_causal_mapping_evidence_identity(
                 RetainedCausalMappingDigestArtifact::PreviewDiscardRecord,
                 &[
-                    record.record_identity().as_str(),
-                    record.preview_session_identity(),
-                    record.preview_execution_record_identity().as_str(),
-                    record.residue_report().digest(),
-                    record.digest(),
+                    retained_mapping_identity_digest_part(record.record_identity().as_str()),
+                    retained_mapping_identity_digest_part(record.preview_session_identity()),
+                    retained_mapping_identity_digest_part(
+                        record.preview_execution_record_identity().as_str(),
+                    ),
+                    retained_mapping_identity_digest_part(record.residue_report().digest()),
+                    retained_mapping_identity_digest_part(record.digest()),
                 ],
             )
         })
@@ -95,22 +105,26 @@ pub(crate) fn preview_discard_record_digest(
 pub(crate) fn preview_promotion_record_digest(
     facade: &BridgeDiagnosticsFacade,
     reference_identity: &str,
-) -> Option<String> {
+) -> Option<BridgeIdentityEvidence> {
     facade
         .preview_promotion_record_for_identity(&BridgePreviewPromotionRecordIdentity::new(
             reference_identity,
         ))
         .map(|record| {
-            retained_mapping_digest(
+            compose_retained_causal_mapping_evidence_identity(
                 RetainedCausalMappingDigestArtifact::PreviewPromotionRecord,
                 &[
-                    record.record_identity().as_str(),
-                    record.preview_session_identity(),
-                    record.preview_execution_record_identity().as_str(),
-                    record.promotion_proof_digest(),
-                    record.authoritative_commit_boundary_digest(),
-                    record.authoritative_artifact_digest(),
-                    record.digest(),
+                    retained_mapping_identity_digest_part(record.record_identity().as_str()),
+                    retained_mapping_identity_digest_part(record.preview_session_identity()),
+                    retained_mapping_identity_digest_part(
+                        record.preview_execution_record_identity().as_str(),
+                    ),
+                    retained_mapping_identity_digest_part(record.promotion_proof_digest()),
+                    retained_mapping_identity_digest_part(
+                        record.authoritative_commit_boundary_digest(),
+                    ),
+                    retained_mapping_identity_digest_part(record.authoritative_artifact_digest()),
+                    retained_mapping_identity_digest_part(record.digest()),
                 ],
             )
         })

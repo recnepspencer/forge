@@ -3,13 +3,15 @@ use crate::application::{
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
 };
 use crate::binding_pipeline::{ForgeQueryBindingRequestDescriptor, ForgeQueryBindingWitnessCheck};
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::readmission::{
     current_readmission_evidence_from_handle, validate_execution_readmission,
     ForgeQueryPreparedContinuationExecutionReadmissionDenial,
 };
-use super::support::{linked_from_prepared, transcript_digest};
+use super::support::{linked_artifacts_identity, linked_from_prepared, transcript_digest};
 use super::ForgeQueryContinuationExecution;
 use crate::continuation_pipeline::request::ForgeQueryExecutePreparedContinuationRequest;
 use crate::continuation_pipeline::transcript::ForgeQueryContinuationExecutionTranscript;
@@ -115,14 +117,71 @@ pub(crate) fn execute_prepared_continuation_on_handle<
         );
     }
 
-    let execution_digest = hash_parts(&[
-        "forge_query_continuation_execution_v1".to_string(),
-        prepared.prepared_digest().to_string(),
-        format!("family:{:?}", prepared.family()),
-        format!("workspace:{:?}", prepared.workspace_contract()),
-        format!("runtime:{:?}", prepared.runtime_contract()),
-        format!("signal:{:?}", prepared.signal_execution_family()),
-    ]);
+    let execution_digest =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::ContinuationExecutionDigest)
+            .field_identity(
+                ForgeQueryEvidenceTag::new("prepared"),
+                prepared.prepared_digest(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("family"),
+                prepared.family().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("truth_context"),
+                prepared.truth_context().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("basis_posture"),
+                prepared.basis_posture().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("workspace_contract"),
+                prepared.workspace_contract().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("runtime_contract"),
+                prepared.runtime_contract().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("execution_mode"),
+                prepared.execution_mode().as_str(),
+            )
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("required_basis_families"),
+                prepared
+                    .required_basis_families()
+                    .iter()
+                    .map(|family| family.as_str()),
+            )
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("required_capability_families"),
+                prepared
+                    .required_capability_families()
+                    .iter()
+                    .map(|family| family.as_str()),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("signal_posture"),
+                prepared.signal_posture().as_str(),
+            )
+            .optional_shape(
+                ForgeQueryEvidenceTag::new("signal_execution_family"),
+                prepared
+                    .signal_execution_family()
+                    .map(|family| family.as_str()),
+            )
+            .optional_value(
+                ForgeQueryEvidenceTag::new("signal_compatibility"),
+                prepared.signal_compatibility_digest(),
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("linked_artifacts"),
+                linked_artifacts_identity(&linked),
+            )
+            .seal()
+            .as_str()
+            .to_string();
     let binding_surface = prepared.bridge_routing().binding().surface().to_string();
     let signal_execution_family = prepared.signal_execution_family();
     let execution = ForgeQueryContinuationExecution::new(

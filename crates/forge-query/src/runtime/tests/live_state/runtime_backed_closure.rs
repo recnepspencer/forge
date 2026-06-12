@@ -45,6 +45,7 @@ fn remasked_runtime(projection: ForgeQueryRuntimeRemaskProjection) -> ForgeQuery
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(RemaskingSubscriptionActivation { projection })
@@ -87,9 +88,9 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         &bridge,
         forge_signal::facade::NodeId::new(301, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::from_bridge_harness_label("truth-main"),
+            TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
         ),
         64,
     );
@@ -168,6 +169,10 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         .expect("remask retained delivery should exist");
 
     let mut follow_on_runtime = intent_runtime_with_authority(TestIntentAuthority);
+    let follow_on_origin_identity = test_write_adjacent_origin_identity(
+        ForgeQueryEffectWriteAdjacentTriggerClass::AsyncCompletion,
+        "async-completion:cause:phase26-title",
+    );
     let follow_on_view = follow_on_runtime
         .declare_live_view::<Value>(
             "tasks.phase26-follow-on",
@@ -184,13 +189,15 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
             )
             .with_write_adjacent_trigger(
                 ForgeQueryEffectWriteAdjacentTriggerClass::AsyncCompletion,
-                "async-completion:cause:phase26-title",
+                follow_on_origin_identity.clone(),
             ),
         )
         .expect("follow-on effect should declare");
     follow_on_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                "task-1",
+            ),
             aspect_path: "title.value".to_string(),
             value: json!("title from phase26 async completion"),
         })
@@ -236,8 +243,10 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         ForgeQueryEffectWriteAdjacentTriggerClass::AsyncCompletion
     );
     assert_eq!(
-        follow_on_receipt.write_adjacent_trigger().origin_identity(),
-        "async-completion:cause:phase26-title"
+        follow_on_receipt
+            .write_adjacent_trigger()
+            .origin_evidence_identity(),
+        &follow_on_origin_identity
     );
     assert!(
         preview_artifact

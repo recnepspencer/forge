@@ -1,4 +1,8 @@
 use crate::canonicalization::CanonicalQueryBundle;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::identity::{hash_parts, CanonicalQueryDigest, CanonicalResultShapeDigest};
 use crate::planning::ExecutionPlanBundle;
 use crate::validation::ValidatedQueryBundle;
@@ -23,6 +27,12 @@ impl ViewShapePlanDigest {
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub(crate) fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::ViewShapePlanDigest)
+            .field_identity(ForgeQueryEvidenceTag::new("plan_digest"), self.as_str())
+            .seal()
     }
 }
 

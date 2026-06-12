@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryGraphCompositionAdmissionTraceStage {
@@ -39,7 +42,7 @@ impl std::fmt::Display for ForgeQueryGraphCompositionAdmissionTraceStage {
 pub struct ForgeQueryGraphCompositionAdmissionTrace {
     stages: Vec<ForgeQueryGraphCompositionAdmissionTraceStage>,
     failure_stage: ForgeQueryGraphCompositionAdmissionTraceStage,
-    admission_trace_digest: String,
+    admission_trace_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryGraphCompositionAdmissionTrace {
@@ -65,18 +68,21 @@ impl ForgeQueryGraphCompositionAdmissionTrace {
             ForgeQueryGraphCompositionAdmissionTraceStage::DeniedBeforeExecution,
             "graph composition admission trace failure stage must name the stage that failed, not the terminal denial marker"
         );
-        let admission_trace_digest = hash_parts(&[
-            "forge_query_graph_composition_admission_trace_v1".to_string(),
-            format!(
-                "stages:{}",
-                stages
-                    .iter()
-                    .map(|stage| stage.as_str())
-                    .collect::<Vec<_>>()
-                    .join("|")
-            ),
-            format!("failure-stage:{failure_stage}"),
-        ]);
+        let admission_trace_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "graph-composition-admission-trace",
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("stage"),
+                    stages.iter().map(|stage| stage.as_str()),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("failure_stage"),
+                    failure_stage.as_str(),
+                )
+                .seal();
         Self {
             stages,
             failure_stage,
@@ -93,6 +99,10 @@ impl ForgeQueryGraphCompositionAdmissionTrace {
     }
 
     pub fn admission_trace_digest(&self) -> &str {
+        self.admission_trace_digest.as_str()
+    }
+
+    pub fn admission_trace_evidence_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.admission_trace_digest
     }
 }

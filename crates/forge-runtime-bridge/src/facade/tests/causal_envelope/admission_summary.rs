@@ -8,13 +8,13 @@ use crate::facade::{
 fn causal_envelope_request_carries_advisory_query_admission_summary() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit-causal-advisory-summary",
         ))
         .expect("route should succeed");
     let admission_summary = BridgeCausalInspectionAdmissionSummary::advisory(
-        "query-admission:advisory",
-        "anchor:advisory",
+        crate::facade::BridgeIdentityEvidence::from_external_authority("query-admission:advisory"),
+        crate::facade::BridgeIdentityEvidence::from_external_authority("anchor:advisory"),
     )
     .expect("advisory summary should be valid");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
@@ -22,7 +22,9 @@ fn causal_envelope_request_carries_advisory_query_admission_summary() {
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:advisory",
+                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        "query-observation:advisory",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -43,7 +45,7 @@ fn causal_envelope_request_carries_advisory_query_admission_summary() {
     assert!(request
         .admission_summary()
         .summary_digest()
-        .starts_with("bridge-causal-inspection-admission-summary:sha256:"));
+        .starts_with("forge.runtime.bridge.causal-envelope-identity.v1:"));
     let admission_summary_digest = request.admission_summary().summary_digest().to_string();
 
     let envelope = runtime

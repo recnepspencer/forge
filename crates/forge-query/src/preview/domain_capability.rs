@@ -23,7 +23,7 @@ pub(crate) fn materialize_contributed_preview_workflow_foundation_artifact(
     shape_check_width: usize,
 ) -> PreviewWorkflowFoundationArtifact {
     let lifecycle_state_kind = BridgePreviewLifecycleStateKind::Active;
-    let execution_record_identity = PreviewExecutionRecordIdentity::new(format!(
+    let execution_record_identity = PreviewExecutionRecordIdentity::from_stable_name(format!(
         "preview-execution-record:domain:{}",
         hash_parts(&[
             "forge_query_domain_preview_execution_record_v1".to_string(),
@@ -31,19 +31,34 @@ pub(crate) fn materialize_contributed_preview_workflow_foundation_artifact(
             format!("canonical:{}", canonical_query_digest.as_str()),
             format!("validated:{}", validated_query_digest.as_str()),
             format!("request:{}", request_family.as_str()),
-            format!("preview_session:{}", preview_session_identity.as_str()),
-            format!("declaration:{}", declaration_identity.as_str()),
+            format!(
+                "preview_session:{}",
+                preview_session_identity.evidence_identity().as_str()
+            ),
+            format!(
+                "declaration:{}",
+                declaration_identity.evidence_identity().as_str()
+            ),
             format!("evaluation:{}", evaluation_class.as_str()),
         ])
     ));
     let digest = hash_parts(&[
         format!("binding:{binding_digest}"),
         format!("request:{}", request_family.as_str()),
-        format!("preview_session:{}", preview_session_identity.as_str()),
-        format!("declaration_identity:{}", declaration_identity.as_str()),
+        format!(
+            "preview_session:{}",
+            preview_session_identity.evidence_identity().as_str()
+        ),
+        format!(
+            "declaration_identity:{}",
+            declaration_identity.evidence_identity().as_str()
+        ),
         format!("declaration_digest:{declaration_digest}"),
         format!("lifecycle:{lifecycle_state_kind:?}"),
-        format!("execution_record:{}", execution_record_identity.as_str()),
+        format!(
+            "execution_record:{}",
+            execution_record_identity.evidence_identity().as_str()
+        ),
         format!("evaluation_class:{}", evaluation_class.as_str()),
         format!("shape_check_width:{shape_check_width}"),
     ]);

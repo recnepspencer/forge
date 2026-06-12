@@ -243,7 +243,10 @@ fn runtime_workspace_states_basis_lifecycle_surfaces() {
     .expect("current-head observation should admit");
     let preview = crate::query_basis_lifecycle::admit_observation_basis_intent(
         crate::query_basis_lifecycle::RawBasisIntent::preview(
-            "preview:state-1",
+            forge_runtime_bridge::facade::BridgePreviewSessionIdentity::from_stable_name(
+                "preview:state-1",
+            )
+            .evidence_identity(),
             crate::query_basis_lifecycle::BasisOperationLaneRequest::Observation,
         ),
     )

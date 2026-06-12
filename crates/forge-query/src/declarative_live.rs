@@ -16,6 +16,7 @@ use crate::basis::{
 use crate::canonicalization::CanonicalQueryBundle;
 use crate::identity::hash_parts;
 use crate::identity_evolution::{InspectorIdentityArtifact, InspectorIdentityClassification};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::schema_view::QuerySchemaView;
 use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
@@ -973,12 +974,12 @@ impl DeclarativeWritebackArtifact {
 pub fn declare_runtime_live_query_session(
     request: DeclarativeLiveQueryRequest,
     schema_view: QuerySchemaView,
-    snapshot_token: impl Into<String>,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
 ) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
     declare_runtime_live_query_session_with_grouped_baseline(
         request,
         schema_view,
-        snapshot_token,
+        snapshot_identity,
         None::<Vec<(String, String)>>,
     )
 }
@@ -986,7 +987,7 @@ pub fn declare_runtime_live_query_session(
 pub fn declare_runtime_live_query_session_with_grouped_baseline(
     request: DeclarativeLiveQueryRequest,
     schema_view: QuerySchemaView,
-    snapshot_token: impl Into<String>,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
     grouped_baseline_members: Option<impl IntoIterator<Item = (String, String)>>,
 ) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
     let basis_intent = ExecutionBasisIntent::new(
@@ -1001,7 +1002,7 @@ pub fn declare_runtime_live_query_session_with_grouped_baseline(
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        snapshot_token,
+        snapshot_identity.evidence_identity(),
         view_plan.validated().query().schema_basis().clone(),
         SnapshotLineageClass::CurrentHead,
     );
@@ -1524,6 +1525,9 @@ fn apply_declarative_ordering<F: crate::authoring::QueryAuthoringFamily>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::evidence_identity::{
+        ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    };
     use crate::schema_view::{SchemaFieldKind, SchemaFieldView, SchemaRelationView};
     use crate::view_shape_live::LiveViewShapeFamily;
     use crate::workflow::{WorkflowFreshnessBinding, WorkflowStalenessClass};
@@ -1540,6 +1544,16 @@ mod tests {
         )
     }
 
+    fn test_snapshot_identity(label: &'static str) -> ForgeQuerySnapshotIdentity {
+        ForgeQuerySnapshotIdentity::preview(
+            ForgeQueryEvidenceIdentity::compose(
+                ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity,
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("test_snapshot"), label)
+            .seal(),
+        )
+    }
+
     #[test]
     fn runtime_list_splice_declaration_mints_real_live_session_with_hidden_basis() {
         let request =
@@ -1550,8 +1564,9 @@ mod tests {
                     ScalarPredicateValue::String("incomplete".to_string()),
                 ));
 
+        let snapshot_identity = test_snapshot_identity("runtime-head-demo");
         let session =
-            declare_runtime_live_query_session(request, todo_schema(), "runtime-head-demo")
+            declare_runtime_live_query_session(request, todo_schema(), snapshot_identity.clone())
                 .expect("declarative list splice should plan, preflight, and lower to live");
 
         assert_eq!(session.request().target(), "Todo");
@@ -1560,8 +1575,8 @@ mod tests {
             LiveViewShapeFamily::Table
         );
         assert_eq!(
-            session.preflight().basis().identity().snapshot_token(),
-            "runtime-head-demo"
+            session.preflight().basis().identity().snapshot_identity(),
+            &snapshot_identity.evidence_identity()
         );
         assert_eq!(
             session.preflight().basis().identity().schema_basis(),
@@ -1604,7 +1619,7 @@ mod tests {
                     ScalarPredicateValue::String("incomplete".to_string()),
                 )),
             todo_schema(),
-            "runtime-head-writeback",
+            test_snapshot_identity("runtime-head-writeback"),
         )
         .expect("runtime live query should admit");
 
@@ -1642,7 +1657,7 @@ mod tests {
         let session = declare_runtime_live_query_session(
             DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::table()),
             todo_schema(),
-            "runtime-head-empty-writeback",
+            test_snapshot_identity("runtime-head-empty-writeback"),
         )
         .expect("runtime live query should admit");
 
@@ -1668,8 +1683,12 @@ mod tests {
             [SchemaRelationView::new("worth.todo_parent", 2)],
         );
 
-        let session = declare_runtime_live_query_session(request, schema, "runtime-head-traversal")
-            .expect("declarative traversal should lower into the canonical query");
+        let session = declare_runtime_live_query_session(
+            request,
+            schema,
+            test_snapshot_identity("runtime-head-traversal"),
+        )
+        .expect("declarative traversal should lower into the canonical query");
 
         assert_eq!(session.request().traversal().len(), 1);
         assert_eq!(session.canonical().query().traversal().len(), 1);
@@ -1696,8 +1715,12 @@ mod tests {
             [SchemaRelationView::new("worth.todo_parent", 2)],
         );
 
-        let error = declare_runtime_live_query_session(request, schema, "runtime-head-traversal")
-            .expect_err("duplicate traversal should fail at the declarative boundary");
+        let error = declare_runtime_live_query_session(
+            request,
+            schema,
+            test_snapshot_identity("runtime-head-traversal"),
+        )
+        .expect_err("duplicate traversal should fail at the declarative boundary");
 
         assert!(matches!(
             error,

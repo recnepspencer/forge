@@ -1,4 +1,7 @@
 use super::*;
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
+};
 
 pub(super) fn admit_authority_requirements(
     requirements: &std::collections::BTreeSet<ForgeQueryAuthorityRequirement>,
@@ -68,30 +71,35 @@ pub(super) fn attach_continuity_mutation_to_receipt(
 
 pub(super) fn synthetic_existing_assertion_receipt(
     binding: &ForgeQueryExistingTruthTargetBinding,
-    snapshot_token: &str,
-    declared_aspect_value_digest: Option<&str>,
+    snapshot_identity: &ForgeQuerySnapshotIdentity,
+    declared_aspect_value_digest: Option<&crate::evidence_identity::ForgeQueryEvidenceIdentity>,
 ) -> ForgeQueryMutationReceipt {
+    let assertion_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+        crate::evidence_identity::ForgeQueryEvidenceScope::WriteReceiptCommitIdentity,
+    )
+    .field_identity(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("binding"),
+        binding.binding_digest(),
+    )
+    .field_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("snapshot_identity"),
+        &snapshot_identity.evidence_identity(),
+    )
+    .optional_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("aspect_digest"),
+        declared_aspect_value_digest,
+    )
+    .seal();
     ForgeQueryMutationReceipt {
-        commit_identity: format!(
-            "assertion:{}",
-            crate::identity::hash_parts(&[
-                "forge_query_existing_assertion_receipt_v1".to_string(),
-                format!("binding:{}", binding.binding_digest()),
-                format!("snapshot:{snapshot_token}"),
-                format!(
-                    "aspect-digest:{}",
-                    declared_aspect_value_digest.unwrap_or("none")
-                ),
-            ])
-        ),
-        snapshot_token: snapshot_token.to_string(),
+        commit_identity: ForgeQueryCommitIdentity::preview(assertion_identity),
+        snapshot_identity: snapshot_identity.clone(),
         deltas: Vec::new(),
         bridge_authority: None,
     }
 }
 
 pub(super) fn record_same_batch_symbolic_target(
-    symbolic_targets: &mut BTreeMap<String, (String, Option<String>)>,
+    symbolic_targets: &mut BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
     reference: Option<&ForgeQuerySymbolicTargetReference>,
     declared_collection: Option<&str>,
     receipt: &ForgeQueryMutationReceipt,
@@ -133,9 +141,9 @@ pub(super) fn record_same_batch_symbolic_target(
 }
 
 pub(super) fn resolve_same_batch_symbolic_target(
-    symbolic_targets: &BTreeMap<String, (String, Option<String>)>,
+    symbolic_targets: &BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
     reference: &ForgeQuerySymbolicTargetReference,
-) -> Result<(String, Option<String>), ForgeQueryRuntimeError> {
+) -> Result<(ForgeQueryEntityIdentity, Option<String>), ForgeQueryRuntimeError> {
     let Some((resolved_entity_identity, resolved_collection)) =
         symbolic_targets.get(reference.symbol())
     else {
@@ -172,16 +180,17 @@ pub(super) fn resolve_same_batch_symbolic_target(
 }
 
 pub(super) fn resolve_symbolic_aspect_references(
-    symbolic_targets: &BTreeMap<String, (String, Option<String>)>,
+    symbolic_targets: &BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
     mut aspects: Vec<ForgeQueryAspectValue>,
     symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
 ) -> Result<Vec<ForgeQueryAspectValue>, ForgeQueryRuntimeError> {
     for reference in symbolic_aspect_references {
         let (resolved_entity_identity, _) =
             resolve_same_batch_symbolic_target(symbolic_targets, reference.reference())?;
-        aspects.push(ForgeQueryAspectValue::new_set(
+        let resolved_entity_evidence_identity = resolved_entity_identity.evidence_identity();
+        aspects.push(ForgeQueryAspectValue::new_set_evidence_identity(
             reference.aspect_path().to_string(),
-            resolved_entity_identity,
+            &resolved_entity_evidence_identity,
         )?);
     }
     Ok(aspects)
@@ -195,17 +204,17 @@ pub(super) fn combined_batch_mutation_receipt(
             ForgeQueryWorkspaceError::new("mutation batch must produce at least one write receipt"),
         ));
     };
-    let commit_identity = format!(
-        "batch:{}",
-        crate::identity::hash_parts(
-            &std::iter::once("forge_query_batch_mutation_receipt_v1".to_string())
-                .chain(
-                    receipts
-                        .iter()
-                        .map(|receipt| format!("commit:{}", receipt.commit_identity)),
-                )
-                .collect::<Vec<_>>(),
+    let commit_identity = ForgeQueryCommitIdentity::preview(
+        crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::BatchWriteReceipt,
         )
+        .field_identity_sequence(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("component_commit_identity"),
+            receipts
+                .iter()
+                .map(|receipt| receipt.commit_identity.evidence_identity()),
+        )
+        .seal(),
     );
     let deltas = receipts
         .iter()
@@ -213,7 +222,7 @@ pub(super) fn combined_batch_mutation_receipt(
         .collect::<Vec<_>>();
     Ok(ForgeQueryMutationReceipt {
         commit_identity,
-        snapshot_token: last_receipt.snapshot_token.clone(),
+        snapshot_identity: last_receipt.snapshot_identity.clone(),
         deltas,
         bridge_authority: None,
     })
@@ -221,7 +230,11 @@ pub(super) fn combined_batch_mutation_receipt(
 
 pub(super) fn classify_receipt_mutation_summary(
     receipt: &ForgeQueryMutationReceipt,
-) -> (ForgeQueryMutationFamily, Option<String>, Option<String>) {
+) -> (
+    ForgeQueryMutationFamily,
+    Option<String>,
+    Option<ForgeQueryEntityIdentity>,
+) {
     let mutation_family = receipt
         .deltas
         .first()
@@ -327,22 +340,55 @@ pub(super) fn runtime_consumer_attachment_budget() -> SubscriptionConsumerAttach
     )
 }
 
-pub(super) fn runtime_subscription_budget_policy() -> String {
-    [
-        RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY,
-        RUNTIME_SUBSCRIPTION_SLICE_BUDGET_POLICY,
-        RUNTIME_SUBSCRIPTION_BRIDGE_BUDGET_POLICY,
-        RUNTIME_SUBSCRIPTION_ADMISSION_BUDGET_POLICY,
-    ]
-    .join("|")
+pub(super) fn runtime_subscription_budget_policy(
+) -> ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity {
+    ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity::subscription_policy(
+        [
+            RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY,
+            RUNTIME_SUBSCRIPTION_SLICE_BUDGET_POLICY,
+            RUNTIME_SUBSCRIPTION_BRIDGE_BUDGET_POLICY,
+            RUNTIME_SUBSCRIPTION_ADMISSION_BUDGET_POLICY,
+        ]
+        .join(" / "),
+    )
+}
+
+pub(super) fn runtime_active_lifecycle_budget_policy(
+) -> ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity {
+    ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity::active_lifecycle_policy(
+        RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY,
+    )
+}
+
+pub(super) fn runtime_consumer_attachment_budget_policy(
+) -> ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity {
+    ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity::consumer_attachment_policy(
+        RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY,
+    )
 }
 
 #[cfg(test)]
 pub(super) fn runtime_subscription_budget_digest() -> String {
-    crate::identity::hash_parts(&[
-        "runtime_live_subscription_budget_policy_v1".to_string(),
-        runtime_subscription_budget_policy(),
-        RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY.to_string(),
-        RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY.to_string(),
-    ])
+    crate::ForgeQueryEvidenceIdentity::compose(
+        crate::evidence_identity::ForgeQueryEvidenceScope::RuntimeSubscriptionBudget,
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("policy_version"),
+        "runtime_live_subscription_budget_policy_v1",
+    )
+    .field_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("subscription_budget_policy"),
+        runtime_subscription_budget_policy().evidence_identity(),
+    )
+    .field_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("active_lifecycle_budget_policy"),
+        runtime_active_lifecycle_budget_policy().evidence_identity(),
+    )
+    .field_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("consumer_attachment_budget_policy"),
+        runtime_consumer_attachment_budget_policy().evidence_identity(),
+    )
+    .seal()
+    .as_str()
+    .to_string()
 }

@@ -8,21 +8,25 @@ use crate::facade::{
 fn causal_envelope_identity_and_receipt_bind_the_sealed_bridge_result() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new(
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
             "commit-causal-receipt",
         ))
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            "query-admission:receipt",
-            "causal-anchor:receipt",
+            crate::facade::BridgeIdentityEvidence::from_external_authority(
+                "query-admission:receipt",
+            ),
+            crate::facade::BridgeIdentityEvidence::from_external_authority("causal-anchor:receipt"),
         )
         .expect("query admission summary should be valid"),
         vec![
             external_reference(
                 BridgeCausalEvidenceOwner::Query,
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:receipt",
+                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        "query-observation:receipt",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -30,7 +34,9 @@ fn causal_envelope_identity_and_receipt_bind_the_sealed_bridge_result() {
             external_reference(
                 BridgeCausalEvidenceOwner::Relational,
                 BridgeCausalEvidenceReferenceIdentity::relational_authority(
-                    "relational-authority:receipt",
+                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        "relational-authority:receipt",
+                    ),
                 )
                 .expect("relational reference identity should be valid"),
             ),
@@ -38,7 +44,9 @@ fn causal_envelope_identity_and_receipt_bind_the_sealed_bridge_result() {
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalInvalidation,
-                    "signal-invalidation:receipt",
+                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        "signal-invalidation:receipt",
+                    ),
                 )
                 .expect("signal reference identity should be valid"),
             ),
@@ -75,7 +83,10 @@ fn causal_envelope_identity_and_receipt_bind_the_sealed_bridge_result() {
         envelope.receipt().counter_digest(),
         envelope.counters().counter_digest()
     );
-    assert!(!envelope.identity().evidence_binding_digest().is_empty());
+    assert!(!envelope
+        .identity()
+        .evidence_binding_digest_for_reporting()
+        .is_empty());
     assert!(!envelope.receipt().receipt_digest().is_empty());
     assert_eq!(envelope.bindings().len(), 4);
     assert_eq!(envelope.counters().lower_runtime_family_count(), 3);
@@ -92,27 +103,33 @@ fn causal_envelope_identity_is_stable_across_unrelated_retained_routes() {
         let runtime = runtime(BridgeRuntimePolicy::default());
         for index in 0..unrelated_routes {
             runtime
-                .route(crate::facade::TruthCommitIdentity::new(format!(
-                    "unrelated-causal-receipt-{index}"
-                )))
+                .route(crate::truth_identity_fixtures::truth_commit_fixture(
+                    format!("unrelated-causal-receipt-{index}"),
+                ))
                 .expect("unrelated route should succeed");
         }
         let routed = runtime
-            .route(crate::facade::TruthCommitIdentity::new(
+            .route(crate::truth_identity_fixtures::truth_commit_fixture(
                 "commit-causal-receipt-stable",
             ))
             .expect("target route should succeed");
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-                "query-admission:receipt-stable",
-                "causal-anchor:receipt-stable",
+                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    "query-admission:receipt-stable",
+                ),
+                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    "causal-anchor:receipt-stable",
+                ),
             )
             .expect("query admission summary should be valid"),
             vec![
                 external_reference(
                     BridgeCausalEvidenceOwner::Query,
                     BridgeCausalEvidenceReferenceIdentity::query_observation(
-                        "query-observation:receipt-stable",
+                        crate::facade::BridgeIdentityEvidence::from_external_authority(
+                            "query-observation:receipt-stable",
+                        ),
                     )
                     .expect("query observation reference identity should be valid"),
                 ),

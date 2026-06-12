@@ -1,3 +1,14 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/subscription_basis_binding_literal_private.rs:7:84
+  |
+7 |     let _request = BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new(
+  |                                                                                    ^^^ private associated function
+  |
+ ::: src/identity.rs
+  |
+  |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+  |     ----------------------------------------------------- private associated function defined here
+
 error: cannot construct `ValidatedSubscriptionBasisBinding` with struct literal syntax due to private fields
   --> tests/ui/subscription_basis_binding_literal_private.rs:11:13
    |

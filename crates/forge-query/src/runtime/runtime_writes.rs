@@ -153,10 +153,10 @@ impl ForgeQueryRuntime {
         let naming_intent = command.naming_intent().cloned();
         let continuity_intent = command.continuity_intent().cloned();
         let declared_aspect_operations = command.declared_aspect_operations();
-        let declared_aspect_value_digest = command_declared_aspect_value_digest(&command);
+        let declared_aspect_value_digest = command_declared_aspect_value_identity(&command);
         let mutation_metadata = command.mutation_metadata();
         let receipt = self
-            .execute_backend_or_synthetic_write(command, declared_aspect_value_digest.as_deref())?;
+            .execute_backend_or_synthetic_write(command, declared_aspect_value_digest.as_ref())?;
         let receipt = self.attach_optional_mutation_bundles(
             receipt,
             existing_truth_binding.as_ref(),
@@ -192,14 +192,14 @@ impl ForgeQueryRuntime {
     fn execute_backend_or_synthetic_write(
         &mut self,
         command: ForgeQueryWriteCommand,
-        declared_aspect_value_digest: Option<&str>,
+        declared_aspect_value_digest: Option<&crate::evidence_identity::ForgeQueryEvidenceIdentity>,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryRuntimeError> {
         match &command {
             ForgeQueryWriteCommand::AssertExistingAspects { binding, .. }
             | ForgeQueryWriteCommand::VerifyExistingAspects { binding, .. } => {
                 Ok(synthetic_existing_assertion_receipt(
                     binding,
-                    &self.backend.snapshot_token(),
+                    &self.current_snapshot_identity(),
                     declared_aspect_value_digest,
                 ))
             }
@@ -222,7 +222,7 @@ impl ForgeQueryRuntime {
             existing_truth_binding,
             continuity_intent,
         );
-        self.attach_optional_naming_bundle(receipt, naming_intent)
+        self.attach_optional_naming_bundle(receipt, existing_truth_binding, naming_intent)
     }
 
     fn attach_optional_continuity_bundle(
@@ -240,7 +240,7 @@ impl ForgeQueryRuntime {
         match bridge_continuity_mutation_bundle(
             intent,
             basis_binding_digest.as_deref(),
-            target_entity_identity.as_deref(),
+            target_entity_identity.as_ref(),
             target_collection.as_deref(),
         ) {
             Some(bundle) => attach_continuity_mutation_to_receipt(receipt, bundle),
@@ -251,16 +251,21 @@ impl ForgeQueryRuntime {
     fn attach_optional_naming_bundle(
         &self,
         receipt: ForgeQueryMutationReceipt,
+        existing_truth_binding: Option<&ForgeQueryExistingTruthTargetBinding>,
         naming_intent: Option<&ForgeQueryNamingMutationIntent>,
     ) -> ForgeQueryMutationReceipt {
         let Some(intent) = naming_intent else {
             return receipt;
         };
-        let (_, target_collection, target_entity_identity) =
+        let (_, mut target_collection, mut target_entity_identity) =
             classify_receipt_mutation_summary(&receipt);
+        if let Some(binding) = existing_truth_binding {
+            target_collection = binding.target_collection().map(str::to_string);
+            target_entity_identity = Some(binding.resolved_entity_artifact_identity());
+        }
         match bridge_naming_mutation_bundle(
             intent,
-            target_entity_identity.as_deref(),
+            target_entity_identity.as_ref(),
             target_collection.as_deref(),
         ) {
             Some(bundle) => attach_naming_mutation_to_receipt(receipt, bundle),
@@ -274,15 +279,17 @@ impl ForgeQueryRuntime {
         receipt: &ForgeQueryMutationReceipt,
     ) -> Option<ForgeQueryIntentExecutionProvenance> {
         shared_admission.map(|record| {
-            ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
+            let commit_evidence_identity = receipt.commit_identity.evidence_identity();
+            let snapshot_evidence_identity = receipt.snapshot_identity.evidence_identity();
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
                 record.family,
                 record.entrypoint,
                 record.execution_seam,
                 &record.decision_digest,
                 &record.handoff_digest,
                 &record.binding_digest,
-                &receipt.commit_identity,
-                &receipt.snapshot_token,
+                commit_evidence_identity.as_ref(),
+                &snapshot_evidence_identity,
             )
         })
     }
@@ -294,6 +301,7 @@ impl ForgeQueryRuntime {
         receipt: &ForgeQueryMutationReceipt,
     ) -> Option<ForgeQueryIntentDecisionTraceEnvelope> {
         shared_admission.map(|record| {
+            let commit_evidence_identity = receipt.commit_identity.evidence_identity();
             ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
                 record.family,
                 record.entrypoint,
@@ -304,7 +312,7 @@ impl ForgeQueryRuntime {
                 &record.handoff_digest,
                 record.execution_seam,
                 mutation_family.as_str(),
-                &receipt.commit_identity,
+                commit_evidence_identity.as_ref(),
                 "mutation-write",
             )
         })

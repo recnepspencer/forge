@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
 use crate::runtime::ForgeQueryIntentConsumerInspection;
 
@@ -7,12 +7,13 @@ use super::super::{
     ForgeQueryEffectPolicy, ForgeQueryEffectTriggerSourceKind,
     ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
 };
+use super::receipt_identity::effect_intent_receipt_identity;
 use super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryEffectIntentReceipt {
     effect_name: String,
-    trigger_commit_identity: String,
+    trigger_commit_evidence_identity: ForgeQueryEvidenceIdentity,
     trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
     write_adjacent_trigger: ForgeQueryEffectWriteAdjacentTrigger,
     pending_intent_target: String,
@@ -21,7 +22,7 @@ pub struct ForgeQueryEffectIntentReceipt {
     effect_policy: ForgeQueryEffectPolicy,
     phase_evidence: ForgeQueryEffectPhaseEvidence,
     intent_receipt: ForgeQueryIntentReceipt,
-    receipt_digest: String,
+    receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryEffectIntentReceipt {
@@ -29,44 +30,10 @@ impl ForgeQueryEffectIntentReceipt {
         delivery: &ForgeQueryEffectDelivery,
         intent_receipt: ForgeQueryIntentReceipt,
     ) -> Self {
-        let receipt_digest = hash_parts(&[
-            "forge_query_effect_intent_receipt_v1".to_string(),
-            format!("effect:{}", delivery.effect_name()),
-            format!("trigger_commit:{}", delivery.commit_identity()),
-            format!(
-                "trigger_source_kind:{}",
-                delivery.trigger_source_kind().as_str()
-            ),
-            format!(
-                "write_adjacent_trigger:{}",
-                delivery.write_adjacent_trigger().digest()
-            ),
-            format!("pending_target:{}", delivery.target()),
-            format!(
-                "source:{}",
-                ForgeQueryIntentSourceLane::EffectTriggered.as_str()
-            ),
-            format!("target:{}", intent_receipt.target_lane()),
-            format!("policy:{}", delivery.effect_policy().as_str()),
-            format!(
-                "phases:{}",
-                delivery
-                    .phase_evidence()
-                    .phases()
-                    .iter()
-                    .map(|phase| phase.as_str())
-                    .collect::<Vec<_>>()
-                    .join(">")
-            ),
-            format!(
-                "loop_prevention:{}",
-                delivery.phase_evidence().loop_prevention().as_str()
-            ),
-            format!("intent_receipt:{}", intent_receipt.receipt_digest()),
-        ]);
+        let receipt_identity = effect_intent_receipt_identity(delivery, &intent_receipt);
         Self {
             effect_name: delivery.effect_name().to_string(),
-            trigger_commit_identity: delivery.commit_identity().to_string(),
+            trigger_commit_evidence_identity: delivery.trigger_commit_evidence_identity().clone(),
             trigger_source_kind: delivery.trigger_source_kind(),
             write_adjacent_trigger: delivery.write_adjacent_trigger().clone(),
             pending_intent_target: delivery.target().to_string(),
@@ -75,7 +42,7 @@ impl ForgeQueryEffectIntentReceipt {
             effect_policy: delivery.effect_policy(),
             phase_evidence: delivery.phase_evidence().clone(),
             intent_receipt,
-            receipt_digest,
+            receipt_identity,
         }
     }
 
@@ -83,8 +50,8 @@ impl ForgeQueryEffectIntentReceipt {
         &self.effect_name
     }
 
-    pub fn trigger_commit_identity(&self) -> &str {
-        &self.trigger_commit_identity
+    pub fn trigger_commit_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.trigger_commit_evidence_identity
     }
 
     pub fn trigger_source_kind(&self) -> ForgeQueryEffectTriggerSourceKind {
@@ -164,6 +131,10 @@ impl ForgeQueryEffectIntentReceipt {
     }
 
     pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+        self.receipt_identity.as_str()
+    }
+
+    pub fn receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
     }
 }

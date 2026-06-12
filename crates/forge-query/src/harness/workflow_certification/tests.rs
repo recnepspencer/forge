@@ -120,9 +120,10 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
         ),
     )
     .expect("mutation declaration should admit");
+    let authority_binding_identity = binding.basis_identity();
     let lowered = lower_mutation_intent_declaration(
         &declaration,
-        binding.basis_digest(),
+        &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields_external_json: json!({"name":"after"}),
@@ -216,7 +217,7 @@ fn workflow_certification_writeback_lowering_matches_direct_bridge_control() {
     .expect("writeback lowering should succeed");
 
     let control = BridgeWritebackDeclaration::writeback_capable(
-        BridgeWritebackDeclarationIdentity::new(format!(
+        BridgeWritebackDeclarationIdentity::from_external_authority_evidence(format!(
             "forge-query:{}",
             declaration.report().declaration_digest()
         )),
@@ -358,9 +359,10 @@ fn workflow_certification_lane_specific_counters_are_exercised() {
         ),
     )
     .expect("mutation declaration should admit");
+    let authority_binding_identity = binding.basis_identity();
     let mutation_lowered = lower_mutation_intent_declaration(
         &mutation_declaration,
-        binding.basis_digest(),
+        &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields_external_json: json!({"name":"after"}),

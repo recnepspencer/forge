@@ -14,7 +14,7 @@ use super::closeout_artifacts::{
 };
 use super::scenarios;
 use super::support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
     test_bridge_with_writeback_authority,
 };
 
@@ -84,7 +84,10 @@ pub(super) fn mutation_receipt_surface() -> ReceiptSurfaceEvidence {
     let entity_id = create_entity(&mut runtime, "before", BranchId(branch.to_string()));
     let basis = EffectAuthoringBasis::from(scenarios::branch_mutation_basis(branch));
     let raw = scenarios::raw_mutation_effect_with_binding(
-        scenarios::runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, branch)),
+        scenarios::runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, branch),
+            branch,
+        ),
         entity_id,
         "after".to_string(),
     );
@@ -115,8 +118,10 @@ pub(super) fn batch_receipt_surface() -> ReceiptSurfaceEvidence {
     let left = create_entity(&mut runtime, "left", BranchId(branch.to_string()));
     let right = create_entity(&mut runtime, "right", BranchId(branch.to_string()));
     let basis = EffectAuthoringBasis::from(scenarios::branch_mutation_basis(branch));
-    let binding =
-        scenarios::runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, branch));
+    let binding = scenarios::runtime_workflow_binding_for_branch(
+        branch_snapshot_identity(&runtime, branch),
+        branch,
+    );
     let receipt = effect_batch()
         .using_basis(basis)
         .push(scenarios::raw_mutation_effect_with_binding(

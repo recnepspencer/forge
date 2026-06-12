@@ -2,16 +2,17 @@ use super::super::super::materialization::QueryCausalInspectionArtifact;
 use super::super::error::CausalInspectionCertificationError;
 use super::super::validation::validate_scale_slope;
 use super::lane::CausalInspectionScaleFixtureSize;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::runtime::inspection::causal::identity::{
     compose_causal_performance_certification_identity,
     compose_causal_performance_scale_slope_identity, compose_causal_performance_slope_identity,
-    compose_causal_performance_snapshot_identity,
+    compose_causal_performance_snapshot_identity, CausalInspectionArtifactIdentity,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalInspectionScaleCounterSnapshot {
     fixture_size: CausalInspectionScaleFixtureSize,
-    artifact_digest: String,
+    artifact_identity: CausalInspectionArtifactIdentity,
     evidence_reference_width: usize,
     anchor_derivation_slope_counter: usize,
     reference_resolution_slope_counter: usize,
@@ -20,7 +21,7 @@ pub struct CausalInspectionScaleCounterSnapshot {
     materialization_slope_counter: usize,
     artifact_serialization_slope_counter: usize,
     bridge_unindexed_scan_count: usize,
-    bridge_readmission_proof_digest: Option<String>,
+    bridge_readmission_proof_identity: Option<ForgeQueryEvidenceIdentity>,
     snapshot_digest: String,
 }
 
@@ -30,7 +31,7 @@ impl CausalInspectionScaleCounterSnapshot {
         artifact: &QueryCausalInspectionArtifact,
     ) -> Self {
         let performance = artifact.performance();
-        let artifact_digest = artifact.artifact_digest().to_string();
+        let artifact_identity = artifact.artifact_identity().clone();
         let evidence_reference_width = performance.bridge_binding_count();
         let anchor_derivation_slope_counter = performance.anchor_derivation_count();
         let reference_resolution_slope_counter = performance.evidence_reference_resolution_count();
@@ -39,12 +40,11 @@ impl CausalInspectionScaleCounterSnapshot {
         let materialization_slope_counter = performance.materialization_count();
         let artifact_serialization_slope_counter = performance.artifact_serialization_count();
         let bridge_unindexed_scan_count = performance.bridge_unindexed_scan_count();
-        let bridge_readmission_proof_digest = artifact
-            .bridge_readmission_proof_digest()
-            .map(str::to_string);
+        let bridge_readmission_proof_identity =
+            artifact.bridge_readmission_proof_identity().cloned();
         let snapshot_digest = snapshot_digest(SnapshotDigestParts {
             fixture_size,
-            artifact_digest: &artifact_digest,
+            artifact_identity: &artifact_identity,
             evidence_reference_width,
             anchor_derivation_slope_counter,
             reference_resolution_slope_counter,
@@ -53,11 +53,11 @@ impl CausalInspectionScaleCounterSnapshot {
             materialization_slope_counter,
             artifact_serialization_slope_counter,
             bridge_unindexed_scan_count,
-            bridge_readmission_proof_digest: bridge_readmission_proof_digest.as_deref(),
+            bridge_readmission_proof_identity: bridge_readmission_proof_identity.as_ref(),
         });
         Self {
             fixture_size,
-            artifact_digest,
+            artifact_identity,
             evidence_reference_width,
             anchor_derivation_slope_counter,
             reference_resolution_slope_counter,
@@ -66,7 +66,7 @@ impl CausalInspectionScaleCounterSnapshot {
             materialization_slope_counter,
             artifact_serialization_slope_counter,
             bridge_unindexed_scan_count,
-            bridge_readmission_proof_digest,
+            bridge_readmission_proof_identity,
             snapshot_digest,
         }
     }
@@ -76,7 +76,7 @@ impl CausalInspectionScaleCounterSnapshot {
     }
 
     pub fn artifact_digest(&self) -> &str {
-        &self.artifact_digest
+        self.artifact_identity.as_str()
     }
 
     pub fn evidence_reference_width(&self) -> usize {
@@ -112,7 +112,9 @@ impl CausalInspectionScaleCounterSnapshot {
     }
 
     pub fn bridge_readmission_proof_digest(&self) -> Option<&str> {
-        self.bridge_readmission_proof_digest.as_deref()
+        self.bridge_readmission_proof_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
     pub fn snapshot_digest(&self) -> &str {
@@ -127,7 +129,7 @@ impl CausalInspectionScaleCounterSnapshot {
         self.bridge_envelope_slope_counter = bridge_envelope_slope_counter;
         self.snapshot_digest = snapshot_digest(SnapshotDigestParts {
             fixture_size: self.fixture_size,
-            artifact_digest: &self.artifact_digest,
+            artifact_identity: &self.artifact_identity,
             evidence_reference_width: self.evidence_reference_width,
             anchor_derivation_slope_counter: self.anchor_derivation_slope_counter,
             reference_resolution_slope_counter: self.reference_resolution_slope_counter,
@@ -136,7 +138,7 @@ impl CausalInspectionScaleCounterSnapshot {
             materialization_slope_counter: self.materialization_slope_counter,
             artifact_serialization_slope_counter: self.artifact_serialization_slope_counter,
             bridge_unindexed_scan_count: self.bridge_unindexed_scan_count,
-            bridge_readmission_proof_digest: self.bridge_readmission_proof_digest.as_deref(),
+            bridge_readmission_proof_identity: self.bridge_readmission_proof_identity.as_ref(),
         });
         self
     }
@@ -307,7 +309,7 @@ impl CausalInspectionPerformanceCertificationBundle {
 
 struct SnapshotDigestParts<'a> {
     fixture_size: CausalInspectionScaleFixtureSize,
-    artifact_digest: &'a str,
+    artifact_identity: &'a CausalInspectionArtifactIdentity,
     evidence_reference_width: usize,
     anchor_derivation_slope_counter: usize,
     reference_resolution_slope_counter: usize,
@@ -316,13 +318,13 @@ struct SnapshotDigestParts<'a> {
     materialization_slope_counter: usize,
     artifact_serialization_slope_counter: usize,
     bridge_unindexed_scan_count: usize,
-    bridge_readmission_proof_digest: Option<&'a str>,
+    bridge_readmission_proof_identity: Option<&'a ForgeQueryEvidenceIdentity>,
 }
 
 fn snapshot_digest(parts: SnapshotDigestParts<'_>) -> String {
     compose_causal_performance_snapshot_identity(
         parts.fixture_size,
-        parts.artifact_digest,
+        parts.artifact_identity,
         parts.evidence_reference_width,
         parts.anchor_derivation_slope_counter,
         parts.reference_resolution_slope_counter,
@@ -331,7 +333,7 @@ fn snapshot_digest(parts: SnapshotDigestParts<'_>) -> String {
         parts.materialization_slope_counter,
         parts.artifact_serialization_slope_counter,
         parts.bridge_unindexed_scan_count,
-        parts.bridge_readmission_proof_digest,
+        parts.bridge_readmission_proof_identity,
     )
     .as_str()
     .to_string()

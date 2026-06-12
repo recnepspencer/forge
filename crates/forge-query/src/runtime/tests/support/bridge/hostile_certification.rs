@@ -202,11 +202,11 @@ pub(in crate::runtime::tests) fn hostile_write_receipt_digest(
     )
     .field_identity(
         crate::ForgeQueryEvidenceTag::new("commit_identity"),
-        receipt.commit_identity(),
+        receipt.commit_evidence_identity(),
     )
     .field_identity(
-        crate::ForgeQueryEvidenceTag::new("snapshot_token"),
-        receipt.snapshot_token(),
+        crate::ForgeQueryEvidenceTag::new("snapshot_identity"),
+        receipt.snapshot_evidence_identity(),
     )
     .field_shape(
         crate::ForgeQueryEvidenceTag::new("declared_aspect_value_digest"),
@@ -226,8 +226,8 @@ pub(in crate::runtime::tests) fn hostile_published_artifact_digest(
         ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
     )
     .field_identity(
-        crate::ForgeQueryEvidenceTag::new("snapshot_token"),
-        artifact.snapshot_token(),
+        crate::ForgeQueryEvidenceTag::new("snapshot_identity"),
+        artifact.snapshot_identity().evidence_identity().as_str(),
     )
     .field_shape(
         crate::ForgeQueryEvidenceTag::new("view_name"),
@@ -291,9 +291,8 @@ pub(in crate::runtime::tests) fn hostile_journal_gap_count(
         .filter_map(|receipt| {
             receipt
                 .commit_identity()
-                .rsplit('-')
-                .next()
-                .and_then(|suffix| suffix.parse::<usize>().ok())
+                .bridge_identity()
+                .and_then(|identity| identity.relational_commit_id())
         })
         .collect::<Vec<_>>();
     ordinals

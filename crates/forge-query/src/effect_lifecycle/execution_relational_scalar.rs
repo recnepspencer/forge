@@ -4,7 +4,9 @@ use forge_relational::facade::commit_strategies::{
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{CommitResult, TransactionOptions};
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::workflow::LoweredMutationIntentDeclaration;
 
 use super::execution::{lower_runtime_error, EffectExecutionDenialKind};
@@ -70,35 +72,53 @@ pub(super) fn mutation_transaction_options(
 pub(crate) fn mutation_target_branch(
     declaration: &LoweredMutationIntentDeclaration,
 ) -> Result<BranchId, (EffectExecutionDenialKind, String)> {
-    parse_target_branch_binding(declaration.authority_binding().binding_digest())
+    declaration
+        .authority_binding()
+        .runtime_target_branch()
+        .cloned()
+        .ok_or_else(|| {
+            (
+                EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+                format!(
+                    "lowered relational mutation execution requires a typed target branch for authority binding `{}`",
+                    declaration.authority_binding().binding_digest()
+                ),
+            )
+        })
 }
 
 pub(super) fn ensure_exact_basis_freshness(
     runtime: &RelationalRuntime,
     declaration: &LoweredMutationIntentDeclaration,
 ) -> Result<(), (EffectExecutionDenialKind, String)> {
-    let Some(expected_snapshot_token) = declaration.authority_binding().runtime_snapshot_token()
+    let Some(expected_snapshot_identity) =
+        declaration.authority_binding().runtime_snapshot_identity()
     else {
         return Ok(());
     };
     let target_branch = mutation_target_branch(declaration)?;
-    let observed_snapshot_token = current_branch_snapshot_token(runtime, &target_branch)?;
-    if expected_snapshot_token == observed_snapshot_token {
+    let observed_snapshot_identity = current_branch_snapshot_identity(runtime, &target_branch)?;
+    let expected_snapshot_evidence = expected_snapshot_identity.evidence_identity();
+    let observed_snapshot_evidence = observed_snapshot_identity.evidence_identity();
+    if expected_snapshot_evidence == observed_snapshot_evidence {
         return Ok(());
     }
     Err((
         EffectExecutionDenialKind::RelationalExactBasisStale,
         format!(
-            "lowered relational mutation execution preserved runtime snapshot `{expected_snapshot_token}` for branch `{}` but current authority state is `{observed_snapshot_token}`",
+            "lowered relational mutation execution preserved runtime snapshot `{}` for branch `{}` but current authority state is `{}`",
+            expected_snapshot_evidence.as_ref(),
             target_branch.0
+            ,
+            observed_snapshot_evidence.as_ref()
         ),
     ))
 }
 
-fn current_branch_snapshot_token(
+fn current_branch_snapshot_identity(
     runtime: &RelationalRuntime,
     branch: &BranchId,
-) -> Result<String, (EffectExecutionDenialKind, String)> {
+) -> Result<ForgeQuerySnapshotIdentity, (EffectExecutionDenialKind, String)> {
     let version_id = runtime
         .history()
         .branch_head(branch)
@@ -112,32 +132,21 @@ fn current_branch_snapshot_token(
                 ),
             )
         })?;
-    Ok(format!("snapshot-{version_id}"))
-}
-
-fn parse_target_branch_binding(
-    binding_digest: &str,
-) -> Result<BranchId, (EffectExecutionDenialKind, String)> {
-    if binding_digest == "runtime-current-head" {
-        return Ok(BranchId("main".to_string()));
-    }
-    if let Some(branch_identity) = binding_digest.strip_prefix("relational-branch:") {
-        return Ok(branch_id_from_identity(branch_identity));
-    }
-    if let Some((_, branch_identity)) = binding_digest.rsplit_once(":branch:") {
-        return Ok(branch_id_from_identity(branch_identity));
-    }
-    Err((
-        EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
-        format!(
-            "lowered relational mutation execution could not derive a target branch from authority binding `{binding_digest}`"
-        ),
+    Ok(ForgeQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(stable_branch_snapshot_id(branch), version_id),
     ))
 }
 
-fn branch_id_from_identity(branch_identity: &str) -> BranchId {
-    let branch_identity = branch_identity
-        .split_once(":snapshot:")
-        .map_or(branch_identity, |(branch_identity, _)| branch_identity);
-    BranchId(branch_identity.to_string())
+fn stable_branch_snapshot_id(branch: &BranchId) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in b"effect-current-branch-snapshot"
+        .iter()
+        .copied()
+        .chain([0])
+        .chain(branch.0.bytes())
+    {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211);
+    }
+    acc
 }

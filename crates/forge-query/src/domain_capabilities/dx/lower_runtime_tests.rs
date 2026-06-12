@@ -13,7 +13,8 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
     ForgeQueryLowerRuntimeBoundaryExecutionReceipt, ForgeQueryLowerRuntimeCapabilityEligibility,
     ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeRouteKind,
-    ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
+    ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeRouteSubjectIdentity,
+    ForgeQueryLowerRuntimeSeamKey,
 };
 use crate::runtime::{
     anchor_causal_observation, causal_inspection_target, resolve_causal_evidence_references,
@@ -221,32 +222,79 @@ fn lower_runtime_envelope(target_digest: &str) -> ForgeQueryLowerRuntimeBoundary
         ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
         ForgeQueryLowerRuntimeAuthorityOwner::Query,
         "signal-invalidation-routing",
-        target_digest,
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "domain-capabilities-dx-target",
+        )
+        .field_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("test_target"),
+            target_digest,
+        )
+        .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(request, "detail");
-    let route = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, target_digest);
-    let boundary = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
-        &route,
-        format!("retained:{target_digest}"),
+    let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+        crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+    )
+    .field_identity(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
+        "detail",
+    )
+    .seal();
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+        request,
+        &detail_identity,
     );
+    let route = ForgeQueryLowerRuntimeRoutePlan::new(
+        eligibility,
+        ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "domain-capabilities-dx-route",
+            &detail_identity,
+        ),
+    );
+    let retained_evidence =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "domain-capabilities-dx-test",
+            &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+                crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+            )
+            .field_identity(
+                crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
+                format!("retained:{target_digest}"),
+            )
+            .seal(),
+        );
+    let boundary =
+        ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&route, &retained_evidence);
 
     ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
         ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
         &route,
         &boundary,
-        &format!("retained:{target_digest}"),
+        &retained_evidence,
     )
 }
 
 fn write_authority_boundary_source(
     target_digest: &str,
 ) -> crate::runtime::WriteAuthorityExecutionReceipt {
+    use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
+
     let command = ForgeQueryWriteCommand::Delete {
-        entity_identity: target_digest.to_string(),
+        entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+            target_digest,
+        ),
     };
     let mutation_receipt = crate::memory_workspace::ForgeQueryMutationReceipt {
-        commit_identity: format!("commit:{target_digest}"),
-        snapshot_token: format!("snapshot:{target_digest}"),
+        commit_identity: crate::memory_workspace::ForgeQueryCommitIdentity::preview(
+            crate::ForgeQueryEvidenceIdentity::compose(
+                crate::ForgeQueryEvidenceScope::WriteReceiptCommitIdentity,
+            )
+            .field_identity(crate::ForgeQueryEvidenceTag::new("target"), target_digest)
+            .seal(),
+        ),
+        snapshot_identity:
+            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(1, 1),
+            ),
         deltas: Vec::new(),
         bridge_authority: None,
     };

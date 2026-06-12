@@ -6,8 +6,7 @@ use crate::facade::{
     BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgeFailureLocalizationRequest,
     BridgePolicyDeclaration, BridgePolicyDeclarationIdentity, BridgeRequestKind,
     BridgeTemporalAsyncFailureClass, BridgeTemporalAsyncFailureSubcode, BridgeTemporalSignalBasis,
-    BridgeTemporalTruthViewBasis, BridgeTemporalWakeEvidence, TruthBranchIdentity,
-    TruthCommitIdentity, TruthSnapshotIdentity,
+    BridgeTemporalTruthViewBasis, BridgeTemporalWakeEvidence,
 };
 
 #[test]
@@ -15,12 +14,12 @@ fn temporal_basis_denial_localizes_as_cross_branch_failure() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let denial = match crate::facade::AdmittedBridgeTemporalBasis::admit(
         BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeTemporalSignalBasis::new(
-            TruthBranchIdentity::new("truth-other"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-other"),
             ClockDomain::MonotonicExecution,
             ClockTick::new(7),
             ClockAdvanceOrdinal::new(2),
@@ -57,9 +56,9 @@ fn historical_temporal_previous_value_gap_localizes_as_temporal_readiness_failur
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::historical(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-historical"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-historical"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -72,8 +71,8 @@ fn historical_temporal_previous_value_gap_localizes_as_temporal_readiness_failur
         .admit_historical_truth_view_basis(temporal_basis.truth_basis())
         .expect("historical truth basis should admit");
     let retained = runtime.retain_historical_previous_value_evidence(
-        TruthBranchIdentity::new("analysis"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![],
     );
     let rejection = runtime
@@ -101,9 +100,9 @@ fn duplicate_temporal_wake_localizes_as_duplicate_ordering_cause() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted = admitted_detail_subscription_in_runtime(&runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("analysis"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -141,8 +140,10 @@ fn duplicate_temporal_wake_localizes_as_duplicate_ordering_cause() {
 fn preview_subscription_instance_mismatch_localizes_as_async_identity_failure() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let preview_active = preview_active_subscription(&runtime, "phase15-preview-mismatch");
-    let authoritative_ready =
-        activation_ready_for_snapshot(&runtime, TruthSnapshotIdentity::new("snapshot-a"));
+    let authoritative_ready = activation_ready_for_snapshot(
+        &runtime,
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+    );
     let rejection = admit_subscription_backed_identity(
         &runtime,
         NodeId::new(771, 0),
@@ -195,10 +196,10 @@ fn payload_contract_mismatch_localizes_as_completion_envelope_failure() {
 fn duplicate_truth_patch_suppression_localizes_as_ordering_suppressed_cause() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
     );
     let ordering = runtime.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
         BridgeMixedCauseOrderingLaneKind::Authoritative,
@@ -231,9 +232,9 @@ fn stale_signal_generation_revalidation_localizes_as_revalidation_rejected() {
         &runtime,
         forge_signal::facade::NodeId::new(777, 0),
         crate::facade::BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
 

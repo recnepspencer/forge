@@ -11,10 +11,10 @@ fn pricing_shock_certification_matrix_distinguishes_control_replay_and_hostile_l
     let hostile_source = InMemoryRelationalBridgeSource::default();
     hostile_source.insert_committed_patch(pricing_patch(
         pricing_patch_envelope_identity(
-            TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit:steel-missing-snapshot"),
-            TruthPatchIdentity::new("patch:steel-missing-snapshot"),
-            TruthSnapshotIdentity::new("snapshot:pricing-missing"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-missing-snapshot"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch:steel-missing-snapshot"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-missing"),
         ),
         "steel",
     ));
@@ -24,15 +24,15 @@ fn pricing_shock_certification_matrix_distinguishes_control_replay_and_hostile_l
 
     assert_eq!(
         control.reference.route_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-main")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main")
     );
     assert_eq!(
         control.reference.source_branch,
-        TruthBranchIdentity::new("main")
+        crate::truth_identity_fixtures::truth_branch_fixture("main")
     );
     assert_eq!(
         control.reference.source_commit,
-        TruthCommitIdentity::new("commit:steel-main")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main")
     );
     assert_eq!(control.reference.route_entry_count, 2);
     assert_eq!(
@@ -59,7 +59,7 @@ fn pricing_shock_certification_matrix_distinguishes_control_replay_and_hostile_l
     );
     assert_eq!(
         control.replay.source_commit,
-        TruthCommitIdentity::new("commit:steel-main")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main")
     );
     assert_eq!(
         hostile.failure_class,
@@ -67,26 +67,28 @@ fn pricing_shock_certification_matrix_distinguishes_control_replay_and_hostile_l
     );
     assert_eq!(
         hostile.source_commit,
-        TruthCommitIdentity::new("commit:steel-missing-snapshot")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-missing-snapshot")
     );
     assert_eq!(
         hostile.source_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-missing")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-missing")
     );
 }
-
 #[test]
 fn pricing_shock_aspect_lane_preserves_fine_grained_truth_and_history() {
     let aspect = capture_pricing_aspect_bundle(BridgeRuntimePolicy::development());
 
     assert_eq!(
         aspect.snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-aspect")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-aspect")
     );
-    assert_eq!(aspect.source_branch, TruthBranchIdentity::new("main"));
+    assert_eq!(
+        aspect.source_branch,
+        crate::truth_identity_fixtures::truth_branch_fixture("main")
+    );
     assert_eq!(
         aspect.source_commit,
-        TruthCommitIdentity::new("commit:steel-aspect")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-aspect")
     );
     assert_eq!(
         aspect.truth_surface_kind,
@@ -106,7 +108,7 @@ fn pricing_shock_aspect_lane_preserves_fine_grained_truth_and_history() {
     );
     assert_eq!(
         aspect.target_canonical_basis,
-        expected_cost_usd_target_basis()
+        EXPECTED_COST_USD_TARGET_BASIS
     );
     assert_eq!(aspect.invalidation_target, "price:bicycle");
 }
@@ -172,7 +174,7 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
 
     assert_eq!(
         bundle.matrix.reference.route_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-main")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main")
     );
     assert_eq!(
         bundle.matrix.reference.main_rubber_cost_cents,
@@ -196,7 +198,7 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     );
     assert_eq!(
         bundle.aspect.source_commit,
-        TruthCommitIdentity::new("commit:steel-aspect")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-aspect")
     );
     assert_eq!(
         bundle.aspect.aspect_registration_id,
@@ -204,7 +206,7 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     );
     assert_eq!(
         bundle.matrix.replay.source_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-main")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main")
     );
     assert_eq!(
         bundle.discard.replay_outcome,
@@ -223,11 +225,11 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     assert_eq!(bundle.fanout.second_delivery_target_count, 100);
     assert_eq!(
         bundle.fanout.second_source_commit,
-        TruthCommitIdentity::new("commit:steel-fanout-b")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-fanout-b")
     );
     assert_eq!(
         bundle.restart_replay.source_commit,
-        TruthCommitIdentity::new("commit:steel-main")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main")
     );
     assert_eq!(
         bundle.restart_failure.error_kind,
@@ -280,15 +282,15 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     );
     assert_eq!(
         bundle.provenance.main_commit,
-        TruthCommitIdentity::new("commit:rubber-main")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-main")
     );
     assert_eq!(
         bundle.provenance.shock_commit,
-        TruthCommitIdentity::new("commit:rubber-shock")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock")
     );
     assert_eq!(
         bundle.provenance.shock_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-shock")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-shock")
     );
     assert_eq!(
         bundle.provenance.shock_delta_microunits,
@@ -302,7 +304,7 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     );
     assert_eq!(
         bundle.aspect.target_canonical_basis,
-        expected_cost_usd_target_basis()
+        EXPECTED_COST_USD_TARGET_BASIS
     );
     assert_eq!(
         bundle.merge.merged_fine_grained_match_status,
@@ -404,6 +406,4 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     assert!(!bundle.digest().is_empty());
 }
 
-fn expected_cost_usd_target_basis() -> &'static str {
-    "committed-patch-target|locator=version=bridge.committed-patch-target.v1;domain=locator;entries=[locus=named:aspect_field.aspect_key,kind=locator,value=exact-text:cost;locus=named:aspect_field.authority,kind=locator,value=exact-text:authoritative;locus=named:aspect_field.field_path,kind=locator,value=exact-text:usd;locus=named:aspect_field.kind,kind=locator,value=exact-text:aspect]|mutation-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:cost.mutation.field.usd,kind=mask,value=exact-text:usd]|projection-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:cost.projection.field.usd,kind=mask,value=exact-text:usd]|kind=entity-field"
-}
+const EXPECTED_COST_USD_TARGET_BASIS: &str = "committed-patch-target|locator=version=bridge.committed-patch-target.v1;domain=locator;entries=[locus=named:aspect_field.aspect_key,kind=locator,value=exact-text:cost;locus=named:aspect_field.authority,kind=locator,value=exact-text:authoritative;locus=named:aspect_field.field_path,kind=locator,value=exact-text:usd;locus=named:aspect_field.kind,kind=locator,value=exact-text:aspect]|mutation-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:cost.mutation.field.usd,kind=mask,value=exact-text:usd]|projection-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:cost.projection.field.usd,kind=mask,value=exact-text:usd]|kind=entity-field";

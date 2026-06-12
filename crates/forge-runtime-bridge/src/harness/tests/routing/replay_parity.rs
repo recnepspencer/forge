@@ -1,5 +1,4 @@
 use crate::facade::BridgeRouteRequest;
-use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgePolicyDeclaration,
     BridgePolicyDeclarationIdentity, BridgeRequestKind,
@@ -15,14 +14,14 @@ use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBr
 fn replayed_slice_route_matches_original_canonical_slice_artifact() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = build_runtime_with_aspects(
@@ -36,7 +35,7 @@ fn replayed_slice_route_matches_original_canonical_slice_artifact() {
         .deliver_invalidation(
             runtime
                 .plan_committed_patch(BridgeRouteRequest::for_commit(
-                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
                 ))
                 .expect("slice route should plan"),
         )
@@ -67,14 +66,14 @@ fn replayed_slice_route_matches_original_canonical_slice_artifact() {
 fn replayed_policy_scoped_route_preserves_route_policy_digest_in_route_record() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = build_runtime_with_aspects(
@@ -103,9 +102,9 @@ fn replayed_policy_scoped_route_preserves_route_policy_digest_in_route_record() 
         .deliver_invalidation(
             runtime
                 .plan_committed_patch_with_route_policy(
-                    BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new(
-                        "commit-a",
-                    )),
+                    BridgeRouteRequest::for_commit(
+                        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    ),
                     &route_policy,
                 )
                 .expect("policy scoped route should plan"),

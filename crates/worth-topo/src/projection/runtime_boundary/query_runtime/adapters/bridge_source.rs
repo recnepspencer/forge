@@ -13,9 +13,9 @@ use forge_runtime_bridge::facade::{
 
 use super::binding::TopologyRuntimeBinding;
 use super::bridge_source_support::{
-    missing_aspect_error, missing_record_error, parse_bridge_commit_identity,
-    parse_bridge_record_identity, parse_bridge_snapshot_identity,
-    snapshot_aspect_value_for_entity_aspect, snapshot_aspect_value_for_relation_aspect,
+    bridge_commit_id, bridge_record_ref, missing_aspect_error, missing_record_error,
+    parse_bridge_snapshot_identity, snapshot_aspect_value_for_entity_aspect,
+    snapshot_aspect_value_for_relation_aspect,
 };
 
 #[derive(Clone)]
@@ -34,11 +34,10 @@ impl CommittedPatchSource for TopologyRuntimeBridgeSource {
         &self,
         request: RelationalCommittedPatchRequest,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        let commit_id = parse_bridge_commit_identity(request.commit_identity().as_str())?;
+        let commit_id = bridge_commit_id(request.commit_identity())?;
         let Some(runtime) = self.binding.runtime() else {
             return Err(RelationalBridgeSourceError::new(format!(
-                "topology snapshot certification runtime does not expose committed patch loading for `{}`",
-                request.commit_identity()
+                "topology snapshot certification runtime does not expose committed patch loading for requested commit"
             )));
         };
         let runtime = runtime
@@ -47,14 +46,12 @@ impl CommittedPatchSource for TopologyRuntimeBridgeSource {
         let publication = runtime.publication();
         let bundle = publication.latest_bundle().ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
-                "topology runtime has no published bundle for bridge commit `{}`",
-                request.commit_identity()
+                "topology runtime has no published bundle for requested bridge commit"
             ))
         })?;
         if bundle.commit.commit_id != commit_id {
             return Err(RelationalBridgeSourceError::new(format!(
-                "topology runtime could not resolve authoritative commit `{}`",
-                request.commit_identity()
+                "topology runtime could not resolve requested authoritative commit"
             )));
         }
         Ok(publication_bundle_to_bridge_envelope(bundle))
@@ -88,8 +85,8 @@ impl SnapshotReadSource for TopologyRuntimeBridgeSource {
                 if expected != *identity {
                     return Err(RelationalBridgeSourceError::new(format!(
                         "topology snapshot certification runtime only exposes authoritative snapshot `{}`; requested `{}`",
-                        expected.as_str(),
-                        identity.as_str()
+                        expected.evidence_identity().as_str(),
+                        identity.evidence_identity().as_str()
                     )));
                 }
                 Ok(Box::new(TopologySnapshotReader::snapshot_read_only(
@@ -108,8 +105,7 @@ impl TruthBranchHeadSource for TopologyRuntimeBridgeSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let Some(runtime) = self.binding.runtime() else {
             return Err(RelationalBridgeSourceError::new(format!(
-                "topology snapshot certification runtime does not expose branch-head patch loading for `{}`",
-                branch_identity.as_str()
+                "topology snapshot certification runtime does not expose branch-head patch loading for requested branch"
             )));
         };
         let runtime = runtime
@@ -118,15 +114,19 @@ impl TruthBranchHeadSource for TopologyRuntimeBridgeSource {
         let publication = runtime.publication();
         let bundle = publication.latest_bundle().ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
-                "topology runtime has no published bundle for branch `{}`",
-                branch_identity.as_str()
+                "topology runtime has no published bundle for requested branch"
             ))
         })?;
-        if bundle.commit.branch_id.0 != branch_identity.as_str() {
+        let Some(requested_branch) = branch_identity.relational_branch_id() else {
+            return Err(RelationalBridgeSourceError::new(
+                "topology bridge source requires typed relational branch identity",
+            ));
+        };
+        if bundle.commit.branch_id.0 != requested_branch {
             return Err(RelationalBridgeSourceError::new(format!(
                 "topology current-head bridge source only exposes latest branch `{}`; requested `{}`",
                 bundle.commit.branch_id.0,
-                branch_identity.as_str()
+                requested_branch
             )));
         }
         Ok(publication_bundle_to_bridge_envelope(bundle))
@@ -185,7 +185,12 @@ impl TruthSnapshotReader for TopologySnapshotReader {
     ) -> Result<SnapshotReadPacketResult, BridgeSnapshotReadError> {
         let mut records = Vec::with_capacity(request.reads().len());
         for read in request.reads() {
-            let record_ref = parse_bridge_record_identity(read.entity_identity())
+            let record_identity = read.relational_record_identity_parts().ok_or_else(|| {
+                BridgeSnapshotReadError::new(
+                    "topology snapshot reader requires typed relational record identity",
+                )
+            })?;
+            let record_ref = bridge_record_ref(record_identity)
                 .map_err(|error| BridgeSnapshotReadError::new(error.to_string()))?;
             let payload = match &self.mode {
                 TopologySnapshotReadMode::CurrentHead {
@@ -269,13 +274,13 @@ fn resolve_bridge_snapshot_version(
         .ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
                 "topology bridge snapshot identity `{}` does not resolve to the current-head published bundle",
-                identity.as_str()
+                identity.evidence_identity().as_str()
             ))
         })?;
     if observed_snapshot.version_id != expected_version_id {
         return Err(RelationalBridgeSourceError::new(format!(
             "topology bridge snapshot identity `{}` expected version `{}` but authoritative binding resolved to version `{}`",
-            identity.as_str(),
+            identity.evidence_identity().as_str(),
             expected_version_id.0,
             observed_snapshot.version_id.0
         )));

@@ -1,5 +1,6 @@
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 use crate::runtime::{
     ForgeQueryGraphCompositionAdmissionTrace, ForgeQueryGraphCompositionAdmissionTraceStage,
@@ -32,7 +33,7 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
             violation.invariant_family().to_string(),
             violation.message().to_string(),
             context.graph_composition_domain_invariant_summary(),
-            violation.violation_digest().to_string(),
+            violation.violation_evidence_digest().clone(),
         )
     }
 
@@ -51,7 +52,7 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
             invariant_family,
             message,
             domain_invariant_summary,
-            violation.violation_digest().to_string(),
+            violation.violation_evidence_digest().clone(),
         )
     }
 
@@ -89,7 +90,7 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
         invariant_family: String,
         message: String,
         domain_invariant_summary: ForgeQueryGraphCompositionDomainInvariantSummary,
-        violation_digest: String,
+        violation_digest: ForgeQueryEvidenceIdentity,
     ) -> Self {
         use ForgeQueryGraphCompositionAdmissionTraceStage as Stage;
 
@@ -114,17 +115,17 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
             ForgeQueryEvidenceTag::new("invariant_family"),
             invariant_family.as_str(),
         )
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("summary_digest"),
-            domain_invariant_summary.summary_digest(),
+            domain_invariant_summary.summary_evidence_digest(),
         )
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("admission_trace_digest"),
-            admission_trace.admission_trace_digest(),
+            admission_trace.admission_trace_evidence_digest(),
         )
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("violation_digest"),
-            violation_digest.as_str(),
+            &violation_digest,
         )
         .seal()
         .as_str()

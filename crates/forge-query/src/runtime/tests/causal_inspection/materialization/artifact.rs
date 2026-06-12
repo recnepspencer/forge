@@ -1,7 +1,7 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeDenialKind,
     BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner, BridgeCausalEvidenceReferenceIdentity,
-    BridgeCausalInspectionAdmissionSummary, TruthCommitIdentity,
+    BridgeCausalInspectionAdmissionSummary, BridgeIdentityEvidence, TruthCommitIdentity,
 };
 
 use super::super::super::super::*;
@@ -11,7 +11,9 @@ use super::support::*;
 fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-query-materialization"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-query-materialization",
+        ))
         .unwrap();
     let reference_set = changed_reference_set(routed.route_identity());
     let flow = admit_causal_inspection(request_for(
@@ -22,8 +24,12 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
         panic!("reference-only cross-runtime inspection should admit");
     };
     let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        admitted.admitted_inspection_digest(),
-        admitted.subject().anchor_digest(),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            admitted.admitted_inspection_digest(),
+        ),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            admitted.subject().anchor_digest(),
+        ),
     )
     .expect("query admission summary should be valid");
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
@@ -31,14 +37,18 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    admitted.subject().query_observation_digest(),
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        admitted
+                            .subject()
+                            .query_observation_bridge_evidence_identity(),
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().as_str(),
+                    routed.route_identity().evidence_identity(),
                 )
                 .expect("route evidence reference identity should be valid"),
             ),
@@ -63,7 +73,10 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
 
     assert_eq!(
         artifact.query_observation_digest(),
-        admitted.subject().query_observation_digest()
+        admitted
+            .subject()
+            .query_observation_bridge_evidence_identity()
+            .as_str()
     );
     assert_eq!(
         artifact.result_shape_context_digest(),
@@ -112,7 +125,9 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
 fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identity() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-query-advisory"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-query-advisory",
+        ))
         .unwrap();
     let reference_set = changed_reference_set(routed.route_identity());
     let flow = admit_causal_inspection(request_for(
@@ -123,8 +138,12 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
         panic!("materialized detail should narrow to advisory");
     };
     let summary = BridgeCausalInspectionAdmissionSummary::advisory(
-        advisory.advisory_inspection_digest(),
-        advisory.subject().anchor_digest(),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            advisory.advisory_inspection_digest(),
+        ),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            advisory.subject().anchor_digest(),
+        ),
     )
     .expect("query advisory summary should be valid");
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
@@ -132,14 +151,18 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    advisory.subject().query_observation_digest(),
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        advisory
+                            .subject()
+                            .query_observation_bridge_evidence_identity(),
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().as_str(),
+                    routed.route_identity().evidence_identity(),
                 )
                 .expect("route evidence reference identity should be valid"),
             ),
@@ -183,7 +206,10 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
 
     assert_eq!(
         artifact.query_observation_digest(),
-        advisory.subject().query_observation_digest()
+        advisory
+            .subject()
+            .query_observation_bridge_evidence_identity()
+            .as_str()
     );
     assert_eq!(
         artifact.result_shape_context_digest(),
@@ -223,7 +249,9 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
 fn denied_query_causal_artifact_carries_boundary_context_without_bridge_envelope() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-query-denied"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-query-denied",
+        ))
         .unwrap();
     let reference_set = changed_reference_set(routed.route_identity());
     let receipt = reference_set.anchor().observation_receipt();
@@ -257,7 +285,10 @@ fn denied_query_causal_artifact_carries_boundary_context_without_bridge_envelope
 
     assert_eq!(
         artifact.query_observation_digest(),
-        denied.subject().query_observation_digest()
+        denied
+            .subject()
+            .query_observation_bridge_evidence_identity()
+            .as_str()
     );
     assert_eq!(
         artifact.result_shape_context_digest(),
@@ -278,7 +309,9 @@ fn denied_query_causal_artifact_carries_boundary_context_without_bridge_envelope
 fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-query-bridge-denied"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-query-bridge-denied",
+        ))
         .unwrap();
     let reference_set = changed_reference_set(routed.route_identity());
     let receipt = reference_set.anchor().observation_receipt();
@@ -299,8 +332,12 @@ fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
         panic!("durable causal archive should deny before materialization");
     };
     let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        denied.denied_inspection_digest(),
-        denied.subject().anchor_digest(),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            denied.denied_inspection_digest(),
+        ),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            denied.subject().anchor_digest(),
+        ),
     )
     .expect("query denial summary should be syntactically valid for bridge denial fixture");
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
@@ -308,7 +345,11 @@ fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    denied.subject().query_observation_digest(),
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        denied
+                            .subject()
+                            .query_observation_bridge_evidence_identity(),
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -316,7 +357,9 @@ fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalInvalidation,
-                    "signal-invalidation:missing-route-fixture",
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        bridge_evidence("signal-invalidation:missing-route-fixture"),
+                    ),
                 )
                 .expect("signal invalidation reference identity should be valid"),
             ),
@@ -362,7 +405,9 @@ fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
 fn admitted_materialization_rejects_wrong_bridge_summary_kind() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::new("commit-query-summary-mismatch"))
+        .route(TruthCommitIdentity::from_bridge_harness_label(
+            "commit-query-summary-mismatch",
+        ))
         .unwrap();
     let reference_set = changed_reference_set(routed.route_identity());
     let flow = admit_causal_inspection(request_for(
@@ -373,8 +418,12 @@ fn admitted_materialization_rejects_wrong_bridge_summary_kind() {
         panic!("reference-only cross-runtime inspection should admit");
     };
     let wrong_summary = BridgeCausalInspectionAdmissionSummary::advisory(
-        admitted.admitted_inspection_digest(),
-        admitted.subject().anchor_digest(),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            admitted.admitted_inspection_digest(),
+        ),
+        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+            admitted.subject().anchor_digest(),
+        ),
     )
     .expect("mismatched bridge summary should still be structurally valid");
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
@@ -382,14 +431,18 @@ fn admitted_materialization_rejects_wrong_bridge_summary_kind() {
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    admitted.subject().query_observation_digest(),
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        admitted
+                            .subject()
+                            .query_observation_bridge_evidence_identity(),
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().as_str(),
+                    routed.route_identity().evidence_identity(),
                 )
                 .expect("route evidence reference identity should be valid"),
             ),
@@ -413,4 +466,8 @@ fn admitted_materialization_rejects_wrong_bridge_summary_kind() {
         error.kind(),
         CausalInspectionMaterializationErrorKind::AdmissionSummaryKindMismatch
     );
+}
+
+fn bridge_evidence(value: impl AsRef<str>) -> BridgeIdentityEvidence {
+    BridgeIdentityEvidence::from_external_authority(value)
 }

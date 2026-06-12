@@ -7,7 +7,7 @@ use crate::effect_lifecycle::{
 use crate::workflow::WorkflowBasisFamily;
 
 use super::super::execution_support::{
-    create_entity, relational_runtime_with_intent_strategy, runtime_snapshot_token,
+    create_entity, relational_runtime_with_intent_strategy, runtime_snapshot_identity,
 };
 use super::super::support::{
     branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding_with_snapshot,
@@ -25,7 +25,7 @@ fn mutation_batch_lowers_once_into_a_batch_native_relational_artifact() {
             &BranchId("main".to_string()),
         )
         .expect("branch-a should be created");
-    let binding = runtime_workflow_binding_with_snapshot(&runtime_snapshot_token(&runtime));
+    let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
 
     let lowered = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))

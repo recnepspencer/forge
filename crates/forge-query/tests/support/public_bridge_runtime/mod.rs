@@ -18,8 +18,9 @@ use serde_json::Value;
 
 use self::adapters::{
     PublicExistingTruthVerificationAdapter, PublicInspectorEvidenceAdapter,
-    PublicPreviewBasisAdapter, PublicSchemaAdapter, PublicSignalSinkAdapter, PublicSourceAdapter,
-    PublicSubscriptionActivationAdapter, PublicWriteAuthorityAdapter,
+    PublicPreviewBasisAdapter, PublicSchemaAdapter, PublicSignalSinkAdapter,
+    PublicSnapshotIdentityAdapter, PublicSourceAdapter, PublicSubscriptionActivationAdapter,
+    PublicWriteAuthorityAdapter,
 };
 use self::state::PublicBridgeRuntimeState;
 

@@ -7,8 +7,8 @@ fn runtime_rejects_structural_declaration_with_different_semantics_version() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
 
@@ -28,8 +28,8 @@ fn runtime_rejects_structural_declaration_with_different_semantics_version() {
             StructuralFingerprintOmissionPolicy::SchemaDeclaredOmissionPolicy,
         ),
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
 
@@ -50,8 +50,8 @@ fn runtime_replay_rejects_truncated_structural_remap_basis() {
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     );
     let contract = runtime
@@ -100,12 +100,12 @@ fn runtime_replay_rejects_truncated_structural_branch_basis() {
         ),
         StructuralTruthViewBasis::explicit_branch_pair(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("left"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("right"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
         ),
     );
@@ -119,8 +119,8 @@ fn runtime_replay_rejects_truncated_structural_branch_basis() {
         .register_source(registered_source(
             "source:analysis-snapshot",
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,

@@ -1,6 +1,7 @@
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
+use crate::runtime::{ForgeQueryAuthorityLane, ForgeQueryReadExecutionEngine};
 
 use super::inventory::CausalEvidenceFamily;
 use super::observation_identity::{
@@ -78,10 +79,29 @@ impl CausalInspectionReason {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CausalObservationBasisPosture {
+    AuthorityLane(ForgeQueryAuthorityLane),
+    ReadExecution(ForgeQueryReadExecutionEngine),
+    HistoricalReplayCertification,
+    Fixture,
+}
+
+impl CausalObservationBasisPosture {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::AuthorityLane(lane) => lane.as_str(),
+            Self::ReadExecution(engine) => engine.as_str(),
+            Self::HistoricalReplayCertification => "historical_replay_certification",
+            Self::Fixture => "fixture-basis-posture",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalObservationEvidenceIdentity {
     family: CausalEvidenceFamily,
     reference_digest: CausalEvidenceReferenceDigest,
-    source_reference_was_empty: bool,
+    evidence_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl CausalObservationEvidenceIdentity {
@@ -89,12 +109,19 @@ impl CausalObservationEvidenceIdentity {
         family: CausalEvidenceFamily,
         reference_digest: impl Into<CausalEvidenceReferenceInput>,
     ) -> Self {
-        let (reference_digest, source_reference_was_empty) =
-            into_reference_digest(family, reference_digest.into());
+        let reference_digest = into_reference_digest(reference_digest.into());
+        let evidence_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
+                .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("reference"),
+                    reference_digest.evidence_identity(),
+                )
+                .seal();
         Self {
             family,
             reference_digest,
-            source_reference_was_empty,
+            evidence_identity,
         }
     }
 
@@ -106,25 +133,16 @@ impl CausalObservationEvidenceIdentity {
         &self.reference_digest
     }
 
-    pub fn source_reference_was_empty(&self) -> bool {
-        self.source_reference_was_empty
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.evidence_identity
     }
 }
 
 fn into_reference_digest(
-    family: CausalEvidenceFamily,
     reference_input: CausalEvidenceReferenceInput,
-) -> (CausalEvidenceReferenceDigest, bool) {
+) -> CausalEvidenceReferenceDigest {
     match reference_input {
-        CausalEvidenceReferenceInput::Typed(identity) => (identity, false),
-        CausalEvidenceReferenceInput::Source(source_reference) => {
-            let source_was_empty = source_reference.is_empty();
-            let _ = family;
-            (
-                CausalEvidenceReferenceDigest::from(source_reference),
-                source_was_empty,
-            )
-        }
+        CausalEvidenceReferenceInput::Typed(identity) => identity,
     }
 }
 
@@ -133,7 +151,7 @@ pub struct QueryObservationReceipt {
     family: QueryObservationReceiptFamily,
     observation_receipt_identity: CausalObservationReceiptIdentity,
     query_identity: CausalObservationQueryIdentity,
-    basis_posture: String,
+    basis_posture: CausalObservationBasisPosture,
     basis_identity: CausalObservationBasisIdentity,
     result_shape_context: CausalResultShapeContextHandle,
     observation_target: CausalObservationTargetHandle,
@@ -148,42 +166,40 @@ impl QueryObservationReceipt {
             ForgeQueryEvidenceScope::CausalQueryObservationReceipt,
         )
         .field_shape(ForgeQueryEvidenceTag::new("family"), parts.family.as_str())
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("observation"),
-            parts.observation_receipt_identity.as_str(),
+            parts.observation_receipt_identity.evidence_identity(),
         )
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("query"),
-            parts.query_identity.as_str(),
+            parts.query_identity.evidence_identity(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("basis_posture"),
-            &parts.basis_posture,
+            parts.basis_posture.as_str(),
         )
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("basis"),
-            parts.basis_identity.as_str(),
+            parts.basis_identity.evidence_identity(),
         )
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("result_shape_context"),
-            parts.result_shape_context.identity().as_str(),
+            parts.result_shape_context.identity().evidence_identity(),
         )
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("observation_target"),
-            parts.observation_target.identity().as_str(),
+            parts.observation_target.identity().evidence_identity(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("outcome"),
             parts.outcome.as_str(),
         )
-        .field_identity_sequence(
+        .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("evidence"),
-            parts.evidence_identities.iter().flat_map(|identity| {
-                [
-                    identity.family().as_str(),
-                    identity.reference_digest().as_str(),
-                ]
-            }),
+            parts
+                .evidence_identities
+                .iter()
+                .map(CausalObservationEvidenceIdentity::evidence_identity),
         )
         .seal()
         .into();
@@ -214,6 +230,10 @@ impl QueryObservationReceipt {
     }
 
     pub fn basis_posture(&self) -> &str {
+        self.basis_posture.as_str()
+    }
+
+    pub fn basis_posture_kind(&self) -> &CausalObservationBasisPosture {
         &self.basis_posture
     }
 
@@ -246,7 +266,7 @@ pub(super) struct ObservationReceiptParts {
     pub family: QueryObservationReceiptFamily,
     pub observation_receipt_identity: CausalObservationReceiptIdentity,
     pub query_identity: CausalObservationQueryIdentity,
-    pub basis_posture: String,
+    pub basis_posture: CausalObservationBasisPosture,
     pub basis_identity: CausalObservationBasisIdentity,
     pub result_shape_context: CausalResultShapeContextHandle,
     pub observation_target: CausalObservationTargetHandle,

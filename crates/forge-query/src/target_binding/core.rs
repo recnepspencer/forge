@@ -1,3 +1,6 @@
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::identity::hash_parts;
 
 use super::semantics::ForgeQueryBindingTargetSemantics;
@@ -48,17 +51,34 @@ impl ForgeQueryBindingTarget {
         &self.binding_digest
     }
 
-    pub fn semantics(&self) -> &ForgeQueryBindingTargetSemantics {
-        &self.semantics
+    pub fn target_identity(&self) -> ForgeQueryEvidenceIdentity {
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_binding_target_target_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("kind"), self.kind.as_str())
+            .field_identity(ForgeQueryEvidenceTag::new("target"), &self.target_digest)
+            .seal()
     }
 
-    #[cfg(test)]
-    pub(crate) fn from_digest(
-        kind: ForgeQueryBindingTargetKind,
-        target_digest: impl Into<String>,
-        semantics: ForgeQueryBindingTargetSemantics,
-    ) -> Self {
-        Self::new(kind, target_digest.into(), semantics)
+    pub fn binding_identity(&self) -> ForgeQueryEvidenceIdentity {
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_binding_target_binding_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("kind"), self.kind.as_str())
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("target"),
+                &self.target_identity(),
+            )
+            .field_identity(ForgeQueryEvidenceTag::new("binding"), &self.binding_digest)
+            .seal()
+    }
+
+    pub fn semantics(&self) -> &ForgeQueryBindingTargetSemantics {
+        &self.semantics
     }
 
     pub(crate) fn new(
@@ -99,6 +119,14 @@ pub trait ForgeQueryBindingTargetWitness: Clone + sealed::Sealed {
 
     fn binding_digest(&self) -> &str {
         self.erased_target().binding_digest()
+    }
+
+    fn target_identity(&self) -> ForgeQueryEvidenceIdentity {
+        self.erased_target().target_identity()
+    }
+
+    fn binding_identity(&self) -> ForgeQueryEvidenceIdentity {
+        self.erased_target().binding_identity()
     }
 
     fn semantics(&self) -> &ForgeQueryBindingTargetSemantics {

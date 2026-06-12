@@ -10,7 +10,7 @@ use crate::mapping::{
     SignalInvalidationScope, TruthPatchScope,
 };
 use crate::policy::BridgeRuntimePolicy;
-use crate::snapshot::{BridgeTruthViewSelector, SnapshotReadContract, TruthSnapshotIdentity};
+use crate::snapshot::{BridgeTruthViewSelector, SnapshotReadContract};
 use crate::source::BridgeSourceCapability;
 use crate::structural::{StructuralFingerprintFamily, StructuralTruthViewBasis};
 use forge_foundational::facade::{AspectKey, FieldKey, ScalarAspectType};
@@ -72,8 +72,8 @@ fn analysis_snapshot_source() -> crate::source::SourceDeclaration {
     registered_source(
         "source:analysis-snapshot",
         BridgeTruthViewSelector::branch_snapshot(
-            crate::input::envelope::TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         vec![
             BridgeSourceCapability::SnapshotRead,
@@ -86,8 +86,8 @@ fn analysis_history_source() -> crate::source::SourceDeclaration {
     registered_source(
         "source:analysis-history",
         BridgeTruthViewSelector::historical_commit(
-            crate::input::envelope::TruthBranchIdentity::new("analysis"),
-            crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         vec![
             BridgeSourceCapability::SnapshotRead,
@@ -103,8 +103,8 @@ fn analysis_structural_registration() -> crate::structural::StructuralIdentityDe
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            crate::input::envelope::TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     )
 }

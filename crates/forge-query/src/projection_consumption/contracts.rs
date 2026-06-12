@@ -4,7 +4,8 @@ use super::eligibility::{AdmittedProjectionConsumption, ProjectionConsumptionWar
 use super::facts::ProjectionMaterializedFactPosture;
 use super::facts::{ProjectionFactKind, ProjectionFactRequest};
 use super::source::{
-    ProjectionConsumptionSource, ProjectionSourceFamily, ProjectionSourceReferenceIdentity,
+    ProjectionConsumptionSource, ProjectionSourceFamily, ProjectionSourceIdentity,
+    ProjectionSourceReferenceIdentity,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -88,7 +89,7 @@ pub struct MaterializedProjectionContract {
     tenant_schema_basis_digest: String,
     source_family: ProjectionSourceFamily,
     source_posture: ProjectionContractSourcePosture,
-    source_identity: String,
+    source_identity: ProjectionSourceIdentity,
     source_reference_identities: Vec<ProjectionSourceReferenceIdentity>,
     materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     fact_families: Vec<BoundProjectionFactFamily>,
@@ -146,6 +147,10 @@ impl MaterializedProjectionContract {
     }
 
     pub fn source_identity(&self) -> &str {
+        self.source_identity.as_str()
+    }
+
+    pub fn source_identity_handle(&self) -> &ProjectionSourceIdentity {
         &self.source_identity
     }
 
@@ -218,7 +223,7 @@ pub(crate) fn bind_materialized_projection_contract(
             .to_string(),
         source_family: source.family(),
         source_posture: contract_source_posture(source.family()),
-        source_identity: source.source_identity().to_string(),
+        source_identity: source.source_identity_handle().clone(),
         source_reference_identities: source.source_reference_identities().to_vec(),
         materialized_fact_posture: source.materialized_fact_posture().cloned(),
         fact_families,

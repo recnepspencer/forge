@@ -39,8 +39,8 @@ fn graph_domain_invariant_stop_class_preserves_hook_and_invariant_families() {
             vec!["task_symbol".to_string()],
             vec!["same_batch_entity_relation_identity_edges".to_string()],
             vec!["mixed_existing_target_followup_mutation".to_string()],
-            "program-digest".to_string(),
-            "breadth-digest".to_string(),
+            graph_domain_fixture_digest("program"),
+            graph_domain_fixture_digest("breadth"),
             "components=1".to_string(),
         ),
     );
@@ -71,12 +71,30 @@ fn graph_domain_invariant_stop_class_preserves_hook_and_invariant_families() {
     );
 }
 
+fn graph_domain_fixture_digest(
+    role: &'static str,
+) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+    crate::evidence_identity::forge_query_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("role"),
+        "payload-graph-domain-fixture",
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture"),
+        role,
+    )
+    .seal()
+}
+
 #[test]
 fn preview_promotion_stop_class_preserves_kind_and_evidence() {
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(DenyingWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -121,7 +139,8 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
         let mut runtime = ForgeQueryRuntime::builder()
             .runtime_bridge(test_bridge())
             .schema_adapter(TestSchemaAdapter)
-            .source_adapter(DriftingSnapshotSourceAdapter::default())
+            .source_adapter(TestSourceAdapter::default())
+            .snapshot_identity(DriftingSnapshotIdentityAdapter::default())
             .write_authority(TestWriteAuthority)
             .signal_sink(TestSignalSink)
             .subscription_activation(TestSubscriptionActivation)
@@ -166,6 +185,7 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
             .runtime_bridge(test_bridge())
             .schema_adapter(TestSchemaAdapter)
             .source_adapter(TestSourceAdapter::default())
+            .snapshot_identity(TestSnapshotIdentityAdapter)
             .write_authority(CountingWriteAuthority {
                 attempted_writes: attempted_writes.clone(),
             })
@@ -318,6 +338,7 @@ fn intent_commit_stop_class_preserves_stage_and_evidence() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)

@@ -1,3 +1,4 @@
+use super::certification_entity_identity;
 use super::runtime::{
     certification_runtime, certification_task_live_request, certification_task_schema,
 };
@@ -34,7 +35,7 @@ pub(in crate::intent_admission::certification) fn certified_effect_intent_fixtur
         .expect("effect certification effect should declare");
     runtime
         .write(crate::facade::ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: "task-1".to_string(),
+            entity_identity: certification_entity_identity("task-1"),
             aspect_path: "title.value".to_string(),
             value: serde_json::json!("title from certification effect"),
         })

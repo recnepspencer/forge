@@ -3,12 +3,39 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use crate::identity::{
-    BridgeIdentity, PreviewBranchBindingIdentityTag, SpeculativeSignalBranchIdentityTag,
+    BridgeIdentity, BridgeIdentityEvidence, PreviewBranchBindingIdentityTag,
+    SpeculativeSignalBranchIdentityTag,
 };
 use crate::input::envelope::TruthBranchIdentity;
 
 pub type BridgeSignalBranchIdentity = BridgeIdentity<SpeculativeSignalBranchIdentityTag>;
 pub type BridgeSpeculativeBranchBindingIdentity = BridgeIdentity<PreviewBranchBindingIdentityTag>;
+
+impl BridgeSignalBranchIdentity {
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
+        Self::new(format!(
+            "bridge-preview-signal-branch:external-authority-evidence:{}",
+            evidence_identity.as_str()
+        ))
+    }
+
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::new(value)
+    }
+}
+
+impl BridgeSpeculativeBranchBindingIdentity {
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
+        Self::new(format!(
+            "bridge-preview-branch-binding:external-authority-evidence:{}",
+            evidence_identity.as_str()
+        ))
+    }
+
+    pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
+        Self::new(value)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeSpeculativeBranchBinding {

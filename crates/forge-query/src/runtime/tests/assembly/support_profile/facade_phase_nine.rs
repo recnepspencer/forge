@@ -4,6 +4,7 @@ use std::sync::{
 };
 
 use super::super::super::support::*;
+use crate::memory_workspace::ForgeQueryCommitIdentity;
 
 #[derive(Clone)]
 struct PhaseNineMaintainer {
@@ -21,7 +22,9 @@ impl ForgeQueryDerivedViewMaintainer for PhaseNineMaintainer {
         materialization.replace_rows([json!({ "title": { "value": "Phase Nine" } })]);
         ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            format!("phase-nine-refresh-{next}"),
+            ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                "phase-nine-refresh-{next}"
+            )),
             ["title.value".to_string()],
             json!({"published": true, "title": "Phase Nine"}),
             format!("phase-nine-publication-{next}"),
@@ -160,13 +163,17 @@ fn workspace_shared_read_lane_matches_runtime_owned_context_without_recomputatio
 
 fn mutation_receipt_summary(receipt: &ForgeQueryWriteReceipt) -> serde_json::Value {
     json!({
-        "snapshot_token": receipt.snapshot_token(),
+        "snapshot_identity": receipt.snapshot_evidence_identity().as_str().to_string(),
         "authority_lane": receipt.authority_lane().as_str(),
         "mutation_family": receipt.mutation_family().as_str(),
         "declared_collection": receipt.declared_collection(),
-        "declared_entity_identity": receipt.declared_entity_identity(),
+        "declared_entity_identity": receipt
+            .declared_entity_identity()
+            .map(|identity| identity.evidence_identity().as_str().to_string()),
         "target_collection": receipt.target_collection(),
-        "target_entity_identity": receipt.target_entity_identity(),
+        "target_entity_identity": receipt
+            .target_entity_identity()
+            .map(|identity| identity.evidence_identity().as_str().to_string()),
         "declared_aspect_value_digest": receipt.declared_aspect_value_digest(),
         "affected_live_view_ids": receipt.affected_live_view_ids(),
         "affected_derived_view_ids": receipt.affected_derived_view_ids(),
@@ -181,7 +188,7 @@ fn mutation_receipt_summary(receipt: &ForgeQueryWriteReceipt) -> serde_json::Val
             .map(|delta| {
                 json!({
                     "collection": delta.collection,
-                    "entity_identity": delta.entity_identity,
+                    "entity_identity": delta.entity_identity.evidence_identity().as_str().to_string(),
                     "kind": format!("{:?}", delta.kind),
                     "aspect_paths": delta.aspect_paths,
                 })

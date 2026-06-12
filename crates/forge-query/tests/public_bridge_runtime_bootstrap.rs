@@ -1,6 +1,8 @@
 use forge_query::facade::{
-    ForgeQueryExistingEntityTarget, ForgeQueryExistingTruthProbeDenialKind,
-    ForgeQueryExistingTruthProbeMode, ForgeQueryLiveView, ForgeQueryRuntimeError,
+    ForgeQueryEntityIdentity, ForgeQueryExistingEntityTarget,
+    ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryExistingTruthProbeDenialKind,
+    ForgeQueryExistingTruthProbeMode, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
+    ForgeQueryRuntimeError,
 };
 use serde_json::{json, Value};
 
@@ -20,6 +22,14 @@ fn public_entity_verified_profile() -> forge_query::facade::ForgeQueryRuntimeSup
         true,
         None,
     )
+}
+
+fn existing_authority(label: &str) -> ForgeQueryMutationAuthorityIdentity {
+    ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+        ForgeQueryExistingTruthBindingAuthorityLabel::new(label)
+            .expect("existing-truth authority label"),
+    )
+    .expect("existing-truth authority identity")
 }
 
 #[test]
@@ -70,10 +80,13 @@ fn public_bridge_runtime_builder_lane_supports_seeded_existing_truth_probe() {
         .expect("runtime should open a named workspace");
     let binding = workspace
         .bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new("authority:task-bootstrap", "public-entity-1")
-                .expect("existing entity target should build")
-                .in_target_collection("Task")
-                .expect("existing entity target collection should build"),
+            ForgeQueryExistingEntityTarget::new(
+                existing_authority("authority:task-bootstrap"),
+                ForgeQueryEntityIdentity::authored_command("public-entity-1"),
+            )
+            .expect("existing entity target should build")
+            .in_target_collection("Task")
+            .expect("existing entity target collection should build"),
         )
         .expect("binding should build");
     harness.seed_existing_truth_value(&binding, "title.value", json!("Seeded bootstrap task"));
@@ -105,10 +118,13 @@ fn public_bridge_runtime_common_lane_fail_closes_existing_truth_probe_without_ve
         .expect("runtime should open a named workspace");
     let binding = workspace
         .bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new("authority:task-bootstrap", "public-entity-1")
-                .expect("existing entity target should build")
-                .in_target_collection("Task")
-                .expect("existing entity target collection should build"),
+            ForgeQueryExistingEntityTarget::new(
+                existing_authority("authority:task-bootstrap"),
+                ForgeQueryEntityIdentity::authored_command("public-entity-1"),
+            )
+            .expect("existing entity target should build")
+            .in_target_collection("Task")
+            .expect("existing entity target collection should build"),
         )
         .expect("binding should build");
 

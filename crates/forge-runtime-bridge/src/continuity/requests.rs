@@ -4,6 +4,7 @@ use sha2::{Digest, Sha256};
 
 use crate::diagnostics::BridgeRouteRecord;
 use crate::error::{BridgeContinuityError, BridgeContinuityErrorKind};
+use crate::facade::BridgePlannedRoute;
 use crate::routing::{BridgeRouteIdentity, BridgeSubscriptionSliceIdentity};
 
 use super::BridgeContinuityAuthorityBasis;
@@ -137,6 +138,92 @@ impl BridgePlannedContinuityRequestSet {
             })
             .collect::<Vec<_>>();
         let mut requests = requests;
+        requests.sort_by(|left, right| {
+            left.correlation_id()
+                .as_str()
+                .cmp(right.correlation_id().as_str())
+        });
+        let canonical_basis = format!(
+            "planned-continuity-request-set|route={}|slice-set={}|authority={}|prior-slice-count={}|request-count={}|requests={}",
+            prior_route_identity.as_str(),
+            prior_subscription_slice_identity.as_str(),
+            authority_basis.digest(),
+            prior_slice_count,
+            requests.len(),
+            requests
+                .iter()
+                .map(|request| request.correlation_id().as_str())
+                .collect::<Vec<_>>()
+                .join(","),
+        );
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+
+        Ok(Self {
+            prior_route_identity,
+            authority_basis,
+            prior_subscription_slice_identity,
+            prior_slice_count,
+            requests: Arc::from(requests),
+            digest: Arc::from(format!("planned-continuity-set:sha256:{digest:x}")),
+        })
+    }
+
+    pub(crate) fn from_planned_route(
+        planned_route: &BridgePlannedRoute,
+    ) -> Result<Self, BridgeContinuityError> {
+        let lineage_context = planned_route
+            .mapping_context()
+            .lineage_context()
+            .ok_or_else(|| {
+                BridgeContinuityError::new(
+                    BridgeContinuityErrorKind::MissingLineageContext,
+                    "Bridge continuity planning requires an explicit lineage context in the mapping context.",
+                )
+            })?;
+        let authority_basis = lineage_context.authority_basis().clone();
+        if authority_basis.snapshot_identity() != planned_route.source_snapshot() {
+            return Err(BridgeContinuityError::new(
+                BridgeContinuityErrorKind::LineageAuthorityMismatch,
+                "Bridge continuity lineage context snapshot did not match planned route source snapshot.",
+            ));
+        }
+        if authority_basis.branch_identity() != planned_route.source_branch() {
+            return Err(BridgeContinuityError::new(
+                BridgeContinuityErrorKind::LineageAuthorityMismatch,
+                "Bridge continuity lineage context branch did not match planned route source branch.",
+            ));
+        }
+        let prior_route_identity = planned_route.route_identity().clone();
+        let prior_subscription_slice_identity = planned_route
+            .lowering_summary()
+            .subscription_slice_identity()
+            .clone();
+        let prior_slice_count = planned_route.subscription_slices().len();
+        let mut prior_slices = planned_route
+            .subscription_slices()
+            .slices()
+            .iter()
+            .map(|slice| {
+                PriorSubscriptionSlice::new(prior_subscription_slice_identity.clone(), slice)
+            })
+            .collect::<Vec<_>>();
+        prior_slices.sort_by(|left, right| {
+            left.logical_dedup_basis()
+                .cmp(&right.logical_dedup_basis())
+                .then_with(|| {
+                    left.prior_subscription_slice_identity()
+                        .as_str()
+                        .cmp(right.prior_subscription_slice_identity().as_str())
+                })
+        });
+        prior_slices
+            .dedup_by(|left, right| left.logical_dedup_basis() == right.logical_dedup_basis());
+        let mut requests = prior_slices
+            .into_iter()
+            .map(|prior_slice| {
+                BridgePlannedContinuityRequest::new(prior_route_identity.clone(), prior_slice)
+            })
+            .collect::<Vec<_>>();
         requests.sort_by(|left, right| {
             left.correlation_id()
                 .as_str()

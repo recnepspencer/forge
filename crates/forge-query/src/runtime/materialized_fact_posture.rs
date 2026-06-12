@@ -2,17 +2,18 @@ use crate::projection_consumption::{
     ProjectionMaterializedFactPosture, ProjectionMaterializedFactPostureKind,
 };
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
+use crate::ForgeQueryEvidenceIdentity;
 
 use super::ForgeQueryRuntimeLiveSubscriptionState;
 
 pub(super) fn materialized_fact_posture_from_live_subscription_state(
     state: &ForgeQueryRuntimeLiveSubscriptionState,
-    basis_digest: &str,
+    basis_identity: &ForgeQueryEvidenceIdentity,
 ) -> ProjectionMaterializedFactPosture {
     ProjectionMaterializedFactPosture::new(
         materialized_fact_posture_kind_from_live_subscription_state(state),
         state.installation.query_digest(),
-        basis_digest,
+        basis_identity.as_str(),
         state.installation.support_evidence(),
         Some(state.installation.installation_digest().to_string()),
     )

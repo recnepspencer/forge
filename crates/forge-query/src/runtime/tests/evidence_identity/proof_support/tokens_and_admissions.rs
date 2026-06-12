@@ -57,13 +57,13 @@ pub(in super::super) fn compose_basis_admission_identity(
 
 pub(in super::super) fn compose_receipt_identity(
     scope: crate::ForgeQueryEvidenceScope,
-    admission_digest: impl AsRef<str>,
+    admission_identity: &crate::ForgeQueryEvidenceIdentity,
     posture: &str,
 ) -> crate::ForgeQueryEvidenceIdentity {
     crate::ForgeQueryEvidenceIdentity::compose(scope)
-        .field_identity(
-            crate::ForgeQueryEvidenceTag::new("admission_digest"),
-            admission_digest,
+        .field_evidence_identity(
+            crate::ForgeQueryEvidenceTag::new("admission_identity"),
+            admission_identity,
         )
         .field_shape(crate::ForgeQueryEvidenceTag::new("posture"), posture)
         .seal()
@@ -128,9 +128,9 @@ pub(in super::super) fn compose_denial_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("invariant_evidence"),
             evidence.invariant_evidence().iter().map(String::as_str),
         )
-        .optional_identity(
-            crate::ForgeQueryEvidenceTag::new("snapshot_token"),
-            evidence.snapshot_token(),
+        .optional_evidence_identity(
+            crate::ForgeQueryEvidenceTag::new("snapshot_identity"),
+            evidence.snapshot_evidence_identity().as_ref(),
         )
         .optional_identity(
             crate::ForgeQueryEvidenceTag::new("execution_provenance"),

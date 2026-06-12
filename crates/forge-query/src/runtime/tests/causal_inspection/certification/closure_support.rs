@@ -8,9 +8,12 @@ use super::*;
 
 pub(in crate::runtime::tests) fn runtime_backed_causal_certification_bundle(
 ) -> CausalInspectionCertificationBundle {
-    let changed = admitted_artifact(TruthCommitIdentity::new("commit-query-cert-changed"));
-    let (full, redacted) =
-        advisory_artifacts(TruthCommitIdentity::new("commit-query-cert-redacted"));
+    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+        "commit-query-cert-changed",
+    ));
+    let (full, redacted) = advisory_artifacts(TruthCommitIdentity::from_bridge_harness_label(
+        "commit-query-cert-redacted",
+    ));
     let (denied, missing_evidence_digest) = denied_artifact_and_missing_evidence();
     let representatives = representative_matrix(&changed, &redacted, &denied);
     let boundary_audit =

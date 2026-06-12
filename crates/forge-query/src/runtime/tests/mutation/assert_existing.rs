@@ -23,7 +23,7 @@ fn assert_existing_preserves_binding_evidence_without_mutation_deltas() {
     let binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -43,7 +43,7 @@ fn assert_existing_preserves_binding_evidence_without_mutation_deltas() {
     assert!(receipt.deltas().is_empty());
     assert_eq!(
         receipt.target_entity_identity(),
-        Some(seed.deltas()[0].entity_identity.as_str())
+        Some(&seed.deltas()[0].entity_identity)
     );
     assert_eq!(receipt.target_collection(), Some("Task"));
     assert!(receipt.declared_aspect_value_digest().is_some());
@@ -55,7 +55,10 @@ fn assert_existing_preserves_binding_evidence_without_mutation_deltas() {
         binding.family(),
         ForgeQueryExistingTruthBindingFamily::DirectEntityIdentity
     );
-    assert_eq!(binding.authoritative_identity(), "authority:task-1");
+    assert_eq!(
+        binding.authoritative_identity().as_str(),
+        "authority:task-1"
+    );
     let assertion = receipt
         .existing_truth_assertion_evidence()
         .expect("assertion should retain assertion evidence");
@@ -110,7 +113,7 @@ fn assert_existing_inspection_digest_changes_with_asserted_value() {
     let left_binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -121,7 +124,7 @@ fn assert_existing_inspection_digest_changes_with_asserted_value() {
     let right_binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -191,7 +194,7 @@ fn batch_assert_existing_mixes_with_existing_delete_and_retains_binding_evidence
     let binding_one = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed_one.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -202,7 +205,7 @@ fn batch_assert_existing_mixes_with_existing_delete_and_retains_binding_evidence
     let binding_two = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-2",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed_two.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")
@@ -269,7 +272,7 @@ fn preview_assert_existing_requires_authoritative_lane() {
     let binding = preview
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-1",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing entity target should build")

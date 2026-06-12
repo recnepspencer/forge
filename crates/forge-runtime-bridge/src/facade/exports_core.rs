@@ -46,8 +46,8 @@ pub use crate::diagnostics::{
     BridgePreviewDiscardExplanation, BridgePreviewExecutionExplanation,
     BridgePreviewPromotionExplanation, BridgePreviewReplayExplanation, BridgeReplayRecord,
     BridgeReplaySummary, BridgeRouteExplanation, BridgeRouteExplanationEntry, BridgeRouteRecord,
-    BridgeRouteRecordEntry, BridgeRouteRecordMatch, BridgeRouteSourceRecord,
-    BridgeRoutingDiagnosticsRecord, BridgeSourceFailureExplanation,
+    BridgeRouteRecordEntityIdentity, BridgeRouteRecordEntry, BridgeRouteRecordMatch,
+    BridgeRouteSourceRecord, BridgeRoutingDiagnosticsRecord, BridgeSourceFailureExplanation,
     BridgeSourceMaterializationExplanation, BridgeStreamCheckpointExplanation,
     BridgeStreamReplayExplanation, BridgeStreamResumeSummary,
     BridgeStructuralBranchComparisonExplanation, BridgeStructuralBranchComparisonRecord,
@@ -80,6 +80,7 @@ pub use crate::error::{
     BridgeSpeculationErrorKind, BridgeStreamError, BridgeStreamErrorKind, BridgeWritebackError,
     BridgeWritebackErrorKind,
 };
+pub use crate::identity::BridgeIdentityEvidence;
 pub use crate::input::envelope::{
     BridgeCommittedPatchBody, BridgeCommittedPatchDigest, BridgeCommittedPatchEnvelope,
     BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem, BridgeCommittedPatchSummary,
@@ -119,6 +120,10 @@ pub use crate::policy::{
     BridgePolicyRejectionStage, BridgePolicyReplayBundle, BridgePolicyResolution,
     BridgePolicySourceClass, BridgeRoutePlanningPolicy, BridgeRuntimePolicy, BridgeRuntimePosture,
     LoweredBridgeExecutionPolicy, ValidatedBridgePolicyDeclaration,
+};
+pub use crate::relational_identity::{
+    RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts,
+    RelationalBridgeSnapshotIdentityParts,
 };
 pub use crate::routing::{
     AdmittedBridgeExecutionPlan, AdmittedPreparationPartitionSet, BridgeAdmissionProfileIdentity,

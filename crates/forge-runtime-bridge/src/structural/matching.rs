@@ -65,8 +65,8 @@ pub fn classify_branch_comparison(
 
 #[cfg(test)]
 mod tests {
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::structural::{
         AdmittedStructuralRegistry, StructuralFingerprint,
         StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
@@ -91,8 +91,8 @@ mod tests {
             ),
             StructuralTruthViewBasis::explicit_snapshot(
                 BridgeTruthViewSelector::committed_snapshot(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ),
         );
@@ -109,14 +109,14 @@ mod tests {
         let target = StructuralFingerprint::from_snapshot_read_packet(
             &contract,
             &packet,
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         );
         let candidates = classify_advisory_candidates(
             &target,
             vec![StructuralFingerprint::from_snapshot_read_packet(
                 &contract,
                 &packet,
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             )],
         );
         assert_eq!(candidates.len(), 1);
@@ -132,7 +132,7 @@ mod tests {
         let left = StructuralFingerprint::from_snapshot_read_packet(
             &contract,
             &crate::snapshot::SnapshotReadPacket::new(vec![]),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         );
         let right = StructuralFingerprint::from_snapshot_read_packet(
             &contract,
@@ -146,7 +146,7 @@ mod tests {
                     ),
                 ),
             ]),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         );
         assert_eq!(classify_branch_comparison(&left, &right).len(), 1);
     }
@@ -158,14 +158,14 @@ mod tests {
         let target = StructuralFingerprint::from_snapshot_read_packet(
             &contract,
             &packet,
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         );
         let candidates = classify_advisory_candidates(
             &target,
             vec![StructuralFingerprint::from_snapshot_read_packet(
                 &contract,
                 &packet,
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             )],
         );
 

@@ -10,11 +10,9 @@ use crate::facade::{
     BridgeWritebackIdempotenceIdentity, BridgeWritebackLoopDisposition,
     BridgeWritebackLoopPreventionReport, BridgeWritebackNativeCausalityInputs,
     BridgeWritebackStrategyCoherenceReport, LoweredBridgeExecutionPolicy, RuntimeBridge,
-    TruthCommitIdentity,
 };
 use crate::identity::{AsyncWritebackStagedEffectIdentityTag, BridgeIdentity};
 use crate::routing::BridgeRouteIdentity;
-use crate::snapshot::TruthSnapshotIdentity;
 
 use super::{
     AdmittedBridgeAsyncWriteback, BridgeAsyncWritebackCounters, BridgeAsyncWritebackMapperOutput,
@@ -78,13 +76,21 @@ impl StagedBridgeAsyncWritebackEffect {
         let truth_commit = truth_basis
             .truth_commit_identity()
             .cloned()
-            .unwrap_or_else(|| TruthCommitIdentity::new("bridge-async-writeback-missing-truth"));
+            .ok_or_else(|| {
+                BridgeAsyncWritebackRejection::new(
+                    BridgeAsyncWritebackRejectionKind::AuthoritativeTruthBasisMissing,
+                    "Authoritative async writeback basis lacked a truth commit identity.",
+                )
+            })?;
         let truth_snapshot = truth_basis
             .truth_snapshot_identity()
             .cloned()
-            .unwrap_or_else(|| {
-                TruthSnapshotIdentity::new("bridge-async-writeback-missing-snapshot")
-            });
+            .ok_or_else(|| {
+                BridgeAsyncWritebackRejection::new(
+                    BridgeAsyncWritebackRejectionKind::AuthoritativeTruthBasisMissing,
+                    "Authoritative async writeback basis lacked a truth snapshot identity.",
+                )
+            })?;
         let causality = BridgeWritebackNativeCausalityInputs::new(
             BridgeWritebackCausalityIdentity::new(format!(
                 "bridge-async-writeback-causality:{}",

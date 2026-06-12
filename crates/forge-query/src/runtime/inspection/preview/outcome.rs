@@ -3,8 +3,10 @@ use super::super::super::{
     ForgeQueryPreviewCloseoutKind, ForgeQueryPreviewOutcome,
 };
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::session_label::ForgeQuerySessionLabel;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -33,13 +35,13 @@ pub struct ForgeQueryPreviewOutcomeInspection {
     source_lane: ForgeQueryAuthorityLane,
     target_lane: ForgeQueryAuthorityLane,
     basis_evidence: Vec<String>,
-    basis_digest: String,
-    preview_basis_snapshot_token: String,
-    target_basis_snapshot_token: String,
-    closeout_digest: String,
-    residue_digest: String,
-    rebinding_digest: Option<String>,
-    inspection_digest: String,
+    basis_identity: ForgeQueryEvidenceIdentity,
+    preview_basis_snapshot_identity: ForgeQuerySnapshotIdentity,
+    target_basis_snapshot_identity: ForgeQuerySnapshotIdentity,
+    closeout_identity: ForgeQueryEvidenceIdentity,
+    residue_identity: ForgeQueryEvidenceIdentity,
+    rebinding_identity: Option<ForgeQueryEvidenceIdentity>,
+    inspection_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryPreviewOutcomeInspection {
@@ -98,7 +100,7 @@ impl ForgeQueryPreviewOutcomeInspection {
         target_lane: ForgeQueryAuthorityLane,
     ) -> Self {
         let basis_evidence = closeout.basis_evidence().to_vec();
-        let basis_digest = forge_query_evidence_identity(
+        let basis_identity = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::PreviewOutcomeInspectionArtifact,
         )
         .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "basis")
@@ -110,10 +112,8 @@ impl ForgeQueryPreviewOutcomeInspection {
             ForgeQueryEvidenceTag::new("basis_evidence"),
             basis_evidence.iter().map(String::as_str),
         )
-        .seal()
-        .as_str()
-        .to_string();
-        let residue_digest = forge_query_evidence_identity(
+        .seal();
+        let residue_identity = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::PreviewOutcomeInspectionArtifact,
         )
         .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "residue")
@@ -165,10 +165,8 @@ impl ForgeQueryPreviewOutcomeInspection {
             ForgeQueryEvidenceTag::new("authoritative_residue_count"),
             authoritative_residue_count,
         )
-        .seal()
-        .as_str()
-        .to_string();
-        let inspection_digest = forge_query_evidence_identity(
+        .seal();
+        let inspection_identity = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::PreviewOutcomeInspectionArtifact,
         )
         .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "inspection")
@@ -211,30 +209,35 @@ impl ForgeQueryPreviewOutcomeInspection {
             ForgeQueryEvidenceTag::new("target_lane"),
             target_lane.as_str(),
         )
-        .field_identity(ForgeQueryEvidenceTag::new("basis_digest"), &basis_digest)
-        .field_identity(
-            ForgeQueryEvidenceTag::new("preview_basis_snapshot_token"),
-            closeout.preview_basis_snapshot_token(),
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("basis_identity"),
+            &basis_identity,
         )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("target_basis_snapshot_token"),
-            closeout.target_basis_snapshot_token(),
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("preview_basis_snapshot_identity"),
+            &closeout
+                .preview_basis_snapshot_identity()
+                .evidence_identity(),
         )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("closeout_digest"),
-            closeout.closeout_digest(),
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("target_basis_snapshot_identity"),
+            &closeout
+                .target_basis_snapshot_identity()
+                .evidence_identity(),
         )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("residue_digest"),
-            &residue_digest,
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("closeout_identity"),
+            closeout.closeout_identity(),
         )
-        .optional_identity(
-            ForgeQueryEvidenceTag::new("rebinding_digest"),
-            closeout.rebinding_digest(),
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("residue_identity"),
+            &residue_identity,
         )
-        .seal()
-        .as_str()
-        .to_string();
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("rebinding_identity"),
+            closeout.rebinding_identity(),
+        )
+        .seal();
 
         Self {
             label: outcome.session_label().clone(),
@@ -261,13 +264,13 @@ impl ForgeQueryPreviewOutcomeInspection {
             source_lane,
             target_lane,
             basis_evidence,
-            basis_digest,
-            preview_basis_snapshot_token: closeout.preview_basis_snapshot_token().to_string(),
-            target_basis_snapshot_token: closeout.target_basis_snapshot_token().to_string(),
-            closeout_digest: closeout.closeout_digest().to_string(),
-            residue_digest,
-            rebinding_digest: closeout.rebinding_digest().map(str::to_string),
-            inspection_digest,
+            basis_identity,
+            preview_basis_snapshot_identity: closeout.preview_basis_snapshot_identity().clone(),
+            target_basis_snapshot_identity: closeout.target_basis_snapshot_identity().clone(),
+            closeout_identity: closeout.closeout_identity().clone(),
+            residue_identity,
+            rebinding_identity: closeout.rebinding_identity().cloned(),
+            inspection_identity,
         }
     }
 
@@ -347,24 +350,41 @@ impl ForgeQueryPreviewOutcomeInspection {
         &self.basis_evidence
     }
     pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+        self.basis_identity.as_str()
     }
-    pub fn preview_basis_snapshot_token(&self) -> &str {
-        &self.preview_basis_snapshot_token
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
     }
-    pub fn target_basis_snapshot_token(&self) -> &str {
-        &self.target_basis_snapshot_token
+    pub fn preview_basis_snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.preview_basis_snapshot_identity
     }
     pub fn closeout_digest(&self) -> &str {
-        &self.closeout_digest
+        self.closeout_identity.as_str()
+    }
+    pub fn target_basis_snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.target_basis_snapshot_identity
+    }
+    pub fn closeout_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.closeout_identity
     }
     pub fn residue_digest(&self) -> &str {
-        &self.residue_digest
+        self.residue_identity.as_str()
+    }
+    pub fn residue_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.residue_identity
     }
     pub fn rebinding_digest(&self) -> Option<&str> {
-        self.rebinding_digest.as_deref()
+        self.rebinding_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+    pub fn rebinding_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.rebinding_identity.as_ref()
     }
     pub fn inspection_digest(&self) -> &str {
-        &self.inspection_digest
+        self.inspection_identity.as_str()
+    }
+    pub fn inspection_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.inspection_identity
     }
 }

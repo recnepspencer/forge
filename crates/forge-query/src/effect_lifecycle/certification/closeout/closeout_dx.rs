@@ -18,10 +18,10 @@ use super::closeout_receipts::{
 };
 use super::scenarios::{
     branch_mutation_basis, preview_closeout_basis, preview_workflow_binding,
-    runtime_workflow_binding_with_snapshot, workflow_request,
+    runtime_workflow_binding_for_branch, workflow_request,
 };
 use super::support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -185,7 +185,8 @@ fn inspectable_lowered_story() -> DxStoryEvidence {
         forge_relational::facade::history::BranchId(branch.to_string()),
     );
     let basis = EffectAuthoringBasis::from(branch_mutation_basis(branch));
-    let binding = runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, branch));
+    let binding =
+        runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, branch), branch);
     let raw = RawEffectIntent::Mutation {
         binding,
         request: workflow_request(

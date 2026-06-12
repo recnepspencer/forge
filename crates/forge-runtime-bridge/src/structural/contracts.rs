@@ -158,8 +158,8 @@ impl AdmittedStructuralRegistry {
 #[cfg(test)]
 mod tests {
     use super::AdmittedStructuralRegistry;
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::structural::{
         StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
         StructuralFingerprintNormalizationRule, StructuralFingerprintOmissionPolicy,
@@ -181,8 +181,8 @@ mod tests {
             ),
             StructuralTruthViewBasis::explicit_snapshot(
                 BridgeTruthViewSelector::committed_snapshot(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ),
         )

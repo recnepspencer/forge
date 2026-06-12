@@ -9,7 +9,7 @@ use super::{
 };
 use crate::input::envelope::{
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
-    BridgeCommittedPatchTarget, BridgeProducerMetadata, TruthBranchIdentity, TruthPatchIdentity,
+    BridgeCommittedPatchTarget, BridgeProducerMetadata,
 };
 use crate::mapping::{
     BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeMappingId,
@@ -22,7 +22,7 @@ use crate::routing::eligibility::validate_route_request;
 use crate::routing::lowering::BridgeSubscriptionSlice;
 use crate::routing::matching::FineGrainedMatchStatus;
 use crate::routing::planning::BridgeRouteIdentity;
-use crate::snapshot::{SnapshotReadContract, SnapshotReadRequest, TruthSnapshotIdentity};
+use crate::snapshot::{SnapshotReadContract, SnapshotReadRequest};
 
 #[test]
 fn route_digest_inputs_use_digest_shaped_route_entry_identity_not_raw_target_text() {
@@ -245,10 +245,10 @@ fn envelope_for_target(target: BridgeCommittedPatchTarget) -> BridgeCommittedPat
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             BridgeProducerMetadata::bridge_harness_fixture(),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target("entity-1", target)],
     )

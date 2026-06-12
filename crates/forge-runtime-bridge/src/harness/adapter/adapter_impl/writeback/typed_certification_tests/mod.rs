@@ -10,8 +10,7 @@ use forge_harness::facade::{ExecutionProfile, HarnessAdapter, ScenarioPlan};
 use crate::facade::{
     BridgeCommittedPatchEnvelope, BridgeMappingId, BridgeMappingRegistration,
     BridgeProducerMetadata, BridgeRuntimePolicy, MappingSelector, SignalInvalidationScope,
-    SnapshotReadRecord, SnapshotReadRequest, TruthBranchIdentity, TruthPatchIdentity,
-    TruthPatchScope, TruthSnapshotIdentity,
+    SnapshotReadRecord, SnapshotReadRequest, TruthPatchScope,
 };
 use crate::harness::adapter::BridgeHarnessAdapter;
 use crate::harness::fixtures::{BridgeHarnessFixture, SnapshotFixture};
@@ -73,10 +72,10 @@ fn committed_patch() -> BridgeCommittedPatchEnvelope {
     BridgeCommittedPatchEnvelope::new(
         crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             BridgeProducerMetadata::bridge_harness_fixture(),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
         ),
         vec![crate::facade::BridgeCommittedPatchItem::with_target(
             "user",
@@ -98,7 +97,7 @@ fn committed_patch() -> BridgeCommittedPatchEnvelope {
 
 fn snapshot() -> SnapshotFixture {
     SnapshotFixture::new(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         vec![SnapshotReadRecord::for_request(
             &SnapshotReadRequest::for_coarse(
                 "user",

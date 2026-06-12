@@ -1,4 +1,6 @@
-use forge_query::facade::{ForgeQueryReadBuiltInOperator, ForgeQueryReadScopeClass};
+use forge_query::facade::{
+    ForgeQueryReadBuiltInOperator, ForgeQueryReadScopeClass, ForgeQuerySnapshotIdentity,
+};
 
 use super::fallback::TopologyReadFallbackPosture;
 use super::report::{
@@ -55,8 +57,14 @@ impl TopologyReadRequestReport {
         self.executed_basis_digest.as_deref()
     }
 
-    pub fn executed_snapshot_token(&self) -> Option<&str> {
-        self.executed_snapshot_token.as_deref()
+    pub fn executed_snapshot_identity(&self) -> Option<&ForgeQuerySnapshotIdentity> {
+        self.executed_snapshot_identity.as_ref()
+    }
+
+    pub fn executed_snapshot_identity_diagnostic_label(&self) -> Option<String> {
+        self.executed_snapshot_identity
+            .as_ref()
+            .map(|identity| identity.evidence_identity().as_str().to_string())
     }
 
     pub fn executed_built_in_operator_coverage(&self) -> &[ForgeQueryReadBuiltInOperator] {

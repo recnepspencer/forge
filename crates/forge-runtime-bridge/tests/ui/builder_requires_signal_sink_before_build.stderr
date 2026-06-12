@@ -1,3 +1,25 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/builder_requires_signal_sink_before_build.rs:11:26
+   |
+11 |         BridgeMappingId::new("profile-name"),
+   |                          ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+   |     ----------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/builder_requires_signal_sink_before_build.rs:17:34
+   |
+17 |         SignalInvalidationScope::new("signal.profile"),
+   |                                  ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+   |     ----------------------------------------------------- private associated function defined here
+
 error[E0599]: no method named `build` found for struct `RuntimeBridgeBuilder<forge_runtime_bridge::builder::states::PresentCommittedPatchSource, forge_runtime_bridge::builder::states::PresentSnapshotReadSource, forge_runtime_bridge::builder::states::MissingSignalSink, forge_runtime_bridge::builder::states::MissingTruthBranchHeadSource, forge_runtime_bridge::builder::states::PresentMappingRegistrations>` in the current scope
   --> tests/ui/builder_requires_signal_sink_before_build.rs:47:21
    |

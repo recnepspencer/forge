@@ -31,7 +31,7 @@ pub struct RuntimeProofReport {
     pub registry_bundle_digest: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MergePlanProofReport {
     pub proof_schema_version: String,
@@ -50,7 +50,7 @@ pub struct MergePlanProofReport {
     pub scoped_merge_proof: ScopedMergeProofPacket,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MergeResultProofReport {
     pub proof_schema_version: String,
@@ -124,7 +124,7 @@ pub enum ReplayMismatchClass {
     BranchStateDigestMismatch,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplayParityProofReport {
     pub proof_schema_version: String,
@@ -140,7 +140,7 @@ pub struct ReplayParityProofReport {
     pub mismatch_classes: Vec<ReplayMismatchClass>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplayArtifactProofInput {
     pub proof_schema_version: String,
@@ -155,7 +155,7 @@ pub struct ReplayArtifactProofInput {
     pub branch_state_digest: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplayArtifactProofReport {
     pub proof_schema_version: String,

@@ -1,5 +1,6 @@
 use super::*;
 
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use std::collections::BTreeMap;
 
 #[derive(Default)]
@@ -43,7 +44,8 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter for TestExistingTruthVeri
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
         aspects: &[ForgeQueryAspectValue],
-    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial> {
+    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
+    {
         for aspect in aspects {
             if aspect.clears_existing_value() {
                 return Err(ForgeQueryExistingTruthAssertionDenial::new(
@@ -77,7 +79,23 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter for TestExistingTruthVeri
             }
         }
 
-        Ok(())
+        ForgeQueryVerifiedExistingTruthAssertion::new(
+            binding,
+            aspects,
+            ForgeQuerySnapshotIdentity::from_external_authority_label(
+                "test-existing-truth-verification-snapshot",
+            ),
+        )
+        .map_err(|error| {
+            ForgeQueryExistingTruthAssertionDenial::new(
+                binding,
+                ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
+                None,
+                None,
+                None,
+                error.to_string(),
+            )
+        })
     }
 
     fn probe_existing_truth(
@@ -108,10 +126,27 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
 {
     fn verify_existing_truth_assertion(
         &self,
-        _binding: &ForgeQueryExistingTruthTargetBinding,
-        _aspects: &[ForgeQueryAspectValue],
-    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial> {
-        Ok(())
+        binding: &ForgeQueryExistingTruthTargetBinding,
+        aspects: &[ForgeQueryAspectValue],
+    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
+    {
+        ForgeQueryVerifiedExistingTruthAssertion::new(
+            binding,
+            aspects,
+            ForgeQuerySnapshotIdentity::from_external_authority_label(
+                "permissive-existing-truth-verification-snapshot",
+            ),
+        )
+        .map_err(|error| {
+            ForgeQueryExistingTruthAssertionDenial::new(
+                binding,
+                ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
+                None,
+                None,
+                None,
+                error.to_string(),
+            )
+        })
     }
 
     fn probe_existing_truth(

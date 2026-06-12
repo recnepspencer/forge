@@ -15,6 +15,13 @@ mod identity_boundary;
 #[allow(deprecated)]
 mod intent;
 mod intent_admission;
+mod intent_denial_identity;
+mod intent_receipt_authoritative_identity_composition;
+mod intent_receipt_identity;
+mod intent_receipt_identity_scheme;
+mod intent_receipt_identity_support;
+mod intent_receipt_preview_identity_composition;
+mod intent_receipt_preview_identity_fixtures;
 #[allow(deprecated)]
 mod live;
 mod live_artifacts;
@@ -29,5 +36,6 @@ mod preview;
 mod program;
 mod read_composition;
 mod session_label;
+mod session_label_outputs;
 mod shared_read;
 mod stop_class;

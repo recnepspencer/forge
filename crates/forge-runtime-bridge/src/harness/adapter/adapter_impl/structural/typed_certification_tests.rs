@@ -66,25 +66,31 @@ fn structural_fixture() -> forge_harness::facade::ScenarioFixture<BridgeHarnessF
             .with_structural_declaration(remap_declaration())
             .with_structural_declaration(branch_declaration())
             .with_committed_patch(committed_patch_on_branch(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                TruthBranchIdentity::new("left"),
-                TruthCommitIdentity::new("commit-left-a"),
-                TruthPatchIdentity::new("patch-left-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-left-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-left-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                TruthBranchIdentity::new("right"),
-                TruthCommitIdentity::new("commit-right-b"),
-                TruthPatchIdentity::new("patch-right-b"),
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-right-b"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-right-b"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            ))
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+                "bob",
+            )),
     )
     .declare_input("structural")
     .declare_observation("structural")
@@ -187,8 +193,8 @@ fn remap_declaration() -> StructuralIdentityDeclaration {
         StructuralSchemaIdentity::new("schema:geometry"),
         fingerprint_contract(StructuralFingerprintFamily::TopologyFingerprint),
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     )
 }
@@ -200,12 +206,12 @@ fn branch_declaration() -> StructuralIdentityDeclaration {
         fingerprint_contract(StructuralFingerprintFamily::BranchComparisonFingerprint),
         StructuralTruthViewBasis::explicit_branch_pair(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("left"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("right"),
-                TruthSnapshotIdentity::new("snapshot-b"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
             ),
         ),
     )

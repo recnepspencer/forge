@@ -24,9 +24,11 @@ impl CommittedPatchSource for StaticSource {
         BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new(
                 request.commit_identity().clone(),
-                TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("analysis"),
+                TruthPatchIdentity::from_relational_patch_position(1),
+                TruthSnapshotIdentity::from_relational_snapshot(
+                    crate::facade::RelationalBridgeSnapshotIdentityParts::new(1, 1),
+                ),
+                TruthBranchIdentity::from_relational_branch_id("analysis"),
             ),
             vec![native_profile_name_patch_item()],
         )
@@ -50,12 +52,11 @@ impl TruthBranchHeadSource for StaticSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new(
-                crate::facade::TruthCommitIdentity::new(format!(
-                    "head-{}",
-                    branch_identity.as_str()
-                )),
-                TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::facade::TruthCommitIdentity::from_relational_commit_id(100),
+                TruthPatchIdentity::from_relational_patch_position(100),
+                TruthSnapshotIdentity::from_relational_snapshot(
+                    crate::facade::RelationalBridgeSnapshotIdentityParts::new(1, 1),
+                ),
                 branch_identity.clone(),
             ),
             vec![native_profile_name_patch_item()],
@@ -114,7 +115,7 @@ impl BridgeSourceAdapter for DriftSourceAdapter {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if is_primary_snapshot(identity) {
             Ok(Box::new(DriftSnapshotReader))
         } else {
             Err(unknown_snapshot_error(identity))
@@ -169,11 +170,17 @@ fn native_source_capability_set() -> BridgeSourceCapabilitySet {
 fn open_static_snapshot(
     identity: &TruthSnapshotIdentity,
 ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-    if identity.as_str() == "snapshot-a" {
+    if is_primary_snapshot(identity) {
         Ok(Box::new(StaticSnapshotReader))
     } else {
         Err(unknown_snapshot_error(identity))
     }
+}
+
+fn is_primary_snapshot(identity: &TruthSnapshotIdentity) -> bool {
+    identity
+        .relational_snapshot_parts()
+        .is_some_and(|parts| parts.snapshot_id() == 1 && parts.version_id() == 1)
 }
 
 fn unknown_snapshot_error(identity: &TruthSnapshotIdentity) -> RelationalBridgeSourceError {

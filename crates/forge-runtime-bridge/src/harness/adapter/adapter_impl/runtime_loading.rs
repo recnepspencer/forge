@@ -255,7 +255,7 @@ impl crate::adapter::BridgeSourceAdapter for FixtureSourceAdapter {
 
 impl crate::facade::TruthSnapshotReader for DriftFixtureSnapshotReader {
     fn snapshot_identity(&self) -> crate::facade::TruthSnapshotIdentity {
-        crate::facade::TruthSnapshotIdentity::new("snapshot-drift")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-drift")
     }
 
     fn read_packet(

@@ -5,7 +5,6 @@ use crate::facade::tests::speculation::{
 use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgePreviewSessionIdentity,
     BridgeRuntimePolicy, StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity,
-    TruthBranchIdentity, TruthSnapshotIdentity,
 };
 
 #[test]
@@ -88,8 +87,12 @@ fn runtime_rejects_post_discard_reentry_and_preserves_canonical_discard_bundle()
                 declaration_identity: StructuralIdentityDeclarationIdentity::new(
                     "structural:hostile-reentry",
                 ),
-                truth_branch_identity: TruthBranchIdentity::new("truth:hostile-reentry"),
-                snapshot_identity: TruthSnapshotIdentity::new("snapshot:hostile-reentry"),
+                truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture(
+                    "truth:hostile-reentry",
+                ),
+                snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+                    "snapshot:hostile-reentry",
+                ),
                 semantics_version: StructuralSemanticsVersion::HostileReentry,
             })),
         )

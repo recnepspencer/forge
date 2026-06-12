@@ -1,5 +1,6 @@
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 use crate::runtime::{
     ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionDomainInvariantSummary,
@@ -10,7 +11,7 @@ use crate::runtime::{
 pub struct ForgeQueryGraphCompositionInvariantPackViolation {
     invariant_family: String,
     message: String,
-    violation_digest: String,
+    violation_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryGraphCompositionInvariantPackViolation {
@@ -24,9 +25,7 @@ impl ForgeQueryGraphCompositionInvariantPackViolation {
             ForgeQueryEvidenceTag::new("invariant_family"),
             invariant_family.as_str(),
         )
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         Self {
             invariant_family,
             message,
@@ -43,6 +42,10 @@ impl ForgeQueryGraphCompositionInvariantPackViolation {
     }
 
     pub fn violation_digest(&self) -> &str {
+        self.violation_digest.as_str()
+    }
+
+    pub fn violation_evidence_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.violation_digest
     }
 }

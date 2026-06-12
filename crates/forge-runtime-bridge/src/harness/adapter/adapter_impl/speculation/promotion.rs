@@ -18,9 +18,11 @@ pub(super) fn execute_promotion_certification(
                 crate::facade::BridgeSpeculativeBranchBindingIdentity::new(
                     "harness:speculation-promotion:binding",
                 ),
-                crate::facade::TruthBranchIdentity::new("main"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
                 crate::facade::BridgeSignalBranchIdentity::new("signal:promotion"),
-                crate::facade::TruthSnapshotIdentity::new("harness:speculation-promotion:snapshot"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture(
+                    "harness:speculation-promotion:snapshot",
+                ),
             ),
         )
         .map_err(|error| {
@@ -50,9 +52,9 @@ pub(super) fn execute_promotion_certification(
                 crate::facade::BridgeSpeculativeBranchBindingIdentity::new(
                     "harness:speculation-discard-sibling:binding",
                 ),
-                crate::facade::TruthBranchIdentity::new("main"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
                 crate::facade::BridgeSignalBranchIdentity::new("signal:promotion"),
-                crate::facade::TruthSnapshotIdentity::new(
+                crate::truth_identity_fixtures::truth_snapshot_fixture(
                     "harness:speculation-discard-sibling:snapshot",
                 ),
             ),
