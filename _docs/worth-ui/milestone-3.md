@@ -69,6 +69,11 @@ roadmap boundaries into one product-grade runtime activation milestone.
   Worth UI must carry Query-owned support, admission, live view, async/result,
   recovery, inspection, projection-consumption, and causal explanation posture
   instead of building UI-local pseudo Query layers.
+- Forge Foundational performance docs: protect performance language from
+  becoming local profiling folklore; Worth UI should produce its own runtime
+  counters and then lower them into Foundational performance claims, canonical
+  bundles, counter-backed receipts, planned reports, and certification envelopes
+  at explicit boundaries.
 
 ## Adversarial Constraint
 
@@ -108,6 +113,9 @@ default.
 - Frame counters are part of product correctness, not optional profiling.
 - Rich diagnostics are derived observation artifacts and must not change active
   UI meaning or steady-state frame cost unless explicitly requested by policy.
+- Forge Foundational performance surfaces are boundary vocabulary and proof
+  envelopes for Worth UI evidence; they are not the Worth UI frame runtime,
+  counter store, lane executor, or plan topology.
 
 ## Hostile Test Design Rule
 
@@ -1679,6 +1687,10 @@ diagnostics model in app code.
 - `WorthUiReloadStatusSurface`
 - `WorthUiPlanInspectionSurface`
 - `WorthUiFrameCostSurface`
+- Forge Foundational `performance_api::lower_lane::reports`
+- Forge Foundational `plan_performance_report`
+- Forge Foundational `FoundationalPerformanceReportRequest`
+- Forge Foundational `FoundationalMaterializedPerformanceReport`
 - Forge Query `Inspection`
 - Forge Query `Cross-Runtime Causal Inspection`
 - Forge Query `Projection Consumption`
@@ -1785,6 +1797,13 @@ lowering, reconciliation, plan assembly, lane execution, and frame rendering.
 - `WorthUiMeasurementBoundary`
 - `WorthUiFrameCostCounter`
 - `WorthUiComplexityContract`
+- Forge Foundational `performance_api::common_path`
+- Forge Foundational `performance_api::lower_lane::basis`
+- Forge Foundational `FoundationalPerformanceBoundary`
+- Forge Foundational `FoundationalPerformanceEvidenceStrength`
+- Forge Foundational layout, breadth/locality, allocation, access-pattern,
+  execution-temperature, freshness/retention, fallback/debt, and work-class
+  definitions
 - Forge Query `Subscription Selection And Diagnostics`
 - Forge Query `Signal Compatibility And Continuation`
 - Forge Query `Planner Parallel Admission And Scale Posture`
@@ -1795,6 +1814,9 @@ lowering, reconciliation, plan assembly, lane execution, and frame rendering.
 - Do not ship performance claims without named counters.
 - Do not use elapsed time alone as proof of frame-path cost.
 - Do not let counter collection alter active UI meaning.
+- Do not treat Forge Foundational vocabulary as runtime instrumentation; Worth
+  UI counters are produced by Worth UI and only then lowered into Foundational
+  performance claims, bundles, and receipts.
 
 **Test requirements**
 
@@ -1806,6 +1828,9 @@ lowering, reconciliation, plan assembly, lane execution, and frame rendering.
   policy does not change active artifact or plan digests.
 - `counter_taxonomy_rejects_unattributed_work_bucket`: every nonzero counter
   must belong to a named phase, lane, boundary, or Query-owned posture source.
+- `foundational_performance_claim_without_worth_ui_counter_denied`: a
+  Foundational performance claim or layout intent cannot certify Worth UI work
+  unless Worth UI emitted matching phase/lane counter evidence.
 
 **Engineering decisions**
 
@@ -1814,6 +1839,8 @@ lowering, reconciliation, plan assembly, lane execution, and frame rendering.
   state reconciliation, Query rebind planning, plan lowering, lane execution,
   activation, and steady frame rendering.
 - Counter names must preserve phase, lane, and authority boundaries.
+- Foundational performance posture names are used for shared boundary meaning;
+  they do not decide Worth UI lane execution strategy.
 
 **Open questions**
 
@@ -1838,6 +1865,12 @@ handle allocation, topology assembly, and plan equivalence.
 - `WorthUiImpactNarrowingCounters`
 - `WorthUiReconciliationCounters`
 - `WorthUiPlanLoweringCounters`
+- Forge Foundational `performance_api::lower_lane::basis`
+- Forge Foundational `performance_api::lower_lane::receipts`
+- Forge Foundational `performance_bundle`
+- Forge Foundational `counter_backed_performance_receipt`
+- Forge Foundational `FoundationalPerformanceCounterSpec`
+- Forge Foundational `FoundationalPerformanceCounterRow`
 - Forge Query support/admission, basis lifecycle, subscription diagnostics,
   signal-compatibility, and continuation receipts referenced by reload and
   lowering counters where Query-bound surfaces participate
@@ -1847,6 +1880,7 @@ handle allocation, topology assembly, and plan equivalence.
 - Do not hide broad scans inside reload or plan lowering.
 - Do not rely on small sample apps to justify missing counters.
 - Do not let invalid reloads skip counter evidence.
+- Do not use a policy-admission receipt as executed performance evidence.
 
 **Test requirements**
 
@@ -1859,6 +1893,10 @@ handle allocation, topology assembly, and plan equivalence.
 - `reload_counter_detects_repeated_query_support_rediscovery`: reload/lowering
   counters fail if Query support/admission posture is rediscovered repeatedly
   instead of carried as typed receipts.
+- `foundational_counter_receipt_rejects_missing_duplicate_or_unexpected_rows`:
+  lowering Worth UI reload counters into a Foundational counter-backed receipt
+  fails when required rows are missing, duplicated, unexpected, or attached to
+  the wrong counter spec.
 
 **Engineering decisions**
 
@@ -1867,6 +1905,9 @@ handle allocation, topology assembly, and plan equivalence.
 - Invalid paths emit counters at the boundary they reached.
 - Counter receipts must be usable by hostile certification without parsing
   debug logs.
+- Foundational counter-backed receipts wrap Worth UI counter evidence after the
+  fact; they are not allowed to trigger extra reload, comparison, or lowering
+  work.
 
 **Open questions**
 
@@ -1892,6 +1933,11 @@ real-time overlay work.
 - `WorthUiLaneFrameReceipt`
 - `WorthUiFrameExecutionReceipt`
 - `WorthUiRenderCostReceipt`
+- Forge Foundational `performance_api::lower_lane::receipts`
+- Forge Foundational `performance_api::lower_lane::reports`
+- Forge Foundational `FoundationalCounterBackedPerformanceReceipt`
+- Forge Foundational `FoundationalPerformanceCounterRow`
+- Forge Foundational `FoundationalPerformanceReportMaterializationBoundary`
 - Forge Query subscription diagnostics, live-view delivery posture,
   async/result posture, and projection-consumption receipts referenced by
   Query-bound lane frame receipts
@@ -1903,6 +1949,8 @@ real-time overlay work.
 - Do not hide allocation or text shaping costs behind lane-local helpers.
 - Do not merge virtualized, canvas, real-time, and ordinary lane counters into
   one ambiguous count.
+- Do not materialize Foundational performance reports on the ordinary steady
+  frame path.
 
 **Test requirements**
 
@@ -1917,6 +1965,9 @@ real-time overlay work.
 - `steady_frame_counters_fail_on_diagnostic_materialization_by_default`:
   steady-frame certification catches implementations that materialize rich
   diagnostics when diagnostic policy is minimal/off.
+- `foundational_receipt_counter_rows_match_steady_frame_specs_exactly`:
+  steady-frame receipt lowering fails when a Foundational counter row omits,
+  renames, duplicates, or miscounts a Worth UI frame counter spec.
 
 **Engineering decisions**
 
@@ -1925,6 +1976,8 @@ real-time overlay work.
 - Allocation, shaping, draw, and render-pass counters must be explicit enough
   to catch broad regressions.
 - Counter collection policy may vary, but the counter boundary must exist.
+- Foundational report planning is a diagnostics/support boundary; ordinary
+  frame execution emits evidence without expanding reports by default.
 
 **Open questions**
 
@@ -2002,6 +2055,12 @@ candidate storms.
 - `WorthUiReloadStormScenario`
 - `WorthUiReloadCertificationBundle`
 - `WorthUiReloadLatencyCounters`
+- Forge Foundational `performance_api::lower_lane::basis`
+- Forge Foundational `performance_api::lower_lane::receipts`
+- Forge Foundational `performance_api::lower_lane::reports`
+- Forge Foundational `performance_api::stronger_lane::certified`
+- Forge Foundational `certify_hot_path_counter_backed_performance_receipt`
+- Forge Foundational `certify_support_expansion_performance_report`
 - Forge Query support/admission, live-view, subscription diagnostics,
   async/result, recovery, and inspection receipts included in reload storm
   certification bundles where Query-bound surfaces participate
@@ -2012,6 +2071,8 @@ candidate storms.
 - Do not certify only source watcher behavior.
 - Do not allow repeated invalid reloads to degrade active state or diagnostics
   determinism.
+- Do not certify a reload storm from elapsed time or policy admission alone;
+  certification consumes Worth UI counters lowered into Foundational receipts.
 
 **Test requirements**
 
@@ -2028,6 +2089,10 @@ candidate storms.
 - `reload_storm_rejects_forged_receipt_reuse_across_candidates`: receipts from
   an earlier candidate cannot certify a later candidate with a different digest,
   basis, impact, or Query posture.
+- `reload_storm_foundational_bundle_comparison_uses_full_meaning`: canonical
+  Foundational bundle comparison fails when two reload runs share elapsed-time
+  shape but differ in counter specs, evidence rows, layout posture, boundary,
+  or freshness/debt posture.
 
 **Engineering decisions**
 
@@ -2035,6 +2100,8 @@ candidate storms.
   active-plan pipeline.
 - Certification bundles must be inspectable offline.
 - The storm must include both file-authored and Rust-authored candidate paths.
+- Foundational certified bundles are emitted only after Worth UI has produced
+  candidate, activation, and counter receipts for the storm.
 
 **Open questions**
 
@@ -2122,6 +2189,15 @@ pay diagnostic richness by default.
 - `WorthUiFrameCostCertification`
 - `WorthUiNoSourceFrameProof`
 - `WorthUiBroadScanRegressionDenial`
+- Forge Foundational `performance_api::lower_lane::basis`
+- Forge Foundational `performance_api::lower_lane::receipts`
+- Forge Foundational `performance_api::lower_lane::reports`
+- Forge Foundational `performance_api::stronger_lane::certified`
+- Forge Foundational `performance_api::stronger_lane::readiness`
+- Forge Foundational `compare_performance_bundles`
+- Forge Foundational `prepare_counter_backed_performance_receipt_for_canonical_basis`
+- Forge Foundational `foundational_performance_milestone8_readiness_report`
+- Forge Foundational `require_foundational_performance_milestone8_production_test_readiness`
 - Forge Query collection/read, view-shape, live-view, subscription diagnostics,
   projection-consumption, async/result, signal-compatibility, and continuation
   receipts referenced by lane certification when data or runtime posture comes
@@ -2133,6 +2209,8 @@ pay diagnostic richness by default.
 - Do not accept frame elapsed time without explanatory counters.
 - Do not leave real-time or data-heavy lanes as debt; they are platform
   foundation surfaces in this milestone.
+- Do not use Foundational readiness as a shortcut around Worth UI hostile lane
+  and frame-cost certification.
 
 **Test requirements**
 
@@ -2152,6 +2230,9 @@ pay diagnostic richness by default.
 - `frame_cost_certification_fails_on_any_positive_source_or_registry_counter`:
   any nonzero source parse, artifact validation, registry string lookup, or
   broad artifact scan counter on steady frames fails certification.
+- `foundational_readiness_cannot_pass_with_uncertified_worth_ui_lane_evidence`:
+  production-readiness proof fails if any lane lacks Worth UI counter evidence
+  lowered into canonical Foundational bundles and counter-backed receipts.
 
 **Engineering decisions**
 
@@ -2160,6 +2241,8 @@ pay diagnostic richness by default.
 - Data-heavy and real-time certification are mandatory because Worth UI is a UI
   platform for those product classes.
 - The final proof is counter-backed, not visual or narrative.
+- Foundational readiness is a final closure inventory over Worth UI lane
+  evidence, not the source of that evidence.
 
 **Open questions**
 
@@ -2190,6 +2273,9 @@ pay diagnostic richness by default.
 - in-app diagnostics projection for reload and frame-cost issues
 - file-watch and debounce ingress into the candidate pipeline
 - reload/lowering counters and steady-frame lane counters
+- Forge Foundational performance claim, bundle, counter-backed receipt, report
+  planning, certified bundle, and readiness integration at the explicit
+  performance boundaries
 - hostile reload, identity/state, Query drift, lane, and frame-cost
   certification suites
 
@@ -2212,6 +2298,9 @@ pay diagnostic richness by default.
 - Execution lanes specialize cost and mechanics without creating shadow UI
   runtimes or redefining command/Query/accessibility meaning.
 - Diagnostics and counters observe; they do not change artifact or plan truth.
+- Forge Foundational performance surfaces preserve shared boundary meaning and
+  certification shape; they do not own Worth UI runtime execution, live counter
+  storage, plan topology, or lane mechanics.
 
 ## Acceptance Evidence
 
@@ -2231,6 +2320,9 @@ pay diagnostic richness by default.
 - frame counters prove steady frames do not parse source, validate artifacts,
   resolve registry strings, broad-scan artifact topology, or pay diagnostics
   cost by default
+- Worth UI counter evidence lowers into Forge Foundational canonical bundles,
+  counter-backed receipts, planned reports, certified bundles, and readiness
+  closure without moving report materialization into the steady frame path
 - hostile reload storm, identity/state, Query drift, data-heavy, real-time, and
   cross-lane parity certification suites pass
 

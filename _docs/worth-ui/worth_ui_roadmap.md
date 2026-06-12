@@ -60,6 +60,10 @@ Rules for every remaining Worth UI item:
   hot reload, diagnostics, stable identity reconciliation, and safe plan swaps
 - each milestone must preserve explicit accessibility, keyboard, focus, and diagnostics posture rather than treating them as polish
 - each milestone must preserve frame-cost honesty through named counters and execution-plan boundaries
+- frame-cost claims that cross diagnostic, report, or certification boundaries
+  should lower Worth UI evidence into Forge Foundational performance claims,
+  canonical bundles, counter-backed receipts, planned reports, and readiness
+  envelopes instead of inventing local performance folklore
 - each milestone must preserve a structurally explicit layout model rather than drifting back toward DOM-shaped percentage, overflow, and implicit-parent folklore
 - each milestone must define concrete acceptance evidence through platform scenarios, diagnostics artifacts, performance counters, replay-safe plan behavior, tooling evidence, or certification suites
 - no milestone is complete until both implementation and trust evidence exist
@@ -224,6 +228,9 @@ honesty.
 - typed diagnostics and in-app diagnostics projection for reload, plan,
   reconciliation, Query, lane, and frame-cost failures
 - named counters for reload/lowering work and steady-frame lane work
+- Forge Foundational performance envelopes for shared claim vocabulary,
+  canonical bundle comparison, counter-backed receipts, report materialization,
+  certified performance bundles, and readiness closure
 - hostile certification for reload storms, invalid reload preservation,
   identity/state carry-forward, Query drift, data-heavy lanes, real-time lanes,
   and no-source/no-registry/no-broad-scan steady frames
