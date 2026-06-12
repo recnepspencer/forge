@@ -4,6 +4,7 @@ mod denial;
 mod fixture_fence;
 mod platform_targets;
 mod receipt;
+mod source_rows;
 
 pub use basis::{
     M6LegacyDeletionEvidenceRow, M6PlanarCloseoutBasis, M6PlanarCloseoutCertification,

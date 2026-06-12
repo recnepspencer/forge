@@ -27,6 +27,10 @@ impl TopologySeed {
         TopologySeedRecipe::new(TopologySeedKind::OpenWire, None)
     }
 
+    pub fn open_shell_nmt_edge_fan(incident_faces: usize) -> TopologySeedRecipe {
+        TopologySeedRecipe::new(TopologySeedKind::OpenShellNmtEdgeFan, Some(incident_faces))
+    }
+
     pub fn high_valence_vertex() -> TopologySeedRecipe {
         TopologySeedRecipe::new(TopologySeedKind::HighValenceVertex, None)
     }

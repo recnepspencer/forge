@@ -3,9 +3,9 @@ pub(crate) mod subject;
 use subject::{
     certify_platform_thin_feature_scale_separation, thin_feature_foreign_precision_witness_outcome,
     thin_feature_integrity_mismatch_outcome, thin_feature_missing_local_frame_outcome,
-    thin_feature_policy_required_outcome, thin_feature_precision_basis_failure_outcome,
-    thin_feature_predicate_uncertain_outcome, thin_feature_unsupported_tiny_rotation_outcome,
-    thin_feature_world_magnitude_floor_outcome,
+    thin_feature_missing_platform_projection_outcome, thin_feature_policy_required_outcome,
+    thin_feature_precision_basis_failure_outcome, thin_feature_predicate_uncertain_outcome,
+    thin_feature_unsupported_tiny_rotation_outcome, thin_feature_world_magnitude_floor_outcome,
 };
 use worth_spatial::facade::user_response::{
     WorthPolicyDecision, WorthUserOutcome, WorthUserOutcomeCauseKind, WorthUserOutcomeKind,
@@ -22,6 +22,10 @@ fn mb_m6_3_thin_feature_scale_separation_contract() {
     assert!(counters.precision_escalation_count() >= 3);
     assert_eq!(subject.receipt.local_scale_orders(), &[-12, -9, -6]);
     assert_eq!(subject.receipt.required_world_magnitude_order(), 12);
+    assert_eq!(
+        subject.receipt.platform_projection_identity(),
+        subject.platform_projection_identity.as_str()
+    );
     assert!(counters.local_basis_part_count() > 0);
     assert!(counters.projected_entity_count() >= 12);
     assert!(counters.transform_step_count() > 0);
@@ -43,13 +47,14 @@ fn mb_m6_3_micro_feature_outcome_matrix_is_production_owned() {
         thin_feature_unsupported_tiny_rotation_outcome("matrix-tiny-rotation"),
         thin_feature_integrity_mismatch_outcome("matrix-integrity"),
         thin_feature_missing_local_frame_outcome("matrix-local-frame"),
+        thin_feature_missing_platform_projection_outcome("matrix-platform-projection"),
     ];
 
     assert_one_kind(&outcomes, WorthUserOutcomeKind::PolicyRequired);
     assert_one_kind(&outcomes, WorthUserOutcomeKind::PredicateUncertain);
     assert_one_kind(&outcomes, WorthUserOutcomeKind::Unsupported);
     assert_one_kind(&outcomes, WorthUserOutcomeKind::IntegrityMismatch);
-    assert_kind_count(&outcomes, WorthUserOutcomeKind::NoOptions, 2);
+    assert_kind_count(&outcomes, WorthUserOutcomeKind::NoOptions, 3);
 
     assert_message_contains(&outcomes, "user policy decision");
     assert_message_contains(&outcomes, "local feature scale, world magnitude");
@@ -57,6 +62,7 @@ fn mb_m6_3_micro_feature_outcome_matrix_is_production_owned() {
     assert_message_contains(&outcomes, "tiny-rotation posture is unsupported");
     assert_message_contains(&outcomes, "same local frame");
     assert_message_contains(&outcomes, "local-frame receipt");
+    assert_message_contains(&outcomes, "catalog projection receipt");
 
     assert_branch(
         &outcomes[0],
@@ -89,6 +95,11 @@ fn mb_m6_3_micro_feature_outcome_matrix_is_production_owned() {
     );
     assert_branch(
         &outcomes[5],
+        WorthUserOutcomeKind::NoOptions,
+        WorthUserOutcomeCauseKind::MissingEvidence,
+    );
+    assert_branch(
+        &outcomes[6],
         WorthUserOutcomeKind::NoOptions,
         WorthUserOutcomeCauseKind::MissingEvidence,
     );

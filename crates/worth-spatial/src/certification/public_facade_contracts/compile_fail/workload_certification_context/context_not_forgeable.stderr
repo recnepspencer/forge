@@ -1,0 +1,7 @@
+error: cannot construct `WorkloadCertificationContext<'_, _, _, _, _, _, _, _, _>` with struct literal syntax due to private fields
+ --> src/certification/public_facade_contracts/compile_fail/workload_certification_context/context_not_forgeable.rs:4:13
+  |
+4 |     let _ = WorkloadCertificationContext {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields that were not provided

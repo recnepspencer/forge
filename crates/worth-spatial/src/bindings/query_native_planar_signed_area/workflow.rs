@@ -66,6 +66,7 @@ impl CertifiedSignedArea2D {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct CertifiedSignedArea2DContracts<WC>
 where
     WC: ForgeQueryDomainOperatingContext<CertifiedSignedArea2DQueryDomain>,

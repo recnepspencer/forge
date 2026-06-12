@@ -111,6 +111,12 @@ fn mb_m6_8_final_boss_outcome_matrix_is_production_owned() {
             orientation_denial.evidence_digest(),
             orientation_diagnostics.diagnostic_bundle_digest()
         );
+        let (predicate_denial, predicate_diagnostics) =
+            predicate_uncertain_final_boss("mb-m6-8-predicate");
+        assert_eq!(
+            predicate_denial.evidence_digest(),
+            predicate_diagnostics.diagnostic_bundle_digest()
+        );
 
         let matrix = [
             (
@@ -135,7 +141,7 @@ fn mb_m6_8_final_boss_outcome_matrix_is_production_owned() {
                 false,
             ),
             (
-                predicate_uncertain_final_boss("mb-m6-8-predicate"),
+                predicate_denial,
                 PlanarBooleanReadinessWorkloadDenialKind::PredicateUncertainty,
                 WorthUserOutcomeKind::PredicateUncertain,
                 Some(WorthUserOutcomeCauseKind::PredicateUncertain),
@@ -166,6 +172,14 @@ fn mb_m6_8_final_boss_outcome_matrix_is_production_owned() {
 
         for (denial, kind, outcome_kind, cause, has_choices) in matrix {
             assert_eq!(denial.kind(), kind);
+            if kind == PlanarBooleanReadinessWorkloadDenialKind::PolicyRequired {
+                assert!(denial
+                    .evidence_digest()
+                    .contains("projection-parity-policy"));
+                assert!(denial
+                    .human_reason()
+                    .contains("projection-consumed fact lane"));
+            }
             assert_human_readable(denial.human_reason());
             let outcome = outcome_for_denial(&denial);
             assert_outcome(&outcome, outcome_kind, cause);

@@ -1,4 +1,7 @@
 use topology::facade::{TopologySeed, TopologySeedCleanFailReceipt};
+use worth_spatial::facade::blocker_provenance::{
+    WorkloadBlockerProvenance, WorkloadBlockerProvenanceReceipt,
+};
 use worth_spatial::facade::dirty_planar_clean_fail::{
     DirtyPlanarCleanFailCase, DirtyPlanarCleanFailReceipt, DirtyPlanarCleanFailWorkload,
 };
@@ -148,6 +151,49 @@ pub(crate) fn dirty_clean_fail_rejects_foreign_boundary_response(
         .with_user_response(foreign_response)
         .certify()
         .expect_err("dirty workload must reject dirty response evidence from another boundary")
+}
+
+pub(crate) struct DirtyKindMismatchSubject {
+    pub(crate) provenance: WorkloadBlockerProvenanceReceipt,
+    pub(crate) user_outcome: WorthUserOutcome,
+}
+
+pub(crate) fn mismatched_dirty_kind_subject(world: &'static str) -> DirtyKindMismatchSubject {
+    let topology_clean_fail =
+        topology_clean_fail_for_case(world, DirtyPlanarCleanFailCase::SelfIntersectingLoop);
+    let topology_identity = topology_clean_fail.clean_fail_identity();
+    let boundary = clean_fail_boundary(
+        world,
+        topology_identity,
+        PlanarDirtyInputKind::NonManifoldWire,
+    );
+    let boundary_response = WorthUserResponseWorkload::from_source(
+        WorthUserResponseSource::from_clean_fail_boundary(&boundary),
+    )
+    .declared(format!("mismatched dirty kind response {world}"))
+    .respond()
+    .expect("mismatched dirty kind boundary response");
+    let error = DirtyPlanarCleanFailWorkload::from_topology_clean_fail(topology_clean_fail)
+        .declared(format!("MB-M6-5 mismatched dirty kind {world}"))
+        .with_clean_fail_boundary(boundary)
+        .with_user_response(boundary_response)
+        .certify()
+        .expect_err("dirty topology kind and clean-fail boundary kind must match");
+    let user_outcome = WorthUserResponseWorkload::from_source(
+        WorthUserResponseSource::from_dirty_planar_clean_fail_error(error.clone()),
+    )
+    .declared(format!("mismatched dirty kind final response {world}"))
+    .respond()
+    .expect("mismatched dirty kind response")
+    .outcome()
+    .clone();
+    let provenance = WorkloadBlockerProvenance::dirty_kind_mismatch(&error)
+        .certify(&user_outcome)
+        .expect("dirty kind mismatch provenance receipt");
+    DirtyKindMismatchSubject {
+        provenance,
+        user_outcome,
+    }
 }
 
 pub(crate) fn stable_identity_mismatch_outcome(world: &'static str) -> WorthUserOutcome {

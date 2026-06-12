@@ -4,12 +4,21 @@ use super::platform_storm_subject::{
     certify_platform_storm, certify_platform_storm_with_transform, manual_stage_substitution_error,
     mismatched_operator_stage_link_error,
 };
-use super::scenario::near_graze_region;
-use super::storm_extraction_subject::deny_storm_tiny_rotation;
-use worth_kernel::workload_composition::{TransformRecipe, WorkloadTopologyBreadth};
+use super::storm_extraction_subject::{
+    certify_projected_storm_bridge_authority, certify_projected_storm_context,
+    deny_storm_tiny_rotation,
+};
+use worth_kernel::workload_composition::{
+    TransformRecipe, WorkloadCatalog, WorkloadTopologyBreadth,
+};
 use worth_spatial::facade::coplanar_overlap_storm::CoplanarOverlapStormWorkloadError;
 use worth_spatial::facade::planar_overlap::CoplanarOverlapUserOutcomeKind;
-use worth_spatial::facade::projected_overlap_faces::ProjectedOverlapFaceSet;
+use worth_spatial::facade::projected_overlap_faces::{
+    CertifiedProjectedOverlapFaceSet, CoplanarOverlapExtractionBundle, ProjectedOverlapFaceSet,
+};
+use worth_spatial::facade::workload_certification_context::{
+    WorkloadMotionAdversary, WorkloadMotionBinding,
+};
 use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceLedgerError, WorkloadEvidenceStage,
 };
@@ -48,8 +57,13 @@ fn mb_m6_1_coplanar_overlap_storm_end_to_end_receipts() {
     );
     assert!(!subject.user_outcome.message().contains('_'));
 
-    let tiny_rotation_denial =
-        deny_storm_tiny_rotation("mb-real-coplanar-storm-tiny-rotation", &near_graze_region());
+    let tiny_rotation_source =
+        real_storm_tiny_rotation_workload("mb-real-coplanar-storm-tiny-rotation");
+    let tiny_rotation_denial = deny_storm_tiny_rotation(
+        "mb-real-coplanar-storm-tiny-rotation",
+        tiny_rotation_source.projected_workload(),
+        tiny_rotation_source.transform_receipts(),
+    );
     assert_eq!(
         tiny_rotation_denial.reason(),
         "movement and rotation posture must match before coplanar overlap extraction"
@@ -139,11 +153,178 @@ fn mb_m6_1_equivalent_motion_subset_converges_without_full_storm_replay() {
 
 #[test]
 fn mb_m6_1_user_outcome_matrix_branches_every_stop() {
+    let tiny_rotation_source =
+        real_storm_tiny_rotation_workload("mb-real-coplanar-matrix-tiny-rotation");
     let tiny_rotation_denial = deny_storm_tiny_rotation(
         "mb-real-coplanar-matrix-tiny-rotation",
-        &near_graze_region(),
+        tiny_rotation_source.projected_workload(),
+        tiny_rotation_source.transform_receipts(),
     );
     assert_mb_m6_outcome_matrix(&tiny_rotation_denial);
+}
+
+fn real_storm_tiny_rotation_workload(
+    world: &'static str,
+) -> worth_kernel::workload_composition::BuiltWorkloadCatalogRecipe {
+    WorkloadCatalog::coplanar_overlap_storm()
+        .with_topology_breadth(WorkloadTopologyBreadth::MultiFaceShell { face_count: 8 })
+        .declared(format!(
+            "MB-M6-1 real tiny-rotation candidate source {world}"
+        ))
+        .build()
+        .expect("real storm workload should build before tiny-rotation denial")
+}
+
+#[test]
+fn mb_m6_1_certified_projected_face_bridge_is_extraction_authority() {
+    let built = real_storm_tiny_rotation_workload("mb-real-coplanar-certified-bridge");
+    let authority = certify_projected_storm_bridge_authority(
+        "mb-real-coplanar-certified-bridge",
+        built.projected_workload(),
+        built.transform_receipts(),
+    );
+
+    assert_eq!(authority.certified_face_count(), 8);
+    assert_eq!(authority.candidate_pair_count(), 4);
+    assert_eq!(
+        authority.extraction_receipt_count(),
+        authority.candidate_pair_count()
+    );
+    assert_eq!(
+        authority.context_identity(),
+        authority.extraction_bundle().context_identity()
+    );
+    assert_eq!(
+        authority.projection_stage_identity(),
+        authority.extraction_bundle().projection_stage_identity()
+    );
+    assert_eq!(
+        authority.movement_rotation_posture_identity(),
+        authority
+            .extraction_bundle()
+            .movement_rotation_posture_identity()
+    );
+    assert_eq!(
+        authority.certified_face_set_digest(),
+        authority.certified_faces().certified_face_set_digest()
+    );
+    assert!(!authority.certified_face_set_digest().is_empty());
+    assert!(!authority
+        .extraction_bundle()
+        .extraction_bundle_digest()
+        .is_empty());
+    assert!(!authority.authority_digest().is_empty());
+    let pair = authority
+        .candidate_pairs()
+        .first_pair()
+        .expect("certified storm bridge should expose candidate pairs");
+    assert_eq!(
+        pair.projection_stage_identity(),
+        authority.projection_stage_identity()
+    );
+    assert_eq!(
+        pair.first_face().projection_stage_identity(),
+        authority.projection_stage_identity()
+    );
+    assert_eq!(
+        pair.first_face().movement_rotation_posture_identity(),
+        built
+            .transform_receipts()
+            .transform_posture_receipt()
+            .posture_identity()
+    );
+    assert!(!pair.first_face().winding_fact_digest().is_empty());
+    assert!(!pair.first_face().signed_area_fact_digest().is_empty());
+    assert!(!pair.first_face().local_frame_fact_digest().is_empty());
+    assert!(!pair.first_face().precision_fact_digest().is_empty());
+    assert!(!pair.pair_identity().is_empty());
+}
+
+#[test]
+fn mb_m6_1_certified_bridge_rejects_cross_context_face_authority() {
+    let projected_source = real_storm_tiny_rotation_workload("mb-real-coplanar-projected-source");
+    let context_source = real_storm_tiny_rotation_workload("mb-real-coplanar-context-source");
+    let projected_faces =
+        ProjectedOverlapFaceSet::from_projected_workload(projected_source.projected_workload())
+            .expect("projected source should expose projected overlap faces");
+    let foreign_context = certify_projected_storm_context(
+        "mb-real-coplanar-context-source",
+        context_source.projected_workload(),
+        context_source.transform_receipts(),
+    );
+
+    let denial =
+        CertifiedProjectedOverlapFaceSet::from_projected_faces(projected_faces, &foreign_context)
+            .expect_err("projected faces must not certify under a foreign context");
+
+    assert_eq!(
+        denial.human_reason(),
+        "certified projected overlap faces require the projected workload and certification context to share the same projection stage"
+    );
+    assert!(!denial.human_reason().contains('_'));
+}
+
+#[test]
+fn mb_m6_1_certified_bridge_rejects_cross_context_candidate_pairs_before_extraction() {
+    let pair_source = real_storm_tiny_rotation_workload("mb-real-coplanar-pair-source");
+    let context_source = real_storm_tiny_rotation_workload("mb-real-coplanar-bundle-context");
+    let pair_authority = certify_projected_storm_bridge_authority(
+        "mb-real-coplanar-pair-source",
+        pair_source.projected_workload(),
+        pair_source.transform_receipts(),
+    );
+    let foreign_context = certify_projected_storm_context(
+        "mb-real-coplanar-bundle-context",
+        context_source.projected_workload(),
+        context_source.transform_receipts(),
+    );
+
+    let denial = CoplanarOverlapExtractionBundle::from_context_candidate_pairs(
+        pair_authority.candidate_pairs(),
+        &foreign_context,
+    )
+    .expect_err("candidate pairs must not extract under a foreign context");
+
+    assert_eq!(
+        denial.human_reason(),
+        "certified projected overlap extraction requires candidate pairs from the same projection stage as the certification context"
+    );
+    assert!(!denial.human_reason().contains('_'));
+}
+
+#[test]
+fn mb_m6_1_certified_bridge_rejects_cross_motion_candidate_pairs_before_extraction() {
+    let built = real_storm_tiny_rotation_workload("mb-real-coplanar-motion-guard");
+    let context = certify_projected_storm_context(
+        "mb-real-coplanar-motion-guard",
+        built.projected_workload(),
+        built.transform_receipts(),
+    );
+    let projected_faces = ProjectedOverlapFaceSet::from_context(&context)
+        .expect("projected storm context should expose projected overlap faces");
+    let adversarial_context = context
+        .with_motion_binding(WorkloadMotionBinding::adversarial_for_context(
+            &context,
+            WorkloadMotionAdversary::TinyRotationExitsCoplanarClass,
+        ))
+        .expect("motion adversary should preserve projection while changing posture");
+    let adversarial_faces = CertifiedProjectedOverlapFaceSet::from_projected_faces(
+        projected_faces,
+        &adversarial_context,
+    )
+    .expect("same-projection adversarial context should certify faces");
+
+    let denial = CoplanarOverlapExtractionBundle::from_context_candidate_pairs(
+        adversarial_faces.candidate_pairs(),
+        &context,
+    )
+    .expect_err("candidate pairs with a different motion posture must not extract");
+
+    assert_eq!(
+        denial.human_reason(),
+        "certified projected overlap extraction requires candidate pairs from the same movement and rotation posture as the certification context"
+    );
+    assert!(!denial.human_reason().contains('_'));
 }
 
 #[test]

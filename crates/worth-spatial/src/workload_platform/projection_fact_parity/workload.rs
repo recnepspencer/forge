@@ -67,6 +67,7 @@ impl ProjectionFactParityComparison {
             case,
             parity_digest,
             self.evidence_basis.workload_basis_identity().to_string(),
+            self.evidence_basis.topology_evidence_identity()?,
             self.declaration,
             lanes,
             counters,
@@ -103,9 +104,10 @@ impl ProjectionFactParityComparison {
                 .filter(|evidence| evidence.lane() == required)
                 .count();
             if count == 0 {
-                return Err(ProjectionFactParityDenial::new(
+                return Err(ProjectionFactParityDenial::new_with_workload_basis(
                     ProjectionFactParityDenialKind::MissingLane,
                     Some(required),
+                    self.evidence_basis.workload_basis_identity(),
                     format!(
                         "Projection fact parity is missing the {}.",
                         required.human_name()
@@ -113,9 +115,10 @@ impl ProjectionFactParityComparison {
                 ));
             }
             if count > 1 {
-                return Err(ProjectionFactParityDenial::new(
+                return Err(ProjectionFactParityDenial::new_with_workload_basis(
                     ProjectionFactParityDenialKind::DuplicateLane,
                     Some(required),
+                    self.evidence_basis.workload_basis_identity(),
                     format!(
                         "Projection fact parity has duplicate evidence for the {}.",
                         required.human_name()
@@ -129,9 +132,10 @@ impl ProjectionFactParityComparison {
     fn assert_no_mismatch(&self) -> Result<(), ProjectionFactParityDenial> {
         if let Some(policy) = self.lane_with_status(ProjectionFactParityLaneStatus::PolicyRequired)
         {
-            return Err(ProjectionFactParityDenial::new(
+            return Err(ProjectionFactParityDenial::new_with_workload_basis(
                 ProjectionFactParityDenialKind::PolicyRequired,
                 Some(policy.lane()),
+                self.evidence_basis.workload_basis_identity(),
                 format!(
                     "Projection fact parity needs a user policy before comparing the {}.",
                     policy.lane().human_name()
@@ -167,9 +171,10 @@ impl ProjectionFactParityComparison {
                 .iter()
                 .find(|lane| lane.status() == ProjectionFactParityLaneStatus::Admitted)
                 .expect("admitted lane exists");
-            return Err(ProjectionFactParityDenial::new(
+            return Err(ProjectionFactParityDenial::new_with_workload_basis(
                 ProjectionFactParityDenialKind::DeniedLaneUpgraded,
                 Some(upgraded.lane()),
+                self.evidence_basis.workload_basis_identity(),
                 format!(
                     "Denied projection parity cannot be upgraded through the {}.",
                     upgraded.lane().human_name()
@@ -203,9 +208,10 @@ impl ProjectionFactParityComparison {
                 ProjectionFactParityDenialKind::DiagnosticsMismatch
             }
         };
-        ProjectionFactParityDenial::new(
+        ProjectionFactParityDenial::new_with_workload_basis(
             kind,
             Some(mismatch.lane()),
+            self.evidence_basis.workload_basis_identity(),
             format!(
                 "Projection fact parity found that the {} came from a different workload basis.",
                 mismatch.lane().human_name()

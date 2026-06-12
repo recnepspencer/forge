@@ -15,7 +15,9 @@ use worth_spatial::facade::planar_motion_posture::PlanarMotionPostureReceipt;
 use worth_spatial::facade::planar_projection_consumption::ProjectionConsumedPlanarFactsReceipt;
 use worth_spatial::facade::planar_recovery::PlanarRecoveryPostureReceipt;
 use worth_spatial::facade::planar_retained_facts::RetainedPlanarFactsReceipt;
-use worth_spatial::facade::projection_fact_parity::ProjectionFactParityWorkload;
+use worth_spatial::facade::projection_fact_parity::{
+    ProjectionFactParityLane, ProjectionFactParityLaneStatus, ProjectionFactParityWorkload,
+};
 use worth_spatial::facade::surface_support::{
     SurfaceFamily, SurfaceSupportWorkload, UnsupportedSurfaceSupportReceipt,
 };
@@ -52,10 +54,18 @@ pub(crate) fn certify_final_boss(world: &'static str) -> BooleanReadinessFinalBo
 pub(crate) fn policy_required_final_boss(
     world: &'static str,
 ) -> PlanarBooleanReadinessWorkloadDenial {
+    let parts = final_boss_parts(world);
+    let parity_denial =
+        ProjectionFactParityWorkload::from_evidence_basis(admitted_basis(&parts).with_lane_status(
+            ProjectionFactParityLane::ProjectionConsumed,
+            ProjectionFactParityLaneStatus::PolicyRequired,
+        ))
+        .declared(format!("MB-M6-8 policy parity blocker {world}"))
+        .compare_lanes()
+        .certify()
+        .expect_err("policy-required parity blocker");
     denied_final_boss(world, |basis| {
-        basis.with_policy_required_branch(
-            "Final readiness needs a user policy before M7 may proceed.",
-        )
+        basis.with_policy_required_projection_parity_denial(&parity_denial)
     })
 }
 
@@ -87,12 +97,15 @@ pub(crate) fn unsupported_final_boss(
 
 pub(crate) fn predicate_uncertain_final_boss(
     world: &'static str,
-) -> PlanarBooleanReadinessWorkloadDenial {
-    denied_final_boss(world, |basis| {
-        basis.with_predicate_uncertainty(
-            "Predicate uncertainty leaves no boolean-readiness options.",
-        )
-    })
+) -> (
+    PlanarBooleanReadinessWorkloadDenial,
+    PlanarDiagnosticBundleReceipt,
+) {
+    let diagnostics = predicate_uncertainty_diagnostics(world);
+    let denial = denied_final_boss(world, |basis| {
+        basis.with_predicate_uncertainty_diagnostics(&diagnostics)
+    });
+    (denial, diagnostics)
 }
 
 pub(crate) fn orientation_flip_final_boss(
@@ -308,6 +321,25 @@ fn orientation_flip_diagnostics(world: &'static str) -> PlanarDiagnosticBundleRe
     .expect("orientation flip diagnostics plan")
     .certify()
     .expect("orientation flip diagnostics receipt")
+}
+
+fn predicate_uncertainty_diagnostics(world: &'static str) -> PlanarDiagnosticBundleReceipt {
+    let parts = final_boss_parts(world);
+    let motion = parts.retained.basis().motion_posture_receipt().clone();
+    PlanarDiagnosticBundle::explain_planar_failure(PlanarDiagnosticSubject::predicate_failure(
+        format!("mb-m6-8-predicate-uncertainty:{world}"),
+    ))
+    .with_retained_planar_facts(parts.retained)
+    .with_projection_consumed_planar_facts(parts.projected)
+    .with_motion_posture(motion)
+    .with_query_causal_inspection(causal_reference(world))
+    .inspect_failure_locality()
+    .compile(&PlanarDiagnosticBundleContracts::new(diagnostic_handle(
+        world,
+    )))
+    .expect("predicate uncertainty diagnostics plan")
+    .certify()
+    .expect("predicate uncertainty diagnostics receipt")
 }
 
 fn unsupported_surface_support_receipt(world: &'static str) -> UnsupportedSurfaceSupportReceipt {

@@ -1,0 +1,14 @@
+error[E0308]: mismatched types
+ --> src/certification/public_facade_contracts/compile_fail/workload_certification_context/raw_motion_adversary_string_not_accepted.rs:8:9
+  |
+6 |     let _ = WorkloadMotionBinding::adversarial_for_context(
+  |             ---------------------------------------------- arguments to this function are incorrect
+7 |         context,
+8 |         "movement:tiny-rotation-exits-coplanar-class",
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `WorkloadMotionAdversary`, found `&str`
+  |
+note: associated function defined here
+ --> src/workload_platform/certification_context/motion_binding.rs
+  |
+  |     pub fn adversarial_for_context<OC, SC, PC, PRC, WC, AC, PXC, FC>(
+  |            ^^^^^^^^^^^^^^^^^^^^^^^

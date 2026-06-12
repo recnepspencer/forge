@@ -2,10 +2,10 @@ pub(crate) mod subject;
 
 use subject::{
     certify_retained_cancellation_chain, certify_retained_cancellation_chain_with_checkpoints,
-    duplicate_checkpoint_denial_outcome, live_extraction_denial_outcome,
-    missing_trigger_local_replay_outcome, projection_consumed_forgery_denial_outcome,
-    projection_consumed_mismatch_outcome, retained_cancellation_outcome_matrix,
-    retained_replay_mismatch_outcome,
+    duplicate_checkpoint_denial_outcome, foreign_checkpoint_stage_denial_outcome,
+    live_extraction_denial_outcome, missing_trigger_local_replay_outcome,
+    projection_consumed_forgery_denial_outcome, projection_consumed_mismatch_outcome,
+    retained_cancellation_outcome_matrix, retained_replay_mismatch_outcome,
 };
 use worth_spatial::facade::user_response::{
     WorthPolicyDecision, WorthUserOutcome, WorthUserOutcomeCauseKind, WorthUserOutcomeKind,
@@ -29,6 +29,16 @@ fn mb_m6_4_retained_planar_history_cancellation_chain() {
     assert_eq!(subject.receipt.checkpoints().len(), 32);
     assert_eq!(subject.user_outcome.kind(), WorthUserOutcomeKind::Admitted);
     assert_human_readable(subject.user_outcome.human_response().summary());
+    for checkpoint in subject.receipt.checkpoints() {
+        assert_eq!(
+            checkpoint.transform_stage_receipt_identity(),
+            subject.catalog_transform_stage_identity
+        );
+        assert_eq!(
+            checkpoint.retained_replay_stage_identity(),
+            subject.catalog_retained_replay_stage_identity
+        );
+    }
 }
 
 #[test]
@@ -202,6 +212,22 @@ fn mb_m6_4_trigger_local_replay_and_projection_forgery_are_denied() {
         .summary()
         .contains("checkpoint 25"));
     assert_human_readable(forged_projection.human_response().summary());
+
+    let foreign_stage = foreign_checkpoint_stage_denial_outcome("foreign-stage");
+    assert_branch(
+        &foreign_stage,
+        WorthUserOutcomeKind::IntegrityMismatch,
+        WorthUserOutcomeCauseKind::IntegrityMismatch,
+    );
+    assert!(foreign_stage
+        .human_response()
+        .summary()
+        .contains("checkpoint 11"));
+    assert!(foreign_stage
+        .human_response()
+        .summary()
+        .contains("workload catalog transform evidence receipt"));
+    assert_human_readable(foreign_stage.human_response().summary());
 }
 
 fn assert_branch(

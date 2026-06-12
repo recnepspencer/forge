@@ -1,5 +1,4 @@
 use super::high_valence_subject::{
-    certify_platform_high_valence_singularity,
     certify_platform_high_valence_singularity_with_explicit_valence,
     high_valence_integrity_mismatch_outcome, high_valence_missing_neighborhood_outcome,
     high_valence_policy_required_outcome, high_valence_predicate_uncertain_outcome,
@@ -10,10 +9,10 @@ use worth_spatial::facade::user_response::{WorthUserOutcome, WorthUserOutcomeKin
 
 #[test]
 fn mb_m6_2_high_valence_planar_singularity_contract() {
-    let subject = certify_platform_high_valence_singularity("contract");
+    let subject = certify_platform_high_valence_singularity_with_explicit_valence("contract", 128);
     let counters = subject.receipt.counters();
 
-    assert_eq!(counters.neighborhood_valence(), 5);
+    assert_eq!(counters.neighborhood_valence(), 128);
     assert!(counters.topology_entity_count() > counters.neighborhood_valence());
     assert_eq!(
         counters.topology_face_count(),
@@ -40,7 +39,7 @@ fn mb_m6_2_high_valence_planar_singularity_contract() {
 
 #[test]
 fn mb_m6_2_valence_support_boundary_is_exact_and_receipt_backed() {
-    for valence in [3, 16] {
+    for valence in [3, 128] {
         let subject =
             certify_platform_high_valence_singularity_with_explicit_valence("boundary", valence);
         let counters = subject.receipt.counters();
@@ -53,14 +52,14 @@ fn mb_m6_2_valence_support_boundary_is_exact_and_receipt_backed() {
         assert_eq!(subject.user_outcome.kind(), WorthUserOutcomeKind::Admitted);
     }
 
-    for valence in [2, 17] {
+    for valence in [2, 129] {
         let outcome = high_valence_unsupported_explicit_valence_outcome("boundary-denial", valence);
 
         assert_eq!(outcome.kind(), WorthUserOutcomeKind::Unsupported);
         assert_eq!(
             outcome.human_response().summary(),
             format!(
-                "high-valence singularity supports valence 3 through 16 today; valence {valence} needs an explicit widening phase"
+                "high-valence singularity supports valence 3 through 128 today; valence {valence} needs an explicit widening phase"
             )
         );
     }
@@ -87,7 +86,7 @@ fn mb_m6_2_singularity_no_options_matrix_names_exact_blocker() {
     assert_message_contains(&outcomes, "user policy decision");
     assert_message_contains(&outcomes, "predicate authority could not certify");
     assert_message_contains(&outcomes, "topology neighborhood receipt");
-    assert_message_contains(&outcomes, "valence 32 needs an explicit widening phase");
+    assert_message_contains(&outcomes, "valence 129 needs an explicit widening phase");
     assert_message_contains(&outcomes, "before correspondence");
     assert_message_contains(&outcomes, "projection evidence");
 

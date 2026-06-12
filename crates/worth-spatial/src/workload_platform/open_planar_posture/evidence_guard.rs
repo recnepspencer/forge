@@ -21,6 +21,7 @@ pub(super) fn require_open_topology(
 
 pub(super) fn require_unsupported_surface(
     support: &UnsupportedSurfaceSupport,
+    topology: &TopologySeedReceipt,
 ) -> Result<(), OpenPlanarPostureError> {
     if support.can_enter_operator_execution()
         || support.can_enter_projection_workload()
@@ -28,6 +29,9 @@ pub(super) fn require_unsupported_surface(
         || support.receipt().is_none()
     {
         return Err(OpenPlanarPostureError::SurfaceSupportWasAdmitted);
+    }
+    if support.topology_query_surface() != Some(topology_query_surface(topology).as_str()) {
+        return Err(OpenPlanarPostureError::UnsupportedSurfaceDidNotConsumeOpenTopology);
     }
     Ok(())
 }
@@ -107,4 +111,8 @@ pub(super) fn topology_identity(receipt: &TopologySeedReceipt) -> String {
         .identity()
         .name()
         .to_string()
+}
+
+fn topology_query_surface(receipt: &TopologySeedReceipt) -> String {
+    receipt.query_receipts().query_surface().to_string()
 }

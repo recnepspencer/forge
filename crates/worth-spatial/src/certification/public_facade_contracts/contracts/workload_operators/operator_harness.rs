@@ -2,12 +2,15 @@ use worth_kernel::workload_composition::{
     OperatorOutcome, OperatorOutcomeKind, WorkloadCatalog, WorkloadOperator,
     WorkloadOperatorFamily, WorkloadStageRequirement,
 };
+use worth_spatial::facade::projected_overlap_faces::CoplanarOverlapExtractionBundle;
 use worth_spatial::facade::workload_operators::{
     CoplanarOverlapOperatorDenial, CoplanarOverlapWorkloadOperator,
 };
 use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
 
-use crate::public_api_planar_overlap::metaboss::storm_extraction_subject::certify_projected_storm_extraction_bundle;
+use crate::public_api_planar_overlap::metaboss::storm_extraction_subject::{
+    certify_projected_storm_context, certify_projected_storm_extraction_bundle,
+};
 use crate::public_api_workload_vocabulary::evidence_ledger_receipts::counter_backed_receipts;
 
 #[test]
@@ -19,6 +22,12 @@ fn operator_harness_consumes_projected_retained_transformed_workloads() {
     let extraction_bundle = certify_projected_storm_extraction_bundle(
         "operator-harness-real-overlap-extractions",
         built.projected_workload(),
+        built.transform_receipts(),
+    );
+    let context = certify_projected_storm_context(
+        "operator-harness-real-overlap-extractions",
+        built.projected_workload(),
+        built.transform_receipts(),
     );
     let workload = built.into_workload();
 
@@ -55,6 +64,7 @@ fn operator_harness_consumes_projected_retained_transformed_workloads() {
 
     let operator_receipt =
         CoplanarOverlapWorkloadOperator::from_consumed_evidence(run.consumed_evidence())
+            .with_certification_context(&context)
             .with_extraction_bundle(&extraction_bundle)
             .execute()
             .expect("coplanar overlap operator should consume workload proof");
@@ -92,11 +102,13 @@ fn operator_harness_consumes_projected_retained_transformed_workloads() {
 
 #[test]
 fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
+    let denial_bundle = operator_extraction_bundle("operator-denial-real-overlap-extractions");
     assert_operator_denial(
         vec![
             WorkloadEvidenceRow::new(WorkloadEvidenceStage::Transform, "manual transform"),
             WorkloadEvidenceRow::new(WorkloadEvidenceStage::RetainedReplay, "manual replay"),
         ],
+        &denial_bundle,
         CoplanarOverlapOperatorDenial::MissingProjectedWorkload,
         "requires projected planar workload evidence",
     );
@@ -108,6 +120,7 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
             ),
             WorkloadEvidenceRow::from_replay_receipt_set(&missing_transform_receipts.replay),
         ],
+        &denial_bundle,
         CoplanarOverlapOperatorDenial::MissingTransformWorkload,
         "requires transform workload evidence",
     );
@@ -117,6 +130,7 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
             WorkloadEvidenceRow::from_projection_receipt_set(&missing_replay_receipts.projection),
             WorkloadEvidenceRow::from_transform_receipt_set(&missing_replay_receipts.transform),
         ],
+        &denial_bundle,
         CoplanarOverlapOperatorDenial::MissingRetainedReplayWorkload,
         "requires retained replay workload evidence",
     );
@@ -127,6 +141,7 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
             WorkloadEvidenceRow::new(WorkloadEvidenceStage::Transform, "manual transform"),
             WorkloadEvidenceRow::new(WorkloadEvidenceStage::RetainedReplay, "manual replay"),
         ],
+        &denial_bundle,
         CoplanarOverlapOperatorDenial::ManualProjectedWorkload,
         "rejects hand-filled projection evidence",
     );
@@ -137,6 +152,7 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
             WorkloadEvidenceRow::new(WorkloadEvidenceStage::Transform, "manual transform"),
             WorkloadEvidenceRow::from_replay_receipt_set(&manual_transform_receipts.replay),
         ],
+        &denial_bundle,
         CoplanarOverlapOperatorDenial::ManualTransformWorkload,
         "rejects hand-filled transform evidence",
     );
@@ -147,6 +163,7 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
             WorkloadEvidenceRow::from_transform_receipt_set(&manual_replay_receipts.transform),
             WorkloadEvidenceRow::new(WorkloadEvidenceStage::RetainedReplay, "manual replay"),
         ],
+        &denial_bundle,
         CoplanarOverlapOperatorDenial::ManualRetainedReplayWorkload,
         "rejects hand-filled retained replay evidence",
     );
@@ -163,6 +180,7 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
             ),
             WorkloadEvidenceRow::from_replay_receipt_set(&counterless_projection_receipts.replay),
         ],
+        &denial_bundle,
         CoplanarOverlapOperatorDenial::SyntheticProjectedWorkload,
         "requires projected entities",
     );
@@ -177,6 +195,7 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
             ),
             WorkloadEvidenceRow::from_replay_receipt_set(&counterless_transform_receipts.replay),
         ],
+        &denial_bundle,
         CoplanarOverlapOperatorDenial::SyntheticTransformWorkload,
         "requires real transform step evidence",
     );
@@ -191,15 +210,23 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
                 counterless_replay_receipts.replay.stage_receipt(),
             ),
         ],
+        &denial_bundle,
         CoplanarOverlapOperatorDenial::SyntheticRetainedReplayWorkload,
         "requires retained artifact and replay checkpoint evidence",
     );
-    let missing_extractions = counter_backed_receipts("operator-missing-extractions");
-    let denial = CoplanarOverlapWorkloadOperator::from_consumed_evidence(&[
-        WorkloadEvidenceRow::from_projection_receipt_set(&missing_extractions.projection),
-        WorkloadEvidenceRow::from_transform_receipt_set(&missing_extractions.transform),
-        WorkloadEvidenceRow::from_replay_receipt_set(&missing_extractions.replay),
-    ])
+    let missing_extractions = WorkloadCatalog::coplanar_overlap_storm()
+        .declared("operator-missing-extractions-real-context")
+        .build()
+        .expect("missing extraction context source should build");
+    let context = certify_projected_storm_context(
+        "operator-missing-extractions-real-context",
+        missing_extractions.projected_workload(),
+        missing_extractions.transform_receipts(),
+    );
+    let denial = CoplanarOverlapWorkloadOperator::from_consumed_evidence(
+        missing_extractions.workload().evidence_ledger().rows(),
+    )
+    .with_certification_context(&context)
     .execute()
     .expect_err("operator must deny missing overlap extraction receipts");
     assert_eq!(
@@ -212,15 +239,82 @@ fn coplanar_overlap_operator_branches_required_stage_denial_matrix() {
     assert!(!denial.human_reason().contains('_'));
 }
 
+#[test]
+fn coplanar_overlap_operator_requires_context_for_real_extractions() {
+    let built = WorkloadCatalog::coplanar_overlap_storm()
+        .declared("operator-requires-context-source")
+        .build()
+        .expect("operator context source should build");
+    let extraction_bundle = certify_projected_storm_extraction_bundle(
+        "operator-requires-context-source",
+        built.projected_workload(),
+        built.transform_receipts(),
+    );
+
+    let denial = CoplanarOverlapWorkloadOperator::from_consumed_evidence(
+        built.workload().evidence_ledger().rows(),
+    )
+    .with_extraction_bundle(&extraction_bundle)
+    .execute()
+    .expect_err("operator must reject extraction receipts without context");
+
+    assert_eq!(
+        denial,
+        CoplanarOverlapOperatorDenial::MissingCertificationContext
+    );
+    assert!(denial
+        .human_reason()
+        .contains("workload certification context"));
+    assert!(!denial.human_reason().contains('_'));
+}
+
+#[test]
+fn coplanar_overlap_operator_rejects_bundle_from_another_context() {
+    let operator_source = WorkloadCatalog::coplanar_overlap_storm()
+        .declared("operator-context-source")
+        .build()
+        .expect("operator source should build");
+    let bundle_source = WorkloadCatalog::coplanar_overlap_storm()
+        .declared("operator-bundle-source")
+        .build()
+        .expect("bundle source should build");
+    let context = certify_projected_storm_context(
+        "operator-context-source",
+        operator_source.projected_workload(),
+        operator_source.transform_receipts(),
+    );
+    let extraction_bundle = certify_projected_storm_extraction_bundle(
+        "operator-bundle-source",
+        bundle_source.projected_workload(),
+        bundle_source.transform_receipts(),
+    );
+
+    let denial = CoplanarOverlapWorkloadOperator::from_consumed_evidence(
+        operator_source.workload().evidence_ledger().rows(),
+    )
+    .with_certification_context(&context)
+    .with_extraction_bundle(&extraction_bundle)
+    .execute()
+    .expect_err("operator must reject bundle compiled under another context");
+
+    assert_eq!(
+        denial,
+        CoplanarOverlapOperatorDenial::MismatchedOverlapExtractionBundle
+    );
+    assert!(denial
+        .human_reason()
+        .contains("same workload certification context"));
+    assert!(!denial.human_reason().contains('_'));
+}
+
 fn assert_operator_denial(
     consumed_evidence: Vec<WorkloadEvidenceRow>,
+    extraction_bundle: &CoplanarOverlapExtractionBundle,
     expected: CoplanarOverlapOperatorDenial,
     human_reason_fragment: &str,
 ) {
     let denial = CoplanarOverlapWorkloadOperator::from_consumed_evidence(&consumed_evidence)
-        .with_extraction_bundle(&operator_extraction_bundle(
-            "operator-denial-real-overlap-extractions",
-        ))
+        .with_extraction_bundle(extraction_bundle)
         .execute()
         .expect_err("operator must deny invalid stage evidence");
 
@@ -230,12 +324,14 @@ fn assert_operator_denial(
     assert!(!denial.human_reason().contains(".operator."));
 }
 
-fn operator_extraction_bundle(
-    world: &'static str,
-) -> worth_spatial::facade::projected_overlap_faces::CoplanarOverlapExtractionBundle {
+fn operator_extraction_bundle(world: &'static str) -> CoplanarOverlapExtractionBundle {
     let built = WorkloadCatalog::coplanar_overlap_storm()
         .declared(format!("operator harness projected overlap bundle {world}"))
         .build()
         .expect("operator harness projected overlap workload should build");
-    certify_projected_storm_extraction_bundle(world, built.projected_workload())
+    certify_projected_storm_extraction_bundle(
+        world,
+        built.projected_workload(),
+        built.transform_receipts(),
+    )
 }

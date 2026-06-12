@@ -8,10 +8,14 @@ pub enum PlanarPremetabossInputFamily {
     UnboundedHalfSpacePlanarPosture,
     ProjectionConsumedPlanarFactParity,
     BooleanReadinessFinalBoss,
+    OpenRadialFanNmtTopology,
+    MixedSurfaceKillBox,
+    OpenClassTriadParity,
+    GrazingBasketStack,
 }
 
 impl PlanarPremetabossInputFamily {
-    pub const fn all() -> [Self; 8] {
+    pub const fn all() -> [Self; 12] {
         [
             Self::CoplanarOverlapContractStorm,
             Self::HighValencePlanarSingularityContract,
@@ -21,6 +25,10 @@ impl PlanarPremetabossInputFamily {
             Self::UnboundedHalfSpacePlanarPosture,
             Self::ProjectionConsumedPlanarFactParity,
             Self::BooleanReadinessFinalBoss,
+            Self::OpenRadialFanNmtTopology,
+            Self::MixedSurfaceKillBox,
+            Self::OpenClassTriadParity,
+            Self::GrazingBasketStack,
         ]
     }
 
@@ -34,6 +42,10 @@ impl PlanarPremetabossInputFamily {
             Self::UnboundedHalfSpacePlanarPosture => "MB-M6-6",
             Self::ProjectionConsumedPlanarFactParity => "MB-M6-7",
             Self::BooleanReadinessFinalBoss => "MB-M6-8",
+            Self::OpenRadialFanNmtTopology => "MB-M6-NMT-1",
+            Self::MixedSurfaceKillBox => "MB-M6-NMT-2",
+            Self::OpenClassTriadParity => "MB-M6-NMT-3",
+            Self::GrazingBasketStack => "MB-M6-NMT-4",
         }
     }
 }

@@ -71,6 +71,7 @@ impl CoplanarOverlapContractExtractor {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct CoplanarOverlapContractContracts<OC, SC, PC>
 where
     OC: ForgeQueryDomainOperatingContext<CoplanarOverlapContractQueryDomain>,

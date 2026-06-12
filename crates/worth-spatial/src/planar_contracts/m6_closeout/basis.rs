@@ -16,10 +16,14 @@ pub enum M6PremetabossFamily {
     UnboundedHalfSpacePosture,
     ProjectionConsumedPlanarFactParity,
     BooleanReadinessFinalBoss,
+    NmtOpenRadialFan,
+    NmtMixedSurfaceKillBox,
+    NmtOpenClassTriadParity,
+    NmtGrazingBasketStack,
 }
 
 impl M6PremetabossFamily {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 12] = [
         Self::CoplanarOverlapStorm,
         Self::HighValencePlanarSingularity,
         Self::ThinFeatureScaleSeparation,
@@ -28,6 +32,10 @@ impl M6PremetabossFamily {
         Self::UnboundedHalfSpacePosture,
         Self::ProjectionConsumedPlanarFactParity,
         Self::BooleanReadinessFinalBoss,
+        Self::NmtOpenRadialFan,
+        Self::NmtMixedSurfaceKillBox,
+        Self::NmtOpenClassTriadParity,
+        Self::NmtGrazingBasketStack,
     ];
 
     pub const fn as_str(self) -> &'static str {
@@ -40,6 +48,10 @@ impl M6PremetabossFamily {
             Self::UnboundedHalfSpacePosture => "mb-m6-6-unbounded-half-space-posture",
             Self::ProjectionConsumedPlanarFactParity => "mb-m6-7-projection-consumed-parity",
             Self::BooleanReadinessFinalBoss => "mb-m6-8-boolean-readiness-final-boss",
+            Self::NmtOpenRadialFan => "mb-m6-nmt-1-open-radial-fan",
+            Self::NmtMixedSurfaceKillBox => "mb-m6-nmt-2-mixed-surface-kill-box",
+            Self::NmtOpenClassTriadParity => "mb-m6-nmt-3-open-class-triad-parity",
+            Self::NmtGrazingBasketStack => "mb-m6-nmt-4-grazing-basket-stack",
         }
     }
 }

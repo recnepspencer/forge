@@ -1,39 +1,28 @@
 use forge_query::facade::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDomainOperatingContext,
 };
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
-use crate::bindings::query_native_planar_overlap::{
-    CoplanarOverlapContractContracts, CoplanarOverlapContractExtractor,
-    CoplanarOverlapContractQueryDomain,
-};
+use crate::bindings::query_native_planar_overlap::CoplanarOverlapContractQueryDomain;
 use crate::bindings::query_native_planar_predicate::PlanarPredicateAuthorityQueryDomain;
-use crate::bindings::query_native_planar_projection::{
-    project_point_to_certified_plane_2d_entry, project_point_to_certified_plane_2d_facts,
-    ProjectPointToCertifiedPlane2DCase, ProjectPointToCertifiedPlane2DQueryDomain,
-};
+use crate::bindings::query_native_planar_projection::ProjectPointToCertifiedPlane2DQueryDomain;
 use crate::bindings::query_native_planar_segment_segment::CertifiedSegmentSegment2DQueryDomain;
 use crate::bindings::query_native_planar_signed_area::{
-    CertifiedSignedArea2D, CertifiedSignedArea2DContracts, CertifiedSignedArea2DQueryDomain,
+    CertifiedSignedArea2DContracts, CertifiedSignedArea2DQueryDomain,
 };
 use crate::bindings::query_native_planar_winding::{
-    CertifiedPolygonWinding2D, CertifiedPolygonWinding2DContracts,
-    CertifiedPolygonWinding2DQueryDomain, CertifiedProjectedLoop2D,
+    CertifiedPolygonWinding2DContracts, CertifiedPolygonWinding2DQueryDomain,
 };
-use crate::planar_contracts::coplanar_overlap_contract::{
-    CertifiedCoplanarOverlapFace2D, CoplanarOverlapContractReceipt,
-};
+use crate::planar_contracts::coplanar_overlap_contract::CoplanarOverlapContractReceipt;
 use crate::planar_contracts::local_frame::PlanarLocalFrameCertificateReceipt;
-use crate::planar_contracts::polygon_winding_2d::CertifiedTopologyLoopBasis2D;
 use crate::planar_contracts::precision_basis::PlanarPrecisionCertificateReceipt;
-use crate::planar_contracts::projection_2d::ProjectPointToCertifiedPlane2DBasis;
-use crate::planar_contracts::signed_area_2d::AreaDegeneracyPolicy;
+use crate::workload_platform::certification_context::WorkloadCertificationContext;
 
-use super::face_set::{ProjectedOverlapFaceGeometry, ProjectedOverlapFaceSet};
+use super::certified_pair::CertifiedProjectedOverlapCandidatePair;
 use super::ProjectedOverlapFaceDenial;
 
-pub struct ProjectedOverlapExtractionContracts<'a, OC, SC, PC, PRC, WC, AC>
+pub(crate) struct ProjectedOverlapExtractionContracts<'a, SC, PC, PRC, WC, AC>
 where
-    OC: ForgeQueryDomainOperatingContext<CoplanarOverlapContractQueryDomain>,
     SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
     PC: ForgeQueryDomainOperatingContext<PlanarPredicateAuthorityQueryDomain>,
     PRC: ForgeQueryDomainOperatingContext<ProjectPointToCertifiedPlane2DQueryDomain>,
@@ -46,7 +35,6 @@ where
     >,
     pub winding_contracts: &'a CertifiedPolygonWinding2DContracts<WC, SC, PC>,
     pub signed_area_contracts: &'a CertifiedSignedArea2DContracts<AC>,
-    pub overlap_contracts: &'a CoplanarOverlapContractContracts<OC, SC, PC>,
     pub precision_receipt: &'a PlanarPrecisionCertificateReceipt,
     pub local_frame_receipt: &'a PlanarLocalFrameCertificateReceipt,
     pub planar_neighborhood_identity: &'a str,
@@ -54,15 +42,18 @@ where
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CoplanarOverlapExtractionBundle {
+    extraction_bundle_digest: String,
+    context_identity: String,
     projection_stage_identity: String,
+    movement_rotation_posture_identity: String,
     receipts: Vec<CoplanarOverlapContractReceipt>,
     candidate_pair_count: usize,
 }
 
 impl CoplanarOverlapExtractionBundle {
-    pub fn from_projected_faces<OC, SC, PC, PRC, WC, AC>(
-        face_set: &ProjectedOverlapFaceSet,
-        contracts: ProjectedOverlapExtractionContracts<'_, OC, SC, PC, PRC, WC, AC>,
+    pub fn from_context_candidate_pairs<OC, SC, PC, PRC, WC, AC, PXC, FC>(
+        pairs: super::certified_set::CertifiedProjectedOverlapCandidatePairs<'_>,
+        context: &WorkloadCertificationContext<'_, OC, SC, PC, PRC, WC, AC, PXC, FC>,
     ) -> Result<Self, ProjectedOverlapFaceDenial>
     where
         OC: ForgeQueryDomainOperatingContext<CoplanarOverlapContractQueryDomain>,
@@ -71,34 +62,59 @@ impl CoplanarOverlapExtractionBundle {
         PRC: ForgeQueryDomainOperatingContext<ProjectPointToCertifiedPlane2DQueryDomain>,
         WC: ForgeQueryDomainOperatingContext<CertifiedPolygonWinding2DQueryDomain>,
         AC: ForgeQueryDomainOperatingContext<CertifiedSignedArea2DQueryDomain>,
+        PXC: ForgeQueryDomainOperatingContext<
+            crate::bindings::query_native_planar_precision::PlanarPrecisionCertificationQueryDomain,
+        >,
+        FC: ForgeQueryDomainOperatingContext<
+            crate::bindings::query_native_planar_local_frame::PlanarLocalFrameCertificateQueryDomain,
+        >,
     {
-        let pairs = face_set.candidate_pairs();
+        let pairs = pairs.as_slice();
         if pairs.is_empty() {
             return Err(ProjectedOverlapFaceDenial::new(
-                "projected overlap extraction requires at least one candidate face pair",
+                "certified projected overlap extraction requires at least one candidate face pair",
             ));
         }
+        require_candidate_pairs_match_context(pairs, context)?;
         let mut receipts = Vec::with_capacity(pairs.len());
-        for (first, second) in &pairs {
-            let first = certify_face(first, &contracts)?;
-            let second = certify_face(second, &contracts)?;
-            let receipt = CoplanarOverlapContractExtractor::between(first, second)
-                .within_planar_neighborhood(contracts.planar_neighborhood_identity)
-                .compile(contracts.overlap_contracts)
-                .map_err(|error| ProjectedOverlapFaceDenial::new(error.reason().to_string()))?
-                .extract()
-                .map_err(|error| ProjectedOverlapFaceDenial::new(format!("{error:?}")))?;
-            receipts.push(receipt);
+        for pair in pairs {
+            receipts.push(pair.extract_overlap(
+                context.overlap_contracts(),
+                context.topology_neighborhood_identity(),
+            )?);
         }
+        let extraction_bundle_digest = extraction_bundle_digest(
+            context.context_identity(),
+            context.projection_stage_identity(),
+            context.movement_rotation_posture_identity(),
+            &receipts,
+        );
         Ok(Self {
-            projection_stage_identity: face_set.projection_stage_identity().to_string(),
+            extraction_bundle_digest,
+            context_identity: context.context_identity().to_string(),
+            projection_stage_identity: context.projection_stage_identity().to_string(),
+            movement_rotation_posture_identity: context
+                .movement_rotation_posture_identity()
+                .to_string(),
             receipts,
             candidate_pair_count: pairs.len(),
         })
     }
 
+    pub fn context_identity(&self) -> &str {
+        &self.context_identity
+    }
+
+    pub fn extraction_bundle_digest(&self) -> &str {
+        &self.extraction_bundle_digest
+    }
+
     pub fn projection_stage_identity(&self) -> &str {
         &self.projection_stage_identity
+    }
+
+    pub fn movement_rotation_posture_identity(&self) -> &str {
+        &self.movement_rotation_posture_identity
     }
 
     pub fn receipts(&self) -> &[CoplanarOverlapContractReceipt] {
@@ -110,10 +126,10 @@ impl CoplanarOverlapExtractionBundle {
     }
 }
 
-fn certify_face<OC, SC, PC, PRC, WC, AC>(
-    face: &ProjectedOverlapFaceGeometry,
-    contracts: &ProjectedOverlapExtractionContracts<'_, OC, SC, PC, PRC, WC, AC>,
-) -> Result<CertifiedCoplanarOverlapFace2D, ProjectedOverlapFaceDenial>
+fn require_candidate_pairs_match_context<OC, SC, PC, PRC, WC, AC, PXC, FC>(
+    pairs: &[CertifiedProjectedOverlapCandidatePair],
+    context: &WorkloadCertificationContext<'_, OC, SC, PC, PRC, WC, AC, PXC, FC>,
+) -> Result<(), ProjectedOverlapFaceDenial>
 where
     OC: ForgeQueryDomainOperatingContext<CoplanarOverlapContractQueryDomain>,
     SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
@@ -121,77 +137,56 @@ where
     PRC: ForgeQueryDomainOperatingContext<ProjectPointToCertifiedPlane2DQueryDomain>,
     WC: ForgeQueryDomainOperatingContext<CertifiedPolygonWinding2DQueryDomain>,
     AC: ForgeQueryDomainOperatingContext<CertifiedSignedArea2DQueryDomain>,
+    PXC: ForgeQueryDomainOperatingContext<
+        crate::bindings::query_native_planar_precision::PlanarPrecisionCertificationQueryDomain,
+    >,
+    FC: ForgeQueryDomainOperatingContext<
+        crate::bindings::query_native_planar_local_frame::PlanarLocalFrameCertificateQueryDomain,
+    >,
 {
-    let outer = certified_loop(face, &face.loop_identity, &face.outer_points, contracts)?;
-    let mut winding = CertifiedPolygonWinding2D::certify(outer)
-        .within_planar_neighborhood(contracts.planar_neighborhood_identity);
-    if let Some(candidate_points) = &face.containment_candidate_points {
-        winding = winding.with_containment_candidate(certified_loop(
-            face,
-            &format!("{}:candidate", face.loop_identity),
-            candidate_points,
-            contracts,
-        )?);
+    for pair in pairs {
+        if pair.projection_stage_identity() != context.projection_stage_identity() {
+            return Err(ProjectedOverlapFaceDenial::new(
+                "certified projected overlap extraction requires candidate pairs from the same projection stage as the certification context",
+            ));
+        }
+        if pair.first_face().movement_rotation_posture_identity()
+            != context.movement_rotation_posture_identity()
+            || pair.second_face().movement_rotation_posture_identity()
+                != context.movement_rotation_posture_identity()
+        {
+            return Err(ProjectedOverlapFaceDenial::new(
+                "certified projected overlap extraction requires candidate pairs from the same movement and rotation posture as the certification context",
+            ));
+        }
     }
-    let winding = winding
-        .compile(contracts.winding_contracts)
-        .map_err(|error| ProjectedOverlapFaceDenial::new(error.reason().to_string()))?
-        .certify()
-        .map_err(|error| ProjectedOverlapFaceDenial::new(format!("{error:?}")))?;
-    let signed_area = CertifiedSignedArea2D::measure_face(winding)
-        .using_precision_basis(contracts.precision_receipt.clone())
-        .classifying_degeneracy(AreaDegeneracyPolicy::ClassifyWithoutRepair)
-        .compile(contracts.signed_area_contracts)
-        .map_err(|error| ProjectedOverlapFaceDenial::new(error.reason().to_string()))?
-        .certify()
-        .map_err(|error| ProjectedOverlapFaceDenial::new(format!("{error:?}")))?;
-    CertifiedCoplanarOverlapFace2D::from_certified_area(
-        format!("{}:{}", face.face_identity, face.projected_face_identity),
-        signed_area,
-    )
-    .map_err(|error| ProjectedOverlapFaceDenial::new(error.reason().to_string()))
+    Ok(())
 }
 
-fn certified_loop<OC, SC, PC, PRC, WC, AC>(
-    face: &ProjectedOverlapFaceGeometry,
-    loop_identity: &str,
-    points: &[[f64; 2]],
-    contracts: &ProjectedOverlapExtractionContracts<'_, OC, SC, PC, PRC, WC, AC>,
-) -> Result<CertifiedProjectedLoop2D, ProjectedOverlapFaceDenial>
-where
-    OC: ForgeQueryDomainOperatingContext<CoplanarOverlapContractQueryDomain>,
-    SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
-    PC: ForgeQueryDomainOperatingContext<PlanarPredicateAuthorityQueryDomain>,
-    PRC: ForgeQueryDomainOperatingContext<ProjectPointToCertifiedPlane2DQueryDomain>,
-    WC: ForgeQueryDomainOperatingContext<CertifiedPolygonWinding2DQueryDomain>,
-    AC: ForgeQueryDomainOperatingContext<CertifiedSignedArea2DQueryDomain>,
-{
-    CertifiedProjectedLoop2D::from_projected_vertices(
-        format!("{}:{}", loop_identity, face.projected_loop_identity),
-        CertifiedTopologyLoopBasis2D::from_topology_loop_fact(
-            loop_identity,
-            format!("membership:{}", face.projected_loop_identity),
-            &face.projected_face_identity,
-        ),
-        points
+fn extraction_bundle_digest(
+    context_identity: &str,
+    projection_stage_identity: &str,
+    movement_rotation_posture_identity: &str,
+    receipts: &[CoplanarOverlapContractReceipt],
+) -> String {
+    let mut parts = vec![
+        "coplanar-overlap-extraction-bundle".to_string(),
+        format!("context:{context_identity}"),
+        format!("projection:{projection_stage_identity}"),
+        format!("motion:{movement_rotation_posture_identity}"),
+        format!("receipts:{}", receipts.len()),
+    ];
+    parts.extend(
+        receipts
             .iter()
-            .enumerate()
-            .map(|(index, point)| project_point(face, loop_identity, index, *point, contracts))
-            .collect::<Result<Vec<_>, _>>()?,
-    )
-    .map_err(|error| ProjectedOverlapFaceDenial::new(error.reason().to_string()))
+            .map(|receipt| format!("overlap:{}", receipt.fact_digest())),
+    );
+    truth_digest_parts(TruthDigestScope::ArtifactIdentity, &parts)
 }
 
-fn project_point<OC, SC, PC, PRC, WC, AC>(
-    face: &ProjectedOverlapFaceGeometry,
-    loop_identity: &str,
-    index: usize,
-    point: [f64; 2],
-    contracts: &ProjectedOverlapExtractionContracts<'_, OC, SC, PC, PRC, WC, AC>,
-) -> Result<
-    crate::planar_contracts::projection_2d::ProjectPointToCertifiedPlane2DReceipt,
-    ProjectedOverlapFaceDenial,
->
+pub(crate) fn contracts_from_context<'c, 'a, OC, SC, PC, PRC, WC, AC, PXC, FC>(
+    context: &'c WorkloadCertificationContext<'a, OC, SC, PC, PRC, WC, AC, PXC, FC>,
+) -> ProjectedOverlapExtractionContracts<'c, SC, PC, PRC, WC, AC>
 where
     OC: ForgeQueryDomainOperatingContext<CoplanarOverlapContractQueryDomain>,
     SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
@@ -199,21 +194,19 @@ where
     PRC: ForgeQueryDomainOperatingContext<ProjectPointToCertifiedPlane2DQueryDomain>,
     WC: ForgeQueryDomainOperatingContext<CertifiedPolygonWinding2DQueryDomain>,
     AC: ForgeQueryDomainOperatingContext<CertifiedSignedArea2DQueryDomain>,
+    PXC: ForgeQueryDomainOperatingContext<
+        crate::bindings::query_native_planar_precision::PlanarPrecisionCertificationQueryDomain,
+    >,
+    FC: ForgeQueryDomainOperatingContext<
+        crate::bindings::query_native_planar_local_frame::PlanarLocalFrameCertificateQueryDomain,
+    >,
 {
-    let origin = contracts.local_frame_receipt.basis().origin();
-    let basis = ProjectPointToCertifiedPlane2DBasis::builder()
-        .source_point_identity(format!("{loop_identity}:point:{index}"))
-        .source_point([origin[0] + point[0], origin[1] + point[1], origin[2]])
-        .source_point_basis_digest(&face.projected_loop_identity)
-        .local_delta_from_frame_origin([point[0], point[1], 0.0])
-        .local_frame_receipt(contracts.local_frame_receipt)
-        .build()
-        .map_err(|error| ProjectedOverlapFaceDenial::new(error.reason().to_string()))?;
-    project_point_to_certified_plane_2d_facts(
-        &project_point_to_certified_plane_2d_entry(
-            ProjectPointToCertifiedPlane2DCase::from_local_frame(basis),
-        ),
-        contracts.projection_handle,
-    )
-    .map_err(|error| ProjectedOverlapFaceDenial::new(format!("{error:?}")))
+    ProjectedOverlapExtractionContracts {
+        projection_handle: context.projection_handle(),
+        winding_contracts: context.winding_contracts(),
+        signed_area_contracts: context.signed_area_contracts(),
+        precision_receipt: context.precision_receipt(),
+        local_frame_receipt: context.local_frame_receipt(),
+        planar_neighborhood_identity: context.topology_neighborhood_identity(),
+    }
 }

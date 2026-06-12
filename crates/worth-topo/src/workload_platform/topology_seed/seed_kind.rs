@@ -6,6 +6,8 @@ pub enum TopologySeedKind {
     MultiFaceShell,
     OpenSheet,
     OpenWire,
+    OpenShellNmtEdgeFan,
+    NmtOpenLayerStack,
     HighValenceVertex,
     SelfIntersectingLoop,
     NonManifoldWire,
@@ -29,6 +31,8 @@ impl TopologySeedKind {
             Self::MultiFaceShell => "multi-face-shell",
             Self::OpenSheet => "open-sheet",
             Self::OpenWire => "open-wire",
+            Self::OpenShellNmtEdgeFan => "open-shell-nmt-edge-fan",
+            Self::NmtOpenLayerStack => "nmt-open-layer-stack",
             Self::HighValenceVertex => "high-valence-vertex",
             Self::SelfIntersectingLoop => "self-intersecting-loop",
             Self::NonManifoldWire => "non-manifold-wire",
@@ -43,9 +47,11 @@ impl TopologySeedKind {
 
     pub fn topology_posture(self) -> TopologySeedTopologyPosture {
         match self {
-            Self::OpenSheet | Self::OpenWire | Self::HighValenceVertex => {
-                TopologySeedTopologyPosture::OpenValid
-            }
+            Self::OpenSheet
+            | Self::OpenWire
+            | Self::OpenShellNmtEdgeFan
+            | Self::NmtOpenLayerStack
+            | Self::HighValenceVertex => TopologySeedTopologyPosture::OpenValid,
             Self::SelfIntersectingLoop
             | Self::NonManifoldWire
             | Self::ThinWallLocalBasis

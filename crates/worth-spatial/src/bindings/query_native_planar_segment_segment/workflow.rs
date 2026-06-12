@@ -118,6 +118,7 @@ impl CertifiedSegmentSegment2D {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct CertifiedSegmentSegment2DContracts<SC, PC>
 where
     SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,

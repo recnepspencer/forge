@@ -5,10 +5,6 @@ use super::topology_record_constructors::{
 };
 use crate::brep::topology_graph::TopologyView;
 
-pub(crate) fn open_wire_topology_view() -> TopologyView {
-    wire_chain_view(60_000, "open wire", 4)
-}
-
 pub(crate) fn wire_chain_view(base: u64, label: &str, edge_count: usize) -> TopologyView {
     let mut topology = base_container(base, label);
     let wire_id = entity(base + 10);

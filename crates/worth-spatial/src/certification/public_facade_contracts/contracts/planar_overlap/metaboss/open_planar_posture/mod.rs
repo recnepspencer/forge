@@ -2,7 +2,13 @@ pub(crate) mod subject;
 
 use std::collections::BTreeSet;
 
-use subject::{bounded_surrogate_denials, half_space_subject, posture_matrix};
+use subject::{
+    bounded_surrogate_denials, half_space_subject, mismatched_unsupported_surface_subject,
+    posture_matrix,
+};
+use worth_spatial::facade::blocker_provenance::{
+    WorkloadBlockerBoundaryKind, WorkloadBlockerSourceKind,
+};
 use worth_spatial::facade::open_planar_posture::{OpenPlanarPostureCase, OpenPlanarPostureError};
 use worth_spatial::facade::planar_clean_fail_boundary::PlanarOpenInputKind;
 use worth_spatial::facade::planar_diagnostics::PlanarDiagnosticSubjectKind;
@@ -117,6 +123,41 @@ fn mb_m6_6_half_space_transform_canonicalization_and_divergence() {
         assert_eq!(denial, OpenPlanarPostureError::BoundedSurrogateAttempted);
         assert_human_readable(&denial.human_reason());
     }
+}
+
+#[test]
+fn mb_m6_6_unsupported_surface_must_belong_to_open_topology() {
+    let subject = mismatched_unsupported_surface_subject("mb-m6-6-mismatched-support");
+    let outcome = subject.user_outcome;
+    assert_branch(
+        &outcome,
+        WorthUserOutcomeKind::IntegrityMismatch,
+        WorthUserOutcomeCauseKind::IntegrityMismatch,
+    );
+    assert!(outcome
+        .human_response()
+        .summary()
+        .contains("same open topology receipt"));
+    assert_human_readable(outcome.human_response().summary());
+    assert_eq!(
+        subject.provenance.source_kind(),
+        WorkloadBlockerSourceKind::OpenTopology
+    );
+    assert_eq!(
+        subject.provenance.boundary_kind(),
+        WorkloadBlockerBoundaryKind::UnsupportedSurface
+    );
+    assert!(
+        !subject.provenance.source_identity().contains("error:"),
+        "open topology provenance must use production topology identity: {}",
+        subject.provenance.source_identity()
+    );
+    assert!(
+        !subject.provenance.boundary_identity().contains("error:"),
+        "unsupported surface provenance must use production support identity: {}",
+        subject.provenance.boundary_identity()
+    );
+    assert!(!subject.provenance.provenance_digest().is_empty());
 }
 
 fn expected_open_input_kind(posture_case: OpenPlanarPostureCase) -> Option<PlanarOpenInputKind> {

@@ -117,10 +117,6 @@ fn planar_proof_fixture_rows() -> Vec<SeedInventoryRow> {
 fn planar_metaboss_support_rows() -> Vec<SeedInventoryRow> {
     [
         (
-            "planar_overlap::metaboss::scenario",
-            "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/scenario.rs",
-        ),
-        (
             "planar_overlap::metaboss::outcome_matrix",
             "crates/worth-spatial/src/certification/public_facade_contracts/contracts/planar_overlap/metaboss/outcome_matrix.rs",
         ),

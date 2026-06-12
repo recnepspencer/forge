@@ -45,6 +45,10 @@ pub enum RetainedCancellationChainError {
     DuplicateCheckpointEvidence {
         step_index: usize,
     },
+    CheckpointNotFromPlatformStage {
+        step_index: usize,
+        stage: WorkloadEvidenceStage,
+    },
     PredicateUncertain {
         step_index: usize,
     },
@@ -94,6 +98,12 @@ impl RetainedCancellationChainError {
             Self::DuplicateCheckpointEvidence { step_index } => {
                 format!(
                     "retained cancellation chain requires distinct retained evidence for checkpoint {step_index}"
+                )
+            }
+            Self::CheckpointNotFromPlatformStage { step_index, stage } => {
+                format!(
+                    "retained cancellation checkpoint {step_index} must come from the workload catalog {} receipt",
+                    stage.human_name()
                 )
             }
             Self::PredicateUncertain { step_index } => {

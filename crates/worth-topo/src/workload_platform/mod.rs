@@ -1,5 +1,6 @@
 mod declaration_identity;
 mod envelope;
+pub mod nmt_topology_construction;
 mod support_posture;
 pub mod topology_seed;
 pub(crate) mod topology_seed_recipes;
@@ -7,6 +8,13 @@ mod topology_workload;
 
 pub use declaration_identity::TopologyWorkloadDeclarationIdentity;
 pub use envelope::{TopologyWorkloadCounters, TopologyWorkloadEnvelope};
+pub use nmt_topology_construction::{
+    NmtTopologyConstruction, NmtTopologyConstructionCounters, NmtTopologyConstructionDenial,
+    NmtTopologyConstructionDenialClass, NmtTopologyConstructionReceipt, NmtTopologyPattern,
+    NmtTopologyPosture, OpenBoundaryReceipt, OpenLayerPattern, OpenLayerStackSpec,
+    OpenPatternIdentityReceipt, OpenRadialFanSpec, OpenSheetPatchSpec, OpenWireChainSpec,
+    RadialAdjacencyReceipt, TopologyPostureReceipt,
+};
 pub use support_posture::{
     TopologyWorkloadFamily, TopologyWorkloadSupport, TopologyWorkloadSupportPosture,
 };

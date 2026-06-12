@@ -2,6 +2,7 @@ use crate::planar_contracts::contract_bundle::PlanarM7ReadinessBundle;
 use crate::planar_contracts::planar_diagnostics::PlanarDiagnosticBundleReceipt;
 use crate::workload_platform::dirty_planar_clean_fail::DirtyPlanarCleanFailReceipt;
 use crate::workload_platform::evidence_ledger::CompleteWorkloadEvidenceLedger;
+use crate::workload_platform::projection_fact_parity::ProjectionFactParityDenial;
 use crate::workload_platform::projection_fact_parity::ProjectionFactParityReceipt;
 use crate::workload_platform::surface_support::UnsupportedSurfaceSupportReceipt;
 
@@ -31,12 +32,19 @@ impl PlanarBooleanReadinessEvidenceBasis {
         }
     }
 
-    pub fn with_policy_required_branch(mut self, reason: impl Into<String>) -> Self {
-        let reason = reason.into();
+    pub fn with_policy_required_projection_parity_denial(
+        mut self,
+        denial: &ProjectionFactParityDenial,
+    ) -> Self {
         self.blocker = Some(PlanarBooleanReadinessBlockerEvidence::new(
             PlanarBooleanReadinessBlocker::PolicyRequired,
-            reason.clone(),
-            format!("policy-required:{reason}"),
+            denial.human_reason(),
+            format!(
+                "projection-parity-policy:{:?}:{:?}:{}",
+                denial.kind(),
+                denial.failed_lane(),
+                denial.human_reason()
+            ),
         ));
         self
     }
@@ -49,16 +57,6 @@ impl PlanarBooleanReadinessEvidenceBasis {
                 receipt.dirty_case()
             ),
             receipt.clean_fail_digest(),
-        ));
-        self
-    }
-
-    pub fn with_unsupported_workload_family(mut self, reason: impl Into<String>) -> Self {
-        let reason = reason.into();
-        self.blocker = Some(PlanarBooleanReadinessBlockerEvidence::new(
-            PlanarBooleanReadinessBlocker::UnsupportedWorkloadFamily,
-            reason.clone(),
-            format!("unsupported-workload-family:{reason}"),
         ));
         self
     }
@@ -78,22 +76,14 @@ impl PlanarBooleanReadinessEvidenceBasis {
         self
     }
 
-    pub fn with_predicate_uncertainty(mut self, reason: impl Into<String>) -> Self {
-        let reason = reason.into();
+    pub fn with_predicate_uncertainty_diagnostics(
+        mut self,
+        receipt: &PlanarDiagnosticBundleReceipt,
+    ) -> Self {
         self.blocker = Some(PlanarBooleanReadinessBlockerEvidence::new(
             PlanarBooleanReadinessBlocker::PredicateUncertainty,
-            reason.clone(),
-            format!("predicate-uncertainty:{reason}"),
-        ));
-        self
-    }
-
-    pub fn with_orientation_flip_localization(mut self, reason: impl Into<String>) -> Self {
-        let reason = reason.into();
-        self.blocker = Some(PlanarBooleanReadinessBlockerEvidence::new(
-            PlanarBooleanReadinessBlocker::OrientationFlipLocalization,
-            reason.clone(),
-            format!("orientation-flip-localization:{reason}"),
+            "Predicate uncertainty must be resolved before boolean readiness.",
+            receipt.diagnostic_bundle_digest(),
         ));
         self
     }

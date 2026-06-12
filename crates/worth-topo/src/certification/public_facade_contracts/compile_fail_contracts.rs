@@ -121,6 +121,9 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_topology_committed_artifact_not_exported.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/public_nmt_topology_construction_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/public_verified_topology_commit_cert_not_exported.rs"
     ));
     t.compile_fail(format!(

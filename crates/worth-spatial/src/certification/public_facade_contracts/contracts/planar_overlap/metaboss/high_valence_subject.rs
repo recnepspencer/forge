@@ -76,7 +76,7 @@ pub(crate) fn high_valence_unsupported_explicit_valence_outcome(
     assert_eq!(
         support.human_reason(),
         format!(
-            "high valence vertex workload recipe supports valence 3 through 16 today; valence {valence} needs an explicit widening phase"
+            "high valence vertex workload recipe supports valence 3 through 128 today; valence {valence} needs an explicit widening phase"
         )
     );
     match unsupported_recipe
@@ -121,7 +121,7 @@ pub(crate) fn high_valence_missing_neighborhood_outcome(world: &'static str) -> 
 }
 
 pub(crate) fn high_valence_unsupported_valence_outcome(world: &'static str) -> WorthUserOutcome {
-    high_valence_unsupported_explicit_valence_outcome(world, 32)
+    high_valence_unsupported_explicit_valence_outcome(world, 129)
 }
 
 pub(crate) fn high_valence_rebuild_motion_break_outcome(world: &'static str) -> WorthUserOutcome {

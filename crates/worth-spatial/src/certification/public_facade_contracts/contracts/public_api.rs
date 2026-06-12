@@ -68,6 +68,8 @@ mod public_api_transform_workload;
 #[path = "user_response/mod.rs"]
 mod public_api_user_response;
 mod public_api_workflow_boundary;
+#[path = "workload_certification_context/mod.rs"]
+mod public_api_workload_certification_context;
 #[path = "workload_inventory/mod.rs"]
 mod public_api_workload_inventory;
 #[path = "workload_operators/mod.rs"]

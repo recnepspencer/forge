@@ -29,6 +29,7 @@ const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/phases/public_execution_phase_exports_demoted.rs",
     "src/certification/public_facade_contracts/compile_fail/phases/public_binding_declaration_entry_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_workload_catalog_static_fixture_constructor_not_exported.rs",
+    "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_workload_catalog_rejects_raw_topology_rows_for_nmt.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_binding_and_anchoring_authoring_exports_demoted.rs",
     "src/certification/public_facade_contracts/compile_fail/results/public_canonical_artifact_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/results/public_prepared_result_constructor_not_exported.rs",
@@ -90,7 +91,7 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
     fs::write(
         temp_root.join("Cargo.toml"),
         format!(
-            "[package]\nname = \"worth_kernel_compile_fail\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\nworth-kernel = {{ path = \"{crate_root}\" }}\nforge-query = {{ path = \"{forge_query}\" }}\nworth-spatial = {{ path = \"{worth_spatial}\" }}\n"
+            "[package]\nname = \"worth_kernel_compile_fail\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\nworth-kernel = {{ path = \"{crate_root}\" }}\nforge-query = {{ path = \"{forge_query}\" }}\nworth-spatial = {{ path = \"{worth_spatial}\" }}\nworth-topo = {{ path = \"{workspace_crates}/worth-topo\" }}\n"
         ),
     )
     .expect("write temp Cargo.toml");

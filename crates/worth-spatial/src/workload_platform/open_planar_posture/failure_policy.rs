@@ -6,6 +6,7 @@ pub enum OpenPlanarPostureError {
     TopologyWasNotOpen,
     MissingUnsupportedSurfaceSupport,
     SurfaceSupportWasAdmitted,
+    UnsupportedSurfaceDidNotConsumeOpenTopology,
     MissingCleanFailBoundary,
     CleanFailDidNotRepresentOpenOrUnbounded,
     CleanFailAttemptedBoundedConversion,
@@ -39,6 +40,9 @@ impl OpenPlanarPostureError {
             }
             Self::SurfaceSupportWasAdmitted => {
                 "open planar posture must not enter the admitted bounded surface path".to_string()
+            }
+            Self::UnsupportedSurfaceDidNotConsumeOpenTopology => {
+                "unsupported surface support must consume the same open topology receipt as the posture workload".to_string()
             }
             Self::MissingCleanFailBoundary => {
                 "open planar posture requires a clean-fail boundary receipt".to_string()

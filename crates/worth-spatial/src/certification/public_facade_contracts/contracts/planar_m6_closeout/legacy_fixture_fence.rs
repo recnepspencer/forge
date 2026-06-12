@@ -101,6 +101,10 @@ fn minimum_platform_source_rows(family: M6PremetabossFamily) -> usize {
         M6PremetabossFamily::UnboundedHalfSpacePosture => 7,
         M6PremetabossFamily::ProjectionConsumedPlanarFactParity => 18,
         M6PremetabossFamily::BooleanReadinessFinalBoss => 30,
+        M6PremetabossFamily::NmtOpenRadialFan => 20,
+        M6PremetabossFamily::NmtMixedSurfaceKillBox => 12,
+        M6PremetabossFamily::NmtOpenClassTriadParity => 16,
+        M6PremetabossFamily::NmtGrazingBasketStack => 40,
     }
 }
 
@@ -128,6 +132,16 @@ fn expected_receipt_phrase(family: M6PremetabossFamily) -> &'static str {
         M6PremetabossFamily::BooleanReadinessFinalBoss => {
             "real boolean-readiness final-boss workload receipt"
         }
+        M6PremetabossFamily::NmtOpenRadialFan => "real NMT open radial fan workload receipt",
+        M6PremetabossFamily::NmtMixedSurfaceKillBox => {
+            "real NMT mixed-surface kill-box workload receipt"
+        }
+        M6PremetabossFamily::NmtOpenClassTriadParity => {
+            "real NMT open-class triad parity workload receipt"
+        }
+        M6PremetabossFamily::NmtGrazingBasketStack => {
+            "real NMT grazing basket stack workload receipt"
+        }
     }
 }
 
@@ -140,7 +154,7 @@ fn legacy_fixture_fence_classifies_every_inventory_surface() {
     assert_eq!(fence.rows().len(), report.rows().len());
     assert_eq!(fence.workload_platform_recipes(), 3);
     assert_eq!(fence.unit_only_fixtures(), 10);
-    assert_eq!(fence.blocked_synthetic_claims(), 9);
+    assert_eq!(fence.blocked_synthetic_claims(), 8);
 
     for row in fence.rows() {
         assert_ne!(row.fence_digest(), "");
@@ -187,7 +201,7 @@ fn complete_workload_ledger_blocks_manual_label_and_reextraction_claims() {
 fn legacy_fixture_fence_blocks_metaboss_and_replay_migration_surfaces() {
     let fence = legacy_fixture_fence();
     for surface in [
-        "planar_overlap::metaboss::scenario",
+        "planar_overlap::metaboss::outcome_matrix",
         "planar_m6_closeout::fixture",
     ] {
         let row = fence

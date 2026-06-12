@@ -1,4 +1,4 @@
-use topology::facade::TopologySeedCleanFailReceipt;
+use topology::facade::{NmtTopologyConstructionDenial, TopologySeedCleanFailReceipt};
 use worth_spatial::facade::projection_workload::UnsupportedProjectionWorkload;
 use worth_spatial::facade::retained_replay_workload::UnsupportedReplayWorkload;
 use worth_spatial::facade::surface_support::UnsupportedSurfaceSupport;
@@ -17,6 +17,7 @@ pub enum WorkloadCatalogError {
         recipe: WorkloadCatalogRecipeKind,
         reason: String,
     },
+    NmtTopologyConstructionDenied(NmtTopologyConstructionDenial),
     TopologySeedDenied(TopologySeedCleanFailReceipt),
     GeometryBindingDenied(UnsupportedGeometryBinding),
     SurfaceSupportDenied(UnsupportedSurfaceSupport),
@@ -39,6 +40,7 @@ impl WorkloadCatalogError {
             Self::UnsupportedRecipe { recipe, reason } => {
                 format!("{} is not admitted: {reason}", recipe.human_name())
             }
+            Self::NmtTopologyConstructionDenied(denial) => denial.reason().to_string(),
             Self::TopologySeedDenied(denial) => denial.reason().to_string(),
             Self::GeometryBindingDenied(denial) => denial.human_reason().to_string(),
             Self::SurfaceSupportDenied(denial) => denial.human_reason().to_string(),
@@ -48,6 +50,12 @@ impl WorkloadCatalogError {
             Self::EvidenceLedgerDenied(error) => error.human_reason(),
             Self::WorkloadCompositionDenied(error) => error.human_reason(),
         }
+    }
+}
+
+impl From<NmtTopologyConstructionDenial> for WorkloadCatalogError {
+    fn from(value: NmtTopologyConstructionDenial) -> Self {
+        Self::NmtTopologyConstructionDenied(value)
     }
 }
 

@@ -1,8 +1,13 @@
-use topology::facade::{TopologySeedCleanFailReceipt, TopologySeedNeighborhoodReceipt};
+use topology::facade::{
+    NmtTopologyConstructionReceipt, TopologySeedCleanFailReceipt, TopologySeedNeighborhoodReceipt,
+};
 use worth_spatial::facade::projection_workload::ProjectedPlanarWorkload;
+use worth_spatial::facade::retained_replay_workload::ReplayReceiptSet;
+use worth_spatial::facade::transform_workload::TransformReceiptSet;
+use worth_spatial::facade::workload_binding::BoundGeometryWorkload;
 
-use super::catalog::{WorkloadCatalogDeclarationReceipt, WorkloadCatalogSupportReceipt};
 use super::recipe_kind::WorkloadCatalogRecipeKind;
+use super::support_receipt::{WorkloadCatalogDeclarationReceipt, WorkloadCatalogSupportReceipt};
 use crate::workload_composition::WorthWorkload;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -12,7 +17,11 @@ pub struct BuiltWorkloadCatalogRecipe {
     support: WorkloadCatalogSupportReceipt,
     workload: WorthWorkload,
     topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
+    topology_construction: Option<NmtTopologyConstructionReceipt>,
+    bound_geometry: BoundGeometryWorkload,
     projected: ProjectedPlanarWorkload,
+    transform_receipts: TransformReceiptSet,
+    replay_receipts: Option<ReplayReceiptSet>,
 }
 
 impl BuiltWorkloadCatalogRecipe {
@@ -22,7 +31,11 @@ impl BuiltWorkloadCatalogRecipe {
         support: WorkloadCatalogSupportReceipt,
         workload: WorthWorkload,
         topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
+        topology_construction: Option<NmtTopologyConstructionReceipt>,
+        bound_geometry: BoundGeometryWorkload,
         projected: ProjectedPlanarWorkload,
+        transform_receipts: TransformReceiptSet,
+        replay_receipts: Option<ReplayReceiptSet>,
     ) -> Self {
         Self {
             recipe,
@@ -30,7 +43,11 @@ impl BuiltWorkloadCatalogRecipe {
             support,
             workload,
             topology_neighborhood,
+            topology_construction,
+            bound_geometry,
             projected,
+            transform_receipts,
+            replay_receipts,
         }
     }
 
@@ -54,8 +71,24 @@ impl BuiltWorkloadCatalogRecipe {
         self.topology_neighborhood.as_ref()
     }
 
+    pub fn topology_construction(&self) -> Option<&NmtTopologyConstructionReceipt> {
+        self.topology_construction.as_ref()
+    }
+
     pub fn projected_workload(&self) -> &ProjectedPlanarWorkload {
         &self.projected
+    }
+
+    pub fn bound_geometry(&self) -> &BoundGeometryWorkload {
+        &self.bound_geometry
+    }
+
+    pub fn transform_receipts(&self) -> &TransformReceiptSet {
+        &self.transform_receipts
+    }
+
+    pub fn replay_receipts(&self) -> Option<&ReplayReceiptSet> {
+        self.replay_receipts.as_ref()
     }
 
     pub fn into_workload(self) -> WorthWorkload {

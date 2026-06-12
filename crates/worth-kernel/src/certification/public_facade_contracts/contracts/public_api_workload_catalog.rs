@@ -1,13 +1,21 @@
 #[cfg(test)]
 mod tests {
+    use self::catalog_contract_support::{
+        admitted_catalog_recipes, assert_authority_stage, assert_catalog_query_receipt_is_digest,
+        assert_real_geometry_breadth, catalog_breadth,
+    };
     use worth_kernel::workload_composition::{
-        WorkloadCatalog, WorkloadCatalogError, WorkloadCatalogRecipe,
-        WorkloadCatalogSupportPosture, WorkloadTopologyBreadth,
+        WorkloadCatalog, WorkloadCatalogError, WorkloadCatalogSupportPosture,
+        WorkloadTopologyBreadth,
     };
-    use worth_spatial::facade::workload_vocabulary::{
-        CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
-        WorkloadEvidenceRow, WorkloadEvidenceStage,
-    };
+    use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceStage;
+
+    #[path = "catalog_contract_support.rs"]
+    mod catalog_contract_support;
+    #[path = "nmt_construction.rs"]
+    mod nmt_construction;
+    #[path = "static_fixture_substitution.rs"]
+    mod static_fixture_substitution;
 
     #[test]
     fn workload_catalog_recipes_emit_complete_evidence_ledgers() {
@@ -63,34 +71,6 @@ mod tests {
                 assert!(reason.contains("self-intersecting"));
             }
             other => panic!("expected unsupported dirty recipe, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn workload_catalog_reports_open_sheet_without_bounded_operator_admission() {
-        let open_sheet = WorkloadCatalog::open_sheet();
-        let support = open_sheet
-            .inspect_support()
-            .expect("open sheet support should be inspectable");
-
-        assert_eq!(
-            support.posture(),
-            WorkloadCatalogSupportPosture::Unsupported
-        );
-        assert!(support.human_reason().contains("open sheet"));
-        assert!(support.human_reason().contains("not yet supported"));
-        assert_catalog_query_receipt_is_digest(support.query_support_digest());
-
-        match open_sheet
-            .build()
-            .expect_err("open sheet must not enter the bounded workload build lane")
-        {
-            WorkloadCatalogError::UnsupportedRecipe { recipe, reason } => {
-                assert_eq!(recipe.human_name(), "open sheet workload recipe");
-                assert!(reason.contains("open sheet"));
-                assert!(reason.contains("not yet supported"));
-            }
-            other => panic!("expected unsupported open sheet recipe, got {other:?}"),
         }
     }
 
@@ -200,7 +180,7 @@ mod tests {
             .build()
             .expect("default high-valence recipe should build");
         let upper_admitted_boundary = WorkloadCatalog::high_valence_vertex()
-            .with_topology_breadth(WorkloadTopologyBreadth::HighValenceVertex { valence: 16 })
+            .with_topology_breadth(WorkloadTopologyBreadth::HighValenceVertex { valence: 128 })
             .build()
             .expect("upper admitted high-valence boundary should build");
 
@@ -216,12 +196,12 @@ mod tests {
                 .topology_neighborhood()
                 .expect("upper boundary neighborhood")
                 .valence(),
-            16
+            128
         );
         assert!(
             catalog_breadth(
                 WorkloadCatalog::high_valence_vertex().with_topology_breadth(
-                    WorkloadTopologyBreadth::HighValenceVertex { valence: 16 }
+                    WorkloadTopologyBreadth::HighValenceVertex { valence: 128 }
                 )
             )
             .topology_entities
@@ -231,7 +211,7 @@ mod tests {
 
     #[test]
     fn high_valence_unsupported_breadth_denies_before_workload_construction() {
-        for valence in [2, 17, 32] {
+        for valence in [2, 129] {
             let unsupported = WorkloadCatalog::high_valence_vertex()
                 .with_topology_breadth(WorkloadTopologyBreadth::HighValenceVertex { valence });
             let support = unsupported
@@ -245,7 +225,7 @@ mod tests {
             assert_eq!(
                 support.human_reason(),
                 format!(
-                    "high valence vertex workload recipe supports valence 3 through 16 today; valence {valence} needs an explicit widening phase"
+                    "high valence vertex workload recipe supports valence 3 through 128 today; valence {valence} needs an explicit widening phase"
                 )
             );
 
@@ -255,12 +235,80 @@ mod tests {
             {
                 WorkloadCatalogError::UnsupportedRecipe { recipe, reason } => {
                     assert_eq!(recipe.human_name(), "high valence vertex workload recipe");
-                    assert!(reason.contains("valence 3 through 16"));
+                    assert!(reason.contains("valence 3 through 128"));
                     assert!(reason.contains(&format!("valence {valence}")));
                 }
                 other => panic!("expected unsupported high-valence breadth, got {other:?}"),
             }
         }
+    }
+
+    #[test]
+    fn mixed_surface_kill_box_catalog_is_named_stable_topology_carrier() {
+        let built = WorkloadCatalog::mixed_surface_kill_box()
+            .declared("MB-M6-NMT-2 mixed surface kill box carrier")
+            .build()
+            .expect("mixed surface kill box carrier should build");
+        let cube = catalog_breadth(WorkloadCatalog::cube());
+        let carrier = catalog_breadth(WorkloadCatalog::mixed_surface_kill_box());
+
+        assert_eq!(
+            built.recipe().human_name(),
+            "mixed surface kill box workload recipe"
+        );
+        assert_eq!(
+            built.declaration().recipe().query_key(),
+            "worth.catalog.mixed_surface_kill_box"
+        );
+        assert_eq!(carrier.topology_faces, cube.topology_faces);
+        assert_eq!(carrier.topology_entities, cube.topology_entities);
+        assert_eq!(carrier.topology_relations, cube.topology_relations);
+        assert!(carrier.retained_artifacts > 0);
+        assert!(carrier.replay_checkpoints > 0);
+    }
+
+    #[test]
+    fn open_class_triad_catalog_builds_distinct_open_members() {
+        let triad = WorkloadCatalog::open_class_triad(128)
+            .declared("MB-M6-NMT-3 catalog triad")
+            .build()
+            .expect("open class triad catalog should build");
+
+        assert_eq!(
+            triad.wire().recipe().human_name(),
+            "open wire workload recipe"
+        );
+        assert_eq!(
+            triad.sheet().recipe().human_name(),
+            "open sheet workload recipe"
+        );
+        assert_eq!(
+            triad.fan().recipe().human_name(),
+            "open shell NMT edge fan workload recipe"
+        );
+        assert_ne!(
+            triad
+                .wire()
+                .topology_construction()
+                .expect("wire topology")
+                .pattern_identity()
+                .identity_digest(),
+            triad
+                .sheet()
+                .topology_construction()
+                .expect("sheet topology")
+                .pattern_identity()
+                .identity_digest()
+        );
+        assert_eq!(
+            triad
+                .fan()
+                .topology_construction()
+                .expect("fan topology")
+                .counters()
+                .face_count(),
+            128
+        );
     }
 
     #[test]
@@ -305,140 +353,5 @@ mod tests {
             .expect_err("blank catalog declaration should be denied before Query admission");
 
         assert_eq!(error, WorkloadCatalogError::MissingDeclaration);
-    }
-
-    #[test]
-    fn workload_catalog_blocks_static_fixture_substitution() {
-        let built = WorkloadCatalog::cube()
-            .declared("compile-time catalog boundary companion")
-            .build()
-            .expect("real catalog cube should build");
-
-        assert_eq!(built.workload().evidence_ledger().counters().rows(), 8);
-        assert!(built
-            .workload()
-            .evidence_ledger()
-            .rows()
-            .iter()
-            .all(|row| row.is_receipt_backed()));
-
-        let error = manually_substituted_topology_ledger(built.workload().evidence_ledger())
-            .expect("static fixture ledger should still have valid row shape")
-            .certify_complete()
-            .expect_err("manual topology evidence must not certify as complete");
-
-        assert_eq!(
-            error,
-            WorkloadEvidenceLedgerError::ManualAuthorityStage(WorkloadEvidenceStage::Topology)
-        );
-        assert_eq!(
-            error.human_reason(),
-            "workload evidence ledger has hand-filled topology evidence instead of a source receipt"
-        );
-    }
-
-    fn admitted_catalog_recipes() -> Vec<WorkloadCatalogRecipe> {
-        vec![
-            WorkloadCatalog::cube(),
-            WorkloadCatalog::tetrahedron(),
-            WorkloadCatalog::single_face_loop(),
-            WorkloadCatalog::coplanar_overlap_storm(),
-            WorkloadCatalog::thin_feature_wall(),
-            WorkloadCatalog::high_valence_vertex(),
-            WorkloadCatalog::transform_cycle(),
-            WorkloadCatalog::retained_cancellation_chain(),
-        ]
-    }
-
-    fn assert_authority_stage(
-        ledger: &CompleteWorkloadEvidenceLedger,
-        stage: WorkloadEvidenceStage,
-    ) {
-        let row = ledger
-            .row_for_stage(stage)
-            .expect("catalog ledger must include authority stage");
-
-        assert!(row.is_receipt_backed());
-        assert!(row.is_admitted());
-        assert!(!row.evidence_identity().trim().is_empty());
-    }
-
-    fn assert_real_geometry_breadth(ledger: &CompleteWorkloadEvidenceLedger) {
-        let topology = stage_row(ledger, WorkloadEvidenceStage::Topology);
-        assert!(topology.counters().topology_entity_count() > 0);
-        assert!(topology.counters().topology_relation_count() > 0);
-
-        let binding = stage_row(ledger, WorkloadEvidenceStage::GeometryBinding);
-        assert!(binding.counters().binding_target_count() > 0);
-
-        let projection = stage_row(ledger, WorkloadEvidenceStage::Projection);
-        assert!(projection.counters().projected_entity_count() > 0);
-        assert!(projection.counters().local_basis_part_count() > 0);
-
-        let transform = stage_row(ledger, WorkloadEvidenceStage::Transform);
-        assert!(transform.counters().transform_step_count() > 0);
-    }
-
-    fn assert_catalog_query_receipt_is_digest(digest: &str) {
-        assert!(!digest.trim().is_empty());
-        assert!(!digest.contains("catalog"));
-        assert!(!digest.contains("workload"));
-    }
-
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    struct CatalogBreadth {
-        topology_faces: usize,
-        topology_entities: usize,
-        topology_relations: usize,
-        binding_targets: usize,
-        projected_entities: usize,
-        retained_artifacts: usize,
-        replay_checkpoints: usize,
-    }
-
-    fn catalog_breadth(recipe: WorkloadCatalogRecipe) -> CatalogBreadth {
-        let built = recipe.build().expect("catalog recipe should build");
-        let ledger = built.workload().evidence_ledger();
-        let topology = stage_row(ledger, WorkloadEvidenceStage::Topology).counters();
-        let binding = stage_row(ledger, WorkloadEvidenceStage::GeometryBinding).counters();
-        let projection = stage_row(ledger, WorkloadEvidenceStage::Projection).counters();
-        let replay = stage_row(ledger, WorkloadEvidenceStage::RetainedReplay).counters();
-
-        CatalogBreadth {
-            topology_faces: topology.topology_face_count(),
-            topology_entities: topology.topology_entity_count(),
-            topology_relations: topology.topology_relation_count(),
-            binding_targets: binding.binding_target_count(),
-            projected_entities: projection.projected_entity_count(),
-            retained_artifacts: replay.retained_artifact_count(),
-            replay_checkpoints: replay.replay_checkpoint_count(),
-        }
-    }
-
-    fn stage_row(
-        ledger: &CompleteWorkloadEvidenceLedger,
-        stage: WorkloadEvidenceStage,
-    ) -> &WorkloadEvidenceRow {
-        ledger.row_for_stage(stage).expect("catalog stage row")
-    }
-
-    fn manually_substituted_topology_ledger(
-        ledger: &CompleteWorkloadEvidenceLedger,
-    ) -> Result<WorkloadEvidenceLedger, WorkloadEvidenceLedgerError> {
-        let rows = ledger
-            .rows()
-            .iter()
-            .map(|row| {
-                if row.stage() == WorkloadEvidenceStage::Topology {
-                    WorkloadEvidenceRow::new(
-                        WorkloadEvidenceStage::Topology,
-                        row.evidence_identity(),
-                    )
-                } else {
-                    row.clone()
-                }
-            })
-            .collect();
-        WorkloadEvidenceLedger::from_rows(rows)
     }
 }

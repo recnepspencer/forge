@@ -35,6 +35,13 @@ impl WorkloadCatalogRecipeKind {
         match self {
             Self::CoplanarOverlapStorm
             | Self::HighValenceVertex
+            | Self::MixedSurfaceKillBox
+            | Self::OpenWire
+            | Self::OpenSheet
+            | Self::OpenShellNmtEdgeFan
+            | Self::OpenLayerStack
+            | Self::GrazingBasketStack
+            | Self::NmtTopologyConstruction
             | Self::RetainedCancellationChain => RetainedReplayRecipe::RetainedCancellationChain,
             _ => RetainedReplayRecipe::StageReceiptOnly,
         }

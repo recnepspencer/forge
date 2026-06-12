@@ -2,7 +2,7 @@ mod closed_solid_recipes;
 mod hostile_recipes;
 mod sheet_recipes;
 mod singular_vertex_recipes;
-mod topology_record_constructors;
+pub(crate) mod topology_record_constructors;
 mod wire_recipes;
 
 use super::topology_seed::{TopologySeedKind, TopologySeedNeighborhoodReceipt, TopologySeedRecipe};
@@ -57,12 +57,39 @@ pub(crate) fn build(
             recipe.requested_count().unwrap_or(6),
         )
         .map(TopologySeedRecipeOutput::topology),
-        TopologySeedKind::OpenSheet => Ok(TopologySeedRecipeOutput::topology(
-            sheet_recipes::open_sheet_topology_view(),
-        )),
-        TopologySeedKind::OpenWire => Ok(TopologySeedRecipeOutput::topology(
-            wire_recipes::open_wire_topology_view(),
-        )),
+        TopologySeedKind::OpenSheet => build_open_sheet_seed(),
+        TopologySeedKind::OpenWire => build_open_wire_seed(),
+        TopologySeedKind::OpenShellNmtEdgeFan => {
+            let pattern = super::nmt_topology_construction::NmtTopologyPattern::OpenRadialFan(
+                super::nmt_topology_construction::OpenRadialFanSpec::new()
+                    .incident_faces(recipe.requested_count().unwrap_or(3)),
+            );
+            super::nmt_topology_construction::build_nmt_topology_view(&pattern)
+                .map(TopologySeedRecipeOutput::topology)
+                .map_err(|_| {
+                    seed_parameter_denial(
+                        TopologySeedCleanFailReasonCode::TopologyValidationRejectedSeed,
+                        "open shell NMT edge fan seeds must be constructed through the generic NMT topology boundary",
+                    )
+                })
+        }
+        TopologySeedKind::NmtOpenLayerStack => {
+            super::nmt_topology_construction::build_nmt_topology_view(
+                &super::nmt_topology_construction::NmtTopologyPattern::OpenLayerStack(
+                    super::nmt_topology_construction::OpenLayerStackSpec::new()
+                        .with_layer_identity()
+                        .with_open_boundary_receipts()
+                        .with_radial_adjacency_receipts(),
+                ),
+            )
+            .map(TopologySeedRecipeOutput::topology)
+            .map_err(|_| {
+                seed_parameter_denial(
+                    TopologySeedCleanFailReasonCode::TopologyValidationRejectedSeed,
+                    "NMT open layer stack seeds must be constructed through the generic NMT topology boundary",
+                )
+            })
+        }
         TopologySeedKind::HighValenceVertex => {
             let (topology, neighborhood) =
                 singular_vertex_recipes::high_valence_vertex_topology_view_with_valence(
@@ -86,6 +113,34 @@ pub(crate) fn build(
             hostile_recipes::orientation_inconsistency_topology_view(),
         )),
     }
+}
+
+fn build_open_sheet_seed() -> Result<TopologySeedRecipeOutput, TopologySeedRecipeDenial> {
+    let pattern = super::nmt_topology_construction::NmtTopologyPattern::OpenSheetPatch(
+        super::nmt_topology_construction::OpenSheetPatchSpec::new().strips(1),
+    );
+    super::nmt_topology_construction::build_nmt_topology_view(&pattern)
+        .map(TopologySeedRecipeOutput::topology)
+        .map_err(|_| {
+            seed_parameter_denial(
+                TopologySeedCleanFailReasonCode::TopologyValidationRejectedSeed,
+                "open sheet seeds must be constructed through the generic NMT topology boundary",
+            )
+        })
+}
+
+fn build_open_wire_seed() -> Result<TopologySeedRecipeOutput, TopologySeedRecipeDenial> {
+    let pattern = super::nmt_topology_construction::NmtTopologyPattern::OpenWireChain(
+        super::nmt_topology_construction::OpenWireChainSpec::new().edges(4),
+    );
+    super::nmt_topology_construction::build_nmt_topology_view(&pattern)
+        .map(TopologySeedRecipeOutput::topology)
+        .map_err(|_| {
+            seed_parameter_denial(
+                TopologySeedCleanFailReasonCode::TopologyValidationRejectedSeed,
+                "open wire seeds must be constructed through the generic NMT topology boundary",
+            )
+        })
 }
 
 pub(crate) fn seed_parameter_denial(

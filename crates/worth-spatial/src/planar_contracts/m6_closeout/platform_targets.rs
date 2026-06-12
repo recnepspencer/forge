@@ -3,7 +3,10 @@ use crate::workload_platform::{
     boolean_readiness_workload::PlanarBooleanReadinessWorkloadReceipt,
     coplanar_overlap_storm::CoplanarOverlapStormReceipt,
     dirty_planar_clean_fail::DirtyPlanarCleanFailReceipt,
+    grazing_basket_stack::GrazingBasketStackReceipt,
     high_valence_singularity::HighValenceSingularityReceipt,
+    mixed_surface_kill_box::MixedSurfaceKillBoxReceipt, nmt_radial_fan::NmtRadialFanReceipt,
+    open_class_triad_parity::OpenClassTriadParityReceipt,
     open_planar_posture::OpenPlanarPostureReceipt,
     projection_fact_parity::ProjectionFactParityReceipt,
     retained_cancellation_chain::RetainedCancellationChainReceipt,
@@ -11,6 +14,13 @@ use crate::workload_platform::{
 };
 
 use super::basis::M6PremetabossFamily;
+use super::source_rows::{
+    boolean_readiness_source_rows, coplanar_overlap_storm_source_rows,
+    dirty_clean_fail_source_rows, grazing_basket_stack_source_rows, high_valence_source_rows,
+    mixed_surface_kill_box_source_rows, nmt_radial_fan_source_rows, open_class_triad_source_rows,
+    open_posture_source_rows, projection_parity_source_rows, retained_cancellation_source_rows,
+    thin_feature_source_rows,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum M6PremetabossEvidencePosture {
@@ -223,6 +233,81 @@ impl M6PremetabossPlatformTarget {
         )
     }
 
+    pub fn from_nmt_open_radial_fan(receipt: &NmtRadialFanReceipt) -> Self {
+        receipt_target(
+            M6PremetabossFamily::NmtOpenRadialFan,
+            "NMT open radial fan workload receipt",
+            receipt.fan_digest(),
+            [
+                receipt.workload_identity(),
+                receipt.topology_construction_identity(),
+                receipt.projected_workload_identity(),
+                receipt.open_boundary_digest(),
+                receipt.radial_adjacency_digest(),
+                receipt.transform_posture_identity(),
+                receipt.retained_replay_identity(),
+                receipt.fan_digest(),
+            ],
+            nmt_radial_fan_source_rows(receipt),
+        )
+    }
+
+    pub fn from_mixed_surface_kill_box(receipt: &MixedSurfaceKillBoxReceipt) -> Self {
+        let mut identities = vec![
+            receipt.declaration(),
+            receipt.stable_geometry_binding_identity(),
+            receipt.kill_box_digest(),
+        ];
+        identities.extend(
+            receipt
+                .runs()
+                .iter()
+                .map(|run| run.support_evidence_digest()),
+        );
+        receipt_target(
+            M6PremetabossFamily::NmtMixedSurfaceKillBox,
+            "NMT mixed-surface kill-box workload receipt",
+            receipt.kill_box_digest(),
+            identities,
+            mixed_surface_kill_box_source_rows(receipt),
+        )
+    }
+
+    pub fn from_open_class_triad_parity(receipt: &OpenClassTriadParityReceipt) -> Self {
+        let mut identities = vec![receipt.declaration(), receipt.triad_digest()];
+        identities.extend(
+            receipt
+                .lane_sets()
+                .iter()
+                .map(|lane_set| lane_set.parity().parity_digest()),
+        );
+        receipt_target(
+            M6PremetabossFamily::NmtOpenClassTriadParity,
+            "NMT open-class triad parity workload receipt",
+            receipt.triad_digest(),
+            identities,
+            open_class_triad_source_rows(receipt),
+        )
+    }
+
+    pub fn from_grazing_basket_stack(receipt: &GrazingBasketStackReceipt) -> Self {
+        let mut identities = vec![
+            receipt.stack_identity(),
+            receipt.topology_construction_identity(),
+            receipt.projected_workload_identity(),
+            receipt.retained_replay_identity(),
+            receipt.transform_posture_identity(),
+        ];
+        identities.extend(receipt.layers().iter().map(|layer| layer.layer_identity()));
+        receipt_target(
+            M6PremetabossFamily::NmtGrazingBasketStack,
+            "NMT grazing basket stack workload receipt",
+            receipt.stack_identity(),
+            identities,
+            grazing_basket_stack_source_rows(receipt),
+        )
+    }
+
     pub fn family(&self) -> M6PremetabossFamily {
         self.family
     }
@@ -265,108 +350,4 @@ fn receipt_target<'a>(
             family.as_str()
         ),
     }
-}
-
-fn coplanar_overlap_storm_source_rows(receipt: &CoplanarOverlapStormReceipt) -> usize {
-    let counters = receipt.counters();
-    counters.topology_entity_count()
-        + counters.topology_face_count()
-        + counters.topology_relation_count()
-        + counters.projected_entity_count()
-        + counters.transform_step_count()
-        + counters.transform_cancellation_step_count()
-        + counters.retained_artifact_count()
-        + counters.replay_checkpoint_count()
-        + counters.operator_input_count()
-        + counters.operator_receipt_count()
-        + counters.overlap_extraction_receipt_count()
-        + counters.overlap_candidate_pair_breadth()
-        + counters.overlap_segment_contacts_certified()
-        + counters.overlap_shared_intervals()
-        + counters.overlap_islands()
-        + counters.overlap_ambiguous_contacts()
-}
-
-fn high_valence_source_rows(receipt: &HighValenceSingularityReceipt) -> usize {
-    let counters = receipt.counters();
-    counters.topology_entity_count()
-        + counters.topology_face_count()
-        + counters.topology_relation_count()
-        + counters.binding_target_count()
-        + counters.surface_support_count()
-        + counters.neighborhood_valence()
-        + counters.projected_entity_count()
-        + counters.local_basis_part_count()
-        + counters.transform_step_count()
-        + counters.local_rebuild_evidence_row_count()
-        + counters.retained_artifact_count()
-        + counters.replay_checkpoint_count()
-        + counters.diagnostic_count()
-        + counters.user_outcome_count()
-}
-
-fn thin_feature_source_rows(receipt: &ThinFeatureScaleSeparationReceipt) -> usize {
-    let counters = receipt.counters();
-    counters.thin_feature_count()
-        + counters.local_scale_order_count()
-        + counters.world_magnitude_order_count()
-        + counters.precision_escalation_count()
-        + counters.local_basis_part_count()
-        + counters.projected_entity_count()
-        + counters.transform_step_count()
-        + counters.tiny_rotation_pressure_count()
-        + counters.projection_consumed_basis_count()
-        + counters.diagnostic_count()
-        + counters.user_outcome_count()
-}
-
-fn retained_cancellation_source_rows(receipt: &RetainedCancellationChainReceipt) -> usize {
-    let counters = receipt.counters();
-    counters.checkpoint_count()
-        + counters.transform_step_count()
-        + counters.replayed_checkpoint_count()
-        + counters.trigger_local_replay_count()
-        + counters.retained_artifact_count()
-        + counters.projection_consumed_fact_count()
-        + counters.diagnostic_trigger_count()
-        + counters.user_outcome_count()
-}
-
-fn dirty_clean_fail_source_rows(receipt: &DirtyPlanarCleanFailReceipt) -> usize {
-    let counters = receipt.counters();
-    counters.topology_clean_fail_receipts()
-        + counters.clean_fail_boundary_receipts()
-        + counters.recovery_receipts()
-        + counters.transform_posture_receipts()
-        + counters.diagnostic_receipts()
-        + counters.user_outcome_receipts()
-}
-
-fn open_posture_source_rows(receipt: &OpenPlanarPostureReceipt) -> usize {
-    let counters = receipt.counters();
-    counters.topology_receipts()
-        + counters.unsupported_surface_receipts()
-        + counters.clean_fail_boundary_receipts()
-        + counters.transform_posture_receipts()
-        + counters.diagnostic_receipts()
-        + counters.user_outcome_receipts()
-        + counters.bounded_surrogate_rejections()
-}
-
-fn projection_parity_source_rows(receipt: &ProjectionFactParityReceipt) -> usize {
-    let counters = receipt.counters();
-    counters.lanes_compared()
-        + counters.receipt_backed_lanes()
-        + counters.denied_lanes()
-        + counters.policy_required_lanes()
-}
-
-fn boolean_readiness_source_rows(receipt: &PlanarBooleanReadinessWorkloadReceipt) -> usize {
-    let counters = receipt.counters();
-    counters.required_evidence_stages_consumed()
-        + counters.ledger_rows_consumed()
-        + counters.parity_lanes_consumed()
-        + counters.closeout_rows_consumed()
-        + counters.query_boundary_rows()
-        + counters.blocked_branch_count()
 }

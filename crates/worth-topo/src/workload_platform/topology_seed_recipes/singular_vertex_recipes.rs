@@ -64,8 +64,8 @@ fn build_high_valence_planar_fan_faces(
     outer_vertex_ids: &[EntityId],
     valence: usize,
 ) -> HighValencePlanarFanFaces {
-    let mut next_edge_slot = 70_100;
-    let mut next_half_edge_slot = 70_300;
+    let mut next_edge_slot = 71_000;
+    let mut next_half_edge_slot = 72_000;
     let mut edge_map: BTreeMap<(usize, usize), (EntityId, Vec<EntityId>)> = BTreeMap::new();
     let mut half_edge_inputs = Vec::new();
     let mut incident_half_edges = Vec::with_capacity(valence);
@@ -73,7 +73,7 @@ fn build_high_valence_planar_fan_faces(
 
     for face_index in 0..valence {
         let face_id = entity(70_200 + face_index as u64);
-        let loop_id = entity(70_250 + face_index as u64);
+        let loop_id = entity(70_500 + face_index as u64);
         let face_cycle = [0, face_index + 1, ((face_index + 1) % valence) + 1];
         let mut face_half_edge_ids = Vec::with_capacity(face_cycle.len());
 

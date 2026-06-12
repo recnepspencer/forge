@@ -28,7 +28,9 @@ impl RetainedCancellationCheckpointTrigger {
 pub struct RetainedCancellationCheckpoint {
     step_index: usize,
     checkpoint_identity: String,
+    transform_stage_receipt_identity: String,
     transform_stage_identity: String,
+    retained_replay_stage_identity: String,
     retained_artifact_capture_identity: String,
     retained_basis_identity: String,
     replay_checkpoint_identity: String,
@@ -45,10 +47,18 @@ impl RetainedCancellationCheckpoint {
         replay_receipts: &ReplayReceiptSet,
     ) -> Self {
         let retained_basis_identity = replay_receipts.retained_basis_identity().to_string();
+        let transform_stage_receipt_identity = transform_receipts
+            .stage_identity()
+            .receipt_identity()
+            .to_string();
+        let retained_replay_stage_identity = replay_receipts
+            .stage_identity()
+            .receipt_identity()
+            .to_string();
         let transform_stage_identity = checkpoint_identity(
             "transform-step",
             step_index,
-            &transform_receipts.stage_identity().receipt_identity(),
+            &transform_stage_receipt_identity,
         );
         let retained_artifact_capture_identity = checkpoint_identity(
             "retained-artifact-capture",
@@ -67,7 +77,9 @@ impl RetainedCancellationCheckpoint {
         );
         Self::new(CheckpointParts {
             step_index,
+            transform_stage_receipt_identity,
             transform_stage_identity,
+            retained_replay_stage_identity,
             retained_artifact_capture_identity,
             retained_basis_identity,
             replay_checkpoint_identity,
@@ -110,6 +122,14 @@ impl RetainedCancellationCheckpoint {
         &self.transform_stage_identity
     }
 
+    pub fn transform_stage_receipt_identity(&self) -> &str {
+        &self.transform_stage_receipt_identity
+    }
+
+    pub fn retained_replay_stage_identity(&self) -> &str {
+        &self.retained_replay_stage_identity
+    }
+
     pub fn retained_artifact_capture_identity(&self) -> &str {
         &self.retained_artifact_capture_identity
     }
@@ -147,7 +167,9 @@ impl RetainedCancellationCheckpoint {
         let mut checkpoint = Self {
             step_index: parts.step_index,
             checkpoint_identity: String::new(),
+            transform_stage_receipt_identity: parts.transform_stage_receipt_identity,
             transform_stage_identity: parts.transform_stage_identity,
+            retained_replay_stage_identity: parts.retained_replay_stage_identity,
             retained_artifact_capture_identity: parts.retained_artifact_capture_identity,
             retained_basis_identity: parts.retained_basis_identity,
             replay_checkpoint_identity: parts.replay_checkpoint_identity,
@@ -166,7 +188,12 @@ impl RetainedCancellationCheckpoint {
             &[
                 "retained-cancellation-checkpoint".to_string(),
                 format!("step:{}", self.step_index),
+                format!("transform_stage:{}", self.transform_stage_receipt_identity),
                 format!("transform:{}", self.transform_stage_identity),
+                format!(
+                    "retained_replay_stage:{}",
+                    self.retained_replay_stage_identity
+                ),
                 format!("capture:{}", self.retained_artifact_capture_identity),
                 format!("retained_basis:{}", self.retained_basis_identity),
                 format!("replay_checkpoint:{}", self.replay_checkpoint_identity),
@@ -198,7 +225,9 @@ fn checkpoint_projection_consumed_identity(
 
 struct CheckpointParts {
     step_index: usize,
+    transform_stage_receipt_identity: String,
     transform_stage_identity: String,
+    retained_replay_stage_identity: String,
     retained_artifact_capture_identity: String,
     retained_basis_identity: String,
     replay_checkpoint_identity: String,

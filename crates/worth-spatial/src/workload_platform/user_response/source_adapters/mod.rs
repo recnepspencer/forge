@@ -1,5 +1,9 @@
 mod boolean_readiness_workload;
 mod dirty_planar_clean_fail;
+mod grazing_basket_stack;
+mod mixed_surface_kill_box;
+mod nmt_radial_fan;
+mod open_class_triad_parity;
 mod open_planar_posture;
 mod projection_fact_parity;
 mod retained_cancellation;

@@ -1558,6 +1558,628 @@ must be fenced, renamed, compile-failed, or deleted.
   authority, including `metaboss_fixture`, `end_to_end_fixture`,
   `storm_fixture`, and `real_world_fixture`.
 
+### Phase 22: Build Generic NMT Topology Construction Boundary
+
+Phase 22 builds the generic NMT topology construction boundary needed by all
+four NMT pre-MetaBoss suites before any one suite is implemented. This phase is
+the foundation for future versions of ourselves: open wires, open sheet patches,
+open non-manifold radial fans, layered open topology, boundary ownership,
+radial adjacency, topology posture, and construction counters must be
+production topology concepts before the workload platform, spatial support, or
+boss tests consume them.
+
+The conceptual detail is construction authority. Worth already has useful NMT
+interpretation, validation, and radial operator proof, but the missing boundary
+is ergonomic production construction for admitted NMT topology patterns. The
+phase must make it easy to construct open topology with receipts and hard to
+fake it through test-support views, row-level hand authoring, or boss-specific
+shape builders.
+
+**Outcome matrix**
+- `admitted`: supported NMT topology patterns produce construction receipts,
+  topology posture, open-boundary evidence, radial-adjacency evidence,
+  pattern-local identity, and construction counters
+- `unsupported`: unsupported pattern families, unsupported cardinalities, and
+  future topology classes deny at construction rather than entering workload
+  binding as partial topology
+- `denied`: invalid radial adjacency, invalid boundary ownership, label-only
+  topology perturbation, or topology posture drift is rejected before spatial
+  binding, projection, retained replay, or response success
+- `integrity-mismatch`: construction receipts from one topology pattern, layer,
+  or radial neighborhood cannot be consumed as another pattern's topology
+  authority
+- `no-options`: missing topology posture, missing boundary evidence, missing
+  radial evidence, or missing layer/patch identity reports human-readable cause
+  and evidence digest at the construction boundary
+
+**Missing production features to add**
+- Add a generic NMT topology construction boundary before any boss-specific
+  recipe. The boundary must construct admitted open topology classes with
+  topology posture, open-boundary, radial-adjacency, layer/patch identity, and
+  construction counters as first-class receipts.
+- The construction boundary must reuse existing topology interpretation,
+  validation, radial ring, shell closure, and topology construction Query
+  receipts instead of inventing a second NMT authority.
+- Open-sheet construction must widen beyond a single fixed sheet through the
+  generic NMT construction boundary: parameterized open sheet patches,
+  open-wire chains, radial fans, layered open patches, and later hostile stack
+  arrangements must share the same construction form factor.
+- Simple seeds such as `TopologySeed::open_wire`, `TopologySeed::open_sheet`,
+  and `TopologySeed::open_shell_nmt_edge_fan(k)` may remain convenience wrappers
+  over the generic construction boundary, not parallel shape-specific authority.
+- `WorkloadCatalog` must consume `NmtTopologyConstructionReceipt` through
+  `from_topology_construction(...)` before adding recipes for `open_wire`,
+  `open_sheet`, `open_shell_nmt_edge_fan(k)`, same-topology mixed-surface
+  families, or `grazing_open_shell_basket_stack`.
+- Basket stack support must be expressed as a composition of generic NMT
+  topology patterns plus spatial/workload grazing pressure. It must not be the
+  construction boundary itself.
+- Surface support must classify `Plane`, `AnalyticNonPlanar`, `Freeform`,
+  `GeneratedFeature`, and `Unknown`, with only `Plane` admitted in M6.5.
+- The workload platform must expose reusable NMT topology posture,
+  mixed-surface support, lane parity, retained-checkpoint forgery, and
+  user-response matrix builders only after they consume construction receipts.
+- Layer-scoped projection, retained replay, and diagnostic receipts must bind to
+  layer/patch identities produced by NMT topology construction.
+- Human-readable response generation must be shared by the four NMT suites and
+  must reject slug-only machine strings.
+
+**Construction DX target**
+
+NMT construction must follow the same ergonomic form factor as regular
+primitive construction, but it must not be modeled as a primitive family. The
+caller expresses a semantic topology construction pattern; the NMT construction
+boundary lowers that pattern into admitted topology facts, receipts, and
+counters. Boss recipes such as the basket stack consume this boundary later.
+
+```rust
+let topology = NmtTopologyConstruction::open_layer_stack(
+    OpenLayerStackSpec::new()
+        .layers(5)
+        .layer_pattern(OpenLayerPattern::SheetPatch { strips: 12 })
+        .with_layer_identity()
+        .with_open_boundary_receipts()
+        .with_radial_adjacency_receipts(),
+)
+.declared("open layer stack topology")
+.construct()?;
+
+let workload = WorkloadCatalog::from_topology_construction(topology)
+    .with_transform(TransformRecipe::MovementRotationStack)
+    .declared("open layer stack workload")
+    .build()?;
+```
+
+The target is semantic topology construction, not row construction and not
+boss-specific construction. A later boss may specialize the pattern with
+grazing offsets or hostile layers, but the foundational boundary is "construct
+admitted NMT topology with proof-bearing receipts."
+
+**Construction skeleton**
+- `worth-topo::workload_platform::nmt_topology_construction` owns
+  `NmtTopologyConstruction`, `OpenLayerStackSpec`, `OpenLayerPattern`,
+  `NmtTopologyConstructionReceipt`, layer identity receipts, open-boundary
+  receipts, radial-adjacency receipts, and construction counters.
+- `worth-topo::workload_platform::topology_seed` may keep simple seeds such as
+  `open_sheet`, `open_wire`, and `open_shell_nmt_edge_fan(k)`, but richer
+  parameterized NMT construction belongs to the NMT construction boundary rather
+  than the seed catalog.
+- `worth-kernel::workload_composition::workload_catalog` exposes
+  `from_topology_construction(...)` and boss recipes that consume construction
+  receipts; it does not own row-level topology creation.
+- `worth-spatial` owns geometry binding, surface support, projection, transform,
+  retained replay, diagnostics, and response receipts after topology
+  construction has produced admitted topology authority.
+
+**Relevant subsystems**
+- `worth-topo` NMT topology construction, radial-edge evidence, boundary
+  ownership, shell/wire interpretation, and topology posture validation
+- `worth-spatial` surface support, projection, certification context, retained
+  replay, projection-consumed facts, and user outcome responses
+- `worth-kernel` workload catalog, operator/readiness composition, and
+  pre-MetaBoss closeout registration
+- Forge Query declaration, receipt, retained artifact, and projection
+  consumption lanes
+
+**Relevant APIs**
+- `NmtTopologyConstruction`
+- `NmtTopologyPattern`
+- `OpenWireChainSpec`
+- `OpenSheetPatchSpec`
+- `OpenRadialFanSpec`
+- `OpenLayerStackSpec`
+- `NmtTopologyConstructionReceipt`
+- `TopologyPostureReceipt`
+- `RadialAdjacencyReceipt`
+- `OpenBoundaryReceipt`
+- `OpenPatternIdentityReceipt`
+- `WorkloadCatalog::from_topology_construction`
+- catalog recipes such as `open_wire`, `open_sheet`,
+  `open_shell_nmt_edge_fan`, `grazing_open_shell_basket_stack`, and
+  mixed-surface recipes only as consumers of NMT construction receipts
+- downstream `SurfaceSupportReceipt`, `RetainedCheckpointReceipt`,
+  `ProjectionParityLaneReceipt`, and `WorthUserOutcome`
+- production response matrix compilation for admitted, unsupported, denied,
+  integrity-mismatch, policy-required, and no-options outcomes
+
+**Required Query posture**
+- required now:
+  - query existing topology construction Query receipts and primitive
+    construction DX to mirror the spec/request/receipt form factor without
+    turning NMT patterns into primitives
+  - query existing topology seed, open-sheet, open-wire, radial-edge,
+    shell-interpretation, wire-interpretation, and validation support before
+    adding the NMT construction boundary
+  - query existing surface-support and user-outcome APIs before adding new
+    denial strings or family classifications
+  - query retained replay, projection-consumed facts, and lane parity surfaces
+    before adding cross-class forgery support
+- support-gated:
+  - future non-planar certification; classification and clean denial are enough
+    for M6.5
+- out:
+  - NMT-only fixture worlds, local fake radial evidence, handwritten retained
+    checkpoints, or test-owned user-response matrices
+
+**Warnings**
+- Do not implement boolean, trim, or fillet execution in this foundation phase.
+- Do not call a surface family supported because the platform can name it.
+- Do not let open topology become closed or bounded by projection, recovery,
+  retained replay, or readiness summaries.
+- Do not hide distinct open classes behind a generic "open topology" result
+  when the downstream test needs wire, sheet, or NMT fan identity.
+- Do not make NMT construction worse than regular primitive construction DX;
+  hostile topology can be explicit without forcing callers into row-level
+  authoring.
+- Do not create one new constructor per boss shape when a composable NMT pattern
+  would express the same authority honestly.
+
+**Test requirements**
+- `nmt_workspace_support_builds_real_open_class_workloads`
+- prove open wire, open sheet, and open-shell NMT fan recipes emit production
+  topology posture, binding, projection, transform, retained replay, and
+  response receipts
+- `nmt_topology_construction_boundary_builds_open_patterns_with_receipts`
+- prove open wire chains, open sheet patches, open radial fans, and layered open
+  patterns are constructed through the generic NMT boundary with posture,
+  boundary, radial, identity, and counter receipts
+- `nmt_workspace_support_rejects_cross_class_and_cross_family_smuggling`
+- prove foreign retained checkpoints, plane receipts on non-plane ledgers,
+  storm extraction bundles, and kernel summaries cannot satisfy NMT authority
+- `nmt_workspace_support_human_reasons_are_not_slug_only`
+- prove every denied, unsupported, integrity-mismatch, and no-options branch
+  emits human-readable cause text tied to consumed receipt evidence
+- `nmt_topology_construction_blocks_shape_specific_authority_silos`
+- prove boss recipes such as the grazing basket stack can only consume generic
+  construction receipts and cannot introduce row-level or coordinate-level
+  construction authority
+
+**Engineering decisions**
+- Put topology posture and seed authority in `worth-topo`; put surface support,
+  projection, retained replay, parity, and response authority in
+  `worth-spatial`; keep `worth-kernel` as the catalog and composition layer.
+- Build generic NMT topology construction before implementing any NMT test so
+  the tests become consumers of reusable topology authority.
+- Names must describe topology class, surface family, parity lane, or evidence
+  role, not milestone provenance.
+- NMT construction should follow the regular primitive construction lesson:
+  callers specify semantic topology patterns, while topology owns construction
+  authority and downstream platform stages own geometry, projection, retained
+  replay, diagnostics, response, and counters.
+
+**Resolved decision**
+- Phase 22 is the only place where reusable NMT topology construction authority
+  is introduced. Phases 23 through 26 must consume this boundary and may add
+  narrow production surfaces only when a test exposes a genuinely missing
+  downstream boundary.
+
+### Phase 23: Implement MB-M6-NMT-1 Open Radial Fan Proof
+
+Phase 23 implements `MB-M6-NMT-1: Open Radial Fan Cannot Be
+Manifold-Laundered` as a real end-to-end production-grade test. The suite must
+start from the `open_shell_nmt_edge_fan(k)` workload catalog path, carry real
+radial adjacency and open-boundary evidence through the platform, and prove that
+motion, replay, projection, extraction, response, and diagnostics cannot convert
+the fan into closed-manifold or ordinary coplanar overlap success.
+
+The conceptual detail is anti-laundering. An open non-manifold fan may be
+admitted as an open planar topology posture, but it must never be normalized
+into a closed shell, repaired into manifold loops, or accepted by an overlap or
+readiness path that did not consume its radial evidence.
+
+**Outcome matrix**
+- `admitted`: honest `open_shell_nmt_edge_fan(k)` with `k in {3, 4}` keeps
+  `OpenNonManifold` posture under admitted translation, rotation, retained
+  replay, projection consumption, and response
+- `unsupported`: non-plane support on the fan denies before planar overlap
+  extraction or boolean-readiness
+- `dirty-input`: a non-manifold wire or self-intersecting loop smuggled into the
+  fan workload is classified by the dirty topology boundary that produced it
+- `integrity-mismatch`: closed cube/storm retained checkpoint or foreign
+  retained stage substituted onto the NMT ledger is rejected at the named
+  checkpoint
+- `denied`: label-only motion or radial-adjacency perturbation denies before
+  extraction or readiness success
+- `no-options`: missing radial adjacency or missing open-boundary evidence names
+  the absent evidence and offers no invented recovery
+
+**Missing production features to add**
+- Catalog recipe for `open_shell_nmt_edge_fan(k)` with real radial adjacency,
+  open boundary, shell interpretation, topology posture, transform, retained
+  replay, diagnostics, and response receipts.
+- Movement/rotation posture checks that reject label-only motion through
+  coordinate and receipt evidence, not through labels.
+- NMT fan response matrix with evidence digests and human-readable summaries for
+  every branch.
+- Cross-workload retained checkpoint and storm extraction bundle rejection paths
+  that name topology posture or operator-stage mismatch precisely.
+
+**Relevant subsystems**
+- `worth-topo` radial-edge topology and open-shell seed support
+- `worth-spatial` projection, transform, retained replay, surface support, and
+  user outcome response
+- `worth-kernel` workload catalog and pre-MetaBoss NMT registration
+- coplanar overlap bridge only where certified planar carriers honestly exist
+
+**Relevant APIs**
+- `TopologySeed::open_shell_nmt_edge_fan(k)`
+- `WorkloadCatalog::open_shell_nmt_edge_fan(k)`
+- topology posture, radial adjacency, open boundary, retained checkpoint,
+  movement/rotation posture, projected workload, and response receipts
+- certified overlap extraction gates that reject mismatched NMT/storm authority
+
+**Required Query posture**
+- required now:
+  - query existing open-shell, radial-edge, and retained replay support before
+    adding new fan-specific code
+  - query existing motion and transform receipts before adding label-only
+    denial logic
+  - query MB1 overlap bridge rejection paths before testing storm extraction
+    smuggling
+- support-gated:
+  - curved and fillet open-hub variants; M6.5 must classify but not execute them
+- out:
+  - hand-built fan coordinates, fake radial rows, closed-shell conversion, or
+    fixture-only NMT topology
+
+**Warnings**
+- Do not let stable topology ids hide manifold laundering.
+- Do not let projection consume closed-shell retained basis for the NMT fan.
+- Do not make tiny topology perturbations look like ordinary unsupported
+  geometry; radial adjacency failure is its own evidence class.
+
+**Test requirements**
+- `mb_m6_nmt_1_open_radial_fan_cannot_be_manifold_laundered`
+- prove honest fan workloads preserve `OpenNonManifold` posture and receipt
+  identity through admitted transform and replay pressure
+- `mb_m6_nmt_1_rejects_closed_and_foreign_retained_checkpoint_substitution`
+- prove cube, storm, and foreign retained checkpoints deny with topology
+  posture or checkpoint identity mismatch
+- `mb_m6_nmt_1_denies_label_only_motion_and_missing_radial_evidence`
+- prove label-only motion denies before extraction and missing radial evidence
+  produces no-options with human-readable cause
+
+**Engineering decisions**
+- This test may use overlap extraction only through certified planar carriers
+  from the fan workload; overlap success cannot stand in for fan topology
+  legality.
+- The fan's topology posture is part of every relevant receipt digest and user
+  response.
+
+**Resolved decision**
+- `MB-M6-NMT-1` closes only when the open radial fan is proven through the real
+  workload platform and every laundering attempt fails before downstream success.
+
+### Phase 24: Implement MB-M6-NMT-2 Mixed Surface Kill Box
+
+Phase 24 implements `MB-M6-NMT-2: Mixed Surface Kill Box` as a real
+end-to-end production-grade test. The suite uses one valid topology carrier and
+varies only surface family so the platform proves surface support is the
+authority boundary: `Plane` is admitted for M6.5; `AnalyticNonPlanar`,
+`Freeform`, `GeneratedFeature`, and `Unknown` are typed unsupported and cannot
+be smuggled into planar readiness.
+
+The conceptual detail is anti-plane-smuggling. Stable topology, matching
+declaration stems, or kernel summaries must never convert an unsupported
+surface family into certified planar support, projected planar facts, overlap
+extraction, or acceptable M7 input.
+
+**Outcome matrix**
+- `admitted`: `Plane` produces full platform evidence and either certified
+  planar overlap extraction receipts or an explicit admitted planar readiness
+  posture
+- `unsupported`: `AnalyticNonPlanar`, `Freeform`, `GeneratedFeature`, and
+  `Unknown` each deny with distinct typed family reason, digest, and human prose
+- `integrity-mismatch`: `Plane` surface-support or overlap receipts attached to
+  a non-plane workload ledger are rejected
+- `integrity-mismatch`: kernel summary substitution for boolean-readiness
+  receipts is rejected before M7 acceptance
+- `denied`: wrong-family user-response evidence or smuggled generated-feature
+  support denies before certification
+- `no-options`: absent surface-support evidence names the missing family support
+  receipt instead of reporting generic unsupported success
+
+**Missing production features to add**
+- Mixed-surface catalog recipe that keeps topology constant and varies only
+  `SurfaceFamily` across five runs.
+- Receipt-backed surface support counters for admitted and unsupported families.
+- Distinct human-readable unsupported summaries for each non-plane family.
+- Boolean-readiness gate that exposes `is_acceptable_m7_input() == false` for
+  every unsupported family with evidence digest equality to consumed receipts.
+
+**Relevant subsystems**
+- `worth-spatial` surface support classification and unsupported-family
+  responses
+- `worth-spatial` projected workload, readiness, and overlap extraction gates
+- `worth-kernel` workload catalog and M7-input readiness composition
+- `worth-topo` closed topology carrier used as the stable topology control
+
+**Relevant APIs**
+- `SurfaceFamily::Plane`, `SurfaceFamily::AnalyticNonPlanar`,
+  `SurfaceFamily::Freeform`, `SurfaceFamily::GeneratedFeature`,
+  `SurfaceFamily::Unknown`
+- `CertifiedSurfaceSupport`, `UnsupportedSurfaceSupport`,
+  `SurfaceSupportReceipt`, readiness receipt, user response receipt, and
+  workload evidence ledger
+
+**Required Query posture**
+- required now:
+  - query existing surface-family enum, surface support receipts, and unsupported
+    outcome surfaces before adding family-specific denial logic
+  - query readiness gate and public facade exports before adding M7-input
+    checks
+  - query manual authority substitution guards before adding mixed-family traps
+- support-gated:
+  - non-planar execution; unsupported family classification is the required M6.5
+    behavior
+- out:
+  - using stable cube topology as a substitute for surface support authority
+
+**Warnings**
+- Do not use one generic unsupported string for all four non-plane families.
+- Do not let the plane control path hide that the non-plane paths have distinct
+  evidence digests.
+- Do not make `GeneratedFeature` or `Freeform` look partially admitted because
+  later milestones will support them.
+
+**Test requirements**
+- `mb_m6_nmt_2_mixed_surface_kill_box_admits_only_plane`
+- prove only `Plane` reaches admitted planar readiness and all non-plane
+  families are rejected by surface support
+- `mb_m6_nmt_2_non_plane_denials_have_distinct_digests_and_human_reasons`
+- prove the four unsupported families emit distinct typed reasons, distinct
+  evidence digests, and distinct human-readable prose
+- `mb_m6_nmt_2_rejects_plane_receipt_and_kernel_summary_smuggling`
+- prove cross-family receipt substitution and kernel summary substitution deny
+  before certification or M7 acceptance
+
+**Engineering decisions**
+- Surface family support is the authority boundary for this suite.
+- The topology carrier is intentionally stable so every admitted or denied
+  difference must come from surface support evidence.
+
+**Resolved decision**
+- `MB-M6-NMT-2` closes only when mixed surface family outcomes are production
+  surface-support results, not topology-derived guesses or test-local denials.
+
+### Phase 25: Implement MB-M6-NMT-3 Open-Class Topology Triad Parity
+
+Phase 25 implements `MB-M6-NMT-3: Open-Class Topology Triad Parity Kill
+Switch` as a real end-to-end production-grade test. The suite composes
+`open_wire`, `open_sheet`, and `open_shell_nmt_edge_fan(k)` across the full
+platform and compares nine parity lanes for each class so no lane can upgrade,
+normalize, or substitute a different open topology class.
+
+The conceptual detail is open-class parity. Open topology classes may all be
+valid, but they are not interchangeable. The platform must preserve distinct
+wire, sheet, and fan identity across live classification, projection, retained
+facts, replay, transforms, recovery, local rebuild, diagnostics, and
+projection-consumed facts.
+
+**Outcome matrix**
+- `admitted`: each open class admits across all nine honest lanes with
+  `lanes_compared == 9` and `receipt_backed_lanes == 9`
+- `denied`: a denied lane remains denied across all views; upgrading recovery or
+  another single lane to admitted fails with that lane named
+- `integrity-mismatch`: retained checkpoints replayed across open classes or
+  from closed storm workloads deny at named checkpoints with topology posture in
+  the summary
+- `integrity-mismatch`: projection-consumed identity shaped like retained replay
+  denies at the named projection-consumption checkpoint
+- `unsupported`: storm operator extraction bundle linked into open wire or open
+  sheet is rejected as unsupported for that open class or as integrity mismatch
+- `no-options`: omitted trigger-local replay or missing lane evidence names the
+  missing lane and cannot be mislabeled as generic integrity mismatch
+
+**Missing production features to add**
+- Open-class parity workload support that emits nine lane receipts per topology
+  class and compares them through production parity machinery.
+- Cross-class retained checkpoint forgery traps for wire versus sheet, fan
+  versus storm, and open-sheet artifact replayed onto NMT fan.
+- Bounded-conversion guards proving open wire does not gain faces, open sheet
+  does not close to a solid, and NMT fan preserves radial and open-boundary
+  counts.
+- Distinct human-readable diagnostics for wire, sheet, and fan failures, with no
+  shared boilerplate string accepted as sufficient.
+
+**Relevant subsystems**
+- `worth-topo` open wire, open sheet, and open-shell NMT fan topology posture
+- `worth-spatial` live classification, projected geometry, projection-consumed
+  facts, retained facts, replay, transformed geometry, recovery, local rebuild,
+  diagnostics, and user outcomes
+- `worth-kernel` triad workload catalog and pre-MetaBoss closeout registration
+- retained replay and projection parity receipt comparison
+
+**Relevant APIs**
+- open-class workload catalog recipes
+- `ProjectionParityLaneReceipt`
+- `RetainedCheckpointReceipt`
+- topology posture, structural identity, bounded-conversion counters, parity
+  digest, diagnostic receipt, and `WorthUserOutcome`
+
+**Required Query posture**
+- required now:
+  - query existing MB-M6-6 open posture and MB-M6-7 lane parity support before
+    adding triad-specific lanes
+  - query retained checkpoint and projection-consumption receipts before adding
+    cross-class forgery traps
+  - query topology counters before adding bounded-conversion guards
+- support-gated:
+  - boolean, trim, or fillet execution on open classes
+- out:
+  - treating open wire, open sheet, and NMT fan as one generic open workload
+
+**Warnings**
+- Do not let one admitted lane upgrade a denied topology class.
+- Do not allow closed-storm face counts or overlap receipts to appear as open
+  wire or open sheet evidence.
+- Do not share boilerplate human diagnostics across the three classes; the
+  user-facing reason must teach the actual open-class cause.
+
+**Test requirements**
+- `mb_m6_nmt_3_open_class_triad_parity_compares_nine_receipt_backed_lanes`
+- prove wire, sheet, and fan each compare nine receipt-backed lanes and preserve
+  stable within-class, distinct cross-class structural identity
+- `mb_m6_nmt_3_cross_class_checkpoint_and_projection_forgery_denies`
+- prove retained checkpoint and projection-consumed identity forgeries deny at
+  named checkpoints with topology posture in human prose
+- `mb_m6_nmt_3_denied_upgrade_and_bounded_conversion_traps_hold`
+- prove denied lane upgrades fail and open wire, open sheet, and NMT fan cannot
+  be converted into closed/bounded success by projection, recovery, or storm
+  extraction receipts
+
+**Engineering decisions**
+- The triad suite is the closeout proof that open topology classes remain
+  distinct across every production lane M6.5 exposes.
+- Lane parity belongs in production parity machinery; tests may select attack
+  cases, but they may not compile parity by hand.
+
+**Resolved decision**
+- `MB-M6-NMT-3` closes only when all three open topology classes survive
+  nine-lane parity and all cross-class upgrade, checkpoint, projection, and
+  storm-extraction attacks fail through production outcomes.
+
+### Phase 26: Implement MB-M6-NMT-4 Grazing Basket Stack Storm
+
+Phase 26 implements `MB-M6-NMT-4: Grazing Open-Shell Basket Stack Storm` as a
+real end-to-end production-grade boss. The suite stacks multiple open-shell
+basket workloads close enough to tempt projection collapse, radial adjacency
+bleed, retained checkpoint confusion, false closure, and diagnostic broadening.
+It exists because an open topology class can pass as a single object and still
+fail when many nearly coincident open layers share a local analysis space.
+
+The conceptual detail is stacked open-layer separation. Each basket layer has
+its own topology posture, open-boundary evidence, radial or boundary ownership,
+surface support, projection identity, retained replay basis, transform posture,
+and user-facing diagnostic scope. Near-grazing geometry may be evidence, but it
+must never become permission to merge layers, infer closure, swap retained
+checkpoints, or admit boolean-readiness through aggregate coincidence.
+
+**Outcome matrix**
+- `admitted`: each honest basket layer preserves open-shell or open-sheet
+  posture under admitted translation, rotation, hostile cancellation, projection
+  consumption, retained replay, and response
+- `denied`: a hostile layer with label-only motion, topology posture drift, or
+  radial/open-boundary perturbation denies before overlap extraction or
+  readiness success
+- `integrity-mismatch`: retained checkpoints, projection identities, parity
+  lanes, or surface-support receipts swapped between grazing layers are rejected
+  at the consuming boundary
+- `unsupported`: a non-plane surface family on any basket layer denies for that
+  layer without poisoning the honest planar layers
+- `no-options`: missing layer, basket, boundary, radial, projection, or retained
+  evidence reports the exact missing scope in human prose
+- `predicate-uncertain`: intentional near-graze precision pressure localizes to
+  the affected layer/boundary and cannot be rewritten as admitted closure
+
+**Missing production features to add**
+- A `grazing_open_shell_basket_stack` workload catalog recipe that builds a
+  bounded stack of real open-shell/open-sheet basket layers with receipt-backed
+  per-layer topology posture, open boundary ownership, projection identity,
+  transform posture, retained replay, diagnostics, and response evidence.
+- Layer identity and local-frame receipts that distinguish coordinate-near
+  basket layers even when projected geometry is nearly coincident.
+- Cross-layer retained checkpoint and projection-consumed identity forgery
+  denials that name the source layer and target layer.
+- Bounded-conversion guards proving no basket layer gains closed-shell posture,
+  aggregate closure, or unrelated radial adjacency from grazing neighbors.
+- Touched-layer counters proving a single hostile layer does not induce hidden
+  whole-stack relabeling, whole-stack replay, or whole-model scan behavior.
+
+**Relevant subsystems**
+- `worth-topo` open shell/open sheet topology seeds, open-boundary ownership,
+  radial adjacency, and topology posture counters
+- `worth-spatial` surface support, local frame, projection, transform, retained
+  replay, precision escalation, projection-consumed facts, diagnostics, and
+  user outcomes
+- `worth-kernel` workload catalog, NMT boss registration, and readiness
+  composition
+- Forge Query declaration, receipt, retained artifact, projection consumption,
+  and inspection lanes
+
+**Relevant APIs**
+- `WorkloadCatalog::grazing_open_shell_basket_stack`
+- topology posture, basket layer identity, open boundary ownership, radial
+  adjacency, projection identity, local frame, transform posture, retained
+  checkpoint, precision escalation, parity lane, diagnostic, and user response
+  receipts
+- layer-scoped counters for touched layers, layer projection breadth, retained
+  checkpoint breadth, open-boundary breadth, and denial localization breadth
+
+**Required Query posture**
+- required now:
+  - query existing open-shell/open-sheet seed support before adding basket stack
+    construction
+  - query projection, retained replay, and local-frame identity support before
+    adding layer separation receipts
+  - query existing precision and near-graze predicate receipts before adding the
+    intentional predicate-uncertain row
+  - query user outcome and no-options response surfaces before adding
+    layer-scoped diagnostics
+- support-gated:
+  - large benchmark-scale stacks; the boss needs hostile ambiguity, not an
+    unbounded performance benchmark
+- out:
+  - coordinate-only layer construction, local basket fixtures, whole-stack
+    closure summaries, or diagnostics that name only the aggregate workload
+
+**Warnings**
+- Do not make the stack so huge that runtime scale hides semantic failures.
+- Do not let aggregate counts substitute for per-layer receipts.
+- Do not use near-grazing coordinates as evidence that two layers share topology.
+- Do not allow one bad layer to rewrite the outcome or diagnostics of every
+  layer unless the production evidence proves an actual shared authority
+  boundary.
+
+**Test requirements**
+- `mb_m6_nmt_4_grazing_basket_stack_preserves_open_layer_identity`
+- prove every honest layer keeps distinct topology posture, projection identity,
+  retained basis, and structural identity under admitted transform pressure
+- `mb_m6_nmt_4_rejects_cross_layer_checkpoint_projection_and_surface_smuggling`
+- prove retained checkpoints, projection identities, parity lanes, and
+  surface-support receipts cannot be swapped across grazing layers
+- `mb_m6_nmt_4_denies_false_closure_and_localizes_near_graze_pressure`
+- prove no layer gains closed-shell posture or aggregate closure from grazing
+  neighbors, and intentional near-graze pressure localizes to one
+  layer/boundary with human-readable cause
+- `mb_m6_nmt_4_touched_layer_counters_block_whole_stack_laundering`
+- prove attack rows expose touched-layer breadth and do not hide whole-stack
+  relabeling, replay, or projection broadening
+
+**Engineering decisions**
+- The basket stack is a boss, not a helper. It must consume Phase 22 generic
+  NMT topology construction, but it must close as its own end-to-end suite.
+- Keep the admitted stack bounded: enough layers and strips to create real
+  grazing ambiguity, not enough to turn the boss into a timing benchmark.
+- Layer identity, topology posture, and projection identity are separate
+  authority facts and must remain separately visible in receipts.
+
+**Resolved decision**
+- `MB-M6-NMT-4` closes only when stacked grazing open-shell workloads preserve
+  per-layer open topology identity and every cross-layer laundering, false
+  closure, near-graze, and whole-stack broadening attack fails through
+  production outcomes.
+
 
 ## Must Ship
 
@@ -1586,6 +2208,18 @@ must be fenced, renamed, compile-failed, or deleted.
   workloads, production response matrices, and missing production features are
   implemented
 - legacy synthetic fixture fence and MB registration proof
+- generic NMT topology construction authority for open wire chains, open sheet
+  patches, open radial fans, layered open topology, topology posture,
+  open-boundary ownership, radial adjacency, pattern identity, and construction
+  counters
+- NMT workload support consuming that construction authority for mixed surface
+  families, lane parity, retained checkpoint forgery, and human-readable
+  no-options responses
+- MB-M6-NMT-1 through MB-M6-NMT-4 each represented by its own end phase with
+  explicit outcome matrix, missing production features, and production-grade
+  end-to-end proof obligations
+- MB-M6-NMT-1 through MB-M6-NMT-4 implemented only on reusable
+  workload-platform support, not local NMT fixtures
 
 ## Must Preserve
 
@@ -1614,14 +2248,27 @@ Milestone 6.5 is accepted only when all of the following evidence exists:
 - focused workload catalog tests proving cube, tetrahedron, loop, shell, open,
   dirty, high-valence, transform, retained, and overlap storm recipes emit
   receipt-backed evidence
+- focused NMT topology construction tests proving open wire chains, open sheet
+  patches, open radial fans, layered open topology, topology posture,
+  open-boundary ownership, radial adjacency, pattern identity, and construction
+  counters are reusable production authority
+- focused NMT workload support tests proving mixed-surface family,
+  retained-checkpoint forgery, lane-parity, and human-readable response support
+  consume construction receipts instead of test-local topology fixtures
 - `MB-M6-1` tests passing on the workload platform, with no ignored tests and
   no synthetic-only proof
 - MB-M6-2 through MB-M6-8 each has an executed platform-target proof row for
   its workload recipe, outcome matrix, and missing-production-feature blockers;
   a suite may remain non-closeout only if its missing production features are
   typed, registered, and blocked from being counted as success
-- registration proof that MB-M6-1 through MB-M6-8 require workload platform
-  evidence before they can become closeout suites
+- MB-M6-NMT-1 through MB-M6-NMT-4 each passes as a real end-to-end
+  production-grade suite using the shared NMT topology construction boundary
+  and downstream workload support, with no
+  ignored tests, no synthetic topology, no hand-authored receipts, no local
+  response matrices, and no slug-only user-facing reasons
+- registration proof that MB-M6-1 through MB-M6-8 and MB-M6-NMT-1 through
+  MB-M6-NMT-4 require workload platform evidence before they can become
+  closeout suites
 
 ## Sequencing Notes
 
@@ -1637,6 +2284,9 @@ Milestone 6.5 is accepted only when all of the following evidence exists:
 - MB-M6 tests are end-phase consumers. Each MB-M6 suite owns one end phase with
   an explicit matrix and production-feature gap list; do not collapse them into
   a generic registration bucket.
+- The final NMT extension is five phases: one generic NMT topology construction
+  phase, then one production-grade end-to-end phase per NMT suite. Do not start
+  an NMT test by inventing local support that belongs in the shared foundation.
 
 ## Required Self-Check
 
@@ -1655,7 +2305,8 @@ Milestone 6.5 is accepted only when all of the following evidence exists:
 - Is each phase centered on one conceptual detail or boundary? Yes: inventory,
   vocabulary, topology, binding, surface support, projection, transforms,
   replay, response, evidence, operator harness, catalog, MB-M6-1 through
-  MB-M6-8 workload consumers, and legacy fence.
+  MB-M6-8 workload consumers, legacy fence, generic NMT topology construction,
+  and one phase each for the four NMT closeout suites.
 - Does each phase contain at least 2 adversarial tests by default? Yes.
 - Could a competent engineer map this spec into honest types, modules, and
   tests? Yes, with placement questions left explicit.
