@@ -78,22 +78,6 @@ impl WorthUiStructuralLegalityDiagnostic {
         self.code
     }
 
-    pub(crate) fn authored_text(&self) -> &str {
-        &self.authored_text
-    }
-
-    pub(crate) fn module_id(&self) -> &WorthUiSourceModuleId {
-        &self.module_id
-    }
-
-    pub(crate) fn structural_locus(&self) -> &str {
-        &self.structural_locus
-    }
-
-    pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
-        &self.provenance
-    }
-
     pub(crate) fn stable_cmp(&self, other: &Self) -> Ordering {
         self.code
             .cmp(&other.code)

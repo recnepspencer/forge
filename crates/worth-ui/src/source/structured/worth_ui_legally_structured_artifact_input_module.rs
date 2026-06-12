@@ -14,10 +14,6 @@ impl WorthUiLegallyStructuredArtifactInputModule {
         Self { module_id, nodes }
     }
 
-    pub(crate) fn module_id(&self) -> &WorthUiSourceModuleId {
-        &self.module_id
-    }
-
     pub(crate) fn nodes(&self) -> &[WorthUiLegallyStructuredArtifactInputNode] {
         &self.nodes
     }

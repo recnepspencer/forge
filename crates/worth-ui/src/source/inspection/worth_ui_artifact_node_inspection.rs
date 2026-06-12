@@ -48,14 +48,6 @@ impl WorthUiArtifactNodeInspection {
         &self.source_origin
     }
 
-    pub(crate) fn identity_seed(&self) -> &WorthUiArtifactIdentitySeed {
-        &self.identity_seed
-    }
-
-    pub(crate) fn durable_state_eligibility(&self) -> &WorthUiDurableStateEligibility {
-        &self.durable_state_eligibility
-    }
-
     pub(crate) fn capability_references(&self) -> &[WorthUiArtifactCapabilityReferenceInspection] {
         &self.capability_references
     }

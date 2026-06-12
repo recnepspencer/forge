@@ -23,10 +23,6 @@ impl WorthUiBindingSemanticsMetrics {
         self.direct_lookup_count
     }
 
-    pub(crate) fn total_family_width(&self) -> usize {
-        self.total_family_width
-    }
-
     pub(crate) fn families_scanned(&self) -> usize {
         self.families_scanned
     }

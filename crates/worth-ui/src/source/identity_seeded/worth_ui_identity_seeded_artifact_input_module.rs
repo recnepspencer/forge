@@ -1,7 +1,4 @@
-use crate::source::{
-    WorthUiIdentitySeededArtifactInputNode, WorthUiIdentitySeededArtifactInputSurfaceNode,
-    WorthUiSourceModuleId,
-};
+use crate::source::{WorthUiIdentitySeededArtifactInputNode, WorthUiSourceModuleId};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiIdentitySeededArtifactInputModule {
@@ -17,20 +14,7 @@ impl WorthUiIdentitySeededArtifactInputModule {
         Self { module_id, nodes }
     }
 
-    pub(crate) fn module_id(&self) -> &WorthUiSourceModuleId {
-        &self.module_id
-    }
-
     pub(crate) fn nodes(&self) -> &[WorthUiIdentitySeededArtifactInputNode] {
         &self.nodes
-    }
-
-    pub(crate) fn surfaces(
-        &self,
-    ) -> impl Iterator<Item = &WorthUiIdentitySeededArtifactInputSurfaceNode> {
-        self.nodes.iter().filter_map(|node| match node {
-            WorthUiIdentitySeededArtifactInputNode::Surface(surface) => Some(surface),
-            _ => None,
-        })
     }
 }

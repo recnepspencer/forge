@@ -96,7 +96,7 @@ pub(super) fn admitted_app() -> WorthUiApp {
         .freeze()
 }
 
-pub(super) fn empty_snapshot() -> WorthUiApp {
+pub(in crate::source::tests) fn empty_snapshot() -> WorthUiApp {
     WorthUi::app().freeze()
 }
 
@@ -109,7 +109,7 @@ pub(super) fn component_descriptor(identity: &str) -> ComponentDescriptor {
     )
 }
 
-pub(super) fn snapshot_with_support_catalog(
+pub(in crate::source::tests) fn snapshot_with_support_catalog(
     base: &CapabilitySnapshot,
     support_catalog: CapabilitySupportCatalog,
 ) -> CapabilitySnapshot {
@@ -156,7 +156,7 @@ pub(super) fn support_catalog_with_extra<const N: usize>(
     CapabilitySupportCatalog::from_registration_candidates(&candidates)
 }
 
-pub(super) fn diagnostic_codes(
+pub(in crate::source::tests) fn diagnostic_codes(
     report: &WorthUiResolutionReport,
 ) -> Vec<WorthUiResolutionDiagnosticCode> {
     report

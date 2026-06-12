@@ -43,10 +43,6 @@ impl WorthUiArtifactInspectionDiagnostic {
         self.handle.as_ref()
     }
 
-    pub(crate) fn detail(&self) -> &str {
-        &self.detail
-    }
-
     pub(crate) fn stable_cmp(&self, other: &Self) -> Ordering {
         self.code
             .cmp(&other.code)

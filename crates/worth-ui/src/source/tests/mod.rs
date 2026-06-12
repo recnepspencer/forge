@@ -1,4 +1,7 @@
 mod phase10_artifact_digest_tests;
+mod phase11_dependency_metadata_tests;
+mod phase12_rust_composition_parity_tests;
+mod phase13_sample_app_certification_tests;
 mod phase1_source_package_tests;
 mod phase2_parse_tests;
 mod phase3_artifact_input_tests;

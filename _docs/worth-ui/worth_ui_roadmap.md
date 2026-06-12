@@ -191,120 +191,83 @@ growth broaden the surface area.
 - Rust-authored composition and file-authored source that declare the same UI
   meaning lower to equivalent artifact identity and structure
 
-## Milestone 3: Hot Reload, Stable Identity, and Plan Swap
+## Milestone 3: Hot Runtime, Stable Identity, Execution Plans, and Frame-Cost Certification
+
+Detailed spec: [milestone-3.md](./milestone-3.md)
 
 ### Goal
 
-Make the running Worth runtime the ordinary home of UI iteration so most
-runtime-owned UI structure, presentation, binding, and shell changes can apply
-without Rust recompilation while preserving enough identity that the app
-remains usable during iteration. Compiled raw Rust remains the escape hatch for
-edge cases, not the default authoring path for ordinary UI change.
+Make canonical Worth UI artifacts become active, frame-executable runtime plans
+that can be hot-replaced inside a running app without losing identity, durable
+interaction state, Query-owned binding posture, diagnostics truth, or frame-cost
+honesty.
 
 ### Must Ship
 
+- runtime host authority over active artifact, active execution plan, last valid
+  state, reload status, and diagnostics references
 - file-watch and debounce pipeline for UI source changes
-- runtime-hosted artifact-input watcher for file-authored UI and any
-  Rust-authored composition outputs that are admitted as replaceable artifact
-  input
-- reload pipeline that reparses, revalidates, relowers, replans, and atomically
-  swaps only at safe frame boundaries
-- a default runtime-owned reload posture where ordinary changes to layout,
-  shell composition, labels, tokens, inspector structure, tables, command
-  placement, bindings, and other admitted UI artifact content flow through the
-  same hot path
-- stable identity rules for lowered nodes that own durable interaction state
-- reconciliation logic for focus, scroll position, selection, panel visibility,
-  splitter positions, tab state, text input state, and Query subscriptions
-- explicit failure handling that keeps the last valid artifact and plan active
-- in-app diagnostics surface for reload errors and rejected plan swaps
-- explicit classification of what stays in the hot runtime lane versus what
-  requires compiled raw Rust, with raw Rust framed as the edge-case escape
-  hatch for behavior or platform work that cannot honestly be expressed as
-  replaceable runtime artifact input
-- one hostile reload scenario proving repeated edits do not collapse into state
-  loss or app restart folklore
-
-### Must Preserve
-
-- reload work stays off the normal frame path where possible
-- the running Worth runtime remains the ordinary owner of active artifacts,
-  diagnostics, reconciliation state, and plan swap boundaries
-- the default mental model stays "if it lives inside the runtime-owned UI
-  artifact model, it hot reloads" rather than "reload exists for a narrow set
-  of cosmetic edits"
-- identity changes remain explicit replacement events rather than accidental
-  state loss
-- invalid reloads never blank or corrupt the active app shell
-- hot reload remains composition reload, not arbitrary Rust-code hot patching
-- the raw Rust escape hatch feeds canonical artifact input where possible and
-  otherwise remains an explicit edge path rather than becoming a second UI
-  runtime or bypassing capability registration
-- state reconciliation remains compatible with nested layout structure rather
-  than flattening regions into anonymous geometry
-
-### Acceptance Evidence
-
-- editing layout, shell composition, tokens, labels, table columns, inspector
-  sections, command placement, view bindings, or other admitted runtime-owned
-  UI artifact content updates a running app without a Rust rebuild
-- the same running app can accept a valid replacement artifact produced from
-  file-authored UI or Rust-authored composition through the same swap pipeline
-- valid reloads preserve the declared stable state surfaces they should
-- invalid reloads preserve the previous running plan while surfacing typed
-  diagnostics
-- the milestone names at least one concrete category that still requires
-  compiled raw Rust and proves it is treated as an explicit escape hatch rather
-  than a silent gap in the runtime reload model
-- reload latency is observable and bounded enough to support ordinary UI
-  iteration without feeling build-shaped
-
-## Milestone 4: Execution Plans, Performance Lanes, and Frame-Cost Counters
-
-### Goal
-
-Compile canonical UI artifacts into frame-efficient execution plans and make
-performance architecture explicit before broad shell or component work depends
-on accidental hot-path behavior.
-
-### Must Ship
-
-- execution-plan lowering from canonical artifact into egui-facing runtime
-  plans
-- specialized execution lanes for ordinary widgets, virtualized data surfaces,
-  canvas/editor surfaces, and real-time overlay or HUD surfaces
+- replaceable candidate envelopes for file-authored UI and admitted
+  Rust-authored artifact inputs
+- candidate admission, artifact equivalence, impact narrowing, identity
+  matching, durable-state reconciliation, and Query binding rebind planning
+- atomic safe-frame activation that preserves the prior active plan on invalid
+  candidates, failed lowering, failed reconciliation, or failed swap
+- execution-plan lowering from canonical artifact into active egui-facing
+  runtime plans
 - compact runtime handles for commands, components, children, tokens, and view
-  bindings rather than per-frame string resolution
-- explicit rule that the steady-state frame loop does not parse or validate UI
-  source
-- named frame-cost counters for nodes visited, layout recompute breadth,
-  hit-test breadth, text shaping, glyph uploads, allocations, draw batches,
-  render passes, and virtualized rows touched
-- one declared complexity-contract surface for hot paths and one explicit debt
-  marker path where optimization is not yet closed
+  bindings rather than per-frame string or registry resolution
+- specialized execution lanes for ordinary widget/shell surfaces, virtualized
+  data surfaces, canvas/spatial surfaces, and real-time overlay or HUD surfaces
+- cross-lane parity proving lanes specialize mechanics and cost rather than
+  canonical UI meaning
+- typed diagnostics and in-app diagnostics projection for reload, plan,
+  reconciliation, Query, lane, and frame-cost failures
+- named counters for reload/lowering work and steady-frame lane work
+- hostile certification for reload storms, invalid reload preservation,
+  identity/state carry-forward, Query drift, data-heavy lanes, real-time lanes,
+  and no-source/no-registry/no-broad-scan steady frames
 
 ### Must Preserve
 
 - semantic richness stays in lowering-time artifacts rather than poisoning the
   ordinary frame loop
+- invalid reloads never blank or corrupt the active app shell
+- identity changes remain explicit replacement events rather than accidental
+  state loss
+- hot reload remains composition reload, not arbitrary Rust-code hot patching
+- the running Worth runtime remains the owner of active artifacts, active plans,
+  diagnostics, reconciliation state, and plan swap boundaries
+- state reconciliation remains compatible with nested layout structure rather
+  than flattening regions into anonymous geometry
+- Query-facing runtime surfaces referenced by active plans preserve Query-owned
+  support, admission, live, async/result, projection, recovery, inspection, and
+  explanation posture
 - execution-lane specialization does not fork UI meaning into incompatible
   shadow runtimes
 - performance instrumentation remains product-visible enough to certify claims
-- no broad widget or shell milestone can force per-frame source interpretation
-  back into the hot path
+- no broad widget, shell, canvas, data, or plugin milestone can force per-frame
+  source interpretation, registry lookup, or broad artifact scans back into the
+  hot path
 
 ### Acceptance Evidence
 
-- identical canonical artifacts produce identical execution plans where the
-  lane and capability set are unchanged
-- steady-state frame execution can be explained in counters rather than vague
-  elapsed-time claims alone
-- one hostile data-heavy surface and one hostile real-time surface prove that
-  lane specialization changes mechanics without changing declared UI meaning
-- accidental broad scans, per-frame registry lookups, or per-frame source
-  interpretation can fail mechanically through counters or certification tests
+- the same running app can accept valid replacement artifacts produced from
+  file-authored UI or Rust-authored composition through the same activation
+  pipeline
+- equivalent replacements classify as no-op and avoid needless plan swaps
+- valid reloads preserve eligible durable state and explicitly replace or drop
+  ineligible state
+- invalid reloads preserve the previous active plan while surfacing typed
+  diagnostics
+- identical canonical artifacts produce identical execution plans where the lane
+  and capability set are unchanged
+- ordinary, virtualized data, canvas/spatial, and real-time overlay lanes all
+  prove lane-specific execution through counters and receipts
+- steady-state frame execution proves source parsing, artifact validation,
+  registry string lookup, and broad artifact scans remain absent
 
-## Milestone 5: Application Shell and Workspace Layout
+## Milestone 4: Application Shell and Workspace Layout
 
 ### Goal
 
@@ -352,7 +315,7 @@ every downstream application.
   backbone
 - workspace layout edits can survive hot reload when stable IDs remain intact
 
-## Milestone 6: Command Spine, Focus, Selection, and Keyboard Routing
+## Milestone 5: Command Spine, Focus, Selection, and Keyboard Routing
 
 ### Goal
 
@@ -391,7 +354,7 @@ keyboard workflows are platform semantics instead of widget-local conventions.
   than silent precedence accidents
 - undo and redo presentation can name what action is being reversed or replayed
 
-## Milestone 7: Query-Bound Views and Live Surface Binding
+## Milestone 6: Query-Bound Views and Live Surface Binding
 
 ### Goal
 
@@ -434,7 +397,7 @@ app-local caches, host-shaped events, or widget-owned live-update folklore.
 - Query-bound surfaces can explain what view meaning, basis, or runtime posture
   they are currently presenting
 
-## Milestone 8: Forms, Validation, and Editing Workflows
+## Milestone 7: Forms, Validation, and Editing Workflows
 
 ### Goal
 
@@ -475,7 +438,7 @@ widgets, local booleans, and submission folklore.
 - form submission results can surface structured success, advisory, violation,
   and recoverable outcomes
 
-## Milestone 9: Runtime UX, Preview, Recovery, and Explanation
+## Milestone 8: Runtime UX, Preview, Recovery, and Explanation
 
 ### Goal
 
@@ -516,7 +479,7 @@ status folklore.
 - app authors can build one nontrivial review or recovery flow without creating
   a second status model above the runtime
 
-## Milestone 10: Design System and Professional Component Set
+## Milestone 9: Design System and Professional Component Set
 
 ### Goal
 
@@ -563,25 +526,28 @@ rebuilding basic desktop UX.
   semantics under real product composition
 - component surfaces remain narrow enough that platform tooling can inspect them
 
-## Milestone 11: Canvas, Spatial, and Real-Time Surface Lanes
+## Milestone 10: Canvas, Spatial, and Real-Time Product Surfaces
 
 ### Goal
 
-Make Worth UI honest about hostile frame surfaces by shipping first-class lanes
-for canvases, spatial tools, real-time overlays, and renderer-integrated UI.
+Build product-grade canvas, spatial-tool, real-time overlay, and
+renderer-integrated UI surfaces on top of the execution lanes and frame-cost
+certification established in Milestone 3.
 
 ### Must Ship
 
-- canvas and spatial surface lane with pan, zoom, hit testing, overlays,
+- canvas and spatial product primitives with pan, zoom, hit testing, overlays,
   snapping, tool state, and command integration
-- renderer-facing surface lane for custom draw passes and world or screen
+- renderer-facing product surfaces for custom draw passes and world or screen
   projection work
-- real-time overlay and HUD lane with shader or material-backed surfaces
-- enough execution-plan specialization that these lanes do not pay ordinary
-  widget mechanics by default
+- real-time overlay and HUD product primitives with shader or material-backed
+  surfaces
+- higher-level tool-state, selection, overlay, and command workflows over the
+  Milestone 3 lane substrate
 - one sample hostile surface proving platform shell, diagnostics, and runtime
   binding can coexist with a high-frequency render surface
-- explicit performance counters and debt markers for real-time lanes
+- expanded performance counters and certification scenarios for real-time and
+  spatial product workflows
 
 ### Must Preserve
 
@@ -589,20 +555,20 @@ for canvases, spatial tools, real-time overlays, and renderer-integrated UI.
 - spatial and real-time lanes remain semantically integrated with commands,
   views, and inspection rather than becoming a disconnected side runtime
 - performance claims remain counter-backed instead of anecdotal
-- hostile surfaces do not pull broad shell or component work back into the hot
-  path
+- hostile product surfaces consume the Milestone 3 execution lanes rather than
+  redefining lane mechanics
 
 ### Acceptance Evidence
 
 - one canvas-like product surface and one real-time overlay prove the lane
-  split is real rather than aspirational
+  substrate can support real product interaction
 - UI structure remains hot-reloadable while the render surface maintains
   specialized mechanics
 - frame counters expose where work is spent on spatial and real-time surfaces
 - renderer-integrated surfaces still participate in platform command, focus,
   and diagnostics systems where applicable
 
-## Milestone 12: Persistence, Settings, and Document or Project Workflows
+## Milestone 11: Persistence, Settings, and Document or Project Workflows
 
 ### Goal
 
@@ -639,7 +605,7 @@ storage conventions.
 - persistence migrations fail explicitly when incompatible rather than drifting
   silently
 
-## Milestone 13: Background Tasks, Diagnostics, and Recovery Tooling
+## Milestone 12: Background Tasks, Diagnostics, and Recovery Tooling
 
 ### Goal
 
@@ -676,7 +642,7 @@ log archaeology.
 - app authors can expose support-grade diagnostics without inventing a second
   infrastructure layer
 
-## Milestone 14: Accessibility and Interaction Quality Completion
+## Milestone 13: Accessibility and Interaction Quality Completion
 
 ### Goal
 
@@ -712,7 +678,7 @@ completion milestone rather than a deferred compliance sweep.
   implementation archaeology
 - contrast, scaling, and reduced-motion rules are proven in real sample apps
 
-## Milestone 15: Native Platform Integration and Delivery
+## Milestone 14: Native Platform Integration and Delivery
 
 ### Goal
 
@@ -751,7 +717,7 @@ machine."
 - native integration failures surface explicitly and diagnosably
 - delivery surfaces remain stable enough to support real release channels
 
-## Milestone 16: Plugin and Extension Architecture
+## Milestone 15: Plugin and Extension Architecture
 
 ### Goal
 
@@ -788,7 +754,7 @@ honesty, or security model under extension pressure.
   and diagnostics systems
 - host inspection can explain what a plugin added and what authority it holds
 
-## Milestone 17: Developer Tooling, Templates, and Platform Inspection
+## Milestone 16: Developer Tooling, Templates, and Platform Inspection
 
 ### Goal
 
@@ -829,7 +795,7 @@ alone.
 - screenshot and inspection tooling can certify real product examples
 - sample apps expose roadmap gaps honestly rather than hiding them
 
-## Milestone 18: Worth UI Certification Program
+## Milestone 17: Worth UI Certification Program
 
 ### Goal
 

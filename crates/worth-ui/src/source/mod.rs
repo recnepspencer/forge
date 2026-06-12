@@ -4,6 +4,7 @@ mod artifact;
 mod artifact_input;
 mod bound;
 mod canonical;
+mod dependency;
 mod equivalence;
 mod identity_seeded;
 mod import_graph;
@@ -42,6 +43,14 @@ pub(crate) use bound::{
     WorthUiBoundViewBindingReference,
 };
 pub(crate) use canonical::WorthUiCanonicalModuleOrder;
+#[allow(unused_imports)]
+pub(crate) use dependency::{
+    WorthUiArtifactDependencyEdge, WorthUiArtifactDependencyEdgeKind,
+    WorthUiArtifactDependencyGraph, WorthUiArtifactDependencyTarget, WorthUiArtifactImpact,
+    WorthUiArtifactImpactMetadata, WorthUiArtifactSubtreeDigest,
+    WorthUiIncrementalInvalidationBasis, WorthUiRuntimeDependencyHook,
+    WorthUiRuntimeDependencyHookKind, WorthUiRuntimeQuerySurface,
+};
 pub(crate) use equivalence::{
     WorthUiArtifactDifference, WorthUiArtifactDigest, WorthUiArtifactDigestReport,
     WorthUiArtifactEquivalence, WorthUiArtifactEquivalenceBasis,
@@ -67,23 +76,27 @@ pub(crate) use inspection::{
 #[allow(unused_imports)]
 pub(crate) use lower::{
     WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyDiagnosticCode,
-    WorthUiArtifactAssemblyMetrics, WorthUiArtifactAssemblyReport, WorthUiArtifactDigestor,
-    WorthUiArtifactEquivalenceComparator, WorthUiArtifactEquivalenceMetrics,
-    WorthUiArtifactInputResolver, WorthUiArtifactInspectionBasis,
-    WorthUiArtifactInspectionBasisBuilder, WorthUiArtifactInspectionDeriver,
-    WorthUiArtifactInspectionDiagnostic, WorthUiArtifactInspectionDiagnosticCode,
-    WorthUiArtifactInspectionMetrics, WorthUiArtifactInspectionReport, WorthUiBindingDiagnostic,
-    WorthUiBindingDiagnosticCode, WorthUiBindingSemanticsLowerer, WorthUiBindingSemanticsMetrics,
-    WorthUiBindingSemanticsReport, WorthUiCanonicalArtifactAssembler,
-    WorthUiIdentityReplacementClassifier, WorthUiIdentitySeedLowerer,
-    WorthUiIdentitySeedingDiagnostic, WorthUiIdentitySeedingDiagnosticCode,
-    WorthUiIdentitySeedingMetrics, WorthUiIdentitySeedingReport,
-    WorthUiParsedSourceToArtifactInputLowerer, WorthUiResolutionDiagnostic,
-    WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics, WorthUiResolutionReport,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityDiagnostic,
-    WorthUiStructuralLegalityDiagnosticCode, WorthUiStructuralLegalityLowerer,
-    WorthUiStructuralLegalityMetrics, WorthUiStructuralLegalityReport,
+    WorthUiArtifactAssemblyMetrics, WorthUiArtifactAssemblyReport,
+    WorthUiArtifactDependencyDeriver, WorthUiArtifactDependencyMetrics,
+    WorthUiArtifactDependencyReport, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceComparator,
+    WorthUiArtifactEquivalenceMetrics, WorthUiArtifactInputResolver,
+    WorthUiArtifactInspectionBasis, WorthUiArtifactInspectionBasisBuilder,
+    WorthUiArtifactInspectionDeriver, WorthUiArtifactInspectionDiagnostic,
+    WorthUiArtifactInspectionDiagnosticCode, WorthUiArtifactInspectionMetrics,
+    WorthUiArtifactInspectionReport, WorthUiBindingDiagnostic, WorthUiBindingDiagnosticCode,
+    WorthUiBindingSemanticsLowerer, WorthUiBindingSemanticsMetrics, WorthUiBindingSemanticsReport,
+    WorthUiCanonicalArtifactAssembler, WorthUiIdentityReplacementClassifier,
+    WorthUiIdentitySeedLowerer, WorthUiIdentitySeedingDiagnostic,
+    WorthUiIdentitySeedingDiagnosticCode, WorthUiIdentitySeedingMetrics,
+    WorthUiIdentitySeedingReport, WorthUiParsedSourceToArtifactInputLowerer,
+    WorthUiResolutionDiagnostic, WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics,
+    WorthUiResolutionReport, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
+    WorthUiRustCompositionInput, WorthUiRustCompositionMetrics, WorthUiRustCompositionModule,
+    WorthUiRustCompositionReport, WorthUiRustCompositionToArtifactInputLowerer,
+    WorthUiStructuralLegalityDiagnostic, WorthUiStructuralLegalityDiagnosticCode,
+    WorthUiStructuralLegalityLowerer, WorthUiStructuralLegalityMetrics,
+    WorthUiStructuralLegalityReport,
 };
 pub(crate) use module::{WorthUiSourceModuleId, WorthUiSourceModuleRecord};
 #[allow(unused_imports)]
