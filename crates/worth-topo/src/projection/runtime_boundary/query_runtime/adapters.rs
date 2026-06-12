@@ -7,7 +7,8 @@ use forge_query::facade::{
     ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryWorkspaceError, ForgeQueryWriteReceipt, QuerySchemaView, SubscriptionActivationInput,
+    ForgeQuerySessionLabel, ForgeQueryWorkspaceError, ForgeQueryWriteReceipt, QuerySchemaView,
+    SubscriptionActivationInput,
 };
 use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, InvalidationSink, RuntimeBridge, SignalBridgeSinkError,
@@ -206,14 +207,14 @@ impl TopologyPreviewBasis {
 impl ForgeQueryRuntimePreviewBasisAdapter for TopologyPreviewBasis {
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
         match self {
             Self::Supported { support_evidence } => Ok(ForgeQueryPreviewBasisAdmission::new(
                 authority,
-                label,
+                label.clone(),
                 effect_policy,
                 [*support_evidence],
             )),

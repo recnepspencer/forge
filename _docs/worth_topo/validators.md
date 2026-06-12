@@ -12,6 +12,28 @@ ValidateOwnership (every coedge belongs to exactly one loop; loop to one face; f
 
 ValidateNoOrphans (every entity reachable from body roots)
 
+1b) Boolean runtime / parity / audit validators
+
+ValidatePlanarBooleanAdmissionClassification
+
+ValidateBooleanRoutePlanDeterminism
+
+ValidateBooleanReceiptEnvelopeConsistency
+
+ValidatePlanarBooleanReplayParity
+
+ValidatePlanarBooleanCheckpointParity
+
+ValidateBooleanOutcomeClassificationConsistency
+
+ValidateBooleanFailureLocalizationConsistency
+
+ValidateBooleanDecisionLogCoverage
+
+ValidateBooleanPolicyOutcomeConsistency
+
+ValidateBooleanDivergenceClassificationConsistency
+
 2) Loop and boundary sanity (cheap and constant)
 
 ValidateLoopClosure
