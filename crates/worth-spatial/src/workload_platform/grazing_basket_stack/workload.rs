@@ -8,6 +8,7 @@ use super::receipt::{
 };
 use super::stack_spec::{GrazingBasketStackCertificationProfile, GrazingOffsetClass};
 use crate::workload_platform::evidence_ledger::CompleteWorkloadEvidenceLedger;
+use crate::workload_platform::nmt_certification_context::NmtCertifiedScopeSet;
 use crate::workload_platform::projection_workload::ProjectedPlanarWorkload;
 use crate::workload_platform::retained_replay_workload::ReplayReceiptSet;
 use crate::workload_platform::transform_workload::TransformReceiptSet;
@@ -225,6 +226,7 @@ impl<'a> GrazingBasketStackWorkload<'a> {
                     projection_identity: &projection_identity,
                     retained_replay_identity,
                     transform_posture_identity,
+                    local_frame_identity: &projection_identity,
                     radial_adjacency_identity,
                     open_boundary: BasketBoundaryScope::new(layer_index, 0, &stack_identity),
                     offset_class: self.profile.offset_classes()
@@ -261,5 +263,19 @@ impl<'a> GrazingBasketStackWorkload<'a> {
                 .to_string(),
             human_reason,
         )
+    }
+}
+
+impl<'a> GrazingBasketStackWorkload<'a> {
+    pub fn from_certified_scopes(
+        certified_scopes: &'a NmtCertifiedScopeSet,
+    ) -> super::CertifiedGrazingBasketStackWorkload<'a> {
+        let profile = GrazingBasketStackCertificationProfile::hostile_default(
+            certified_scopes.scopes().len(),
+        );
+        super::CertifiedGrazingBasketStackWorkload {
+            certified_scopes,
+            profile,
+        }
     }
 }

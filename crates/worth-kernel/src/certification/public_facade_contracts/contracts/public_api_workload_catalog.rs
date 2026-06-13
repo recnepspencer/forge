@@ -4,6 +4,7 @@ mod tests {
         admitted_catalog_recipes, assert_authority_stage, assert_catalog_query_receipt_is_digest,
         assert_real_geometry_breadth, catalog_breadth,
     };
+    use topology::facade::NmtTopologyPattern;
     use worth_kernel::workload_composition::{
         WorkloadCatalog, WorkloadCatalogError, WorkloadCatalogSupportPosture,
         WorkloadTopologyBreadth,
@@ -244,13 +245,15 @@ mod tests {
     }
 
     #[test]
-    fn mixed_surface_kill_box_catalog_is_named_stable_topology_carrier() {
+    fn mixed_surface_kill_box_catalog_is_named_nmt_scope_carrier() {
         let built = WorkloadCatalog::mixed_surface_kill_box()
             .declared("MB-M6-NMT-2 mixed surface kill box carrier")
             .build()
             .expect("mixed surface kill box carrier should build");
-        let cube = catalog_breadth(WorkloadCatalog::cube());
         let carrier = catalog_breadth(WorkloadCatalog::mixed_surface_kill_box());
+        let topology = built
+            .topology_construction()
+            .expect("mixed surface kill box now carries NMT topology scope authority");
 
         assert_eq!(
             built.recipe().human_name(),
@@ -260,9 +263,12 @@ mod tests {
             built.declaration().recipe().query_key(),
             "worth.catalog.mixed_surface_kill_box"
         );
-        assert_eq!(carrier.topology_faces, cube.topology_faces);
-        assert_eq!(carrier.topology_entities, cube.topology_entities);
-        assert_eq!(carrier.topology_relations, cube.topology_relations);
+        assert!(matches!(
+            topology.pattern(),
+            NmtTopologyPattern::OpenSheetPatch(_)
+        ));
+        assert_eq!(carrier.topology_faces, topology.counters().face_count());
+        assert!(topology.open_boundary().boundary_half_edge_count() > 0);
         assert!(carrier.retained_artifacts > 0);
         assert!(carrier.replay_checkpoints > 0);
     }

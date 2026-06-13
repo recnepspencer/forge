@@ -9,4 +9,4 @@ pub use outcome_matrix::{
     NmtRadialFanOutcomeKind, NmtRadialFanOutcomeMatrix, NmtRadialFanOutcomeRow,
 };
 pub use receipt::{NmtRadialFanCounters, NmtRadialFanReceipt};
-pub use workload::NmtRadialFanWorkload;
+pub use workload::{CertifiedNmtRadialFanWorkload, NmtRadialFanWorkload};

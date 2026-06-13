@@ -1,64 +1,16 @@
+mod cross_layer;
+
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
+use super::adversarial_evidence::{
+    GrazingBasketDeniedMotionEvidence, GrazingBasketLayerAuthorityEvidence,
+    GrazingBasketLayerEvidenceKind, GrazingBasketPredicateUncertaintyEvidence,
+};
 use super::denial::{GrazingBasketStackDenial, GrazingBasketStackDenialKind};
 use super::layer_scope::{BasketBoundaryScope, BasketLayerIndex};
 use super::receipt::{GrazingBasketStackCounters, GrazingBasketStackReceipt};
 
 impl GrazingBasketStackReceipt {
-    pub fn attempt_cross_layer_retained_replay(
-        &self,
-        source_layer: BasketLayerIndex,
-        target_layer: BasketLayerIndex,
-    ) -> Result<(), GrazingBasketStackDenial> {
-        let source = self.require_layer(source_layer)?;
-        let target = self.require_layer(target_layer)?;
-        if source_layer == target_layer {
-            return Ok(());
-        }
-        let extra_evidence =
-            joined_evidence(&[source.retained_replay_identity(), target.layer_identity()]);
-        Err(self.denial_with_extra_evidence(
-            GrazingBasketStackDenialKind::CrossLayerRetainedReplay,
-            Some(source_layer),
-            Some(target_layer),
-            None,
-            self.counters().for_attack(2, 2),
-            &extra_evidence,
-            format!(
-                "Retained checkpoint from {} cannot replay onto {}; the checkpoint belongs to a different layer identity.",
-                source_layer.human_name(),
-                target_layer.human_name()
-            ),
-        ))
-    }
-
-    pub fn attempt_cross_layer_projection_identity(
-        &self,
-        source_layer: BasketLayerIndex,
-        target_layer: BasketLayerIndex,
-    ) -> Result<(), GrazingBasketStackDenial> {
-        let source = self.require_layer(source_layer)?;
-        let target = self.require_layer(target_layer)?;
-        if source_layer == target_layer {
-            return Ok(());
-        }
-        let extra_evidence =
-            joined_evidence(&[source.projection_identity(), target.layer_identity()]);
-        Err(self.denial_with_extra_evidence(
-            GrazingBasketStackDenialKind::CrossLayerProjectionIdentity,
-            Some(source_layer),
-            Some(target_layer),
-            None,
-            self.counters().for_attack(2, 2),
-            &extra_evidence,
-            format!(
-                "Projection identity from {} cannot be consumed as retained evidence for {}; it belongs to a different layer identity.",
-                source_layer.human_name(),
-                target_layer.human_name()
-            ),
-        ))
-    }
-
     pub fn attempt_surface_support_smuggling(
         &self,
         layer: BasketLayerIndex,
@@ -74,64 +26,6 @@ impl GrazingBasketStackReceipt {
             format!(
                 "{} rejected {family} surface support; unsupported non-plane support must stay localized to that layer.",
                 layer.human_name()
-            ),
-        ))
-    }
-
-    pub fn attempt_cross_layer_surface_support_smuggling(
-        &self,
-        source_layer: BasketLayerIndex,
-        target_layer: BasketLayerIndex,
-    ) -> Result<(), GrazingBasketStackDenial> {
-        let source = self.require_layer(source_layer)?;
-        let target = self.require_layer(target_layer)?;
-        if source_layer == target_layer {
-            return Ok(());
-        }
-        let extra_evidence = joined_evidence(&[
-            source.local_frame_identity(),
-            target.radial_adjacency_identity(),
-        ]);
-        Err(self.denial_with_extra_evidence(
-            GrazingBasketStackDenialKind::SurfaceSupportSmuggling,
-            Some(source_layer),
-            Some(target_layer),
-            None,
-            self.counters().for_attack(2, 2),
-            &extra_evidence,
-            format!(
-                "Surface support receipt from {} cannot certify {}; the local frame and radial adjacency belong to different layers.",
-                source_layer.human_name(),
-                target_layer.human_name()
-            ),
-        ))
-    }
-
-    pub fn attempt_cross_layer_parity_lane_smuggling(
-        &self,
-        source_layer: BasketLayerIndex,
-        target_layer: BasketLayerIndex,
-    ) -> Result<(), GrazingBasketStackDenial> {
-        let source = self.require_layer(source_layer)?;
-        let target = self.require_layer(target_layer)?;
-        if source_layer == target_layer {
-            return Ok(());
-        }
-        let extra_evidence = joined_evidence(&[
-            source.projection_identity(),
-            target.retained_replay_identity(),
-        ]);
-        Err(self.denial_with_extra_evidence(
-            GrazingBasketStackDenialKind::CrossLayerParityLane,
-            Some(source_layer),
-            Some(target_layer),
-            None,
-            self.counters().for_attack(2, 2),
-            &extra_evidence,
-            format!(
-                "Parity lane from {} cannot be consumed by {}; projection and retained checkpoint evidence are bound to different layer identities.",
-                source_layer.human_name(),
-                target_layer.human_name()
             ),
         ))
     }
@@ -160,14 +54,41 @@ impl GrazingBasketStackReceipt {
         &self,
         layer: BasketLayerIndex,
     ) -> Result<(), GrazingBasketStackDenial> {
-        let receipt = self.require_layer(layer)?;
+        let evidence = GrazingBasketLayerAuthorityEvidence::open_boundary_from_layer(
+            self.require_layer(layer)?,
+        );
+        self.attempt_false_closure_evidence(&evidence, layer)
+    }
+
+    pub fn attempt_false_closure_evidence(
+        &self,
+        evidence: &GrazingBasketLayerAuthorityEvidence,
+        layer: BasketLayerIndex,
+    ) -> Result<(), GrazingBasketStackDenial> {
+        self.require_layer_evidence_kind(evidence, GrazingBasketLayerEvidenceKind::OpenBoundary)?;
+        self.require_layer(layer)?;
+        if evidence.layer() != layer {
+            return Err(self.denial_with_extra_evidence(
+                GrazingBasketStackDenialKind::FalseClosure,
+                Some(evidence.layer()),
+                Some(layer),
+                None,
+                self.counters().for_attack(2, 2),
+                evidence.evidence_identity(),
+                format!(
+                    "Open boundary evidence from {} cannot close {}; each layer owns its own open boundary.",
+                    evidence.layer().human_name(),
+                    layer.human_name()
+                ),
+            ));
+        }
         Err(self.denial_with_extra_evidence(
             GrazingBasketStackDenialKind::FalseClosure,
             Some(layer),
             Some(layer),
             None,
             self.counters().for_attack(1, 1),
-            receipt.open_boundary().boundary_identity(),
+            evidence.evidence_identity(),
             format!(
                 "{} cannot gain closed-shell or bounded-solid posture from grazing neighbors; its open boundary remains open.",
                 layer.human_name()
@@ -189,6 +110,27 @@ impl GrazingBasketStackReceipt {
             format!(
                 "{} denied label-only movement before overlap extraction or readiness admission.",
                 layer.human_name()
+            ),
+        ))
+    }
+
+    pub fn attempt_label_only_motion_evidence(
+        &self,
+        layer: BasketLayerIndex,
+        evidence: &GrazingBasketDeniedMotionEvidence,
+    ) -> Result<(), GrazingBasketStackDenial> {
+        self.require_layer(layer)?;
+        Err(self.denial_with_extra_evidence(
+            GrazingBasketStackDenialKind::LabelOnlyMotion,
+            Some(layer),
+            Some(layer),
+            None,
+            self.counters().for_attack(1, 1),
+            &format!("{:?}", evidence.reason_code()),
+            format!(
+                "{} denied label-only movement before overlap extraction or readiness admission. {}",
+                layer.human_name(),
+                evidence.human_reason()
             ),
         ))
     }
@@ -289,17 +231,53 @@ impl GrazingBasketStackReceipt {
         ))
     }
 
+    pub fn attempt_near_graze_predicate_pressure_evidence(
+        &self,
+        layer: BasketLayerIndex,
+        boundary: BasketBoundaryScope,
+        evidence: &GrazingBasketPredicateUncertaintyEvidence,
+    ) -> Result<(), GrazingBasketStackDenial> {
+        self.require_layer(layer)?;
+        let boundary_index = boundary.boundary_index();
+        Err(self.denial_with_extra_evidence(
+            GrazingBasketStackDenialKind::PredicateUncertain,
+            Some(layer),
+            Some(layer),
+            Some(boundary),
+            self.counters().for_attack(1, 1),
+            evidence.evidence_identity(),
+            format!(
+                "Near-graze predicate pressure localized to {}, boundary {}, local frame, and precision tier. {}.",
+                layer.human_name(),
+                boundary_index,
+                evidence.human_reason()
+            ),
+        ))
+    }
+
     pub fn attempt_whole_stack_broadening(
         &self,
         layer: BasketLayerIndex,
     ) -> Result<(), GrazingBasketStackDenial> {
+        let evidence =
+            GrazingBasketLayerAuthorityEvidence::projection_from_layer(self.require_layer(layer)?);
+        self.attempt_whole_stack_broadening_evidence(&evidence, layer)
+    }
+
+    pub fn attempt_whole_stack_broadening_evidence(
+        &self,
+        evidence: &GrazingBasketLayerAuthorityEvidence,
+        layer: BasketLayerIndex,
+    ) -> Result<(), GrazingBasketStackDenial> {
+        self.require_layer_evidence_kind(evidence, GrazingBasketLayerEvidenceKind::Projection)?;
         self.require_layer(layer)?;
-        Err(self.denial(
+        Err(self.denial_with_extra_evidence(
             GrazingBasketStackDenialKind::WholeStackBroadening,
-            Some(layer),
+            Some(evidence.layer()),
             Some(layer),
             None,
             self.counters().for_attack(1, 1),
+            evidence.evidence_identity(),
             format!(
                 "{} touched one layer; projection, replay, and diagnostics may not relabel the whole stack.",
                 layer.human_name()
@@ -307,7 +285,7 @@ impl GrazingBasketStackReceipt {
         ))
     }
 
-    fn denial(
+    pub(super) fn denial(
         &self,
         kind: GrazingBasketStackDenialKind,
         source_layer: Option<BasketLayerIndex>,
@@ -338,7 +316,7 @@ impl GrazingBasketStackReceipt {
         )
     }
 
-    fn denial_with_extra_evidence(
+    pub(super) fn denial_with_extra_evidence(
         &self,
         kind: GrazingBasketStackDenialKind,
         source_layer: Option<BasketLayerIndex>,
@@ -372,9 +350,31 @@ impl GrazingBasketStackReceipt {
             denial.human_reason().to_string(),
         )
     }
+
+    pub(super) fn require_layer_evidence_kind(
+        &self,
+        evidence: &GrazingBasketLayerAuthorityEvidence,
+        required: GrazingBasketLayerEvidenceKind,
+    ) -> Result<(), GrazingBasketStackDenial> {
+        self.require_layer(evidence.layer())?;
+        if evidence.kind() == required {
+            return Ok(());
+        }
+        Err(self.denial(
+            GrazingBasketStackDenialKind::MissingLayerEvidence,
+            Some(evidence.layer()),
+            Some(evidence.layer()),
+            None,
+            self.counters().for_attack(1, 1),
+            format!(
+                "{} provided the wrong authority evidence kind for this basket stack operation.",
+                evidence.layer().human_name()
+            ),
+        ))
+    }
 }
 
-fn joined_evidence(parts: &[&str]) -> String {
+pub(super) fn joined_evidence(parts: &[&str]) -> String {
     truth_digest_parts(
         TruthDigestScope::ArtifactIdentity,
         &parts

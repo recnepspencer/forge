@@ -202,6 +202,18 @@ impl GrazingBasketStackOutcomeMatrix {
             GrazingBasketStackOutcomeRow::from_denial(
                 receipt,
                 &receipt
+                    .attempt_false_closure(fourth)
+                    .expect_err("false closure denial"),
+            ),
+            GrazingBasketStackOutcomeRow::from_denial(
+                receipt,
+                &receipt
+                    .attempt_whole_stack_broadening(second)
+                    .expect_err("whole-stack broadening denial"),
+            ),
+            GrazingBasketStackOutcomeRow::from_denial(
+                receipt,
+                &receipt
                     .attempt_missing_boundary_evidence(first)
                     .expect_err("missing boundary denial"),
             ),

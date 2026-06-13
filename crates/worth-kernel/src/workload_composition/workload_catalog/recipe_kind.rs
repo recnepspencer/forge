@@ -90,6 +90,7 @@ impl WorkloadCatalogRecipeKind {
         matches!(
             self,
             Self::OpenWire
+                | Self::MixedSurfaceKillBox
                 | Self::OpenSheet
                 | Self::OpenShellNmtEdgeFan
                 | Self::OpenLayerStack

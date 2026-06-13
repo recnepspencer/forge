@@ -52,6 +52,9 @@ impl WorkloadCatalog {
 
     pub fn mixed_surface_kill_box() -> WorkloadCatalogRecipe {
         WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::MixedSurfaceKillBox)
+            .with_topology_construction_plan(WorkloadCatalogTopologyConstructionPlan::OpenSheet(
+                OpenSheetPatchSpec::new(),
+            ))
     }
 
     pub fn open_wire() -> WorkloadCatalogRecipe {

@@ -2,12 +2,14 @@ use super::denial::MixedSurfaceKillBoxDenial;
 use super::family_run::MixedSurfaceFamilyRun;
 use super::receipt::MixedSurfaceKillBoxReceipt;
 use crate::workload_platform::geometry_binding::BoundGeometryWorkload;
+use crate::workload_platform::nmt_certification_context::NmtCertifiedScopeContext;
 use crate::workload_platform::surface_support::{SurfaceFamily, SurfaceSupportWorkload};
 
 pub struct MixedSurfaceKillBoxWorkload {
     bound_geometry: BoundGeometryWorkload,
     declaration: String,
     families: Vec<SurfaceFamily>,
+    certified_scope: Option<NmtCertifiedScopeContext>,
 }
 
 impl MixedSurfaceKillBoxWorkload {
@@ -16,6 +18,19 @@ impl MixedSurfaceKillBoxWorkload {
             bound_geometry,
             declaration: "mixed surface kill box workload".to_string(),
             families: SurfaceFamily::ALL.to_vec(),
+            certified_scope: None,
+        }
+    }
+
+    pub fn for_certified_scope(
+        scope: &NmtCertifiedScopeContext,
+        bound_geometry: BoundGeometryWorkload,
+    ) -> Self {
+        Self {
+            bound_geometry,
+            declaration: "mixed surface kill box workload".to_string(),
+            families: SurfaceFamily::ALL.to_vec(),
+            certified_scope: Some(scope.clone()),
         }
     }
 
@@ -47,6 +62,15 @@ impl MixedSurfaceKillBoxWorkload {
         Ok(MixedSurfaceKillBoxReceipt::new(
             self.declaration,
             stable_geometry_binding_identity,
+            self.certified_scope
+                .as_ref()
+                .map(|scope| scope.topology_scope().scope_identity().to_string()),
+            self.certified_scope.as_ref().map(|scope| {
+                scope
+                    .surface_support()
+                    .scope_surface_support_identity()
+                    .to_string()
+            }),
             runs,
         ))
     }

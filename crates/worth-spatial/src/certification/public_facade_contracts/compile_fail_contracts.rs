@@ -198,6 +198,18 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/workload_certification_context/raw_motion_adversary_string_not_accepted.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/nmt_certification_context/context_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/nmt_certification_context/projection_receipt_not_from_raw_coordinates.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/nmt_certification_context/retained_receipt_not_from_aggregate_replay.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/nmt_certification_context/boss_closeout_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/transform_workload/transformed_workload_not_forgeable.rs"
     ));
     t.compile_fail(format!(

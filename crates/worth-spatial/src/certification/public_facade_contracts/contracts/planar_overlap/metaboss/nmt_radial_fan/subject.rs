@@ -1,13 +1,19 @@
-use topology::facade::NmtTopologyPosture;
+use forge_query::facade::ForgeQueryApplicationFacade;
+use topology::facade::{NmtTopologyPosture, NmtTopologyScopeKind, NmtTopologyScopeSet};
 use worth_kernel::workload_composition::{BuiltWorkloadCatalogRecipe, WorkloadCatalog};
 use worth_spatial::facade::dirty_planar_clean_fail::DirtyPlanarCleanFailCase;
+use worth_spatial::facade::nmt_certification_context::{
+    NmtBossOutcomeMatrixEvidence, NmtCertificationDenialKind, NmtCertifiedScopeSet,
+};
 use worth_spatial::facade::nmt_radial_fan::{
     NmtRadialFanDenial, NmtRadialFanOutcomeKind, NmtRadialFanOutcomeMatrix, NmtRadialFanOutcomeRow,
     NmtRadialFanReceipt, NmtRadialFanWorkload,
 };
 use worth_spatial::facade::planar_predicates::{
     planar_predicate_authority_entry, planar_predicate_authority_facts,
-    PlanarPredicateAuthorityCase, PlanarPredicateCoincidencePolicy,
+    PlanarPredicateAuthorityCase, PlanarPredicateAuthorityQueryDomain,
+    PlanarPredicateAuthorityQueryWorld, PlanarPredicateCoincidencePolicy,
+    PlanarPredicateInputBasis,
 };
 use worth_spatial::facade::surface_support::{
     SurfaceFamily, SurfaceSupportWorkload, UnsupportedSurfaceSupportReasonCode,
@@ -23,12 +29,17 @@ use worth_spatial::facade::workload_vocabulary::{
 };
 
 use super::super::dirty_planar_clean_fail::subject::dirty_clean_fail_with_topology_seed;
-use crate::public_api_planar_predicate::proof_fixture::{admitted_handle, orient_basis};
 
 pub(crate) struct NmtRadialFanSubject {
     pub catalog: BuiltWorkloadCatalogRecipe,
+    pub certified_scopes: NmtCertifiedScopeSet,
     pub receipt: NmtRadialFanReceipt,
     pub user_outcome: WorthUserOutcome,
+}
+
+pub(crate) struct NmtRadialFanCloseoutEvidence {
+    pub certified_scopes: NmtCertifiedScopeSet,
+    pub matrix: NmtBossOutcomeMatrixEvidence,
 }
 
 pub(crate) fn radial_fan_subject(stem: &str, incident_faces: usize) -> NmtRadialFanSubject {
@@ -44,24 +55,42 @@ pub(crate) fn radial_fan_subject(stem: &str, incident_faces: usize) -> NmtRadial
         NmtTopologyPosture::OpenNonManifold
     );
 
-    let receipt = NmtRadialFanWorkload::from_platform_evidence(
+    let certified_scopes = certified_scope_set(&catalog);
+    let fan_scope = certified_scopes
+        .single_scope(NmtTopologyScopeKind::OpenRadialFan)
+        .expect("open radial fan catalog must expose exactly one fan scope");
+    let receipt = NmtRadialFanWorkload::from_certified_scope(fan_scope)
+        .certify()
+        .expect("open radial fan workload must certify from certified scope context");
+    let user_outcome = respond(WorthUserResponseSource::from_nmt_radial_fan(&receipt), stem);
+
+    NmtRadialFanSubject {
+        catalog,
+        certified_scopes,
+        receipt,
+        user_outcome,
+    }
+}
+
+fn certified_scope_set(catalog: &BuiltWorkloadCatalogRecipe) -> NmtCertifiedScopeSet {
+    let topology = catalog
+        .topology_construction()
+        .expect("open radial fan catalog must expose topology construction receipt");
+    let scopes =
+        NmtTopologyScopeSet::from_construction(topology).expect("NMT fan scopes must compile");
+    NmtCertifiedScopeSet::from_platform_evidence(
         topology,
         catalog.workload().evidence_ledger(),
+        catalog.bound_geometry(),
         catalog.projected_workload(),
         catalog.transform_receipts(),
         catalog
             .replay_receipts()
             .expect("open radial fan catalog must expose retained replay receipts"),
+        scopes,
     )
-    .certify()
-    .expect("open radial fan workload must certify from real catalog receipts");
-    let user_outcome = respond(WorthUserResponseSource::from_nmt_radial_fan(&receipt), stem);
-
-    NmtRadialFanSubject {
-        catalog,
-        receipt,
-        user_outcome,
-    }
+    .compile()
+    .expect("open radial fan certified scopes must compile")
 }
 
 pub(crate) fn radial_fan_outcome_matrix(stem: &str) -> NmtRadialFanOutcomeMatrix {
@@ -86,6 +115,33 @@ pub(crate) fn radial_fan_outcome_matrix(stem: &str) -> NmtRadialFanOutcomeMatrix
         NmtRadialFanOutcomeRow::from_denial(&NmtRadialFanDenial::MissingOpenBoundaryEvidence),
     ];
     NmtRadialFanOutcomeMatrix::from_rows(rows).expect("complete NMT fan matrix")
+}
+
+pub(crate) fn radial_fan_closeout_evidence(stem: &str) -> NmtRadialFanCloseoutEvidence {
+    let subject = radial_fan_subject(stem, 4);
+    let unsupported = unsupported_non_plane_surface_denial(stem).0;
+    let (_, label_only) = label_only_motion_denial();
+    let outcomes = vec![
+        subject.user_outcome.clone(),
+        respond(
+            WorthUserResponseSource::from_nmt_radial_fan_denial(
+                &NmtRadialFanDenial::closed_manifold_laundering_attempt(
+                    subject.receipt.retained_replay_identity(),
+                ),
+            ),
+            "mb-m6-nmt-1-closeout-integrity",
+        ),
+        label_only,
+        respond(
+            WorthUserResponseSource::from_nmt_radial_fan_denial(&unsupported),
+            "mb-m6-nmt-1-closeout-unsupported",
+        ),
+        missing_radial_evidence_outcome(),
+    ];
+    NmtRadialFanCloseoutEvidence {
+        certified_scopes: subject.certified_scopes,
+        matrix: NmtBossOutcomeMatrixEvidence::from_outcomes(outcomes),
+    }
 }
 
 pub(crate) fn unsupported_non_plane_surface_denial(
@@ -243,13 +299,23 @@ pub(crate) fn label_only_motion_denial() -> (UnsupportedTransformReasonCode, Wor
             ))
             .transform()
             .expect_err("label-only transform must deny before NMT fan certification");
-    let denial = NmtRadialFanWorkload::denied_transform_from_platform_evidence(
-        fan.catalog.topology_construction().expect("fan topology"),
-        fan.catalog.workload().evidence_ledger(),
-        fan.catalog.projected_workload(),
-        &transform_error,
-    )
-    .expect("label-only transform denial must pass through NMT fan authority");
+    let certified = certified_scope_set(&fan.catalog);
+    let scope = certified
+        .single_scope(NmtTopologyScopeKind::OpenRadialFan)
+        .expect("label-only fan scope");
+    let scope_denial = certified
+        .attempt_label_only_motion(scope, &transform_error)
+        .expect_err("label-only motion must deny through certified NMT scope authority");
+    assert_eq!(
+        scope_denial.kind(),
+        &NmtCertificationDenialKind::LabelOnlyMotion
+    );
+    assert_eq!(
+        scope_denial.target_scope_identity(),
+        Some(scope.topology_scope().scope_identity())
+    );
+    assert!(!scope_denial.consumed_evidence_digest().is_empty());
+    let denial = NmtRadialFanDenial::LabelOnlyMotion;
     let outcome = respond(
         WorthUserResponseSource::from_nmt_radial_fan_denial(&denial),
         "mb-m6-nmt-1-label-only-response",
@@ -284,9 +350,32 @@ fn dirty_topology_boundary_outcome(_stem: &str) -> WorthUserOutcome {
 }
 
 fn predicate_uncertain_authority_outcome(_stem: &str) -> WorthUserOutcome {
-    let handle = admitted_handle("mb-m6-nmt-1-predicate-authority");
-    let basis = orient_basis(
-        "movement:nmt-radial-fan-predicate-pressure",
+    let catalog = WorkloadCatalog::open_shell_nmt_edge_fan(4)
+        .declared("mb-m6-nmt-1 predicate fan scope")
+        .build()
+        .expect("predicate fan catalog");
+    let certified = certified_scope_set(&catalog);
+    let scope = certified
+        .single_scope(NmtTopologyScopeKind::OpenRadialFan)
+        .expect("predicate fan scope");
+    let boundary = scope.boundary_identity();
+    let scope_basis = scope
+        .predicate_basis_for_boundary(&boundary)
+        .expect("scope predicate basis");
+    let handle = ForgeQueryApplicationFacade::runtime_backed_default()
+        .domain(PlanarPredicateAuthorityQueryDomain)
+        .with_operating_context(PlanarPredicateAuthorityQueryWorld::new(
+            "mb-m6-nmt-1-predicate-authority",
+        ))
+        .validate()
+        .expect("validated NMT predicate authority handle")
+        .admit()
+        .expect("admitted NMT predicate authority handle");
+    let basis = PlanarPredicateInputBasis::from_projected_orient2d_points(
+        scope_basis.local_frame_identity(),
+        scope_basis.boundary_identity(),
+        scope_basis.motion_identity(),
+        scope_basis.precision_policy_identity(),
         [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]],
     )
     .with_coincidence_policy(PlanarPredicateCoincidencePolicy::DenyCertifiedZeroBeforeRepair);

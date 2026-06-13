@@ -1,9 +1,13 @@
 use std::collections::BTreeSet;
 
+use topology::facade::{NmtTopologyScopeKind, NmtTopologyScopeSet};
 use worth_kernel::workload_composition::{BuiltWorkloadCatalogRecipe, WorkloadCatalog};
 use worth_spatial::facade::mixed_surface_kill_box::{
     MixedSurfaceFamilyRun, MixedSurfaceKillBoxDenial, MixedSurfaceKillBoxOutcomeMatrix,
     MixedSurfaceKillBoxReceipt, MixedSurfaceKillBoxWorkload,
+};
+use worth_spatial::facade::nmt_certification_context::{
+    NmtBossOutcomeMatrixEvidence, NmtCertifiedScopeSet,
 };
 use worth_spatial::facade::surface_support::{SurfaceFamily, UnsupportedSurfaceSupportReasonCode};
 use worth_spatial::facade::user_response::{
@@ -12,8 +16,14 @@ use worth_spatial::facade::user_response::{
 
 pub(crate) struct MixedSurfaceKillBoxSubject {
     pub catalog: BuiltWorkloadCatalogRecipe,
+    pub certified_scopes: NmtCertifiedScopeSet,
     pub receipt: MixedSurfaceKillBoxReceipt,
     pub outcome_matrix: MixedSurfaceKillBoxOutcomeMatrix,
+}
+
+pub(crate) struct MixedSurfaceKillBoxCloseoutEvidence {
+    pub certified_scopes: NmtCertifiedScopeSet,
+    pub matrix: NmtBossOutcomeMatrixEvidence,
 }
 
 pub(crate) fn mixed_surface_kill_box_subject(stem: &str) -> MixedSurfaceKillBoxSubject {
@@ -21,19 +31,50 @@ pub(crate) fn mixed_surface_kill_box_subject(stem: &str) -> MixedSurfaceKillBoxS
         .declared(format!("{stem} stable topology carrier"))
         .build()
         .expect("stable topology carrier must build through catalog");
-    let receipt = MixedSurfaceKillBoxWorkload::for_bound_geometry(catalog.bound_geometry().clone())
-        .declared(format!("{stem} mixed surface kill box"))
-        .with_surface_family_matrix(SurfaceFamily::ALL)
-        .certify()
-        .expect("mixed surface kill box must certify complete family matrix");
+    let certified = certified_scope_set(&catalog);
+    let scope = certified
+        .single_scope(NmtTopologyScopeKind::OpenSheet)
+        .expect("mixed surface kill box must expose one open sheet scope");
+    let receipt =
+        MixedSurfaceKillBoxWorkload::for_certified_scope(scope, catalog.bound_geometry().clone())
+            .declared(format!("{stem} mixed surface kill box"))
+            .with_surface_family_matrix(SurfaceFamily::ALL)
+            .certify()
+            .expect("mixed surface kill box must certify complete family matrix");
+    assert_eq!(
+        receipt.certified_scope_identity(),
+        Some(scope.topology_scope().scope_identity())
+    );
     let outcome_matrix =
         MixedSurfaceKillBoxOutcomeMatrix::from_receipt(&receipt).expect("outcome matrix");
 
     MixedSurfaceKillBoxSubject {
         catalog,
+        certified_scopes: certified,
         receipt,
         outcome_matrix,
     }
+}
+
+fn certified_scope_set(catalog: &BuiltWorkloadCatalogRecipe) -> NmtCertifiedScopeSet {
+    let topology = catalog
+        .topology_construction()
+        .expect("mixed surface catalog must expose topology construction");
+    let scopes = NmtTopologyScopeSet::from_construction(topology)
+        .expect("mixed surface NMT scopes must compile");
+    NmtCertifiedScopeSet::from_platform_evidence(
+        topology,
+        catalog.workload().evidence_ledger(),
+        catalog.bound_geometry(),
+        catalog.projected_workload(),
+        catalog.transform_receipts(),
+        catalog
+            .replay_receipts()
+            .expect("mixed surface catalog must expose retained replay receipts"),
+        scopes,
+    )
+    .compile()
+    .expect("mixed surface certified scopes must compile")
 }
 
 pub(crate) fn mixed_surface_kill_box_denial_for_family_matrix(
@@ -44,8 +85,12 @@ pub(crate) fn mixed_surface_kill_box_denial_for_family_matrix(
         .declared(format!("{stem} stable topology carrier"))
         .build()
         .expect("stable topology carrier must build through catalog");
+    let certified = certified_scope_set(&catalog);
+    let scope = certified
+        .single_scope(NmtTopologyScopeKind::OpenSheet)
+        .expect("mixed surface invalid-matrix scope");
 
-    MixedSurfaceKillBoxWorkload::for_bound_geometry(catalog.bound_geometry().clone())
+    MixedSurfaceKillBoxWorkload::for_certified_scope(scope, catalog.bound_geometry().clone())
         .declared(format!("{stem} mixed surface kill box"))
         .with_surface_family_matrix(families)
         .certify()
@@ -113,6 +158,26 @@ pub(crate) fn kernel_summary_substitution_outcome() -> WorthUserOutcome {
 
 pub(crate) fn missing_surface_support_outcome(family: SurfaceFamily) -> WorthUserOutcome {
     response_from_denial(MixedSurfaceKillBoxDenial::MissingSurfaceSupportEvidence { family })
+}
+
+pub(crate) fn mixed_surface_closeout_evidence(stem: &str) -> MixedSurfaceKillBoxCloseoutEvidence {
+    let subject = mixed_surface_kill_box_subject(stem);
+    let plane = subject.receipt.plane_control().expect("plane support run");
+    let unsupported = subject
+        .receipt
+        .run_for_family(SurfaceFamily::Freeform)
+        .expect("freeform unsupported run");
+    let outcomes = vec![
+        plane.user_outcome().clone(),
+        unsupported.user_outcome().clone(),
+        response_from_denial(wrong_family_response_denial(&subject.receipt)),
+        response_from_denial(generated_feature_smuggling_denial(&subject.receipt)),
+        missing_surface_support_outcome(SurfaceFamily::Freeform),
+    ];
+    MixedSurfaceKillBoxCloseoutEvidence {
+        certified_scopes: subject.certified_scopes,
+        matrix: NmtBossOutcomeMatrixEvidence::from_outcomes(outcomes),
+    }
 }
 
 pub(crate) fn assert_family_is_unsupported(run: &MixedSurfaceFamilyRun) {

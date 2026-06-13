@@ -1966,7 +1966,7 @@ extraction, or acceptable M7 input.
 
 Phase 25 implements `MB-M6-NMT-3: Open-Class Topology Triad Parity Kill
 Switch` as a real end-to-end production-grade test. The suite composes
-`open_wire`, `open_sheet`, and `open_shell_nmt_edge_fan(k)` across the full
+`open_wire`, `open_sheet`, and `open_shell_nmt_edge_fan(128)` across the full
 platform and compares nine parity lanes for each class so no lane can upgrade,
 normalize, or substitute a different open topology class.
 

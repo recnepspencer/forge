@@ -558,7 +558,7 @@ retained recipes:
 
 - `open_wire`
 - `open_sheet`
-- `open_shell_nmt_edge_fan(k)` for `k ∈ {3, 4}`
+- `open_shell_nmt_edge_fan(128)` as the hostile open-fan scale
 
 For each topology class, run the full platform stack and M6.7-style parity
 comparison across nine lanes:

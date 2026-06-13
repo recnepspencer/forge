@@ -45,9 +45,11 @@ fn cause_kind(denial: &MixedSurfaceKillBoxDenial) -> WorthUserOutcomeCauseKind {
         | MixedSurfaceKillBoxDenial::WrongFamilyUserResponse { .. } => {
             WorthUserOutcomeCauseKind::IntegrityMismatch
         }
-        MixedSurfaceKillBoxDenial::UnsupportedFamilyReadinessAttempt { .. }
-        | MixedSurfaceKillBoxDenial::GeneratedFeatureSmugglingAttempt => {
+        MixedSurfaceKillBoxDenial::UnsupportedFamilyReadinessAttempt { .. } => {
             WorthUserOutcomeCauseKind::UnsupportedInput
+        }
+        MixedSurfaceKillBoxDenial::GeneratedFeatureSmugglingAttempt => {
+            WorthUserOutcomeCauseKind::OverlapDenied
         }
         _ => WorthUserOutcomeCauseKind::MissingEvidence,
     }

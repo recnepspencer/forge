@@ -122,51 +122,15 @@ impl GrazingBasketLayerReceipt {
                 format!("pressure:{:?}", input.transform_pressure),
             ],
         );
-        let topology_posture_identity = layer_scoped_identity(
-            "grazing-basket-layer-topology-posture",
-            input.stack_identity,
-            input.layer,
-            input.topology_identity,
-        );
-        let projection_identity = layer_scoped_identity(
-            "grazing-basket-layer-projection",
-            input.stack_identity,
-            input.layer,
-            input.projection_identity,
-        );
-        let retained_replay_identity = layer_scoped_identity(
-            "grazing-basket-layer-retained-replay",
-            input.stack_identity,
-            input.layer,
-            input.retained_replay_identity,
-        );
-        let transform_posture_identity = layer_scoped_identity(
-            "grazing-basket-layer-transform-posture",
-            input.stack_identity,
-            input.layer,
-            input.transform_posture_identity,
-        );
-        let local_frame_identity = layer_scoped_identity(
-            "grazing-basket-layer-local-frame",
-            input.stack_identity,
-            input.layer,
-            input.projection_identity,
-        );
-        let radial_adjacency_identity = layer_scoped_identity(
-            "grazing-basket-layer-radial-adjacency",
-            input.stack_identity,
-            input.layer,
-            input.radial_adjacency_identity,
-        );
         Self {
             layer: input.layer,
             layer_identity,
-            topology_posture_identity,
-            projection_identity,
-            retained_replay_identity,
-            transform_posture_identity,
-            local_frame_identity,
-            radial_adjacency_identity,
+            topology_posture_identity: input.topology_identity.to_string(),
+            projection_identity: input.projection_identity.to_string(),
+            retained_replay_identity: input.retained_replay_identity.to_string(),
+            transform_posture_identity: input.transform_posture_identity.to_string(),
+            local_frame_identity: input.local_frame_identity.to_string(),
+            radial_adjacency_identity: input.radial_adjacency_identity.to_string(),
             open_boundary: input.open_boundary,
             offset_class: input.offset_class,
             transform_pressure: input.transform_pressure,
@@ -218,23 +182,6 @@ impl GrazingBasketLayerReceipt {
     }
 }
 
-fn layer_scoped_identity(
-    kind: &str,
-    stack_identity: &str,
-    layer: BasketLayerIndex,
-    source_identity: &str,
-) -> String {
-    truth_digest_parts(
-        TruthDigestScope::ArtifactIdentity,
-        &[
-            kind.to_string(),
-            stack_identity.to_string(),
-            format!("layer:{}", layer.get()),
-            source_identity.to_string(),
-        ],
-    )
-}
-
 pub(crate) struct GrazingBasketLayerReceiptInput<'a> {
     pub layer: BasketLayerIndex,
     pub stack_identity: &'a str,
@@ -242,6 +189,7 @@ pub(crate) struct GrazingBasketLayerReceiptInput<'a> {
     pub projection_identity: &'a str,
     pub retained_replay_identity: &'a str,
     pub transform_posture_identity: &'a str,
+    pub local_frame_identity: &'a str,
     pub radial_adjacency_identity: &'a str,
     pub open_boundary: BasketBoundaryScope,
     pub offset_class: GrazingOffsetClass,

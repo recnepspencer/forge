@@ -66,6 +66,8 @@ impl MixedSurfaceKillBoxCounters {
 pub struct MixedSurfaceKillBoxReceipt {
     declaration: String,
     stable_geometry_binding_identity: String,
+    certified_scope_identity: Option<String>,
+    scope_surface_support_identity: Option<String>,
     kill_box_digest: String,
     runs: Vec<MixedSurfaceFamilyRun>,
     counters: MixedSurfaceKillBoxCounters,
@@ -75,6 +77,8 @@ impl MixedSurfaceKillBoxReceipt {
     pub(crate) fn new(
         declaration: String,
         stable_geometry_binding_identity: String,
+        certified_scope_identity: Option<String>,
+        scope_surface_support_identity: Option<String>,
         runs: Vec<MixedSurfaceFamilyRun>,
     ) -> Self {
         let counters = MixedSurfaceKillBoxCounters::from_runs(&runs);
@@ -82,6 +86,8 @@ impl MixedSurfaceKillBoxReceipt {
             "mixed-surface-kill-box".to_string(),
             declaration.clone(),
             stable_geometry_binding_identity.clone(),
+            format!("scope:{certified_scope_identity:?}"),
+            format!("scope_surface:{scope_surface_support_identity:?}"),
         ];
         parts.extend(runs.iter().map(|run| {
             format!(
@@ -95,6 +101,8 @@ impl MixedSurfaceKillBoxReceipt {
         Self {
             declaration,
             stable_geometry_binding_identity,
+            certified_scope_identity,
+            scope_surface_support_identity,
             kill_box_digest,
             runs,
             counters,
@@ -107,6 +115,14 @@ impl MixedSurfaceKillBoxReceipt {
 
     pub fn stable_geometry_binding_identity(&self) -> &str {
         &self.stable_geometry_binding_identity
+    }
+
+    pub fn certified_scope_identity(&self) -> Option<&str> {
+        self.certified_scope_identity.as_deref()
+    }
+
+    pub fn scope_surface_support_identity(&self) -> Option<&str> {
+        self.scope_surface_support_identity.as_deref()
     }
 
     pub fn kill_box_digest(&self) -> &str {

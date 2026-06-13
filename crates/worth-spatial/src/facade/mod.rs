@@ -14,6 +14,7 @@ pub mod high_valence_singularity;
 pub mod inspection;
 pub mod mixed_surface_kill_box;
 pub mod neighborhood;
+pub mod nmt_certification_context;
 pub mod nmt_radial_fan;
 pub mod open_class_triad_parity;
 pub mod open_planar_posture;

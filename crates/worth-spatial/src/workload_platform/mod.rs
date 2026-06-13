@@ -9,6 +9,7 @@ pub(crate) mod grazing_basket_stack;
 pub(crate) mod high_valence_singularity;
 pub(crate) mod inventory;
 pub(crate) mod mixed_surface_kill_box;
+pub(crate) mod nmt_certification_context;
 pub(crate) mod nmt_radial_fan;
 pub(crate) mod open_class_triad_parity;
 pub(crate) mod open_planar_posture;

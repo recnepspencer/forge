@@ -1,4 +1,6 @@
-use topology::facade::{NmtTopologyConstructionReceipt, NmtTopologyPattern, NmtTopologyPosture};
+use topology::facade::{
+    NmtTopologyConstructionReceipt, NmtTopologyPattern, NmtTopologyPosture, NmtTopologyScopeKind,
+};
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::denial::NmtRadialFanDenial;
@@ -8,6 +10,7 @@ use super::receipt::{
 use crate::workload_platform::evidence_ledger::{
     CompleteWorkloadEvidenceLedger, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
+use crate::workload_platform::nmt_certification_context::NmtCertifiedScopeContext;
 use crate::workload_platform::projection_workload::ProjectedPlanarWorkload;
 use crate::workload_platform::retained_replay_workload::ReplayReceiptSet;
 use crate::workload_platform::transform_workload::{
@@ -20,6 +23,10 @@ pub struct NmtRadialFanWorkload<'a> {
     projected_workload: &'a ProjectedPlanarWorkload,
     transform_receipts: &'a TransformReceiptSet,
     replay_receipts: &'a ReplayReceiptSet,
+}
+
+pub struct CertifiedNmtRadialFanWorkload<'a> {
+    scope: &'a NmtCertifiedScopeContext,
 }
 
 impl<'a> NmtRadialFanWorkload<'a> {
@@ -37,6 +44,12 @@ impl<'a> NmtRadialFanWorkload<'a> {
             transform_receipts,
             replay_receipts,
         }
+    }
+
+    pub fn from_certified_scope(
+        scope: &'a NmtCertifiedScopeContext,
+    ) -> CertifiedNmtRadialFanWorkload<'a> {
+        CertifiedNmtRadialFanWorkload { scope }
     }
 
     pub fn certify(self) -> Result<NmtRadialFanReceipt, NmtRadialFanDenial> {
@@ -297,6 +310,77 @@ impl<'a> NmtRadialFanWorkload<'a> {
                     .to_string(),
             ],
         ))
+    }
+}
+
+impl CertifiedNmtRadialFanWorkload<'_> {
+    pub fn certify(self) -> Result<NmtRadialFanReceipt, NmtRadialFanDenial> {
+        let scope = self.scope.topology_scope();
+        if scope.kind() != NmtTopologyScopeKind::OpenRadialFan {
+            return Err(NmtRadialFanDenial::WrongTopologyPattern {
+                pattern_name: scope.kind().human_name().to_string(),
+            });
+        }
+        if scope.topology_posture() != NmtTopologyPosture::OpenNonManifold {
+            return Err(NmtRadialFanDenial::WrongTopologyPosture {
+                posture: format!("{:?}", scope.topology_posture()),
+            });
+        }
+        let counters = NmtRadialFanCounters::from_certified_scope(self.scope);
+        if counters.incident_face_count() < 3 {
+            return Err(NmtRadialFanDenial::InsufficientIncidentFaces {
+                incident_faces: counters.incident_face_count(),
+            });
+        }
+        if counters.open_boundary_half_edge_count() == 0 {
+            return Err(NmtRadialFanDenial::MissingOpenBoundaryEvidence);
+        }
+        if counters.non_manifold_edge_count() == 0 {
+            return Err(NmtRadialFanDenial::MissingRadialAdjacencyEvidence);
+        }
+        Ok(NmtRadialFanReceipt::new(NmtRadialFanReceiptInput {
+            workload_identity: truth_digest_parts(
+                TruthDigestScope::ArtifactIdentity,
+                &[
+                    "nmt-open-radial-fan-certified-scope".to_string(),
+                    scope.scope_identity().to_string(),
+                    self.scope
+                        .projection()
+                        .scope_projection_identity()
+                        .to_string(),
+                    self.scope
+                        .retained_replay()
+                        .scope_replay_identity()
+                        .to_string(),
+                ],
+            ),
+            topology_construction_identity: scope.parent_construction_identity().to_string(),
+            topology_posture: format!("{:?}", scope.topology_posture()),
+            projected_workload_identity: self
+                .scope
+                .projection()
+                .scope_projection_identity()
+                .to_string(),
+            open_boundary_digest: scope.open_boundary_identity().to_string(),
+            radial_adjacency_digest: scope.radial_adjacency_identity().to_string(),
+            transform_posture_identity: self.scope.motion().scope_motion_identity().to_string(),
+            retained_replay_identity: self
+                .scope
+                .retained_replay()
+                .scope_replay_identity()
+                .to_string(),
+            retained_artifact_identity: self
+                .scope
+                .retained_replay()
+                .checkpoint_identity()
+                .to_string(),
+            transformed_workload_identity: self
+                .scope
+                .motion()
+                .parent_transform_identity()
+                .to_string(),
+            counters,
+        }))
     }
 }
 

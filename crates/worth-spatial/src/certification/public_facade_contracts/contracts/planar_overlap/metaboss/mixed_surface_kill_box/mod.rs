@@ -3,13 +3,14 @@ pub(crate) mod subject;
 use subject::{
     assert_family_is_unsupported, generated_feature_smuggling_denial,
     kernel_summary_substitution_outcome, missing_surface_support_outcome,
-    mixed_surface_kill_box_denial_for_family_matrix, mixed_surface_kill_box_subject,
-    plane_receipt_smuggling_denials, unsupported_digest_set, unsupported_reason_set,
-    unsupported_runs, wrong_family_response_denial,
+    mixed_surface_closeout_evidence, mixed_surface_kill_box_denial_for_family_matrix,
+    mixed_surface_kill_box_subject, plane_receipt_smuggling_denials, unsupported_digest_set,
+    unsupported_reason_set, unsupported_runs, wrong_family_response_denial,
 };
 use worth_spatial::facade::mixed_surface_kill_box::{
     MixedSurfaceKillBoxDenial, MixedSurfaceKillBoxOutcomeKind,
 };
+use worth_spatial::facade::nmt_certification_context::{NmtBossCloseoutReceipt, NmtBossId};
 use worth_spatial::facade::surface_support::SurfaceFamily;
 use worth_spatial::facade::user_response::{
     WorthUserOutcome, WorthUserOutcomeCauseKind, WorthUserOutcomeKind,
@@ -214,6 +215,16 @@ fn mb_m6_nmt_2_outcome_matrix_branches_every_stop() {
         assert!(!row.evidence_identity().is_empty());
         assert_human_readable(row.human_reason());
     }
+
+    let closeout = mixed_surface_closeout_evidence("mb-m6-nmt-2-closeout");
+    let receipt = NmtBossCloseoutReceipt::from_certified_scope_set(
+        NmtBossId::MixedSurfaceKillBox,
+        &closeout.certified_scopes,
+        &closeout.matrix,
+    )
+    .expect("mixed surface kill box must close out from certified scope evidence");
+    assert_eq!(receipt.boss(), NmtBossId::MixedSurfaceKillBox);
+    assert_eq!(receipt.outcome_count(), 5);
 }
 
 fn assert_branch(

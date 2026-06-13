@@ -4,9 +4,10 @@ use subject::{
     cube_checkpoint_denial, label_only_motion_denial, manual_stage_substitution_errors,
     mismatched_projection_denial, mismatched_replay_denial, mismatched_topology_ledger_denial,
     mismatched_transform_denial, missing_open_boundary_evidence_outcome,
-    missing_radial_evidence_outcome, radial_fan_outcome_matrix, radial_fan_subject,
-    storm_checkpoint_denial, unsupported_non_plane_surface_denial,
+    missing_radial_evidence_outcome, radial_fan_closeout_evidence, radial_fan_outcome_matrix,
+    radial_fan_subject, storm_checkpoint_denial, unsupported_non_plane_surface_denial,
 };
+use worth_spatial::facade::nmt_certification_context::{NmtBossCloseoutReceipt, NmtBossId};
 use worth_spatial::facade::nmt_radial_fan::{NmtRadialFanDenial, NmtRadialFanOutcomeKind};
 use worth_spatial::facade::surface_support::UnsupportedSurfaceSupportReasonCode;
 use worth_spatial::facade::transform_workload::UnsupportedTransformReasonCode;
@@ -193,6 +194,16 @@ fn mb_m6_nmt_1_outcome_matrix_names_each_blocker() {
         assert!(!row.evidence_identity().is_empty());
         assert_human_readable(row.human_reason());
     }
+
+    let closeout = radial_fan_closeout_evidence("mb-m6-nmt-1-closeout");
+    let receipt = NmtBossCloseoutReceipt::from_certified_scope_set(
+        NmtBossId::OpenRadialFan,
+        &closeout.certified_scopes,
+        &closeout.matrix,
+    )
+    .expect("NMT radial fan boss must close out from certified scope evidence");
+    assert_eq!(receipt.boss(), NmtBossId::OpenRadialFan);
+    assert_eq!(receipt.outcome_count(), 5);
 }
 
 fn assert_branch(

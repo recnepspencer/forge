@@ -2,6 +2,7 @@ use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::denial::NmtRadialFanDenial;
 use crate::workload_platform::evidence_ledger::WorkloadEvidenceStageCounters;
+use crate::workload_platform::nmt_certification_context::NmtCertifiedScopeContext;
 use crate::workload_platform::retained_replay_workload::ReplayReceiptSet;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,6 +34,26 @@ impl NmtRadialFanCounters {
             replay_checkpoint_count: input.replay.replay_checkpoint_count(),
             diagnostic_count: input.diagnostics.diagnostic_count(),
             user_outcome_count: input.response.user_outcome_count(),
+        }
+    }
+
+    pub(crate) fn from_certified_scope(scope: &NmtCertifiedScopeContext) -> Self {
+        let topology = scope.topology_scope().counters();
+        let projection = scope.projection().counters();
+        let motion = scope.motion().counters();
+        let replay = scope.retained_replay().counters();
+        Self {
+            incident_face_count: topology.face_count(),
+            open_boundary_half_edge_count: topology.boundary_half_edge_count(),
+            non_manifold_edge_count: topology.non_manifold_edge_count(),
+            topology_face_count: topology.face_count(),
+            projected_entity_count: projection.scope_projected_entities_consumed(),
+            transform_step_count: motion.transform_steps(),
+            changed_coordinate_count: motion.changed_coordinate_rows(),
+            retained_artifact_count: replay.scope_retained_artifact_rows(),
+            replay_checkpoint_count: replay.scope_checkpoints_consumed(),
+            diagnostic_count: 1,
+            user_outcome_count: 1,
         }
     }
 

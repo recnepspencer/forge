@@ -10,6 +10,8 @@ mod public_api_geometry_family_inventory;
 mod public_api_geometry_support_posture;
 mod public_api_motion_and_constraints;
 mod public_api_neighborhood_and_projection;
+#[path = "nmt_certification_context/mod.rs"]
+mod public_api_nmt_certification_context;
 #[path = "planar_admission/mod.rs"]
 mod public_api_planar_admission;
 #[path = "planar_clean_fail_boundary/mod.rs"]

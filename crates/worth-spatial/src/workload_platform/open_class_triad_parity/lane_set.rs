@@ -2,6 +2,7 @@ use topology::facade::{NmtTopologyConstructionCounters, NmtTopologyConstructionR
 
 use super::denial::{OpenClassTriadParityDenial, OpenClassTriadParityDenialKind};
 use super::open_class::OpenTopologyClass;
+use crate::workload_platform::nmt_certification_context::NmtCertifiedScopeContext;
 use crate::workload_platform::projection_fact_parity::{
     ProjectionFactParityLane, ProjectionFactParityReceipt,
 };
@@ -31,6 +32,45 @@ impl OpenClassParityLaneSet {
             counters: topology.counters(),
             open_boundary_digest: topology.open_boundary().boundary_digest().to_string(),
             radial_digest: topology.radial_adjacency().radial_digest().to_string(),
+        };
+        set.require_bounded_conversion_guard()?;
+        Ok(set)
+    }
+
+    pub fn from_certified_scope_and_parity(
+        scope: &NmtCertifiedScopeContext,
+        topology: &NmtTopologyConstructionReceipt,
+        parity: ProjectionFactParityReceipt,
+    ) -> Result<Self, OpenClassTriadParityDenial> {
+        let topology_class = OpenTopologyClass::from_scope_kind(scope.topology_scope().kind())?;
+        if topology_class != OpenTopologyClass::from_topology(topology)? {
+            return Err(OpenClassTriadParityDenial::new(
+                OpenClassTriadParityDenialKind::TopologyParityMismatch,
+                Some(topology_class),
+                "Certified NMT scope kind does not match the topology construction class.",
+            ));
+        }
+        require_complete_parity(topology_class, &parity)?;
+        require_same_topology_authority(topology_class, topology, &parity)?;
+        if scope.retained_replay().scope_replay_identity()
+            == scope.retained_replay().parent_replay_identity()
+        {
+            return Err(OpenClassTriadParityDenial::new(
+                OpenClassTriadParityDenialKind::ParityReceiptRejected,
+                Some(topology_class),
+                "Certified NMT scope must provide scope-local retained replay authority.",
+            ));
+        }
+        let set = Self {
+            topology_class,
+            topology_identity: scope.topology_scope().scope_identity().to_string(),
+            parity,
+            counters: topology.counters(),
+            open_boundary_digest: scope.topology_scope().open_boundary_identity().to_string(),
+            radial_digest: scope
+                .topology_scope()
+                .radial_adjacency_identity()
+                .to_string(),
         };
         set.require_bounded_conversion_guard()?;
         Ok(set)
