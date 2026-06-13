@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 
-use worth_primitives::{truth_digest_parts, TruthDigestScope};
-
+use super::platform_projection_evidence::require_platform_projection_matches_ledger;
+use super::stage_evidence::{
+    require_platform_stage_evidence, require_thin_feature_topology_breadth, stage_counters,
+    workload_identity,
+};
 use super::thin_feature_counters::{
     ThinFeatureScaleSeparationCounterInput, ThinFeatureScaleSeparationCounters,
 };
@@ -19,13 +22,15 @@ use crate::planar_contracts::local_frame::PlanarLocalFrameCertificateReceipt;
 use crate::planar_contracts::precision_basis::PlanarPrecisionCertificateReceipt;
 use crate::planar_contracts::projection_consumed_facts::ProjectionConsumedPlanarFactsReceipt;
 use crate::workload_platform::evidence_ledger::{
-    CompleteWorkloadEvidenceLedger, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+    CompleteWorkloadEvidenceLedger, WorkloadEvidenceStage,
 };
+use crate::workload_platform::projection_workload::ProjectedPlanarWorkload;
 
 pub struct ThinFeatureScaleSeparationWorkload<'a> {
     evidence_ledger: &'a CompleteWorkloadEvidenceLedger,
     precision: Option<&'a PlanarPrecisionCertificateReceipt>,
     precision_scale_witnesses: Vec<&'a PlanarPrecisionCertificateReceipt>,
+    platform_projection: Option<&'a ProjectedPlanarWorkload>,
     local_frame: Option<&'a PlanarLocalFrameCertificateReceipt>,
     projection_consumption: Option<&'a ProjectionConsumedPlanarFactsReceipt>,
     required_thin_feature_count: usize,
@@ -43,6 +48,7 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
             evidence_ledger,
             precision: None,
             precision_scale_witnesses: Vec::new(),
+            platform_projection: None,
             local_frame: None,
             projection_consumption: None,
             required_thin_feature_count: 12,
@@ -69,6 +75,11 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
         receipt: &'a PlanarPrecisionCertificateReceipt,
     ) -> Self {
         self.precision_scale_witnesses.push(receipt);
+        self
+    }
+
+    pub fn with_platform_projection(mut self, projected: &'a ProjectedPlanarWorkload) -> Self {
+        self.platform_projection = Some(projected);
         self
     }
 
@@ -138,14 +149,17 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
         self.require_evidence_integrity()?;
 
         let precision = self.required_precision_receipt()?;
+        let platform_projection = self.required_platform_projection()?;
         let local_frame = self.required_local_frame_receipt()?;
         let projection_consumption = self.required_projection_consumption_receipt()?;
+        let platform_projection_identity =
+            require_platform_projection_matches_ledger(self.evidence_ledger, platform_projection)?;
         self.require_precision_and_frame_alignment(precision, local_frame)?;
         self.require_projection_consumption_alignment(local_frame, projection_consumption)?;
 
         let counters =
             self.thin_feature_counters(precision, local_frame, projection_consumption)?;
-        let workload_identity = self.workload_identity()?;
+        let workload_identity = workload_identity(self.evidence_ledger)?;
         let precision_identity = precision.fact_digest().to_string();
         let local_frame_identity = local_frame.fact_digest().to_string();
         let projection_consumption_identity = projection_consumption
@@ -159,6 +173,7 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
         let thin_feature_digest = thin_feature_digest(
             &workload_identity,
             &precision_identity,
+            &platform_projection_identity,
             &local_frame_identity,
             &projection_consumption_identity,
             &projection_consumed_local_frame_identity,
@@ -171,6 +186,7 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
             thin_feature_digest,
             workload_identity,
             precision_identity,
+            platform_projection_identity,
             local_frame_identity,
             projection_consumption_identity,
             projection_consumed_local_frame_identity,
@@ -192,6 +208,13 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
     ) -> Result<&PlanarLocalFrameCertificateReceipt, ThinFeatureScaleSeparationWorkloadError> {
         self.local_frame
             .ok_or(ThinFeatureScaleSeparationWorkloadError::MissingLocalFrameEvidence)
+    }
+
+    fn required_platform_projection(
+        &self,
+    ) -> Result<&ProjectedPlanarWorkload, ThinFeatureScaleSeparationWorkloadError> {
+        self.platform_projection
+            .ok_or(ThinFeatureScaleSeparationWorkloadError::MissingPlatformProjectionEvidence)
     }
 
     fn required_projection_consumption_receipt(
@@ -245,15 +268,15 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
         local_frame: &PlanarLocalFrameCertificateReceipt,
         projection_consumption: &ProjectionConsumedPlanarFactsReceipt,
     ) -> Result<ThinFeatureScaleSeparationCounters, ThinFeatureScaleSeparationWorkloadError> {
-        let topology = self.stage_counters(WorkloadEvidenceStage::Topology)?;
-        let binding = self.stage_counters(WorkloadEvidenceStage::GeometryBinding)?;
-        let support = self.stage_counters(WorkloadEvidenceStage::SurfaceSupport)?;
-        let projection = self.stage_counters(WorkloadEvidenceStage::Projection)?;
-        let transform = self.stage_counters(WorkloadEvidenceStage::Transform)?;
-        let diagnostics = self.stage_counters(WorkloadEvidenceStage::Diagnostics)?;
-        let response = self.stage_counters(WorkloadEvidenceStage::Response)?;
+        let topology = stage_counters(self.evidence_ledger, WorkloadEvidenceStage::Topology)?;
+        let binding = stage_counters(self.evidence_ledger, WorkloadEvidenceStage::GeometryBinding)?;
+        let support = stage_counters(self.evidence_ledger, WorkloadEvidenceStage::SurfaceSupport)?;
+        let projection = stage_counters(self.evidence_ledger, WorkloadEvidenceStage::Projection)?;
+        let transform = stage_counters(self.evidence_ledger, WorkloadEvidenceStage::Transform)?;
+        let diagnostics = stage_counters(self.evidence_ledger, WorkloadEvidenceStage::Diagnostics)?;
+        let response = stage_counters(self.evidence_ledger, WorkloadEvidenceStage::Response)?;
 
-        self.require_platform_stage_evidence(
+        require_platform_stage_evidence(
             topology,
             binding,
             support,
@@ -262,7 +285,7 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
             diagnostics,
             response,
         )?;
-        self.require_thin_feature_topology_breadth(topology)?;
+        require_thin_feature_topology_breadth(self.required_thin_feature_count, topology)?;
         self.require_precision_scale_evidence(precision, local_frame)?;
         self.require_world_magnitude_floor(precision, local_frame)?;
 
@@ -285,46 +308,6 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
                 user_outcome_count: response.user_outcome_count(),
             },
         ))
-    }
-
-    fn require_platform_stage_evidence(
-        &self,
-        topology: WorkloadEvidenceStageCounters,
-        binding: WorkloadEvidenceStageCounters,
-        support: WorkloadEvidenceStageCounters,
-        projection: WorkloadEvidenceStageCounters,
-        transform: WorkloadEvidenceStageCounters,
-        diagnostics: WorkloadEvidenceStageCounters,
-        response: WorkloadEvidenceStageCounters,
-    ) -> Result<(), ThinFeatureScaleSeparationWorkloadError> {
-        if topology.topology_face_count() == 0 || binding.binding_target_count() == 0 {
-            return Err(ThinFeatureScaleSeparationWorkloadError::MissingTopologyEvidence);
-        }
-        if support.surface_support_count() == 0 {
-            return Err(ThinFeatureScaleSeparationWorkloadError::MissingSurfaceSupportEvidence);
-        }
-        if projection.local_basis_part_count() == 0 || projection.projected_entity_count() == 0 {
-            return Err(ThinFeatureScaleSeparationWorkloadError::MissingProjectionEvidence);
-        }
-        if transform.transform_step_count() == 0 {
-            return Err(ThinFeatureScaleSeparationWorkloadError::MissingTransformEvidence);
-        }
-        if diagnostics.diagnostic_count() == 0 || response.user_outcome_count() == 0 {
-            return Err(ThinFeatureScaleSeparationWorkloadError::MissingResponseEvidence);
-        }
-        Ok(())
-    }
-
-    fn require_thin_feature_topology_breadth(
-        &self,
-        topology: WorkloadEvidenceStageCounters,
-    ) -> Result<(), ThinFeatureScaleSeparationWorkloadError> {
-        if self.required_thin_feature_count < 12
-            || topology.topology_relation_count() < self.required_thin_feature_count
-        {
-            return Err(ThinFeatureScaleSeparationWorkloadError::MissingTopologyEvidence);
-        }
-        Ok(())
     }
 
     fn require_precision_scale_evidence(
@@ -399,36 +382,6 @@ impl<'a> ThinFeatureScaleSeparationWorkload<'a> {
                 Err(ThinFeatureScaleSeparationWorkloadError::IntegrityMismatch { stage })
             }
         }
-    }
-
-    fn stage_counters(
-        &self,
-        stage: WorkloadEvidenceStage,
-    ) -> Result<WorkloadEvidenceStageCounters, ThinFeatureScaleSeparationWorkloadError> {
-        self.evidence_ledger
-            .row_for_stage(stage)
-            .filter(|row| row.is_receipt_backed() && row.is_admitted())
-            .map(|row| row.counters())
-            .ok_or(ThinFeatureScaleSeparationWorkloadError::MissingReceiptBackedStage(stage))
-    }
-
-    fn workload_identity(&self) -> Result<String, ThinFeatureScaleSeparationWorkloadError> {
-        let mut parts = Vec::new();
-        for stage in WorkloadEvidenceStage::AUTHORITY_STAGES {
-            let row = self
-                .evidence_ledger
-                .row_for_stage(stage)
-                .filter(|row| row.is_receipt_backed() && row.is_admitted())
-                .ok_or(ThinFeatureScaleSeparationWorkloadError::MissingReceiptBackedStage(stage))?;
-            parts.push(format!("{stage:?}:{}", row.evidence_identity()));
-        }
-        Ok(truth_digest_parts(
-            TruthDigestScope::ArtifactIdentity,
-            &[
-                "thin-feature-scale-separation-ledger".to_string(),
-                parts.join("|"),
-            ],
-        ))
     }
 
     fn local_scale_orders(&self) -> Vec<i32> {

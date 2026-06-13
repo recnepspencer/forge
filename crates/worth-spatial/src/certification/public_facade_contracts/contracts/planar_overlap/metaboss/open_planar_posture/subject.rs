@@ -1,4 +1,7 @@
 use topology::facade::{TopologySeed, TopologySeedReceipt};
+use worth_spatial::facade::blocker_provenance::{
+    WorkloadBlockerProvenance, WorkloadBlockerProvenanceReceipt,
+};
 use worth_spatial::facade::open_planar_posture::{
     OpenPlanarPostureCase, OpenPlanarPostureError, OpenPlanarPostureReceipt,
     OpenPlanarPostureWorkload,
@@ -60,6 +63,59 @@ pub(crate) fn bounded_surrogate_denials(world: &'static str) -> Vec<OpenPlanarPo
         .into_iter()
         .map(|surrogate| bounded_surrogate_denial(world, surrogate))
         .collect()
+}
+
+pub(crate) struct MismatchedUnsupportedSurfaceSubject {
+    pub(crate) provenance: WorkloadBlockerProvenanceReceipt,
+    pub(crate) user_outcome: WorthUserOutcome,
+}
+
+pub(crate) fn mismatched_unsupported_surface_subject(
+    world: &'static str,
+) -> MismatchedUnsupportedSurfaceSubject {
+    let topology = open_topology(world);
+    let foreign_topology = open_wire_topology("mb-m6-6-foreign-support");
+    let unsupported_surface = unsupported_surface(world, &foreign_topology);
+    let open_topology_identity = topology
+        .query_receipts()
+        .declaration_receipt()
+        .identity()
+        .name()
+        .to_string();
+    let unsupported_surface_identity = unsupported_surface_identity(&unsupported_surface);
+    let boundary = clean_fail_boundary(
+        world,
+        &topology,
+        OpenPlanarPostureCase::UnsupportedOpenSheet,
+    );
+    let error = OpenPlanarPostureWorkload::from_open_topology(topology)
+        .declared(format!("MB-M6-6 mismatched unsupported support {world}"))
+        .with_unsupported_surface_support(unsupported_surface)
+        .with_clean_fail_boundary(boundary)
+        .classify_as(OpenPlanarPostureCase::UnsupportedOpenSheet)
+        .certify()
+        .expect_err("unsupported surface support from another topology must be rejected");
+
+    let user_outcome = WorthUserResponseWorkload::from_source(
+        WorthUserResponseSource::from_open_planar_posture_error(error.clone()),
+    )
+    .declared(format!("open posture mismatched support response {world}"))
+    .respond()
+    .expect("mismatched support response")
+    .outcome()
+    .clone();
+    let provenance =
+        WorkloadBlockerProvenance::unsupported_surface_open_topology_mismatch_with_identities(
+            &error,
+            open_topology_identity,
+            unsupported_surface_identity,
+        )
+        .certify(&user_outcome)
+        .expect("unsupported surface provenance receipt");
+    MismatchedUnsupportedSurfaceSubject {
+        provenance,
+        user_outcome,
+    }
 }
 
 fn bounded_surrogate_denial(
@@ -186,6 +242,18 @@ fn unsupported_surface(
         .with_surface_family(SurfaceFamily::Freeform)
         .certify()
         .expect_err("freeform support should be unsupported")
+}
+
+fn unsupported_surface_identity(unsupported_surface: &UnsupportedSurfaceSupport) -> String {
+    unsupported_surface
+        .receipt()
+        .map(|receipt| receipt.stage_identity().receipt_identity().to_string())
+        .or_else(|| {
+            unsupported_surface
+                .upstream_geometry_binding_identity()
+                .map(str::to_string)
+        })
+        .expect("unsupported surface should carry production support identity")
 }
 
 fn clean_fail_boundary(

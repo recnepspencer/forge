@@ -1,12 +1,23 @@
 use super::error::WorkloadCatalogError;
-use super::query::{query_backed_catalog_declaration, query_backed_catalog_support};
+use super::grazing_basket_spec::GrazingBasketStackSpec;
+use super::open_class_triad::OpenClassTriadCatalogRecipe;
 use super::recipe_kind::{
     RetainedReplayRecipe, TransformRecipe, WorkloadCatalogRecipeKind,
     WorkloadCatalogSupportPosture, WorkloadTopologyBreadth,
 };
 use super::recipe_pipeline::build_catalog_workload;
+use super::support_receipt::{
+    WorkloadCatalogDeclarationReceipt, WorkloadCatalogSupportDecision,
+    WorkloadCatalogSupportReceipt,
+};
+use super::topology_construction_plan::WorkloadCatalogTopologyConstructionPlan;
 use super::{BuiltCleanFailCatalogRecipe, BuiltWorkloadCatalogRecipe};
-use topology::facade::TopologySeed;
+use topology::facade::{
+    NmtTopologyConstructionReceipt, OpenLayerStackSpec, OpenRadialFanSpec, OpenSheetPatchSpec,
+    OpenWireChainSpec, TopologySeed,
+};
+
+pub const HIGH_VALENCE_VERTEX_MAX_ADMITTED_VALENCE: usize = 128;
 
 pub struct WorkloadCatalog;
 
@@ -39,8 +50,54 @@ impl WorkloadCatalog {
         WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::HighValenceVertex)
     }
 
+    pub fn mixed_surface_kill_box() -> WorkloadCatalogRecipe {
+        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::MixedSurfaceKillBox)
+            .with_topology_construction_plan(WorkloadCatalogTopologyConstructionPlan::OpenSheet(
+                OpenSheetPatchSpec::new(),
+            ))
+    }
+
+    pub fn open_wire() -> WorkloadCatalogRecipe {
+        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::OpenWire)
+            .with_topology_construction_plan(WorkloadCatalogTopologyConstructionPlan::OpenWire(
+                OpenWireChainSpec::new(),
+            ))
+    }
+
     pub fn open_sheet() -> WorkloadCatalogRecipe {
         WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::OpenSheet)
+            .with_topology_construction_plan(WorkloadCatalogTopologyConstructionPlan::OpenSheet(
+                OpenSheetPatchSpec::new(),
+            ))
+    }
+
+    pub fn open_shell_nmt_edge_fan(incident_faces: usize) -> WorkloadCatalogRecipe {
+        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::OpenShellNmtEdgeFan)
+            .with_topology_construction_plan(
+                WorkloadCatalogTopologyConstructionPlan::OpenRadialFan(
+                    OpenRadialFanSpec::new().incident_faces(incident_faces),
+                ),
+            )
+    }
+
+    pub fn open_layer_stack(spec: OpenLayerStackSpec) -> WorkloadCatalogRecipe {
+        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::OpenLayerStack)
+            .with_topology_construction_plan(
+                WorkloadCatalogTopologyConstructionPlan::OpenLayerStack(spec),
+            )
+    }
+
+    pub fn grazing_open_shell_basket_stack(spec: GrazingBasketStackSpec) -> WorkloadCatalogRecipe {
+        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::GrazingBasketStack)
+            .with_topology_construction_plan(
+                WorkloadCatalogTopologyConstructionPlan::OpenLayerStack(
+                    spec.into_open_layer_stack_spec(),
+                ),
+            )
+    }
+
+    pub fn open_class_triad(incident_faces: usize) -> OpenClassTriadCatalogRecipe {
+        OpenClassTriadCatalogRecipe::new(incident_faces)
     }
 
     pub fn transform_cycle() -> WorkloadCatalogRecipe {
@@ -49,6 +106,15 @@ impl WorkloadCatalog {
 
     pub fn retained_cancellation_chain() -> WorkloadCatalogRecipe {
         WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::RetainedCancellationChain)
+    }
+
+    pub fn from_topology_construction(
+        construction: NmtTopologyConstructionReceipt,
+    ) -> WorkloadCatalogRecipe {
+        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::NmtTopologyConstruction)
+            .with_topology_construction_plan(WorkloadCatalogTopologyConstructionPlan::Receipt(
+                construction,
+            ))
     }
 }
 
@@ -59,6 +125,7 @@ pub struct WorkloadCatalogRecipe {
     transform_recipe: Option<TransformRecipe>,
     retained_replay_recipe: Option<RetainedReplayRecipe>,
     topology_breadth: WorkloadTopologyBreadth,
+    topology_construction_plan: Option<WorkloadCatalogTopologyConstructionPlan>,
 }
 
 impl WorkloadCatalogRecipe {
@@ -69,6 +136,7 @@ impl WorkloadCatalogRecipe {
             transform_recipe: None,
             retained_replay_recipe: None,
             topology_breadth: WorkloadTopologyBreadth::Default,
+            topology_construction_plan: None,
         }
     }
 
@@ -92,6 +160,14 @@ impl WorkloadCatalogRecipe {
         self
     }
 
+    fn with_topology_construction_plan(
+        mut self,
+        plan: WorkloadCatalogTopologyConstructionPlan,
+    ) -> Self {
+        self.topology_construction_plan = Some(plan);
+        self
+    }
+
     pub fn inspect_support(&self) -> Result<WorkloadCatalogSupportReceipt, WorkloadCatalogError> {
         let declaration = self.declaration_receipt()?;
         WorkloadCatalogSupportReceipt::new(&declaration, self.support_decision())
@@ -106,6 +182,7 @@ impl WorkloadCatalogRecipe {
                 reason: support.human_reason().to_string(),
             });
         }
+        let topology_construction = self.compile_topology_construction()?;
         let workload_build = build_catalog_workload(
             self.kind,
             &self.declaration,
@@ -114,17 +191,35 @@ impl WorkloadCatalogRecipe {
             self.retained_replay_recipe
                 .unwrap_or_else(|| self.kind.default_retained_replay_recipe()),
             self.topology_breadth,
+            topology_construction,
         )?;
         let topology_neighborhood = workload_build.topology_neighborhood().cloned();
+        let topology_construction = workload_build.topology_construction().cloned();
+        let bound_geometry = workload_build.bound_geometry().clone();
         let projected = workload_build.projected().clone();
+        let transform_receipts = workload_build.transform_receipts().clone();
+        let replay_receipts = workload_build.replay_receipts().cloned();
         Ok(BuiltWorkloadCatalogRecipe::new(
             self.kind,
             declaration,
             support,
             workload_build.workload(),
             topology_neighborhood,
+            topology_construction,
+            bound_geometry,
             projected,
+            transform_receipts,
+            replay_receipts,
         ))
+    }
+
+    fn compile_topology_construction(
+        &self,
+    ) -> Result<Option<NmtTopologyConstructionReceipt>, WorkloadCatalogError> {
+        self.topology_construction_plan
+            .as_ref()
+            .map(|plan| plan.compile(&self.declaration))
+            .transpose()
     }
 
     pub fn build_clean_fail(self) -> Result<BuiltCleanFailCatalogRecipe, WorkloadCatalogError> {
@@ -165,6 +260,10 @@ impl WorkloadCatalogRecipe {
             return WorkloadCatalogSupportDecision::unsupported(denial);
         }
 
+        if let Some(denial) = self.explicit_topology_construction_denial() {
+            return WorkloadCatalogSupportDecision::unsupported(denial);
+        }
+
         if self.kind.is_admitted_now() {
             WorkloadCatalogSupportDecision::admitted(format!(
                 "{} is admitted",
@@ -178,14 +277,20 @@ impl WorkloadCatalogRecipe {
         }
     }
 
+    fn explicit_topology_construction_denial(&self) -> Option<String> {
+        self.topology_construction_plan
+            .as_ref()
+            .and_then(WorkloadCatalogTopologyConstructionPlan::support_denial)
+    }
+
     fn explicit_topology_breadth_denial(&self) -> Option<String> {
         match self.topology_breadth {
             WorkloadTopologyBreadth::HighValenceVertex { valence }
                 if self.kind == WorkloadCatalogRecipeKind::HighValenceVertex
-                    && !(3..=16).contains(&valence) =>
+                    && !(3..=HIGH_VALENCE_VERTEX_MAX_ADMITTED_VALENCE).contains(&valence) =>
             {
                 Some(format!(
-                    "high valence vertex workload recipe supports valence 3 through 16 today; valence {valence} needs an explicit widening phase"
+                    "high valence vertex workload recipe supports valence 3 through {HIGH_VALENCE_VERTEX_MAX_ADMITTED_VALENCE} today; valence {valence} needs an explicit widening phase"
                 ))
             }
             _ => None,
@@ -206,117 +311,6 @@ impl WorkloadCatalogRecipe {
                 reason: "clean-fail catalog lane is only for dirty workload recipes".to_string(),
             }),
         }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct WorkloadCatalogSupportDecision {
-    posture: WorkloadCatalogSupportPosture,
-    human_reason: String,
-}
-
-impl WorkloadCatalogSupportDecision {
-    fn admitted(human_reason: String) -> Self {
-        Self {
-            posture: WorkloadCatalogSupportPosture::Admitted,
-            human_reason,
-        }
-    }
-
-    fn unsupported(human_reason: String) -> Self {
-        Self {
-            posture: WorkloadCatalogSupportPosture::Unsupported,
-            human_reason,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorkloadCatalogDeclarationReceipt {
-    recipe: WorkloadCatalogRecipeKind,
-    declaration: String,
-    query_declaration_digest: String,
-    query_envelope_digest: String,
-    query_handle_digest: String,
-}
-
-impl WorkloadCatalogDeclarationReceipt {
-    fn new(
-        recipe: WorkloadCatalogRecipeKind,
-        declaration: &str,
-    ) -> Result<Self, WorkloadCatalogError> {
-        let query_receipt = query_backed_catalog_declaration(recipe, declaration)?;
-        Ok(Self {
-            recipe,
-            declaration: declaration.to_string(),
-            query_declaration_digest: query_receipt.declaration_digest().to_string(),
-            query_envelope_digest: query_receipt.envelope_digest().to_string(),
-            query_handle_digest: query_receipt.handle_digest().to_string(),
-        })
-    }
-
-    pub fn recipe(&self) -> WorkloadCatalogRecipeKind {
-        self.recipe
-    }
-
-    pub fn declaration(&self) -> &str {
-        &self.declaration
-    }
-
-    pub fn query_declaration_digest(&self) -> &str {
-        &self.query_declaration_digest
-    }
-
-    pub fn query_envelope_digest(&self) -> &str {
-        &self.query_envelope_digest
-    }
-
-    pub fn query_handle_digest(&self) -> &str {
-        &self.query_handle_digest
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorkloadCatalogSupportReceipt {
-    recipe: WorkloadCatalogRecipeKind,
-    posture: WorkloadCatalogSupportPosture,
-    query_support_digest: String,
-    human_reason: String,
-}
-
-impl WorkloadCatalogSupportReceipt {
-    fn new(
-        declaration: &WorkloadCatalogDeclarationReceipt,
-        decision: WorkloadCatalogSupportDecision,
-    ) -> Result<Self, WorkloadCatalogError> {
-        let query_receipt = query_backed_catalog_support(
-            declaration.recipe(),
-            declaration.declaration(),
-            decision.posture,
-            declaration.query_declaration_digest(),
-        )?;
-        Ok(Self {
-            recipe: declaration.recipe(),
-            posture: decision.posture,
-            query_support_digest: query_receipt.declaration_digest().to_string(),
-            human_reason: decision.human_reason,
-        })
-    }
-
-    pub fn recipe(&self) -> WorkloadCatalogRecipeKind {
-        self.recipe
-    }
-
-    pub fn posture(&self) -> WorkloadCatalogSupportPosture {
-        self.posture
-    }
-
-    pub fn query_support_digest(&self) -> &str {
-        &self.query_support_digest
-    }
-
-    pub fn human_reason(&self) -> &str {
-        &self.human_reason
     }
 }
 

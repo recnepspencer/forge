@@ -11,7 +11,8 @@ pub use operator_harness::{
 };
 pub use stage_requirements::WorkloadStageRequirement;
 pub use workload_catalog::{
-    BuiltCleanFailCatalogRecipe, BuiltWorkloadCatalogRecipe, TransformRecipe, WorkloadCatalog,
+    BuiltCleanFailCatalogRecipe, BuiltOpenClassTriadCatalog, BuiltWorkloadCatalogRecipe,
+    GrazingBasketStackSpec, OpenClassTriadCatalogRecipe, TransformRecipe, WorkloadCatalog,
     WorkloadCatalogDeclarationReceipt, WorkloadCatalogError, WorkloadCatalogRecipe,
     WorkloadCatalogRecipeKind, WorkloadCatalogSupportPosture, WorkloadCatalogSupportReceipt,
     WorkloadTopologyBreadth,

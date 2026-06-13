@@ -10,8 +10,8 @@ use forge_query::facade::{
     ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
-    ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
+    ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQuerySessionLabel, ForgeQueryWorkspaceError,
+    ForgeQueryWriteCommand, ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
     SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
     SubscriptionActivationInput, WriteAuthorityExecutionReceipt,
 };
@@ -247,13 +247,13 @@ struct DiagnosticPreviewBasis;
 impl ForgeQueryRuntimePreviewBasisAdapter for DiagnosticPreviewBasis {
     fn admit_preview_basis(
         &self,
-        label: &str,
+        label: &ForgeQuerySessionLabel,
         effect_policy: ForgeQueryEffectPolicy,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
         Ok(ForgeQueryPreviewBasisAdmission::new(
             authority,
-            label,
+            label.clone(),
             effect_policy,
             ["planar-diagnostic-preview-basis"],
         ))

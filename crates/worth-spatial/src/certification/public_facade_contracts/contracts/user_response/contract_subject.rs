@@ -67,9 +67,13 @@ fn projected_storm_overlap_receipts(world: &'static str) -> Vec<CoplanarOverlapC
         .declared(format!("user response projected overlap storm {world}"))
         .build()
         .expect("user response projected overlap workload should build");
-    certify_projected_storm_extraction_bundle(world, built.projected_workload())
-        .receipts()
-        .to_vec()
+    certify_projected_storm_extraction_bundle(
+        world,
+        built.projected_workload(),
+        built.transform_receipts(),
+    )
+    .receipts()
+    .to_vec()
 }
 
 pub(crate) fn dirty_input_response(world: &'static str) -> WorthUserResponseReceipt {

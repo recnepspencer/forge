@@ -5,6 +5,7 @@ use super::thin_feature_counters::ThinFeatureScaleSeparationCounters;
 pub(crate) fn thin_feature_digest(
     workload_identity: &str,
     precision_identity: &str,
+    platform_projection_identity: &str,
     local_frame_identity: &str,
     projection_consumption_identity: &str,
     projection_consumed_local_frame_identity: &str,
@@ -18,6 +19,7 @@ pub(crate) fn thin_feature_digest(
             "thin-feature-scale-separation-workload".to_string(),
             format!("workload:{workload_identity}"),
             format!("precision:{precision_identity}"),
+            format!("platform_projection:{platform_projection_identity}"),
             format!("local_frame:{local_frame_identity}"),
             format!("projection_consumption:{projection_consumption_identity}"),
             format!("projection_consumed_local_frame:{projection_consumed_local_frame_identity}"),

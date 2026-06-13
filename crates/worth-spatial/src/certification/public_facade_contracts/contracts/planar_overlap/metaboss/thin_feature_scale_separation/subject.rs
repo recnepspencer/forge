@@ -31,6 +31,7 @@ pub(crate) struct ThinFeaturePlatformSubject {
     pub(crate) receipt: ThinFeatureScaleSeparationReceipt,
     pub(crate) user_outcome: WorthUserOutcome,
     pub(crate) precision_scale_orders: Vec<i32>,
+    pub(crate) platform_projection_identity: String,
 }
 
 pub(crate) fn certify_platform_thin_feature_scale_separation(
@@ -42,6 +43,12 @@ pub(crate) fn certify_platform_thin_feature_scale_separation(
         ))
         .build()
         .expect("thin-feature workload catalog should build");
+    let platform_projection_identity = catalog
+        .projected_workload()
+        .receipts()
+        .stage_identity()
+        .receipt_identity()
+        .to_string();
     let parts = projection_consumed_planar_parts(world);
     let projection_consumption = projection_consumption_receipt(world, &parts);
     let extra_precision = precision_scale_witnesses(world, &parts.bundle_parts.precision);
@@ -66,6 +73,7 @@ pub(crate) fn certify_platform_thin_feature_scale_separation(
         receipt,
         user_outcome,
         precision_scale_orders,
+        platform_projection_identity,
     }
 }
 
@@ -166,9 +174,30 @@ pub(crate) fn thin_feature_missing_local_frame_outcome(world: &'static str) -> W
         catalog.workload().evidence_ledger(),
     )
     .with_precision_receipt(&parts.bundle_parts.precision)
+    .with_platform_projection(catalog.projected_workload())
     .with_projection_consumption_receipt(&projection_consumption)
     .certify()
     .expect_err("missing local frame must deny");
+    user_outcome_from_thin_feature_error(error)
+}
+
+pub(crate) fn thin_feature_missing_platform_projection_outcome(
+    world: &'static str,
+) -> WorthUserOutcome {
+    let catalog = WorkloadCatalog::thin_feature_wall()
+        .declared(format!("MB-M6-3 missing platform projection {world}"))
+        .build()
+        .expect("thin-feature workload catalog should build");
+    let parts = projection_consumed_planar_parts(world);
+    let projection_consumption = projection_consumption_receipt(world, &parts);
+    let error = ThinFeatureScaleSeparationWorkload::from_platform_evidence(
+        catalog.workload().evidence_ledger(),
+    )
+    .with_precision_receipt(&parts.bundle_parts.precision)
+    .with_local_frame_receipt(&parts.bundle_parts.frame)
+    .with_projection_consumption_receipt(&projection_consumption)
+    .certify()
+    .expect_err("missing platform projection must deny before thin-feature certification");
     user_outcome_from_thin_feature_error(error)
 }
 
@@ -206,6 +235,7 @@ fn thin_feature_workload<'a>(
 ) -> ThinFeatureScaleSeparationWorkload<'a> {
     ThinFeatureScaleSeparationWorkload::from_platform_evidence(catalog.workload().evidence_ledger())
         .with_precision_receipt(&parts.bundle_parts.precision)
+        .with_platform_projection(catalog.projected_workload())
         .with_local_frame_receipt(&parts.bundle_parts.frame)
         .with_projection_consumption_receipt(projection_consumption)
 }

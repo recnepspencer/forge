@@ -5,6 +5,7 @@ pub struct ThinFeatureScaleSeparationReceipt {
     thin_feature_digest: String,
     workload_identity: String,
     precision_identity: String,
+    platform_projection_identity: String,
     local_frame_identity: String,
     projection_consumption_identity: String,
     projection_consumed_local_frame_identity: String,
@@ -18,6 +19,7 @@ impl ThinFeatureScaleSeparationReceipt {
         thin_feature_digest: String,
         workload_identity: String,
         precision_identity: String,
+        platform_projection_identity: String,
         local_frame_identity: String,
         projection_consumption_identity: String,
         projection_consumed_local_frame_identity: String,
@@ -29,6 +31,7 @@ impl ThinFeatureScaleSeparationReceipt {
             thin_feature_digest,
             workload_identity,
             precision_identity,
+            platform_projection_identity,
             local_frame_identity,
             projection_consumption_identity,
             projection_consumed_local_frame_identity,
@@ -48,6 +51,10 @@ impl ThinFeatureScaleSeparationReceipt {
 
     pub fn precision_identity(&self) -> &str {
         &self.precision_identity
+    }
+
+    pub fn platform_projection_identity(&self) -> &str {
+        &self.platform_projection_identity
     }
 
     pub fn local_frame_identity(&self) -> &str {

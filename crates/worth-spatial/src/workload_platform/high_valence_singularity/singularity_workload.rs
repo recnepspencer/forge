@@ -9,6 +9,8 @@ use crate::workload_platform::evidence_ledger::{
     CompleteWorkloadEvidenceLedger, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
 
+pub const HIGH_VALENCE_SINGULARITY_MAX_ADMITTED_VALENCE: usize = 128;
+
 pub struct HighValenceSingularityWorkload<'a> {
     evidence_ledger: &'a CompleteWorkloadEvidenceLedger,
     topology_neighborhood: Option<&'a TopologySeedNeighborhoodReceipt>,
@@ -117,7 +119,7 @@ impl<'a> HighValenceSingularityWorkload<'a> {
         neighborhood: &TopologySeedNeighborhoodReceipt,
     ) -> Result<(), HighValenceSingularityWorkloadError> {
         let valence = neighborhood.valence();
-        if (3..=16).contains(&valence) {
+        if (3..=HIGH_VALENCE_SINGULARITY_MAX_ADMITTED_VALENCE).contains(&valence) {
             Ok(())
         } else {
             Err(HighValenceSingularityWorkloadError::UnsupportedValence { valence })
@@ -375,7 +377,7 @@ impl HighValenceSingularityWorkloadError {
             }
             Self::UnsupportedValence { valence } => {
                 format!(
-                    "high-valence singularity supports valence 3 through 16 today; valence {valence} needs an explicit widening phase"
+                    "high-valence singularity supports valence 3 through {HIGH_VALENCE_SINGULARITY_MAX_ADMITTED_VALENCE} today; valence {valence} needs an explicit widening phase"
                 )
             }
             Self::RebuildMotionIncompatible { reason } => reason.clone(),

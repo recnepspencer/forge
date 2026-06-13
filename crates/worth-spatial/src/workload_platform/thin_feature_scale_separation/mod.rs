@@ -1,3 +1,5 @@
+mod platform_projection_evidence;
+mod stage_evidence;
 mod thin_feature_counters;
 mod thin_feature_digest;
 mod thin_feature_evidence_counts;

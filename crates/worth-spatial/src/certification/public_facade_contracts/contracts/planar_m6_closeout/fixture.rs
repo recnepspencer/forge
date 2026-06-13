@@ -16,7 +16,11 @@ use crate::public_api_planar_contract_bundle::m7_readiness::fixture::{
 };
 use crate::public_api_planar_overlap::metaboss::boolean_readiness_workload::subject::certify_final_boss;
 use crate::public_api_planar_overlap::metaboss::dirty_planar_clean_fail::subject::dirty_clean_fail_with_topology_seed;
+use crate::public_api_planar_overlap::metaboss::grazing_basket_stack::subject::grazing_basket_stack_subject;
 use crate::public_api_planar_overlap::metaboss::high_valence_subject::certify_platform_high_valence_singularity;
+use crate::public_api_planar_overlap::metaboss::mixed_surface_kill_box::subject::mixed_surface_kill_box_subject;
+use crate::public_api_planar_overlap::metaboss::nmt_radial_fan::subject::radial_fan_subject;
+use crate::public_api_planar_overlap::metaboss::open_class_triad_parity::subject::open_class_triad_subject;
 use crate::public_api_planar_overlap::metaboss::open_planar_posture::subject::half_space_subject;
 use crate::public_api_planar_overlap::metaboss::platform_storm_subject::certify_platform_storm;
 use crate::public_api_planar_overlap::metaboss::projection_fact_parity::subject::certify_projection_fact_parity;
@@ -102,6 +106,18 @@ pub(crate) fn all_premetaboss_rows() -> Vec<M6PremetabossEvidenceRow> {
                     &certify_final_boss("m6-closeout-mb8-target").receipt,
                 ),
             ),
+            target_row(M6PremetabossPlatformTarget::from_nmt_open_radial_fan(
+                &radial_fan_subject("m6-closeout-nmt1-target", 4).receipt,
+            )),
+            target_row(M6PremetabossPlatformTarget::from_mixed_surface_kill_box(
+                &mixed_surface_kill_box_subject("m6-closeout-nmt2-target").receipt,
+            )),
+            target_row(M6PremetabossPlatformTarget::from_open_class_triad_parity(
+                &open_class_triad_subject("m6-closeout-nmt3-target").receipt,
+            )),
+            target_row(M6PremetabossPlatformTarget::from_grazing_basket_stack(
+                &grazing_basket_stack_subject("m6-closeout-nmt4-target").receipt,
+            )),
         ]
     })
 }

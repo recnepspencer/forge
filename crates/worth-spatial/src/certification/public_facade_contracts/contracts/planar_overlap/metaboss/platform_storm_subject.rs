@@ -13,7 +13,9 @@ use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
 };
 
-use super::storm_extraction_subject::certify_projected_storm_extraction_bundle;
+use super::storm_extraction_subject::{
+    certify_projected_storm_context, certify_projected_storm_extraction_bundle,
+};
 
 pub(crate) struct PlatformStormSubject {
     pub(crate) storm_receipt: CoplanarOverlapStormReceipt,
@@ -48,10 +50,19 @@ pub(crate) fn certify_platform_storm_with_transform(
         ))
         .admit_for(workload)
         .expect("platform storm workload should admit for coplanar overlap");
-    let extraction_bundle =
-        certify_projected_storm_extraction_bundle(world, built.projected_workload());
+    let context = certify_projected_storm_context(
+        world,
+        built.projected_workload(),
+        built.transform_receipts(),
+    );
+    let extraction_bundle = certify_projected_storm_extraction_bundle(
+        world,
+        built.projected_workload(),
+        built.transform_receipts(),
+    );
     let operator_receipt =
         CoplanarOverlapWorkloadOperator::from_consumed_evidence(run.consumed_evidence())
+            .with_certification_context(&context)
             .with_extraction_bundle(&extraction_bundle)
             .execute()
             .expect("platform storm operator should execute");
@@ -120,14 +131,23 @@ pub(crate) fn mismatched_operator_stage_link_error(
         .declared_by_query("MB-M6-1 mismatched operator should not certify another ledger")
         .admit_for(operator_source.workload())
         .expect("operator source should admit");
-    let operator_receipt =
+    let operator_receipt = {
+        let context = certify_projected_storm_context(
+            "mb-m6-1-mismatched-operator-extractions",
+            operator_source.projected_workload(),
+            operator_source.transform_receipts(),
+        );
+        let bundle = certify_projected_storm_extraction_bundle(
+            "mb-m6-1-mismatched-operator-extractions",
+            operator_source.projected_workload(),
+            operator_source.transform_receipts(),
+        );
         CoplanarOverlapWorkloadOperator::from_consumed_evidence(operator_run.consumed_evidence())
-            .with_extraction_bundle(&certify_projected_storm_extraction_bundle(
-                "mb-m6-1-mismatched-operator-extractions",
-                operator_source.projected_workload(),
-            ))
+            .with_certification_context(&context)
+            .with_extraction_bundle(&bundle)
             .execute()
-            .expect("operator source should execute");
+            .expect("operator source should execute")
+    };
 
     CoplanarOverlapStormWorkload::from_platform_evidence(
         ledger_source.workload().evidence_ledger(),

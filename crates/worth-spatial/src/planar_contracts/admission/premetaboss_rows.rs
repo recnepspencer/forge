@@ -126,6 +126,22 @@ fn premetaboss_basis(
             PlanarAdmissionFamily::PlanarContractBundle,
             PlanarRuntimeConcern::BooleanReadinessBundle,
         ),
+        PlanarPremetabossInputFamily::OpenRadialFanNmtTopology => (
+            PlanarAdmissionFamily::ProjectionConsumedPlanarFact,
+            PlanarRuntimeConcern::ProjectionConsumption,
+        ),
+        PlanarPremetabossInputFamily::MixedSurfaceKillBox => (
+            PlanarAdmissionFamily::CertifiedPlaneProjection2d,
+            PlanarRuntimeConcern::SupportMatrixAdmission,
+        ),
+        PlanarPremetabossInputFamily::OpenClassTriadParity => (
+            PlanarAdmissionFamily::ProjectionConsumedPlanarFact,
+            PlanarRuntimeConcern::ProjectionConsumption,
+        ),
+        PlanarPremetabossInputFamily::GrazingBasketStack => (
+            PlanarAdmissionFamily::ProjectionConsumedPlanarFact,
+            PlanarRuntimeConcern::ProjectionConsumption,
+        ),
     }
 }
 

@@ -8,6 +8,7 @@ pub struct ProjectionFactParityReceipt {
     case: ProjectionFactParityCase,
     parity_digest: String,
     workload_basis_identity: String,
+    topology_evidence_identity: String,
     declaration: String,
     lane_evidence: Vec<ProjectionFactParityLaneEvidence>,
     counters: ProjectionFactParityCounters,
@@ -18,6 +19,7 @@ impl ProjectionFactParityReceipt {
         case: ProjectionFactParityCase,
         parity_digest: String,
         workload_basis_identity: String,
+        topology_evidence_identity: String,
         declaration: String,
         lane_evidence: Vec<ProjectionFactParityLaneEvidence>,
         counters: ProjectionFactParityCounters,
@@ -26,6 +28,7 @@ impl ProjectionFactParityReceipt {
             case,
             parity_digest,
             workload_basis_identity,
+            topology_evidence_identity,
             declaration,
             lane_evidence,
             counters,
@@ -42,6 +45,10 @@ impl ProjectionFactParityReceipt {
 
     pub fn workload_basis_identity(&self) -> &str {
         &self.workload_basis_identity
+    }
+
+    pub fn topology_evidence_identity(&self) -> &str {
+        &self.topology_evidence_identity
     }
 
     pub fn declaration(&self) -> &str {

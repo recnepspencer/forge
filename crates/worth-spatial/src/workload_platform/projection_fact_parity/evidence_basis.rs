@@ -1,5 +1,6 @@
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
+use super::basis_link::{ProjectionFactParityBasisLink, ProjectionFactParityBasisLinkKind};
 use super::lane::{ProjectionFactParityLane, ProjectionFactParityLaneStatus};
 use crate::planar_contracts::local_rebuild_parity::PlanarLocalRebuildParityReceipt;
 use crate::planar_contracts::planar_diagnostics::PlanarDiagnosticBundleReceipt;
@@ -72,37 +73,6 @@ impl ProjectionFactParityLaneEvidence {
     pub(crate) fn basis_links(&self) -> &[ProjectionFactParityBasisLink] {
         &self.basis_links
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ProjectionFactParityBasisLink {
-    kind: ProjectionFactParityBasisLinkKind,
-    identity: String,
-}
-
-impl ProjectionFactParityBasisLink {
-    fn new(kind: ProjectionFactParityBasisLinkKind, identity: impl Into<String>) -> Self {
-        Self {
-            kind,
-            identity: identity.into(),
-        }
-    }
-
-    pub(crate) fn kind(&self) -> ProjectionFactParityBasisLinkKind {
-        self.kind
-    }
-
-    pub(crate) fn identity(&self) -> &str {
-        &self.identity
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(crate) enum ProjectionFactParityBasisLinkKind {
-    RetainedFact,
-    ProjectionConsumedFact,
-    RecoveryPosture,
-    DiagnosticBundle,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -346,6 +316,23 @@ impl ProjectionFactParityEvidenceBasis {
 
     pub(crate) fn workload_basis_identity(&self) -> &str {
         &self.workload_basis_identity
+    }
+
+    pub(crate) fn topology_evidence_identity(
+        &self,
+    ) -> Result<String, crate::workload_platform::projection_fact_parity::ProjectionFactParityDenial>
+    {
+        self.evidence_ledger
+            .evidence_for_stage(WorkloadEvidenceStage::Topology)
+            .map(str::to_string)
+            .ok_or_else(|| {
+                crate::workload_platform::projection_fact_parity::ProjectionFactParityDenial::new_with_workload_basis(
+                    crate::workload_platform::projection_fact_parity::ProjectionFactParityDenialKind::MissingLane,
+                    Some(ProjectionFactParityLane::Live),
+                    &self.workload_basis_identity,
+                    "Projection fact parity requires topology evidence before open-class parity can bind topology authority.",
+                )
+            })
     }
 
     fn push_lane(&mut self, lane: ProjectionFactParityLane, source_receipt_identity: String) {

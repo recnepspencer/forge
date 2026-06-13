@@ -701,6 +701,36 @@ NormalizeForExport
 
 ValidateAndRepairBooleanResult
 
+J8. Boolean Runtime / Audit Operators
+
+DeclarePlanarBoolean
+
+AdmitPlanarBoolean
+
+RoutePlanarBooleanLane
+
+ReplayPlanarBoolean
+
+ComparePlanarBooleanParity
+
+EmitPlanarBooleanOutcome
+
+LocalizePlanarBooleanFailure
+
+ClassifyPlanarBooleanFragmentsKeepDiscard
+
+ResolvePlanarBooleanClassificationAmbiguity
+
+AssemblePlanarBooleanResult
+
+CanonicalizeBooleanTraversalOrder
+
+RepairBooleanClassificationFlip
+
+RecordBooleanDecisionLog
+
+BuildStructuredBooleanDisagreementReport
+
 K. Sewing / Healing / Repair (Composite)
 K1. Sewing
 

@@ -111,6 +111,10 @@ impl<'a> RetainedCancellationChainWorkload<'a> {
         self.require_platform_evidence()?;
         self.require_checkpoint_breadth()?;
         chain_evidence_guard::require_distinct_checkpoint_evidence(&self.checkpoints)?;
+        chain_evidence_guard::require_checkpoint_stages_match_ledger(
+            &self.checkpoints,
+            self.evidence_ledger,
+        )?;
         self.require_replay_sampling()?;
         let retained_basis_identity = self.retained_basis_identity()?;
         chain_evidence_guard::require_projection_consumed_checkpoint_match(

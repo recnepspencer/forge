@@ -1,0 +1,17 @@
+error[E0451]: fields `provenance_digest`, `source_kind`, `boundary_kind`, `source_identity`, `boundary_identity` and `human_reason` of struct `WorkloadBlockerProvenanceReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/blocker_provenance/receipt_not_forgeable.rs:7:9
+   |
+ 6 |     let _receipt = WorkloadBlockerProvenanceReceipt {
+   |                    -------------------------------- in this type
+ 7 |         provenance_digest: "fake".to_string(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 8 |         source_kind: WorkloadBlockerSourceKind::DirtyTopology,
+   |         ^^^^^^^^^^^ private field
+ 9 |         boundary_kind: WorkloadBlockerBoundaryKind::CleanFailBoundary,
+   |         ^^^^^^^^^^^^^ private field
+10 |         source_identity: "fake".to_string(),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         boundary_identity: "fake".to_string(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+12 |         human_reason: "fake".to_string(),
+   |         ^^^^^^^^^^^^ private field

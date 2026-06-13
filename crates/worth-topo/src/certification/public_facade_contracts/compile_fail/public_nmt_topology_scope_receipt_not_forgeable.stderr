@@ -1,0 +1,39 @@
+warning: unreachable expression
+  --> src/certification/public_facade_contracts/compile_fail/public_nmt_topology_scope_receipt_not_forgeable.rs:14:33
+   |
+13 |         topology_posture: todo!(),
+   |                           ------- any code following this expression is unreachable
+14 |         open_boundary_identity: "boundary".to_string(),
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `parent_construction_identity`, `pattern_identity`, `scope_identity`, `kind`, `layer_index`, `face_identities`, `edge_identities`, `loop_identities`, `topology_posture`, `open_boundary_identity`, `radial_adjacency_identity` and `counters` of struct `NmtTopologyScopeReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_nmt_topology_scope_receipt_not_forgeable.rs:5:9
+   |
+ 4 |     let _receipt = NmtTopologyScopeReceipt {
+   |                    ----------------------- in this type
+ 5 |         parent_construction_identity: "construction".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         pattern_identity: "pattern".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 7 |         scope_identity: "scope".to_string(),
+   |         ^^^^^^^^^^^^^^ private field
+ 8 |         kind: NmtTopologyScopeKind::OpenRadialFan,
+   |         ^^^^ private field
+ 9 |         layer_index: None,
+   |         ^^^^^^^^^^^ private field
+10 |         face_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         edge_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+12 |         loop_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         topology_posture: todo!(),
+   |         ^^^^^^^^^^^^^^^^ private field
+14 |         open_boundary_identity: "boundary".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         radial_adjacency_identity: "radial".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         counters: todo!(),
+   |         ^^^^^^^^ private field

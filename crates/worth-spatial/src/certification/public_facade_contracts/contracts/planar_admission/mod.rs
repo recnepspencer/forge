@@ -228,6 +228,26 @@ fn planar_admission_rows_cover_premetaboss_input_families() {
             PlanarAdmissionClass::Admitted,
             PlanarAdmissionReason::DownstreamContractLaneAdmitted,
         ),
+        (
+            PlanarPremetabossInputFamily::OpenRadialFanNmtTopology,
+            PlanarAdmissionClass::Admitted,
+            PlanarAdmissionReason::DownstreamContractLaneAdmitted,
+        ),
+        (
+            PlanarPremetabossInputFamily::MixedSurfaceKillBox,
+            PlanarAdmissionClass::Unsupported,
+            PlanarAdmissionReason::OutsideFamilyResponsibility,
+        ),
+        (
+            PlanarPremetabossInputFamily::OpenClassTriadParity,
+            PlanarAdmissionClass::Admitted,
+            PlanarAdmissionReason::DownstreamContractLaneAdmitted,
+        ),
+        (
+            PlanarPremetabossInputFamily::GrazingBasketStack,
+            PlanarAdmissionClass::Admitted,
+            PlanarAdmissionReason::DownstreamContractLaneAdmitted,
+        ),
     ] {
         let row = rows
             .iter()

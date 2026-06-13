@@ -7,6 +7,7 @@ fn main() {
         thin_feature_digest: String::new(),
         workload_identity: String::new(),
         precision_identity: String::new(),
+        platform_projection_identity: String::new(),
         local_frame_identity: String::new(),
         projection_consumption_identity: String::new(),
         projection_consumed_local_frame_identity: String::new(),

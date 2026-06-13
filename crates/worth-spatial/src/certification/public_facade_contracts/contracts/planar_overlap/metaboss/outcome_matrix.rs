@@ -143,7 +143,11 @@ fn projected_overlap_bundle(
         .declared(format!("MB-M6-1 outcome matrix projected storm {world}"))
         .build()
         .expect("outcome matrix projected storm should build");
-    certify_projected_storm_extraction_bundle(world, built.projected_workload())
+    certify_projected_storm_extraction_bundle(
+        world,
+        built.projected_workload(),
+        built.transform_receipts(),
+    )
 }
 
 fn dirty_input_outcome() -> CoplanarOverlapUserOutcome {

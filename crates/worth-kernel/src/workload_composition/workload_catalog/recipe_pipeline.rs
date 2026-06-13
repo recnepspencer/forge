@@ -1,5 +1,6 @@
 use topology::facade::{
-    TopologySeed, TopologySeedNeighborhoodReceipt, TopologySeedReceipt, TopologySeedRecipe,
+    NmtTopologyConstructionReceipt, TopologySeed, TopologySeedNeighborhoodReceipt,
+    TopologySeedReceipt, TopologySeedRecipe,
 };
 use worth_spatial::facade::projection_workload::{
     LocalFrameBasis, ProjectedPlanarWorkload, ProjectionReceiptSet, ProjectionWorkload,
@@ -32,7 +33,11 @@ use crate::workload_composition::{WorthWorkload, WorthWorkloadParts};
 pub(crate) struct CatalogWorkloadBuild {
     workload: WorthWorkload,
     topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
+    topology_construction: Option<NmtTopologyConstructionReceipt>,
+    bound_geometry: BoundGeometryWorkload,
     projected: ProjectedPlanarWorkload,
+    transform_receipts: TransformReceiptSet,
+    replay_receipts: Option<ReplayReceiptSet>,
 }
 
 impl CatalogWorkloadBuild {
@@ -44,8 +49,24 @@ impl CatalogWorkloadBuild {
         self.topology_neighborhood.as_ref()
     }
 
+    pub(crate) fn topology_construction(&self) -> Option<&NmtTopologyConstructionReceipt> {
+        self.topology_construction.as_ref()
+    }
+
     pub(crate) fn projected(&self) -> &ProjectedPlanarWorkload {
         &self.projected
+    }
+
+    pub(crate) fn bound_geometry(&self) -> &BoundGeometryWorkload {
+        &self.bound_geometry
+    }
+
+    pub(crate) fn transform_receipts(&self) -> &TransformReceiptSet {
+        &self.transform_receipts
+    }
+
+    pub(crate) fn replay_receipts(&self) -> Option<&ReplayReceiptSet> {
+        self.replay_receipts.as_ref()
     }
 }
 
@@ -55,10 +76,17 @@ pub(crate) fn build_catalog_workload(
     transform_recipe: TransformRecipe,
     retained_replay_recipe: RetainedReplayRecipe,
     topology_breadth: WorkloadTopologyBreadth,
+    topology_construction: Option<NmtTopologyConstructionReceipt>,
 ) -> Result<CatalogWorkloadBuild, WorkloadCatalogError> {
-    let topology = build_topology_seed(recipe, declaration, topology_breadth)?;
+    let topology = build_topology_seed(
+        recipe,
+        declaration,
+        topology_breadth,
+        topology_construction.as_ref(),
+    )?;
     let topology_neighborhood = topology.neighborhood().cloned();
     let bound_geometry = bind_seed_geometry(&topology, declaration)?;
+    let bound_geometry_for_catalog = bound_geometry.clone();
     let geometry_receipts = bound_geometry.receipts().clone();
     let surface_support = certify_surface_support(bound_geometry, declaration)?;
     let support_receipts = surface_support.receipts().clone();
@@ -69,6 +97,7 @@ pub(crate) fn build_catalog_workload(
     let transform_receipts = transformed.receipts().clone();
     let retained_replay =
         replay_transformed_geometry(transformed, declaration, retained_replay_recipe)?;
+    let replay_receipts = retained_replay.replay_receipts().cloned();
     let diagnostics = DiagnosticWorkload::for_retained_replay(retained_replay.stage_receipt())
         .declared(format!("catalog diagnostics for {declaration}"))
         .admit()
@@ -109,7 +138,11 @@ pub(crate) fn build_catalog_workload(
     Ok(CatalogWorkloadBuild {
         workload,
         topology_neighborhood,
+        topology_construction,
+        bound_geometry: bound_geometry_for_catalog,
         projected,
+        transform_receipts,
+        replay_receipts,
     })
 }
 
@@ -117,7 +150,24 @@ fn build_topology_seed(
     recipe: WorkloadCatalogRecipeKind,
     declaration: &str,
     topology_breadth: WorkloadTopologyBreadth,
+    topology_construction: Option<&NmtTopologyConstructionReceipt>,
 ) -> Result<TopologySeedReceipt, WorkloadCatalogError> {
+    if let Some(construction) = topology_construction {
+        if !recipe.consumes_nmt_topology_construction() {
+            return Err(WorkloadCatalogError::UnsupportedRecipe {
+                recipe,
+                reason: "NMT topology construction receipts can only enter catalog recipes that explicitly consume the generic NMT topology construction boundary".to_string(),
+            });
+        }
+        return Ok(construction.topology_seed_receipt().clone());
+    }
+    if recipe.consumes_nmt_topology_construction() {
+        return Err(WorkloadCatalogError::UnsupportedRecipe {
+            recipe,
+            reason: "NMT topology construction workloads require a production NmtTopologyConstructionReceipt before spatial binding".to_string(),
+        });
+    }
+
     let seed = match topology_breadth {
         WorkloadTopologyBreadth::Default => default_topology_seed(recipe),
         WorkloadTopologyBreadth::MultiFaceShell { face_count }
@@ -151,6 +201,7 @@ fn build_topology_seed(
 fn default_topology_seed(recipe: WorkloadCatalogRecipeKind) -> TopologySeedRecipe {
     match recipe {
         WorkloadCatalogRecipeKind::Cube
+        | WorkloadCatalogRecipeKind::MixedSurfaceKillBox
         | WorkloadCatalogRecipeKind::TransformCycle
         | WorkloadCatalogRecipeKind::RetainedCancellationChain => TopologySeed::cube(),
         WorkloadCatalogRecipeKind::CoplanarOverlapStorm => TopologySeed::multi_face_shell(64),
@@ -158,7 +209,14 @@ fn default_topology_seed(recipe: WorkloadCatalogRecipeKind) -> TopologySeedRecip
         WorkloadCatalogRecipeKind::SingleFaceLoop => TopologySeed::single_face_loop(4),
         WorkloadCatalogRecipeKind::ThinFeatureWall => TopologySeed::single_face_loop(64),
         WorkloadCatalogRecipeKind::HighValenceVertex => TopologySeed::high_valence_vertex(),
-        WorkloadCatalogRecipeKind::OpenSheet => TopologySeed::open_sheet(),
+        WorkloadCatalogRecipeKind::OpenWire
+        | WorkloadCatalogRecipeKind::OpenSheet
+        | WorkloadCatalogRecipeKind::OpenShellNmtEdgeFan
+        | WorkloadCatalogRecipeKind::OpenLayerStack
+        | WorkloadCatalogRecipeKind::GrazingBasketStack
+        | WorkloadCatalogRecipeKind::NmtTopologyConstruction => unreachable!(
+            "NMT topology construction catalog recipes are handled before default seed selection"
+        ),
         WorkloadCatalogRecipeKind::DirtySelfIntersectingLoop => {
             TopologySeed::self_intersecting_loop()
         }

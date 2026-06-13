@@ -7,6 +7,9 @@ pub(crate) enum ProjectionParityCatalog {
     CoplanarOverlapStorm,
     ThinFeatureWall,
     RetainedCancellationChain,
+    OpenWire,
+    OpenSheet,
+    OpenRadialFan(usize),
 }
 
 pub(crate) fn projection_parity_workload_ledger(
@@ -19,6 +22,11 @@ pub(crate) fn projection_parity_workload_ledger(
         ProjectionParityCatalog::ThinFeatureWall => WorkloadCatalog::thin_feature_wall(),
         ProjectionParityCatalog::RetainedCancellationChain => {
             WorkloadCatalog::retained_cancellation_chain()
+        }
+        ProjectionParityCatalog::OpenWire => WorkloadCatalog::open_wire(),
+        ProjectionParityCatalog::OpenSheet => WorkloadCatalog::open_sheet(),
+        ProjectionParityCatalog::OpenRadialFan(incident_faces) => {
+            WorkloadCatalog::open_shell_nmt_edge_fan(incident_faces)
         }
     };
     recipe

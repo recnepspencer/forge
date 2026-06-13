@@ -1,5 +1,3 @@
-use worth_primitives::{truth_digest_parts, TruthDigestScope};
-
 use crate::workload_platform::projection_fact_parity::{
     ProjectionFactParityDenial, ProjectionFactParityDenialKind, ProjectionFactParityReceipt,
 };
@@ -23,18 +21,7 @@ impl WorthUserResponseSource {
     }
 
     pub fn from_projection_fact_parity_denial(denial: &ProjectionFactParityDenial) -> Self {
-        let evidence_digest = truth_digest_parts(
-            TruthDigestScope::ArtifactIdentity,
-            &[
-                "projection-fact-parity-denial".to_string(),
-                format!("{:?}", denial.kind()),
-                denial
-                    .failed_lane()
-                    .map(|lane| format!("{lane:?}"))
-                    .unwrap_or_else(|| "no-lane".to_string()),
-                denial.human_reason().to_string(),
-            ],
-        );
+        let evidence_digest = denial.user_response_evidence_identity();
         let message = denial.human_reason().to_string();
         if denial.kind() == ProjectionFactParityDenialKind::PolicyRequired {
             return Self {

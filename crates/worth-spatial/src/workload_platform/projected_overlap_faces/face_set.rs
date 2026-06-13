@@ -1,5 +1,15 @@
+use forge_query::facade::ForgeQueryDomainOperatingContext;
 use std::collections::BTreeMap;
 
+use crate::bindings::query_native_planar_local_frame::PlanarLocalFrameCertificateQueryDomain;
+use crate::bindings::query_native_planar_overlap::CoplanarOverlapContractQueryDomain;
+use crate::bindings::query_native_planar_precision::PlanarPrecisionCertificationQueryDomain;
+use crate::bindings::query_native_planar_predicate::PlanarPredicateAuthorityQueryDomain;
+use crate::bindings::query_native_planar_projection::ProjectPointToCertifiedPlane2DQueryDomain;
+use crate::bindings::query_native_planar_segment_segment::CertifiedSegmentSegment2DQueryDomain;
+use crate::bindings::query_native_planar_signed_area::CertifiedSignedArea2DQueryDomain;
+use crate::bindings::query_native_planar_winding::CertifiedPolygonWinding2DQueryDomain;
+use crate::workload_platform::certification_context::WorkloadCertificationContext;
 use crate::workload_platform::projection_workload::ProjectedPlanarWorkload;
 
 use super::ProjectedOverlapFaceDenial;
@@ -17,6 +27,22 @@ pub struct ProjectedOverlapFaceSet {
 }
 
 impl ProjectedOverlapFaceSet {
+    pub fn from_context<OC, SC, PC, PRC, WC, AC, PXC, FC>(
+        context: &WorkloadCertificationContext<'_, OC, SC, PC, PRC, WC, AC, PXC, FC>,
+    ) -> Result<Self, ProjectedOverlapFaceDenial>
+    where
+        OC: ForgeQueryDomainOperatingContext<CoplanarOverlapContractQueryDomain>,
+        SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
+        PC: ForgeQueryDomainOperatingContext<PlanarPredicateAuthorityQueryDomain>,
+        PRC: ForgeQueryDomainOperatingContext<ProjectPointToCertifiedPlane2DQueryDomain>,
+        WC: ForgeQueryDomainOperatingContext<CertifiedPolygonWinding2DQueryDomain>,
+        AC: ForgeQueryDomainOperatingContext<CertifiedSignedArea2DQueryDomain>,
+        PXC: ForgeQueryDomainOperatingContext<PlanarPrecisionCertificationQueryDomain>,
+        FC: ForgeQueryDomainOperatingContext<PlanarLocalFrameCertificateQueryDomain>,
+    {
+        Self::from_projected_workload(context.projected_workload())
+    }
+
     pub fn from_projected_workload(
         projected: &ProjectedPlanarWorkload,
     ) -> Result<Self, ProjectedOverlapFaceDenial> {
@@ -57,16 +83,18 @@ impl ProjectedOverlapFaceSet {
         &self.projection_stage_identity
     }
 
-    pub(crate) fn candidate_pairs(
-        &self,
-    ) -> Vec<(&ProjectedOverlapFaceGeometry, &ProjectedOverlapFaceGeometry)> {
-        match self.candidate_policy {
-            ProjectedOverlapCandidatePolicy::AdjacentProjectedFacePairs => self
-                .faces
-                .chunks_exact(2)
-                .map(|pair| (&pair[0], &pair[1]))
-                .collect(),
-        }
+    pub(crate) fn into_certification_parts(
+        self,
+    ) -> (
+        String,
+        Vec<ProjectedOverlapFaceGeometry>,
+        ProjectedOverlapCandidatePolicy,
+    ) {
+        (
+            self.projection_stage_identity,
+            self.faces,
+            self.candidate_policy,
+        )
     }
 }
 

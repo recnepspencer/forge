@@ -41,6 +41,7 @@ impl WorthUserResponseSource {
         let cause_kind = match error {
             OpenPlanarPostureError::BoundedSurrogateAttempted
             | OpenPlanarPostureError::CleanFailDidNotConsumeOpenTopology
+            | OpenPlanarPostureError::UnsupportedSurfaceDidNotConsumeOpenTopology
             | OpenPlanarPostureError::MismatchedOutcomeCase { .. } => {
                 WorthUserOutcomeCauseKind::IntegrityMismatch
             }

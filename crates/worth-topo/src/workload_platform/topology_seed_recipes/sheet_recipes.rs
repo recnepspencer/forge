@@ -18,10 +18,6 @@ pub(crate) fn single_face_loop(
     Ok(sheet_loop_view(40_000, "single face loop", edge_count))
 }
 
-pub(crate) fn open_sheet_topology_view() -> TopologyView {
-    sheet_loop_view(50_000, "open sheet", 4)
-}
-
 fn sheet_loop_view(base: u64, label: &str, edge_count: usize) -> TopologyView {
     let mut topology = base_container(base, label);
     let region_id = topology.regions[0].entity_id;

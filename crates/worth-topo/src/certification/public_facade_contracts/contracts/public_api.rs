@@ -28,7 +28,9 @@ use topology::facade::{
     prepare_primitive_construction_query_envelope, prepare_primitive_construction_query_handoff,
     prepare_primitive_construction_query_receipt, topology_grouped_operator_neighborhood,
     topology_operator_continuation_target, topology_operator_contribution_workflow,
-    topology_operator_signal_workflow, topology_runtime,
+    topology_operator_signal_workflow, topology_runtime, NmtTopologyConstruction,
+    NmtTopologyConstructionDenialClass, NmtTopologyConstructionReceipt, NmtTopologyPosture,
+    OpenLayerPattern, OpenLayerStackSpec, OpenRadialFanSpec, OpenSheetPatchSpec, OpenWireChainSpec,
     TopologyAttachBoundaryMembershipDeclaration, TopologyAttachShellOrWireMembershipDeclaration,
     TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
     TopologyConstructionQueryFactKind, TopologyConstructionQueryFactProvenance,
@@ -253,6 +255,7 @@ fn _topology_seed_public_facade_contract(
     let _: fn(usize) -> TopologySeedRecipe = TopologySeed::multi_face_shell;
     let _: fn() -> TopologySeedRecipe = TopologySeed::open_sheet;
     let _: fn() -> TopologySeedRecipe = TopologySeed::open_wire;
+    let _: fn(usize) -> TopologySeedRecipe = TopologySeed::open_shell_nmt_edge_fan;
     let _: fn() -> TopologySeedRecipe = TopologySeed::high_valence_vertex;
     let _: fn() -> TopologySeedRecipe = TopologySeed::self_intersecting_loop;
     let _: fn() -> TopologySeedRecipe = TopologySeed::non_manifold_wire;
@@ -276,6 +279,7 @@ fn _topology_seed_public_facade_contract(
     recipe.build()
 }
 
+include!("nmt_topology_construction.rs");
 include!("query_domain/entry.rs");
 include!("public_api_topology_operator_surface.rs");
 include!("public_api_topology_operator_scalar_surface.rs");
@@ -362,6 +366,8 @@ fn topo_public_traced_boundaries_compile_with_envelope_contracts() {
     let _ = _vocab_live_query_declaration_contract;
     let _ = _vocab_computed_query_declaration_contract;
     _topology_workload_vocabulary_contract();
+    _nmt_topology_construction_public_facade_contract()
+        .expect("NMT topology construction public facade contract");
     let _ = _topology_query_domain_entry_contracts;
     let _ = _topology_operator_surface_contracts;
     let _ = _topology_operator_scalar_surface_contracts;

@@ -77,9 +77,11 @@ fn cause_kind(kind: PlanarBooleanReadinessWorkloadDenialKind) -> WorthUserOutcom
         | PlanarBooleanReadinessWorkloadDenialKind::BooleanExecutionAlreadyPresent => {
             WorthUserOutcomeCauseKind::IntegrityMismatch
         }
+        PlanarBooleanReadinessWorkloadDenialKind::PolicyRequired => {
+            WorthUserOutcomeCauseKind::PolicyRequired
+        }
         PlanarBooleanReadinessWorkloadDenialKind::MissingDeclaration
-        | PlanarBooleanReadinessWorkloadDenialKind::MissingRequiredStage
-        | PlanarBooleanReadinessWorkloadDenialKind::PolicyRequired => {
+        | PlanarBooleanReadinessWorkloadDenialKind::MissingRequiredStage => {
             WorthUserOutcomeCauseKind::MissingEvidence
         }
     }

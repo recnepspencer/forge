@@ -1,15 +1,32 @@
+use forge_query::facade::ForgeQueryDomainOperatingContext;
+
+use crate::bindings::query_native_planar_local_frame::PlanarLocalFrameCertificateQueryDomain;
+use crate::bindings::query_native_planar_overlap::CoplanarOverlapContractQueryDomain;
+use crate::bindings::query_native_planar_precision::PlanarPrecisionCertificationQueryDomain;
+use crate::bindings::query_native_planar_predicate::PlanarPredicateAuthorityQueryDomain;
+use crate::bindings::query_native_planar_projection::ProjectPointToCertifiedPlane2DQueryDomain;
+use crate::bindings::query_native_planar_segment_segment::CertifiedSegmentSegment2DQueryDomain;
+use crate::bindings::query_native_planar_signed_area::CertifiedSignedArea2DQueryDomain;
+use crate::bindings::query_native_planar_winding::CertifiedPolygonWinding2DQueryDomain;
+use crate::workload_platform::certification_context::WorkloadCertificationContext;
 use crate::workload_platform::evidence_ledger::{WorkloadEvidenceRow, WorkloadEvidenceStage};
 use crate::workload_platform::projected_overlap_faces::CoplanarOverlapExtractionBundle;
 
 use super::coplanar_overlap_extractions::{
     extraction_summary, operator_digest, CoplanarOverlapOperatorExtraction,
 };
+use super::coplanar_overlap_receipt::CoplanarOverlapOperatorReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CoplanarOverlapWorkloadOperator {
     consumed_evidence: Vec<WorkloadEvidenceRow>,
     overlap_extractions: Vec<CoplanarOverlapOperatorExtraction>,
+    context_identity: Option<String>,
+    context_projection_identity: Option<String>,
+    context_motion_identity: Option<String>,
+    extraction_bundle_context_identity: Option<String>,
     extraction_bundle_projection_identity: Option<String>,
+    extraction_bundle_motion_identity: Option<String>,
 }
 
 impl CoplanarOverlapWorkloadOperator {
@@ -17,8 +34,34 @@ impl CoplanarOverlapWorkloadOperator {
         Self {
             consumed_evidence: consumed_evidence.to_vec(),
             overlap_extractions: Vec::new(),
+            context_identity: None,
+            context_projection_identity: None,
+            context_motion_identity: None,
+            extraction_bundle_context_identity: None,
             extraction_bundle_projection_identity: None,
+            extraction_bundle_motion_identity: None,
         }
+    }
+
+    pub fn with_certification_context<OC, SC, PC, PRC, WC, AC, PXC, FC>(
+        mut self,
+        context: &WorkloadCertificationContext<'_, OC, SC, PC, PRC, WC, AC, PXC, FC>,
+    ) -> Self
+    where
+        OC: ForgeQueryDomainOperatingContext<CoplanarOverlapContractQueryDomain>,
+        SC: ForgeQueryDomainOperatingContext<CertifiedSegmentSegment2DQueryDomain>,
+        PC: ForgeQueryDomainOperatingContext<PlanarPredicateAuthorityQueryDomain>,
+        PRC: ForgeQueryDomainOperatingContext<ProjectPointToCertifiedPlane2DQueryDomain>,
+        WC: ForgeQueryDomainOperatingContext<CertifiedPolygonWinding2DQueryDomain>,
+        AC: ForgeQueryDomainOperatingContext<CertifiedSignedArea2DQueryDomain>,
+        PXC: ForgeQueryDomainOperatingContext<PlanarPrecisionCertificationQueryDomain>,
+        FC: ForgeQueryDomainOperatingContext<PlanarLocalFrameCertificateQueryDomain>,
+    {
+        self.context_identity = Some(context.context_identity().to_string());
+        self.context_projection_identity = Some(context.projection_stage_identity().to_string());
+        self.context_motion_identity =
+            Some(context.movement_rotation_posture_identity().to_string());
+        self
     }
 
     pub fn with_extraction_bundle(mut self, bundle: &CoplanarOverlapExtractionBundle) -> Self {
@@ -27,8 +70,11 @@ impl CoplanarOverlapWorkloadOperator {
             .iter()
             .map(CoplanarOverlapOperatorExtraction::from_receipt)
             .collect();
+        self.extraction_bundle_context_identity = Some(bundle.context_identity().to_string());
         self.extraction_bundle_projection_identity =
             Some(bundle.projection_stage_identity().to_string());
+        self.extraction_bundle_motion_identity =
+            Some(bundle.movement_rotation_posture_identity().to_string());
         self
     }
 
@@ -57,9 +103,20 @@ impl CoplanarOverlapWorkloadOperator {
             &self.consumed_evidence,
             RequiredOperatorEvidenceStage::RetainedReplay,
         )?;
-        require_extraction_bundle_matches_projection(
-            self.extraction_bundle_projection_identity.as_deref(),
+        require_context_matches_evidence(
+            self.context_identity.as_deref(),
+            self.context_projection_identity.as_deref(),
+            self.context_motion_identity.as_deref(),
             projection,
+            transform,
+        )?;
+        require_extraction_bundle_matches_context(
+            self.extraction_bundle_context_identity.as_deref(),
+            self.extraction_bundle_projection_identity.as_deref(),
+            self.extraction_bundle_motion_identity.as_deref(),
+            self.context_identity.as_deref(),
+            self.context_projection_identity.as_deref(),
+            self.context_motion_identity.as_deref(),
         )?;
         let extraction_summary = extraction_summary(&self.overlap_extractions)?;
         let operator_digest = operator_digest(
@@ -84,83 +141,6 @@ impl CoplanarOverlapWorkloadOperator {
             overlap_policy_required_exits: extraction_summary.policy_required_exits,
             overlap_ambiguous_contacts: extraction_summary.ambiguous_contacts,
         })
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CoplanarOverlapOperatorReceipt {
-    operator_digest: String,
-    consumed_evidence_identities: Vec<String>,
-    overlap_extraction_identities: Vec<String>,
-    operator_input_count: usize,
-    operator_receipt_count: usize,
-    overlap_extraction_receipt_count: usize,
-    overlap_candidate_pair_breadth: usize,
-    overlap_segment_contacts_certified: usize,
-    overlap_shared_intervals: usize,
-    overlap_islands: usize,
-    overlap_containment_relations: usize,
-    overlap_policy_required_exits: usize,
-    overlap_ambiguous_contacts: usize,
-}
-
-impl CoplanarOverlapOperatorReceipt {
-    pub fn operator_digest(&self) -> &str {
-        &self.operator_digest
-    }
-
-    pub fn consumed_evidence_identities(&self) -> &[String] {
-        &self.consumed_evidence_identities
-    }
-
-    pub fn overlap_extraction_identities(&self) -> &[String] {
-        &self.overlap_extraction_identities
-    }
-
-    pub fn operator_input_count(&self) -> usize {
-        self.operator_input_count
-    }
-
-    pub fn operator_receipt_count(&self) -> usize {
-        self.operator_receipt_count
-    }
-
-    pub fn overlap_extraction_receipt_count(&self) -> usize {
-        self.overlap_extraction_receipt_count
-    }
-
-    pub fn overlap_candidate_pair_breadth(&self) -> usize {
-        self.overlap_candidate_pair_breadth
-    }
-
-    pub fn overlap_segment_contacts_certified(&self) -> usize {
-        self.overlap_segment_contacts_certified
-    }
-
-    pub fn overlap_shared_intervals(&self) -> usize {
-        self.overlap_shared_intervals
-    }
-
-    pub fn overlap_islands(&self) -> usize {
-        self.overlap_islands
-    }
-
-    pub fn overlap_containment_relations(&self) -> usize {
-        self.overlap_containment_relations
-    }
-
-    pub fn overlap_policy_required_exits(&self) -> usize {
-        self.overlap_policy_required_exits
-    }
-
-    pub fn overlap_ambiguous_contacts(&self) -> usize {
-        self.overlap_ambiguous_contacts
-    }
-
-    pub fn links_to_stage(&self, stage: WorkloadEvidenceStage) -> bool {
-        self.consumed_evidence_identities
-            .iter()
-            .any(|identity| identity.starts_with(&format!("{stage:?}:")))
     }
 }
 
@@ -210,6 +190,8 @@ pub enum CoplanarOverlapOperatorDenial {
     SyntheticRetainedReplayWorkload,
     MissingOverlapExtractionReceipts,
     SyntheticOverlapExtraction,
+    MissingCertificationContext,
+    MismatchedCertificationContext,
     MismatchedOverlapExtractionBundle,
 }
 
@@ -249,24 +231,57 @@ impl CoplanarOverlapOperatorDenial {
             Self::SyntheticOverlapExtraction => {
                 "coplanar overlap operator requires overlap extraction receipts with candidate pairs and retained overlap facts"
             }
+            Self::MissingCertificationContext => {
+                "coplanar overlap operator requires a workload certification context compiled from the projected workload and transform receipts"
+            }
+            Self::MismatchedCertificationContext => {
+                "coplanar overlap operator requires certification context, projection evidence, movement posture, and extraction bundle to describe the same workload"
+            }
             Self::MismatchedOverlapExtractionBundle => {
-                "coplanar overlap operator requires the overlap extraction bundle to come from the same projected workload evidence"
+                "coplanar overlap operator requires the overlap extraction bundle to be compiled from the same workload certification context"
             }
         }
     }
 }
 
-fn require_extraction_bundle_matches_projection(
-    bundle_projection_identity: Option<&str>,
+fn require_context_matches_evidence(
+    context_identity: Option<&str>,
+    context_projection_identity: Option<&str>,
+    context_motion_identity: Option<&str>,
     projection_identity: &str,
+    transform_identity: &str,
 ) -> Result<(), CoplanarOverlapOperatorDenial> {
-    bundle_projection_identity.map_or(Ok(()), |bundle_projection| {
-        if bundle_projection == projection_identity {
-            Ok(())
-        } else {
-            Err(CoplanarOverlapOperatorDenial::MismatchedOverlapExtractionBundle)
-        }
-    })
+    if context_identity.is_none() {
+        return Err(CoplanarOverlapOperatorDenial::MissingCertificationContext);
+    }
+    if context_projection_identity != Some(projection_identity)
+        || context_motion_identity.is_none()
+        || transform_identity.is_empty()
+    {
+        return Err(CoplanarOverlapOperatorDenial::MismatchedCertificationContext);
+    }
+    Ok(())
+}
+
+fn require_extraction_bundle_matches_context(
+    bundle_context_identity: Option<&str>,
+    bundle_projection_identity: Option<&str>,
+    bundle_motion_identity: Option<&str>,
+    context_identity: Option<&str>,
+    context_projection_identity: Option<&str>,
+    context_motion_identity: Option<&str>,
+) -> Result<(), CoplanarOverlapOperatorDenial> {
+    if bundle_context_identity.is_none() {
+        return Ok(());
+    }
+    if bundle_context_identity == context_identity
+        && bundle_projection_identity == context_projection_identity
+        && bundle_motion_identity == context_motion_identity
+    {
+        Ok(())
+    } else {
+        Err(CoplanarOverlapOperatorDenial::MismatchedOverlapExtractionBundle)
+    }
 }
 
 fn require_honest_stage(

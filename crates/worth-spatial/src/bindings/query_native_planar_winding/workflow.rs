@@ -138,6 +138,7 @@ impl CertifiedPolygonWinding2D {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct CertifiedPolygonWinding2DContracts<WC, SC, PC>
 where
     WC: ForgeQueryDomainOperatingContext<CertifiedPolygonWinding2DQueryDomain>,

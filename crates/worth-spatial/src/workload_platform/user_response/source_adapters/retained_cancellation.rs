@@ -69,7 +69,8 @@ fn retained_cancellation_error_cause(
             WorthUserOutcomeCauseKind::DeniedMovementOrRotation
         }
         RetainedCancellationChainError::ProjectionConsumedFactMismatch { .. }
-        | RetainedCancellationChainError::RetainedReplayMismatch { .. } => {
+        | RetainedCancellationChainError::RetainedReplayMismatch { .. }
+        | RetainedCancellationChainError::CheckpointNotFromPlatformStage { .. } => {
             WorthUserOutcomeCauseKind::IntegrityMismatch
         }
         RetainedCancellationChainError::PolicyRequired { .. } => {

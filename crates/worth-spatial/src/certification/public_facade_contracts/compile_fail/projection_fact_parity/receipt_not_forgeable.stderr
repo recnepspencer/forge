@@ -16,9 +16,9 @@ error[E0624]: associated function `new` is private
   | |_____________- private associated function defined here
 
 error[E0624]: associated function `new` is private
-  --> src/certification/public_facade_contracts/compile_fail/projection_fact_parity/receipt_not_forgeable.rs:12:39
+  --> src/certification/public_facade_contracts/compile_fail/projection_fact_parity/receipt_not_forgeable.rs:13:39
    |
-12 |           ProjectionFactParityCounters::new(0, 0, 0, 0),
+13 |           ProjectionFactParityCounters::new(0, 0, 0, 0),
    |                                         ^^^ private associated function
    |
   ::: src/workload_platform/projection_fact_parity/counters.rs

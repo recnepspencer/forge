@@ -6,7 +6,10 @@ use subject::{
     dirty_clean_fail_outcome_matrix, dirty_clean_fail_rejects_foreign_boundary_response,
     dirty_clean_fail_rejects_wrong_user_response, dirty_clean_fail_subject_matrix,
     dirty_clean_fail_with_topology_seed, dirty_transform_pressure_subject,
-    stable_identity_mismatch_outcome,
+    mismatched_dirty_kind_subject, stable_identity_mismatch_outcome,
+};
+use worth_spatial::facade::blocker_provenance::{
+    WorkloadBlockerBoundaryKind, WorkloadBlockerSourceKind,
 };
 use worth_spatial::facade::dirty_planar_clean_fail::{
     DirtyPlanarCleanFailCase, DirtyPlanarCleanFailError,
@@ -128,6 +131,36 @@ fn mb_m6_5_stable_topology_identity_cannot_hide_dirty_geometry() {
         .summary()
         .contains("stable topology identity cannot hide dirty geometry"));
     assert_human_readable(outcome.human_response().summary());
+}
+
+#[test]
+fn mb_m6_5_dirty_topology_kind_must_match_clean_fail_boundary_kind() {
+    let subject = mismatched_dirty_kind_subject("mb-m6-5-kind-mismatch");
+    let outcome = subject.user_outcome;
+
+    assert_branch(
+        &outcome,
+        WorthUserOutcomeKind::IntegrityMismatch,
+        WorthUserOutcomeCauseKind::IntegrityMismatch,
+    );
+    assert!(outcome
+        .human_response()
+        .summary()
+        .contains("dirty topology is self-intersecting loop"));
+    assert!(outcome
+        .human_response()
+        .summary()
+        .contains("clean-fail boundary reported non-manifold wire"));
+    assert_human_readable(outcome.human_response().summary());
+    assert_eq!(
+        subject.provenance.source_kind(),
+        WorkloadBlockerSourceKind::DirtyTopology
+    );
+    assert_eq!(
+        subject.provenance.boundary_kind(),
+        WorkloadBlockerBoundaryKind::CleanFailBoundary
+    );
+    assert!(!subject.provenance.provenance_digest().is_empty());
 }
 
 #[test]

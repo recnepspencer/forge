@@ -8,6 +8,7 @@ fn main() {
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
         Vec::new(),
         ProjectionFactParityCounters::new(0, 0, 0, 0),
     );

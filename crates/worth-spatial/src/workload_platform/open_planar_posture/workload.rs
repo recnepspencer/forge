@@ -77,7 +77,7 @@ impl OpenPlanarPostureWorkload {
             .unsupported_surface
             .as_ref()
             .ok_or(OpenPlanarPostureError::MissingUnsupportedSurfaceSupport)?;
-        evidence_guard::require_unsupported_surface(unsupported_surface)?;
+        evidence_guard::require_unsupported_surface(unsupported_surface, topology)?;
         let unsupported_surface_identity = unsupported_surface_identity(unsupported_surface)?;
         let clean_fail_boundary = self
             .clean_fail_boundary
@@ -115,7 +115,7 @@ impl OpenPlanarPostureWorkload {
             .unsupported_surface
             .as_ref()
             .ok_or(OpenPlanarPostureError::MissingUnsupportedSurfaceSupport)?;
-        evidence_guard::require_unsupported_surface(unsupported_surface)?;
+        evidence_guard::require_unsupported_surface(unsupported_surface, topology)?;
         let clean_fail_boundary = self
             .clean_fail_boundary
             .as_ref()

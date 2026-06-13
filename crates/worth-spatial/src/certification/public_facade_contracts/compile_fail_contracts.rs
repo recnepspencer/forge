@@ -186,6 +186,30 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/projection_workload/projection_consumption_receipt_not_forgeable.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/workload_certification_context/context_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/workload_certification_context/raw_strings_do_not_build_context.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/workload_certification_context/loose_projected_overlap_contracts_not_public.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/workload_certification_context/raw_motion_adversary_string_not_accepted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/nmt_certification_context/context_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/nmt_certification_context/projection_receipt_not_from_raw_coordinates.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/nmt_certification_context/retained_receipt_not_from_aggregate_replay.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/nmt_certification_context/boss_closeout_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/transform_workload/transformed_workload_not_forgeable.rs"
     ));
     t.compile_fail(format!(
@@ -219,6 +243,27 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/coplanar_overlap_storm/storm_receipt_not_forgeable.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/projected_overlap_faces/certified_face_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/projected_overlap_faces/certified_pair_not_from_raw_coordinates.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/projected_overlap_faces/candidate_pair_snapshot_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/projected_overlap_faces/bridge_authority_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/blocker_provenance/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/blocker_provenance/generic_unsupported_surface_provenance_not_public.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/projection_policy_choice/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/high_valence_singularity/receipt_not_forgeable.rs"
     ));
     t.compile_fail(format!(
@@ -238,5 +283,8 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/boolean_readiness_workload/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/grazing_basket_stack/receipt_not_forgeable.rs"
     ));
 }

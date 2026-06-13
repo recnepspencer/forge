@@ -31,6 +31,7 @@ pub enum ThinFeatureScaleSeparationWorkloadError {
     MissingSurfaceSupportEvidence,
     MissingPrecisionEvidence,
     MissingLocalFrameEvidence,
+    MissingPlatformProjectionEvidence,
     MissingProjectionEvidence,
     MissingProjectionConsumedBasis,
     MissingTransformEvidence,
@@ -62,6 +63,9 @@ impl ThinFeatureScaleSeparationWorkloadError {
             }
             Self::MissingLocalFrameEvidence => {
                 "thin-feature scale separation requires a local-frame receipt tied to the precision receipt".to_string()
+            }
+            Self::MissingPlatformProjectionEvidence => {
+                "thin-feature scale separation requires the workload catalog projection receipt that produced the platform evidence".to_string()
             }
             Self::MissingProjectionEvidence => {
                 "thin-feature scale separation requires projected topology evidence with a local basis".to_string()
