@@ -74,6 +74,10 @@ impl WorthUiRuntimeDependencyHook {
         &self.query_capability
     }
 
+    pub(crate) fn query_composition_profile_digest(&self) -> &str {
+        &self.query_composition_profile_digest
+    }
+
     pub(crate) fn view_shape(&self) -> &ViewShapeDescriptor {
         &self.view_shape
     }

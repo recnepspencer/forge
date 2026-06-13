@@ -1,0 +1,19 @@
+error[E0451]: fields `plan_index` and `plan_generation` of struct `WorthUiComponentHandle` are private
+ --> tests/ui/runtime_authority/fail/stale_runtime_handle_cannot_replace_fresh_plan_receipt.rs:8:9
+  |
+7 |     let old_handle = WorthUiComponentHandle {
+  |                      ---------------------- in this type
+8 |         plan_index: 0,
+  |         ^^^^^^^^^^ private field
+9 |         plan_generation: generation,
+  |         ^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `basis_digest` and `plan_generation` of struct `WorthUiRuntimeHandleAllocationReceipt` are private
+  --> tests/ui/runtime_authority/fail/stale_runtime_handle_cannot_replace_fresh_plan_receipt.rs:12:9
+   |
+11 |     let _receipt = WorthUiRuntimeHandleAllocationReceipt {
+   |                    ------------------------------------- in this type
+12 |         basis_digest: 2,
+   |         ^^^^^^^^^^^^ private field
+13 |         plan_generation: old_handle.plan_generation(),
+   |         ^^^^^^^^^^^^^^^ private field

@@ -1,7 +1,7 @@
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactDifference, WorthUiArtifactDigestor,
     WorthUiArtifactEquivalence, WorthUiArtifactEquivalenceBasis, WorthUiArtifactEquivalenceMetrics,
-    WorthUiArtifactNodeKind,
+    WorthUiArtifactNode, WorthUiArtifactSemanticDelta,
 };
 
 use super::worth_ui_artifact_semantic_basis::node_semantic_basis;
@@ -88,7 +88,8 @@ fn first_difference(
                 return Some(WorthUiArtifactDifference::NodeSemanticMismatch {
                     module_id: left_module_id.as_str().to_owned(),
                     node_index,
-                    node_kind: semantic_node_kind(left_kind),
+                    node_kind: left_kind,
+                    semantic_delta: semantic_delta(left_node, right_node),
                     left_semantic_basis: left_basis,
                     right_semantic_basis: right_basis,
                 });
@@ -99,6 +100,27 @@ fn first_difference(
     None
 }
 
-fn semantic_node_kind(kind: WorthUiArtifactNodeKind) -> WorthUiArtifactNodeKind {
-    kind
+fn semantic_delta(
+    left_node: &WorthUiArtifactNode,
+    right_node: &WorthUiArtifactNode,
+) -> WorthUiArtifactSemanticDelta {
+    match (left_node, right_node) {
+        (WorthUiArtifactNode::Surface(left), WorthUiArtifactNode::Surface(right)) => {
+            let placement_changed =
+                left.descriptor().placement_class() != right.descriptor().placement_class();
+            let command_slots_changed =
+                left.descriptor().command_slots() != right.descriptor().command_slots();
+
+            if placement_changed && command_slots_changed {
+                WorthUiArtifactSemanticDelta::SurfacePlacementAndCommandSlotsChanged
+            } else if placement_changed {
+                WorthUiArtifactSemanticDelta::SurfacePlacementClassChanged
+            } else if command_slots_changed {
+                WorthUiArtifactSemanticDelta::SurfaceCommandSlotsChanged
+            } else {
+                WorthUiArtifactSemanticDelta::Other
+            }
+        }
+        _ => WorthUiArtifactSemanticDelta::Other,
+    }
 }

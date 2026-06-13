@@ -24,6 +24,16 @@ help: you might have meant to use an associated function to build this type
 11 -         digest: digest(),
 12 -         metrics: metrics(),
 13 -     };
+ 6 +     let _ = CapabilitySnapshot::from_freeze_parts(_, _, _, _, _);
+   |
+ 6 -     let _ = CapabilitySnapshot {
+ 7 -         registered_capabilities: RegisteredCapabilitySet {
+ 8 -             registered_family_count: 0,
+ 9 -             total_width: 0,
+10 -         },
+11 -         digest: digest(),
+12 -         metrics: metrics(),
+13 -     };
  6 +     let _ = CapabilitySnapshot::from_registered_capabilities(_);
    |
  6 -     let _ = CapabilitySnapshot {
@@ -45,15 +55,5 @@ help: you might have meant to use an associated function to build this type
 12 -         metrics: metrics(),
 13 -     };
  6 +     let _ = CapabilitySnapshot::from_registered_capabilities_commands_and_components(_, _, _);
-   |
- 6 -     let _ = CapabilitySnapshot {
- 7 -         registered_capabilities: RegisteredCapabilitySet {
- 8 -             registered_family_count: 0,
- 9 -             total_width: 0,
-10 -         },
-11 -         digest: digest(),
-12 -         metrics: metrics(),
-13 -     };
- 6 +     let _ = CapabilitySnapshot::from_registered_capabilities_commands_command_projections_and_components(_, _, _, _);
    |
    = and 8 other candidates

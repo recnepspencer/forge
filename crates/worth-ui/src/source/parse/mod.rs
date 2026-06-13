@@ -5,6 +5,7 @@ mod worth_ui_parse_report;
 mod worth_ui_parsed_source_module;
 mod worth_ui_parsed_source_package;
 mod worth_ui_source_parser;
+mod worth_ui_source_parser_expectations;
 mod worth_ui_source_span;
 mod worth_ui_source_token;
 mod worth_ui_source_token_stream;

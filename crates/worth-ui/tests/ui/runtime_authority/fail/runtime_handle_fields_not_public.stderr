@@ -1,0 +1,11 @@
+error[E0451]: fields `family`, `plan_index` and `plan_generation` of struct `WorthUiRuntimeHandle` are private
+  --> tests/ui/runtime_authority/fail/runtime_handle_fields_not_public.rs:8:9
+   |
+ 7 |     let _handle = WorthUiRuntimeHandle {
+   |                   -------------------- in this type
+ 8 |         family: WorthUiPlanNodeInputFamily::ComponentInvocation,
+   |         ^^^^^^ private field
+ 9 |         plan_index: 0,
+   |         ^^^^^^^^^^ private field
+10 |         plan_generation: generation,
+   |         ^^^^^^^^^^^^^^^ private field

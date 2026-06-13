@@ -116,6 +116,11 @@ default.
 - Forge Foundational performance surfaces are boundary vocabulary and proof
   envelopes for Worth UI evidence; they are not the Worth UI frame runtime,
   counter store, lane executor, or plan topology.
+- Extension hooks are allowed only where this milestone names an admission
+  boundary; hooks may contribute source ingress, state-family rules, identity
+  seeds, component lowering, lane adapters, diagnostics presentation, counters,
+  or report materialization, but they cannot own active plan truth, Query
+  posture, state carry-forward, lane taxonomy, or performance certification.
 
 ## Hostile Test Design Rule
 
@@ -152,6 +157,10 @@ diagnostics references.
 - `WorthUiActiveExecutionPlan`
 - `WorthUiLastValidRuntimeState`
 - `WorthUiRuntimeActivationStatus`
+- `WorthUiRuntimeLifecycle`
+- `WorthUiRuntimeFrameEpoch`
+- `WorthUiPendingActivation`
+- `WorthUiRuntimeShutdownReceipt`
 
 **Warnings**
 
@@ -159,6 +168,8 @@ diagnostics references.
 - Do not collapse active artifact, active plan, and diagnostics into one mutable
   runtime object.
 - Do not make last-valid preservation an error-handler side effect.
+- Do not let lifecycle hooks mutate active plan state outside startup, pending
+  activation, safe-frame swap, pause, resume, or shutdown phases.
 
 **Test requirements**
 
@@ -172,6 +183,8 @@ diagnostics references.
   a preservation point before any candidate can replace it.
 - `active_state_rejects_forged_last_valid_receipt`: a forged or stale
   last-valid preservation receipt cannot be installed as active runtime truth.
+- `frame_epoch_mismatch_rejects_pending_activation`: a pending activation tied
+  to an older frame epoch cannot swap into a newer active runtime state.
 
 **Engineering decisions**
 
@@ -181,6 +194,9 @@ diagnostics references.
   inside diagnostics.
 - Active runtime status is structured enough for later diagnostics projection
   without becoming the diagnostics surface itself.
+- Runtime lifecycle covers startup, pause/resume around replacement,
+  safe-frame activation, shutdown, and failed-activation recovery without
+  granting app code direct active-plan mutation.
 
 **Open questions**
 
@@ -367,12 +383,19 @@ broad replacement, lane-affecting replacement, and unsupported impact.
 - `WorthUiReplacementScope`
 - `WorthUiLaneImpactClassification`
 - `WorthUiUnsupportedReplacementImpact`
+- `WorthUiCommandImpact`
+- `WorthUiTokenThemeImpact`
+- `WorthUiAccessibilityImpact`
+- `WorthUiRendererResourceImpact`
 
 **Warnings**
 
 - Do not let every semantic change imply a full runtime replacement by default.
 - Do not classify lane-affecting changes as local subtree edits.
 - Do not let broad replacement silently drop durable state without receipts.
+- Do not ignore non-tree impacts: command bindings, token/theme references,
+  accessibility metadata, renderer resources, diagnostics policy, Query
+  bindings, and durable state families all need named impact posture.
 
 **Test requirements**
 
@@ -385,6 +408,9 @@ broad replacement, lane-affecting replacement, and unsupported impact.
 - `broad_replacement_without_state_drop_receipts_rejected`: a broad replacement
   cannot proceed unless every affected durable state family has explicit
   preserve, replace, drop, or create evidence.
+- `theme_or_command_only_change_does_not_force_full_tree_replacement`:
+  command-binding and token/theme changes classify to their narrowest honest
+  impact rather than defaulting to broad replacement.
 
 **Engineering decisions**
 
@@ -393,6 +419,9 @@ broad replacement, lane-affecting replacement, and unsupported impact.
 - Lane-affecting replacement is admitted only when later lane parity and state
   replacement rules can prove safe semantics.
 - Broad replacement is allowed, but it must be explicit and receipt-backed.
+- Unsupported impact classes are named denials, including unsupported lane,
+  Query posture, state family, source cause, capability snapshot, renderer
+  resource, and plan-node family.
 
 **Open questions**
 
@@ -417,6 +446,10 @@ modules, bindings, and lanes are affected.
 - `WorthUiRuntimeImpactNarrowing`
 - `WorthUiArtifactSubtreeDigest`
 - `WorthUiImpactLookupCounters`
+- `WorthUiCommandBindingInvalidation`
+- `WorthUiTokenInvalidation`
+- `WorthUiAccessibilityInvalidation`
+- `WorthUiRendererResourceInvalidation`
 - Forge Query `Aspects And Authority Lanes`
 - Forge Query `Signal Compatibility And Continuation`
 - Forge Query `Region-Scoped Live Invalidation And Stream Contracts`
@@ -430,6 +463,9 @@ modules, bindings, and lanes are affected.
   metadata already states the relationship.
 - Do not collapse UI artifact dependency truth with Query/signal dependency
   truth.
+- Do not treat affected source modules, artifact subtrees, command bindings,
+  tokens/themes, accessibility refs, Query bindings, state families, lane
+  assignments, and renderer resources as one undifferentiated invalidation set.
 
 **Test requirements**
 
@@ -445,6 +481,9 @@ modules, bindings, and lanes are affected.
 - `query_bound_change_cannot_be_narrowed_by_ui_subtree_only`: a Query-bound
   artifact change is rejected when impact narrowing ignores Query-owned
   invalidation or live-view linkage.
+- `renderer_resource_change_cannot_broaden_unrelated_widget_subtrees`:
+  renderer-resource invalidation narrows to admitted canvas/real-time lane
+  surfaces instead of rebuilding unrelated ordinary widgets.
 
 **Engineering decisions**
 
@@ -453,6 +492,9 @@ modules, bindings, and lanes are affected.
 - Narrowing counters are emitted as proof evidence because this phase directly
   protects the hot iteration experience.
 - Query-owned dependency or invalidation posture is referenced, not rebuilt.
+- Dependency narrowing may consume custom source-provider metadata only after
+  it has been lowered into the same candidate/dependency envelope as ordinary
+  file-authored source.
 
 **Open questions**
 
@@ -476,6 +518,9 @@ identity before any durable state can be considered for carry-forward.
 - `WorthUiIdentityMatchNode`
 - `WorthUiArtifactIdentitySeed`
 - `WorthUiIdentityMatchReport`
+- `WorthUiIdentitySeedContribution`
+- `WorthUiRepeatedTemplateIdentity`
+- `WorthUiMovedNodeIdentity`
 
 **Warnings**
 
@@ -483,6 +528,8 @@ identity before any durable state can be considered for carry-forward.
   geometry.
 - Do not allow multiple candidate nodes to claim the same active durable state.
 - Do not preserve state before identity matching has produced typed evidence.
+- Do not let components override match results; component hooks may contribute
+  identity seeds, but the runtime owns matching and ambiguity denial.
 
 **Test requirements**
 
@@ -495,6 +542,12 @@ identity before any durable state can be considered for carry-forward.
 - `same_label_same_component_different_identity_does_not_preserve_state`: two
   visually similar nodes cannot match merely because label and component family
   are equal.
+- `repeated_template_items_preserve_only_keyed_identity`: repeated or templated
+  nodes preserve identity only through stable item keys and template identity,
+  not through list position.
+- `moved_node_identity_survives_parent_or_region_change_when_seed_is_stable`:
+  a node moved between regions can match only when stable identity and movement
+  posture prove it is the same runtime entity.
 
 **Engineering decisions**
 
@@ -503,6 +556,8 @@ identity before any durable state can be considered for carry-forward.
 - Match graph construction produces proof for later replacement and
   reconciliation phases.
 - Ambiguous identity is a denial candidate, not a best-effort warning.
+- Identity seed contribution is the narrow hook for special components; it is
+  admitted before matching and cannot directly preserve state.
 
 **Open questions**
 
@@ -577,6 +632,9 @@ ownership, eligibility, persistence, replacement, and lane constraints.
 - `WorthUiDurableStateInventory`
 - `WorthUiDurableStateEligibility`
 - `WorthUiStateOwnershipClass`
+- `WorthUiDurableStateFamilyHook`
+- `WorthUiTransientInteractionState`
+- `WorthUiStatePersistencePosture`
 
 **Warnings**
 
@@ -584,6 +642,9 @@ ownership, eligibility, persistence, replacement, and lane constraints.
 - Do not treat durable UI state as authoritative domain truth.
 - Do not collapse focus, scroll, selection, text input, splitter, tab, and panel
   visibility state into one generic state bag.
+- Do not preserve hover, pressed, drag capture, pointer capture, animation tick,
+  or in-flight gesture state unless a state-family hook explicitly admits a
+  bounded transient restoration rule.
 
 **Test requirements**
 
@@ -597,6 +658,9 @@ ownership, eligibility, persistence, replacement, and lane constraints.
 - `durable_state_family_without_replacement_policy_cannot_be_registered`:
   state families must declare preserve/drop/replace behavior before they can
   participate in reload.
+- `transient_interaction_state_defaults_to_drop`: hover, pressed, capture,
+  drag, animation, and gesture state drop by default unless an admitted family
+  rule proves safe bounded restoration.
 
 **Engineering decisions**
 
@@ -605,6 +669,10 @@ ownership, eligibility, persistence, replacement, and lane constraints.
 - State families carry explicit owner identity and replacement rules.
 - Persistence posture is recorded but full persistence belongs to the later
   settings/project/workspace milestone.
+- M3 explicitly supports focus chain, scroll anchors, selection ranges, text
+  editing buffers, splitter positions, tab state, panel visibility, and
+  bounded custom state families; domain truth and open-ended widget bags are
+  rejected.
 
 **Open questions**
 
@@ -629,6 +697,10 @@ admitted replacements.
 - `WorthUiDurableStateCarryForward`
 - `WorthUiDurableStateReplacement`
 - `WorthUiDurableStateReconciliationReceipt`
+- `WorthUiFocusChainReconciliation`
+- `WorthUiScrollAnchorReconciliation`
+- `WorthUiSelectionRangeReconciliation`
+- `WorthUiTextEditStateReconciliation`
 
 **Warnings**
 
@@ -637,6 +709,8 @@ admitted replacements.
 - Do not apply one generic carry-forward rule to state families with different
   failure modes.
 - Do not let dropped nodes leave orphan state.
+- Do not preserve drag/capture/gesture state through a reload by default; most
+  pointer-derived state is intentionally transient.
 
 **Test requirements**
 
@@ -651,6 +725,11 @@ admitted replacements.
 - `orphan_state_removed_after_node_drop`: dropped nodes leave no focus, scroll,
   selection, text, splitter, tab, or visibility state residue in active runtime
   state.
+- `scroll_anchor_survives_reorder_only_with_stable_target_identity`: scroll
+  preservation follows admitted anchor identity, not numeric offset alone.
+- `selection_range_rejected_when_backing_collection_identity_changes`:
+  selection state does not survive when the selected item basis changed without
+  an admitted Query or component selection posture.
 
 **Engineering decisions**
 
@@ -660,6 +739,8 @@ admitted replacements.
   visible.
 - State carry-forward counters are required so hostile reload certification can
   detect accidental blanket preservation or blanket loss.
+- Custom state-family reconciliation hooks can only choose among preserve,
+  replace, drop, or recreate outcomes declared by the family inventory.
 
 **Open questions**
 
@@ -858,6 +939,9 @@ unproven artifact state.
 - `WorthUiPlanLoweringContext`
 - `WorthUiPlanLoweringBasis`
 - `WorthUiPlanLoweringDenial`
+- `WorthUiPlanNodeInput`
+- `WorthUiComponentLoweringHook`
+- `WorthUiEguiBoundaryInput`
 - Forge Query typed binding/resolver artifacts carried by Query-bound plan
   inputs
 - Forge Query projection-consumption receipts carried by Query-bound plan inputs
@@ -871,6 +955,8 @@ unproven artifact state.
   lowering time.
 - Do not accept canonical artifacts without staged replacement proof when the
   plan is intended for active runtime replacement.
+- Do not let component lowering hooks emit arbitrary executable nodes; they
+  lower into admitted plan-node families and denial types.
 
 **Test requirements**
 
@@ -884,6 +970,9 @@ unproven artifact state.
 - `plan_lowering_rejects_candidate_missing_activation_readiness`: a candidate
   cannot enter plan lowering with only an admitted artifact and no activation
   readiness bundle.
+- `component_lowering_hook_cannot_emit_unregistered_plan_node_family`: custom
+  component lowering fails when it tries to branch outside the admitted M3 plan
+  node families.
 
 **Engineering decisions**
 
@@ -893,6 +982,10 @@ unproven artifact state.
   capability resolution.
 - Replacement context is carried because plan output must preserve activation
   and reconciliation evidence.
+- M3 plan input admits component invocation, child ranges, command handles,
+  token/style handles, layout region handles, Query/view handles,
+  accessibility handles, diagnostic refs, lane partition refs, egui boundary
+  refs, and render-resource refs.
 
 **Open questions**
 
@@ -972,6 +1065,9 @@ tables.
 - `WorthUiPlanTopology`
 - `WorthUiPlanLanePartition`
 - `WorthUiPlanLookupIndex`
+- `WorthUiPlanNodeFamily`
+- `WorthUiEguiPlanBoundary`
+- `WorthUiRenderResourceRef`
 
 **Warnings**
 
@@ -979,6 +1075,9 @@ tables.
   trees.
 - Do not collapse lane partitioning into renderer-time branches.
 - Do not make plan-local lookup tables mutable from app code.
+- Do not hide egui integration as ambient access; `Context`, `Ui`, `Response`,
+  `Id`, input, layout allocation, paint submission, memory/state bridge, and
+  frame timing contact must be represented as plan or lane boundary inputs.
 
 **Test requirements**
 
@@ -992,6 +1091,9 @@ tables.
   canonical artifact tree.
 - `plan_topology_rejects_orphaned_child_range_handles`: child range handles that
   point outside the assembled topology fail before activation.
+- `egui_boundary_contact_is_plan_declared_not_ambient`: plan topology rejects
+  nodes that require egui context, input, memory, paint, or frame timing access
+  without an admitted egui boundary declaration.
 
 **Engineering decisions**
 
@@ -1000,6 +1102,8 @@ tables.
 - Lane partitioning is assembled before activation so lane execution is not a
   speculative frame-time decision.
 - Plan-local lookup indexes are private mechanics with counters for proof.
+- The egui boundary is a lower runtime contact surface, not Worth UI semantic
+  authority; it must remain typed enough for frame-cost and diagnostics proof.
 
 **Open questions**
 
@@ -1115,11 +1219,12 @@ lowering produced execution-plan nodes.
 
 - None.
 
-### Phase 19: Execution Lane Taxonomy Boundary
+### Phase 19: Execution Lane Taxonomy And Hook Admission Boundary
 
-Freeze the execution lane taxonomy and support posture for ordinary widget and
-shell surfaces, virtualized data surfaces, canvas/spatial surfaces, and
-real-time overlay/HUD surfaces.
+Freeze the execution lane taxonomy, support posture, and admitted hook points
+for ordinary widget and shell surfaces, virtualized data surfaces,
+canvas/spatial surfaces, real-time overlay/HUD surfaces, and typed special-case
+extensions.
 
 **Relevant subsystems**
 
@@ -1127,6 +1232,7 @@ real-time overlay/HUD surfaces.
 - lane support posture
 - lane admission
 - lane diagnostics
+- hook admission
 
 **Relevant APIs**
 
@@ -1134,6 +1240,9 @@ real-time overlay/HUD surfaces.
 - `WorthUiExecutionLaneSupport`
 - `WorthUiLaneAdmission`
 - `WorthUiLaneSupportDiagnostic`
+- `WorthUiExtensionHookAdmission`
+- `WorthUiLaneAdapterHook`
+- `WorthUiUnsupportedHookDenial`
 - Forge Query `Support Matrix And Admission`
 - Forge Query `Query Operating Modes`
 - Forge Query runtime-backed support rows for Query-bound lane inputs
@@ -1143,6 +1252,8 @@ real-time overlay/HUD surfaces.
 - Do not make lanes visual categories; they are cost and failure-mode regimes.
 - Do not let every custom component invent a private lane.
 - Do not treat unsupported lane posture as a renderer fallback.
+- Do not call hook admission an escape hatch unless it produces typed inputs,
+  denials, receipts, and counters required by the phase it extends.
 
 **Test requirements**
 
@@ -1155,6 +1266,12 @@ real-time overlay/HUD surfaces.
 - `private_component_lane_claim_rejected_without_lane_support`: component
   descriptors cannot smuggle a new execution lane through a string or custom
   tag.
+- `hook_admission_rejects_active_plan_or_query_authority_override`: hooks that
+  try to own active plan truth, Query posture, state carry-forward, lane
+  taxonomy, or performance certification fail before activation.
+- `admitted_lane_adapter_hook_preserves_lane_counter_contract`: a custom lane
+  adapter can branch mechanics only while preserving lane support posture,
+  forbidden-work counters, and certification receipts.
 
 **Engineering decisions**
 
@@ -1162,6 +1279,11 @@ real-time overlay/HUD surfaces.
 - Lanes specialize mechanics and counters, not canonical UI meaning.
 - Lane support posture is machine-checkable because later component and shell
   work depends on it.
+- Supported hooks in M3 are source ingress, debounce policy, identity seed
+  contribution, durable state-family admission, component lowering, lane
+  adapter mechanics, canvas/spatial draw and hit-test, real-time overlay
+  mechanics, diagnostics projection, counter families, and report
+  materialization.
 
 **Open questions**
 
@@ -1300,6 +1422,9 @@ scene renderer.
 - `WorthUiSpatialHitTestPlan`
 - `WorthUiCanvasOverlayPlan`
 - `WorthUiCanvasSpatialFrameReceipt`
+- `WorthUiCanvasDrawHook`
+- `WorthUiSpatialHitTestHook`
+- `WorthUiSpatialToolStateHook`
 - Forge Query `Graph Composition Authoring`
 - Forge Query `Structural Correspondence And Historical Materialization`
 - Forge Query `Projection Consumption`
@@ -1316,6 +1441,8 @@ scene renderer.
   diagnostics posture.
 - Do not make Worth UI the owner of volatile scene truth or domain geometry
   authority.
+- Do not allow draw or hit-test hooks to read arbitrary domain geometry or
+  renderer internals outside admitted lane inputs.
 
 **Test requirements**
 
@@ -1330,6 +1457,10 @@ scene renderer.
 - `canvas_hit_test_cannot_read_domain_geometry_truth_directly`: hit-test
   execution must consume admitted lane/tool inputs and cannot bypass Query or
   domain authority by fishing in lower truth state.
+- `custom_canvas_draw_hook_preserves_platform_identity_and_counters`: custom
+  draw mechanics can attach only through admitted lane inputs and must produce
+  frame receipts that preserve command, selection, diagnostics, and cost
+  accounting.
 
 **Engineering decisions**
 
@@ -1339,6 +1470,8 @@ scene renderer.
   posture, command integration, and counters.
 - Domain geometry, scene renderer internals, and authoritative spatial truth
   remain outside Worth UI authority.
+- Canvas/spatial hooks are intentionally narrow: draw, hit-test, overlay, and
+  tool-state mechanics, never scene truth ownership.
 
 **Open questions**
 
@@ -1364,6 +1497,9 @@ identity, command, diagnostics, and frame-cost accounting.
 - `WorthUiRendererSurfaceHandle`
 - `WorthUiRealtimeFrameReceipt`
 - `WorthUiRealtimeLaneCounters`
+- `WorthUiRealtimeOverlayHook`
+- `WorthUiRendererSurfaceAdmission`
+- `WorthUiHighFrequencyFramePolicy`
 
 **Warnings**
 
@@ -1371,6 +1507,8 @@ identity, command, diagnostics, and frame-cost accounting.
 - Do not let renderer-facing handles become untracked native integration
   backdoors.
 - Do not allow high-frequency surfaces to skip diagnostics and cost receipts.
+- Do not let real-time hooks opt out of identity, command, accessibility, or
+  diagnostics posture just because they are high frequency.
 
 **Test requirements**
 
@@ -1383,6 +1521,9 @@ identity, command, diagnostics, and frame-cost accounting.
 - `realtime_lane_counter_detects_hidden_ordinary_layout_pass`: real-time lane
   certification fails if overlay execution secretly performs ordinary layout
   traversal.
+- `custom_realtime_hook_cannot_suppress_forbidden_work_counters`: a real-time
+  overlay hook cannot hide source parsing, registry lookup, ordinary layout,
+  allocation, or diagnostic materialization counters.
 
 **Engineering decisions**
 
@@ -1390,6 +1531,8 @@ identity, command, diagnostics, and frame-cost accounting.
   because Worth UI targets simulation, visualization, and high-frequency tools.
 - This lane owns UI-facing execution contracts, not full renderer ownership.
 - Real-time cost counters must be separate from ordinary lane counters.
+- Renderer-facing surface admission is allowed only as a typed handoff with
+  frame policy, handle identity, and certification evidence.
 
 **Open questions**
 
@@ -1628,6 +1771,9 @@ lane admission, activation, and swap failure.
 - `WorthUiPlanDiagnostic`
 - `WorthUiDiagnosticRichnessPolicy`
 - `WorthUiRuntimeDiagnosticReport`
+- `WorthUiDiagnosticRichnessTier`
+- `WorthUiSupportReportPolicy`
+- `WorthUiDiagnosticProjectionHook`
 - Forge Query `Inspection`
 - Forge Query `Cross-Runtime Causal Inspection`
 - Forge Query `Projection Consumption`
@@ -1642,6 +1788,8 @@ lane admission, activation, and swap failure.
 - Do not let richer diagnostics change active artifact, active plan, or digest.
 - Do not put diagnostics construction on the steady frame path unless policy
   explicitly admits it.
+- Do not let custom diagnostics projection create new runtime truth or
+  substitute for typed phase diagnostics.
 
 **Test requirements**
 
@@ -1655,6 +1803,9 @@ lane admission, activation, and swap failure.
 - `diagnostics_never_depend_on_error_message_substrings`: diagnostic assertions
   use typed codes, identities, receipts, and stop classes rather than
   presentation wording.
+- `diagnostic_richness_tiers_gate_report_materialization`: off, minimal,
+  standard, full, and support tiers deterministically decide which diagnostic
+  and Foundational report sections may materialize.
 
 **Engineering decisions**
 
@@ -1663,6 +1814,8 @@ lane admission, activation, and swap failure.
   inspection where applicable.
 - Diagnostic richness is policy-selected and separate from active plan
   semantics.
+- Diagnostics tiers are `off`, `minimal`, `standard`, `full`, and `support`;
+  only `full` and `support` may request rich support expansion by default.
 
 **Open questions**
 
@@ -1687,6 +1840,7 @@ diagnostics model in app code.
 - `WorthUiReloadStatusSurface`
 - `WorthUiPlanInspectionSurface`
 - `WorthUiFrameCostSurface`
+- `WorthUiDiagnosticsProjectionHook`
 - Forge Foundational `performance_api::lower_lane::reports`
 - Forge Foundational `plan_performance_report`
 - Forge Foundational `FoundationalPerformanceReportRequest`
@@ -1703,6 +1857,8 @@ diagnostics model in app code.
 - Do not make the diagnostics UI authoritative.
 - Do not require apps to scrape logs or inspect private runtime state.
 - Do not let diagnostics projection become a hidden imperative editing runtime.
+- Do not let projection hooks invent Query status rows, performance rows, or
+  reload facts not present in typed runtime diagnostics.
 
 **Test requirements**
 
@@ -1723,6 +1879,9 @@ diagnostics model in app code.
   of the hot iteration product loop.
 - The projection consumes runtime diagnostic reports and plan/frame receipts.
 - Later tooling can build richer inspectors over this same projection contract.
+- Projection hooks choose presentation shape only; they cannot change
+  diagnostic identity, ordering, severity, Query posture, or performance
+  materialization boundaries.
 
 **Open questions**
 
@@ -1747,12 +1906,21 @@ candidate pipeline.
 - `WorthUiReloadDebounce`
 - `WorthUiWatchedArtifactInput`
 - `WorthUiWatcherEvent`
+- `WorthUiSourceProvider`
+- `WorthUiSourceIngressHook`
+- `WorthUiSourcePackageRevision`
+- `WorthUiCandidateOrderingReceipt`
 
 **Warnings**
 
 - Do not let the watcher own reload semantics.
 - Do not treat filesystem events as authoritative dependency impact.
 - Do not run source parsing, validation, or plan swap on the frame path.
+- Do not assume the filesystem is the only source ingress; editor buffers,
+  generated source, test harnesses, and Rust-authored artifact inputs must enter
+  through the same candidate envelope.
+- Do not trust raw event order from temp files, partial writes, atomic renames,
+  or multi-root saves without a candidate ordering receipt.
 
 **Test requirements**
 
@@ -1766,6 +1934,12 @@ candidate pipeline.
 - `watcher_event_reorder_does_not_change_final_candidate_sequence`: reordered
   filesystem bursts with the same final source package produce deterministic
   candidate ordering and debounce evidence.
+- `partial_write_and_atomic_rename_emit_one_ordered_candidate`: temp-file,
+  partial-write, and atomic-rename patterns debounce into one source package
+  revision with deterministic candidate cause evidence.
+- `in_memory_source_provider_uses_same_candidate_admission`: editor-buffer and
+  test-harness source ingress cannot bypass candidate admission, lowering, or
+  activation staging.
 
 **Engineering decisions**
 
@@ -1774,6 +1948,9 @@ candidate pipeline.
 - Watchers create candidate causes and trigger source/lowering work; they do
   not decide replacement impact.
 - Debounce policy must be observable enough for iteration latency diagnostics.
+- Source ingress hooks are supported for filesystem, editor buffer, generated,
+  in-memory test, and Rust-authored artifact sources, but every path produces
+  the same candidate ordering and admission evidence.
 
 **Open questions**
 
@@ -2254,17 +2431,27 @@ pay diagnostic richness by default.
   state, reload status, and diagnostics references
 - replaceable candidate envelopes for file-authored and Rust-authored artifact
   inputs
+- runtime lifecycle, frame epoch, pending activation, pause/resume, shutdown,
+  and failed-activation recovery receipts
 - candidate admission, artifact equivalence, impact classification, and
   dependency impact narrowing
+- impact surfaces for commands, tokens/themes, accessibility metadata, Query
+  bindings, durable state families, lane assignment, renderer resources, and
+  diagnostics policy
 - identity match graph and per-node replacement classification
 - durable UI state inventory and reconciliation for focus, scroll, selection,
   panel visibility, splitters, tabs, and text input state
+- admitted state-family, identity-seed, component-lowering, lane-adapter,
+  diagnostics-projection, counter-family, and report-materialization hooks
 - Query binding comparison and live rebind planning that preserve Query-owned
   posture
 - activation staging, safe frame-boundary activation, atomic plan swap, prior
   valid preservation, and failure preservation
 - execution-plan lowering input, compact runtime handles, plan topology, plan
   equivalence/digest, and plan inspection/provenance
+- plan-node families for component invocation, child ranges, commands, tokens,
+  layout regions, Query/view bindings, accessibility, diagnostics, lane
+  partitions, egui boundary refs, and render-resource refs
 - execution lane taxonomy and real ordinary, virtualized data, canvas/spatial,
   and real-time overlay/HUD lanes
 - cross-lane meaning parity proof
@@ -2285,6 +2472,8 @@ pay diagnostic richness by default.
   runtime.
 - The canonical artifact remains semantic UI authority; the execution plan is
   frame-executable active runtime truth derived from it.
+- Extension hooks remain admitted contributions, never alternate authority
+  paths.
 - File-authored and Rust-authored composition converge on the same active
   replacement path.
 - Active plan replacement never reopens mutable registry authority or source
@@ -2301,6 +2490,8 @@ pay diagnostic richness by default.
 - Forge Foundational performance surfaces preserve shared boundary meaning and
   certification shape; they do not own Worth UI runtime execution, live counter
   storage, plan topology, or lane mechanics.
+- Unsupported hook, lane, state, Query, renderer, source, capability snapshot,
+  and plan-node families fail closed before activation.
 
 ## Acceptance Evidence
 
@@ -2315,6 +2506,8 @@ pay diagnostic richness by default.
   pseudo-runtime repair
 - active execution plans expose compact handles, topology, lane partitions,
   equivalence, provenance, and inspection
+- admitted hooks can branch special mechanics while preserving candidate,
+  identity, state, lane, diagnostic, counter, and certification receipts
 - ordinary, virtualized data, canvas/spatial, and real-time overlay lanes all
   execute through their own admitted lane mechanics
 - frame counters prove steady frames do not parse source, validate artifacts,

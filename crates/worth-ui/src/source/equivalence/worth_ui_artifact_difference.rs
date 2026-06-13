@@ -1,5 +1,13 @@
 use crate::source::WorthUiArtifactNodeKind;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthUiArtifactSemanticDelta {
+    SurfaceCommandSlotsChanged,
+    SurfacePlacementClassChanged,
+    SurfacePlacementAndCommandSlotsChanged,
+    Other,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum WorthUiArtifactDifference {
     ModuleCountMismatch {
@@ -26,6 +34,7 @@ pub(crate) enum WorthUiArtifactDifference {
         module_id: String,
         node_index: usize,
         node_kind: WorthUiArtifactNodeKind,
+        semantic_delta: WorthUiArtifactSemanticDelta,
         left_semantic_basis: String,
         right_semantic_basis: String,
     },

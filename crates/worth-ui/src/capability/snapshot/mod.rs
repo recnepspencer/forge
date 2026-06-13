@@ -1,4 +1,5 @@
 mod capability_snapshot;
+mod capability_snapshot_constructors;
 mod capability_snapshot_digest;
 mod freeze;
 mod index;

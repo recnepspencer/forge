@@ -13,7 +13,7 @@ pub(crate) use worth_ui_artifact_dependency_graph::WorthUiArtifactDependencyGrap
 pub(crate) use worth_ui_artifact_impact_metadata::{
     WorthUiArtifactImpact, WorthUiArtifactImpactMetadata,
 };
-pub(crate) use worth_ui_artifact_subtree_digest::WorthUiArtifactSubtreeDigest;
+pub use worth_ui_artifact_subtree_digest::WorthUiArtifactSubtreeDigest;
 pub(crate) use worth_ui_incremental_invalidation_basis::WorthUiIncrementalInvalidationBasis;
 pub(crate) use worth_ui_runtime_dependency_hook::{
     WorthUiRuntimeDependencyHook, WorthUiRuntimeDependencyHookKind, WorthUiRuntimeQuerySurface,
