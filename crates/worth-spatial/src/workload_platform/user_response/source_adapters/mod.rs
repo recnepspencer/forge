@@ -5,8 +5,11 @@ mod mixed_surface_kill_box;
 mod nmt_radial_fan;
 mod open_class_triad_parity;
 mod open_planar_posture;
+mod planar_boolean_outcome;
 mod projection_fact_parity;
 mod retained_cancellation;
+
+pub use planar_boolean_outcome::{PlanarBooleanUserResponseClass, PlanarBooleanUserResponseSource};
 
 use worth_math::sign::TriSign;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};

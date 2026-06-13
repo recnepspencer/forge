@@ -14,6 +14,14 @@ pub struct WorkloadEvidenceStageCounters {
     replay_checkpoint_count: usize,
     operator_input_count: usize,
     operator_receipt_count: usize,
+    boolean_declaration_count: usize,
+    boolean_route_count: usize,
+    boolean_operand_pair_count: usize,
+    boolean_blocker_count: usize,
+    boolean_split_count: usize,
+    boolean_classify_count: usize,
+    boolean_assemble_count: usize,
+    boolean_cleanup_count: usize,
     diagnostic_count: usize,
     user_outcome_count: usize,
 }
@@ -96,6 +104,62 @@ impl WorkloadEvidenceStageCounters {
         }
     }
 
+    pub fn boolean_declaration() -> Self {
+        Self {
+            boolean_declaration_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub fn boolean_route() -> Self {
+        Self {
+            boolean_route_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub fn boolean_operand_pair() -> Self {
+        Self {
+            boolean_operand_pair_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub fn boolean_blocker() -> Self {
+        Self {
+            boolean_blocker_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub fn boolean_split() -> Self {
+        Self {
+            boolean_split_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub fn boolean_classify() -> Self {
+        Self {
+            boolean_classify_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub fn boolean_assemble() -> Self {
+        Self {
+            boolean_assemble_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub fn boolean_cleanup() -> Self {
+        Self {
+            boolean_cleanup_count: 1,
+            ..Self::default()
+        }
+    }
+
     pub fn topology_entity_count(self) -> usize {
         self.topology_entity_count
     }
@@ -152,6 +216,38 @@ impl WorkloadEvidenceStageCounters {
         self.operator_receipt_count
     }
 
+    pub fn boolean_declaration_count(self) -> usize {
+        self.boolean_declaration_count
+    }
+
+    pub fn boolean_route_count(self) -> usize {
+        self.boolean_route_count
+    }
+
+    pub fn boolean_operand_pair_count(self) -> usize {
+        self.boolean_operand_pair_count
+    }
+
+    pub fn boolean_blocker_count(self) -> usize {
+        self.boolean_blocker_count
+    }
+
+    pub fn boolean_split_count(self) -> usize {
+        self.boolean_split_count
+    }
+
+    pub fn boolean_classify_count(self) -> usize {
+        self.boolean_classify_count
+    }
+
+    pub fn boolean_assemble_count(self) -> usize {
+        self.boolean_assemble_count
+    }
+
+    pub fn boolean_cleanup_count(self) -> usize {
+        self.boolean_cleanup_count
+    }
+
     pub fn diagnostic_count(self) -> usize {
         self.diagnostic_count
     }
@@ -175,6 +271,14 @@ impl WorkloadEvidenceStageCounters {
             + self.replay_checkpoint_count
             + self.operator_input_count
             + self.operator_receipt_count
+            + self.boolean_declaration_count
+            + self.boolean_route_count
+            + self.boolean_operand_pair_count
+            + self.boolean_blocker_count
+            + self.boolean_split_count
+            + self.boolean_classify_count
+            + self.boolean_assemble_count
+            + self.boolean_cleanup_count
             + self.diagnostic_count
             + self.user_outcome_count
     }

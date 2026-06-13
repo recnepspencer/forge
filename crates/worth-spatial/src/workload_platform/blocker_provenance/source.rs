@@ -2,6 +2,8 @@
 pub enum WorkloadBlockerSourceKind {
     DirtyTopology,
     OpenTopology,
+    PlanarBooleanEntryBasis,
+    PlanarBooleanDeclaration,
 }
 
 impl WorkloadBlockerSourceKind {
@@ -9,6 +11,8 @@ impl WorkloadBlockerSourceKind {
         match self {
             Self::DirtyTopology => "dirty topology",
             Self::OpenTopology => "open topology",
+            Self::PlanarBooleanEntryBasis => "planar boolean entry basis",
+            Self::PlanarBooleanDeclaration => "planar boolean declaration",
         }
     }
 }
@@ -17,6 +21,10 @@ impl WorkloadBlockerSourceKind {
 pub enum WorkloadBlockerBoundaryKind {
     CleanFailBoundary,
     UnsupportedSurface,
+    BooleanLanePolicy,
+    BooleanSupportMatrix,
+    BooleanEvidenceBoundary,
+    BooleanExecutionBoundary,
 }
 
 impl WorkloadBlockerBoundaryKind {
@@ -24,6 +32,10 @@ impl WorkloadBlockerBoundaryKind {
         match self {
             Self::CleanFailBoundary => "clean-fail boundary",
             Self::UnsupportedSurface => "unsupported surface",
+            Self::BooleanLanePolicy => "boolean lane policy",
+            Self::BooleanSupportMatrix => "boolean support matrix",
+            Self::BooleanEvidenceBoundary => "boolean evidence boundary",
+            Self::BooleanExecutionBoundary => "boolean execution boundary",
         }
     }
 }

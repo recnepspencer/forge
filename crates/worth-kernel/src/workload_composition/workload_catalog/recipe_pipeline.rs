@@ -200,6 +200,14 @@ fn build_topology_seed(
 
 fn default_topology_seed(recipe: WorkloadCatalogRecipeKind) -> TopologySeedRecipe {
     match recipe {
+        WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair
+        | WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair
+        | WorkloadCatalogRecipeKind::BooleanThinFeaturePair
+        | WorkloadCatalogRecipeKind::BooleanHighValenceContactPair
+        | WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair
+        | WorkloadCatalogRecipeKind::BooleanOpenUnboundedDenialPair => unreachable!(
+            "boolean operand-pair recipes must build through the dedicated pair orchestrator"
+        ),
         WorkloadCatalogRecipeKind::Cube
         | WorkloadCatalogRecipeKind::MixedSurfaceKillBox
         | WorkloadCatalogRecipeKind::TransformCycle

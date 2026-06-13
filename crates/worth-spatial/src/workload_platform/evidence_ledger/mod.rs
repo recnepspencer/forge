@@ -11,6 +11,7 @@ pub use ledger::{
     CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
 };
 pub use row::{
-    WorkloadEvidenceBacking, WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceBacking, WorkloadEvidenceRow,
+    WorkloadEvidenceStage, WorkloadEvidenceSupport,
 };
 pub use stage_counters::WorkloadEvidenceStageCounters;

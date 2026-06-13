@@ -1,3 +1,4 @@
+use super::boolean_operand_pair::WorkloadCatalogBooleanOperandPairRecipe;
 use super::error::WorkloadCatalogError;
 use super::grazing_basket_spec::GrazingBasketStackSpec;
 use super::open_class_triad::OpenClassTriadCatalogRecipe;
@@ -32,6 +33,42 @@ impl WorkloadCatalog {
 
     pub fn single_face_loop() -> WorkloadCatalogRecipe {
         WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::SingleFaceLoop)
+    }
+
+    pub fn planar_boolean_clean_planar_body_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
+        WorkloadCatalogBooleanOperandPairRecipe::new(
+            WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair,
+        )
+    }
+
+    pub fn planar_boolean_coplanar_overlap_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
+        WorkloadCatalogBooleanOperandPairRecipe::new(
+            WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair,
+        )
+    }
+
+    pub fn planar_boolean_thin_feature_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
+        WorkloadCatalogBooleanOperandPairRecipe::new(
+            WorkloadCatalogRecipeKind::BooleanThinFeaturePair,
+        )
+    }
+
+    pub fn planar_boolean_high_valence_contact_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
+        WorkloadCatalogBooleanOperandPairRecipe::new(
+            WorkloadCatalogRecipeKind::BooleanHighValenceContactPair,
+        )
+    }
+
+    pub fn planar_boolean_dirty_clean_fail_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
+        WorkloadCatalogBooleanOperandPairRecipe::new(
+            WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair,
+        )
+    }
+
+    pub fn planar_boolean_open_unbounded_denial_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
+        WorkloadCatalogBooleanOperandPairRecipe::new(
+            WorkloadCatalogRecipeKind::BooleanOpenUnboundedDenialPair,
+        )
     }
 
     pub fn coplanar_overlap_storm() -> WorkloadCatalogRecipe {
@@ -246,6 +283,13 @@ impl WorkloadCatalogRecipe {
             support,
             topology_clean_fail,
         ))
+    }
+
+    pub(crate) fn inspect_clean_fail_support(
+        &self,
+    ) -> Result<WorkloadCatalogSupportReceipt, WorkloadCatalogError> {
+        let declaration = self.declaration_receipt()?;
+        WorkloadCatalogSupportReceipt::new(&declaration, self.clean_fail_support_decision()?)
     }
 
     fn declaration_receipt(

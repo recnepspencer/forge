@@ -8,6 +8,10 @@ pub enum WorkloadStageRequirement {
     RetainedReplay,
     Diagnostics,
     Response,
+    BooleanDeclarationEntry,
+    BooleanRoutePlan,
+    BooleanOperandPairConstruction,
+    BooleanBlockerProvenance,
     EvidenceLedger,
 }
 
@@ -22,6 +26,10 @@ impl WorkloadStageRequirement {
             Self::RetainedReplay => "retained replay workload receipt",
             Self::Diagnostics => "diagnostic workload receipt",
             Self::Response => "response workload receipt",
+            Self::BooleanDeclarationEntry => "boolean declaration entry receipt",
+            Self::BooleanRoutePlan => "boolean route-plan receipt",
+            Self::BooleanOperandPairConstruction => "boolean operand-pair construction receipt",
+            Self::BooleanBlockerProvenance => "boolean blocker provenance receipt",
             Self::EvidenceLedger => "workload evidence ledger",
         }
     }
@@ -36,6 +44,10 @@ impl WorkloadStageRequirement {
             Self::RetainedReplay => "retained_replay",
             Self::Diagnostics => "diagnostics",
             Self::Response => "response",
+            Self::BooleanDeclarationEntry => "boolean_declaration_entry",
+            Self::BooleanRoutePlan => "boolean_route_plan",
+            Self::BooleanOperandPairConstruction => "boolean_operand_pair_construction",
+            Self::BooleanBlockerProvenance => "boolean_blocker_provenance",
             Self::EvidenceLedger => "evidence_ledger",
         }
     }

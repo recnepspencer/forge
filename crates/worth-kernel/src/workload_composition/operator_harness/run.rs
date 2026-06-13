@@ -32,7 +32,7 @@ impl OperatorRun {
         support: OperatorSupportReceipt,
     ) -> Result<Self, OperatorWorkloadError> {
         require_honest_evidence(workload)?;
-        let stage = declaration.requirement().evidence_stage();
+        let stage = declaration.requirement().operator_evidence_stage()?;
         if let Some(stage) = stage {
             workload
                 .evidence_ledger()
@@ -105,17 +105,25 @@ fn require_projection_counters(workload: &WorthWorkload) -> Result<(), OperatorW
 }
 
 impl WorkloadStageRequirement {
-    pub(crate) fn evidence_stage(self) -> Option<WorkloadEvidenceStage> {
+    pub(crate) fn operator_evidence_stage(
+        self,
+    ) -> Result<Option<WorkloadEvidenceStage>, OperatorWorkloadError> {
         match self {
-            Self::Topology => Some(WorkloadEvidenceStage::Topology),
-            Self::GeometryBinding => Some(WorkloadEvidenceStage::GeometryBinding),
-            Self::SurfaceSupport => Some(WorkloadEvidenceStage::SurfaceSupport),
-            Self::Projection => Some(WorkloadEvidenceStage::Projection),
-            Self::Transform => Some(WorkloadEvidenceStage::Transform),
-            Self::RetainedReplay => Some(WorkloadEvidenceStage::RetainedReplay),
-            Self::Diagnostics => Some(WorkloadEvidenceStage::Diagnostics),
-            Self::Response => Some(WorkloadEvidenceStage::Response),
-            Self::EvidenceLedger => None,
+            Self::Topology => Ok(Some(WorkloadEvidenceStage::Topology)),
+            Self::GeometryBinding => Ok(Some(WorkloadEvidenceStage::GeometryBinding)),
+            Self::SurfaceSupport => Ok(Some(WorkloadEvidenceStage::SurfaceSupport)),
+            Self::Projection => Ok(Some(WorkloadEvidenceStage::Projection)),
+            Self::Transform => Ok(Some(WorkloadEvidenceStage::Transform)),
+            Self::RetainedReplay => Ok(Some(WorkloadEvidenceStage::RetainedReplay)),
+            Self::Diagnostics => Ok(Some(WorkloadEvidenceStage::Diagnostics)),
+            Self::Response => Ok(Some(WorkloadEvidenceStage::Response)),
+            Self::BooleanDeclarationEntry
+            | Self::BooleanRoutePlan
+            | Self::BooleanOperandPairConstruction
+            | Self::BooleanBlockerProvenance => {
+                Err(OperatorWorkloadError::UnsupportedRequirement(self))
+            }
+            Self::EvidenceLedger => Ok(None),
         }
     }
 }

@@ -52,7 +52,17 @@ impl WorkloadEvidenceLedger {
     }
 
     pub fn counters(&self) -> WorkloadEvidenceCounters {
-        WorkloadEvidenceCounters::new(self.rows.len())
+        WorkloadEvidenceCounters::new(
+            self.rows.len(),
+            self.rows
+                .iter()
+                .filter(|row| {
+                    row.stage().is_boolean_stage()
+                        && row.is_receipt_backed()
+                        && row.counters().total_receipt_backed_counters() > 0
+                })
+                .count(),
+        )
     }
 
     pub fn guards(&self) -> WorkloadEvidenceGuard<'_> {
@@ -148,36 +158,12 @@ impl WorkloadEvidenceLedgerError {
             Self::MissingEvidenceIdentity => {
                 "workload evidence rows require a readable identity".to_string()
             }
-            Self::DuplicateEvidenceStage(stage) => match stage {
-                WorkloadEvidenceStage::Topology => {
-                    "workload evidence ledger has duplicate topology evidence"
-                }
-                WorkloadEvidenceStage::GeometryBinding => {
-                    "workload evidence ledger has duplicate geometry binding evidence"
-                }
-                WorkloadEvidenceStage::SurfaceSupport => {
-                    "workload evidence ledger has duplicate surface support evidence"
-                }
-                WorkloadEvidenceStage::Projection => {
-                    "workload evidence ledger has duplicate projection evidence"
-                }
-                WorkloadEvidenceStage::Transform => {
-                    "workload evidence ledger has duplicate transform evidence"
-                }
-                WorkloadEvidenceStage::RetainedReplay => {
-                    "workload evidence ledger has duplicate retained replay evidence"
-                }
-                WorkloadEvidenceStage::Diagnostics => {
-                    "workload evidence ledger has duplicate diagnostic evidence"
-                }
-                WorkloadEvidenceStage::Response => {
-                    "workload evidence ledger has duplicate response evidence"
-                }
-                WorkloadEvidenceStage::Operator => {
-                    "workload evidence ledger has duplicate operator evidence"
-                }
+            Self::DuplicateEvidenceStage(stage) => {
+                format!(
+                    "workload evidence ledger has duplicate {}",
+                    stage.human_name()
+                )
             }
-            .to_string(),
             Self::MissingAuthorityStage(stage) => {
                 format!("workload evidence ledger is missing {}", stage.human_name())
             }

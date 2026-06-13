@@ -1,8 +1,9 @@
 pub use crate::workload_platform::evidence_ledger::{
-    CompleteWorkloadEvidenceLedger, WorkloadEvidenceBacking, WorkloadEvidenceCounters,
-    WorkloadEvidenceGuard, WorkloadEvidenceGuardError, WorkloadEvidenceLedger,
-    WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
-    WorkloadEvidenceStageCounters,
+    BooleanEvidenceReceipt, BooleanEvidenceStageKind, CompleteWorkloadEvidenceLedger,
+    WorkloadEvidenceBacking, WorkloadEvidenceCounters, WorkloadEvidenceGuard,
+    WorkloadEvidenceGuardError, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+    WorkloadEvidenceSupport,
 };
 pub use crate::workload_platform::vocabulary::{
     DiagnosticWorkload, DiagnosticWorkloadReceipt, GeometryBindingWorkload,

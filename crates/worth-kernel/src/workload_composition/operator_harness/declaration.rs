@@ -103,6 +103,7 @@ impl OperatorDeclarationReceipt {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorkloadOperatorFamily {
     CoplanarOverlap,
+    PlanarBooleanFoundation,
     Unsupported(UnsupportedOperatorFamily),
 }
 
@@ -110,6 +111,7 @@ impl WorkloadOperatorFamily {
     pub fn human_name(self) -> &'static str {
         match self {
             Self::CoplanarOverlap => "coplanar overlap workload operator",
+            Self::PlanarBooleanFoundation => "planar boolean workload operator foundation",
             Self::Unsupported(family) => family.human_name(),
         }
     }
@@ -117,6 +119,7 @@ impl WorkloadOperatorFamily {
     pub fn query_key(self) -> &'static str {
         match self {
             Self::CoplanarOverlap => "worth.operator.coplanar_overlap",
+            Self::PlanarBooleanFoundation => "worth.operator.planar_boolean_foundation",
             Self::Unsupported(family) => family.query_key(),
         }
     }
@@ -129,12 +132,14 @@ impl WorkloadOperatorFamily {
         match self {
             Self::Unsupported(family) => family,
             Self::CoplanarOverlap => UnsupportedOperatorFamily::NotUnsupported,
+            Self::PlanarBooleanFoundation => UnsupportedOperatorFamily::PlanarBooleanFoundation,
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnsupportedOperatorFamily {
+    PlanarBooleanFoundation,
     BooleanDifference,
     CurvedSurface,
     Extrusion,
@@ -144,6 +149,7 @@ pub enum UnsupportedOperatorFamily {
 impl UnsupportedOperatorFamily {
     pub fn human_name(self) -> &'static str {
         match self {
+            Self::PlanarBooleanFoundation => "planar boolean workload operator foundation",
             Self::BooleanDifference => "boolean difference operator",
             Self::CurvedSurface => "curved surface operator",
             Self::Extrusion => "extrusion operator",
@@ -153,6 +159,7 @@ impl UnsupportedOperatorFamily {
 
     pub fn query_key(self) -> &'static str {
         match self {
+            Self::PlanarBooleanFoundation => "worth.operator.unsupported.planar_boolean_foundation",
             Self::BooleanDifference => "worth.operator.unsupported.boolean_difference",
             Self::CurvedSurface => "worth.operator.unsupported.curved_surface",
             Self::Extrusion => "worth.operator.unsupported.extrusion",

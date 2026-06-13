@@ -24,9 +24,10 @@ impl TransformRecipe {
 impl WorkloadCatalogRecipeKind {
     pub(crate) fn default_transform_recipe(self) -> TransformRecipe {
         match self {
-            Self::CoplanarOverlapStorm | Self::TransformCycle | Self::RetainedCancellationChain => {
-                TransformRecipe::HostileCancellation
-            }
+            Self::CoplanarOverlapStorm
+            | Self::BooleanCoplanarOverlapPair
+            | Self::TransformCycle
+            | Self::RetainedCancellationChain => TransformRecipe::HostileCancellation,
             _ => TransformRecipe::MovementRotationStack,
         }
     }
@@ -34,6 +35,9 @@ impl WorkloadCatalogRecipeKind {
     pub(crate) fn default_retained_replay_recipe(self) -> RetainedReplayRecipe {
         match self {
             Self::CoplanarOverlapStorm
+            | Self::BooleanCoplanarOverlapPair
+            | Self::BooleanHighValenceContactPair
+            | Self::BooleanOpenUnboundedDenialPair
             | Self::HighValenceVertex
             | Self::MixedSurfaceKillBox
             | Self::OpenWire

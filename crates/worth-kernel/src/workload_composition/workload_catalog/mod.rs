@@ -1,3 +1,4 @@
+mod boolean_operand_pair;
 mod built_recipe;
 mod catalog;
 mod error;
@@ -10,7 +11,11 @@ mod recipe_transform;
 mod support_receipt;
 mod topology_construction_plan;
 
-pub use built_recipe::{BuiltCleanFailCatalogRecipe, BuiltWorkloadCatalogRecipe};
+pub use boolean_operand_pair::WorkloadCatalogBooleanOperandPairRecipe;
+pub use built_recipe::{
+    BuiltBooleanCleanFailCatalogRecipe, BuiltBooleanDeniedCatalogRecipe,
+    BuiltBooleanOperandPairRecipe, BuiltCleanFailCatalogRecipe, BuiltWorkloadCatalogRecipe,
+};
 pub use catalog::{WorkloadCatalog, WorkloadCatalogRecipe};
 pub use error::WorkloadCatalogError;
 pub use grazing_basket_spec::GrazingBasketStackSpec;
