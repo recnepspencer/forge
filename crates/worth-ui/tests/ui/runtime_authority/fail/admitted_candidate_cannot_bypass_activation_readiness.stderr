@@ -1,0 +1,16 @@
+error[E0277]: the trait bound `WorthUiAdmittedReplacementCandidate: Borrow<WorthUiPendingActivation>` is not satisfied
+ --> tests/ui/runtime_authority/fail/admitted_candidate_cannot_bypass_activation_readiness.rs:4:47
+  |
+4 |     let _ = host.prepare_execution_plan_input(admitted);
+  |                  ---------------------------- ^^^^^^^^ the trait `Borrow<WorthUiPendingActivation>` is not implemented for `WorthUiAdmittedReplacementCandidate`
+  |                  |
+  |                  required by a bound introduced by this call
+  |
+note: required by a bound in `WorthUiRuntimeHost::prepare_execution_plan_input`
+ --> src/runtime/host.rs
+  |
+  |     pub fn prepare_execution_plan_input<P>(
+  |            ---------------------------- required by a bound in this associated function
+...
+  |         P: Borrow<WorthUiPendingActivation>,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `WorthUiRuntimeHost::prepare_execution_plan_input`

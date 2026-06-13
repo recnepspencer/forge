@@ -1,0 +1,13 @@
+error[E0451]: fields `name`, `value`, `value_kind` and `work_class` of struct `WorthUiFrameCostCounter` are private
+ --> tests/ui/runtime_measurement/fail/measurement_counter_fields_not_public.rs:5:9
+  |
+4 |     let _counter = WorthUiFrameCostCounter {
+  |                    ----------------------- in this type
+5 |         name: "frame.fake",
+  |         ^^^^ private field
+6 |         value: 1,
+  |         ^^^^^ private field
+7 |         value_kind: WorthUiCounterValueKind::CountedWork,
+  |         ^^^^^^^^^^ private field
+8 |         work_class: forge_foundational::FoundationalPerformanceWorkClass::ValidationPlanning,
+  |         ^^^^^^^^^^ private field

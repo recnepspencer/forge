@@ -210,17 +210,26 @@ honesty.
 
 - runtime host authority over active artifact, active execution plan, last valid
   state, reload status, and diagnostics references
+- runtime lifecycle, frame epoch, pending activation, pause/resume, shutdown,
+  and failed-activation recovery receipts
 - file-watch and debounce pipeline for UI source changes
 - replaceable candidate envelopes for file-authored UI and admitted
   Rust-authored artifact inputs
 - candidate admission, artifact equivalence, impact narrowing, identity
   matching, durable-state reconciliation, and Query binding rebind planning
+- named impact surfaces for commands, tokens/themes, accessibility metadata,
+  Query bindings, state families, lane assignment, renderer resources, and
+  diagnostics policy
 - atomic safe-frame activation that preserves the prior active plan on invalid
   candidates, failed lowering, failed reconciliation, or failed swap
 - execution-plan lowering from canonical artifact into active egui-facing
   runtime plans
 - compact runtime handles for commands, components, children, tokens, and view
   bindings rather than per-frame string or registry resolution
+- admitted extension hooks for source ingress, debounce policy, identity seed
+  contribution, durable state families, component lowering, lane adapters,
+  canvas/spatial mechanics, real-time overlay mechanics, diagnostics
+  projection, custom counters, and report materialization
 - specialized execution lanes for ordinary widget/shell surfaces, virtualized
   data surfaces, canvas/spatial surfaces, and real-time overlay or HUD surfaces
 - cross-lane parity proving lanes specialize mechanics and cost rather than
@@ -252,6 +261,8 @@ honesty.
   explanation posture
 - execution-lane specialization does not fork UI meaning into incompatible
   shadow runtimes
+- extension hooks remain typed, admitted, receipt-bearing contributions rather
+  than active-plan, Query, state, lane, or certification bypasses
 - performance instrumentation remains product-visible enough to certify claims
 - no broad widget, shell, canvas, data, or plugin milestone can force per-frame
   source interpretation, registry lookup, or broad artifact scans back into the

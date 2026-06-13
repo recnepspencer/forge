@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub(crate) struct WorthUiArtifactSubtreeDigest {
+pub struct WorthUiArtifactSubtreeDigest {
     raw: u64,
 }
 
@@ -8,7 +8,7 @@ impl WorthUiArtifactSubtreeDigest {
         Self { raw }
     }
 
-    pub(crate) fn raw(self) -> u64 {
+    pub fn raw(self) -> u64 {
         self.raw
     }
 }

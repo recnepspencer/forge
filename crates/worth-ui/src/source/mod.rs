@@ -43,17 +43,17 @@ pub(crate) use bound::{
     WorthUiBoundViewBindingReference,
 };
 pub(crate) use canonical::WorthUiCanonicalModuleOrder;
+pub use dependency::WorthUiArtifactSubtreeDigest;
 #[allow(unused_imports)]
 pub(crate) use dependency::{
     WorthUiArtifactDependencyEdge, WorthUiArtifactDependencyEdgeKind,
     WorthUiArtifactDependencyGraph, WorthUiArtifactDependencyTarget, WorthUiArtifactImpact,
-    WorthUiArtifactImpactMetadata, WorthUiArtifactSubtreeDigest,
-    WorthUiIncrementalInvalidationBasis, WorthUiRuntimeDependencyHook,
-    WorthUiRuntimeDependencyHookKind, WorthUiRuntimeQuerySurface,
+    WorthUiArtifactImpactMetadata, WorthUiIncrementalInvalidationBasis,
+    WorthUiRuntimeDependencyHook, WorthUiRuntimeDependencyHookKind, WorthUiRuntimeQuerySurface,
 };
 pub(crate) use equivalence::{
     WorthUiArtifactDifference, WorthUiArtifactDigest, WorthUiArtifactDigestReport,
-    WorthUiArtifactEquivalence, WorthUiArtifactEquivalenceBasis,
+    WorthUiArtifactEquivalence, WorthUiArtifactEquivalenceBasis, WorthUiArtifactSemanticDelta,
 };
 #[allow(unused_imports)]
 pub(crate) use identity_seeded::{

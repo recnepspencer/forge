@@ -49,11 +49,23 @@ impl WorthUiArtifactDependencyGraph {
         self.subtree_digests.get(handle).copied()
     }
 
+    pub(crate) fn subtree_digests(
+        &self,
+    ) -> &BTreeMap<WorthUiArtifactHandle, WorthUiArtifactSubtreeDigest> {
+        &self.subtree_digests
+    }
+
     pub(crate) fn runtime_hooks_for(
         &self,
         handle: &WorthUiArtifactHandle,
     ) -> &[WorthUiRuntimeDependencyHook] {
         self.runtime_hooks.get(handle).map_or(&[], Vec::as_slice)
+    }
+
+    pub(crate) fn runtime_hooks(
+        &self,
+    ) -> &BTreeMap<WorthUiArtifactHandle, Vec<WorthUiRuntimeDependencyHook>> {
+        &self.runtime_hooks
     }
 }
 

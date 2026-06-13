@@ -94,4 +94,20 @@ impl WorthUiArtifactImpactMetadata {
             1,
         )
     }
+
+    pub(crate) fn module_impacts(
+        &self,
+    ) -> &BTreeMap<WorthUiSourceModuleId, Vec<WorthUiArtifactHandle>> {
+        &self.module_impacts
+    }
+
+    pub(crate) fn subtree_impacts(
+        &self,
+    ) -> &BTreeMap<WorthUiArtifactHandle, Vec<WorthUiArtifactHandle>> {
+        &self.subtree_impacts
+    }
+
+    pub(crate) fn full_artifact_handle_count(&self) -> usize {
+        self.full_artifact_handle_count
+    }
 }
