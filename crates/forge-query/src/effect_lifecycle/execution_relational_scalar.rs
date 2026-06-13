@@ -137,7 +137,7 @@ fn current_branch_snapshot_identity(
     ))
 }
 
-fn stable_branch_snapshot_id(branch: &BranchId) -> u64 {
+pub(crate) fn stable_branch_snapshot_id(branch: &BranchId) -> u64 {
     let mut acc = 14_695_981_039_346_656_037_u64;
     for byte in b"effect-current-branch-snapshot"
         .iter()

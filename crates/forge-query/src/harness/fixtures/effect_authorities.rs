@@ -161,9 +161,7 @@ pub(crate) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
 }
 
 pub(crate) fn runtime_snapshot_identity(runtime: &RelationalRuntime) -> ForgeQuerySnapshotIdentity {
-    ForgeQuerySnapshotIdentity::from_relational_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(1, latest_runtime_version(runtime)),
-    )
+    branch_snapshot_identity(runtime, "main")
 }
 
 pub(crate) fn branch_snapshot_identity(
@@ -172,7 +170,9 @@ pub(crate) fn branch_snapshot_identity(
 ) -> ForgeQuerySnapshotIdentity {
     ForgeQuerySnapshotIdentity::from_relational_snapshot(
         RelationalBridgeSnapshotIdentityParts::new(
-            stable_fixture_position("effect-branch-snapshot", branch),
+            crate::effect_lifecycle::stable_branch_snapshot_id(
+                &BranchId(branch.to_string()),
+            ),
             branch_runtime_version(runtime, branch),
         ),
     )

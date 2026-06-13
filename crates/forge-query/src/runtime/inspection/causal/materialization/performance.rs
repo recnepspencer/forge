@@ -177,8 +177,12 @@ impl CausalInspectionPerformanceEnvelope {
         self.materialized_detail_count
     }
 
-    pub fn performance_digest(&self) -> &str {
+    pub fn performance_for_reporting(&self) -> &str {
         self.performance_identity.as_str()
+    }
+
+    pub fn performance_digest(&self) -> &str {
+        self.performance_for_reporting()
     }
 
     pub(super) fn performance_identity(&self) -> &ForgeQueryEvidenceIdentity {

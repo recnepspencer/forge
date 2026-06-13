@@ -641,22 +641,22 @@ fn admitted_activation_emits_query_subscription_certification_bundle() {
         LiveQueryFamily::OrderedCollection,
         Some(LiveViewShapeFamily::Table),
     );
-    let admission_digest = admission.admission_digest().to_string();
-    let activation_digest = activation.activation_digest().to_string();
+    let admission_digest = admission.admission_for_reporting().to_string();
+    let activation_digest = activation.activation_for_reporting().to_string();
     let scale_slope_digest = scale_report.digest().to_string();
     let bundle =
         certify_query_subscription_activation(admission, activation, scale_report).unwrap();
 
-    assert!(!bundle.certification_bundle_digest().is_empty());
-    assert_eq!(bundle.admission_digest(), admission_digest);
-    assert_eq!(bundle.activation_digest(), activation_digest);
-    assert_eq!(bundle.scale_slope_digest(), scale_slope_digest);
-    assert_eq!(bundle.scale_activation_digest(), activation_digest);
-    assert_eq!(bundle.scale_admission_digest(), admission_digest);
-    assert!(!bundle.support_profile_digest().is_empty());
-    assert!(!bundle.diagnostics_digest().is_empty());
-    assert!(!bundle.admission_counter_digest().is_empty());
-    assert!(!bundle.activation_counter_digest().is_empty());
+    assert!(!bundle.certification_bundle_for_reporting().is_empty());
+    assert_eq!(bundle.admission_for_reporting(), admission_digest);
+    assert_eq!(bundle.activation_for_reporting(), activation_digest);
+    assert_eq!(bundle.scale_slope_for_reporting(), scale_slope_digest);
+    assert_eq!(bundle.scale_activation_for_reporting(), activation_digest);
+    assert_eq!(bundle.scale_admission_for_reporting(), admission_digest);
+    assert!(!bundle.support_profile_for_reporting().is_empty());
+    assert!(!bundle.diagnostics_for_reporting().is_empty());
+    assert!(!bundle.admission_counter_for_reporting().is_empty());
+    assert!(!bundle.activation_counter_for_reporting().is_empty());
 }
 
 #[test]
@@ -717,8 +717,8 @@ fn scale_slope_certification_admits_row_count_only_variation() {
     )
     .unwrap();
 
-    assert_eq!(report.activation_digest(), activation.activation_digest());
-    assert_eq!(report.admission_digest(), activation.admission_digest());
+    assert_eq!(report.activation_digest(), activation.activation_for_reporting());
+    assert_eq!(report.admission_digest(), activation.admission_for_reporting());
     assert_eq!(report.small_row_count(), 1);
     assert_eq!(report.medium_row_count(), 10);
     assert_eq!(report.large_row_count(), 100);
@@ -802,7 +802,7 @@ fn scale_slope_certification_denies_structural_counter_drift() {
         10,
         &activation,
     )
-    .with_bridge_slice_count_for_test(activation.counters().bridge_slice_count() + 1);
+    .with_bridge_slice_count_for_test(&activation, activation.counters().bridge_slice_count() + 1);
     let large = QuerySubscriptionScaleCounterSnapshot::from_activation(
         QuerySubscriptionScaleFixtureSize::Large,
         100,
@@ -848,7 +848,7 @@ fn lifecycle_certification_emits_runtime_backed_bundle() {
     )
     .unwrap();
 
-    assert!(!bundle.certification_bundle_digest().is_empty());
+    assert!(!bundle.certification_bundle_for_reporting().is_empty());
     assert_eq!(
         bundle.active_lane_digest(),
         artifacts.handle.lane_digest().as_str()

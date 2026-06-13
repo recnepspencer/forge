@@ -96,7 +96,7 @@ fn advisory_materialization_rejects_mismatched_query_observation_binding() {
             advisory.advisory_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            advisory.subject().anchor_digest(),
+            advisory.subject().anchor_for_reporting(),
         ),
     )
     .expect("query advisory summary should be valid");
@@ -265,7 +265,14 @@ fn admitted_replay_materialization_accepts_signal_owned_replay_cursor_posture() 
     assert!(artifact.evidence_references().iter().any(|reference| {
         reference.owner() == BridgeCausalEvidenceOwner::Signal.as_str()
             && reference.family() == BridgeCausalEvidenceFamily::SignalReplayCursor.as_str()
-            && reference.reference_identity() == signal_replay_cursor
+            && reference.reference_identity()
+                == crate::runtime::tests::causal_test_bridge_binding_reference_for_reporting(
+                    BridgeCausalEvidenceOwner::Signal.as_str(),
+                    BridgeCausalEvidenceFamily::SignalReplayCursor.as_str(),
+                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+                        signal_replay_cursor
+                    ),
+                )
     }));
     assert_eq!(artifact.performance().bridge_unindexed_scan_count(), 0);
 }
@@ -297,7 +304,7 @@ fn bridge_route_only_envelope_for_admitted_replay(
             admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_digest(),
+            admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("query admission summary should be valid");
@@ -321,7 +328,7 @@ fn bridge_route_only_envelope_for_advisory_replay(
             advisory.advisory_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            advisory.subject().anchor_digest(),
+            advisory.subject().anchor_for_reporting(),
         ),
     )
     .expect("query advisory summary should be valid");
@@ -346,7 +353,7 @@ fn signal_replay_cursor_envelope_for_admitted_replay(
             admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_digest(),
+            admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("query admission summary should be valid");
@@ -434,7 +441,7 @@ fn summary_for_admitted(
             admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_digest(),
+            admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("query admission summary should be valid")

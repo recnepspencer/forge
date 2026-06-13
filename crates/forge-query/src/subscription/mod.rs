@@ -49,6 +49,7 @@ mod delivery_window;
 mod delivery_work_packet;
 mod diagnostic;
 mod dimensions;
+mod evidence_identities;
 mod equivalence;
 mod error;
 mod family;

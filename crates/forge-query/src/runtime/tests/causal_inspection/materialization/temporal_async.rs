@@ -76,7 +76,7 @@ fn admitted_temporal_wake_materialization_projects_query_owned_temporal_explanat
             admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_digest(),
+            admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("temporal wake admission summary should be valid");
@@ -185,7 +185,7 @@ fn advisory_async_completion_materialization_projects_query_owned_async_explanat
             advisory.advisory_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            advisory.subject().anchor_digest(),
+            advisory.subject().anchor_for_reporting(),
         ),
     )
     .expect("async completion advisory summary should be valid");
@@ -302,7 +302,7 @@ fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity
             admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_digest(),
+            admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("mixed suppression summary should be valid");

@@ -63,7 +63,7 @@ impl PreviewSubscriptionDiscardCloseout {
             format!("residue_report:{}", residue_report.report_digest()),
             format!(
                 "performance:{}",
-                performance_receipt.performance_receipt_digest()
+                performance_receipt.performance_receipt_for_reporting()
             ),
             format!(
                 "state:{}",
@@ -212,7 +212,7 @@ impl PreviewSubscriptionPromotionHandoff {
             format!("rebinding:{}", rebinding_digest),
             format!(
                 "performance:{}",
-                performance_receipt.performance_receipt_digest()
+                performance_receipt.performance_receipt_for_reporting()
             ),
             format!(
                 "state:{}",

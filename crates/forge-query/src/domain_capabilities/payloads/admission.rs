@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::common::{
     ForgeQueryDomainCapabilityCategory, ForgeQueryDomainCapabilityPayload,
@@ -38,13 +40,35 @@ impl ForgeQueryAdmissionContributionPosture {
     }
 }
 
+fn compose_admission_payload_identity(
+    posture: ForgeQueryAdmissionContributionPosture,
+    semantic_code: &str,
+    detail: &str,
+    decision_stage: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_domain_capability_payload_v3",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("category"),
+            ForgeQueryDomainCapabilityCategory::Admission.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), detail)
+        .field_shape(ForgeQueryEvidenceTag::new("decision_stage"), decision_stage)
+        .seal()
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryAdmissionContributionPayload {
     posture: ForgeQueryAdmissionContributionPosture,
     semantic_code: String,
     detail: String,
     decision_stage: &'static str,
-    payload_digest: String,
+    payload_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryAdmissionContributionPayload {
@@ -69,23 +93,14 @@ impl ForgeQueryAdmissionContributionPayload {
     ) -> Self {
         let semantic_code = semantic_code.into();
         let detail = detail.into();
-        let payload_digest = hash_parts(&[
-            "forge_query_domain_capability_payload_v2".to_string(),
-            format!(
-                "category:{}",
-                ForgeQueryDomainCapabilityCategory::Admission.as_str()
-            ),
-            format!("posture:{}", posture.as_str()),
-            format!("semantic_code:{semantic_code}"),
-            format!("detail:{detail}"),
-            format!("decision_stage:{decision_stage}"),
-        ]);
+        let payload_identity =
+            compose_admission_payload_identity(posture, &semantic_code, &detail, decision_stage);
         Self {
             posture,
             semantic_code,
             detail,
             decision_stage,
-            payload_digest,
+            payload_identity,
         }
     }
 
@@ -110,7 +125,15 @@ impl ForgeQueryAdmissionContributionPayload {
     }
 
     pub fn payload_digest(&self) -> &str {
-        &self.payload_digest
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_for_reporting(&self) -> &str {
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }
 

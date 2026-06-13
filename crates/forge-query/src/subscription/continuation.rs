@@ -179,7 +179,7 @@ impl SubscriptionContinuationReport {
             format!("remap_width:{}", evidence.remap_width()),
             format!(
                 "performance:{}",
-                performance_receipt.performance_receipt_digest()
+                performance_receipt.performance_receipt_for_reporting()
             ),
         ]);
         Self {

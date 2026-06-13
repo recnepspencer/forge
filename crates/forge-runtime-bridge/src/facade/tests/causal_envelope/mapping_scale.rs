@@ -94,7 +94,7 @@ fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {
         assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
         assert_eq!(envelope.counters().external_authority_reference_count(), 1);
         assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
-        envelope_identities.push(envelope.identity().identity_digest().to_string());
+        envelope_identities.push(envelope.identity().envelope_identity_for_reporting().to_string());
     }
 
     assert_eq!(envelope_identities[0], envelope_identities[1]);

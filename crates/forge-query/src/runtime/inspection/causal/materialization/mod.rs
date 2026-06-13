@@ -160,7 +160,10 @@ pub fn materialize_denied_causal_inspection(
     let boundary_categories = policy::boundary_categories();
     let detail_identity = compose_causal_denied_artifact_detail_identity(
         inspection.subject().query_observation_evidence_identity(),
-        inspection.subject().result_shape_context_digest(),
+        inspection
+            .subject()
+            .result_shape_context_identity()
+            .evidence_identity(),
         &denial_reason,
         bridge_denial_identity.as_ref(),
         bridge_denial_kind,
@@ -239,12 +242,12 @@ fn validate_bridge_summary(
         }
     }
     .expect("existing Query admission and anchor digests should form a bridge summary");
-    if expected_summary.summary_digest() != envelope.admission_summary_digest() {
+    if expected_summary.summary_for_reporting() != envelope.admission_summary_for_reporting() {
         return Err(CausalInspectionMaterializationError::new(
             CausalInspectionMaterializationErrorKind::AdmissionSummaryDigestMismatch,
             &[
-                format!("expected:{}", expected_summary.summary_digest()),
-                format!("actual:{}", envelope.admission_summary_digest()),
+                format!("expected:{}", expected_summary.summary_for_reporting()),
+                format!("actual:{}", envelope.admission_summary_for_reporting()),
             ],
         ));
     }

@@ -224,7 +224,7 @@ impl SubscriptionLifecycleCloseout {
             format!("support:{}", support_profile.digest()),
             format!(
                 "performance:{}",
-                performance_receipt.performance_receipt_digest()
+                performance_receipt.performance_receipt_for_reporting()
             ),
             format!("counters:{}", counters.digest()),
             format!("source:{source_digest}"),

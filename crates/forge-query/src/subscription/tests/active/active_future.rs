@@ -42,7 +42,7 @@ fn temporal_async_and_mixed_live_meaning_become_real_active_lanes() {
             .future_selection()
             .projection_digest()
             .to_string();
-        let checkpoint_digest = activation.checkpoint_identity_digest().to_string();
+        let checkpoint_digest = activation.checkpoint_for_reporting().to_string();
         let admission = admit_active_subscription_lane(
             activation,
             active_budget(1, 2, ActiveSubscriptionAllocationPolicy::LifecycleArena),

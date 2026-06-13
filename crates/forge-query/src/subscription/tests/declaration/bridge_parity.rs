@@ -47,7 +47,7 @@ fn manual_bridge_witness_and_parity_explanation_bind_canonical_bridge_artifacts(
     );
     assert_eq!(
         explanation.comparison().bridge_declaration_digest(),
-        artifacts.lowering.bridge_declaration_digest()
+        artifacts.lowering.bridge_declaration_for_reporting()
     );
     assert_eq!(
         explanation

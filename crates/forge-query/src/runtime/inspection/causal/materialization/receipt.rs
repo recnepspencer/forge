@@ -85,8 +85,12 @@ impl CausalMaterializationReceipt {
         }
     }
 
-    pub fn query_admission_digest(&self) -> &str {
+    pub fn query_admission_for_reporting(&self) -> &str {
         self.query_admission_identity.as_str()
+    }
+
+    pub fn query_admission_identity(&self) -> &CausalInspectionOutcomeIdentity {
+        &self.query_admission_identity
     }
 
     pub fn bridge_envelope_digest(&self) -> Option<&str> {
@@ -95,25 +99,45 @@ impl CausalMaterializationReceipt {
             .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
+    pub fn bridge_envelope_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.bridge_envelope_identity.as_ref()
+    }
+
     pub fn bridge_receipt_digest(&self) -> Option<&str> {
         self.bridge_receipt_identity
             .as_ref()
             .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
-    pub fn policy_digest(&self) -> &str {
+    pub fn bridge_receipt_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.bridge_receipt_identity.as_ref()
+    }
+
+    pub fn policy_for_reporting(&self) -> &str {
         self.policy_identity.as_str()
     }
 
-    pub fn performance_digest(&self) -> &str {
+    pub fn policy_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.policy_identity
+    }
+
+    pub fn performance_for_reporting(&self) -> &str {
         self.performance_identity.as_str()
     }
 
-    pub fn materialization_digest(&self) -> &str {
+    pub fn performance_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.performance_identity
+    }
+
+    pub fn materialization_for_reporting(&self) -> &str {
         self.materialization_identity.as_str()
     }
 
-    pub fn receipt_digest(&self) -> &str {
+    pub fn materialization_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.materialization_identity
+    }
+
+    pub fn receipt_for_reporting(&self) -> &str {
         self.receipt_identity.as_str()
     }
 

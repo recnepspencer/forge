@@ -137,22 +137,31 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
     let mut policy_digests = Vec::new();
     let mut artifact_digests = Vec::new();
 
+    let route_identity = routed.route_identity().evidence_identity();
     for redaction_policy in [
         CausalInspectionRedactionPolicy::PreserveDetail,
         CausalInspectionRedactionPolicy::DigestOnly,
     ] {
-        let route_identity = routed.route_identity().evidence_identity();
         for materialization_policy in [
             CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
             CausalInspectionMaterializationPolicy::DigestReferenceOnly,
         ] {
-            let plan = CausalInspection::for_observation(receipt_with_evidence(
+            let receipt = QueryObservationReceipt::fixture(
                 CausalObservationOutcome::Changed,
-                &[
-                    (CausalEvidenceFamily::QueryInspection, "query-inspection"),
-                    (CausalEvidenceFamily::BridgeRoute, route_identity.as_str()),
+                vec![
+                    CausalObservationEvidenceIdentity::new(
+                        CausalEvidenceFamily::QueryInspection,
+                        crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                            "query-inspection",
+                        ),
+                    ),
+                    CausalObservationEvidenceIdentity::new(
+                        CausalEvidenceFamily::BridgeRoute,
+                        route_identity.clone(),
+                    ),
                 ],
-            ))
+            );
+            let plan = CausalInspection::for_observation(receipt)
             .why_changed()
             .reference_only()
             .redaction(redaction_policy)
@@ -165,7 +174,7 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
 
             assert!(artifact.is_admitted());
             assert_eq!(artifact.denial_reason(), None);
-            assert!(!artifact.receipt().policy_digest().is_empty());
+            assert!(!artifact.receipt().policy_for_reporting().is_empty());
             assert_eq!(
                 artifact
                     .evidence()
@@ -177,10 +186,11 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
             match causal_identity_digest {
                 Some(ref digest) => assert_eq!(artifact.causal_identity_digest(), digest),
                 None => {
-                    causal_identity_digest = Some(artifact.causal_identity_digest().to_string())
+                    causal_identity_digest =
+                        Some(artifact.causal_identity_digest().to_string())
                 }
             }
-            policy_digests.push(artifact.receipt().policy_digest().to_string());
+            policy_digests.push(artifact.receipt().policy_for_reporting().to_string());
             artifact_digests.push(artifact.artifact_digest().to_string());
         }
     }

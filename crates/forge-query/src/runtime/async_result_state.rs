@@ -276,7 +276,7 @@ pub(crate) fn project_live_async_result_state(
     let state = live_subscriptions
         .get_mut(view_name)
         .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))?;
-    let expected_basis = state.installation.basis_binding_digest();
+    let expected_basis = state.installation.basis_binding_for_reporting();
     let expected_generation = state.active_lane_handle.checkpoint_identity_digest();
     let kind = projection.kind();
     if basis_digest != expected_basis && !kind.permits_basis_or_generation_drift() {

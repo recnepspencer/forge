@@ -419,7 +419,7 @@ fn certification_bundle(
             .to_string(),
         subscription_declaration_digest: artifacts
             .lifecycle_bundle
-            .subscription_declaration_digest()
+            .query_declaration_for_reporting()
             .to_string(),
         subscription_equivalence_digest: artifacts
             .lifecycle_bundle
@@ -427,12 +427,12 @@ fn certification_bundle(
             .to_string(),
         bridge_declaration_digest: artifacts
             .lifecycle_bundle
-            .bridge_declaration_digest()
+            .bridge_declaration_for_reporting()
             .to_string(),
         bridge_basis_digest: artifacts.lifecycle_bundle.basis_digest().to_string(),
         signal_strategy_digest: artifacts
             .lifecycle_bundle
-            .signal_strategy_digest()
+            .signal_strategy_for_reporting()
             .to_string(),
         support_report_digest: artifacts.support_report.report_digest().to_string(),
         support_matrix_digest: artifacts
@@ -453,7 +453,7 @@ fn certification_bundle(
         diagnostic_assembly_receipt_digest: artifacts.diagnostic_receipt.digest().to_string(),
         lifecycle_certification_digest: artifacts
             .lifecycle_bundle
-            .certification_bundle_digest()
+            .certification_bundle_for_reporting()
             .to_string(),
         runtime_certification_bundle_digest: artifacts
             .runtime_bundle

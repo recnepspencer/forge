@@ -6,12 +6,12 @@ use crate::view_shape_live::LiveViewShapeFamily;
 #[test]
 fn active_lane_admission_preserves_activation_digests_and_phase_one_posture() {
     let activation = activation_for(LiveQueryFamily::Detail, None);
-    let activation_digest = activation.activation_digest().to_string();
-    let admission_digest = activation.admission_digest().to_string();
-    let query_declaration_digest = activation.query_declaration_digest().to_string();
-    let bridge_declaration_digest = activation.bridge_declaration_digest().to_string();
-    let basis_binding_digest = activation.basis_binding_digest().to_string();
-    let signal_strategy_digest = activation.signal_strategy_digest().to_string();
+    let activation_digest = activation.activation_for_reporting().to_string();
+    let admission_digest = activation.admission_for_reporting().to_string();
+    let query_declaration_digest = activation.query_declaration_for_reporting().to_string();
+    let bridge_declaration_digest = activation.bridge_declaration_for_reporting().to_string();
+    let basis_binding_digest = activation.basis_binding_for_reporting().to_string();
+    let signal_strategy_digest = activation.signal_strategy_for_reporting().to_string();
 
     let admission = admit_active_subscription_lane(
         activation,
@@ -319,8 +319,8 @@ fn lifecycle_heap_allocation_debt_is_explicit_and_digest_bound() {
     assert_eq!(debt.counters().heap_allocation_debt_count(), 1);
     assert_ne!(normal.lane_digest(), debt.lane_digest());
     assert_ne!(
-        normal.performance_receipt().performance_receipt_digest(),
-        debt.performance_receipt().performance_receipt_digest()
+        normal.performance_receipt().performance_receipt_for_reporting(),
+        debt.performance_receipt().performance_receipt_for_reporting()
     );
     assert_eq!(
         debt.allocation_posture(),

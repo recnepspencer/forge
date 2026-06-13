@@ -243,7 +243,7 @@ impl ForgeQueryWorkspace {
         Ok(self
             .runtime
             .inspect_live_view_name_installation(view_name)?
-            .basis_binding_digest()
+            .basis_binding_for_reporting()
             .to_string())
     }
 }

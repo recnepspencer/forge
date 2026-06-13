@@ -105,7 +105,7 @@ impl QuerySubscriptionFamilyCoverageRow {
         validate_row_alignment(family, support, parity, lifecycle)?;
         if diagnostic.support_report_digest() != support.report_digest()
             || diagnostic.lifecycle_certification_digest()
-                != lifecycle.certification_bundle_digest()
+                != lifecycle.certification_bundle_for_reporting()
         {
             return Err(QuerySubscriptionRuntimeCertificationError::new(
                 QuerySubscriptionRuntimeCertificationErrorKind::ScopeSourceMismatch,
@@ -117,7 +117,7 @@ impl QuerySubscriptionFamilyCoverageRow {
                         "diagnostic_lifecycle:{}",
                         diagnostic.lifecycle_certification_digest()
                     ),
-                    format!("lifecycle:{}", lifecycle.certification_bundle_digest()),
+                    format!("lifecycle:{}", lifecycle.certification_bundle_for_reporting()),
                 ],
                 QuerySubscriptionRuntimeCertificationCounters::default(),
             ));
@@ -189,9 +189,9 @@ impl QuerySubscriptionFamilyCoverageRow {
             row_class.as_str().to_string(),
             lifecycle.query_digest().to_string(),
             lifecycle.subscription_family_digest().to_string(),
-            lifecycle.subscription_declaration_digest().to_string(),
-            lifecycle.bridge_declaration_digest().to_string(),
-            lifecycle.signal_strategy_digest().to_string(),
+            lifecycle.query_declaration_for_reporting().to_string(),
+            lifecycle.bridge_declaration_for_reporting().to_string(),
+            lifecycle.signal_strategy_for_reporting().to_string(),
             lifecycle.basis_digest().to_string(),
             lifecycle.policy_digest().to_string(),
             lifecycle.tenant_basis_digest().to_string(),
@@ -199,7 +199,7 @@ impl QuerySubscriptionFamilyCoverageRow {
             lifecycle.view_shape_digest().to_string(),
             support_report_digest.to_string(),
             bridge_parity_digest.to_string(),
-            lifecycle.certification_bundle_digest().to_string(),
+            lifecycle.certification_bundle_for_reporting().to_string(),
             diagnostic_bundle_digest.to_string(),
             lifecycle_class.as_str().to_string(),
             format!("failure:{}", failure_digest.unwrap_or("none")),
@@ -210,13 +210,13 @@ impl QuerySubscriptionFamilyCoverageRow {
             query_digest: lifecycle.query_digest().to_string(),
             subscription_family_digest: lifecycle.subscription_family_digest().to_string(),
             subscription_declaration_digest: lifecycle
-                .subscription_declaration_digest()
+                .query_declaration_for_reporting()
                 .to_string(),
-            bridge_declaration_digest: lifecycle.bridge_declaration_digest().to_string(),
-            signal_strategy_digest: lifecycle.signal_strategy_digest().to_string(),
+            bridge_declaration_digest: lifecycle.bridge_declaration_for_reporting().to_string(),
+            signal_strategy_digest: lifecycle.signal_strategy_for_reporting().to_string(),
             support_report_digest: support_report_digest.to_string(),
             bridge_parity_digest: bridge_parity_digest.to_string(),
-            lifecycle_certification_digest: lifecycle.certification_bundle_digest().to_string(),
+            lifecycle_certification_digest: lifecycle.certification_bundle_for_reporting().to_string(),
             diagnostic_bundle_digest: diagnostic_bundle_digest.to_string(),
             failure_digest: failure_digest.map(ToOwned::to_owned),
             basis_digest: lifecycle.basis_digest().to_string(),
@@ -329,19 +329,19 @@ fn validate_hostile_diagnostic_alignment(
     validate_trace_stage_source(
         diagnostic,
         QuerySubscriptionDiagnosticStage::Declaration,
-        lifecycle.subscription_declaration_digest(),
+        lifecycle.query_declaration_for_reporting(),
         "hostile family coverage rows require denied diagnostic traces to preserve declaration identity",
     )?;
     validate_trace_stage_source(
         diagnostic,
         QuerySubscriptionDiagnosticStage::BridgeFamilyLowering,
-        lifecycle.bridge_declaration_digest(),
+        lifecycle.bridge_declaration_for_reporting(),
         "hostile family coverage rows require denied diagnostic traces to preserve bridge declaration identity",
     )?;
     validate_trace_stage_source(
         diagnostic,
         QuerySubscriptionDiagnosticStage::RuntimeBackedAdmission,
-        lifecycle.admission_digest(),
+        lifecycle.admission_for_reporting(),
         "hostile family coverage rows require denied diagnostic traces to preserve runtime admission identity",
     )?;
 
@@ -727,10 +727,10 @@ fn validate_row_alignment(
         ));
     }
 
-    if support.support_subject().declaration_digest() != lifecycle.subscription_declaration_digest()
+    if support.support_subject().declaration_digest() != lifecycle.query_declaration_for_reporting()
         || parity.comparison().query_declaration_digest()
-            != lifecycle.subscription_declaration_digest()
-        || parity.comparison().bridge_declaration_digest() != lifecycle.bridge_declaration_digest()
+            != lifecycle.query_declaration_for_reporting()
+        || parity.comparison().bridge_declaration_digest() != lifecycle.bridge_declaration_for_reporting()
     {
         return Err(QuerySubscriptionRuntimeCertificationError::new(
             QuerySubscriptionRuntimeCertificationErrorKind::ScopeSourceMismatch,
@@ -740,13 +740,13 @@ fn validate_row_alignment(
                     "support_declaration:{}",
                     support.support_subject().declaration_digest()
                 ),
-                format!("lifecycle_declaration:{}", lifecycle.subscription_declaration_digest()),
+                format!("lifecycle_declaration:{}", lifecycle.query_declaration_for_reporting()),
                 format!(
                     "parity_declaration:{}",
                     parity.comparison().query_declaration_digest()
                 ),
                 format!("parity_bridge:{}", parity.comparison().bridge_declaration_digest()),
-                format!("lifecycle_bridge:{}", lifecycle.bridge_declaration_digest()),
+                format!("lifecycle_bridge:{}", lifecycle.bridge_declaration_for_reporting()),
             ],
             QuerySubscriptionRuntimeCertificationCounters::default(),
         ));

@@ -72,7 +72,10 @@ impl CausalInspectionRepresentativeRowDigestSet {
         let slots = named_evidence_slots(artifact);
         let policy_digest = artifact_policy_digest(artifact).to_string();
         let receipt_digest = artifact_receipt_digest(artifact).to_string();
-        let counter_snapshot_digest = artifact.performance().performance_digest().to_string();
+        let counter_snapshot_digest = artifact
+            .performance()
+            .performance_for_reporting()
+            .to_string();
         let row_digest = row_digest(RowDigestParts {
             kind,
             query_digest: &query_digest,

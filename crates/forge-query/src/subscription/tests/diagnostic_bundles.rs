@@ -84,7 +84,7 @@ fn admitted_diagnostic_bundle_carries_offline_semantic_labels_and_canonical_dige
     );
     assert_eq!(
         bundle.lifecycle_certification_digest(),
-        artifacts.lifecycle_bundle.certification_bundle_digest()
+        artifacts.lifecycle_bundle.certification_bundle_for_reporting()
     );
     assert_eq!(
         bundle.lifecycle_closeout_digest(),

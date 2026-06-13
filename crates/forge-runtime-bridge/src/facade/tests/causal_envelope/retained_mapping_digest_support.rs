@@ -1,5 +1,5 @@
 use crate::diagnostics::causal_envelope::retained_mapping::digest_basis::{
-    compose_retained_causal_mapping_evidence_identity, retained_mapping_identity_digest_part,
+    compose_retained_causal_mapping_evidence_identity, retained_mapping_external_authority_part,
     retained_mapping_shape_part, RetainedCausalMappingDigestArtifact,
     RetainedCausalMappingIdentityPart,
 };
@@ -82,6 +82,6 @@ fn expected_part_kind<'a>(
         ExpectedRetainedCausalDigestArtifact::StreamReplayRecord if index == 5 => {
             retained_mapping_shape_part(part)
         }
-        _ => retained_mapping_identity_digest_part(part),
+        _ => retained_mapping_external_authority_part(part),
     }
 }

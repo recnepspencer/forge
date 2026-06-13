@@ -3,6 +3,7 @@ use crate::identity::hash_parts;
 use super::super::activation::SubscriptionActivationInput;
 use super::super::bridge_lowering::BridgeSubscriptionLoweringPlan;
 use super::super::declaration::QuerySubscriptionDeclarationArtifact;
+use super::super::evidence_identities::typed_identity_drift;
 use super::explanation::{
     QuerySubscriptionBridgeParityClass, QuerySubscriptionBridgeParityCounters,
     QuerySubscriptionBridgeParityError, QuerySubscriptionBridgeParityFailure,
@@ -123,10 +124,10 @@ pub fn build_query_subscription_manual_bridge_witness(
             .as_str()
             .to_string(),
         declaration.declaration_digest().as_str().to_string(),
-        lowering.bridge_declaration_digest().to_string(),
-        lowering.basis_request().digest().to_string(),
-        lowering.signal_strategy_request().digest().to_string(),
-        activation.activation_digest().to_string(),
+        lowering.bridge_declaration_for_reporting().to_string(),
+        lowering.basis_request().evidence_identity().as_str().to_string(),
+        lowering.signal_strategy_request().evidence_identity().as_str().to_string(),
+        activation.activation_for_reporting().to_string(),
         assembly_posture.as_str().to_string(),
     ];
     digest_parts.extend(
@@ -149,10 +150,14 @@ pub fn build_query_subscription_manual_bridge_witness(
             .as_str()
             .to_string(),
         query_declaration_digest: declaration.declaration_digest().as_str().to_string(),
-        bridge_declaration_digest: lowering.bridge_declaration_digest().to_string(),
-        basis_binding_digest: lowering.basis_request().digest().to_string(),
-        signal_strategy_digest: lowering.signal_strategy_request().digest().to_string(),
-        activation_digest: activation.activation_digest().to_string(),
+        bridge_declaration_digest: lowering.bridge_declaration_for_reporting().to_string(),
+        basis_binding_digest: lowering.basis_request().evidence_identity().as_str().to_string(),
+        signal_strategy_digest: lowering
+            .signal_strategy_request()
+            .evidence_identity()
+            .as_str()
+            .to_string(),
+        activation_digest: activation.activation_for_reporting().to_string(),
         assembly_posture,
         witness_digest,
     })
@@ -163,8 +168,8 @@ fn validate_authoritative_sources(
     lowering: &BridgeSubscriptionLoweringPlan,
     activation: &SubscriptionActivationInput,
 ) -> Result<(), QuerySubscriptionBridgeParityError> {
-    if declaration.declaration_digest().as_str() != lowering.query_declaration_digest()
-        || declaration.declaration_digest().as_str() != activation.query_declaration_digest()
+    if declaration.declaration_digest().as_str() != lowering.query_declaration_for_reporting()
+        || declaration.declaration_digest().as_str() != activation.query_declaration_for_reporting()
     {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
@@ -174,56 +179,80 @@ fn validate_authoritative_sources(
                 declaration.declaration_digest().as_str(),
                 &[
                     format!("declaration:{}", declaration.declaration_digest().as_str()),
-                    format!("lowering:{}", lowering.query_declaration_digest()),
-                    format!("activation:{}", activation.query_declaration_digest()),
+                    format!("lowering:{}", lowering.query_declaration_for_reporting()),
+                    format!(
+                        "activation:{}",
+                        activation.query_declaration_for_reporting()
+                    ),
                 ],
             ),
             QuerySubscriptionBridgeParityCounters::denied(),
         ));
     }
 
-    if lowering.bridge_declaration_digest() != activation.bridge_declaration_digest() {
+    if typed_identity_drift(
+        lowering.bridge_declaration_identity(),
+        activation.bridge_declaration_identity(),
+    ) {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
                 QuerySubscriptionBridgeParityFailureKind::BridgeMismatch,
                 QuerySubscriptionBridgeParityClass::DeniedSourceMismatch,
                 "manual bridge witness requires lowering and activation to bind the same bridge declaration digest",
-                lowering.bridge_declaration_digest(),
+                lowering.bridge_declaration_for_reporting(),
                 &[
-                    format!("lowering:{}", lowering.bridge_declaration_digest()),
-                    format!("activation:{}", activation.bridge_declaration_digest()),
+                    format!("lowering:{}", lowering.bridge_declaration_for_reporting()),
+                    format!("activation:{}", activation.bridge_declaration_for_reporting()),
                 ],
             ),
             QuerySubscriptionBridgeParityCounters::denied(),
         ));
     }
 
-    if lowering.basis_request().digest() != activation.basis_binding_digest() {
+    if typed_identity_drift(
+        lowering.basis_request().evidence_identity(),
+        activation.basis_binding_identity(),
+    ) {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
                 QuerySubscriptionBridgeParityFailureKind::BasisMismatch,
                 QuerySubscriptionBridgeParityClass::DeniedSourceMismatch,
                 "manual bridge witness requires lowering and activation to bind the same basis request digest",
-                lowering.basis_request().digest(),
+                lowering.basis_request().evidence_identity().as_str(),
                 &[
-                    format!("lowering:{}", lowering.basis_request().digest()),
-                    format!("activation:{}", activation.basis_binding_digest()),
+                    format!(
+                        "lowering:{}",
+                        lowering.basis_request().evidence_identity().as_str()
+                    ),
+                    format!(
+                        "activation:{}",
+                        activation.basis_binding_for_reporting()
+                    ),
                 ],
             ),
             QuerySubscriptionBridgeParityCounters::denied(),
         ));
     }
 
-    if lowering.signal_strategy_request().digest() != activation.signal_strategy_digest() {
+    if typed_identity_drift(
+        lowering.signal_strategy_request().evidence_identity(),
+        activation.signal_strategy_identity(),
+    ) {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
                 QuerySubscriptionBridgeParityFailureKind::SignalStrategyMismatch,
                 QuerySubscriptionBridgeParityClass::DeniedSourceMismatch,
                 "manual bridge witness requires lowering and activation to bind the same signal strategy digest",
-                lowering.signal_strategy_request().digest(),
+                lowering.signal_strategy_request().evidence_identity().as_str(),
                 &[
-                    format!("lowering:{}", lowering.signal_strategy_request().digest()),
-                    format!("activation:{}", activation.signal_strategy_digest()),
+                    format!(
+                        "lowering:{}",
+                        lowering.signal_strategy_request().evidence_identity().as_str()
+                    ),
+                    format!(
+                        "activation:{}",
+                        activation.signal_strategy_for_reporting()
+                    ),
                 ],
             ),
             QuerySubscriptionBridgeParityCounters::denied(),

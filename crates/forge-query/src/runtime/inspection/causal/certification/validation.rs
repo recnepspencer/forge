@@ -87,9 +87,10 @@ pub(super) fn validate_redaction_identity(
     full_artifact: &QueryCausalInspectionArtifact,
     redacted_artifact: &QueryCausalInspectionArtifact,
 ) -> Result<(), CausalInspectionCertificationError> {
-    let same_identity =
-        full_artifact.causal_identity_digest() == redacted_artifact.causal_identity_digest();
-    let changed_detail = full_artifact.artifact_digest() != redacted_artifact.artifact_digest();
+    let same_identity = full_artifact.causal_identity_digest()
+        == redacted_artifact.causal_identity_digest();
+    let changed_detail =
+        full_artifact.artifact_digest() != redacted_artifact.artifact_digest();
     if !same_identity || !changed_detail {
         return Err(CausalInspectionCertificationError::new(
             CausalInspectionCertificationErrorKind::RedactionIdentityDrift,

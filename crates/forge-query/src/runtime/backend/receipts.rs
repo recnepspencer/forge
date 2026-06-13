@@ -22,7 +22,6 @@ pub struct LiveViewDeclarationAdmissionReceipt {
     traversal_count: usize,
     ordering_count: usize,
     receipt_identity: ForgeQueryEvidenceIdentity,
-    receipt_digest: String,
 }
 
 impl LiveViewDeclarationAdmissionReceipt {
@@ -66,7 +65,6 @@ impl LiveViewDeclarationAdmissionReceipt {
         )
         .field_usize(ForgeQueryEvidenceTag::new("ordering_count"), ordering_count)
         .seal();
-        let receipt_digest = receipt_identity.as_str().to_string();
 
         Self {
             view_name,
@@ -78,7 +76,6 @@ impl LiveViewDeclarationAdmissionReceipt {
             traversal_count,
             ordering_count,
             receipt_identity,
-            receipt_digest,
         }
     }
 
@@ -118,8 +115,8 @@ impl LiveViewDeclarationAdmissionReceipt {
         &self.receipt_identity
     }
 
-    pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+    pub fn receipt_for_reporting(&self) -> &str {
+        self.receipt_identity.as_str()
     }
 
     pub(crate) fn drift_from_request(
@@ -166,7 +163,6 @@ pub struct SubscriptionActivationReceipt {
     support_identity: ForgeQueryEvidenceIdentity,
     remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
     receipt_identity: ForgeQueryEvidenceIdentity,
-    receipt_digest: String,
 }
 
 impl SubscriptionActivationReceipt {
@@ -177,35 +173,19 @@ impl SubscriptionActivationReceipt {
         remask_projection: Option<ForgeQueryRuntimeRemaskProjection>,
     ) -> Self {
         let view_name = view_name.into();
-        let activation_digest = activation.activation_digest().to_string();
-        let query_declaration_digest = activation.query_declaration_digest().to_string();
-        let bridge_declaration_digest = activation.bridge_declaration_digest().to_string();
-        let basis_binding_digest = activation.basis_binding_digest().to_string();
-        let signal_strategy_digest = activation.signal_strategy_digest().to_string();
         let support_evidence = support_evidence.into();
-        let activation_identity =
-            subscription_activation_receipt_source_identity("activation", &activation_digest);
-        let query_declaration_identity = subscription_activation_receipt_source_identity(
-            "query_declaration",
-            &query_declaration_digest,
-        );
-        let bridge_declaration_identity = subscription_activation_receipt_source_identity(
-            "bridge_declaration",
-            &bridge_declaration_digest,
-        );
-        let basis_binding_identity =
-            subscription_activation_receipt_source_identity("basis_binding", &basis_binding_digest);
-        let signal_strategy_identity = subscription_activation_receipt_source_identity(
-            "signal_strategy",
-            &signal_strategy_digest,
-        );
+        let activation_identity = activation.evidence_identity().clone();
+        let query_declaration_identity = activation.query_declaration_identity().clone();
+        let bridge_declaration_identity = activation.bridge_declaration_identity().clone();
+        let basis_binding_identity = activation.basis_binding_identity().clone();
+        let signal_strategy_identity = activation.signal_strategy_identity().clone();
         let support_identity =
             subscription_activation_receipt_source_identity("support", &support_evidence);
         let remask_posture = remask_projection.map(|projection| {
             ForgeQueryRuntimeRemaskPosture::from_activation_projection(
                 &projection,
                 &support_evidence,
-                &basis_binding_digest,
+                activation.basis_binding_for_reporting(),
             )
         });
         let receipt_identity = ForgeQueryEvidenceIdentity::compose(
@@ -244,7 +224,6 @@ impl SubscriptionActivationReceipt {
                 .map(|posture| posture.remask_digest()),
         )
         .seal();
-        let receipt_digest = receipt_identity.as_str().to_string();
 
         Self {
             view_name,
@@ -256,7 +235,6 @@ impl SubscriptionActivationReceipt {
             support_identity,
             remask_posture,
             receipt_identity,
-            receipt_digest,
         }
     }
 
@@ -264,28 +242,56 @@ impl SubscriptionActivationReceipt {
         &self.view_name
     }
 
-    pub fn activation_digest(&self) -> &str {
+    pub fn activation_for_reporting(&self) -> &str {
         self.activation_identity.as_str()
     }
 
-    pub fn query_declaration_digest(&self) -> &str {
+    pub fn activation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.activation_identity
+    }
+
+    pub fn query_declaration_for_reporting(&self) -> &str {
         self.query_declaration_identity.as_str()
     }
 
-    pub fn bridge_declaration_digest(&self) -> &str {
+    pub fn query_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_declaration_identity
+    }
+
+    pub fn bridge_declaration_for_reporting(&self) -> &str {
         self.bridge_declaration_identity.as_str()
     }
 
-    pub fn basis_binding_digest(&self) -> &str {
+    pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_declaration_identity
+    }
+
+    pub fn basis_binding_for_reporting(&self) -> &str {
         self.basis_binding_identity.as_str()
     }
 
-    pub fn signal_strategy_digest(&self) -> &str {
+    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_binding_identity
+    }
+
+    pub fn signal_strategy_for_reporting(&self) -> &str {
         self.signal_strategy_identity.as_str()
     }
 
-    pub fn support_evidence(&self) -> &str {
+    pub fn signal_strategy_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.signal_strategy_identity
+    }
+
+    pub fn support_for_reporting(&self) -> &str {
         self.support_identity.as_str()
+    }
+
+    pub fn support_evidence(&self) -> &str {
+        self.support_for_reporting()
+    }
+
+    pub fn support_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.support_identity
     }
 
     pub fn remask_posture(&self) -> Option<&ForgeQueryRuntimeRemaskPosture> {
@@ -296,8 +302,8 @@ impl SubscriptionActivationReceipt {
         &self.receipt_identity
     }
 
-    pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+    pub fn receipt_for_reporting(&self) -> &str {
+        self.receipt_identity.as_str()
     }
 
     pub(crate) fn drift_from_activation(
@@ -311,18 +317,35 @@ impl SubscriptionActivationReceipt {
                 self.view_name()
             ));
         }
-        if self.activation_digest() != activation.activation_digest()
-            || self.query_declaration_digest() != activation.query_declaration_digest()
-            || self.bridge_declaration_digest() != activation.bridge_declaration_digest()
-            || self.basis_binding_digest() != activation.basis_binding_digest()
-            || self.signal_strategy_digest() != activation.signal_strategy_digest()
+        if typed_identity_drift(self.activation_identity(), activation.evidence_identity())
+            || typed_identity_drift(
+                self.query_declaration_identity(),
+                activation.query_declaration_identity(),
+            )
+            || typed_identity_drift(
+                self.bridge_declaration_identity(),
+                activation.bridge_declaration_identity(),
+            )
+            || typed_identity_drift(
+                self.basis_binding_identity(),
+                activation.basis_binding_identity(),
+            )
+            || typed_identity_drift(
+                self.signal_strategy_identity(),
+                activation.signal_strategy_identity(),
+            )
         {
-            return Some(
-                "subscription activation receipt drifted from activation input".to_string(),
-            );
+            return Some("subscription activation receipt drifted from activation input".to_string());
         }
         None
     }
+}
+
+fn typed_identity_drift(
+    left: &ForgeQueryEvidenceIdentity,
+    right: &ForgeQueryEvidenceIdentity,
+) -> bool {
+    !matches!(left.eq_same_scheme(right), Ok(true))
 }
 
 fn subscription_activation_receipt_source_identity(

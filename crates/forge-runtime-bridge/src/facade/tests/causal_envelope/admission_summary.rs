@@ -37,16 +37,16 @@ fn causal_envelope_request_carries_advisory_query_admission_summary() {
         request.admission_summary().kind(),
         BridgeCausalInspectionAdmissionSummaryKind::Advisory
     );
-    assert_eq!(request.query_admission_digest(), "query-admission:advisory");
+    assert_eq!(request.query_admission_for_reporting(), "query-admission:advisory");
     assert_eq!(
-        request.causal_observation_anchor_digest(),
+        request.causal_observation_anchor_for_reporting(),
         "anchor:advisory"
     );
     assert!(request
         .admission_summary()
-        .summary_digest()
+        .summary_for_reporting()
         .starts_with("forge.runtime.bridge.causal-envelope-identity.v1:"));
-    let admission_summary_digest = request.admission_summary().summary_digest().to_string();
+    let admission_summary_digest = request.admission_summary().summary_for_reporting().to_string();
 
     let envelope = runtime
         .diagnostics()
@@ -58,7 +58,7 @@ fn causal_envelope_request_carries_advisory_query_admission_summary() {
         BridgeCausalInspectionAdmissionSummaryKind::Advisory
     );
     assert_eq!(
-        envelope.admission_summary_digest(),
+        envelope.admission_summary_for_reporting(),
         admission_summary_digest
     );
     assert_eq!(envelope.counters().bridge_retained_lookup_count(), 1);

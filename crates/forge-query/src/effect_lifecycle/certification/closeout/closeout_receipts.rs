@@ -206,7 +206,7 @@ fn scalar_surface_evidence(
     let scoped_plan = scope_admitted_effect_plan(admitted);
     let query_digest = normalized
         .workflow_binding()
-        .query_identity_digest()
+        .query_for_reporting()
         .to_string();
     let family_digest = hash_parts(&[format!("family:{}", normalized.family().as_str())]);
     let authority_digest = hash_parts(&[
@@ -296,7 +296,7 @@ fn raw_effect_intent_digest(raw: &RawEffectIntent) -> String {
         } => hash_parts(&[
             "raw_effect_intent_v1".to_string(),
             "family:mutation".to_string(),
-            format!("binding:{}", binding.digest()),
+            format!("binding:{}", binding.binding_digest()),
             format!("declaration:{}", request.declaration_family().as_str()),
             format!("target:{}", request.authority_target_family().as_str()),
             format!("input_family:{}", input.family().as_str()),
@@ -309,7 +309,7 @@ fn raw_effect_intent_digest(raw: &RawEffectIntent) -> String {
         } => hash_parts(&[
             "raw_effect_intent_v1".to_string(),
             "family:merge".to_string(),
-            format!("binding:{}", binding.digest()),
+            format!("binding:{}", binding.binding_digest()),
             format!("declaration:{}", request.declaration_family().as_str()),
             format!("target:{}", request.authority_target_family().as_str()),
             format!("intent:{}", input.intent().as_str()),
@@ -323,7 +323,7 @@ fn raw_effect_intent_digest(raw: &RawEffectIntent) -> String {
         } => hash_parts(&[
             "raw_effect_intent_v1".to_string(),
             "family:writeback".to_string(),
-            format!("binding:{}", binding.digest()),
+            format!("binding:{}", binding.binding_digest()),
             format!("declaration:{}", request.declaration_family().as_str()),
             format!("target:{}", request.authority_target_family().as_str()),
             format!("input_family:{}", input.family().as_str()),

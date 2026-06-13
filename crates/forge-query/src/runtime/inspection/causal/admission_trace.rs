@@ -68,8 +68,12 @@ impl CausalDecisionTraceRow {
         &self.reason
     }
 
-    pub fn row_digest(&self) -> &str {
+    pub fn row_for_reporting(&self) -> &str {
         self.row_identity.as_str()
+    }
+
+    pub(super) fn evidence_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        self.row_identity.evidence_identity()
     }
 }
 
@@ -109,7 +113,7 @@ impl CausalDecisionTraceIndex {
         self.lookup.get(key).and_then(|index| self.rows.get(*index))
     }
 
-    pub fn trace_digest(&self) -> &str {
+    pub fn trace_for_reporting(&self) -> &str {
         self.trace_identity.as_str()
     }
 
@@ -253,19 +257,43 @@ impl CausalInspectionAdmissionReceipt {
         self.receipt_identity.as_str()
     }
 
-    pub fn subject_digest(&self) -> &str {
+    pub fn subject_for_reporting(&self) -> &str {
         self.subject_identity.as_str()
     }
 
-    pub fn decision_digest(&self) -> &str {
+    pub fn decision_for_reporting(&self) -> &str {
         self.decision_identity.as_str()
     }
 
-    pub fn decision_trace_index_digest(&self) -> &str {
+    pub fn decision_trace_index_for_reporting(&self) -> &str {
         self.decision_trace_identity.as_str()
     }
 
-    pub fn counter_snapshot(&self) -> &str {
+    pub fn counter_snapshot_for_reporting(&self) -> &str {
         self.counter_identity.as_str()
+    }
+
+    pub fn counter_snapshot(&self) -> &str {
+        self.counter_snapshot_for_reporting()
+    }
+
+    pub(super) fn receipt_identity(&self) -> &CausalInspectionAdmissionReceiptIdentity {
+        &self.receipt_identity
+    }
+
+    pub(super) fn subject_identity(&self) -> &CausalInspectionAdmissionSubjectIdentity {
+        &self.subject_identity
+    }
+
+    pub(super) fn decision_identity(&self) -> &CausalInspectionAdmissionDecisionIdentity {
+        &self.decision_identity
+    }
+
+    pub(super) fn decision_trace_identity(&self) -> &CausalInspectionDecisionTraceIdentity {
+        &self.decision_trace_identity
+    }
+
+    pub(super) fn counter_identity(&self) -> &CausalInspectionAdmissionCountersIdentity {
+        &self.counter_identity
     }
 }

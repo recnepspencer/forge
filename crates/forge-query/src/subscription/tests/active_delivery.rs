@@ -522,10 +522,10 @@ fn performance_receipt_digest_binds_allocation_posture() {
     assert_ne!(
         patch_packet
             .performance_receipt()
-            .performance_receipt_digest(),
+            .performance_receipt_for_reporting(),
         debt_packet
             .performance_receipt()
-            .performance_receipt_digest()
+            .performance_receipt_for_reporting()
     );
     assert_ne!(
         patch_packet.work_packet_digest(),

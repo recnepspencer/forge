@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::runtime::ForgeQueryGraphCompositionCapabilityClass;
 use forge_relational::facade::runtime::{InvariantCatalog, InvariantRegistration};
 
@@ -39,6 +41,129 @@ impl ForgeQueryInvariantCapabilityContributionPosture {
             }
         }
     }
+}
+
+fn compose_graph_capability_identity(
+    graph_capability: &ForgeQueryGraphCapabilityRuntimeSemantics,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_graph_capability_runtime_semantics_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("capability_family"),
+            graph_capability.capability_family(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("capability_class"),
+            graph_capability.capability_class().as_str(),
+        )
+        .seal()
+}
+
+fn compose_graph_invariant_denial_identity(
+    graph_invariant_denial: &ForgeQueryGraphInvariantDenialRuntimeSemantics,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_graph_invariant_denial_runtime_semantics_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("invariant_family"),
+            graph_invariant_denial.invariant_family(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("declared_collections"),
+            graph_invariant_denial.declared_collections(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("declared_symbols"),
+            graph_invariant_denial.declared_symbols(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("target_combination_families"),
+            graph_invariant_denial.target_combination_families(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("lifecycle_families"),
+            graph_invariant_denial.lifecycle_families(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("program_digest"),
+            graph_invariant_denial.program_digest(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("breadth_digest"),
+            graph_invariant_denial.breadth_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("counter_snapshot"),
+            graph_invariant_denial.counter_snapshot(),
+        )
+        .seal()
+}
+
+fn compose_invariant_registration_identity(
+    invariant_registration: &ForgeQueryInvariantRegistrationRuntimeSemantics,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_invariant_registration_runtime_semantics_v1",
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("registration"),
+            invariant_registration.registration_digest(),
+        )
+        .seal()
+}
+
+fn compose_invariant_capability_payload_identity(
+    posture: ForgeQueryInvariantCapabilityContributionPosture,
+    semantic_code: &str,
+    detail: &str,
+    graph_capability: Option<&ForgeQueryGraphCapabilityRuntimeSemantics>,
+    graph_invariant_denial: Option<&ForgeQueryGraphInvariantDenialRuntimeSemantics>,
+    invariant_registration: Option<&ForgeQueryInvariantRegistrationRuntimeSemantics>,
+) -> ForgeQueryEvidenceIdentity {
+    let mut identity = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("identity_family"),
+        "forge_query_domain_capability_payload_v3",
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("category"),
+        ForgeQueryDomainCapabilityCategory::InvariantCapability.as_str(),
+    )
+    .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+    .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+    .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+    identity = match graph_capability {
+        Some(semantics) => identity.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("graph_capability"),
+            &compose_graph_capability_identity(semantics),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("graph_capability"), "none"),
+    };
+    identity = match graph_invariant_denial {
+        Some(semantics) => identity.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("graph_invariant_denial"),
+            &compose_graph_invariant_denial_identity(semantics),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("graph_invariant_denial"), "none"),
+    };
+    identity = match invariant_registration {
+        Some(semantics) => identity.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("invariant_registration"),
+            &compose_invariant_registration_identity(semantics),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("invariant_registration"), "none"),
+    };
+    identity.seal()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -175,7 +300,7 @@ pub struct ForgeQueryInvariantCapabilityContributionPayload {
     graph_capability: Option<ForgeQueryGraphCapabilityRuntimeSemantics>,
     graph_invariant_denial: Option<ForgeQueryGraphInvariantDenialRuntimeSemantics>,
     invariant_registration: Option<ForgeQueryInvariantRegistrationRuntimeSemantics>,
-    payload_digest: String,
+    payload_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryInvariantCapabilityContributionPayload {
@@ -238,50 +363,14 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
     ) -> Self {
         let semantic_code = semantic_code.into();
         let detail = detail.into();
-        let graph_capability_digest = graph_capability.as_ref().map_or_else(
-            || "none".to_string(),
-            |graph_capability| {
-                format!(
-                    "{}:{}",
-                    graph_capability.capability_family(),
-                    graph_capability.capability_class().as_str()
-                )
-            },
+        let payload_identity = compose_invariant_capability_payload_identity(
+            posture,
+            &semantic_code,
+            &detail,
+            graph_capability.as_ref(),
+            graph_invariant_denial.as_ref(),
+            invariant_registration.as_ref(),
         );
-        let graph_invariant_denial_digest = graph_invariant_denial.as_ref().map_or_else(
-            || "none".to_string(),
-            |graph_invariant_denial| {
-                format!(
-                    "{}:{}:{}:{}:{}:{}:{}",
-                    graph_invariant_denial.invariant_family(),
-                    graph_invariant_denial.declared_collections().join("|"),
-                    graph_invariant_denial.declared_symbols().join("|"),
-                    graph_invariant_denial
-                        .target_combination_families()
-                        .join("|"),
-                    graph_invariant_denial.lifecycle_families().join("|"),
-                    graph_invariant_denial.program_digest(),
-                    graph_invariant_denial.breadth_digest(),
-                )
-            },
-        );
-        let invariant_registration_digest = invariant_registration.as_ref().map_or_else(
-            || "none".to_string(),
-            ForgeQueryInvariantRegistrationRuntimeSemantics::registration_digest,
-        );
-        let payload_digest = hash_parts(&[
-            "forge_query_domain_capability_payload_v2".to_string(),
-            format!(
-                "category:{}",
-                ForgeQueryDomainCapabilityCategory::InvariantCapability.as_str()
-            ),
-            format!("posture:{}", posture.as_str()),
-            format!("semantic_code:{semantic_code}"),
-            format!("detail:{detail}"),
-            format!("graph_capability:{graph_capability_digest}"),
-            format!("graph_invariant_denial:{graph_invariant_denial_digest}"),
-            format!("invariant_registration:{invariant_registration_digest}"),
-        ]);
         Self {
             posture,
             semantic_code,
@@ -289,7 +378,7 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
             graph_capability,
             graph_invariant_denial,
             invariant_registration,
-            payload_digest,
+            payload_identity,
         }
     }
 
@@ -326,7 +415,15 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
     }
 
     pub fn payload_digest(&self) -> &str {
-        &self.payload_digest
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_for_reporting(&self) -> &str {
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }
 

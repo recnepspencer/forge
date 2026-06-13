@@ -32,7 +32,7 @@ pub(crate) fn snapshot_live_view_name(
         mixed_cause_delivery,
     ) {
         (Some(delivery), Some(async_result_state), Some(mixed_cause_delivery)) => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_for_reporting().to_string(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence; last delivery cause is `{}` with evidence `{}` at sequence {} and relational_patch={}; mixed-cause delivery is `{}` over ordered members `{}` with {} suppressed and {} denied causes; async result state is `{}` with causality `{}` over basis `{}` and generation `{}`",
                 installation.view_name(),
@@ -56,7 +56,7 @@ pub(crate) fn snapshot_live_view_name(
             ),
         ),
         (Some(delivery), None, Some(mixed_cause_delivery)) => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_for_reporting().to_string(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence; last delivery cause is `{}` with evidence `{}` at sequence {} and relational_patch={}; mixed-cause delivery is `{}` over ordered members `{}` with {} suppressed and {} denied causes",
                 installation.view_name(),
@@ -76,7 +76,7 @@ pub(crate) fn snapshot_live_view_name(
             ),
         ),
         (None, Some(async_result_state), None) => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_for_reporting().to_string(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence; async result state is `{}` with causality `{}` over basis `{}` and generation `{}`",
                 installation.view_name(),
@@ -87,14 +87,14 @@ pub(crate) fn snapshot_live_view_name(
             ),
         ),
         (None, None, None) => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_for_reporting().to_string(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence",
                 installation.view_name()
             ),
         ),
         _ => (
-            installation.view_shape_digest().to_string(),
+            installation.view_shape_for_reporting().to_string(),
             format!(
                 "sync runtime-backed live view `{}` is ready through retained subscription evidence",
                 installation.view_name()
@@ -102,7 +102,7 @@ pub(crate) fn snapshot_live_view_name(
         ),
     };
     let mut snapshot = ForgeQueryRuntimeStateSnapshot::ready(
-        installation.basis_binding_digest(),
+        installation.basis_binding_for_reporting(),
         result_shape_digest,
         installation.authority_lane(),
         explanation,
@@ -114,8 +114,8 @@ pub(crate) fn snapshot_live_view_name(
     if let Some(remask_posture) = state.remask_posture.clone() {
         snapshot = ForgeQueryRuntimeStateSnapshot::deferred(
             remask_posture.disposition_kind().state_kind(),
-            installation.basis_binding_digest(),
-            installation.view_shape_digest().to_string(),
+            installation.basis_binding_for_reporting(),
+            installation.view_shape_for_reporting().to_string(),
             installation.authority_lane(),
             format!(
                 "sync runtime-backed live view `{}` is {} through retained remask posture `{}` over basis `{}`; policy `{}`, tenant truth `{}`, tenant schema `{}`, relationship proof `{}`, schema context `{}`",

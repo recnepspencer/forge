@@ -24,7 +24,7 @@ pub(crate) fn retained_record_evidence_identity(
     facade: &BridgeDiagnosticsFacade,
     reference: &BridgeCausalEvidenceReference,
 ) -> Result<Option<BridgeIdentityEvidence>, BridgeCausalEnvelopeDenial> {
-    let reference_identity = reference.reference_evidence_identity().as_str();
+    let reference_identity = reference.reference_evidence_identity();
     match reference.family() {
         BridgeCausalEvidenceFamily::BridgeBulkPlanning => {
             Ok(bulk_planning_record_digest(facade, reference_identity))

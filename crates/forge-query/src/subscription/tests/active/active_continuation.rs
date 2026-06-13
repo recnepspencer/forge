@@ -116,10 +116,10 @@ fn advisory_and_identity_break_continuations_are_distinct_counters() {
     assert_ne!(
         advisory_report
             .performance_receipt()
-            .performance_receipt_digest(),
+            .performance_receipt_for_reporting(),
         break_report
             .performance_receipt()
-            .performance_receipt_digest()
+            .performance_receipt_for_reporting()
     );
     assert_eq!(break_counters.continuation_identity_break_count(), 1);
     assert_eq!(break_counters.continuation_advisory_count(), 0);

@@ -106,5 +106,7 @@ pub use taxonomy::{
     DeniedEffectEligibilityKind, EffectAuthorityLane, EffectFamily, EffectIntentDenialKind,
 };
 
+pub(crate) use execution_relational_scalar::stable_branch_snapshot_id;
+
 #[cfg(test)]
 mod tests;

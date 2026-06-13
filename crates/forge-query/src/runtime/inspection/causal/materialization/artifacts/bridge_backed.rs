@@ -167,8 +167,14 @@ impl QueryCausalEvidenceReferenceArtifact {
         self.detail_redacted
     }
 
-    pub fn reference_digest(&self) -> &str {
+    pub fn reference_for_reporting(&self) -> &str {
         self.reference_receipt_identity.as_str()
+    }
+
+    pub(in crate::runtime::inspection::causal) fn reference_receipt_evidence_identity(
+        &self,
+    ) -> &ForgeQueryEvidenceIdentity {
+        &self.reference_receipt_identity
     }
 }
 
@@ -260,11 +266,11 @@ impl AdmittedQueryCausalInspectionArtifact {
         self.query_observation_identity.as_str()
     }
 
-    pub fn result_shape_context_digest(&self) -> &str {
+    pub fn result_shape_context_for_reporting(&self) -> &str {
         self.result_shape_context_identity.as_str()
     }
 
-    pub fn bridge_envelope_identity_digest(&self) -> &str {
+    pub fn bridge_envelope_identity_for_reporting(&self) -> &str {
         self.bridge_identity.as_str()
     }
 }
@@ -303,7 +309,7 @@ impl AdvisoryQueryCausalInspectionArtifact {
         }
     }
 
-    pub fn query_advisory_digest(&self) -> &str {
+    pub fn query_advisory_for_reporting(&self) -> &str {
         self.query_advisory_identity.as_str()
     }
 
@@ -311,7 +317,7 @@ impl AdvisoryQueryCausalInspectionArtifact {
         self.query_observation_identity.as_str()
     }
 
-    pub fn result_shape_context_digest(&self) -> &str {
+    pub fn result_shape_context_for_reporting(&self) -> &str {
         self.result_shape_context_identity.as_str()
     }
 
@@ -319,7 +325,7 @@ impl AdvisoryQueryCausalInspectionArtifact {
         &self.advisory_reason
     }
 
-    pub fn bridge_envelope_identity_digest(&self) -> &str {
+    pub fn bridge_envelope_identity_for_reporting(&self) -> &str {
         self.bridge_identity.as_str()
     }
 }
@@ -343,8 +349,12 @@ macro_rules! bridge_backed_accessors {
                 self.bridge_envelope_identity.as_str()
             }
 
-            pub fn bridge_receipt_digest(&self) -> &str {
+            pub fn bridge_receipt_for_reporting(&self) -> &str {
                 self.bridge_receipt_identity.as_str()
+            }
+
+            pub fn bridge_receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+                &self.bridge_receipt_identity
             }
 
             pub fn performance(&self) -> &CausalInspectionPerformanceEnvelope {
@@ -360,7 +370,7 @@ macro_rules! bridge_backed_accessors {
             }
 
             pub fn bridge_readmission_proof_digest(&self) -> &str {
-                self.readmission_proof.readmission_proof_digest()
+                self.readmission_proof.readmission_proof_for_reporting()
             }
 
             pub(in crate::runtime) fn bridge_readmission_proof_identity(

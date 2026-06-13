@@ -4,7 +4,6 @@ use crate::correspondence_history::CorrespondenceHistoricalEnvelope;
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
-use crate::identity::hash_parts;
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::preview::{
     AdmittedPreviewWorkflowFoundation, PreviewEvaluationClass, PreviewWorkflowFoundationRequest,
@@ -259,11 +258,11 @@ pub enum WorkflowBindingSource<'a> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkflowContextBinding {
-    digest: String,
-    source_digest: String,
-    query_identity_digest: String,
+    binding_identity: ForgeQueryEvidenceIdentity,
+    source_identity: ForgeQueryEvidenceIdentity,
+    query_identity: ForgeQueryEvidenceIdentity,
     basis_family: WorkflowBasisFamily,
-    basis_digest: String,
+    basis_identity: ForgeQueryEvidenceIdentity,
     runtime_snapshot_identity: Option<ForgeQuerySnapshotIdentity>,
     runtime_target_branch: Option<BranchId>,
     preview_evaluation_class: Option<WorkflowPreviewEvaluationClass>,
@@ -273,49 +272,40 @@ pub struct WorkflowContextBinding {
 }
 
 impl WorkflowContextBinding {
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn binding_digest(&self) -> &str {
+        self.binding_identity.as_str()
     }
 
-    pub fn binding_identity(&self) -> ForgeQueryEvidenceIdentity {
-        workflow_context_binding_identity(
-            &self.source_digest,
-            &self.query_identity_digest,
-            self.basis_family.clone(),
-            &self.basis_digest,
-            self.runtime_snapshot_identity.as_ref(),
-            None,
-        )
+    pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.binding_identity
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_digest
+    pub fn source_for_reporting(&self) -> &str {
+        self.source_identity.as_str()
     }
 
-    pub fn query_identity_digest(&self) -> &str {
-        &self.query_identity_digest
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
+    }
+
+    pub fn query_for_reporting(&self) -> &str {
+        self.query_identity.as_str()
+    }
+
+    pub fn query_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_identity
     }
 
     pub fn basis_family(&self) -> &WorkflowBasisFamily {
         &self.basis_family
     }
 
-    pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+    pub fn basis_for_reporting(&self) -> &str {
+        self.basis_identity.as_str()
     }
 
-    pub fn basis_identity(&self) -> ForgeQueryEvidenceIdentity {
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "workflow_context_basis_v1",
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("basis_family"),
-                self.basis_family.as_str(),
-            )
-            .field_identity(ForgeQueryEvidenceTag::new("basis"), &self.basis_digest)
-            .seal()
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
     }
 
     pub fn runtime_snapshot_identity(&self) -> Option<&ForgeQuerySnapshotIdentity> {
@@ -344,22 +334,22 @@ impl WorkflowContextBinding {
 }
 
 fn workflow_context_binding_identity(
-    source_digest: &str,
-    query_identity_digest: &str,
+    source_identity: &ForgeQueryEvidenceIdentity,
+    query_identity: &ForgeQueryEvidenceIdentity,
     basis_family: WorkflowBasisFamily,
-    basis_digest: &str,
+    basis_identity: &ForgeQueryEvidenceIdentity,
     runtime_snapshot_identity: Option<&ForgeQuerySnapshotIdentity>,
     binding_scope_identity: Option<&ForgeQueryEvidenceIdentity>,
 ) -> ForgeQueryEvidenceIdentity {
     let mut identity =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
-            .field_identity(ForgeQueryEvidenceTag::new("source"), source_digest)
-            .field_identity(ForgeQueryEvidenceTag::new("query"), query_identity_digest)
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("query"), query_identity)
             .field_shape(
                 ForgeQueryEvidenceTag::new("basis_family"),
                 basis_family.as_str(),
             )
-            .field_identity(ForgeQueryEvidenceTag::new("basis"), basis_digest);
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_identity);
     if let Some(runtime_snapshot_identity) = runtime_snapshot_identity {
         identity = identity.field_evidence_identity(
             ForgeQueryEvidenceTag::new("runtime_snapshot"),
@@ -373,6 +363,88 @@ fn workflow_context_binding_identity(
     identity.seal()
 }
 
+pub(crate) fn workflow_context_source_identity(
+    source_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_context_source_v1",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
+        .seal()
+}
+
+pub(crate) fn workflow_context_query_identity(
+    query_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_context_query_v1",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("query"), query_identity)
+        .seal()
+}
+
+pub(crate) fn workflow_context_basis_identity(
+    basis_family: &WorkflowBasisFamily,
+    basis_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_context_basis_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("basis_family"),
+            basis_family.as_str(),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_identity)
+        .seal()
+}
+
+pub(crate) fn workflow_context_source_token_identity(
+    source_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_context_source_token_v1",
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("source_token"), source_digest)
+        .seal()
+}
+
+pub(crate) fn workflow_context_query_token_identity(
+    query_identity_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_context_query_token_v1",
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("query_token"), query_identity_digest)
+        .seal()
+}
+
+pub(crate) fn workflow_context_basis_token_identity(
+    basis_family: &WorkflowBasisFamily,
+    basis_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_context_basis_token_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("basis_family"),
+            basis_family.as_str(),
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("basis_token"), basis_digest)
+        .seal()
+}
+
 fn workflow_scope_digest_identity(binding_scope_digest: &str) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
         .field_shape(
@@ -380,6 +452,154 @@ fn workflow_scope_digest_identity(binding_scope_digest: &str) -> ForgeQueryEvide
             "workflow_context_binding_scope_digest_v1",
         )
         .field_identity(ForgeQueryEvidenceTag::new("scope"), binding_scope_digest)
+        .seal()
+}
+
+fn synthetic_runtime_workflow_query_identity(
+    source_label: &str,
+    binding_scope_identity: &ForgeQueryEvidenceIdentity,
+    runtime_snapshot_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "synthetic_runtime_workflow_query_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("scope"), binding_scope_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("runtime_snapshot"),
+            runtime_snapshot_identity,
+        )
+        .seal()
+}
+
+fn synthetic_runtime_workflow_source_identity(
+    source_label: &str,
+    binding_scope_identity: &ForgeQueryEvidenceIdentity,
+    runtime_snapshot_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "synthetic_runtime_workflow_source_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("scope"), binding_scope_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("runtime_snapshot"),
+            runtime_snapshot_identity,
+        )
+        .seal()
+}
+
+fn synthetic_runtime_workflow_basis_identity(
+    source_label: &str,
+    binding_scope_identity: &ForgeQueryEvidenceIdentity,
+    runtime_snapshot_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "synthetic_runtime_workflow_basis_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("basis_family"),
+            WorkflowBasisFamily::RuntimePreflight.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("scope"), binding_scope_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("runtime_snapshot"),
+            runtime_snapshot_identity,
+        )
+        .seal()
+}
+
+fn synthetic_preview_workflow_query_identity(
+    source_label: &str,
+    binding_scope_identity: &ForgeQueryEvidenceIdentity,
+    preview_session_identity: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "synthetic_preview_workflow_query_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("scope"), binding_scope_identity)
+        .field_identity(ForgeQueryEvidenceTag::new("preview_session"), preview_session_identity)
+        .seal()
+}
+
+fn synthetic_preview_workflow_source_identity(
+    source_label: &str,
+    binding_scope_identity: &ForgeQueryEvidenceIdentity,
+    evaluation_class: &WorkflowPreviewEvaluationClass,
+    preview_session_identity: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "synthetic_preview_workflow_source_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("evaluation_class"),
+            evaluation_class.as_str(),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("scope"), binding_scope_identity)
+        .field_identity(ForgeQueryEvidenceTag::new("preview_session"), preview_session_identity)
+        .seal()
+}
+
+fn synthetic_preview_workflow_basis_identity(
+    source_label: &str,
+    binding_scope_identity: &ForgeQueryEvidenceIdentity,
+    preview_session_identity: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "synthetic_preview_workflow_basis_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("basis_family"),
+            WorkflowBasisFamily::PreviewFoundation.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("scope"), binding_scope_identity)
+        .field_identity(ForgeQueryEvidenceTag::new("preview_session"), preview_session_identity)
+        .seal()
+}
+
+fn workflow_declaration_identity(
+    binding_identity: &ForgeQueryEvidenceIdentity,
+    request: &WorkflowDeclarationRequest,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_declaration_v1",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), binding_identity)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("declaration_family"),
+            request.declaration_family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority_target_family"),
+            request.authority_target_family().as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("cost_class"), request.cost_class().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("budget_class"),
+            request.budget_class().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("freshness_policy"),
+            request.freshness_policy().as_str(),
+        )
         .seal()
 }
 
@@ -442,37 +662,35 @@ pub(crate) fn synthetic_runtime_workflow_binding_scoped_for_branch_snapshot_bind
     runtime_target_branch: BranchId,
 ) -> WorkflowContextBinding {
     let runtime_snapshot_evidence = runtime_snapshot_identity.evidence_identity();
-    let query_identity_digest = hash_parts(&[
-        format!("synthetic_query:{source_label}"),
-        binding_scope_identity.as_ref().to_string(),
-        "basis:runtime".to_string(),
-    ]);
-    let source_digest = hash_parts(&[
-        format!("synthetic_source:{source_label}"),
-        binding_scope_identity.as_ref().to_string(),
-        runtime_snapshot_evidence.as_ref().to_string(),
-    ]);
-    let basis_digest = hash_parts(&[
-        format!("synthetic_basis:{source_label}"),
-        binding_scope_identity.as_ref().to_string(),
-        runtime_snapshot_evidence.as_ref().to_string(),
-    ]);
-    let digest = workflow_context_binding_identity(
-        &source_digest,
-        &query_identity_digest,
+    let source_identity = synthetic_runtime_workflow_source_identity(
+        source_label,
+        binding_scope_identity,
+        &runtime_snapshot_evidence,
+    );
+    let query_identity = synthetic_runtime_workflow_query_identity(
+        source_label,
+        binding_scope_identity,
+        &runtime_snapshot_evidence,
+    );
+    let basis_identity = synthetic_runtime_workflow_basis_identity(
+        source_label,
+        binding_scope_identity,
+        &runtime_snapshot_evidence,
+    );
+    let binding_identity = workflow_context_binding_identity(
+        &source_identity,
+        &query_identity,
         WorkflowBasisFamily::RuntimePreflight,
-        &basis_digest,
+        &basis_identity,
         Some(&runtime_snapshot_identity),
         Some(binding_scope_identity),
-    )
-    .as_ref()
-    .to_string();
+    );
     WorkflowContextBinding {
-        digest,
-        source_digest,
-        query_identity_digest,
+        binding_identity,
+        source_identity,
+        query_identity,
         basis_family: WorkflowBasisFamily::RuntimePreflight,
-        basis_digest,
+        basis_identity,
         runtime_snapshot_identity: Some(runtime_snapshot_identity),
         runtime_target_branch: Some(runtime_target_branch),
         preview_evaluation_class: None,
@@ -492,16 +710,14 @@ pub(crate) fn scoped_runtime_preflight_workflow_binding_for_binding_identity(
     binding_scope_identity: &ForgeQueryEvidenceIdentity,
 ) -> Result<WorkflowContextBinding, WorkflowAdmissionError> {
     let mut binding = bind_runtime_preflight(preflight)?;
-    binding.digest = workflow_context_binding_identity(
-        &binding.source_digest,
-        &binding.query_identity_digest,
+    binding.binding_identity = workflow_context_binding_identity(
+        &binding.source_identity,
+        &binding.query_identity,
         binding.basis_family.clone(),
-        &binding.basis_digest,
+        &binding.basis_identity,
         binding.runtime_snapshot_identity.as_ref(),
         Some(binding_scope_identity),
-    )
-    .as_ref()
-    .to_string();
+    );
     Ok(binding)
 }
 
@@ -540,52 +756,39 @@ pub(crate) fn synthetic_preview_workflow_binding_request_scoped(
     evaluation_class: WorkflowPreviewEvaluationClass,
     request_family: PreviewWorkflowFoundationRequest,
 ) -> WorkflowContextBinding {
-    let query_identity_digest = hash_parts(&[
-        format!("synthetic_query:{source_label}"),
-        format!("scope:{binding_scope_digest}"),
-        format!(
-            "preview_session:{}",
-            preview_session_identity.evidence_identity().as_str()
-        ),
-    ]);
-    let source_digest = hash_parts(&[
-        format!("synthetic_source:{source_label}"),
-        format!("scope:{binding_scope_digest}"),
-        format!("evaluation:{}", evaluation_class.as_str()),
-        format!(
-            "preview_session:{}",
-            preview_session_identity.evidence_identity().as_str()
-        ),
-    ]);
-    let basis_digest = hash_parts(&[
-        format!("synthetic_basis:{source_label}"),
-        format!("scope:{binding_scope_digest}"),
-        format!(
-            "preview_session:{}",
-            preview_session_identity.evidence_identity().as_str()
-        ),
-    ]);
-    let digest = hash_parts(&[
-        format!("source:{source_digest}"),
-        format!("query:{query_identity_digest}"),
-        format!(
-            "basis_family:{}",
-            WorkflowBasisFamily::PreviewFoundation.as_str()
-        ),
-        format!("basis:{basis_digest}"),
-        format!("evaluation:{}", evaluation_class.as_str()),
-        format!("request_family:{}", request_family.as_str()),
-        format!(
-            "preview_session:{}",
-            preview_session_identity.evidence_identity().as_str()
-        ),
-    ]);
+    let binding_scope_identity = workflow_scope_digest_identity(binding_scope_digest);
+    let preview_session_evidence = preview_session_identity.evidence_identity();
+    let preview_session_digest = preview_session_evidence.as_ref();
+    let source_identity = synthetic_preview_workflow_source_identity(
+        source_label,
+        &binding_scope_identity,
+        &evaluation_class,
+        preview_session_digest,
+    );
+    let query_identity = synthetic_preview_workflow_query_identity(
+        source_label,
+        &binding_scope_identity,
+        preview_session_digest,
+    );
+    let basis_identity = synthetic_preview_workflow_basis_identity(
+        source_label,
+        &binding_scope_identity,
+        preview_session_digest,
+    );
+    let binding_identity = workflow_context_binding_identity(
+        &source_identity,
+        &query_identity,
+        WorkflowBasisFamily::PreviewFoundation,
+        &basis_identity,
+        None,
+        Some(&binding_scope_identity),
+    );
     WorkflowContextBinding {
-        digest,
-        source_digest,
-        query_identity_digest,
+        binding_identity,
+        source_identity,
+        query_identity,
         basis_family: WorkflowBasisFamily::PreviewFoundation,
-        basis_digest,
+        basis_identity,
         runtime_snapshot_identity: None,
         runtime_target_branch: None,
         preview_evaluation_class: Some(evaluation_class),
@@ -602,8 +805,8 @@ pub(crate) fn synthetic_preview_workflow_binding_request_scoped(
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkflowAdmissionReport {
-    binding_digest: String,
-    declaration_digest: String,
+    binding_identity: ForgeQueryEvidenceIdentity,
+    declaration_identity: ForgeQueryEvidenceIdentity,
     declaration_family: WorkflowDeclarationFamily,
     basis_family: WorkflowBasisFamily,
     authority_target_family: WorkflowAuthorityTargetFamily,
@@ -616,11 +819,19 @@ pub struct WorkflowAdmissionReport {
 
 impl WorkflowAdmissionReport {
     pub fn binding_digest(&self) -> &str {
-        &self.binding_digest
+        self.binding_identity.as_str()
     }
 
     pub fn declaration_digest(&self) -> &str {
-        &self.declaration_digest
+        self.declaration_identity.as_str()
+    }
+
+    pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.binding_identity
+    }
+
+    pub fn declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.declaration_identity
     }
 
     pub fn declaration_family(&self) -> &WorkflowDeclarationFamily {
@@ -738,21 +949,14 @@ pub fn admit_query_workflow_declaration(
         workflow_broadening_denial_count: 0,
         workflow_executor_rediscovery_count: 0,
     };
-    let declaration_digest = hash_parts(&[
-        format!("binding:{}", binding.digest()),
-        format!("family:{}", request.declaration_family().as_str()),
-        format!("target:{}", request.authority_target_family().as_str()),
-        format!("cost:{}", request.cost_class().as_str()),
-        format!("budget:{}", request.budget_class().as_str()),
-        format!("freshness:{}", request.freshness_policy().as_str()),
-    ]);
+    let declaration_identity = workflow_declaration_identity(binding.binding_identity(), &request);
 
     Ok(QueryWorkflowDeclaration {
         binding: binding.clone(),
         request: request.clone(),
         report: WorkflowAdmissionReport {
-            binding_digest: binding.digest().to_string(),
-            declaration_digest,
+            binding_identity: binding.binding_identity().clone(),
+            declaration_identity,
             declaration_family: request.declaration_family().clone(),
             basis_family: binding.basis_family().clone(),
             authority_target_family: request.authority_target_family().clone(),
@@ -789,23 +993,31 @@ fn bind_runtime_preflight(
         preflight.basis().identity().snapshot_identity().clone(),
     );
     let source_digest = preflight.plan().query().plan_digest().as_str();
-    let digest = workflow_context_binding_identity(
-        source_digest,
-        query_identity_digest,
+    let source_identity = workflow_context_source_identity(
+        &workflow_context_source_token_identity(source_digest),
+    );
+    let query_identity = workflow_context_query_identity(
+        &workflow_context_query_token_identity(query_identity_digest),
+    );
+    let basis_identity = workflow_context_basis_identity(
+        &WorkflowBasisFamily::RuntimePreflight,
+        &workflow_context_basis_token_identity(&WorkflowBasisFamily::RuntimePreflight, basis_digest),
+    );
+    let binding_identity = workflow_context_binding_identity(
+        &source_identity,
+        &query_identity,
         WorkflowBasisFamily::RuntimePreflight,
-        basis_digest,
+        &basis_identity,
         Some(&runtime_snapshot_identity),
         None,
-    )
-    .as_ref()
-    .to_string();
+    );
 
     Ok(WorkflowContextBinding {
-        digest,
-        source_digest: source_digest.to_string(),
-        query_identity_digest: query_identity_digest.to_string(),
+        binding_identity,
+        source_identity,
+        query_identity,
         basis_family: WorkflowBasisFamily::RuntimePreflight,
-        basis_digest: basis_digest.to_string(),
+        basis_identity,
         runtime_snapshot_identity: Some(runtime_snapshot_identity),
         runtime_target_branch: Some(BranchId("main".to_string())),
         preview_evaluation_class: None,
@@ -832,30 +1044,31 @@ fn bind_preview_foundation(
     let source_digest = foundation.digest();
     let query_identity_digest = foundation.validated_query_digest().as_str();
     let basis_digest = foundation.binding_digest();
-    let digest = hash_parts(&[
-        format!("source:{source_digest}"),
-        format!("query:{query_identity_digest}"),
-        format!(
-            "basis_family:{}",
-            WorkflowBasisFamily::PreviewFoundation.as_str()
-        ),
-        format!("basis:{basis_digest}"),
-        format!("evaluation:{}", evaluation_class.as_str()),
-        format!(
-            "preview_session:{}",
-            foundation
-                .preview_session_identity()
-                .evidence_identity()
-                .as_str()
-        ),
-    ]);
+    let source_identity = workflow_context_source_identity(
+        &workflow_context_source_token_identity(source_digest),
+    );
+    let query_identity = workflow_context_query_identity(
+        &workflow_context_query_token_identity(query_identity_digest),
+    );
+    let basis_identity = workflow_context_basis_identity(
+        &WorkflowBasisFamily::PreviewFoundation,
+        &workflow_context_basis_token_identity(&WorkflowBasisFamily::PreviewFoundation, basis_digest),
+    );
+    let binding_identity = workflow_context_binding_identity(
+        &source_identity,
+        &query_identity,
+        WorkflowBasisFamily::PreviewFoundation,
+        &basis_identity,
+        None,
+        None,
+    );
 
     Ok(WorkflowContextBinding {
-        digest,
-        source_digest: source_digest.to_string(),
-        query_identity_digest: query_identity_digest.to_string(),
+        binding_identity,
+        source_identity,
+        query_identity,
         basis_family: WorkflowBasisFamily::PreviewFoundation,
-        basis_digest: basis_digest.to_string(),
+        basis_identity,
         runtime_snapshot_identity: None,
         runtime_target_branch: None,
         preview_evaluation_class: Some(evaluation_class),
@@ -876,22 +1089,34 @@ fn bind_preview_promotion_comparison(
     let source_digest = comparison.digest();
     let query_identity_digest = comparison.validated_query_digest().as_str();
     let basis_digest = comparison.candidate_basis_digest();
-    let digest = hash_parts(&[
-        format!("source:{source_digest}"),
-        format!("query:{query_identity_digest}"),
-        format!(
-            "basis_family:{}",
-            WorkflowBasisFamily::PreviewPromotionComparison.as_str()
+    let source_identity = workflow_context_source_identity(
+        &workflow_context_source_token_identity(source_digest),
+    );
+    let query_identity = workflow_context_query_identity(
+        &workflow_context_query_token_identity(query_identity_digest),
+    );
+    let basis_identity = workflow_context_basis_identity(
+        &WorkflowBasisFamily::PreviewPromotionComparison,
+        &workflow_context_basis_token_identity(
+            &WorkflowBasisFamily::PreviewPromotionComparison,
+            basis_digest,
         ),
-        format!("basis:{basis_digest}"),
-    ]);
+    );
+    let binding_identity = workflow_context_binding_identity(
+        &source_identity,
+        &query_identity,
+        WorkflowBasisFamily::PreviewPromotionComparison,
+        &basis_identity,
+        None,
+        None,
+    );
 
     Ok(WorkflowContextBinding {
-        digest,
-        source_digest: source_digest.to_string(),
-        query_identity_digest: query_identity_digest.to_string(),
+        binding_identity,
+        source_identity,
+        query_identity,
         basis_family: WorkflowBasisFamily::PreviewPromotionComparison,
-        basis_digest: basis_digest.to_string(),
+        basis_identity,
         runtime_snapshot_identity: None,
         runtime_target_branch: None,
         preview_evaluation_class: Some(WorkflowPreviewEvaluationClass::PromotionEligible),

@@ -7,7 +7,9 @@ use crate::domain_capabilities::denials::{
 use crate::domain_capabilities::{
     ForgeQueryDomainCapabilityTransitionOutcome, ForgeQueryMaterializationReadyWorkflowContribution,
 };
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::workflow::{
     lower_merge_workflow_declaration, lower_mutation_intent_declaration,
     lower_query_writeback_declaration, LoweredMergeWorkflowDeclaration,
@@ -271,11 +273,27 @@ fn lowering_error_denial(
 }
 
 fn lowering_posture_digest(target_digest: &str, error: &WorkflowLoweringError) -> String {
-    hash_parts(&[
-        "forge_query_domain_capability_workflow_lowering_posture_v1".to_string(),
-        format!("target:{target_digest}"),
-        format!("failure:{:?}", error.failure_class()),
-        format!("staleness:{}", error.staleness_class().as_str()),
-        format!("message:{}", error.message()),
-    ])
+    workflow_lowering_posture_identity(target_digest, error).as_str().to_string()
+}
+
+fn workflow_lowering_posture_identity(
+    target_digest: &str,
+    error: &WorkflowLoweringError,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_domain_capability_workflow_lowering_posture_v1",
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("target"), target_digest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("failure"),
+            format!("{:?}", error.failure_class()),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("staleness"),
+            error.staleness_class().as_str(),
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("message"), error.message())
+        .seal()
 }

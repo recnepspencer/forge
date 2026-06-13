@@ -1,4 +1,5 @@
 use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::acknowledgement::SubscriptionAcknowledgementFrontier;
 use super::activation::SubscriptionActivationInput;
@@ -21,6 +22,11 @@ use super::preview_isolation::{
 };
 use super::scale::QuerySubscriptionScaleSlopeReport;
 use super::selection::QuerySubscriptionFamilySelection;
+use super::evidence_identities::{
+    certification_activation_bundle_identity, lifecycle_certification_bundle_identity,
+    subscription_certification_projection, subscription_certification_sequence_projection,
+    typed_identity_drift,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionCertificationDenialKind {
@@ -81,20 +87,22 @@ impl QuerySubscriptionCertificationError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionCertificationBundle {
-    certification_bundle_digest: String,
-    admission_digest: String,
-    activation_digest: String,
-    query_declaration_digest: String,
-    bridge_declaration_digest: String,
-    basis_binding_digest: String,
-    signal_strategy_digest: String,
-    diagnostics_digest: String,
-    support_profile_digest: String,
-    admission_counter_digest: String,
-    activation_counter_digest: String,
-    scale_slope_digest: String,
-    scale_activation_digest: String,
-    scale_admission_digest: String,
+    certification_bundle_identity: ForgeQueryEvidenceIdentity,
+    admission_identity: ForgeQueryEvidenceIdentity,
+    activation_identity: ForgeQueryEvidenceIdentity,
+    query_declaration_for_reporting: String,
+    query_declaration_identity: ForgeQueryEvidenceIdentity,
+    bridge_declaration_for_reporting: String,
+    bridge_declaration_identity: ForgeQueryEvidenceIdentity,
+    basis_binding_identity: ForgeQueryEvidenceIdentity,
+    signal_strategy_identity: ForgeQueryEvidenceIdentity,
+    diagnostics_for_reporting: String,
+    support_profile_for_reporting: String,
+    admission_counter_for_reporting: String,
+    activation_counter_for_reporting: String,
+    scale_slope_for_reporting: String,
+    scale_activation_for_reporting: String,
+    scale_admission_for_reporting: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -139,20 +147,29 @@ impl SubscriptionLifecycleCertificationContext {
     ) -> Self {
         Self::admitted(
             live.query_digest(),
-            hash_parts(&[selection.family().as_str().to_string()]),
+            subscription_certification_projection(
+                "subscription_lifecycle_family_v1",
+                [("family", selection.family().as_str().to_string())],
+            ),
             selection.equivalence_basis().digest().as_str().to_string(),
             live.policy_digest().unwrap_or("none").to_string(),
             live.tenant_digest().unwrap_or("none").to_string(),
             live.relationship_proof_digest()
                 .unwrap_or("none")
                 .to_string(),
-            hash_parts(&[format!(
-                "view:{}",
-                live.view_family()
-                    .map(|family| family.as_str())
-                    .unwrap_or("none")
-            )]),
-            hash_parts(&[format!("basis:{}", live.basis_posture().as_str())]),
+            subscription_certification_projection(
+                "subscription_lifecycle_view_shape_v1",
+                [(
+                    "view",
+                    live.view_family()
+                        .map(|family| family.as_str().to_string())
+                        .unwrap_or_else(|| "none".to_string()),
+                )],
+            ),
+            subscription_certification_projection(
+                "subscription_lifecycle_basis_v1",
+                [("basis", live.basis_posture().as_str().to_string())],
+            ),
         )
     }
 
@@ -287,12 +304,13 @@ impl SubscriptionLifecycleCertificationError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubscriptionLifecycleCertificationBundle {
-    certification_bundle_digest: String,
+    certification_bundle_identity: ForgeQueryEvidenceIdentity,
     query_digest: String,
     subscription_family_digest: String,
-    subscription_declaration_digest: String,
+    query_declaration_for_reporting: String,
+    subscription_declaration_identity: ForgeQueryEvidenceIdentity,
     subscription_equivalence_digest: String,
-    admission_digest: String,
+    admission_identity: ForgeQueryEvidenceIdentity,
     active_lane_digest: String,
     active_lane_handle_digest: String,
     active_lane_lookup_class_digest: String,
@@ -316,8 +334,9 @@ pub struct SubscriptionLifecycleCertificationBundle {
     relationship_proof_digest: String,
     view_shape_digest: String,
     basis_digest: String,
-    bridge_declaration_digest: String,
-    signal_strategy_digest: String,
+    bridge_declaration_for_reporting: String,
+    bridge_declaration_identity: ForgeQueryEvidenceIdentity,
+    signal_strategy_identity: ForgeQueryEvidenceIdentity,
     counter_snapshot: String,
     counter_evidence: Vec<String>,
     subscription_lifecycle_scale_slope_digest: String,
@@ -325,8 +344,12 @@ pub struct SubscriptionLifecycleCertificationBundle {
 }
 
 impl SubscriptionLifecycleCertificationBundle {
-    pub fn certification_bundle_digest(&self) -> &str {
-        &self.certification_bundle_digest
+    pub fn certification_bundle_for_reporting(&self) -> &str {
+        self.certification_bundle_identity.as_str()
+    }
+
+    pub fn certification_bundle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.certification_bundle_identity
     }
 
     pub fn query_digest(&self) -> &str {
@@ -337,16 +360,24 @@ impl SubscriptionLifecycleCertificationBundle {
         &self.subscription_family_digest
     }
 
-    pub fn subscription_declaration_digest(&self) -> &str {
-        &self.subscription_declaration_digest
+    pub fn query_declaration_for_reporting(&self) -> &str {
+        &self.query_declaration_for_reporting
+    }
+
+    pub fn subscription_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subscription_declaration_identity
     }
 
     pub fn subscription_equivalence_digest(&self) -> &str {
         &self.subscription_equivalence_digest
     }
 
-    pub fn admission_digest(&self) -> &str {
-        &self.admission_digest
+    pub fn admission_for_reporting(&self) -> &str {
+        self.admission_identity.as_str()
+    }
+
+    pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_identity
     }
 
     pub fn active_lane_digest(&self) -> &str {
@@ -441,12 +472,20 @@ impl SubscriptionLifecycleCertificationBundle {
         &self.basis_digest
     }
 
-    pub fn bridge_declaration_digest(&self) -> &str {
-        &self.bridge_declaration_digest
+    pub fn bridge_declaration_for_reporting(&self) -> &str {
+        &self.bridge_declaration_for_reporting
     }
 
-    pub fn signal_strategy_digest(&self) -> &str {
-        &self.signal_strategy_digest
+    pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_declaration_identity
+    }
+
+    pub fn signal_strategy_for_reporting(&self) -> &str {
+        self.signal_strategy_identity.as_str()
+    }
+
+    pub fn signal_strategy_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.signal_strategy_identity
     }
 
     pub fn counter_snapshot(&self) -> &str {
@@ -499,21 +538,21 @@ pub fn certify_subscription_lifecycle(
         )
     })?;
 
-    if active_admission.activation_digest() != activation.activation_digest()
-        || active_admission.admission_digest() != admission.admission_digest()
-        || active_admission.query_declaration_digest() != admission.query_declaration_digest()
-        || active_admission.bridge_declaration_digest() != admission.bridge_declaration_digest()
-        || active_admission.basis_binding_digest() != admission.basis_binding_digest()
-        || active_admission.signal_strategy_digest() != admission.signal_strategy_digest()
+    if active_admission.activation_digest() != activation.activation_for_reporting()
+        || active_admission.admission_digest() != admission.admission_for_reporting()
+        || active_admission.query_declaration_digest() != admission.query_declaration_for_reporting()
+        || active_admission.bridge_declaration_digest() != admission.bridge_declaration_for_reporting()
+        || active_admission.basis_binding_digest() != admission.basis_binding_for_reporting()
+        || active_admission.signal_strategy_digest() != admission.signal_strategy_for_reporting()
     {
         return Err(SubscriptionLifecycleCertificationError::new(
             SubscriptionLifecycleCertificationDenialKind::ActiveLaneSourceMismatch,
             "active lane admission must certify the same admitted subscription source",
             &[
                 format!("lane_activation:{}", active_admission.activation_digest()),
-                format!("activation:{}", activation.activation_digest()),
+                format!("activation:{}", activation.activation_for_reporting()),
                 format!("lane_admission:{}", active_admission.admission_digest()),
-                format!("admission:{}", admission.admission_digest()),
+                format!("admission:{}", admission.admission_for_reporting()),
             ],
         ));
     }
@@ -652,78 +691,117 @@ pub fn certify_subscription_lifecycle(
         ));
     }
 
-    let active_lane_handle_digest = hash_parts(&[
-        format!("lane:{}", active_lane_handle.lane_digest().as_str()),
-        format!("index:{}", active_lane_handle.lane_index()),
-        format!("generation:{}", active_lane_handle.registry_generation()),
-    ]);
-    let active_lane_lookup_class_digest =
-        hash_parts(&[active_admission.lookup_class().as_str().to_string()]);
-    let subscription_budget_digest = hash_parts(&[
-        "active_subscription_budget_v1".to_string(),
-        format!(
-            "lookup_width:{}",
-            active_admission.budget().registry_lookup_width()
-        ),
-        format!("fanout_width:{}", active_admission.budget().fanout_width()),
-        format!(
-            "allocation_scope_width:{}",
-            active_admission.budget().allocation_scope_width()
-        ),
-        format!(
-            "lookup_class:{}",
-            active_admission.budget().lookup_class().as_str()
-        ),
-        format!(
-            "allocation_posture:{}",
-            active_admission.budget().allocation_posture().as_str()
-        ),
-        format!(
-            "durable_checkpoint_requested:{}",
-            active_admission.budget().durable_checkpoint_requested()
-        ),
-        format!(
-            "store_backed_restart_requested:{}",
-            active_admission.budget().store_backed_restart_requested()
-        ),
-    ]);
+    let active_lane_handle_digest = subscription_certification_projection(
+        "subscription_active_lane_handle_v1",
+        [
+            ("lane", active_lane_handle.lane_digest().as_str().to_string()),
+            ("index", active_lane_handle.lane_index().to_string()),
+            (
+                "generation",
+                active_lane_handle.registry_generation().to_string(),
+            ),
+        ],
+    );
+    let active_lane_lookup_class_digest = subscription_certification_projection(
+        "subscription_active_lane_lookup_class_v1",
+        [(
+            "lookup_class",
+            active_admission.lookup_class().as_str().to_string(),
+        )],
+    );
+    let subscription_budget_digest = subscription_certification_projection(
+        "active_subscription_budget_v1",
+        [
+            (
+                "lookup_width",
+                active_admission.budget().registry_lookup_width().to_string(),
+            ),
+            (
+                "fanout_width",
+                active_admission.budget().fanout_width().to_string(),
+            ),
+            (
+                "allocation_scope_width",
+                active_admission
+                    .budget()
+                    .allocation_scope_width()
+                    .to_string(),
+            ),
+            (
+                "lookup_class",
+                active_admission.budget().lookup_class().as_str().to_string(),
+            ),
+            (
+                "allocation_posture",
+                active_admission
+                    .budget()
+                    .allocation_posture()
+                    .as_str()
+                    .to_string(),
+            ),
+            (
+                "durable_checkpoint_requested",
+                active_admission
+                    .budget()
+                    .durable_checkpoint_requested()
+                    .to_string(),
+            ),
+            (
+                "store_backed_restart_requested",
+                active_admission
+                    .budget()
+                    .store_backed_restart_requested()
+                    .to_string(),
+            ),
+        ],
+    );
     let continuation_digest = continuation
         .map(|report| report.continuation_digest().to_string())
         .unwrap_or_else(|| "none".to_string());
-    let subscription_performance_receipt_digest = hash_parts(&[
-        active_admission
-            .performance_receipt()
-            .performance_receipt_digest()
-            .to_string(),
-        attachment
-            .performance_receipt()
-            .performance_receipt_digest()
-            .to_string(),
-        continuation
-            .map(|report| {
-                report
-                    .performance_receipt()
-                    .performance_receipt_digest()
-                    .to_string()
-            })
-            .unwrap_or_else(|| "none".to_string()),
-        work_packet
-            .performance_receipt()
-            .performance_receipt_digest()
-            .to_string(),
-        lifecycle_closeout
-            .performance_receipt()
-            .performance_receipt_digest()
-            .to_string(),
-        preview_evidence.performance_receipt_digest.clone(),
-    ]);
-    let allocation_posture_digest = hash_parts(&[
-        work_packet.allocation_posture().as_str().to_string(),
-        format!(
-            "allocation_scope_width:{}",
-            work_packet.allocation_scope_width()
-        ),
-    ]);
+    let subscription_performance_receipt_digest = subscription_certification_sequence_projection(
+        "subscription_performance_receipt_v1",
+        "subscription_performance_receipt_element_v1",
+        &[
+            active_admission
+                .performance_receipt()
+                .performance_receipt_for_reporting()
+                .to_string(),
+            attachment
+                .performance_receipt()
+                .performance_receipt_for_reporting()
+                .to_string(),
+            continuation
+                .map(|report| {
+                    report
+                        .performance_receipt()
+                        .performance_receipt_for_reporting()
+                        .to_string()
+                })
+                .unwrap_or_else(|| "none".to_string()),
+            work_packet
+                .performance_receipt()
+                .performance_receipt_for_reporting()
+                .to_string(),
+            lifecycle_closeout
+                .performance_receipt()
+                .performance_receipt_for_reporting()
+                .to_string(),
+            preview_evidence.performance_receipt_digest.clone(),
+        ],
+    );
+    let allocation_posture_digest = subscription_certification_projection(
+        "subscription_allocation_posture_v1",
+        [
+            (
+                "posture",
+                work_packet.allocation_posture().as_str().to_string(),
+            ),
+            (
+                "allocation_scope_width",
+                work_packet.allocation_scope_width().to_string(),
+            ),
+        ],
+    );
     let counter_evidence = lifecycle_counter_evidence(
         admission.counters().digest(),
         active_admission.counters().digest(),
@@ -733,43 +811,51 @@ pub fn certify_subscription_lifecycle(
         continuation.map(|report| report.report_digest()),
         &preview_evidence.counter_evidence,
     );
-    let counter_snapshot = hash_parts(&counter_evidence);
+    let counter_snapshot =
+        subscription_certification_sequence_projection("subscription_counter_snapshot_v1", "counter", &counter_evidence);
     let mut support_parts = vec![
         admission.support_profile().digest().to_string(),
         lifecycle_closeout.support_profile().digest().to_string(),
         lifecycle_closeout.closeout_digest().to_string(),
     ];
     support_parts.extend(preview_evidence.support_evidence.iter().cloned());
-    let support_matrix_digest = hash_parts(&support_parts);
-    let certification_bundle_digest = hash_parts(&[
-        "subscription_lifecycle_certification_bundle_v1".to_string(),
-        format!("base:{}", base.certification_bundle_digest()),
-        format!("query:{}", context.query_digest()),
-        format!("family:{}", context.subscription_family_digest()),
-        format!("equivalence:{}", context.subscription_equivalence_digest()),
-        format!("admission:{}", admission.admission_digest()),
-        format!("lane:{}", active_admission.lane_digest().as_str()),
-        format!("handle:{}", active_lane_handle_digest),
-        format!("performance:{}", subscription_performance_receipt_digest),
-        format!("attachment:{}", attachment.attachment_digest().as_str()),
-        format!("window:{delivery_window_digest}"),
-        format!("delta:{}", maintenance_delta.maintenance_delta_digest()),
-        format!("packet:{}", work_packet.work_packet_digest()),
-        format!("batch:{}", delivery_batch.delivery_batch_digest()),
-        format!("receipt:{}", delivery_batch.receipt().receipt_digest()),
-        format!("continuation:{}", continuation_digest),
-        format!("closeout:{}", lifecycle_closeout.closeout_digest()),
-        format!("support:{}", support_matrix_digest),
-        format!("counters:{}", counter_snapshot),
-    ]);
+    let support_matrix_digest = subscription_certification_sequence_projection(
+        "subscription_support_matrix_v1",
+        "support",
+        &support_parts,
+    );
+    let certification_bundle_identity = lifecycle_certification_bundle_identity(
+        base.certification_bundle_identity(),
+        admission.evidence_identity(),
+        admission.query_declaration_identity(),
+        admission.bridge_declaration_identity(),
+        admission.signal_strategy_identity(),
+        context.query_digest(),
+        context.subscription_family_digest(),
+        context.subscription_equivalence_digest(),
+        active_admission.lane_digest().as_str(),
+        &active_lane_handle_digest,
+        &subscription_performance_receipt_digest,
+        attachment.attachment_digest().as_str(),
+        &delivery_window_digest,
+        maintenance_delta.maintenance_delta_digest(),
+        work_packet.work_packet_digest(),
+        delivery_batch.delivery_batch_digest(),
+        delivery_batch.receipt().receipt_digest(),
+        &continuation_digest,
+        lifecycle_closeout.closeout_digest(),
+        &support_matrix_digest,
+        &counter_snapshot,
+    );
 
     Ok(SubscriptionLifecycleCertificationBundle {
-        certification_bundle_digest,
+        certification_bundle_identity,
         query_digest: context.query_digest().to_string(),
         subscription_family_digest: context.subscription_family_digest().to_string(),
-        subscription_declaration_digest: admission.query_declaration_digest().to_string(),
+        query_declaration_for_reporting: admission.query_declaration_for_reporting().to_string(),
+        subscription_declaration_identity: admission.query_declaration_identity().clone(),
         subscription_equivalence_digest: context.subscription_equivalence_digest().to_string(),
-        admission_digest: admission.admission_digest().to_string(),
+        admission_identity: admission.evidence_identity().clone(),
         active_lane_digest: active_admission.lane_digest().as_str().to_string(),
         active_lane_handle_digest,
         active_lane_lookup_class_digest,
@@ -783,10 +869,13 @@ pub fn certify_subscription_lifecycle(
         delivery_window_digest,
         maintenance_delta_digest: maintenance_delta.maintenance_delta_digest().to_string(),
         active_delivery_work_packet_digest: work_packet.work_packet_digest().to_string(),
-        active_delivery_density_posture_digest: hash_parts(&[work_packet
-            .density_posture()
-            .as_str()
-            .to_string()]),
+        active_delivery_density_posture_digest: subscription_certification_projection(
+            "subscription_active_delivery_density_posture_v1",
+            [(
+                "posture",
+                work_packet.density_posture().as_str().to_string(),
+            )],
+        ),
         allocation_posture_digest,
         delivery_batch_digest: delivery_batch.delivery_batch_digest().to_string(),
         patch_group_digest: delivery_batch
@@ -802,8 +891,9 @@ pub fn certify_subscription_lifecycle(
         relationship_proof_digest: context.relationship_proof_digest().to_string(),
         view_shape_digest: context.view_shape_digest().to_string(),
         basis_digest: context.basis_digest().to_string(),
-        bridge_declaration_digest: admission.bridge_declaration_digest().to_string(),
-        signal_strategy_digest: admission.signal_strategy_digest().to_string(),
+        bridge_declaration_for_reporting: admission.bridge_declaration_for_reporting().to_string(),
+        bridge_declaration_identity: admission.bridge_declaration_identity().clone(),
+        signal_strategy_identity: admission.signal_strategy_identity().clone(),
         counter_snapshot,
         counter_evidence,
         subscription_lifecycle_scale_slope_digest: scale_report.digest().to_string(),
@@ -930,7 +1020,7 @@ fn preview_certification_evidence(
                 ],
                 performance_receipt_digest: discard_closeout
                     .performance_receipt()
-                    .performance_receipt_digest()
+                    .performance_receipt_for_reporting()
                     .to_string(),
             })
         }
@@ -975,14 +1065,26 @@ fn preview_certification_evidence(
 
             Ok(PreviewCertificationEvidence {
                 preview_isolation_digest: isolation.isolation_digest().to_string(),
-                preview_residue_digest: hash_parts(&[
-                    residue_report.report_digest().to_string(),
-                    promotion_handoff.handoff_digest().to_string(),
-                    promotion_handoff
-                        .authoritative_active_lane_digest()
-                        .as_str()
-                        .to_string(),
-                ]),
+                preview_residue_digest: subscription_certification_projection(
+                    "subscription_preview_residue_v1",
+                    [
+                        (
+                            "residue",
+                            residue_report.report_digest().to_string(),
+                        ),
+                        (
+                            "handoff",
+                            promotion_handoff.handoff_digest().to_string(),
+                        ),
+                        (
+                            "authoritative_lane",
+                            promotion_handoff
+                                .authoritative_active_lane_digest()
+                                .as_str()
+                                .to_string(),
+                        ),
+                    ],
+                ),
                 counter_evidence: vec![
                     format!("preview_isolation:{}", isolation.counters().digest()),
                     format!(
@@ -1002,7 +1104,7 @@ fn preview_certification_evidence(
                 ],
                 performance_receipt_digest: promotion_handoff
                     .performance_receipt()
-                    .performance_receipt_digest()
+                    .performance_receipt_for_reporting()
                     .to_string(),
             })
         }
@@ -1010,60 +1112,88 @@ fn preview_certification_evidence(
 }
 
 impl QuerySubscriptionCertificationBundle {
-    pub fn certification_bundle_digest(&self) -> &str {
-        &self.certification_bundle_digest
+    pub fn certification_bundle_for_reporting(&self) -> &str {
+        self.certification_bundle_identity.as_str()
     }
 
-    pub fn admission_digest(&self) -> &str {
-        &self.admission_digest
+    pub fn certification_bundle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.certification_bundle_identity
     }
 
-    pub fn activation_digest(&self) -> &str {
-        &self.activation_digest
+    pub fn admission_for_reporting(&self) -> &str {
+        self.admission_identity.as_str()
     }
 
-    pub fn query_declaration_digest(&self) -> &str {
-        &self.query_declaration_digest
+    pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_identity
     }
 
-    pub fn bridge_declaration_digest(&self) -> &str {
-        &self.bridge_declaration_digest
+    pub fn activation_for_reporting(&self) -> &str {
+        self.activation_identity.as_str()
     }
 
-    pub fn basis_binding_digest(&self) -> &str {
-        &self.basis_binding_digest
+    pub fn activation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.activation_identity
     }
 
-    pub fn signal_strategy_digest(&self) -> &str {
-        &self.signal_strategy_digest
+    pub fn query_declaration_for_reporting(&self) -> &str {
+        &self.query_declaration_for_reporting
     }
 
-    pub fn diagnostics_digest(&self) -> &str {
-        &self.diagnostics_digest
+    pub fn query_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_declaration_identity
     }
 
-    pub fn support_profile_digest(&self) -> &str {
-        &self.support_profile_digest
+    pub fn bridge_declaration_for_reporting(&self) -> &str {
+        &self.bridge_declaration_for_reporting
     }
 
-    pub fn admission_counter_digest(&self) -> &str {
-        &self.admission_counter_digest
+    pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_declaration_identity
     }
 
-    pub fn activation_counter_digest(&self) -> &str {
-        &self.activation_counter_digest
+    pub fn basis_binding_for_reporting(&self) -> &str {
+        self.basis_binding_identity.as_str()
     }
 
-    pub fn scale_slope_digest(&self) -> &str {
-        &self.scale_slope_digest
+    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_binding_identity
     }
 
-    pub fn scale_activation_digest(&self) -> &str {
-        &self.scale_activation_digest
+    pub fn signal_strategy_for_reporting(&self) -> &str {
+        self.signal_strategy_identity.as_str()
     }
 
-    pub fn scale_admission_digest(&self) -> &str {
-        &self.scale_admission_digest
+    pub fn signal_strategy_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.signal_strategy_identity
+    }
+
+    pub fn diagnostics_for_reporting(&self) -> &str {
+        &self.diagnostics_for_reporting
+    }
+
+    pub fn support_profile_for_reporting(&self) -> &str {
+        &self.support_profile_for_reporting
+    }
+
+    pub fn admission_counter_for_reporting(&self) -> &str {
+        &self.admission_counter_for_reporting
+    }
+
+    pub fn activation_counter_for_reporting(&self) -> &str {
+        &self.activation_counter_for_reporting
+    }
+
+    pub fn scale_slope_for_reporting(&self) -> &str {
+        &self.scale_slope_for_reporting
+    }
+
+    pub fn scale_activation_for_reporting(&self) -> &str {
+        &self.scale_activation_for_reporting
+    }
+
+    pub fn scale_admission_for_reporting(&self) -> &str {
+        &self.scale_admission_for_reporting
     }
 }
 
@@ -1072,34 +1202,49 @@ pub fn certify_query_subscription_activation(
     activation: SubscriptionActivationInput,
     scale_report: QuerySubscriptionScaleSlopeReport,
 ) -> Result<QuerySubscriptionCertificationBundle, QuerySubscriptionCertificationError> {
-    if activation.admission_digest() != admission.admission_digest()
-        || activation.query_declaration_digest() != admission.query_declaration_digest()
-        || activation.bridge_declaration_digest() != admission.bridge_declaration_digest()
-        || activation.basis_binding_digest() != admission.basis_binding_digest()
-        || activation.signal_strategy_digest() != admission.signal_strategy_digest()
+    if typed_identity_drift(activation.admission_identity(), admission.evidence_identity())
+        || activation.query_declaration_for_reporting() != admission.query_declaration_for_reporting()
+        || typed_identity_drift(
+            activation.bridge_declaration_identity(),
+            admission.bridge_declaration_identity(),
+        )
+        || typed_identity_drift(
+            activation.basis_binding_identity(),
+            admission.basis_binding_identity(),
+        )
+        || typed_identity_drift(
+            activation.signal_strategy_identity(),
+            admission.signal_strategy_identity(),
+        )
     {
         return Err(QuerySubscriptionCertificationError::new(
             QuerySubscriptionCertificationDenialKind::ActivationAdmissionMismatch,
             "subscription activation input does not match the admitted subscription artifact",
             &[
-                format!("admission:{}", admission.admission_digest()),
-                format!("activation_admission:{}", activation.admission_digest()),
-                format!("admission_query:{}", admission.query_declaration_digest()),
-                format!("activation_query:{}", activation.query_declaration_digest()),
+                format!("admission:{}", admission.admission_for_reporting()),
+                format!("activation_admission:{}", activation.admission_for_reporting()),
+                format!(
+                    "admission_query:{}",
+                    admission.query_declaration_for_reporting()
+                ),
+                format!(
+                    "activation_query:{}",
+                    activation.query_declaration_for_reporting()
+                ),
             ],
         ));
     }
 
-    if scale_report.activation_digest() != activation.activation_digest()
-        || scale_report.admission_digest() != activation.admission_digest()
+    if scale_report.activation_digest() != activation.activation_for_reporting()
+        || scale_report.admission_digest() != activation.admission_for_reporting()
     {
         return Err(QuerySubscriptionCertificationError::new(
             QuerySubscriptionCertificationDenialKind::ScaleSlopeSourceMismatch,
             "subscription scale slope report does not certify this activation source",
             &[
-                format!("activation:{}", activation.activation_digest()),
+                format!("activation:{}", activation.activation_for_reporting()),
                 format!("scale_activation:{}", scale_report.activation_digest()),
-                format!("activation_admission:{}", activation.admission_digest()),
+                format!("activation_admission:{}", activation.admission_for_reporting()),
                 format!("scale_admission:{}", scale_report.admission_digest()),
             ],
         ));
@@ -1112,40 +1257,37 @@ pub fn certify_query_subscription_activation(
     let scale_slope_digest = scale_report.digest().to_string();
     let scale_activation_digest = scale_report.activation_digest().to_string();
     let scale_admission_digest = scale_report.admission_digest().to_string();
-    let certification_bundle_digest = hash_parts(&[
-        "query_subscription_certification_bundle_v1".to_string(),
-        format!("admission:{}", admission.admission_digest()),
-        format!("activation:{}", activation.activation_digest()),
-        format!("query_declaration:{}", admission.query_declaration_digest()),
-        format!(
-            "bridge_declaration:{}",
-            admission.bridge_declaration_digest()
-        ),
-        format!("basis:{}", admission.basis_binding_digest()),
-        format!("signal_strategy:{}", admission.signal_strategy_digest()),
-        format!("diagnostics:{}", diagnostics_digest),
-        format!("support:{}", support_profile_digest),
-        format!("admission_counters:{}", admission_counter_digest),
-        format!("activation_counters:{}", activation_counter_digest),
-        format!("scale_slope:{}", scale_slope_digest),
-        format!("scale_activation:{}", scale_activation_digest),
-        format!("scale_admission:{}", scale_admission_digest),
-    ]);
-
+    let certification_bundle_identity = certification_activation_bundle_identity(
+        admission.evidence_identity(),
+        activation.evidence_identity(),
+        admission.query_declaration_for_reporting(),
+        admission.bridge_declaration_identity(),
+        admission.basis_binding_identity(),
+        admission.signal_strategy_identity(),
+        admission.diagnostics().diagnostics_identity(),
+        admission.support_profile().profile_identity(),
+        &admission.counters().evidence_identity(),
+        &activation.counters().evidence_identity(),
+        &scale_report.evidence_identity(),
+        scale_report.activation_digest(),
+        scale_report.admission_digest(),
+    );
     Ok(QuerySubscriptionCertificationBundle {
-        certification_bundle_digest,
-        admission_digest: admission.admission_digest().to_string(),
-        activation_digest: activation.activation_digest().to_string(),
-        query_declaration_digest: admission.query_declaration_digest().to_string(),
-        bridge_declaration_digest: admission.bridge_declaration_digest().to_string(),
-        basis_binding_digest: admission.basis_binding_digest().to_string(),
-        signal_strategy_digest: admission.signal_strategy_digest().to_string(),
-        diagnostics_digest,
-        support_profile_digest,
-        admission_counter_digest,
-        activation_counter_digest,
-        scale_slope_digest,
-        scale_activation_digest,
-        scale_admission_digest,
+        certification_bundle_identity,
+        admission_identity: admission.evidence_identity().clone(),
+        activation_identity: activation.evidence_identity().clone(),
+        query_declaration_for_reporting: admission.query_declaration_for_reporting().to_string(),
+        query_declaration_identity: admission.query_declaration_identity().clone(),
+        bridge_declaration_for_reporting: admission.bridge_declaration_for_reporting().to_string(),
+        bridge_declaration_identity: admission.bridge_declaration_identity().clone(),
+        basis_binding_identity: admission.basis_binding_identity().clone(),
+        signal_strategy_identity: admission.signal_strategy_identity().clone(),
+        diagnostics_for_reporting: diagnostics_digest,
+        support_profile_for_reporting: support_profile_digest,
+        admission_counter_for_reporting: admission_counter_digest,
+        activation_counter_for_reporting: activation_counter_digest,
+        scale_slope_for_reporting: scale_slope_digest,
+        scale_activation_for_reporting: scale_activation_digest,
+        scale_admission_for_reporting: scale_admission_digest,
     })
 }

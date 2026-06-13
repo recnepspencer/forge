@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::common::{
     ForgeQueryDomainCapabilityCategory, ForgeQueryDomainCapabilityPayload,
@@ -43,6 +45,52 @@ impl ForgeQueryWorkflowContributionPosture {
     }
 }
 
+fn compose_workflow_payload_identity(
+    posture: ForgeQueryWorkflowContributionPosture,
+    semantic_code: &str,
+    detail: &str,
+    runtime_semantics: Option<&ForgeQueryWorkflowRuntimeSemantics>,
+    lowering_semantics: Option<&ForgeQueryWorkflowLoweringSemantics>,
+    inspection_semantics: Option<&ForgeQueryWorkflowInspectionSemantics>,
+) -> ForgeQueryEvidenceIdentity {
+    let mut identity = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("identity_family"),
+        "forge_query_domain_capability_payload_v5",
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("category"),
+        ForgeQueryDomainCapabilityCategory::WorkflowPreview.as_str(),
+    )
+    .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+    .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+    .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+    identity = match runtime_semantics {
+        Some(runtime) => identity.field_shape(
+            ForgeQueryEvidenceTag::new("runtime"),
+            runtime.digest_fragment(),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("runtime"), "none"),
+    };
+    identity = match lowering_semantics {
+        Some(lowering) => identity.field_shape(
+            ForgeQueryEvidenceTag::new("lowering"),
+            lowering.digest_fragment(),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("lowering"), "none"),
+    };
+    identity = match inspection_semantics {
+        Some(inspection) => identity.field_shape(
+            ForgeQueryEvidenceTag::new("inspection"),
+            inspection.digest_fragment(),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("inspection"), "none"),
+    };
+    identity.seal()
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryWorkflowContributionPayload {
     posture: ForgeQueryWorkflowContributionPosture,
@@ -51,7 +99,7 @@ pub struct ForgeQueryWorkflowContributionPayload {
     runtime_semantics: Option<ForgeQueryWorkflowRuntimeSemantics>,
     lowering_semantics: Option<ForgeQueryWorkflowLoweringSemantics>,
     inspection_semantics: Option<ForgeQueryWorkflowInspectionSemantics>,
-    payload_digest: String,
+    payload_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryWorkflowContributionPayload {
@@ -123,31 +171,14 @@ impl ForgeQueryWorkflowContributionPayload {
     ) -> Self {
         let semantic_code = semantic_code.into();
         let detail = detail.into();
-        let runtime_digest = runtime_semantics.as_ref().map_or_else(
-            || "none".to_string(),
-            ForgeQueryWorkflowRuntimeSemantics::digest_fragment,
+        let payload_identity = compose_workflow_payload_identity(
+            posture,
+            &semantic_code,
+            &detail,
+            runtime_semantics.as_ref(),
+            lowering_semantics.as_ref(),
+            inspection_semantics.as_ref(),
         );
-        let lowering_digest = lowering_semantics.as_ref().map_or_else(
-            || "none".to_string(),
-            ForgeQueryWorkflowLoweringSemantics::digest_fragment,
-        );
-        let inspection_digest = inspection_semantics.as_ref().map_or_else(
-            || "none".to_string(),
-            ForgeQueryWorkflowInspectionSemantics::digest_fragment,
-        );
-        let payload_digest = hash_parts(&[
-            "forge_query_domain_capability_payload_v4".to_string(),
-            format!(
-                "category:{}",
-                ForgeQueryDomainCapabilityCategory::WorkflowPreview.as_str()
-            ),
-            format!("posture:{}", posture.as_str()),
-            format!("semantic_code:{semantic_code}"),
-            format!("detail:{detail}"),
-            format!("runtime:{runtime_digest}"),
-            format!("lowering:{lowering_digest}"),
-            format!("inspection:{inspection_digest}"),
-        ]);
         Self {
             posture,
             semantic_code,
@@ -155,7 +186,7 @@ impl ForgeQueryWorkflowContributionPayload {
             runtime_semantics,
             lowering_semantics,
             inspection_semantics,
-            payload_digest,
+            payload_identity,
         }
     }
 
@@ -188,7 +219,15 @@ impl ForgeQueryWorkflowContributionPayload {
     }
 
     pub fn payload_digest(&self) -> &str {
-        &self.payload_digest
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_for_reporting(&self) -> &str {
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }
 

@@ -12,10 +12,10 @@ pub(super) fn materialized_fact_posture_from_live_subscription_state(
 ) -> ProjectionMaterializedFactPosture {
     ProjectionMaterializedFactPosture::new(
         materialized_fact_posture_kind_from_live_subscription_state(state),
-        state.installation.query_digest(),
+        state.installation.query_for_reporting(),
         basis_identity.as_str(),
         state.installation.support_evidence(),
-        Some(state.installation.installation_digest().to_string()),
+        Some(state.installation.installation_for_reporting().to_string()),
     )
 }
 

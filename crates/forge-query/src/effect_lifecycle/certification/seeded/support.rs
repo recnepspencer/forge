@@ -113,7 +113,9 @@ pub(super) fn branch_snapshot_identity(
         .unwrap_or(0);
     ForgeQuerySnapshotIdentity::from_relational_snapshot(
         RelationalBridgeSnapshotIdentityParts::new(
-            stable_fixture_position("seeded-branch-snapshot", branch),
+            crate::effect_lifecycle::stable_branch_snapshot_id(
+                &BranchId(branch.to_string()),
+            ),
             version_id,
         ),
     )

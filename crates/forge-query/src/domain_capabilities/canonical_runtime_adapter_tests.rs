@@ -14,6 +14,8 @@ use super::{
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
+use crate::runtime::ForgeQueryMutationEvidenceDigest;
+use crate::target_binding::ForgeQueryBindingTargetWitness;
 
 #[test]
 fn admission_runtime_materializer_builds_query_decisions() {
@@ -165,16 +167,24 @@ fn continuity_runtime_materializer_builds_continuity_evidence() {
                 ForgeQueryEvidenceTag::new("role"),
                 "domain-capability-continuity-binding",
             )
-            .field_value(
+            .field_shape(
+                ForgeQueryEvidenceTag::new("target_kind"),
+                ForgeQueryDomainCapabilityTargetBinding::kind(&expected_binding_target).as_str(),
+            )
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("binding"),
-                expected_binding_target.binding_digest(),
+                &ForgeQueryBindingTargetWitness::binding_identity(&expected_binding_target),
             )
             .seal();
+    let expected_basis_binding_digest = ForgeQueryMutationEvidenceDigest::source_identity(
+        "continuity-basis-binding",
+        &expected_binding_identity,
+    );
     assert_eq!(
         preserved
             .basis_binding_digest()
             .map(|digest| digest.as_str()),
-        Some(expected_binding_identity.as_str())
+        Some(expected_basis_binding_digest.as_str())
     );
     assert_eq!(
         preserved

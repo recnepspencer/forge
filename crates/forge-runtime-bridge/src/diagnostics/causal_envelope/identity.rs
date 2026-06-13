@@ -38,7 +38,7 @@ impl BridgeCausalEnvelopeIdentity {
         }
     }
 
-    pub fn request_digest(&self) -> &str {
+    pub fn request_for_reporting(&self) -> &str {
         self.request_identity.as_str()
     }
 
@@ -46,7 +46,7 @@ impl BridgeCausalEnvelopeIdentity {
         &self.request_identity
     }
 
-    pub fn causal_observation_anchor_digest(&self) -> &str {
+    pub fn causal_observation_anchor_for_reporting(&self) -> &str {
         self.causal_observation_anchor_identity.as_str()
     }
 
@@ -62,7 +62,7 @@ impl BridgeCausalEnvelopeIdentity {
         &self.evidence_binding_identity
     }
 
-    pub fn counter_digest(&self) -> &str {
+    pub fn counter_for_reporting(&self) -> &str {
         self.counter_identity.as_str()
     }
 
@@ -70,7 +70,7 @@ impl BridgeCausalEnvelopeIdentity {
         &self.counter_identity
     }
 
-    pub fn identity_digest(&self) -> &str {
+    pub fn envelope_identity_for_reporting(&self) -> &str {
         self.envelope_identity.as_str()
     }
 

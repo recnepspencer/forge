@@ -1,4 +1,6 @@
 use forge_proof::TransitionOutcome;
+
+use crate::target_binding::ForgeQueryBindingTargetWitness;
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, PartitionId};
 use forge_runtime_bridge::facade::BridgeRequestKind;
@@ -164,8 +166,9 @@ fn workflow_lowering_materializer_denies_missing_lowering_semantics() {
 
 #[test]
 fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
+    let target = declaration_target("intent-workflow-writeback-stale");
     let stale = materialize_query_writeback_lowering(ready_payload(
-        declaration_target("intent-workflow-writeback-stale"),
+        target.clone(),
         ForgeQueryWorkflowContributionPayload::with_runtime_and_lowering_semantics(
             ForgeQueryWorkflowContributionPosture::PromotionEligible,
             "spatial.workflow.writeback.stale",
@@ -192,10 +195,7 @@ fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
     match stale {
         TransitionOutcome::Stale(stale) => {
             assert_eq!(stale.category(), "workflow-preview");
-            assert_eq!(
-                stale.bound_target_digest(),
-                "intent-workflow-writeback-stale"
-            );
+            assert_eq!(stale.bound_target_digest(), target.target_digest());
         }
         other => panic!("expected stale outcome, got {other:?}"),
     }
@@ -203,6 +203,7 @@ fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
 
 #[test]
 fn discard_required_writeback_lowering_preserves_preview_stale_posture() {
+    let target = declaration_target("intent-workflow-writeback-discard");
     let stale = materialize_query_writeback_lowering(ready(
         ForgeQueryWorkflowContributionAuthoring::discard_required_writeback_projected_state_diff(
             "spatial.workflow.writeback.discard",
@@ -211,16 +212,13 @@ fn discard_required_writeback_lowering_preserves_preview_stale_posture() {
                 "preview-session:91",
             ),
         )
-        .bind_to_declaration_target(declaration_target("intent-workflow-writeback-discard")),
+        .bind_to_declaration_target(target.clone()),
     ));
 
     match stale {
         TransitionOutcome::Stale(stale) => {
             assert_eq!(stale.category(), "workflow-preview");
-            assert_eq!(
-                stale.bound_target_digest(),
-                "intent-workflow-writeback-discard"
-            );
+            assert_eq!(stale.bound_target_digest(), target.target_digest());
         }
         other => panic!("expected stale outcome, got {other:?}"),
     }
@@ -228,8 +226,9 @@ fn discard_required_writeback_lowering_preserves_preview_stale_posture() {
 
 #[test]
 fn workflow_lowering_materializer_preserves_runtime_rebind_posture() {
+    let target = declaration_target("intent-workflow-writeback-rebind");
     let rebind = materialize_query_writeback_lowering(ready_payload(
-        declaration_target("intent-workflow-writeback-rebind"),
+        target.clone(),
         ForgeQueryWorkflowContributionPayload::with_runtime_and_lowering_semantics(
             ForgeQueryWorkflowContributionPosture::PromotionEligible,
             "spatial.workflow.writeback.rebind",
@@ -256,10 +255,7 @@ fn workflow_lowering_materializer_preserves_runtime_rebind_posture() {
     match rebind {
         TransitionOutcome::RebindRequired(rebind) => {
             assert_eq!(rebind.category(), "workflow-preview");
-            assert_eq!(
-                rebind.bound_target_digest(),
-                "intent-workflow-writeback-rebind"
-            );
+            assert_eq!(rebind.bound_target_digest(), target.target_digest());
         }
         other => panic!("expected rebind-required outcome, got {other:?}"),
     }

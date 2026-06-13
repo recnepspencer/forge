@@ -164,7 +164,7 @@ macro_rules! define_payload_family {
             posture: $posture,
             semantic_code: String,
             detail: String,
-            payload_digest: String,
+            payload_identity: $crate::ForgeQueryEvidenceIdentity,
         }
 
         impl $payload {
@@ -175,18 +175,23 @@ macro_rules! define_payload_family {
             ) -> Self {
                 let semantic_code = semantic_code.into();
                 let detail = detail.into();
-                let payload_digest = $crate::identity::hash_parts(&[
-                    "forge_query_domain_capability_payload_v1".to_string(),
-                    format!("category:{}", $category.as_str()),
-                    format!("posture:{}", posture.as_str()),
-                    format!("semantic_code:{semantic_code}"),
-                    format!("detail:{detail}"),
-                ]);
+                let payload_identity = $crate::ForgeQueryEvidenceIdentity::compose(
+                    $crate::ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+                )
+                    .field_shape(
+                        $crate::ForgeQueryEvidenceTag::new("identity_family"),
+                        "forge_query_domain_capability_payload_v3",
+                    )
+                    .field_shape($crate::ForgeQueryEvidenceTag::new("category"), $category.as_str())
+                    .field_shape($crate::ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+                    .field_shape($crate::ForgeQueryEvidenceTag::new("semantic_code"), &semantic_code)
+                    .field_shape($crate::ForgeQueryEvidenceTag::new("detail"), &detail)
+                    .seal();
                 Self {
                     posture,
                     semantic_code,
                     detail,
-                    payload_digest,
+                    payload_identity,
                 }
             }
 
@@ -207,7 +212,15 @@ macro_rules! define_payload_family {
             }
 
             pub fn payload_digest(&self) -> &str {
-                &self.payload_digest
+                self.payload_identity.as_str()
+            }
+
+            pub fn payload_for_reporting(&self) -> &str {
+                self.payload_identity.as_str()
+            }
+
+            pub fn payload_identity(&self) -> &$crate::ForgeQueryEvidenceIdentity {
+                &self.payload_identity
             }
         }
 

@@ -77,8 +77,8 @@ fn common_intent_advisory_lane_matches_proof_lane_materialization() {
 
     assert_eq!(common.canonical_family(), proof.canonical_family());
     assert_eq!(
-        common.semantic_identity_digest(),
-        proof.semantic_identity_digest()
+        common.semantic_identity_for_reporting(),
+        proof.semantic_identity_for_reporting()
     );
     assert_eq!(
         common.materialization_digest(),

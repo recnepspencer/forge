@@ -28,7 +28,7 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
             admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_digest(),
+            admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("query admission summary should be valid");
@@ -79,32 +79,38 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
             .as_str()
     );
     assert_eq!(
-        artifact.result_shape_context_digest(),
-        admitted.subject().result_shape_context_digest()
+        artifact.result_shape_context_for_reporting(),
+        admitted.subject().result_shape_context_for_reporting()
     );
     assert_eq!(
         artifact.bridge_envelope_digest(),
-        envelope.envelope_digest()
+        crate::runtime::tests::causal_test_compose_bridge_causal_explanation_envelope_digest(
+            &envelope
+        )
     );
     assert_eq!(
-        artifact.readmission_proof().query_admission_digest(),
+        artifact.readmission_proof().query_admission_for_reporting(),
         admitted.admitted_inspection_digest()
     );
     assert_eq!(
-        artifact.readmission_proof().anchor_digest(),
-        admitted.subject().anchor_digest()
+        artifact.readmission_proof().anchor_for_reporting(),
+        admitted.subject().anchor_for_reporting()
     );
     assert_eq!(
-        artifact.readmission_proof().bridge_envelope_digest(),
-        envelope.envelope_digest()
+        artifact.readmission_proof().bridge_envelope_for_reporting(),
+        crate::runtime::tests::causal_test_compose_bridge_causal_envelope_digest(&envelope)
     );
     assert_eq!(
         artifact.bridge_readmission_proof_digest(),
-        artifact.readmission_proof().readmission_proof_digest()
+        artifact.readmission_proof().readmission_proof_for_reporting()
     );
+    let expected_bridge_receipt =
+        crate::runtime::tests::causal_test_compose_bridge_causal_envelope_receipt_digest(
+            envelope.receipt(),
+        );
     assert_eq!(
         artifact.receipt().bridge_receipt_digest(),
-        Some(envelope.receipt().receipt_digest())
+        Some(expected_bridge_receipt.as_str())
     );
     assert_eq!(artifact.evidence_references().len(), 2);
     assert!(artifact
@@ -142,7 +148,7 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
             advisory.advisory_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            advisory.subject().anchor_digest(),
+            advisory.subject().anchor_for_reporting(),
         ),
     )
     .expect("query advisory summary should be valid");
@@ -212,24 +218,26 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
             .as_str()
     );
     assert_eq!(
-        artifact.result_shape_context_digest(),
-        advisory.subject().result_shape_context_digest()
+        artifact.result_shape_context_for_reporting(),
+        advisory.subject().result_shape_context_for_reporting()
     );
     assert_eq!(
         artifact.bridge_envelope_digest(),
-        envelope.envelope_digest()
+        crate::runtime::tests::causal_test_compose_bridge_causal_explanation_envelope_digest(
+            &envelope
+        )
     );
     assert_eq!(
-        artifact.readmission_proof().query_admission_digest(),
+        artifact.readmission_proof().query_admission_for_reporting(),
         advisory.advisory_inspection_digest()
     );
     assert_eq!(
-        artifact.readmission_proof().anchor_digest(),
-        advisory.subject().anchor_digest()
+        artifact.readmission_proof().anchor_for_reporting(),
+        advisory.subject().anchor_for_reporting()
     );
     assert_eq!(
         artifact.bridge_readmission_proof_digest(),
-        artifact.readmission_proof().readmission_proof_digest()
+        artifact.readmission_proof().readmission_proof_for_reporting()
     );
     assert!(artifact
         .evidence_references()
@@ -291,8 +299,8 @@ fn denied_query_causal_artifact_carries_boundary_context_without_bridge_envelope
             .as_str()
     );
     assert_eq!(
-        artifact.result_shape_context_digest(),
-        denied.subject().result_shape_context_digest()
+        artifact.result_shape_context_for_reporting(),
+        denied.subject().result_shape_context_for_reporting()
     );
     assert_eq!(
         artifact.boundary_categories().len(),
@@ -336,7 +344,7 @@ fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
             denied.denied_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            denied.subject().anchor_digest(),
+            denied.subject().anchor_for_reporting(),
         ),
     )
     .expect("query denial summary should be syntactically valid for bridge denial fixture");
@@ -386,9 +394,13 @@ fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
         panic!("expected denied query causal artifact");
     };
 
+    let expected_bridge_denial =
+        crate::runtime::tests::causal_test_compose_bridge_causal_denial_for_reporting(
+            &bridge_denial,
+        );
     assert_eq!(
-        artifact.bridge_denial_digest(),
-        Some(bridge_denial.failure_digest())
+        artifact.bridge_denial_for_reporting(),
+        Some(expected_bridge_denial.as_str())
     );
     assert_eq!(
         artifact.bridge_denial_kind(),
@@ -422,7 +434,7 @@ fn admitted_materialization_rejects_wrong_bridge_summary_kind() {
             admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_digest(),
+            admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("mismatched bridge summary should still be structurally valid");

@@ -124,8 +124,8 @@ impl QuerySubscriptionSupportSubject {
             declaration.family().clone(),
             declaration.future_selection().clone(),
             declaration.declaration_digest().as_str(),
-            Some(activation.admission_digest()),
-            activation.activation_digest(),
+            Some(activation.admission_for_reporting()),
+            activation.activation_for_reporting(),
         )
     }
 
@@ -153,7 +153,7 @@ impl QuerySubscriptionSupportSubject {
             declaration.family().clone(),
             declaration.future_selection().clone(),
             declaration.declaration_digest().as_str(),
-            Some(admission.admission_digest()),
+            Some(admission.admission_for_reporting()),
             continuation.report_digest(),
         )
     }
@@ -168,7 +168,7 @@ impl QuerySubscriptionSupportSubject {
             declaration.family().clone(),
             closeout.future_selection().clone(),
             declaration.declaration_digest().as_str(),
-            Some(admission.admission_digest()),
+            Some(admission.admission_for_reporting()),
             closeout.closeout_digest(),
         )
     }
@@ -320,11 +320,11 @@ impl QuerySubscriptionSupportEvidence {
         declaration: &QuerySubscriptionDeclarationArtifact,
         admission: &QuerySubscriptionAdmissionArtifact,
     ) -> Result<Self, QuerySubscriptionSupportEvidenceError> {
-        if declaration.declaration_digest().as_str() != admission.query_declaration_digest() {
+        if declaration.declaration_digest().as_str() != admission.query_declaration_for_reporting() {
             return Err(QuerySubscriptionSupportEvidenceError::new(
                 "subscription support evidence requires declaration and admission artifacts from the same canonical query subscription family",
                 declaration.declaration_digest().as_str(),
-                admission.query_declaration_digest(),
+                admission.query_declaration_for_reporting(),
             ));
         }
 
@@ -332,9 +332,9 @@ impl QuerySubscriptionSupportEvidence {
             kind: QuerySubscriptionSupportEvidenceKind::Admission {
                 declaration_digest: declaration.declaration_digest().as_str().to_string(),
                 family: declaration.family().clone(),
-                admission_digest: admission.admission_digest().to_string(),
+                admission_digest: admission.admission_for_reporting().to_string(),
                 support_profile: admission.support_profile().clone(),
-                source_digest: admission.admission_digest().to_string(),
+                source_digest: admission.admission_for_reporting().to_string(),
             },
         })
     }

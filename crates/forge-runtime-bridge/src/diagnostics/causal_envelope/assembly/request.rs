@@ -86,11 +86,11 @@ impl BridgeCausalInspectionAdmissionSummary {
         self.kind
     }
 
-    pub fn query_admission_digest(&self) -> &str {
+    pub fn query_admission_for_reporting(&self) -> &str {
         self.query_admission_identity.as_ref()
     }
 
-    pub fn causal_observation_anchor_digest(&self) -> &str {
+    pub fn causal_observation_anchor_for_reporting(&self) -> &str {
         self.causal_observation_anchor_identity.as_ref()
     }
 
@@ -102,7 +102,7 @@ impl BridgeCausalInspectionAdmissionSummary {
         &self.causal_observation_anchor_identity
     }
 
-    pub fn summary_digest(&self) -> &str {
+    pub fn summary_for_reporting(&self) -> &str {
         self.summary_identity.as_str()
     }
 
@@ -147,19 +147,19 @@ impl BridgeCausalEnvelopeAssemblyRequest {
         &self.admission_summary
     }
 
-    pub fn query_admission_digest(&self) -> &str {
-        self.admission_summary.query_admission_digest()
+    pub fn query_admission_for_reporting(&self) -> &str {
+        self.admission_summary.query_admission_for_reporting()
     }
 
-    pub fn causal_observation_anchor_digest(&self) -> &str {
-        self.admission_summary.causal_observation_anchor_digest()
+    pub fn causal_observation_anchor_for_reporting(&self) -> &str {
+        self.admission_summary.causal_observation_anchor_for_reporting()
     }
 
     pub fn references(&self) -> &[BridgeCausalEvidenceReference] {
         &self.references
     }
 
-    pub fn request_digest(&self) -> &str {
+    pub fn request_for_reporting(&self) -> &str {
         self.request_identity.as_str()
     }
 

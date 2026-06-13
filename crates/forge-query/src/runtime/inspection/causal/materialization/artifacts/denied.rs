@@ -68,26 +68,38 @@ impl DeniedQueryCausalInspectionArtifact {
         }
     }
 
-    pub fn query_denial_digest(&self) -> &str {
+    pub fn query_denial_for_reporting(&self) -> &str {
         self.query_denial_identity.as_str()
+    }
+
+    pub fn query_denial_digest(&self) -> &str {
+        self.query_denial_for_reporting()
     }
 
     pub fn query_observation_digest(&self) -> &str {
         self.query_observation_identity.as_str()
     }
 
-    pub fn result_shape_context_digest(&self) -> &str {
+    pub fn result_shape_context_for_reporting(&self) -> &str {
         self.result_shape_context_identity.as_str()
+    }
+
+    pub fn result_shape_context_digest(&self) -> &str {
+        self.result_shape_context_for_reporting()
     }
 
     pub fn denial_reason(&self) -> &str {
         &self.denial_reason
     }
 
-    pub fn bridge_denial_digest(&self) -> Option<&str> {
+    pub fn bridge_denial_for_reporting(&self) -> Option<&str> {
         self.bridge_denial_identity
             .as_ref()
             .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn bridge_denial_digest(&self) -> Option<&str> {
+        self.bridge_denial_for_reporting()
     }
 
     pub fn bridge_denial_kind(&self) -> Option<&str> {

@@ -23,10 +23,10 @@ fn declaration_support_traceability_materializer_builds_real_declaration_artifac
         artifact.support_detail(),
         "intent.scope.traceability:support stays attached to the authored declaration"
     );
-    assert_eq!(artifact.intent_name(), "test.intent");
-    assert_eq!(artifact.strategy_name(), "test.strategy");
+    assert_eq!(artifact.intent_name(), "domain-capability.intent-support");
+    assert_eq!(artifact.strategy_name(), "forge.domain_capability.intent-support");
     assert_eq!(artifact.strategy_version(), "1");
-    assert_eq!(artifact.input_contract(), "test.contract");
+    assert_eq!(artifact.input_contract(), "forge.domain-capability.fixture");
     assert_eq!(
         artifact.source_lane(),
         crate::runtime::ForgeQueryIntentSourceLane::UserAuthored
@@ -74,7 +74,7 @@ fn lower_runtime_support_traceability_materializer_builds_real_boundary_artifact
         artifact.support_posture(),
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSupportPosture::Admitted
     );
-    assert!(!artifact.envelope_digest().is_empty());
+    assert!(!artifact.envelope_for_reporting().is_empty());
     assert!(!artifact.target_binding_digest().is_empty());
     assert!(!artifact.request_digest().is_empty());
     assert!(!artifact.materialization_digest().is_empty());

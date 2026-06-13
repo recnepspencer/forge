@@ -107,14 +107,14 @@ pub fn build_query_subscription_runtime_certification_scope(
     }
 
     if support_report.support_subject().declaration_digest()
-        != lifecycle_certification.subscription_declaration_digest()
+        != lifecycle_certification.query_declaration_for_reporting()
         || bridge_parity.comparison().query_declaration_digest()
-            != lifecycle_certification.subscription_declaration_digest()
+            != lifecycle_certification.query_declaration_for_reporting()
         || bridge_parity.comparison().bridge_declaration_digest()
-            != lifecycle_certification.bridge_declaration_digest()
+            != lifecycle_certification.bridge_declaration_for_reporting()
         || admitted_diagnostic_bundle.support_report_digest() != support_report.report_digest()
         || admitted_diagnostic_bundle.lifecycle_certification_digest()
-            != lifecycle_certification.certification_bundle_digest()
+            != lifecycle_certification.certification_bundle_for_reporting()
     {
         return Err(QuerySubscriptionRuntimeCertificationError::new(
             QuerySubscriptionRuntimeCertificationErrorKind::ScopeSourceMismatch,
@@ -126,7 +126,7 @@ pub fn build_query_subscription_runtime_certification_scope(
                 ),
                 format!(
                     "lifecycle_declaration:{}",
-                    lifecycle_certification.subscription_declaration_digest()
+                    lifecycle_certification.query_declaration_for_reporting()
                 ),
                 format!(
                     "parity_declaration:{}",
@@ -138,7 +138,7 @@ pub fn build_query_subscription_runtime_certification_scope(
                 ),
                 format!(
                     "lifecycle_bridge:{}",
-                    lifecycle_certification.bridge_declaration_digest()
+                    lifecycle_certification.bridge_declaration_for_reporting()
                 ),
                 format!(
                     "diagnostic_support:{}",
@@ -151,7 +151,7 @@ pub fn build_query_subscription_runtime_certification_scope(
                 ),
                 format!(
                     "lifecycle:{}",
-                    lifecycle_certification.certification_bundle_digest()
+                    lifecycle_certification.certification_bundle_for_reporting()
                 ),
             ],
             QuerySubscriptionRuntimeCertificationCounters::default(),
@@ -162,7 +162,7 @@ pub fn build_query_subscription_runtime_certification_scope(
         row.support_report_digest() == support_report.report_digest()
             && row.bridge_parity_digest() == bridge_parity.explanation_digest()
             && row.lifecycle_certification_digest()
-                == lifecycle_certification.certification_bundle_digest()
+                == lifecycle_certification.certification_bundle_for_reporting()
             && row.diagnostic_bundle_digest() == admitted_diagnostic_bundle.bundle_digest()
     }) {
         return Err(QuerySubscriptionRuntimeCertificationError::new(
@@ -173,7 +173,7 @@ pub fn build_query_subscription_runtime_certification_scope(
                 format!("parity:{}", bridge_parity.explanation_digest()),
                 format!(
                     "lifecycle:{}",
-                    lifecycle_certification.certification_bundle_digest()
+                    lifecycle_certification.certification_bundle_for_reporting()
                 ),
                 format!("diagnostic:{}", admitted_diagnostic_bundle.bundle_digest()),
                 format!("coverage:{}", coverage_handle.family_coverage_digest()),
@@ -190,7 +190,7 @@ pub fn build_query_subscription_runtime_certification_scope(
         bridge_parity.explanation_digest().to_string(),
         admitted_diagnostic_bundle.bundle_digest().to_string(),
         lifecycle_certification
-            .certification_bundle_digest()
+            .certification_bundle_for_reporting()
             .to_string(),
         coverage_handle.family_coverage_digest().to_string(),
         counters.digest(),

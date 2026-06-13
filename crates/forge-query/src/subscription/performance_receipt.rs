@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::active_budget::ActiveSubscriptionAllocationPosture;
 use super::delivery_density::ActiveDeliveryDensityPosture;
@@ -10,7 +12,7 @@ pub struct SubscriptionPerformanceReceipt {
     remaining_width: u64,
     density_posture: ActiveDeliveryDensityPosture,
     allocation_posture: ActiveSubscriptionAllocationPosture,
-    performance_receipt_digest: String,
+    performance_receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl SubscriptionPerformanceReceipt {
@@ -19,25 +21,48 @@ impl SubscriptionPerformanceReceipt {
         budgeted_width: u64,
         density_posture: ActiveDeliveryDensityPosture,
         allocation_posture: ActiveSubscriptionAllocationPosture,
-        source_digest: &str,
+        source_for_reporting: &str,
     ) -> Self {
         let remaining_width = budgeted_width.saturating_sub(consumed_width);
-        let performance_receipt_digest = hash_parts(&[
-            "subscription_performance_receipt_v1".to_string(),
-            format!("source:{}", source_digest),
-            format!("consumed:{}", consumed_width),
-            format!("budgeted:{}", budgeted_width),
-            format!("remaining:{}", remaining_width),
-            format!("density:{}", density_posture.as_str()),
-            format!("allocation:{}", allocation_posture.as_str()),
-        ]);
+        let performance_receipt_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_performance_receipt_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source"),
+            source_for_reporting,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("consumed_width"),
+            consumed_width as usize,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("budgeted_width"),
+            budgeted_width as usize,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("remaining_width"),
+            remaining_width as usize,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("density"),
+            density_posture.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("allocation"),
+            allocation_posture.as_str(),
+        )
+        .seal();
         Self {
             consumed_width,
             budgeted_width,
             remaining_width,
             density_posture,
             allocation_posture,
-            performance_receipt_digest,
+            performance_receipt_identity,
         }
     }
 
@@ -61,7 +86,11 @@ impl SubscriptionPerformanceReceipt {
         self.allocation_posture
     }
 
-    pub fn performance_receipt_digest(&self) -> &str {
-        &self.performance_receipt_digest
+    pub fn performance_receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.performance_receipt_identity
+    }
+
+    pub fn performance_receipt_for_reporting(&self) -> &str {
+        self.performance_receipt_identity.as_str()
     }
 }

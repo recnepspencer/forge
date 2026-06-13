@@ -7,6 +7,7 @@ fn runtime_live_declaration_denies_backend_admission_before_subscription_install
         .runtime_bridge(test_bridge())
         .schema_adapter(DenyingSchemaAdapter)
         .source_adapter(CountingSourceAdapter::new(source_declarations.clone()))
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -36,6 +37,7 @@ fn runtime_live_declaration_closes_active_subscription_when_source_declaration_f
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::fail_declare())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -73,6 +75,7 @@ fn runtime_equivalent_live_declarations_share_active_lane_with_distinct_consumer
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -90,16 +93,16 @@ fn runtime_equivalent_live_declarations_share_active_lane_with_distinct_consumer
         .expect("equivalent live view should join active lane");
 
     assert_eq!(
-        first.subscription_installation().active_lane_digest(),
-        second.subscription_installation().active_lane_digest()
+        first.subscription_installation().active_lane_for_reporting(),
+        second.subscription_installation().active_lane_for_reporting()
     );
     assert_ne!(
         first
             .subscription_installation()
-            .consumer_attachment_digest(),
+            .consumer_attachment_for_reporting(),
         second
             .subscription_installation()
-            .consumer_attachment_digest()
+            .consumer_attachment_for_reporting()
     );
     assert_eq!(
         second
@@ -138,6 +141,7 @@ fn runtime_live_declaration_denies_before_source_when_subscription_activation_re
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(CountingSourceAdapter::new(source_declarations.clone()))
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(DenyingSubscriptionActivation)
@@ -168,6 +172,7 @@ fn runtime_live_declaration_denies_when_admission_receipt_drifts_from_request() 
         .runtime_bridge(test_bridge())
         .schema_adapter(DriftingSchemaReceiptAdapter)
         .source_adapter(CountingSourceAdapter::new(source_declarations.clone()))
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -198,6 +203,7 @@ fn runtime_live_declaration_denies_when_activation_receipt_drifts_from_request()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(CountingSourceAdapter::new(source_declarations.clone()))
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(DriftingSubscriptionActivation)

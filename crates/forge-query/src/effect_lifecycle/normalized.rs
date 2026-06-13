@@ -2,7 +2,6 @@ use crate::basis_lifecycle::{BasisAuthorityPosture, BasisFamily, BasisLifecycleP
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
-use crate::identity::hash_parts;
 use crate::workflow::{
     MergeLoweringInput, MutationLoweringInput, WorkflowContextBinding, WorkflowDeclarationRequest,
     WritebackLoweringInput,
@@ -26,14 +25,14 @@ pub struct NormalizedEffectIntent {
     basis_family: BasisFamily,
     basis_authority: BasisAuthorityPosture,
     basis_lifecycle: BasisLifecyclePosture,
-    capability_digest: String,
-    scoped_basis_digest: String,
+    capability_identity: ForgeQueryEvidenceIdentity,
+    scoped_basis_identity: ForgeQueryEvidenceIdentity,
     expected_lower_runtime_binding_identity: Option<ForgeQueryEvidenceIdentity>,
     workflow_binding: WorkflowContextBinding,
     workflow_request: WorkflowDeclarationRequest,
     operation_input: EffectOperationInput,
     source_path: &'static str,
-    normalized_digest: String,
+    normalized_identity: ForgeQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
@@ -47,32 +46,55 @@ impl NormalizedEffectIntent {
         operation_input: EffectOperationInput,
         source_path: &'static str,
     ) -> Self {
-        let capability_digest = authoring_basis.capability_digest();
-        let normalized_digest = hash_parts(&[
-            format!("family:{}", family.as_str()),
-            format!("authority_lane:{}", authority_lane.as_str()),
-            format!("basis_family:{}", authoring_basis.family().as_str()),
-            format!("basis_authority:{}", authoring_basis.authority().as_str()),
-            format!("basis_lifecycle:{}", authoring_basis.lifecycle().as_str()),
-            format!("capability:{capability_digest}"),
-            format!("scoped_basis:{}", authoring_basis.scoped_basis_digest()),
-            format!(
-                "lower_runtime_binding:{}",
-                authoring_basis
-                    .expected_lower_runtime_binding_digest()
-                    .unwrap_or("none")
-            ),
-            format!("workflow_binding:{}", workflow_binding.digest()),
-            format!(
-                "workflow_family:{}",
-                workflow_request.declaration_family().as_str()
-            ),
-            format!(
-                "workflow_target:{}",
-                workflow_request.authority_target_family().as_str()
-            ),
-            format!("source_path:{source_path}"),
-        ]);
+        let capability_identity = authoring_basis.capability_identity();
+        let scoped_basis_identity = authoring_basis.scoped_basis_identity();
+        let expected_lower_runtime_binding_identity =
+            authoring_basis.expected_lower_runtime_binding_identity();
+        let mut normalized_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "normalized_effect_intent_v1",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authority_lane"),
+                    authority_lane.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("basis_family"),
+                    authoring_basis.family().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("basis_authority"),
+                    authoring_basis.authority().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("basis_lifecycle"),
+                    authoring_basis.lifecycle().as_str(),
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("capability"), &capability_identity)
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("scoped_basis"), &scoped_basis_identity)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("workflow_binding"),
+                    workflow_binding.binding_identity(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("workflow_family"),
+                    workflow_request.declaration_family().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("workflow_target"),
+                    workflow_request.authority_target_family().as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("source_path"), source_path);
+        if let Some(lower_runtime_binding_identity) = expected_lower_runtime_binding_identity.as_ref() {
+            normalized_identity = normalized_identity.field_evidence_identity(
+                ForgeQueryEvidenceTag::new("lower_runtime_binding"),
+                lower_runtime_binding_identity,
+            );
+        }
+        let normalized_identity = normalized_identity.seal();
 
         Self {
             family,
@@ -80,16 +102,14 @@ impl NormalizedEffectIntent {
             basis_family: authoring_basis.family(),
             basis_authority: authoring_basis.authority(),
             basis_lifecycle: authoring_basis.lifecycle(),
-            capability_digest,
-            scoped_basis_digest: authoring_basis.scoped_basis_digest().to_string(),
-            expected_lower_runtime_binding_identity: authoring_basis
-                .expected_lower_runtime_binding_digest()
-                .map(expected_lower_runtime_binding_identity),
+            capability_identity,
+            scoped_basis_identity,
+            expected_lower_runtime_binding_identity,
             workflow_binding,
             workflow_request,
             operation_input,
             source_path,
-            normalized_digest,
+            normalized_identity,
             counters: EffectLifecycleCounters::normalized(1, 1, 1),
         }
     }
@@ -115,11 +135,19 @@ impl NormalizedEffectIntent {
     }
 
     pub fn capability_digest(&self) -> &str {
-        &self.capability_digest
+        self.capability_identity.as_str()
     }
 
     pub fn scoped_basis_digest(&self) -> &str {
-        &self.scoped_basis_digest
+        self.scoped_basis_identity.as_str()
+    }
+
+    pub fn capability_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.capability_identity
+    }
+
+    pub fn scoped_basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.scoped_basis_identity
     }
 
     pub fn expected_lower_runtime_binding_digest(&self) -> Option<&str> {
@@ -149,7 +177,11 @@ impl NormalizedEffectIntent {
     }
 
     pub fn normalized_digest(&self) -> &str {
-        &self.normalized_digest
+        self.normalized_identity.as_str()
+    }
+
+    pub fn normalized_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.normalized_identity
     }
 
     pub fn counters(&self) -> &EffectLifecycleCounters {
@@ -157,21 +189,16 @@ impl NormalizedEffectIntent {
     }
 
     pub(crate) fn admitted_digest(&self) -> String {
-        hash_parts(&[
-            "admitted_effect_intent_v1".to_string(),
-            format!("normalized:{}", self.normalized_digest()),
-        ])
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "admitted_effect_intent_v1",
+            )
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("normalized"), &self.normalized_identity)
+            .seal()
+            .as_str()
+            .to_string()
     }
-}
-
-fn expected_lower_runtime_binding_identity(binding_digest: &str) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "expected_lower_runtime_binding_v1",
-        )
-        .field_identity(ForgeQueryEvidenceTag::new("binding"), binding_digest)
-        .seal()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

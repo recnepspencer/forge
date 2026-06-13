@@ -49,7 +49,7 @@ pub(in crate::runtime) fn project_live_subscription_ordinary_runtime_posture(
         .async_result_state
         .as_ref()
         .map(|async_result_state| {
-            if async_result_state.basis_digest() != state.installation.basis_binding_digest() {
+            if async_result_state.basis_digest() != state.installation.basis_binding_for_reporting() {
                 ForgeQueryOrdinaryRuntimeBasisPostureKind::BasisDrift
             } else if async_result_state.generation_digest()
                 != state.active_lane_handle.checkpoint_identity_digest()

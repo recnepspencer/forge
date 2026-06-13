@@ -67,6 +67,10 @@ macro_rules! inspection_accessors {
             pub fn $digest_name(&self) -> &str {
                 self.$digest_name.as_str()
             }
+
+            pub fn inspection_for_reporting(&self) -> &str {
+                self.$digest_name.as_str()
+            }
         }
     };
 }
@@ -79,17 +83,29 @@ impl AdmittedCausalInspection {
     pub(super) fn admitted_inspection_identity(&self) -> &CausalInspectionOutcomeIdentity {
         &self.admitted_inspection_digest
     }
+
+    pub fn admitted_inspection_for_reporting(&self) -> &str {
+        self.admitted_inspection_digest()
+    }
 }
 
 impl AdvisoryCausalInspection {
     pub(super) fn advisory_inspection_identity(&self) -> &CausalInspectionOutcomeIdentity {
         &self.advisory_inspection_digest
     }
+
+    pub fn advisory_inspection_for_reporting(&self) -> &str {
+        self.advisory_inspection_digest()
+    }
 }
 
 impl DeniedCausalInspection {
     pub(super) fn denied_inspection_identity(&self) -> &CausalInspectionOutcomeIdentity {
         &self.denied_inspection_digest
+    }
+
+    pub fn denied_inspection_for_reporting(&self) -> &str {
+        self.denied_inspection_digest()
     }
 }
 
@@ -257,9 +273,9 @@ fn inspection_digest(
 ) -> CausalInspectionOutcomeIdentity {
     compose_causal_outcome_identity(
         kind,
-        subject.subject_digest(),
-        decision.decision_digest(),
-        trace.trace_digest(),
-        receipt.receipt_digest(),
+        subject.subject_identity(),
+        decision.decision_identity(),
+        trace.trace_identity(),
+        receipt.receipt_identity(),
     )
 }

@@ -7,7 +7,11 @@ use super::{
     ForgeQueryWorkflowContributionAuthoring,
 };
 use crate::harness::fixtures::execution_preflights;
-use crate::workflow::{bind_workflow_context, WorkflowBindingSource};
+use crate::workflow::{
+    bind_workflow_context, workflow_context_basis_identity, workflow_context_basis_token_identity,
+    workflow_context_query_identity, workflow_context_query_token_identity, WorkflowBasisFamily,
+    WorkflowBindingSource,
+};
 
 #[test]
 fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_basis_identity() {
@@ -24,10 +28,13 @@ fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_ba
         .bind_to_declaration_target(declaration_target("intent-workflow-runtime-preflight")),
     )));
 
-    assert_ne!(declaration.binding().digest(), expected.digest());
+    assert_ne!(
+        declaration.binding().binding_digest(),
+        expected.binding_digest()
+    );
     assert_eq!(
-        declaration.binding().source_digest(),
-        expected.source_digest()
+        declaration.binding().source_for_reporting(),
+        expected.source_for_reporting()
     );
     assert_eq!(
         declaration
@@ -42,12 +49,24 @@ fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_ba
         )
     );
     assert_eq!(
-        declaration.binding().query_identity_digest(),
-        preflight.plan().query().canonical_query_digest().as_str()
+        declaration.binding().query_for_reporting(),
+        workflow_context_query_identity(
+            &workflow_context_query_token_identity(
+                preflight.plan().query().canonical_query_digest().as_str(),
+            ),
+        )
+        .as_str()
     );
     assert_eq!(
-        declaration.binding().basis_digest(),
-        preflight.basis().proof().digest().as_str()
+        declaration.binding().basis_for_reporting(),
+        workflow_context_basis_identity(
+            &WorkflowBasisFamily::RuntimePreflight,
+            &workflow_context_basis_token_identity(
+                &WorkflowBasisFamily::RuntimePreflight,
+                preflight.basis().proof().digest().as_str(),
+            ),
+        )
+        .as_str()
     );
 }
 
@@ -75,10 +94,13 @@ fn workflow_runtime_preflight_materializer_is_stronger_than_snapshot_only_surrog
         .bind_to_declaration_target(declaration_target("intent-workflow-runtime-synthetic")),
     )));
 
-    assert_ne!(real.binding().digest(), surrogate.binding().digest());
     assert_ne!(
-        real.binding().query_identity_digest(),
-        surrogate.binding().query_identity_digest()
+        real.binding().binding_digest(),
+        surrogate.binding().binding_digest()
+    );
+    assert_ne!(
+        real.binding().query_for_reporting(),
+        surrogate.binding().query_for_reporting()
     );
     assert_eq!(
         real.binding()
@@ -160,14 +182,17 @@ fn workflow_runtime_preflight_materializer_keeps_scope_distinct_across_targets()
     )));
 
     assert_eq!(
-        left.binding().query_identity_digest(),
-        right.binding().query_identity_digest()
+        left.binding().query_for_reporting(),
+        right.binding().query_for_reporting()
     );
     assert_eq!(
-        left.binding().basis_digest(),
-        right.binding().basis_digest()
+        left.binding().basis_for_reporting(),
+        right.binding().basis_for_reporting()
     );
-    assert_ne!(left.binding().digest(), right.binding().digest());
+    assert_ne!(
+        left.binding().binding_digest(),
+        right.binding().binding_digest()
+    );
     assert_ne!(
         left.report().declaration_digest(),
         right.report().declaration_digest()

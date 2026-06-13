@@ -201,10 +201,10 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
         inspection.authority_lane(),
         ForgeQueryAuthorityLane::AuthoritativeTruth
     );
-    assert_eq!(inspection.query_digest(), installation.query_digest());
+    assert_eq!(inspection.query_digest(), installation.query_for_reporting());
     assert_eq!(
         inspection.view_shape_digest(),
-        installation.view_shape_digest()
+        installation.view_shape_for_reporting()
     );
     assert_eq!(
         inspection.subscription_family(),
@@ -212,44 +212,44 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
     );
     assert_eq!(
         inspection.subscription_family_digest(),
-        installation.subscription_family_digest()
+        installation.subscription_family_for_reporting()
     );
     assert_eq!(
         inspection.subscription_declaration_digest(),
-        installation.subscription_declaration_digest()
+        installation.subscription_declaration_for_reporting()
     );
     assert_eq!(
         inspection.bridge_declaration_digest(),
-        installation.bridge_declaration_digest()
+        installation.bridge_declaration_for_reporting()
     );
     assert_eq!(
         inspection.admission_digest(),
-        installation.admission_digest()
+        installation.admission_for_reporting()
     );
     assert_eq!(
         inspection.activation_digest(),
-        installation.activation_digest()
+        installation.activation_for_reporting()
     );
     assert_eq!(
         inspection.basis_binding_digest(),
-        installation.basis_binding_digest()
+        installation.basis_binding_for_reporting()
     );
     assert_eq!(
         inspection.signal_strategy_digest(),
-        installation.signal_strategy_digest()
+        installation.signal_strategy_for_reporting()
     );
     assert_eq!(
         inspection.active_lane_digest(),
-        installation.active_lane_digest()
+        installation.active_lane_for_reporting()
     );
     assert_eq!(
         inspection.consumer_attachment_digest(),
-        installation.consumer_attachment_digest()
+        installation.consumer_attachment_for_reporting()
     );
-    assert_eq!(inspection.consumer_digest(), installation.consumer_digest());
+    assert_eq!(inspection.consumer_digest(), installation.consumer_for_reporting());
     assert_eq!(
         inspection.delivery_cursor_digest(),
-        installation.delivery_cursor_digest()
+        installation.delivery_cursor_for_reporting()
     );
     assert_eq!(
         inspection.subscription_budget_policy(),
@@ -265,7 +265,7 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
     );
     assert_eq!(
         inspection.runtime_budget_digest(),
-        installation.runtime_budget_digest()
+        installation.runtime_budget_for_reporting()
     );
     assert_eq!(
         inspection.support_evidence(),
@@ -273,7 +273,7 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
     );
     assert_eq!(
         inspection.installation_digest(),
-        installation.installation_digest()
+        installation.installation_for_reporting()
     );
     assert!(!inspection.inspection_digest().is_empty());
 
@@ -343,7 +343,7 @@ fn grouped_live_view_inspection_preserves_grouped_family_and_baseline_support() 
         inspection.subscription_family_digest(),
         grouped
             .subscription_installation()
-            .subscription_family_digest()
+            .subscription_family_for_reporting()
     );
     assert_eq!(
         inspection.support_evidence(),

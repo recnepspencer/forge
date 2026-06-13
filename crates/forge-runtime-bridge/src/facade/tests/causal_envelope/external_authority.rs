@@ -156,7 +156,7 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
     ] {
         assert_signal_reference_binding(&envelope, family, identity);
     }
-    assert!(!envelope.envelope_digest().is_empty());
+    assert!(!envelope.envelope_for_reporting().is_empty());
 }
 
 fn assert_retained_route_binding(

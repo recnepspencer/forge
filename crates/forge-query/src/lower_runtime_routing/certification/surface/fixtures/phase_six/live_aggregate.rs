@@ -208,10 +208,10 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
         .expect("live aggregate fixture should lower a subscription");
     let admission = admit_query_subscription(lowering, admission_budget())
         .expect("live aggregate fixture should admit the lowered subscription");
-    let bridge_declaration_digest = admission.bridge_declaration_digest().to_string();
-    let admission_digest = admission.admission_digest().to_string();
-    let basis_binding_digest = admission.basis_binding_digest().to_string();
-    let signal_strategy_digest = admission.signal_strategy_digest().to_string();
+    let bridge_declaration_identity = admission.bridge_declaration_identity().clone();
+    let admission_identity = admission.evidence_identity().clone();
+    let basis_binding_identity = admission.basis_binding_identity().clone();
+    let signal_strategy_identity = admission.signal_strategy_identity().clone();
     let activation = prepare_subscription_activation(admission);
     let activation_receipt = crate::runtime::SubscriptionActivationReceipt::from_activation(
         LIVE_AGGREGATE_VIEW_NAME,
@@ -219,8 +219,8 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
         "certified-live-aggregate-support",
         None,
     );
-    let support_evidence = activation_receipt.support_evidence().to_string();
-    let activation_digest = activation_receipt.activation_digest().to_string();
+    let activation_identity = activation_receipt.activation_identity().clone();
+    let support_identity = activation_receipt.support_identity().clone();
     let activation_boundary = SubscriptionActivationBoundaryReceipt::from_activation(
         LIVE_AGGREGATE_VIEW_NAME,
         &activation,
@@ -231,34 +231,49 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
     let active_lane_digest = attachment.lane_digest().as_str().to_string();
     let installation = ForgeQueryRuntimeLiveSubscriptionInstallation::new(
         LIVE_AGGREGATE_VIEW_NAME,
-        crate::runtime::live_subscription_digest_source_identity(
+        crate::runtime::live_subscription_source_identity(
             "query",
-            session.canonical().query().digest().as_str(),
+            &crate::runtime::live_subscription_source_digest_evidence(
+                "query",
+                session.canonical().query().digest().as_str(),
+            ),
         ),
-        crate::runtime::live_subscription_digest_source_identity(
+        crate::runtime::live_subscription_source_identity(
             "live_view",
-            session.live_view().lowering().digest(),
+            &crate::runtime::live_subscription_source_digest_evidence(
+                "live_view",
+                session.live_view().lowering().digest(),
+            ),
         ),
         subscription_family,
-        crate::runtime::live_subscription_digest_source_identity(
+        crate::runtime::live_subscription_source_identity(
             "subscription_declaration",
-            &subscription_declaration_digest,
+            &crate::runtime::live_subscription_source_digest_evidence(
+                "subscription_declaration",
+                &subscription_declaration_digest,
+            ),
         ),
-        crate::runtime::live_subscription_digest_source_identity(
+        crate::runtime::live_subscription_source_identity(
             "bridge_declaration",
-            &bridge_declaration_digest,
+            &bridge_declaration_identity,
         ),
-        crate::runtime::live_subscription_digest_source_identity("admission", &admission_digest),
-        crate::runtime::live_subscription_digest_source_identity("activation", &activation_digest),
-        crate::runtime::live_subscription_digest_source_identity(
-            "basis_binding",
-            &basis_binding_digest,
+        crate::runtime::live_subscription_source_identity("admission", &admission_identity),
+        crate::runtime::live_subscription_source_identity(
+            "activation",
+            &activation_identity,
         ),
-        crate::runtime::live_subscription_digest_source_identity(
+        crate::runtime::live_subscription_source_identity("basis_binding", &basis_binding_identity),
+        crate::runtime::live_subscription_source_identity(
             "signal_strategy",
-            &signal_strategy_digest,
+            &signal_strategy_identity,
         ),
-        crate::runtime::live_subscription_digest_source_identity("active_lane", &active_lane_digest),
+        crate::runtime::live_subscription_source_identity(
+            "active_lane",
+            &crate::runtime::live_subscription_source_digest_evidence(
+                "active_lane",
+                &active_lane_digest,
+            ),
+        ),
         &attachment,
         runtime_subscription_budget_policy(),
         crate::runtime::ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity::active_lifecycle_policy(
@@ -269,7 +284,10 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
         ),
         active_lane_counters,
         consumer_attachment_counters,
-        crate::runtime::live_subscription_digest_source_identity("support", &support_evidence),
+        crate::runtime::live_subscription_source_identity(
+            "support",
+            &support_identity,
+        ),
         activation.counters().clone(),
     );
 
@@ -307,7 +325,7 @@ fn installation_attachment(
         &handle,
         SubscriptionConsumerAttachmentRequest::admitted(
             "runtime-live-aggregate",
-            activation.activation_digest(),
+            activation.activation_for_reporting(),
         ),
         consumer_attachment_budget(),
     )

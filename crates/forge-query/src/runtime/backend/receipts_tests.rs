@@ -18,7 +18,7 @@ fn live_view_declaration_receipt_captures_request_shape() {
     assert_eq!(receipt.view_name(), "tasks.table");
     assert_eq!(receipt.target_collection(), "Task");
     assert_eq!(receipt.view_shape(), "table");
-    assert!(!receipt.receipt_digest().is_empty());
+    assert!(!receipt.receipt_for_reporting().is_empty());
 }
 
 #[test]

@@ -160,9 +160,12 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         .seal();
         let support_identity =
             live_subscription_input_identity("support", &support_source_identity);
-        let subscription_family_source_identity = live_subscription_digest_source_identity(
+        let subscription_family_source_identity = live_subscription_source_identity(
             "subscription_family",
-            subscription_family.as_str(),
+            &live_subscription_source_digest_evidence(
+                "subscription_family",
+                subscription_family.as_str(),
+            ),
         );
         let subscription_family_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
@@ -184,11 +187,16 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         let counter_digest = counters.digest();
         let active_lane_counter_digest = active_lane_counters.digest();
         let consumer_attachment_counter_digest = consumer_attachment_counters.digest();
-        let counter_identity =
-            live_subscription_digest_source_identity("counters", &counter_digest);
-        let active_lane_counter_identity = live_subscription_digest_source_identity(
+        let counter_identity = live_subscription_source_identity(
+            "counters",
+            &live_subscription_source_digest_evidence("counters", &counter_digest),
+        );
+        let active_lane_counter_identity = live_subscription_source_identity(
             "active_lane_counters",
-            &active_lane_counter_digest,
+            &live_subscription_source_digest_evidence(
+                "active_lane_counters",
+                &active_lane_counter_digest,
+            ),
         );
         let consumer_attachment_counter_identity = live_subscription_source_identity(
             "consumer_attachment_counters",
@@ -301,12 +309,20 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         self.authority_lane
     }
 
-    pub fn query_digest(&self) -> &str {
+    pub fn query_for_reporting(&self) -> &str {
         self.query_identity.as_str()
     }
 
-    pub fn view_shape_digest(&self) -> &str {
+    pub fn query_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_identity
+    }
+
+    pub fn view_shape_for_reporting(&self) -> &str {
         self.view_shape_identity.as_str()
+    }
+
+    pub fn view_shape_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.view_shape_identity
     }
 
     pub fn subscription_family(&self) -> &str {
@@ -317,52 +333,104 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         &self.subscription_family
     }
 
-    pub fn subscription_family_digest(&self) -> &str {
+    pub fn subscription_family_for_reporting(&self) -> &str {
         self.subscription_family_identity.as_str()
     }
 
-    pub fn subscription_declaration_digest(&self) -> &str {
+    pub fn subscription_family_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subscription_family_identity
+    }
+
+    pub fn subscription_declaration_for_reporting(&self) -> &str {
         self.subscription_declaration_identity.as_str()
     }
 
-    pub fn bridge_declaration_digest(&self) -> &str {
+    pub fn subscription_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subscription_declaration_identity
+    }
+
+    pub fn bridge_declaration_for_reporting(&self) -> &str {
         self.bridge_declaration_identity.as_str()
     }
 
-    pub fn admission_digest(&self) -> &str {
+    pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_declaration_identity
+    }
+
+    pub fn admission_for_reporting(&self) -> &str {
         self.admission_identity.as_str()
     }
 
-    pub fn activation_digest(&self) -> &str {
+    pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_identity
+    }
+
+    pub fn activation_for_reporting(&self) -> &str {
         self.activation_identity.as_str()
     }
 
-    pub fn basis_binding_digest(&self) -> &str {
+    pub fn activation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.activation_identity
+    }
+
+    pub fn basis_binding_for_reporting(&self) -> &str {
         self.basis_binding_identity.as_str()
     }
 
-    pub fn signal_strategy_digest(&self) -> &str {
+    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_binding_identity
+    }
+
+    pub fn signal_strategy_for_reporting(&self) -> &str {
         self.signal_strategy_identity.as_str()
     }
 
-    pub fn active_lane_digest(&self) -> &str {
+    pub fn signal_strategy_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.signal_strategy_identity
+    }
+
+    pub fn active_lane_for_reporting(&self) -> &str {
         self.active_lane_identity.as_str()
     }
 
-    pub fn consumer_attachment_digest(&self) -> &str {
+    pub fn active_lane_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.active_lane_identity
+    }
+
+    pub fn consumer_attachment_for_reporting(&self) -> &str {
         self.consumer_attachment_identity.as_str()
     }
 
-    pub fn consumer_digest(&self) -> &str {
+    pub fn consumer_attachment_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.consumer_attachment_identity
+    }
+
+    pub fn consumer_for_reporting(&self) -> &str {
         self.consumer_identity.as_str()
     }
 
-    pub fn delivery_cursor_digest(&self) -> &str {
+    pub fn consumer_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.consumer_identity
+    }
+
+    pub fn delivery_cursor_for_reporting(&self) -> &str {
         self.delivery_cursor_identity.as_str()
     }
 
-    pub fn support_evidence(&self) -> &str {
+    pub fn delivery_cursor_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_cursor_identity
+    }
+
+    pub fn support_for_reporting(&self) -> &str {
         self.support_identity.as_str()
+    }
+
+    pub fn support_evidence(&self) -> &str {
+        self.support_for_reporting()
+    }
+
+    pub fn support_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.support_identity
     }
 
     pub fn subscription_budget_policy(&self) -> &str {
@@ -395,8 +463,12 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         &self.consumer_attachment_budget_policy
     }
 
-    pub fn runtime_budget_digest(&self) -> &str {
+    pub fn runtime_budget_for_reporting(&self) -> &str {
         self.runtime_budget_identity.as_str()
+    }
+
+    pub fn runtime_budget_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.runtime_budget_identity
     }
 
     pub fn counters(&self) -> &QuerySubscriptionDeclarationCounters {
@@ -411,8 +483,12 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         &self.consumer_attachment_counters
     }
 
-    pub fn installation_digest(&self) -> &str {
+    pub fn installation_for_reporting(&self) -> &str {
         self.installation_identity.as_str()
+    }
+
+    pub fn installation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.installation_identity
     }
 }
 
@@ -430,7 +506,7 @@ fn live_subscription_input_identity(
         .seal()
 }
 
-fn live_subscription_source_digest_evidence(
+pub(crate) fn live_subscription_source_digest_evidence(
     role: &str,
     source_identity: &str,
 ) -> ForgeQueryEvidenceIdentity {
@@ -442,16 +518,6 @@ fn live_subscription_source_digest_evidence(
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
         .field_identity(ForgeQueryEvidenceTag::new("source_digest"), source_identity)
         .seal()
-}
-
-pub(crate) fn live_subscription_digest_source_identity(
-    role: &str,
-    source_identity: &str,
-) -> ForgeQueryEvidenceIdentity {
-    live_subscription_source_identity(
-        role,
-        &live_subscription_source_digest_evidence(role, source_identity),
-    )
 }
 
 pub(crate) fn live_subscription_source_identity(

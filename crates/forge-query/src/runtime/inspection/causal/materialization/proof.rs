@@ -11,7 +11,7 @@ use super::super::observation_identity::CausalObservationAnchorDigest;
 pub struct CausalBridgeReadmissionProof {
     query_admission_identity: CausalInspectionOutcomeIdentity,
     anchor_identity: CausalObservationAnchorDigest,
-    bridge_admission_summary_digest: String,
+    bridge_admission_summary_identity: forge_runtime_bridge::facade::BridgeIdentityEvidence,
     bridge_envelope_identity: ForgeQueryEvidenceIdentity,
     readmission_proof_identity: ForgeQueryEvidenceIdentity,
 }
@@ -22,7 +22,8 @@ impl CausalBridgeReadmissionProof {
         anchor_identity: &CausalObservationAnchorDigest,
         envelope: &BridgeCausalExplanationEnvelope,
     ) -> Self {
-        let bridge_admission_summary_digest = envelope.admission_summary_digest().to_string();
+        let bridge_admission_summary_identity =
+            envelope.admission_summary_evidence_identity().clone();
         let bridge_envelope_identity = compose_bridge_causal_envelope_identity(envelope.identity());
         let readmission_proof_identity = ForgeQueryEvidenceIdentity::compose(
             crate::evidence_identity::ForgeQueryEvidenceScope::CausalInspectionArtifact,
@@ -31,17 +32,17 @@ impl CausalBridgeReadmissionProof {
             ForgeQueryEvidenceTag::new("role"),
             "bridge-readmission-proof",
         )
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("query_admission"),
-            query_admission_identity.as_str(),
+            query_admission_identity.evidence_identity(),
         )
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("anchor"),
-            anchor_identity.as_str(),
+            anchor_identity.evidence_identity(),
         )
-        .field_identity(
+        .field_bridge_identity(
             ForgeQueryEvidenceTag::new("bridge_summary"),
-            &bridge_admission_summary_digest,
+            &bridge_admission_summary_identity,
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("bridge_envelope"),
@@ -51,29 +52,29 @@ impl CausalBridgeReadmissionProof {
         Self {
             query_admission_identity: query_admission_identity.clone(),
             anchor_identity: anchor_identity.clone(),
-            bridge_admission_summary_digest,
+            bridge_admission_summary_identity,
             bridge_envelope_identity,
             readmission_proof_identity,
         }
     }
 
-    pub fn query_admission_digest(&self) -> &str {
+    pub fn query_admission_for_reporting(&self) -> &str {
         self.query_admission_identity.as_str()
     }
 
-    pub fn anchor_digest(&self) -> &str {
+    pub fn anchor_for_reporting(&self) -> &str {
         self.anchor_identity.as_str()
     }
 
-    pub fn bridge_admission_summary_digest(&self) -> &str {
-        &self.bridge_admission_summary_digest
+    pub fn bridge_admission_summary_for_reporting(&self) -> &str {
+        self.bridge_admission_summary_identity.as_str()
     }
 
-    pub fn bridge_envelope_digest(&self) -> &str {
+    pub fn bridge_envelope_for_reporting(&self) -> &str {
         self.bridge_envelope_identity.as_str()
     }
 
-    pub fn readmission_proof_digest(&self) -> &str {
+    pub fn readmission_proof_for_reporting(&self) -> &str {
         self.readmission_proof_identity.as_str()
     }
 

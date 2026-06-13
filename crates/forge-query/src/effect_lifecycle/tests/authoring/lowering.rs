@@ -1,3 +1,4 @@
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectAuthorityLane, EffectAuthorityOwner, EffectConflictFootprint,
     EffectFamily, EffectInvariantScope, EffectLoweringDenialKind, EffectPermittedLoweringFamily,
@@ -132,14 +133,27 @@ fn admitted_writeback_plan_lowers_into_one_executable_effect_artifact() {
         writeback.counters().workflow_writeback_declaration_count(),
         1
     );
+    let binding = lowered
+        .authority_scoped_plan()
+        .admitted()
+        .workflow_declaration()
+        .binding();
+    let expected_basis_identity = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority,
+    )
+    .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_basis")
+    .field_shape(
+        ForgeQueryEvidenceTag::new("basis_family"),
+        binding.basis_family().as_str(),
+    )
+    .field_evidence_identity(
+        ForgeQueryEvidenceTag::new("basis"),
+        binding.basis_identity(),
+    )
+    .seal();
     assert_eq!(
-        writeback.causality_binding().basis_digest(),
-        lowered
-            .authority_scoped_plan()
-            .admitted()
-            .workflow_declaration()
-            .binding()
-            .basis_digest()
+        writeback.causality_binding().basis_identity(),
+        &expected_basis_identity
     );
     assert_eq!(
         lowered.counters().effect_lowering_width(),

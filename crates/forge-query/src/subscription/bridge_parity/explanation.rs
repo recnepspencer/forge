@@ -464,16 +464,16 @@ pub fn explain_query_subscription_bridge_parity(
     let comparison = QuerySubscriptionBridgeParityComparison {
         parity_class,
         query_declaration_digest: declaration.declaration_digest().as_str().to_string(),
-        bridge_declaration_digest: lowering.bridge_declaration_digest().to_string(),
+        bridge_declaration_digest: lowering.bridge_declaration_for_reporting().to_string(),
         witness_digest: witness.witness_digest().to_string(),
-        activation_digest: activation.activation_digest().to_string(),
+        activation_digest: activation.activation_for_reporting().to_string(),
         comparison_digest: hash_parts(&[
             "query_subscription_bridge_parity_comparison_v1".to_string(),
             parity_class.as_str().to_string(),
             declaration.declaration_digest().as_str().to_string(),
-            lowering.bridge_declaration_digest().to_string(),
+            lowering.bridge_declaration_for_reporting().to_string(),
             witness.witness_digest().to_string(),
-            activation.activation_digest().to_string(),
+            activation.activation_for_reporting().to_string(),
         ]),
     };
     let explanation_digest = hash_parts(&[
@@ -510,8 +510,8 @@ fn validate_parity_sources(
     semantics: &CanonicalBridgeParitySemantics,
 ) -> Result<(), QuerySubscriptionBridgeParityError> {
     if declaration.declaration_digest().as_str() != witness.query_declaration_digest()
-        || lowering.query_declaration_digest() != witness.query_declaration_digest()
-        || activation.query_declaration_digest() != witness.query_declaration_digest()
+        || lowering.query_declaration_for_reporting() != witness.query_declaration_digest()
+        || activation.query_declaration_for_reporting() != witness.query_declaration_digest()
     {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
@@ -521,8 +521,8 @@ fn validate_parity_sources(
                 witness.query_declaration_digest(),
                 &[
                     format!("declaration:{}", declaration.declaration_digest().as_str()),
-                    format!("lowering:{}", lowering.query_declaration_digest()),
-                    format!("activation:{}", activation.query_declaration_digest()),
+                    format!("lowering:{}", lowering.query_declaration_for_reporting()),
+                    format!("activation:{}", activation.query_declaration_for_reporting()),
                     format!("witness:{}", witness.query_declaration_digest()),
                 ],
             ),
@@ -530,7 +530,7 @@ fn validate_parity_sources(
         ));
     }
 
-    if activation.activation_digest() != witness.activation_digest() {
+    if activation.activation_for_reporting() != witness.activation_digest() {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
                 QuerySubscriptionBridgeParityFailureKind::ActivationMismatch,
@@ -538,7 +538,7 @@ fn validate_parity_sources(
                 "bridge parity explanation requires activation and witness to preserve the same runtime activation identity",
                 witness.activation_digest(),
                 &[
-                    format!("activation:{}", activation.activation_digest()),
+                    format!("activation:{}", activation.activation_for_reporting()),
                     format!("witness:{}", witness.activation_digest()),
                 ],
             ),
@@ -570,8 +570,8 @@ fn validate_parity_sources(
         ));
     }
 
-    if lowering.bridge_declaration_digest() != witness.bridge_declaration_digest()
-        || activation.bridge_declaration_digest() != witness.bridge_declaration_digest()
+    if lowering.bridge_declaration_for_reporting() != witness.bridge_declaration_digest()
+        || activation.bridge_declaration_for_reporting() != witness.bridge_declaration_digest()
     {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
@@ -580,8 +580,8 @@ fn validate_parity_sources(
                 "bridge parity explanation requires lowering, activation, and witness to preserve bridge declaration identity",
                 witness.bridge_declaration_digest(),
                 &[
-                    format!("lowering:{}", lowering.bridge_declaration_digest()),
-                    format!("activation:{}", activation.bridge_declaration_digest()),
+                    format!("lowering:{}", lowering.bridge_declaration_for_reporting()),
+                    format!("activation:{}", activation.bridge_declaration_for_reporting()),
                     format!("witness:{}", witness.bridge_declaration_digest()),
                 ],
             ),
@@ -617,7 +617,7 @@ fn validate_parity_sources(
     }
 
     if lowering.basis_request().digest() != witness.basis_binding_digest()
-        || activation.basis_binding_digest() != witness.basis_binding_digest()
+        || activation.basis_binding_for_reporting() != witness.basis_binding_digest()
     {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
@@ -627,7 +627,7 @@ fn validate_parity_sources(
                 witness.basis_binding_digest(),
                 &[
                     format!("lowering:{}", lowering.basis_request().digest()),
-                    format!("activation:{}", activation.basis_binding_digest()),
+                    format!("activation:{}", activation.basis_binding_for_reporting()),
                     format!("witness:{}", witness.basis_binding_digest()),
                 ],
             ),
@@ -654,7 +654,7 @@ fn validate_parity_sources(
     }
 
     if lowering.signal_strategy_request().digest() != witness.signal_strategy_digest()
-        || activation.signal_strategy_digest() != witness.signal_strategy_digest()
+        || activation.signal_strategy_for_reporting() != witness.signal_strategy_digest()
     {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
@@ -664,7 +664,7 @@ fn validate_parity_sources(
                 witness.signal_strategy_digest(),
                 &[
                     format!("lowering:{}", lowering.signal_strategy_request().digest()),
-                    format!("activation:{}", activation.signal_strategy_digest()),
+                    format!("activation:{}", activation.signal_strategy_for_reporting()),
                     format!("witness:{}", witness.signal_strategy_digest()),
                 ],
             ),

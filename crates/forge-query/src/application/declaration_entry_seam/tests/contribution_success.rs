@@ -144,9 +144,6 @@ fn readiness_digest_changes_while_baseline_rows_stay_intact() {
 #[test]
 fn declaration_workflow_evidence_composes_when_admitted_plan_scope_is_present() {
     let handle = handle("preview");
-    let declaration_digest = bridge_signal_envelope(&handle, "edge:42")
-        .declaration_digest()
-        .to_string();
     let plan = admitted_plan();
     let inspection = handle
         .inspect_declaration_entry(
@@ -155,15 +152,11 @@ fn declaration_workflow_evidence_composes_when_admitted_plan_scope_is_present() 
                     bridge_signal_envelope(&handle, "edge:42"),
                 ),
             )
-            .with_admitted_plan_scope(plan)
+            .with_admitted_plan_scope(plan.clone())
             .with_contribution_evidence(
                 ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
                     ForgeQueryDeclarationEntryContributionEvidence::from(
-                        admitted_declaration_workflow(
-                            &declaration_digest,
-                            "workflow",
-                            "preview-only",
-                        ),
+                        admitted_plan_workflow(&plan, "workflow", "preview-only"),
                     ),
                 ]),
             ),

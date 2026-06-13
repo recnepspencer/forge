@@ -370,10 +370,10 @@ pub(super) fn runtime_consumer_attachment_budget_policy(
 #[cfg(test)]
 pub(super) fn runtime_subscription_budget_digest() -> String {
     crate::ForgeQueryEvidenceIdentity::compose(
-        crate::evidence_identity::ForgeQueryEvidenceScope::RuntimeSubscriptionBudget,
+        crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
     )
     .field_shape(
-        crate::evidence_identity::ForgeQueryEvidenceTag::new("policy_version"),
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
         "runtime_live_subscription_budget_policy_v1",
     )
     .field_evidence_identity(

@@ -173,7 +173,7 @@ fn crossed_authoritative_residue(state: &ForgeQueryRuntimeLiveSubscriptionState)
         .async_result_state
         .as_ref()
         .map(|async_state: &ForgeQueryRuntimeAsyncResultState| {
-            async_state.basis_digest() != state.installation.basis_binding_digest()
+            async_state.basis_digest() != state.installation.basis_binding_for_reporting()
                 || async_state.generation_digest()
                     != state.active_lane_handle.checkpoint_identity_digest()
         })

@@ -17,7 +17,7 @@ use crate::domain_capabilities::targets::{
 use crate::domain_capabilities::{
     ForgeQueryDomainCapabilityTransitionOutcome, ForgeQueryMaterializationReadyWorkflowContribution,
 };
-use crate::identity::{hash_parts, CanonicalQueryDigest, ValidatedQueryDigest};
+use crate::identity::{CanonicalQueryDigest, ValidatedQueryDigest};
 use crate::preview::{
     admit_contributed_preview_workflow_foundation,
     materialize_contributed_preview_workflow_foundation_artifact,
@@ -217,15 +217,13 @@ where
     let declaration_identity = BridgePreviewSessionDeclarationIdentity::from_bridge_evidence(
         &BridgeIdentityEvidence::from_external_authority(preview_declaration_evidence),
     );
-    let declaration_digest = hash_parts(&[
-        "forge_query_domain_preview_declaration_v1".to_string(),
-        format!(
-            "identity:{}",
-            declaration_identity.evidence_identity().as_str()
-        ),
-        format!("canonical:{}", canonical_query_digest.as_str()),
-        format!("validated:{}", validated_query_digest.as_str()),
-    ]);
+    let declaration_digest = preview_declaration_digest_identity(
+        &declaration_identity,
+        &canonical_query_digest,
+        &validated_query_digest,
+    )
+    .as_str()
+    .to_string();
     let artifact = materialize_contributed_preview_workflow_foundation_artifact(
         binding_digest,
         canonical_query_digest,
@@ -290,4 +288,29 @@ fn unsupported_preview_binding_denial(
             payload.posture().as_str()
         ),
     )
+}
+
+fn preview_declaration_digest_identity(
+    declaration_identity: &BridgePreviewSessionDeclarationIdentity,
+    canonical_query_digest: &CanonicalQueryDigest,
+    validated_query_digest: &ValidatedQueryDigest,
+) -> crate::ForgeQueryEvidenceIdentity {
+    crate::ForgeQueryEvidenceIdentity::compose(crate::ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            crate::ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_domain_preview_declaration_v1",
+        )
+        .field_identity(
+            crate::ForgeQueryEvidenceTag::new("identity"),
+            declaration_identity.evidence_identity().as_str(),
+        )
+        .field_identity(
+            crate::ForgeQueryEvidenceTag::new("canonical"),
+            canonical_query_digest.as_str(),
+        )
+        .field_identity(
+            crate::ForgeQueryEvidenceTag::new("validated"),
+            validated_query_digest.as_str(),
+        )
+        .seal()
 }

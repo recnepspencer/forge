@@ -33,12 +33,6 @@ macro_rules! causal_identity_type {
             }
         }
 
-        impl AsRef<str> for $name {
-            fn as_ref(&self) -> &str {
-                self.as_str()
-            }
-        }
-
         impl Ord for $name {
             fn cmp(&self, other: &Self) -> Ordering {
                 self.as_str().cmp(other.as_str())
@@ -74,7 +68,59 @@ causal_identity_type!(CausalEvidenceReferenceResolutionDenialIdentity);
 causal_identity_type!(CausalEvidenceReferenceIndexIdentity);
 causal_identity_type!(CausalEvidenceReferenceIndexRecordIdentity);
 causal_identity_type!(CausalEvidenceReferenceIndexErrorIdentity);
-causal_identity_type!(CausalEvidenceReferenceDigest);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CausalEvidenceReferenceDigest {
+    identity: ForgeQueryEvidenceIdentity,
+    bridge_authority: Option<BridgeIdentityEvidence>,
+}
+
+impl CausalEvidenceReferenceDigest {
+    pub(crate) fn from_identity(identity: ForgeQueryEvidenceIdentity) -> Self {
+        Self {
+            identity,
+            bridge_authority: None,
+        }
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.identity
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.identity.as_str()
+    }
+
+    pub(in crate::runtime) fn bridge_authority_evidence(&self) -> BridgeIdentityEvidence {
+        self.bridge_authority
+            .clone()
+            .unwrap_or_else(|| BridgeIdentityEvidence::from_external_authority(self.identity.as_str()))
+    }
+}
+
+impl From<ForgeQueryEvidenceIdentity> for CausalEvidenceReferenceDigest {
+    fn from(value: ForgeQueryEvidenceIdentity) -> Self {
+        Self::from_identity(value)
+    }
+}
+
+impl Ord for CausalEvidenceReferenceDigest {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_str().cmp(other.as_str())
+    }
+}
+
+impl PartialOrd for CausalEvidenceReferenceDigest {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Hash for CausalEvidenceReferenceDigest {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_str().hash(state);
+    }
+}
 
 pub(in crate::runtime) enum CausalEvidenceReferenceInput {
     Typed(CausalEvidenceReferenceDigest),
@@ -88,12 +134,14 @@ impl From<CausalEvidenceReferenceDigest> for CausalEvidenceReferenceInput {
 
 impl From<BridgeIdentityEvidence> for CausalEvidenceReferenceInput {
     fn from(value: BridgeIdentityEvidence) -> Self {
-        Self::Typed(
-            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
-                .field_bridge_identity(ForgeQueryEvidenceTag::new("bridge_evidence"), &value)
-                .seal()
-                .into(),
-        )
+        let bridge_authority = value.clone();
+        let identity = ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
+            .field_bridge_identity(ForgeQueryEvidenceTag::new("bridge_evidence"), &value)
+            .seal();
+        Self::Typed(CausalEvidenceReferenceDigest {
+            identity,
+            bridge_authority: Some(bridge_authority),
+        })
     }
 }
 

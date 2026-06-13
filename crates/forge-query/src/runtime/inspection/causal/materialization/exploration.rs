@@ -67,14 +67,14 @@ impl QueryCausalInspectionArtifact {
                 bridge_denial_digest: None,
             },
             Self::Advisory(artifact) => CausalInspectionArtifactDecisionTrace {
-                query_decision_digest: artifact.query_advisory_digest(),
+                query_decision_digest: artifact.query_advisory_for_reporting(),
                 bridge_envelope_digest: Some(artifact.bridge_envelope_digest()),
                 bridge_denial_digest: None,
             },
             Self::Denied(artifact) => CausalInspectionArtifactDecisionTrace {
-                query_decision_digest: artifact.query_denial_digest(),
+                query_decision_digest: artifact.query_denial_for_reporting(),
                 bridge_envelope_digest: None,
-                bridge_denial_digest: artifact.bridge_denial_digest(),
+                bridge_denial_digest: artifact.bridge_denial_for_reporting(),
             },
         }
     }

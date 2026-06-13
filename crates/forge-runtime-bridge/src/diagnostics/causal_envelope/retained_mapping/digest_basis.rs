@@ -8,7 +8,7 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
-use crate::identity::BridgeIdentityEvidence;
+use crate::identity::{BridgeIdentity, BridgeIdentityEvidence};
 use crate::routing::BridgeBulkPlanningFailure;
 
 const RETAINED_CAUSAL_MAPPING_IDENTITY_DOMAIN: &str =
@@ -140,7 +140,7 @@ impl RetainedCausalMappingDigestBasisEntry {
 
     fn from_borrowed_identity(value: &str) -> Self {
         Self {
-            part: retained_mapping_identity_digest_part(value),
+            part: retained_mapping_external_authority_part(value),
         }
     }
 
@@ -183,26 +183,18 @@ pub(crate) fn retained_mapping_evidence_part(
     RetainedCausalMappingIdentityPart::Evidence(identity)
 }
 
-pub(crate) fn retained_mapping_identity_digest_part(
-    identity_digest: impl AsRef<str>,
+pub(crate) fn retained_mapping_bridge_identity_part<T>(
+    identity: &BridgeIdentity<T>,
 ) -> RetainedCausalMappingIdentityPart {
-    let digest = derive_canonical_retained_mapping_identity(vec![
-        retained_mapping_entry(
-            "bridge.retained.scheme",
-            CanonicalBasisEntryKind::Header,
-            RETAINED_CAUSAL_MAPPING_IDENTITY_SCHEME,
-        ),
-        retained_mapping_entry(
-            "bridge.retained.identity_digest",
-            CanonicalBasisEntryKind::Identity,
-            identity_digest.as_ref(),
-        ),
-    ]);
-    let identity = BridgeIdentityEvidence::from_canonical_bridge_evidence(
-        canonical_retained_mapping_identity_token(&digest),
-        RETAINED_CAUSAL_MAPPING_IDENTITY_DOMAIN,
-    );
-    retained_mapping_evidence_part(identity)
+    retained_mapping_evidence_part(identity.evidence_identity())
+}
+
+pub(crate) fn retained_mapping_external_authority_part(
+    authority: impl AsRef<str>,
+) -> RetainedCausalMappingIdentityPart {
+    retained_mapping_evidence_part(BridgeIdentityEvidence::from_external_authority(
+        authority.as_ref(),
+    ))
 }
 
 pub(crate) fn retained_mapping_shape_part(

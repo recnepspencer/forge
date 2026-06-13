@@ -106,8 +106,8 @@ fn causal_inspection_admission_success_carries_reference_permissions_and_trace()
         .is_some());
     assert!(!admitted.admitted_inspection_digest().is_empty());
     assert_eq!(
-        admitted.receipt().decision_trace_index_digest(),
-        admitted.decision_trace().trace_digest()
+        admitted.receipt().decision_trace_index_for_reporting(),
+        admitted.decision_trace().trace_for_reporting()
     );
     assert_eq!(admitted.counters().causal_inspection_request_count(), 1);
     assert_eq!(admitted.counters().causal_inspection_admission_count(), 1);

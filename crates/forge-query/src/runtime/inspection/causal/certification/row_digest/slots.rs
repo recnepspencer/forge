@@ -178,7 +178,7 @@ fn digest_for_any_family(
     let reference_digests = references
         .iter()
         .filter(|reference| families.contains(&reference.family()))
-        .map(|reference| reference.reference_digest())
+        .map(|reference| reference.reference_for_reporting())
         .collect::<Vec<_>>();
     if reference_digests.is_empty() {
         return None;

@@ -41,7 +41,7 @@ fn runtime_family_certification_closes_with_admitted_and_hostile_family_coverage
     let diagnostic_bundle_digest = artifacts.admitted_bundle.bundle_digest().to_string();
     let lifecycle_certification_digest = artifacts
         .lifecycle_bundle
-        .certification_bundle_digest()
+        .certification_bundle_for_reporting()
         .to_string();
     let scope = build_query_subscription_runtime_certification_scope(
         artifacts.support_report,

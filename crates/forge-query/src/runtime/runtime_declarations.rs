@@ -66,7 +66,7 @@ impl ForgeQueryRuntime {
             self.project_async_result_state(
                 &name,
                 projection,
-                activation.installation.basis_binding_digest(),
+                activation.installation.basis_binding_for_reporting(),
                 &checkpoint_identity_digest,
             )?;
         }

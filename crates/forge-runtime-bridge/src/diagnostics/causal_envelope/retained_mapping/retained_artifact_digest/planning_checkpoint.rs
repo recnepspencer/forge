@@ -15,37 +15,37 @@ use crate::stream::{
 use super::super::digest_basis::{
     compose_retained_causal_mapping_evidence_identity,
     compose_retained_causal_mapping_evidence_identity_for_basis,
-    retained_mapping_identity_digest_part, retained_mapping_shape_part,
+    retained_mapping_bridge_identity_part, retained_mapping_external_authority_part, retained_mapping_evidence_part, retained_mapping_shape_part,
     retained_mapping_value_part, RetainedCausalMappingDigestArtifact,
     RetainedCausalMappingDigestBasis,
 };
 
 pub(crate) fn bulk_planning_record_digest(
     facade: &BridgeDiagnosticsFacade,
-    reference_identity: &str,
+    reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .bulk_record_for_workload_identity(&BridgeWorkloadIdentity::new(reference_identity))
+        .bulk_record_for_workload_identity(&BridgeWorkloadIdentity::new(reference_identity.as_str()))
         .map(|record| bulk_planning_digest(&record))
 }
 
 pub(crate) fn historical_evaluation_failure_record_digest(
     facade: &BridgeDiagnosticsFacade,
-    reference_identity: &str,
+    reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .historical_failure_for_identity(&BridgeHistoricalEvaluationFailureIdentity::new(
-            reference_identity,
+            reference_identity.as_str(),
         ))
         .map(|record| historical_evaluation_failure_digest(&record))
 }
 
 pub(crate) fn stream_checkpoint_record_digest(
     facade: &BridgeDiagnosticsFacade,
-    reference_identity: &str,
+    reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .stream_checkpoint_for_identity(reference_identity)
+        .stream_checkpoint_for_identity(reference_identity.as_str())
         .map(|record| stream_checkpoint_digest(&record))
 }
 
@@ -58,20 +58,20 @@ pub(crate) fn bulk_planning_digest(
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::BulkPlanningRecord,
         &[
-            retained_mapping_identity_digest_part(record.workload_identity().as_str()),
+            retained_mapping_bridge_identity_part(record.workload_identity()),
             retained_mapping_shape_part(record.schema_version()),
-            retained_mapping_identity_digest_part(record.canonical_request_digest()),
-            retained_mapping_identity_digest_part(record.normalized_summary_digest()),
-            retained_mapping_identity_digest_part(record.canonical_planning_identity().as_str()),
-            retained_mapping_identity_digest_part(record.admission_profile_identity().as_str()),
-            retained_mapping_identity_digest_part(record.packet_set_digest()),
-            retained_mapping_identity_digest_part(record.execution_plan_digest()),
-            retained_mapping_identity_digest_part(record.reduced_artifact_digest()),
+            retained_mapping_external_authority_part(record.canonical_request_digest()),
+            retained_mapping_external_authority_part(record.normalized_summary_digest()),
+            retained_mapping_bridge_identity_part(record.canonical_planning_identity()),
+            retained_mapping_bridge_identity_part(record.admission_profile_identity()),
+            retained_mapping_external_authority_part(record.packet_set_digest()),
+            retained_mapping_external_authority_part(record.execution_plan_digest()),
+            retained_mapping_external_authority_part(record.reduced_artifact_digest()),
             retained_mapping_shape_part(preparation_mode_label(record.selected_mode())),
-            retained_mapping_identity_digest_part(record.decision_log_digest()),
-            retained_mapping_identity_digest_part(counters_digest.as_str()),
+            retained_mapping_external_authority_part(record.decision_log_digest()),
+            retained_mapping_evidence_part(counters_digest),
             retained_mapping_value_part(planning_failure_count.as_str()),
-            retained_mapping_identity_digest_part(planning_failures_digest.as_str()),
+            retained_mapping_evidence_part(planning_failures_digest),
         ],
     )
 }
@@ -88,25 +88,25 @@ pub(crate) fn historical_evaluation_failure_digest(
 ) -> BridgeIdentityEvidence {
     let commit_identity = record
         .commit_identity()
-        .map(|identity| identity.as_str())
-        .unwrap_or("none");
+        .map(|identity| retained_mapping_bridge_identity_part(identity))
+        .unwrap_or_else(|| retained_mapping_external_authority_part("none"));
     let snapshot_identity = record
         .snapshot_identity()
-        .map(|identity| identity.as_str())
-        .unwrap_or("none");
+        .map(|identity| retained_mapping_bridge_identity_part(identity))
+        .unwrap_or_else(|| retained_mapping_external_authority_part("none"));
     let counters_digest = historical_evaluation_counters_digest(record.counters());
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::HistoricalEvaluationFailureRecord,
         &[
-            retained_mapping_identity_digest_part(record.failure_identity().as_str()),
-            retained_mapping_identity_digest_part(record.declaration_identity().as_str()),
-            retained_mapping_identity_digest_part(record.selector_identity().as_str()),
-            retained_mapping_identity_digest_part(record.branch_identity().as_str()),
-            retained_mapping_identity_digest_part(commit_identity),
-            retained_mapping_identity_digest_part(snapshot_identity),
+            retained_mapping_bridge_identity_part(record.failure_identity()),
+            retained_mapping_bridge_identity_part(record.declaration_identity()),
+            retained_mapping_bridge_identity_part(record.selector_identity()),
+            retained_mapping_bridge_identity_part(record.branch_identity()),
+            commit_identity,
+            snapshot_identity,
             retained_mapping_shape_part(historical_failure_class_label(record.failure_class())),
             retained_mapping_value_part(record.detail()),
-            retained_mapping_identity_digest_part(counters_digest.as_str()),
+            retained_mapping_evidence_part(counters_digest),
         ],
     )
 }
@@ -141,21 +141,21 @@ pub(crate) fn stream_checkpoint_digest(record: &ConsumerCheckpointToken) -> Brid
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::StreamCheckpointRecord,
         &[
-            retained_mapping_identity_digest_part(record.checkpoint_token_identity()),
-            retained_mapping_identity_digest_part(record.consumer_contract_identity().as_str()),
-            retained_mapping_identity_digest_part(record.stream_protocol_identity().as_str()),
+            retained_mapping_external_authority_part(record.checkpoint_token_identity()),
+            retained_mapping_bridge_identity_part(record.consumer_contract_identity()),
+            retained_mapping_bridge_identity_part(record.stream_protocol_identity()),
             retained_mapping_shape_part(checkpoint_frontier_kind_label(
                 record.checkpoint_frontier_kind(),
             )),
             retained_mapping_value_part(record.contiguous_acknowledged_through_position()),
-            retained_mapping_identity_digest_part(
+            retained_mapping_external_authority_part(
                 record.contiguous_acknowledged_through_member_identity(),
             ),
-            retained_mapping_identity_digest_part(record.acknowledged_member_set_digest()),
+            retained_mapping_external_authority_part(record.acknowledged_member_set_digest()),
             retained_mapping_value_part(checkpoint_member_count.as_str()),
-            retained_mapping_identity_digest_part(record.source_retention_anchor()),
+            retained_mapping_external_authority_part(record.source_retention_anchor()),
             retained_mapping_shape_part(record.protocol_semantics_version()),
-            retained_mapping_identity_digest_part(counters_digest.as_str()),
+            retained_mapping_evidence_part(counters_digest),
         ],
     )
 }

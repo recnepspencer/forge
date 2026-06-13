@@ -170,7 +170,7 @@ impl SubscriptionConsumerAttachment {
             )
             .field_identity(
                 ForgeQueryEvidenceTag::new("performance"),
-                performance_receipt.performance_receipt_digest(),
+                performance_receipt.performance_receipt_for_reporting(),
             )
             .seal(),
         );

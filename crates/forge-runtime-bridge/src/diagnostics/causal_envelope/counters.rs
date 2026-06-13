@@ -97,7 +97,7 @@ impl BridgeCausalEnvelopeCounters {
         self.bridge_record_unindexed_scan_count
     }
 
-    pub fn counter_digest(&self) -> &str {
+    pub fn counter_for_reporting(&self) -> &str {
         self.counter_identity.as_str()
     }
 

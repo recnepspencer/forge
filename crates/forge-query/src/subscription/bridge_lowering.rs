@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::basis_request::QuerySubscriptionBasisBindingRequest;
 use super::bridge_family::{
@@ -14,6 +14,9 @@ use super::bridge_slice::{BridgeSubscriptionSliceKind, QueryToBridgeSliceMap};
 use super::counters::QuerySubscriptionDeclarationCounters;
 use super::declaration::QuerySubscriptionDeclarationArtifact;
 use super::diagnostic::QuerySubscriptionDiagnosticStage;
+use super::evidence_identities::{
+    bridge_lowering_plan_identity, bridge_lowering_query_declaration_identity,
+};
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::posture::QuerySubscriptionBasisPosture;
 use super::posture::QuerySubscriptionBridgePosture;
@@ -21,8 +24,9 @@ use super::signal_strategy::QuerySubscriptionSignalStrategyRequest;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeSubscriptionLoweringPlan {
-    query_declaration_digest: String,
-    bridge_declaration_digest: String,
+    query_declaration_for_reporting: String,
+    query_declaration_identity: ForgeQueryEvidenceIdentity,
+    bridge_declaration_identity: ForgeQueryEvidenceIdentity,
     family_map: QueryToBridgeSubscriptionFamilyMap,
     slice_map: QueryToBridgeSliceMap,
     future_selection: QuerySubscriptionFutureSelection,
@@ -33,12 +37,20 @@ pub struct BridgeSubscriptionLoweringPlan {
 }
 
 impl BridgeSubscriptionLoweringPlan {
-    pub fn query_declaration_digest(&self) -> &str {
-        &self.query_declaration_digest
+    pub fn query_declaration_for_reporting(&self) -> &str {
+        &self.query_declaration_for_reporting
     }
 
-    pub fn bridge_declaration_digest(&self) -> &str {
-        &self.bridge_declaration_digest
+    pub fn query_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_declaration_identity
+    }
+
+    pub fn bridge_declaration_for_reporting(&self) -> &str {
+        self.bridge_declaration_identity.as_str()
+    }
+
+    pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_declaration_identity
     }
 
     pub fn bridge_family(&self) -> &BridgeSubscriptionDeclarationFamilyKind {
@@ -148,29 +160,21 @@ pub fn lower_query_subscription_to_bridge(
     counters.basis_binding_request_count = 1;
     counters.signal_strategy_request_count = 1;
 
-    let mut digest_parts = vec![
-        "query_subscription_bridge_lowering_v1".to_string(),
-        format!(
-            "query_declaration:{}",
-            declaration.declaration_digest().as_str()
-        ),
-        format!("bridge_family:{}", family_map.bridge_family().as_str()),
-        format!("basis:{}", basis_request.digest()),
-        format!("signal_strategy:{}", signal_strategy_request.digest()),
-    ];
-    digest_parts.extend(
-        slice_map
-            .bridge_slices()
-            .iter()
-            .enumerate()
-            .map(|(index, slice)| format!("bridge_slice:{index}:{}", slice.as_str())),
+    let query_declaration_for_reporting = declaration.declaration_digest().as_str().to_string();
+    let query_declaration_identity =
+        bridge_lowering_query_declaration_identity(&query_declaration_for_reporting);
+    let bridge_declaration_identity = bridge_lowering_plan_identity(
+        &query_declaration_identity,
+        family_map.bridge_family(),
+        basis_request.evidence_identity(),
+        signal_strategy_request.evidence_identity(),
+        slice_map.bridge_slices(),
     );
-    digest_parts.sort();
-    let bridge_declaration_digest = hash_parts(&digest_parts);
 
     Ok(BridgeSubscriptionLoweringPlan {
-        query_declaration_digest: declaration.declaration_digest().as_str().to_string(),
-        bridge_declaration_digest,
+        query_declaration_for_reporting,
+        query_declaration_identity,
+        bridge_declaration_identity,
         family_map,
         slice_map,
         future_selection: declaration.future_selection().clone(),

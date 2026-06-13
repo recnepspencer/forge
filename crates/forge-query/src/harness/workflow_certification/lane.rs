@@ -87,8 +87,8 @@ impl WorkflowCertificationLane {
     pub(crate) fn from_declaration(declaration: &QueryWorkflowDeclaration) -> Self {
         let counters = declaration.report().counters().clone();
         Self {
-            query_digest: declaration.binding().query_identity_digest().to_string(),
-            plan_digest: declaration.binding().source_digest().to_string(),
+            query_digest: declaration.binding().query_for_reporting().to_string(),
+            plan_digest: declaration.binding().source_for_reporting().to_string(),
             result_digest: declaration.report().declaration_digest().to_string(),
             delivery_digest: declaration.report().binding_digest().to_string(),
             failure_digest: "none".to_string(),
@@ -110,7 +110,7 @@ impl WorkflowCertificationLane {
                     counters.workflow_executor_rediscovery_count()
                 ),
             ]),
-            binding_digest: declaration.binding().digest().to_string(),
+            binding_digest: declaration.binding().binding_digest().to_string(),
             declaration_digest: declaration.report().declaration_digest().to_string(),
             basis_family: declaration.report().basis_family().as_str().to_string(),
             declaration_family: declaration

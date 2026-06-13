@@ -125,7 +125,7 @@ pub fn lower_query_writeback_declaration(
         declaration.binding(),
         declaration.request().freshness_policy(),
     )?;
-    let binding_identity = writeback_source_identity("binding", declaration.binding().digest());
+    let binding_identity = declaration.binding().binding_identity().clone();
     let causality_identity = writeback_causality_identity(declaration, request_kind);
     let basis_identity = writeback_basis_identity(declaration);
     let bridge_declaration =
@@ -260,16 +260,20 @@ fn writeback_causality_identity(
     declaration: &QueryWorkflowDeclaration,
     request_kind: BridgeRequestKind,
 ) -> ForgeQueryEvidenceIdentity {
-    let binding_identity = writeback_source_identity("binding", declaration.binding().digest());
-    let basis_identity = writeback_source_identity("basis", declaration.binding().basis_digest());
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
         .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_causality")
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("binding"),
+            declaration.binding().binding_identity(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("basis_family"),
             declaration.binding().basis_family().as_str(),
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), &basis_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("basis"),
+            declaration.binding().basis_identity(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("request_kind"),
             format!("{request_kind:?}"),
@@ -278,14 +282,16 @@ fn writeback_causality_identity(
 }
 
 fn writeback_basis_identity(declaration: &QueryWorkflowDeclaration) -> ForgeQueryEvidenceIdentity {
-    let basis_identity = writeback_source_identity("basis", declaration.binding().basis_digest());
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
         .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_basis")
         .field_shape(
             ForgeQueryEvidenceTag::new("basis_family"),
             declaration.binding().basis_family().as_str(),
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), &basis_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("basis"),
+            declaration.binding().basis_identity(),
+        )
         .seal()
 }
 

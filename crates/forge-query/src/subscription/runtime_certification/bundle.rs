@@ -282,7 +282,7 @@ pub fn certify_query_subscription_runtime_family(
             .to_string(),
         scope
             .lifecycle_certification()
-            .certification_bundle_digest()
+            .certification_bundle_for_reporting()
             .to_string(),
         coverage_handle.family_coverage_digest().to_string(),
         hostile_coverage_digest.clone(),
@@ -299,15 +299,15 @@ pub fn certify_query_subscription_runtime_family(
                 .to_string(),
             subscription_declaration_digest: scope
                 .lifecycle_certification()
-                .subscription_declaration_digest()
+                .query_declaration_for_reporting()
                 .to_string(),
             bridge_declaration_digest: scope
                 .lifecycle_certification()
-                .bridge_declaration_digest()
+                .bridge_declaration_for_reporting()
                 .to_string(),
             signal_strategy_digest: scope
                 .lifecycle_certification()
-                .signal_strategy_digest()
+                .signal_strategy_for_reporting()
                 .to_string(),
             support_report_digest: scope.support_report().report_digest().to_string(),
             bridge_parity_digest: scope.bridge_parity().explanation_digest().to_string(),
@@ -317,7 +317,7 @@ pub fn certify_query_subscription_runtime_family(
                 .to_string(),
             lifecycle_certification_digest: scope
                 .lifecycle_certification()
-                .certification_bundle_digest()
+                .certification_bundle_for_reporting()
                 .to_string(),
             hostile_coverage_digest,
             family_coverage_digest: coverage_handle.family_coverage_digest().to_string(),

@@ -85,7 +85,7 @@ impl BridgeCausalExplanationEnvelope {
         self.admission_summary_kind
     }
 
-    pub fn admission_summary_digest(&self) -> &str {
+    pub fn admission_summary_for_reporting(&self) -> &str {
         self.admission_summary_identity.as_str()
     }
 
@@ -93,7 +93,7 @@ impl BridgeCausalExplanationEnvelope {
         &self.admission_summary_identity
     }
 
-    pub fn request_digest(&self) -> &str {
+    pub fn request_for_reporting(&self) -> &str {
         self.request_identity.as_str()
     }
 
@@ -101,7 +101,7 @@ impl BridgeCausalExplanationEnvelope {
         &self.request_identity
     }
 
-    pub fn causal_observation_anchor_digest(&self) -> &str {
+    pub fn causal_observation_anchor_for_reporting(&self) -> &str {
         self.causal_observation_anchor_identity.as_str()
     }
 
@@ -121,7 +121,7 @@ impl BridgeCausalExplanationEnvelope {
         &self.receipt
     }
 
-    pub fn envelope_digest(&self) -> &str {
+    pub fn envelope_for_reporting(&self) -> &str {
         self.envelope_identity.as_str()
     }
 

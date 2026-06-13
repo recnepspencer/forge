@@ -337,7 +337,7 @@ impl CausalInspectionPlan {
         }
     }
 
-    pub fn anchor_digest(&self) -> &str {
+    pub fn anchor_for_reporting(&self) -> &str {
         self.reference_set.anchor().anchor_digest().as_str()
     }
 
@@ -352,12 +352,14 @@ impl CausalInspectionPlan {
     pub fn admission_digest(&self) -> &str {
         match &self.admission {
             CausalInspectionProofFlow::Admitted(inspection) => {
-                inspection.admitted_inspection_digest()
+                inspection.admitted_inspection_for_reporting()
             }
             CausalInspectionProofFlow::Advisory(inspection) => {
-                inspection.advisory_inspection_digest()
+                inspection.advisory_inspection_for_reporting()
             }
-            CausalInspectionProofFlow::Denied(inspection) => inspection.denied_inspection_digest(),
+            CausalInspectionProofFlow::Denied(inspection) => {
+                inspection.denied_inspection_for_reporting()
+            }
         }
     }
 

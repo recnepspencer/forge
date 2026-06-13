@@ -179,7 +179,7 @@ fn materialized_fact_posture_for_read_graph(
         let mut canonical_matches = runtime
             .live_subscriptions
             .values()
-            .filter(|state| state.installation.query_digest() == lower_declaration_digest);
+            .filter(|state| state.installation.query_for_reporting() == lower_declaration_digest);
         let state = canonical_matches.next()?;
         if canonical_matches.next().is_some() {
             return None;

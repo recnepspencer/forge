@@ -183,17 +183,17 @@ fn bridge_reference_identity(
         BridgeCausalEvidenceOwner::RuntimeBridge => {
             BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                 family,
-                bridge_external_evidence(reference_digest.evidence_identity()),
+                reference_digest.bridge_authority_evidence(),
             )
         }
         BridgeCausalEvidenceOwner::Relational => {
-            BridgeCausalEvidenceReferenceIdentity::relational_authority(bridge_external_evidence(
-                reference_digest.evidence_identity(),
-            ))
+            BridgeCausalEvidenceReferenceIdentity::relational_authority(
+                reference_digest.bridge_authority_evidence(),
+            )
         }
         BridgeCausalEvidenceOwner::Signal => BridgeCausalEvidenceReferenceIdentity::signal(
             family,
-            bridge_external_evidence(reference_digest.evidence_identity()),
+            reference_digest.bridge_authority_evidence(),
         ),
     };
     identity.map_err(materialization_error_from_bridge_denial)

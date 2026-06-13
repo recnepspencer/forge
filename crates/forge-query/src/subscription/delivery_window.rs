@@ -208,7 +208,7 @@ impl QueryDeliveryBatch {
                 "performance:{}",
                 work_packet
                     .performance_receipt()
-                    .performance_receipt_digest()
+                    .performance_receipt_for_reporting()
             ),
             format!(
                 "posture:{}",

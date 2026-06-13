@@ -303,7 +303,7 @@ pub(crate) fn project_downstream_delivery(
         .as_ref()
         .map(ForgeQueryRuntimeRemaskPosture::remask_digest)
         .map(str::to_string);
-    let basis_digest = state.installation.basis_binding_digest().to_string();
+    let basis_digest = state.installation.basis_binding_for_reporting().to_string();
     let support_evidence_digest = state.installation.support_evidence().to_string();
     let delivery_batch_digest = delivery.delivery_batch_digest().to_string();
     let delivery_digest = hash_parts(&[

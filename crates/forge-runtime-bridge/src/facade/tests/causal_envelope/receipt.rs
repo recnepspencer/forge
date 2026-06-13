@@ -60,34 +60,34 @@ fn causal_envelope_identity_and_receipt_bind_the_sealed_bridge_result() {
         .expect("envelope should assemble");
 
     assert_eq!(
-        envelope.identity().request_digest(),
-        envelope.request_digest()
+        envelope.identity().request_for_reporting(),
+        envelope.request_for_reporting()
     );
     assert_eq!(
-        envelope.identity().causal_observation_anchor_digest(),
-        envelope.causal_observation_anchor_digest()
+        envelope.identity().causal_observation_anchor_for_reporting(),
+        envelope.causal_observation_anchor_for_reporting()
     );
     assert_eq!(
-        envelope.identity().counter_digest(),
-        envelope.counters().counter_digest()
+        envelope.identity().counter_for_reporting(),
+        envelope.counters().counter_for_reporting()
     );
     assert_eq!(
-        envelope.receipt().envelope_identity_digest(),
-        envelope.identity().identity_digest()
+        envelope.receipt().envelope_identity_for_reporting(),
+        envelope.identity().envelope_identity_for_reporting()
     );
     assert_eq!(
-        envelope.receipt().envelope_digest(),
-        envelope.envelope_digest()
+        envelope.receipt().envelope_for_reporting(),
+        envelope.envelope_for_reporting()
     );
     assert_eq!(
-        envelope.receipt().counter_digest(),
-        envelope.counters().counter_digest()
+        envelope.receipt().counter_for_reporting(),
+        envelope.counters().counter_for_reporting()
     );
     assert!(!envelope
         .identity()
         .evidence_binding_digest_for_reporting()
         .is_empty());
-    assert!(!envelope.receipt().receipt_digest().is_empty());
+    assert!(!envelope.receipt().receipt_for_reporting().is_empty());
     assert_eq!(envelope.bindings().len(), 4);
     assert_eq!(envelope.counters().lower_runtime_family_count(), 3);
     assert_eq!(envelope.counters().materialized_detail_count(), 4);
@@ -146,8 +146,8 @@ fn causal_envelope_identity_is_stable_across_unrelated_retained_routes() {
         assert_eq!(envelope.counters().bridge_retained_lookup_count(), 1);
         assert_eq!(envelope.counters().lower_runtime_family_count(), 1);
         assert_eq!(envelope.counters().materialized_detail_count(), 2);
-        identities.push(envelope.identity().identity_digest().to_string());
-        receipts.push(envelope.receipt().receipt_digest().to_string());
+        identities.push(envelope.identity().envelope_identity_for_reporting().to_string());
+        receipts.push(envelope.receipt().receipt_for_reporting().to_string());
     }
 
     assert_eq!(identities[0], identities[1]);

@@ -206,22 +206,26 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
             .activation_input_count(),
         1
     );
-    assert!(view.subscription_installation().support_evidence() == "test-subscription-activation");
+    assert!(
+        view.subscription_installation()
+            .support_evidence()
+            .starts_with("forge.query.evidence-identity.v1:")
+    );
     assert!(!view
         .subscription_installation()
-        .active_lane_digest()
+        .active_lane_for_reporting()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .consumer_attachment_digest()
+        .consumer_attachment_for_reporting()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .consumer_digest()
+        .consumer_for_reporting()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .delivery_cursor_digest()
+        .delivery_cursor_for_reporting()
         .is_empty());
     assert_eq!(
         view.subscription_installation()
@@ -251,15 +255,15 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY
     );
     assert_eq!(
-        view.subscription_installation().runtime_budget_digest(),
+        view.subscription_installation().runtime_budget_for_reporting(),
         runtime_subscription_budget_digest()
     );
     let live_inspection = runtime
         .inspect_live_view(&view)
         .expect("inspector should retain live subscription installation");
     assert_eq!(
-        live_inspection.installation_digest(),
-        view.subscription_installation().installation_digest()
+        live_inspection.installation_for_reporting(),
+        view.subscription_installation().installation_for_reporting()
     );
     assert_eq!(
         receipt

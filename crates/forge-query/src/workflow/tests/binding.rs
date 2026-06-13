@@ -7,12 +7,15 @@ use crate::preview::{
     PreviewWorkflowFoundationFailureClass, PreviewWorkflowFoundationRequest,
 };
 use crate::workflow::{
+    foundation::{
+        workflow_context_basis_identity, workflow_context_basis_token_identity,
+        workflow_context_query_identity, workflow_context_query_token_identity,
+    },
     admit_query_workflow_declaration, bind_workflow_context, WorkflowAdmissionFailureClass,
     WorkflowAuthorityTargetFamily, WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass,
     WorkflowDeclarationFamily, WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
-    WorkflowPredictionDriftOutcome, WorkflowPreviewEvaluationClass,
+    WorkflowPredictionDriftOutcome, WorkflowPreviewEvaluationClass, WorkflowBasisFamily,
 };
-
 #[test]
 fn runtime_preflight_binding_preserves_query_and_basis_digests() {
     let preflight = execution_preflights::direct_runtime_preflight();
@@ -20,14 +23,25 @@ fn runtime_preflight_binding_preserves_query_and_basis_digests() {
         .expect("runtime preflight should bind");
 
     assert_eq!(
-        binding.query_identity_digest(),
-        preflight.plan().query().canonical_query_digest().as_str()
+        binding.query_for_reporting(),
+        workflow_context_query_identity(
+            &workflow_context_query_token_identity(
+                preflight.plan().query().canonical_query_digest().as_str(),
+            ),
+        )
+        .as_str()
     );
     assert_eq!(
-        binding.basis_digest(),
-        preflight.basis().proof().digest().as_str()
-    );
-    assert_eq!(binding.counters().workflow_basis_binding_count(), 1);
+        binding.basis_for_reporting(),
+        workflow_context_basis_identity(
+            &WorkflowBasisFamily::RuntimePreflight,
+            &workflow_context_basis_token_identity(
+                &WorkflowBasisFamily::RuntimePreflight,
+                preflight.basis().proof().digest().as_str(),
+            ),
+        )
+        .as_str()
+    );    assert_eq!(binding.counters().workflow_basis_binding_count(), 1);
     assert_eq!(binding.counters().workflow_executor_rediscovery_count(), 0);
 }
 
@@ -56,10 +70,12 @@ fn preview_workflow_foundation_binding_preserves_preview_identity() {
         Some(foundation.preview_session_identity())
     );
     assert_eq!(
-        workflow_binding.query_identity_digest(),
-        foundation.validated_query_digest().as_str()
-    );
-    assert_eq!(
+        workflow_binding.query_for_reporting(),
+        workflow_context_query_identity(&workflow_context_query_token_identity(
+            foundation.validated_query_digest().as_str(),
+        ))
+        .as_str()
+    );    assert_eq!(
         workflow_binding.preview_evaluation_class(),
         Some(&WorkflowPreviewEvaluationClass::PromotionEligible)
     );
@@ -103,10 +119,12 @@ fn preview_promotion_comparison_basis_can_author_inspection_and_merge_when_permi
     .expect("promotion comparison should bind");
 
     assert_eq!(
-        workflow_binding.query_identity_digest(),
-        comparison.validated_query_digest().as_str()
+        workflow_binding.query_for_reporting(),
+        workflow_context_query_identity(&workflow_context_query_token_identity(
+            comparison.validated_query_digest().as_str(),
+        ))
+        .as_str()
     );
-
     let inspection = admit_query_workflow_declaration(
         &workflow_binding,
         WorkflowDeclarationRequest::new(

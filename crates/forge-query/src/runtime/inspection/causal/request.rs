@@ -44,8 +44,12 @@ impl CausalInspectionTarget {
         })
     }
 
-    pub fn observation_target_digest(&self) -> &str {
+    pub fn observation_target_for_reporting(&self) -> &str {
         self.observation_target.identity().as_str()
+    }
+
+    pub fn observation_target_digest(&self) -> &str {
+        self.observation_target_for_reporting()
     }
 
     pub(in crate::runtime) fn observation_target_identity(
@@ -54,8 +58,12 @@ impl CausalInspectionTarget {
         self.observation_target.identity()
     }
 
-    pub fn result_shape_context_digest(&self) -> &str {
+    pub fn result_shape_context_for_reporting(&self) -> &str {
         self.result_shape_context.identity().as_str()
+    }
+
+    pub fn result_shape_context_digest(&self) -> &str {
+        self.result_shape_context_for_reporting()
     }
 
     pub(in crate::runtime) fn result_shape_context_identity(
@@ -64,8 +72,12 @@ impl CausalInspectionTarget {
         self.result_shape_context.identity()
     }
 
-    pub fn target_digest(&self) -> &str {
+    pub fn target_for_reporting(&self) -> &str {
         self.target_identity.as_str()
+    }
+
+    pub fn target_digest(&self) -> &str {
+        self.target_for_reporting()
     }
 
     pub fn observation_target(&self) -> &CausalObservationTargetHandle {

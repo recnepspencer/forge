@@ -689,11 +689,11 @@ pub fn bundle_admitted_query_subscription_diagnostics(
         format!("support:{}", support.report_digest()),
         format!(
             "lifecycle_certification:{}",
-            lifecycle.certification_bundle_digest()
+            lifecycle.certification_bundle_for_reporting()
         ),
         format!("receipt:{}", receipt.digest()),
         format!("counters:{counter_snapshot}"),
-        format!("admission:{}", admission.admission_digest()),
+        format!("admission:{}", admission.admission_for_reporting()),
         format!(
             "continuation:{}",
             continuation
@@ -719,7 +719,7 @@ pub fn bundle_admitted_query_subscription_diagnostics(
             trace,
             semantic_labels,
             support_report_digest: support.report_digest().to_string(),
-            lifecycle_certification_digest: lifecycle.certification_bundle_digest().to_string(),
+            lifecycle_certification_digest: lifecycle.certification_bundle_for_reporting().to_string(),
             continuation_digest: continuation.map(|value| value.report_digest().to_string()),
             preview_isolation_digest: preview.map(|value| value.isolation_digest().to_string()),
             lifecycle_closeout_digest: lifecycle_closeout
@@ -847,13 +847,13 @@ fn validate_declaration_and_lowering(
     declaration: &QuerySubscriptionDeclarationArtifact,
     lowering: &BridgeSubscriptionLoweringPlan,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
-    if lowering.query_declaration_digest() != declaration.declaration_digest().as_str() {
+    if lowering.query_declaration_for_reporting() != declaration.declaration_digest().as_str() {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
             "diagnostic bundle assembly requires bridge lowering to bind the same declaration artifact",
             &[
                 format!("declaration:{}", declaration.declaration_digest().as_str()),
-                format!("lowering:{}", lowering.query_declaration_digest()),
+                format!("lowering:{}", lowering.query_declaration_for_reporting()),
             ],
         ));
     }
@@ -864,13 +864,13 @@ fn validate_declaration_and_admission(
     declaration: &QuerySubscriptionDeclarationArtifact,
     admission: &QuerySubscriptionAdmissionArtifact,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
-    if admission.query_declaration_digest() != declaration.declaration_digest().as_str() {
+    if admission.query_declaration_for_reporting() != declaration.declaration_digest().as_str() {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
             "diagnostic bundle assembly requires admission and declaration to preserve the same canonical declaration digest",
             &[
                 format!("declaration:{}", declaration.declaration_digest().as_str()),
-                format!("admission:{}", admission.query_declaration_digest()),
+                format!("admission:{}", admission.query_declaration_for_reporting()),
             ],
         ));
     }
@@ -902,8 +902,8 @@ fn validate_admitted_sources(
     lowering: &BridgeSubscriptionLoweringPlan,
     lifecycle: &SubscriptionLifecycleCertificationBundle,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
-    if lifecycle.subscription_declaration_digest() != declaration.declaration_digest().as_str()
-        || lifecycle.bridge_declaration_digest() != lowering.bridge_declaration_digest()
+    if lifecycle.query_declaration_for_reporting() != declaration.declaration_digest().as_str()
+        || lifecycle.bridge_declaration_for_reporting() != lowering.bridge_declaration_for_reporting()
     {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::LifecycleSourceMismatch,
@@ -912,10 +912,10 @@ fn validate_admitted_sources(
                 format!("declaration:{}", declaration.declaration_digest().as_str()),
                 format!(
                     "lifecycle_declaration:{}",
-                    lifecycle.subscription_declaration_digest()
+                    lifecycle.query_declaration_for_reporting()
                 ),
-                format!("bridge:{}", lowering.bridge_declaration_digest()),
-                format!("lifecycle_bridge:{}", lifecycle.bridge_declaration_digest()),
+                format!("bridge:{}", lowering.bridge_declaration_for_reporting()),
+                format!("lifecycle_bridge:{}", lifecycle.bridge_declaration_for_reporting()),
             ],
         ));
     }
@@ -992,14 +992,14 @@ fn validate_admitted_trace_sources(
     validate_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::BridgeFamilyLowering,
-        lowering.bridge_declaration_digest(),
+        lowering.bridge_declaration_for_reporting(),
         "admitted diagnostic bundle assembly requires bridge-lowering trace evidence for the supplied bridge declaration artifact",
         QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
     )?;
     validate_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::RuntimeBackedAdmission,
-        admission.admission_digest(),
+        admission.admission_for_reporting(),
         "admitted diagnostic bundle assembly requires runtime-admission trace evidence for the supplied admission artifact",
         QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
     )?;
@@ -1013,7 +1013,7 @@ fn validate_admitted_trace_sources(
     validate_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::Certification,
-        lifecycle.certification_bundle_digest(),
+        lifecycle.certification_bundle_for_reporting(),
         "admitted diagnostic bundle assembly requires lifecycle-certification trace evidence for the supplied certification bundle",
         QuerySubscriptionDiagnosticBundleErrorKind::LifecycleSourceMismatch,
     )?;
@@ -1112,7 +1112,7 @@ fn validate_denied_trace_sources(
             ) {
                 failure.source_digest()
             } else {
-                lowering.bridge_declaration_digest()
+                lowering.bridge_declaration_for_reporting()
             },
             "denied diagnostic bundle assembly requires bridge-lowering trace evidence aligned with the supplied lowering artifact or bridge-stage failure",
             QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
@@ -1150,7 +1150,7 @@ fn validate_denied_trace_sources(
             ) {
                 failure.source_digest()
             } else {
-                admission.admission_digest()
+                admission.admission_for_reporting()
             },
             "denied diagnostic bundle assembly requires runtime-admission trace evidence aligned with the supplied admission artifact or admission-stage failure",
             QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,

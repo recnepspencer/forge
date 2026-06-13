@@ -108,7 +108,7 @@ impl BridgeCausalEnvelopeDenial {
         &self.counters
     }
 
-    pub fn failure_digest(&self) -> &str {
+    pub fn failure_for_reporting(&self) -> &str {
         self.failure_digest.as_str()
     }
 

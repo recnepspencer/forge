@@ -1,6 +1,9 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::declaration::QuerySubscriptionDeclarationArtifact;
+use super::evidence_identities::{
+    basis_binding_request_identity, bridge_lowering_query_declaration_identity,
+};
 use super::posture::QuerySubscriptionBasisPosture;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -27,8 +30,9 @@ impl QuerySubscriptionBasisBindingRequestKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionBasisBindingRequest {
     request_kind: QuerySubscriptionBasisBindingRequestKind,
-    source_declaration_digest: String,
-    digest: String,
+    source_declaration_for_reporting: String,
+    source_declaration_identity: ForgeQueryEvidenceIdentity,
+    evidence_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionBasisBindingRequest {
@@ -50,17 +54,19 @@ impl QuerySubscriptionBasisBindingRequest {
                 QuerySubscriptionBasisBindingRequestKind::DeniedUnsupportedBasis
             }
         };
-        let source_declaration_digest = declaration.declaration_digest().as_str().to_string();
-        let digest = hash_parts(&[
-            "query_subscription_basis_binding_request_v1".to_string(),
-            request_kind.as_str().to_string(),
-            format!("source_declaration:{source_declaration_digest}"),
-            format!("source_equivalence:{}", declaration.equivalence_digest()),
-        ]);
+        let source_declaration_for_reporting = declaration.declaration_digest().as_str().to_string();
+        let source_declaration_identity =
+            bridge_lowering_query_declaration_identity(&source_declaration_for_reporting);
+        let evidence_identity = basis_binding_request_identity(
+            &request_kind,
+            &source_declaration_identity,
+            declaration.equivalence_digest(),
+        );
         Self {
             request_kind,
-            source_declaration_digest,
-            digest,
+            source_declaration_for_reporting,
+            source_declaration_identity,
+            evidence_identity,
         }
     }
 
@@ -68,11 +74,19 @@ impl QuerySubscriptionBasisBindingRequest {
         &self.request_kind
     }
 
+    pub fn source_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_declaration_identity
+    }
+
     pub fn source_declaration_digest(&self) -> &str {
-        &self.source_declaration_digest
+        &self.source_declaration_for_reporting
     }
 
     pub fn digest(&self) -> &str {
-        &self.digest
+        self.evidence_identity.as_str()
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.evidence_identity
     }
 }

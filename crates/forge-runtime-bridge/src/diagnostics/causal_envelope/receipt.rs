@@ -36,7 +36,7 @@ impl BridgeCausalEnvelopeReceipt {
         }
     }
 
-    pub fn envelope_identity_digest(&self) -> &str {
+    pub fn envelope_identity_for_reporting(&self) -> &str {
         self.envelope_identity.as_str()
     }
 
@@ -44,7 +44,7 @@ impl BridgeCausalEnvelopeReceipt {
         &self.envelope_identity
     }
 
-    pub fn envelope_digest(&self) -> &str {
+    pub fn envelope_for_reporting(&self) -> &str {
         self.envelope_digest_identity.as_str()
     }
 
@@ -52,7 +52,7 @@ impl BridgeCausalEnvelopeReceipt {
         &self.envelope_digest_identity
     }
 
-    pub fn counter_digest(&self) -> &str {
+    pub fn counter_for_reporting(&self) -> &str {
         self.counter_identity.as_str()
     }
 
@@ -60,7 +60,7 @@ impl BridgeCausalEnvelopeReceipt {
         &self.counter_identity
     }
 
-    pub fn receipt_digest(&self) -> &str {
+    pub fn receipt_for_reporting(&self) -> &str {
         self.receipt_identity.as_str()
     }
 

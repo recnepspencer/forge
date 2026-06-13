@@ -127,8 +127,8 @@ fn equivalent_declarations_lower_to_identical_bridge_digest() {
     .unwrap();
 
     assert_eq!(
-        direct.bridge_declaration_digest(),
-        saved.bridge_declaration_digest()
+        direct.bridge_declaration_for_reporting(),
+        saved.bridge_declaration_for_reporting()
     );
 }
 
@@ -214,7 +214,7 @@ fn basis_request_digest_changes_by_basis_posture() {
     );
     assert_eq!(
         current.basis_request().source_declaration_digest(),
-        current.query_declaration_digest()
+        current.query_declaration_for_reporting()
     );
     assert_eq!(
         snapshot.basis_request().request_kind(),
@@ -271,12 +271,12 @@ fn basis_request_tracks_declaration_owned_future_identity_without_local_reclassi
     .unwrap();
 
     assert_ne!(
-        ordinary.query_declaration_digest(),
-        async_edge_42.query_declaration_digest()
+        ordinary.query_declaration_for_reporting(),
+        async_edge_42.query_declaration_for_reporting()
     );
     assert_ne!(
-        async_edge_42.query_declaration_digest(),
-        async_edge_77.query_declaration_digest()
+        async_edge_42.query_declaration_for_reporting(),
+        async_edge_77.query_declaration_for_reporting()
     );
     assert_ne!(
         ordinary.basis_request().digest(),

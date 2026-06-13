@@ -10,17 +10,18 @@ use crate::writeback::{
 };
 
 use super::super::digest_basis::{
-    compose_retained_causal_mapping_evidence_identity, retained_mapping_identity_digest_part,
-    retained_mapping_shape_part, retained_mapping_value_part, RetainedCausalMappingDigestArtifact,
+    compose_retained_causal_mapping_evidence_identity, retained_mapping_bridge_identity_part,
+    retained_mapping_external_authority_part, retained_mapping_shape_part,
+    retained_mapping_value_part, RetainedCausalMappingDigestArtifact,
 };
 
 pub(crate) fn writeback_admission_record_digest(
     facade: &BridgeDiagnosticsFacade,
-    reference_identity: &str,
+    reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .writeback_admission_record_for_identity(
-            &BridgeWritebackFamilyAdmissionRecordIdentity::new(reference_identity),
+            &BridgeWritebackFamilyAdmissionRecordIdentity::new(reference_identity.as_str()),
         )
         .map(|record| writeback_admission_digest(&record))
 }
@@ -32,30 +33,30 @@ pub(crate) fn writeback_admission_digest(
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::WritebackAdmissionRecord,
         &[
-            retained_mapping_identity_digest_part(record.record_identity().as_str()),
-            retained_mapping_identity_digest_part(record.declaration_identity()),
-            retained_mapping_identity_digest_part(record.contract_digest()),
+            retained_mapping_bridge_identity_part(record.record_identity()),
+            retained_mapping_external_authority_part(record.declaration_identity()),
+            retained_mapping_external_authority_part(record.contract_digest()),
             retained_mapping_shape_part(writeback_family_kind_label(record.family_kind())),
             retained_mapping_shape_part(writeback_effect_class_label(record.effect_class())),
             retained_mapping_shape_part(writeback_strategy_class_label(record.strategy_class())),
-            retained_mapping_identity_digest_part(record.strategy_descriptor_digest()),
-            retained_mapping_identity_digest_part(record.family_basis_digest()),
-            retained_mapping_identity_digest_part(record.strategy_basis_digest()),
-            retained_mapping_identity_digest_part(record.lowered_policy_digest()),
+            retained_mapping_external_authority_part(record.strategy_descriptor_digest()),
+            retained_mapping_external_authority_part(record.family_basis_digest()),
+            retained_mapping_external_authority_part(record.strategy_basis_digest()),
+            retained_mapping_external_authority_part(record.lowered_policy_digest()),
             retained_mapping_shape_part(diagnostics_tier_label(record.diagnostics_tier())),
             retained_mapping_value_part(replay_permitted.as_str()),
-            retained_mapping_identity_digest_part(record.digest()),
+            retained_mapping_external_authority_part(record.digest()),
         ],
     )
 }
 
 pub(crate) fn writeback_mapper_envelope_digest(
     facade: &BridgeDiagnosticsFacade,
-    reference_identity: &str,
+    reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .writeback_mapper_envelope_for_identity(&BridgeWritebackMapperEnvelopeIdentity::new(
-            reference_identity,
+            reference_identity.as_str(),
         ))
         .map(|envelope| writeback_mapper_envelope_artifact_digest(&envelope))
 }
@@ -66,26 +67,26 @@ pub(crate) fn writeback_mapper_envelope_artifact_digest(
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::WritebackMapperEnvelope,
         &[
-            retained_mapping_identity_digest_part(envelope.envelope_identity().as_str()),
-            retained_mapping_identity_digest_part(envelope.contract_digest()),
+            retained_mapping_bridge_identity_part(envelope.envelope_identity()),
+            retained_mapping_external_authority_part(envelope.contract_digest()),
             retained_mapping_shape_part(writeback_family_kind_label(envelope.family_kind())),
             retained_mapping_shape_part(writeback_effect_class_label(envelope.effect_class())),
             retained_mapping_shape_part(writeback_strategy_class_label(envelope.strategy_class())),
-            retained_mapping_identity_digest_part(envelope.strategy_descriptor_digest()),
-            retained_mapping_identity_digest_part(envelope.causality_digest()),
-            retained_mapping_identity_digest_part(envelope.effect_intent_digest()),
-            retained_mapping_identity_digest_part(envelope.digest()),
+            retained_mapping_external_authority_part(envelope.strategy_descriptor_digest()),
+            retained_mapping_external_authority_part(envelope.causality_digest()),
+            retained_mapping_external_authority_part(envelope.effect_intent_digest()),
+            retained_mapping_external_authority_part(envelope.digest()),
         ],
     )
 }
 
 pub(crate) fn writeback_mapped_family_input_digest(
     facade: &BridgeDiagnosticsFacade,
-    reference_identity: &str,
+    reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .writeback_mapped_family_input_for_identity(&BridgeMappedWritebackFamilyInputIdentity::new(
-            reference_identity,
+            reference_identity.as_str(),
         ))
         .map(|mapped_input| writeback_mapped_family_input_artifact_digest(&mapped_input))
 }
@@ -96,29 +97,29 @@ pub(crate) fn writeback_mapped_family_input_artifact_digest(
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::WritebackMappedFamilyInput,
         &[
-            retained_mapping_identity_digest_part(mapped_input.mapped_input_identity().as_str()),
-            retained_mapping_identity_digest_part(mapped_input.mapper_envelope_digest()),
-            retained_mapping_identity_digest_part(mapped_input.contract_digest()),
+            retained_mapping_bridge_identity_part(mapped_input.mapped_input_identity()),
+            retained_mapping_external_authority_part(mapped_input.mapper_envelope_digest()),
+            retained_mapping_external_authority_part(mapped_input.contract_digest()),
             retained_mapping_shape_part(writeback_family_kind_label(mapped_input.family_kind())),
             retained_mapping_shape_part(writeback_effect_class_label(mapped_input.effect_class())),
             retained_mapping_shape_part(writeback_strategy_class_label(
                 mapped_input.strategy_class(),
             )),
-            retained_mapping_identity_digest_part(mapped_input.strategy_descriptor_digest()),
-            retained_mapping_identity_digest_part(mapped_input.causality_digest()),
-            retained_mapping_identity_digest_part(mapped_input.effect_intent_digest()),
-            retained_mapping_identity_digest_part(mapped_input.digest()),
+            retained_mapping_external_authority_part(mapped_input.strategy_descriptor_digest()),
+            retained_mapping_external_authority_part(mapped_input.causality_digest()),
+            retained_mapping_external_authority_part(mapped_input.effect_intent_digest()),
+            retained_mapping_external_authority_part(mapped_input.digest()),
         ],
     )
 }
 
 pub(crate) fn writeback_mapper_record_digest(
     facade: &BridgeDiagnosticsFacade,
-    reference_identity: &str,
+    reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .writeback_mapper_record_for_identity(&BridgeWritebackMapperRecordIdentity::new(
-            reference_identity,
+            reference_identity.as_str(),
         ))
         .map(|record| writeback_mapper_record_artifact_digest(&record))
 }
@@ -129,29 +130,29 @@ pub(crate) fn writeback_mapper_record_artifact_digest(
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::WritebackMapperRecord,
         &[
-            retained_mapping_identity_digest_part(record.record_identity().as_str()),
-            retained_mapping_identity_digest_part(record.mapper_envelope_digest()),
-            retained_mapping_identity_digest_part(record.mapped_input_digest()),
-            retained_mapping_identity_digest_part(record.witness_digest()),
-            retained_mapping_identity_digest_part(record.candidate_digest()),
+            retained_mapping_bridge_identity_part(record.record_identity()),
+            retained_mapping_external_authority_part(record.mapper_envelope_digest()),
+            retained_mapping_external_authority_part(record.mapped_input_digest()),
+            retained_mapping_external_authority_part(record.witness_digest()),
+            retained_mapping_external_authority_part(record.candidate_digest()),
             retained_mapping_shape_part(writeback_family_kind_label(record.family_kind())),
             retained_mapping_shape_part(writeback_effect_class_label(record.effect_class())),
             retained_mapping_shape_part(writeback_strategy_class_label(record.strategy_class())),
-            retained_mapping_identity_digest_part(record.strategy_descriptor_digest()),
-            retained_mapping_identity_digest_part(record.causality_digest()),
-            retained_mapping_identity_digest_part(record.effect_intent_digest()),
-            retained_mapping_identity_digest_part(record.digest()),
+            retained_mapping_external_authority_part(record.strategy_descriptor_digest()),
+            retained_mapping_external_authority_part(record.causality_digest()),
+            retained_mapping_external_authority_part(record.effect_intent_digest()),
+            retained_mapping_external_authority_part(record.digest()),
         ],
     )
 }
 
 pub(crate) fn writeback_execution_record_digest(
     facade: &BridgeDiagnosticsFacade,
-    reference_identity: &str,
+    reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .writeback_execution_record_for_identity(&BridgeWritebackExecutionRecordIdentity::new(
-            reference_identity,
+            reference_identity.as_str(),
         ))
         .map(|record| writeback_execution_artifact_digest(&record))
 }
@@ -170,38 +171,38 @@ pub(crate) fn writeback_execution_artifact_digest(
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::WritebackExecutionRecord,
         &[
-            retained_mapping_identity_digest_part(record.record_identity().as_str()),
-            retained_mapping_identity_digest_part(record.contract_digest()),
-            retained_mapping_identity_digest_part(record.writeback_effect_artifact_digest()),
-            retained_mapping_identity_digest_part(record.effect_intent_digest()),
+            retained_mapping_bridge_identity_part(record.record_identity()),
+            retained_mapping_external_authority_part(record.contract_digest()),
+            retained_mapping_external_authority_part(record.writeback_effect_artifact_digest()),
+            retained_mapping_external_authority_part(record.effect_intent_digest()),
             retained_mapping_shape_part(writeback_family_kind_label(record.family_kind())),
             retained_mapping_shape_part(writeback_strategy_class_label(record.strategy_class())),
-            retained_mapping_identity_digest_part(record.causality_digest()),
-            retained_mapping_identity_digest_part(record.idempotence_digest()),
-            retained_mapping_identity_digest_part(record.loop_prevention_digest()),
-            retained_mapping_identity_digest_part(record.strategy_coherence_digest()),
-            retained_mapping_identity_digest_part(record.mapper_record_digest().unwrap_or("none")),
-            retained_mapping_identity_digest_part(record.candidate_digest().unwrap_or("none")),
-            retained_mapping_identity_digest_part(record.outcome_digest().unwrap_or("none")),
+            retained_mapping_external_authority_part(record.causality_digest()),
+            retained_mapping_external_authority_part(record.idempotence_digest()),
+            retained_mapping_external_authority_part(record.loop_prevention_digest()),
+            retained_mapping_external_authority_part(record.strategy_coherence_digest()),
+            retained_mapping_external_authority_part(record.mapper_record_digest().unwrap_or("none")),
+            retained_mapping_external_authority_part(record.candidate_digest().unwrap_or("none")),
+            retained_mapping_external_authority_part(record.outcome_digest().unwrap_or("none")),
             retained_mapping_shape_part(outcome_class),
-            retained_mapping_identity_digest_part(record.replay_bundle_digest().unwrap_or("none")),
-            retained_mapping_identity_digest_part(record.request_digest().unwrap_or("none")),
-            retained_mapping_identity_digest_part(record.receipt_digest().unwrap_or("none")),
+            retained_mapping_external_authority_part(record.replay_bundle_digest().unwrap_or("none")),
+            retained_mapping_external_authority_part(record.request_digest().unwrap_or("none")),
+            retained_mapping_external_authority_part(record.receipt_digest().unwrap_or("none")),
             retained_mapping_shape_part(failure_class),
-            retained_mapping_identity_digest_part(record.failure_digest().unwrap_or("none")),
-            retained_mapping_identity_digest_part(record.counters().digest()),
-            retained_mapping_identity_digest_part(record.digest()),
+            retained_mapping_external_authority_part(record.failure_digest().unwrap_or("none")),
+            retained_mapping_external_authority_part(record.counters().digest()),
+            retained_mapping_external_authority_part(record.digest()),
         ],
     )
 }
 
 pub(crate) fn writeback_replay_record_digest(
     facade: &BridgeDiagnosticsFacade,
-    reference_identity: &str,
+    reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .writeback_replay_record_for_identity(&BridgeWritebackReplayRecordIdentity::new(
-            reference_identity,
+            reference_identity.as_str(),
         ))
         .map(|record| writeback_replay_artifact_digest(&record))
 }
@@ -216,25 +217,25 @@ pub(crate) fn writeback_replay_artifact_digest(
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::WritebackReplayRecord,
         &[
-            retained_mapping_identity_digest_part(record.record_identity().as_str()),
+            retained_mapping_bridge_identity_part(record.record_identity()),
             retained_mapping_shape_part(writeback_family_kind_label(record.family_kind())),
-            retained_mapping_identity_digest_part(record.expected_replay_digest()),
-            retained_mapping_identity_digest_part(record.replayed_replay_digest()),
-            retained_mapping_identity_digest_part(record.expected_semantic_digest()),
-            retained_mapping_identity_digest_part(record.replayed_semantic_digest()),
-            retained_mapping_identity_digest_part(record.expected_effect_intent_digest()),
-            retained_mapping_identity_digest_part(record.replayed_effect_intent_digest()),
-            retained_mapping_identity_digest_part(
+            retained_mapping_external_authority_part(record.expected_replay_digest()),
+            retained_mapping_external_authority_part(record.replayed_replay_digest()),
+            retained_mapping_external_authority_part(record.expected_semantic_digest()),
+            retained_mapping_external_authority_part(record.replayed_semantic_digest()),
+            retained_mapping_external_authority_part(record.expected_effect_intent_digest()),
+            retained_mapping_external_authority_part(record.replayed_effect_intent_digest()),
+            retained_mapping_external_authority_part(
                 record.expected_effect_intent_patch_canonical_basis(),
             ),
-            retained_mapping_identity_digest_part(
+            retained_mapping_external_authority_part(
                 record.replayed_effect_intent_patch_canonical_basis(),
             ),
-            retained_mapping_identity_digest_part(record.expected_causality_digest()),
-            retained_mapping_identity_digest_part(record.replayed_causality_digest()),
+            retained_mapping_external_authority_part(record.expected_causality_digest()),
+            retained_mapping_external_authority_part(record.replayed_causality_digest()),
             retained_mapping_shape_part(failure_class),
-            retained_mapping_identity_digest_part(record.counters().digest()),
-            retained_mapping_identity_digest_part(record.digest()),
+            retained_mapping_external_authority_part(record.counters().digest()),
+            retained_mapping_external_authority_part(record.digest()),
         ],
     )
 }

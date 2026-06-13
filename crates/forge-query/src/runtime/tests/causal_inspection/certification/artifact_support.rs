@@ -37,7 +37,7 @@ pub(super) fn admitted_artifact_for(
             admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_digest(),
+            admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("query admission summary should be valid");
@@ -96,7 +96,7 @@ pub(super) fn advisory_artifacts(
             advisory.advisory_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            advisory.subject().anchor_digest(),
+            advisory.subject().anchor_for_reporting(),
         ),
     )
     .expect("query advisory summary should be valid");

@@ -47,7 +47,7 @@ fn runtime_downstream_delivery_projects_time_only_contract_with_explicit_resume_
         .downstream_delivery(&view)
         .expect("downstream delivery should project")
         .expect("retained time-only delivery should exist");
-    let basis_digest = view.subscription_installation().basis_binding_digest();
+    let basis_digest = view.subscription_installation().basis_binding_for_reporting();
 
     assert_eq!(
         delivery.delivery_class(),
@@ -157,7 +157,7 @@ fn runtime_downstream_delivery_projects_mixed_cause_and_async_truth_without_recl
     assert_eq!(
         delivery
             .negotiate_runtime_resume(Some(
-                view.subscription_installation().basis_binding_digest()
+                view.subscription_installation().basis_binding_for_reporting()
             ))
             .kind(),
         ForgeQueryRuntimeDownstreamResumePostureKind::RuntimeBackedAdmitted

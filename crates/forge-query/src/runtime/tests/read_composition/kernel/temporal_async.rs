@@ -57,7 +57,7 @@ fn runtime_read_family_receipt_retains_time_only_materialized_fact_posture() {
     let view: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
-    let expected_query_digest = view.subscription_installation().query_digest().to_string();
+    let expected_query_digest = view.subscription_installation().query_for_reporting().to_string();
 
     runtime
         .emit_time_only_delivery(
@@ -106,7 +106,7 @@ fn runtime_read_family_receipt_retains_time_only_materialized_fact_posture() {
     assert_eq!(posture.basis_digest(), result.receipt().basis_digest());
     assert_eq!(
         posture.runtime_origin_digest(),
-        Some(view.subscription_installation().installation_digest())
+        Some(view.subscription_installation().installation_for_reporting())
     );
 }
 
@@ -116,7 +116,7 @@ fn runtime_read_family_receipt_retains_async_backed_materialized_fact_posture() 
     let view: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.async-table", task_live_request(), task_schema())
         .expect("live view should declare");
-    let expected_query_digest = view.subscription_installation().query_digest().to_string();
+    let expected_query_digest = view.subscription_installation().query_for_reporting().to_string();
     let (basis_digest, generation_digest) = live_subscription_async_identity(&runtime, view.name());
 
     runtime
@@ -168,7 +168,7 @@ fn runtime_read_family_receipt_retains_async_backed_materialized_fact_posture() 
     assert_eq!(posture.basis_digest(), result.receipt().basis_digest());
     assert_eq!(
         posture.runtime_origin_digest(),
-        Some(view.subscription_installation().installation_digest())
+        Some(view.subscription_installation().installation_for_reporting())
     );
     assert_eq!(
         workspace

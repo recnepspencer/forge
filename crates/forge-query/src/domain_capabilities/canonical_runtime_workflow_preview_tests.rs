@@ -87,7 +87,8 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
             "eligibility-preview",
             "decision-preview",
         )
-        .binding_digest()
+        .binding_identity()
+        .as_str()
     );
     assert_eq!(
         discard.request_family(),

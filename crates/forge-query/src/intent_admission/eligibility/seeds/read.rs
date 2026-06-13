@@ -85,7 +85,7 @@ impl ForgeQueryLiveReadIntentSeed {
 
     pub fn from_installation(installation: &ForgeQueryRuntimeLiveSubscriptionInstallation) -> Self {
         let live_view_name = installation.view_name().to_string();
-        let live_view_digest = installation.installation_digest().to_string();
+        let live_view_digest = installation.installation_for_reporting().to_string();
         let request_label = format!("read.live-view.{live_view_name}");
         let request_input_digest = hash_parts(&[
             "forge_query_live_read_intent_seed_v1".to_string(),

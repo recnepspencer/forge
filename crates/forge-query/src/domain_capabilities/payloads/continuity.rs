@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::runtime::{
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityMutationOutcomeClass,
 };
@@ -37,6 +39,71 @@ impl ForgeQueryContinuityContributionPosture {
             }
         }
     }
+}
+
+fn compose_continuity_runtime_semantics_identity(
+    runtime_semantics: &ForgeQueryContinuityRuntimeSemantics,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_domain_capability_continuity_runtime_semantics_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            runtime_semantics.family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("outcome_class"),
+            runtime_semantics.outcome_class().as_str(),
+        )
+        .field_identity(
+            ForgeQueryEvidenceTag::new("prior_authoritative"),
+            runtime_semantics.prior_authoritative_identity(),
+        )
+        .field_identity_sequence(
+            ForgeQueryEvidenceTag::new("successor_authoritative"),
+            runtime_semantics.successor_authoritative_identities(),
+        )
+        .seal()
+}
+
+fn compose_continuity_payload_identity(
+    posture: ForgeQueryContinuityContributionPosture,
+    semantic_code: &str,
+    detail: &str,
+    runtime_semantics: Option<&ForgeQueryContinuityRuntimeSemantics>,
+    correspondence_semantics: Option<&ForgeQueryContinuityCorrespondenceSemantics>,
+) -> ForgeQueryEvidenceIdentity {
+    let mut identity = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("identity_family"),
+        "forge_query_domain_capability_payload_v3",
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("category"),
+        ForgeQueryDomainCapabilityCategory::ContinuityLineage.as_str(),
+    )
+    .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+    .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+    .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+    identity = match runtime_semantics {
+        Some(runtime) => identity.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("runtime"),
+            &compose_continuity_runtime_semantics_identity(runtime),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("runtime"), "none"),
+    };
+    identity = match correspondence_semantics {
+        Some(correspondence) => identity.field_shape(
+            ForgeQueryEvidenceTag::new("correspondence"),
+            correspondence.digest_fragment(),
+        ),
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("correspondence"), "none"),
+    };
+    identity.seal()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -93,7 +160,7 @@ pub struct ForgeQueryContinuityContributionPayload {
     detail: String,
     runtime_semantics: Option<ForgeQueryContinuityRuntimeSemantics>,
     correspondence_semantics: Option<ForgeQueryContinuityCorrespondenceSemantics>,
-    payload_digest: String,
+    payload_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryContinuityContributionPayload {
@@ -138,43 +205,20 @@ impl ForgeQueryContinuityContributionPayload {
     ) -> Self {
         let semantic_code = semantic_code.into();
         let detail = detail.into();
-        let runtime_digest = runtime_semantics.as_ref().map_or_else(
-            || "none".to_string(),
-            |runtime_semantics| {
-                format!(
-                    "{}:{}:{}:{}",
-                    runtime_semantics.family().as_str(),
-                    runtime_semantics.outcome_class().as_str(),
-                    runtime_semantics.prior_authoritative_identity(),
-                    runtime_semantics
-                        .successor_authoritative_identities()
-                        .join("|")
-                )
-            },
+        let payload_identity = compose_continuity_payload_identity(
+            posture,
+            &semantic_code,
+            &detail,
+            runtime_semantics.as_ref(),
+            correspondence_semantics.as_ref(),
         );
-        let correspondence_digest = correspondence_semantics.as_ref().map_or_else(
-            || "none".to_string(),
-            ForgeQueryContinuityCorrespondenceSemantics::digest_fragment,
-        );
-        let payload_digest = hash_parts(&[
-            "forge_query_domain_capability_payload_v2".to_string(),
-            format!(
-                "category:{}",
-                ForgeQueryDomainCapabilityCategory::ContinuityLineage.as_str()
-            ),
-            format!("posture:{}", posture.as_str()),
-            format!("semantic_code:{semantic_code}"),
-            format!("detail:{detail}"),
-            format!("runtime:{runtime_digest}"),
-            format!("correspondence:{correspondence_digest}"),
-        ]);
         Self {
             posture,
             semantic_code,
             detail,
             runtime_semantics,
             correspondence_semantics,
-            payload_digest,
+            payload_identity,
         }
     }
 
@@ -203,7 +247,15 @@ impl ForgeQueryContinuityContributionPayload {
     }
 
     pub fn payload_digest(&self) -> &str {
-        &self.payload_digest
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_for_reporting(&self) -> &str {
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }
 

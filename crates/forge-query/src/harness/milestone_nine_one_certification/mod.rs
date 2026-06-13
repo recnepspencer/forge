@@ -758,7 +758,7 @@ fn certified_lane_from_live(
     let declaration_digest = declaration.declaration_digest().as_str().to_string();
     let lowering = lower_query_subscription_to_bridge(declaration, lowering_budget()).unwrap();
     let bridge_family = lowering.bridge_family().as_str().to_string();
-    let bridge_declaration_digest = lowering.bridge_declaration_digest().to_string();
+    let bridge_declaration_digest = lowering.bridge_declaration_for_reporting().to_string();
     let basis_request_digest = lowering.basis_request().digest().to_string();
     let signal_strategy_digest = lowering.signal_strategy_request().digest().to_string();
     let admission = admit_query_subscription(lowering, admission_budget()).unwrap();
@@ -806,22 +806,22 @@ fn certified_lane_from_live(
         signal_strategy_digest,
         declaration_digest,
         bridge_declaration_digest,
-        admission_digest: certification.admission_digest().to_string(),
-        activation_digest: certification.activation_digest().to_string(),
-        certification_bundle_digest: certification.certification_bundle_digest().to_string(),
+        admission_digest: certification.admission_for_reporting().to_string(),
+        activation_digest: certification.activation_for_reporting().to_string(),
+        certification_bundle_digest: certification.certification_bundle_for_reporting().to_string(),
         support_profile_digest,
         diagnostics_digest,
-        scale_slope_digest: certification.scale_slope_digest().to_string(),
-        scale_activation_digest: certification.scale_activation_digest().to_string(),
-        scale_admission_digest: certification.scale_admission_digest().to_string(),
+        scale_slope_digest: certification.scale_slope_for_reporting().to_string(),
+        scale_activation_digest: certification.scale_activation_for_reporting().to_string(),
+        scale_admission_digest: certification.scale_admission_for_reporting().to_string(),
         counter_snapshot_digest: digest_parts(&[
             format!(
                 "admission_counters:{}",
-                certification.admission_counter_digest()
+                certification.admission_counter_for_reporting()
             ),
             format!(
                 "activation_counters:{}",
-                certification.activation_counter_digest()
+                certification.activation_counter_for_reporting()
             ),
         ]),
         fixture_digest,

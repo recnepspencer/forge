@@ -403,7 +403,7 @@ fn shipped_bundle(
     SubscriptionLifecycleCertificationBundle {
         query_digest: bundle.query_digest().to_string(),
         subscription_family_digest: bundle.subscription_family_digest().to_string(),
-        subscription_declaration_digest: bundle.subscription_declaration_digest().to_string(),
+        subscription_declaration_digest: bundle.query_declaration_for_reporting().to_string(),
         subscription_equivalence_digest: bundle.subscription_equivalence_digest().to_string(),
         active_lane_digest: bundle.active_lane_digest().to_string(),
         active_lane_handle_digest: bundle.active_lane_handle_digest().to_string(),
@@ -432,8 +432,8 @@ fn shipped_bundle(
         relationship_proof_digest: bundle.relationship_proof_digest().to_string(),
         view_shape_digest: bundle.view_shape_digest().to_string(),
         basis_digest: bundle.basis_digest().to_string(),
-        bridge_declaration_digest: bundle.bridge_declaration_digest().to_string(),
-        signal_strategy_digest: bundle.signal_strategy_digest().to_string(),
+        bridge_declaration_digest: bundle.bridge_declaration_for_reporting().to_string(),
+        signal_strategy_digest: bundle.signal_strategy_for_reporting().to_string(),
         failure_digest: "none".to_string(),
         lifecycle_denial_digest: "none".to_string(),
         counter_snapshot: bundle.counter_snapshot().to_string(),
@@ -666,7 +666,7 @@ fn deliver_to_attachment(
     let work_packet_counter_digest = runtime.counters().digest();
     let performance_receipt_digest = work_packet
         .performance_receipt()
-        .performance_receipt_digest()
+        .performance_receipt_for_reporting()
         .to_string();
     let active_delivery_work_packet_digest = work_packet.work_packet_digest().to_string();
     let density_posture_digest =

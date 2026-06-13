@@ -1,8 +1,6 @@
 use forge_proof::TransitionOutcome;
 use forge_relational::facade::runtime::InvariantCatalog;
 
-use crate::identity::hash_parts;
-
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
@@ -160,21 +158,40 @@ pub fn materialize_query_invariant_catalog_registration_artifact(
         target_lane,
         target_binding_digest: domain_contribution.target().binding_digest().to_string(),
         request_digest: domain_contribution.request_digest().to_string(),
-        materialization_digest: hash_parts(&[
-            "forge_query_invariant_catalog_registration_artifact_v1".to_string(),
-            format!("lane:{}", "query_invariant_catalog_registration"),
-            format!("semantic_code:{}", payload.semantic_code()),
-            format!("detail:{}", payload.detail()),
-            format!("catalog:{}", invariant_registration.registration_digest()),
-            format!("intent:{name}"),
-            format!("strategy:{strategy_name}"),
-            format!("strategy-version:{strategy_version}"),
-            format!("input-contract:{input_contract}"),
-            format!("source-lane:{:?}", source_lane),
-            format!("target-lane:{:?}", target_lane),
-            format!("binding:{}", domain_contribution.target().binding_digest()),
-            format!("request:{}", domain_contribution.request_digest()),
-        ]),
+        materialization_digest: forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_invariant_catalog_registration_artifact_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("lane"),
+            "query_invariant_catalog_registration",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), payload.semantic_code())
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), payload.detail())
+        .field_identity(
+            ForgeQueryEvidenceTag::new("catalog"),
+            invariant_registration.registration_digest(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("intent"), name)
+        .field_shape(ForgeQueryEvidenceTag::new("strategy"), strategy_name)
+        .field_shape(ForgeQueryEvidenceTag::new("strategy_version"), strategy_version)
+        .field_shape(ForgeQueryEvidenceTag::new("input_contract"), input_contract)
+        .field_shape(ForgeQueryEvidenceTag::new("source_lane"), format!("{source_lane:?}"))
+        .field_shape(ForgeQueryEvidenceTag::new("target_lane"), format!("{target_lane:?}"))
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("binding"),
+            &domain_contribution.target().binding_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("request"),
+            &invariant_request_identity(domain_contribution.request_digest()),
+        )
+        .seal()
+        .as_str()
+        .to_string(),
     })
 }
 
@@ -318,4 +335,14 @@ fn unsupported_posture_denial(
             payload.posture().as_str()
         ),
     )
+}
+
+fn invariant_request_identity(request_digest: &str) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_invariant_request_v1",
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("request"), request_digest)
+        .seal()
 }

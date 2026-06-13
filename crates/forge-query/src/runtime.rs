@@ -454,7 +454,9 @@ pub use intent::{
     ForgeQueryIntentExecutionProvenance, ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
     ForgeQueryPreviewIntentReceipt,
 };
-pub(crate) use live_subscription::live_subscription_digest_source_identity;
+pub(crate) use live_subscription::{
+    live_subscription_source_digest_evidence, live_subscription_source_identity,
+};
 pub use live_subscription::{
     ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,
     ForgeQueryRuntimeLiveSubscriptionInstallation,

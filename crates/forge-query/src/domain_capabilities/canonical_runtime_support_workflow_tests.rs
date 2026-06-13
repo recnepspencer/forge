@@ -3,6 +3,7 @@ use forge_proof::TransitionOutcome;
 use super::targets::{
     ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
 };
+use crate::domain_capabilities::targets::ForgeQueryDomainCapabilityTargetBinding;
 use super::test_support::{
     admitted_plan_target, admitted_plan_target_parts, declaration_target, ready, success,
 };
@@ -17,6 +18,7 @@ use super::{
 
 #[test]
 fn support_traceability_materializer_builds_domain_scoped_report() {
+    let plan_target = admitted_plan_target("plan-support");
     let report = success(materialize_intent_admission_support_traceability_report(
         ready_support(ForgeQuerySupportContributionAuthoring::declaration_support(
             "spatial.arbitration.support",
@@ -34,9 +36,13 @@ fn support_traceability_materializer_builds_domain_scoped_report() {
         "spatial.arbitration.support:multiple candidates remain admissible"
     );
     assert!(row.target_binding_digest().is_some());
-    assert_eq!(row.request_digest(), Some("test.request"));
-    assert_eq!(row.eligibility_digest(), Some("test.eligibility"));
-    assert_eq!(row.decision_digest(), Some("test.decision"));
+    let (_, _, request_digest, eligibility_digest, decision_digest) = plan_target
+        .semantics()
+        .admitted_intent_plan()
+        .expect("plan semantics");
+    assert_eq!(row.request_digest(), Some(request_digest));
+    assert_eq!(row.eligibility_digest(), Some(eligibility_digest));
+    assert_eq!(row.decision_digest(), Some(decision_digest));
 }
 
 #[test]
@@ -309,7 +315,10 @@ fn workflow_materialization_digest_changes_when_declaration_scope_changes() {
         left.report().declaration_digest(),
         right.report().declaration_digest()
     );
-    assert_ne!(left.binding().digest(), right.binding().digest());
+    assert_ne!(
+        left.binding().binding_digest(),
+        right.binding().binding_digest()
+    );
 }
 
 #[test]
@@ -349,7 +358,10 @@ fn workflow_materialization_digest_changes_when_admitted_plan_scope_changes() {
         left.report().declaration_digest(),
         right.report().declaration_digest()
     );
-    assert_ne!(left.binding().digest(), right.binding().digest());
+    assert_ne!(
+        left.binding().binding_digest(),
+        right.binding().binding_digest()
+    );
 }
 
 #[test]

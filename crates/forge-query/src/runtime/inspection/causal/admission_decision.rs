@@ -170,7 +170,7 @@ impl CausalInspectionAdmissionSubject {
         &self.request_identity
     }
 
-    pub fn anchor_digest(&self) -> &str {
+    pub fn anchor_for_reporting(&self) -> &str {
         self.anchor_digest.as_str()
     }
 
@@ -194,7 +194,7 @@ impl CausalInspectionAdmissionSubject {
         self.lower_runtime_evidence_family_count
     }
 
-    pub fn query_digest(&self) -> &str {
+    pub fn query_for_reporting(&self) -> &str {
         self.query_identity.as_str()
     }
 
@@ -234,7 +234,7 @@ impl CausalInspectionAdmissionSubject {
         &self.resolved_evidence_families
     }
 
-    pub fn observation_target_digest(&self) -> &str {
+    pub fn observation_target_for_reporting(&self) -> &str {
         self.observation_target.identity().as_str()
     }
 
@@ -242,11 +242,11 @@ impl CausalInspectionAdmissionSubject {
         self.observation_target.identity()
     }
 
-    pub fn result_shape_context_digest(&self) -> &str {
+    pub fn result_shape_context_for_reporting(&self) -> &str {
         self.result_shape_context.identity().as_str()
     }
 
-    pub fn target_digest(&self) -> &str {
+    pub fn target_for_reporting(&self) -> &str {
         self.target_identity.as_str()
     }
 
@@ -266,7 +266,7 @@ impl CausalInspectionAdmissionSubject {
         &self.requested_evidence_families
     }
 
-    pub fn subject_digest(&self) -> &str {
+    pub fn subject_for_reporting(&self) -> &str {
         self.subject_identity.as_str()
     }
 
@@ -382,7 +382,7 @@ impl CausalInspectionAdmissionDecision {
         &self.permitted_evidence_families
     }
 
-    pub fn decision_digest(&self) -> &str {
+    pub fn decision_for_reporting(&self) -> &str {
         self.decision_identity.as_str()
     }
 

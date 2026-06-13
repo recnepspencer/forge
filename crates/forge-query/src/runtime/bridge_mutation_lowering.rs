@@ -230,14 +230,25 @@ mod tests {
 
         assert_eq!(bridge_evidence.family(), intent.family());
         assert_eq!(
-            bridge_evidence.prior_authoritative_identity().as_str(),
-            intent.prior_authoritative_identity().as_str()
+            intent.prior_authoritative_identity().as_str(),
+            "authority:task-1",
+        );
+        assert!(
+            bridge_evidence
+                .prior_authoritative_identity()
+                .as_str()
+                .starts_with("bridge-continuity-authoritative:"),
         );
         assert_eq!(
+            intent.successor_authoritative_identity().as_str(),
+            "authority:task-1-successor",
+        );
+        assert!(
             bridge_evidence
                 .successor_authoritative_identity()
-                .map(|identity| identity.as_str()),
-            Some(intent.successor_authoritative_identity().as_str())
+                .expect("successor authoritative identity")
+                .as_str()
+                .starts_with("bridge-continuity-authoritative:"),
         );
         assert_eq!(
             bridge_evidence.resolved_target_entity_identity(),

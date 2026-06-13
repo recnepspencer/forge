@@ -74,30 +74,30 @@ impl ForgeQueryLiveViewInspection {
             "forge_query_live_view_inspection_v1".to_string(),
             format!("view:{}", installation.view_name()),
             format!("authority-lane:{}", installation.authority_lane()),
-            format!("query:{}", installation.query_digest()),
-            format!("view-shape:{}", installation.view_shape_digest()),
+            format!("query:{}", installation.query_for_reporting()),
+            format!("view-shape:{}", installation.view_shape_for_reporting()),
             format!("family:{}", installation.subscription_family()),
             format!(
                 "family-digest:{}",
-                installation.subscription_family_digest()
+                installation.subscription_family_for_reporting()
             ),
             format!(
                 "subscription-declaration:{}",
-                installation.subscription_declaration_digest()
+                installation.subscription_declaration_for_reporting()
             ),
-            format!("bridge:{}", installation.bridge_declaration_digest()),
-            format!("admission:{}", installation.admission_digest()),
-            format!("activation:{}", installation.activation_digest()),
-            format!("basis:{}", installation.basis_binding_digest()),
-            format!("signal:{}", installation.signal_strategy_digest()),
-            format!("active-lane:{}", installation.active_lane_digest()),
+            format!("bridge:{}", installation.bridge_declaration_for_reporting()),
+            format!("admission:{}", installation.admission_for_reporting()),
+            format!("activation:{}", installation.activation_for_reporting()),
+            format!("basis:{}", installation.basis_binding_for_reporting()),
+            format!("signal:{}", installation.signal_strategy_for_reporting()),
+            format!("active-lane:{}", installation.active_lane_for_reporting()),
             format!(
                 "consumer-attachment:{}",
-                installation.consumer_attachment_digest()
+                installation.consumer_attachment_for_reporting()
             ),
-            format!("consumer:{}", installation.consumer_digest()),
-            format!("delivery-cursor:{}", installation.delivery_cursor_digest()),
-            format!("runtime-budget:{}", installation.runtime_budget_digest()),
+            format!("consumer:{}", installation.consumer_for_reporting()),
+            format!("delivery-cursor:{}", installation.delivery_cursor_for_reporting()),
+            format!("runtime-budget:{}", installation.runtime_budget_for_reporting()),
             format!("support:{}", installation.support_evidence()),
             format!(
                 "last-delivery-cause:{}",
@@ -135,29 +135,29 @@ impl ForgeQueryLiveViewInspection {
                     .map(|posture| posture.remask_digest())
                     .unwrap_or("none")
             ),
-            format!("installation:{}", installation.installation_digest()),
+            format!("installation:{}", installation.installation_for_reporting()),
             format!("counters:{}", counters.counter_digest()),
         ]);
 
         Self {
             view_name: installation.view_name().to_string(),
             authority_lane: installation.authority_lane(),
-            query_digest: installation.query_digest().to_string(),
-            view_shape_digest: installation.view_shape_digest().to_string(),
+            query_digest: installation.query_for_reporting().to_string(),
+            view_shape_digest: installation.view_shape_for_reporting().to_string(),
             subscription_family: installation.subscription_family().to_string(),
-            subscription_family_digest: installation.subscription_family_digest().to_string(),
+            subscription_family_digest: installation.subscription_family_for_reporting().to_string(),
             subscription_declaration_digest: installation
-                .subscription_declaration_digest()
+                .subscription_declaration_for_reporting()
                 .to_string(),
-            bridge_declaration_digest: installation.bridge_declaration_digest().to_string(),
-            admission_digest: installation.admission_digest().to_string(),
-            activation_digest: installation.activation_digest().to_string(),
-            basis_binding_digest: installation.basis_binding_digest().to_string(),
-            signal_strategy_digest: installation.signal_strategy_digest().to_string(),
-            active_lane_digest: installation.active_lane_digest().to_string(),
-            consumer_attachment_digest: installation.consumer_attachment_digest().to_string(),
-            consumer_digest: installation.consumer_digest().to_string(),
-            delivery_cursor_digest: installation.delivery_cursor_digest().to_string(),
+            bridge_declaration_digest: installation.bridge_declaration_for_reporting().to_string(),
+            admission_digest: installation.admission_for_reporting().to_string(),
+            activation_digest: installation.activation_for_reporting().to_string(),
+            basis_binding_digest: installation.basis_binding_for_reporting().to_string(),
+            signal_strategy_digest: installation.signal_strategy_for_reporting().to_string(),
+            active_lane_digest: installation.active_lane_for_reporting().to_string(),
+            consumer_attachment_digest: installation.consumer_attachment_for_reporting().to_string(),
+            consumer_digest: installation.consumer_for_reporting().to_string(),
+            delivery_cursor_digest: installation.delivery_cursor_for_reporting().to_string(),
             subscription_budget_policy: installation.subscription_budget_policy().to_string(),
             active_lifecycle_budget_policy: installation
                 .active_lifecycle_budget_policy()
@@ -165,7 +165,7 @@ impl ForgeQueryLiveViewInspection {
             consumer_attachment_budget_policy: installation
                 .consumer_attachment_budget_policy()
                 .to_string(),
-            runtime_budget_digest: installation.runtime_budget_digest().to_string(),
+            runtime_budget_digest: installation.runtime_budget_for_reporting().to_string(),
             support_evidence: installation.support_evidence().to_string(),
             last_delivery_cause_kind,
             last_delivery_cause_digest,
@@ -174,7 +174,7 @@ impl ForgeQueryLiveViewInspection {
             ordinary_runtime_posture,
             async_result_state,
             remask_posture,
-            installation_digest: installation.installation_digest().to_string(),
+            installation_digest: installation.installation_for_reporting().to_string(),
             counters,
             inspection_digest,
         }

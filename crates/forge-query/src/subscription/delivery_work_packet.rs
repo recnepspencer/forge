@@ -117,7 +117,7 @@ impl ActiveDeliveryWorkPacket {
             format!("allocation_posture:{}", allocation_posture.as_str()),
             format!(
                 "receipt:{}",
-                performance_receipt.performance_receipt_digest()
+                performance_receipt.performance_receipt_for_reporting()
             ),
         ]);
         counters.active_delivery_work_packet_count = 1;

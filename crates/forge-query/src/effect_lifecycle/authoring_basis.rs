@@ -4,6 +4,9 @@ use crate::basis_lifecycle::{
     DeferredBasisEligibility, InspectionLaneWitness, RawBasisIntent,
     ScopedMutationPreparationBasis, ScopedPreviewCloseoutBasis,
 };
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EffectAuthoringBasis {
@@ -72,6 +75,10 @@ impl EffectAuthoringBasis {
         }
     }
 
+    pub fn capability_identity(&self) -> ForgeQueryEvidenceIdentity {
+        capability_identity_from_digest(&self.capability_digest())
+    }
+
     pub fn scoped_basis_digest(&self) -> &str {
         match self {
             Self::MutationPreparation(basis) => basis.scoped_basis_digest(),
@@ -79,6 +86,10 @@ impl EffectAuthoringBasis {
             Self::InspectionAdvisory(advisory) => advisory.normalized().normalized_digest(),
             Self::DeferredFutureNeighbor(deferred) => deferred.normalized().normalized_digest(),
         }
+    }
+
+    pub fn scoped_basis_identity(&self) -> ForgeQueryEvidenceIdentity {
+        scoped_basis_identity_from_digest(self.scoped_basis_digest())
     }
 
     pub fn expected_lower_runtime_binding_digest(&self) -> Option<&str> {
@@ -94,9 +105,46 @@ impl EffectAuthoringBasis {
         }
     }
 
+    pub fn expected_lower_runtime_binding_identity(&self) -> Option<ForgeQueryEvidenceIdentity> {
+        self.expected_lower_runtime_binding_digest()
+            .map(expected_lower_runtime_binding_identity)
+    }
+
     pub(crate) fn requires_preview_workflow_binding(&self) -> bool {
         matches!(self, Self::PreviewCloseout(_))
     }
+}
+
+fn expected_lower_runtime_binding_identity(
+    binding_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "expected_lower_runtime_binding_v1",
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("binding"), binding_digest)
+        .seal()
+}
+
+fn capability_identity_from_digest(capability_digest: &str) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "effect_authoring_capability_v1",
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("capability"), capability_digest)
+        .seal()
+}
+
+fn scoped_basis_identity_from_digest(scoped_basis_digest: &str) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "effect_authoring_scoped_basis_v1",
+        )
+        .field_identity(ForgeQueryEvidenceTag::new("scoped_basis"), scoped_basis_digest)
+        .seal()
 }
 
 impl From<ScopedMutationPreparationBasis> for EffectAuthoringBasis {

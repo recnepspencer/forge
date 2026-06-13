@@ -339,8 +339,8 @@ fn common_path_preserves_core_digests_from_explicit_pipeline() {
     };
 
     assert_eq!(
-        plan.anchor_digest(),
-        explicit_admitted.subject().anchor_digest()
+        plan.anchor_for_reporting(),
+        explicit_admitted.subject().anchor_for_reporting()
     );
     assert_eq!(
         plan.reference_set_digest(),
@@ -360,7 +360,7 @@ fn common_path_preserves_core_digests_from_explicit_pipeline() {
             explicit_admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            explicit_admitted.subject().anchor_digest(),
+            explicit_admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("summary should be valid");
@@ -411,8 +411,8 @@ fn common_path_preserves_core_digests_from_explicit_pipeline() {
         explicit_artifact.artifact_digest()
     );
     assert_eq!(
-        common_artifact.receipt().receipt_digest(),
-        explicit_artifact.receipt().receipt_digest()
+        common_artifact.receipt().receipt_for_reporting(),
+        explicit_artifact.receipt().receipt_for_reporting()
     );
 }
 

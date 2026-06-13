@@ -34,13 +34,13 @@ impl ForgeQueryLiveReadReceipt {
         let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         Self {
             view_name: installation.view_name().to_string(),
-            installation_digest: installation.installation_digest().to_string(),
-            query_digest: installation.query_digest().to_string(),
-            view_shape_digest: installation.view_shape_digest().to_string(),
-            subscription_family_digest: installation.subscription_family_digest().to_string(),
+            installation_digest: installation.installation_for_reporting().to_string(),
+            query_digest: installation.query_for_reporting().to_string(),
+            view_shape_digest: installation.view_shape_for_reporting().to_string(),
+            subscription_family_digest: installation.subscription_family_for_reporting().to_string(),
             result_digest: materialized_result_digest(
-                installation.query_digest(),
-                installation.basis_binding_digest(),
+                installation.query_for_reporting(),
+                installation.basis_binding_for_reporting(),
                 rows,
             )
             .as_str()

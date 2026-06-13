@@ -173,7 +173,7 @@ fn runtime_live_read_receipt_retains_materialized_remask_posture() {
     );
     assert_eq!(
         posture.runtime_origin_digest(),
-        Some(view.subscription_installation().installation_digest())
+        Some(view.subscription_installation().installation_for_reporting())
     );
 }
 
@@ -217,7 +217,7 @@ fn runtime_live_read_receipt_retains_time_only_materialized_posture() {
     );
     assert_eq!(
         posture.runtime_origin_digest(),
-        Some(view.subscription_installation().installation_digest())
+        Some(view.subscription_installation().installation_for_reporting())
     );
 }
 
@@ -311,7 +311,7 @@ fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() 
     );
     assert_eq!(
         mixed_posture.runtime_origin_digest(),
-        Some(mixed_view.subscription_installation().installation_digest())
+        Some(mixed_view.subscription_installation().installation_for_reporting())
     );
 }
 

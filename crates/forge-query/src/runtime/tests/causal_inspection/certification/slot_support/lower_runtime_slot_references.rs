@@ -18,7 +18,7 @@ pub(super) fn bridge_request_with_lower_runtime_slot_references(
             admitted.admitted_inspection_digest(),
         ),
         forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_digest(),
+            admitted.subject().anchor_for_reporting(),
         ),
     )
     .expect("query admission summary should be valid");

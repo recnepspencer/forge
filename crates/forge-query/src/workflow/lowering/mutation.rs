@@ -33,6 +33,7 @@ pub struct LoweredMutationIntentDeclaration {
     strategy_request: NativeStrategyCommitRequest,
     freshness_binding: WorkflowFreshnessBinding,
     staleness_class: WorkflowStalenessClass,
+    lowering_identity: ForgeQueryEvidenceIdentity,
     lowering_digest: String,
     counters: WorkflowLoweringCounters,
 }
@@ -68,6 +69,10 @@ impl LoweredMutationIntentDeclaration {
 
     pub fn lowering_digest(&self) -> &str {
         &self.lowering_digest
+    }
+
+    pub fn lowering_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lowering_identity
     }
 
     pub fn counters(&self) -> &WorkflowLoweringCounters {
@@ -129,7 +134,7 @@ pub fn lower_mutation_intent_declaration(
         }
     };
     let request = intent_reconciliation_strategy_request(declaration, input)?;
-    let lowering_digest = mutation_lowering_digest(
+    let lowering_identity = mutation_lowering_identity(
         declaration,
         &mutation_family,
         &strategy_target,
@@ -137,6 +142,7 @@ pub fn lower_mutation_intent_declaration(
         &freshness_binding,
         &request,
     );
+    let lowering_digest = lowering_identity.as_str().to_string();
 
     Ok(LoweredMutationIntentDeclaration {
         declaration: declaration.clone(),
@@ -150,6 +156,7 @@ pub fn lower_mutation_intent_declaration(
         strategy_request: request,
         freshness_binding,
         staleness_class: WorkflowStalenessClass::ExactBasisPreserved,
+        lowering_identity,
         lowering_digest,
         counters: mutation_lowering_success_counters(1),
     })
@@ -265,19 +272,19 @@ fn mutation_preview_freshness_denial(
     }
 }
 
-fn mutation_lowering_digest(
+fn mutation_lowering_identity(
     declaration: &QueryWorkflowDeclaration,
     mutation_family: &MutationIntentFamily,
     strategy_target: &RelationalStrategyTarget,
     authority_binding_identity: &ForgeQueryEvidenceIdentity,
     freshness_binding: &WorkflowFreshnessBinding,
     request: &NativeStrategyCommitRequest,
-) -> String {
+) -> ForgeQueryEvidenceIdentity {
     let mut identity =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("declaration"),
-                declaration.report().declaration_digest(),
+                declaration.report().declaration_identity(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("mutation_family"),
@@ -305,7 +312,7 @@ fn mutation_lowering_digest(
             &runtime_snapshot_identity.evidence_identity(),
         );
     }
-    identity.seal().as_ref().to_string()
+    identity.seal()
 }
 
 fn request_origin_label(origin: &StrategyRequestOrigin) -> &'static str {

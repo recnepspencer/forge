@@ -1,4 +1,6 @@
-use super::live_subscription::live_subscription_digest_source_identity;
+use super::live_subscription::{
+    live_subscription_source_digest_evidence, live_subscription_source_identity,
+};
 use super::*;
 use crate::subscription::SubscriptionActivationInput;
 
@@ -188,8 +190,6 @@ impl ForgeQueryRuntime {
         let counters = activation.counters().clone();
         let activation_receipt =
             install_live_subscription_activation(&mut *self.backend, view_name, &activation)?;
-        let activation_digest = activation_receipt.activation_digest().to_string();
-        let support_evidence = activation_receipt.support_evidence().to_string();
         let remask_posture = activation_receipt.remask_posture().cloned();
         let active_lane_admission =
             admit_active_subscription_lane(activation.clone(), runtime_active_lifecycle_budget())
@@ -216,7 +216,7 @@ impl ForgeQueryRuntime {
             &active_lane_handle,
             SubscriptionConsumerAttachmentRequest::admitted(
                 format!("runtime-live-view:{view_name}"),
-                activation_digest.clone(),
+                activation_receipt.activation_for_reporting().to_string(),
             ),
             runtime_consumer_attachment_budget(),
         )
@@ -237,17 +237,23 @@ impl ForgeQueryRuntime {
             lowered_subscription.subscription_declaration_identity,
             lowered_subscription.bridge_declaration_identity,
             lowered_subscription.admission_identity,
-            live_subscription_digest_source_identity("activation", &activation_digest),
+            live_subscription_source_identity(
+                "activation",
+                activation_receipt.activation_identity(),
+            ),
             lowered_subscription.basis_binding_identity,
             lowered_subscription.signal_strategy_identity,
-            live_subscription_digest_source_identity("active_lane", &active_lane_digest),
+            live_subscription_source_identity(
+                "active_lane",
+                &live_subscription_source_digest_evidence("active_lane", &active_lane_digest),
+            ),
             &consumer_attachment,
             runtime_subscription_budget_policy(),
             runtime_active_lifecycle_budget_policy(),
             runtime_consumer_attachment_budget_policy(),
             active_lane_counters,
             consumer_attachment_counters,
-            live_subscription_digest_source_identity("support", &support_evidence),
+            live_subscription_source_identity("support", activation_receipt.support_identity()),
             counters,
         );
 
@@ -324,34 +330,40 @@ fn lower_runtime_live_subscription_request(
         )?;
 
     Ok(LoweredRuntimeLiveSubscriptionRequest {
-        query_identity: live_subscription_digest_source_identity(
+        query_identity: live_subscription_source_identity(
             "query",
-            session.canonical().query().digest().as_str(),
+            &live_subscription_source_digest_evidence(
+                "query",
+                session.canonical().query().digest().as_str(),
+            ),
         ),
-        live_view_identity: live_subscription_digest_source_identity(
+        live_view_identity: live_subscription_source_identity(
             "live_view",
-            session.live_view().lowering().digest(),
+            &live_subscription_source_digest_evidence(
+                "live_view",
+                session.live_view().lowering().digest(),
+            ),
         ),
         subscription_family,
-        subscription_declaration_identity: live_subscription_digest_source_identity(
+        subscription_declaration_identity: live_subscription_source_identity(
             "subscription_declaration",
-            subscription_declaration_digest.as_str(),
+            &live_subscription_source_digest_evidence(
+                "subscription_declaration",
+                subscription_declaration_digest.as_str(),
+            ),
         ),
-        admission_identity: live_subscription_digest_source_identity(
-            "admission",
-            admission.admission_digest(),
-        ),
-        bridge_declaration_identity: live_subscription_digest_source_identity(
+        admission_identity: live_subscription_source_identity("admission", admission.evidence_identity()),
+        bridge_declaration_identity: live_subscription_source_identity(
             "bridge_declaration",
-            admission.bridge_declaration_digest(),
+            admission.bridge_declaration_identity(),
         ),
-        basis_binding_identity: live_subscription_digest_source_identity(
+        basis_binding_identity: live_subscription_source_identity(
             "basis_binding",
-            admission.basis_binding_digest(),
+            admission.basis_binding_identity(),
         ),
-        signal_strategy_identity: live_subscription_digest_source_identity(
+        signal_strategy_identity: live_subscription_source_identity(
             "signal_strategy",
-            admission.signal_strategy_digest(),
+            admission.signal_strategy_identity(),
         ),
         activation: prepare_subscription_activation(admission),
     })

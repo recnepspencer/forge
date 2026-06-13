@@ -21,7 +21,7 @@ pub(super) fn validate_materialization_contract(
             CausalInspectionMaterializationErrorKind::MaterializationPolicyOverclaim,
             &[
                 format!("policy:{}", materialization_policy.as_str()),
-                format!("envelope:{}", envelope.envelope_digest()),
+                format!("envelope:{}", envelope.envelope_for_reporting()),
                 "bindings:0".to_string(),
             ],
         ));
@@ -89,7 +89,7 @@ fn query_observation_binding_error(
                 query_observation_identity.as_str()
             ),
             format!("query-observation-binding-count:{query_observation_binding_count}"),
-            format!("envelope:{}", envelope.envelope_digest()),
+            format!("envelope:{}", envelope.envelope_for_reporting()),
         ],
     )
 }
@@ -129,7 +129,7 @@ fn validate_requested_replay_posture(
     Err(CausalInspectionMaterializationError::new(
         CausalInspectionMaterializationErrorKind::ReplayPostureUnsupported,
         &[
-            format!("envelope:{}", envelope.envelope_digest()),
+            format!("envelope:{}", envelope.envelope_for_reporting()),
             format!("bridge-replay-requested:{bridge_replay_requested}"),
             format!("bridge-replay-bound:{bridge_replay_bound}"),
             format!("signal-cursor-requested:{signal_cursor_requested}"),

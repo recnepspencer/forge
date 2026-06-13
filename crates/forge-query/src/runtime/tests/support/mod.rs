@@ -92,7 +92,7 @@ pub(in crate::runtime::tests) fn live_subscription_async_identity(
         .get(view_name)
         .expect("live subscription state should exist");
     (
-        state.installation.basis_binding_digest().to_string(),
+        state.installation.basis_binding_for_reporting().to_string(),
         state
             .active_lane_handle
             .checkpoint_identity_digest()

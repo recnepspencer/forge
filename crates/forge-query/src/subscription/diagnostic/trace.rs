@@ -143,13 +143,13 @@ pub fn trace_admitted_query_subscription_diagnostics(
                 "bridge lowering admitted family {} for canonical query declaration",
                 lowering.bridge_family().as_str()
             ),
-            lowering.bridge_declaration_digest(),
+            lowering.bridge_declaration_for_reporting(),
             lowering.counters().digest(),
         ),
         QuerySubscriptionDiagnosticEvidence::admitted(
             QuerySubscriptionDiagnosticStage::RuntimeBackedAdmission,
             "runtime-backed subscription admission preserved declaration, bridge, basis, and signal identity",
-            admission.admission_digest(),
+            admission.admission_for_reporting(),
             admission.counters().digest(),
         ),
         QuerySubscriptionDiagnosticEvidence::admitted(
@@ -165,7 +165,7 @@ pub fn trace_admitted_query_subscription_diagnostics(
         QuerySubscriptionDiagnosticEvidence::admitted(
             QuerySubscriptionDiagnosticStage::Certification,
             "subscription lifecycle certification closed the admitted runtime-backed proof chain",
-            lifecycle.certification_bundle_digest(),
+            lifecycle.certification_bundle_for_reporting(),
             lifecycle.counter_snapshot(),
         ),
     ];
@@ -251,25 +251,25 @@ pub fn trace_denied_query_subscription_diagnostics(
         }
     }
     if let (Some(declaration), Some(lowering)) = (declaration, lowering) {
-        if declaration.declaration_digest().as_str() != lowering.query_declaration_digest() {
+        if declaration.declaration_digest().as_str() != lowering.query_declaration_for_reporting() {
             return Err(QuerySubscriptionDiagnosticBundleError::new(
                 QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
                 "diagnostic trace assembly requires bridge lowering to bind the same declaration artifact",
                 &[
                     format!("declaration:{}", declaration.declaration_digest().as_str()),
-                    format!("lowering:{}", lowering.query_declaration_digest()),
+                    format!("lowering:{}", lowering.query_declaration_for_reporting()),
                 ],
             ));
         }
     }
     if let (Some(declaration), Some(admission)) = (declaration, admission) {
-        if declaration.declaration_digest().as_str() != admission.query_declaration_digest() {
+        if declaration.declaration_digest().as_str() != admission.query_declaration_for_reporting() {
             return Err(QuerySubscriptionDiagnosticBundleError::new(
                 QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
                 "diagnostic trace assembly requires admission to preserve declaration identity",
                 &[
                     format!("declaration:{}", declaration.declaration_digest().as_str()),
-                    format!("admission:{}", admission.query_declaration_digest()),
+                    format!("admission:{}", admission.query_declaration_for_reporting()),
                 ],
             ));
         }
@@ -384,7 +384,7 @@ pub fn trace_denied_query_subscription_diagnostics(
             if bridge_failure {
                 failure.source_digest().to_string()
             } else {
-                lowering.bridge_declaration_digest().to_string()
+                lowering.bridge_declaration_for_reporting().to_string()
             },
             if bridge_failure {
                 failure.counter_digest().to_string()
@@ -418,7 +418,7 @@ pub fn trace_denied_query_subscription_diagnostics(
             if admission_failure {
                 failure.source_digest().to_string()
             } else {
-                admission.admission_digest().to_string()
+                admission.admission_for_reporting().to_string()
             },
             if admission_failure {
                 failure.counter_digest().to_string()
@@ -495,23 +495,23 @@ fn validate_admitted_sources(
             ],
         ));
     }
-    if declaration.declaration_digest().as_str() != lowering.query_declaration_digest() {
+    if declaration.declaration_digest().as_str() != lowering.query_declaration_for_reporting() {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
             "admitted diagnostic trace requires bridge lowering to preserve declaration identity",
             &[
                 format!("declaration:{}", declaration.declaration_digest().as_str()),
-                format!("lowering:{}", lowering.query_declaration_digest()),
+                format!("lowering:{}", lowering.query_declaration_for_reporting()),
             ],
         ));
     }
-    if declaration.declaration_digest().as_str() != admission.query_declaration_digest() {
+    if declaration.declaration_digest().as_str() != admission.query_declaration_for_reporting() {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
             "admitted diagnostic trace requires admission to preserve declaration identity",
             &[
                 format!("declaration:{}", declaration.declaration_digest().as_str()),
-                format!("admission:{}", admission.query_declaration_digest()),
+                format!("admission:{}", admission.query_declaration_for_reporting()),
             ],
         ));
     }
@@ -528,7 +528,7 @@ fn validate_admitted_sources(
             ],
         ));
     }
-    if lifecycle.subscription_declaration_digest() != declaration.declaration_digest().as_str() {
+    if lifecycle.query_declaration_for_reporting() != declaration.declaration_digest().as_str() {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::LifecycleSourceMismatch,
             "admitted diagnostic trace requires lifecycle certification to preserve declaration identity",
@@ -536,7 +536,7 @@ fn validate_admitted_sources(
                 format!("declaration:{}", declaration.declaration_digest().as_str()),
                 format!(
                     "lifecycle_declaration:{}",
-                    lifecycle.subscription_declaration_digest()
+                    lifecycle.query_declaration_for_reporting()
                 ),
             ],
         ));
