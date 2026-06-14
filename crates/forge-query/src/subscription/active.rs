@@ -88,7 +88,7 @@ pub fn admit_active_subscription_lane(
         budget.registry_lookup_width() + budget.fanout_width() + budget.allocation_scope_width(),
         ActiveDeliveryDensityPosture::SparseDelta,
         budget.allocation_posture(),
-        &source_digest,
+        activation.evidence_identity(),
     );
     counters.subscription_performance_receipt_count = 1;
     counters.subscription_budget_consumption_width = performance_receipt.consumed_width();
@@ -98,7 +98,7 @@ pub fn admit_active_subscription_lane(
     let lane_identity = active_lane_identity(
         activation.evidence_identity(),
         activation.admission_identity(),
-        activation.query_declaration_for_reporting(),
+        activation.query_declaration_identity(),
         activation.bridge_declaration_identity(),
         activation.future_selection().projection_identity(),
         activation.basis_binding_identity(),
@@ -114,7 +114,7 @@ pub fn admit_active_subscription_lane(
         performance_receipt.performance_receipt_identity(),
         &counters.evidence_identity(),
     );
-    let lane_digest = ActiveSubscriptionLaneDigest::new(lane_identity.as_str().to_string());
+    let lane_digest = ActiveSubscriptionLaneDigest::new(lane_identity);
 
     Ok(ActiveSubscriptionLaneAdmission {
         lane_digest,
@@ -123,8 +123,8 @@ pub fn admit_active_subscription_lane(
         query_declaration_digest: activation.query_declaration_for_reporting().to_string(),
         bridge_declaration_digest: activation.bridge_declaration_for_reporting().to_string(),
         future_selection: activation.future_selection().clone(),
-        basis_binding_digest: activation.basis_binding_for_reporting().to_string(),
-        checkpoint_identity_digest: activation.checkpoint_for_reporting().to_string(),
+        basis_binding_identity: activation.basis_binding_identity().clone(),
+        checkpoint_identity: activation.checkpoint_identity().clone(),
         signal_strategy_digest: activation.signal_strategy_for_reporting().to_string(),
         lifecycle_posture,
         delivery_posture,

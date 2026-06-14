@@ -61,7 +61,7 @@ fn mutation_effect_normalizes_and_admits_from_raw_workflow_request() {
             .authority_target_family(),
         &WorkflowAuthorityTargetFamily::RelationalMutation
     );
-    assert!(!admitted.admitted_digest().is_empty());
+    assert!(!admitted.admitted_for_reporting().is_empty());
 }
 
 #[test]

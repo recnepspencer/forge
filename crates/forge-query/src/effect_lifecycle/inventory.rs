@@ -1,10 +1,15 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::identity::hash_parts;
+use crate::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::inventory_rows::{effect_lifecycle_family_rows, effect_lifecycle_public_surface_rows};
 use super::planning::EffectAuthorityOwner;
 use super::support_matrix::{EffectLifecycleSupportRow, EffectSupportPosture};
 use super::taxonomy::EffectFamily;
+
+const EFFECT_LIFECYCLE_IDENTITY_SCOPE: ForgeQueryEvidenceScope =
+    ForgeQueryEvidenceScope::WorkflowMutationLowering;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectLifecycleFamilyKey {
@@ -72,7 +77,7 @@ pub struct EffectLifecycleFamilyInventoryRow {
     receipt_artifact_kind: EffectReceiptArtifactKind,
     denial_posture: EffectSupportPosture,
     deferred_posture: EffectSupportPosture,
-    row_digest: String,
+    row_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectLifecycleFamilyInventoryRow {
@@ -85,35 +90,49 @@ impl EffectLifecycleFamilyInventoryRow {
         denial_posture: EffectSupportPosture,
         deferred_posture: EffectSupportPosture,
     ) -> Self {
-        let row_digest = hash_parts(
-            &std::iter::once(format!("family:{}", family_key.as_str()))
-                .chain(std::iter::once(format!(
-                    "authority_owner:{}",
-                    authority_owner.as_str()
-                )))
-                .chain(
-                    admitted_basis_families
-                        .iter()
-                        .map(|basis| format!("basis:{}", basis.as_str())),
-                )
-                .chain(std::iter::once(format!(
-                    "lowered_artifact:{}",
-                    lowered_artifact_kind.as_str()
-                )))
-                .chain(std::iter::once(format!(
-                    "receipt_artifact:{}",
-                    receipt_artifact_kind.as_str()
-                )))
-                .chain(std::iter::once(format!(
-                    "denial_posture:{}",
-                    denial_posture.as_str()
-                )))
-                .chain(std::iter::once(format!(
-                    "deferred_posture:{}",
-                    deferred_posture.as_str()
-                )))
-                .collect::<Vec<_>>(),
-        );
+        let basis_identities = admitted_basis_families
+            .iter()
+            .map(|basis| {
+                ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("identity_family"),
+                        "effect_lifecycle_family_inventory_basis_v1",
+                    )
+                    .field_shape(ForgeQueryEvidenceTag::new("basis"), basis.as_str())
+                    .seal()
+            })
+            .collect::<Vec<_>>();
+        let row_identity = ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "effect_lifecycle_family_inventory_row_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("family"), family_key.as_str())
+            .field_shape(
+                ForgeQueryEvidenceTag::new("authority_owner"),
+                authority_owner.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("lowered_artifact"),
+                lowered_artifact_kind.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("receipt_artifact"),
+                receipt_artifact_kind.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("denial_posture"),
+                denial_posture.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("deferred_posture"),
+                deferred_posture.as_str(),
+            )
+            .field_evidence_identity_sequence(
+                ForgeQueryEvidenceTag::new("admitted_basis"),
+                &basis_identities,
+            )
+            .seal();
         Self {
             family_key,
             authority_owner,
@@ -122,7 +141,7 @@ impl EffectLifecycleFamilyInventoryRow {
             receipt_artifact_kind,
             denial_posture,
             deferred_posture,
-            row_digest,
+            row_identity,
         }
     }
 
@@ -154,15 +173,19 @@ impl EffectLifecycleFamilyInventoryRow {
         self.deferred_posture
     }
 
-    pub fn row_digest(&self) -> &str {
-        &self.row_digest
+    pub fn row_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.row_identity
+    }
+
+    pub fn row_for_reporting(&self) -> &str {
+        self.row_identity.as_str()
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectLifecycleFamilyInventory {
     rows: Vec<EffectLifecycleFamilyInventoryRow>,
-    inventory_digest: String,
+    inventory_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectLifecycleFamilyInventory {
@@ -170,8 +193,12 @@ impl EffectLifecycleFamilyInventory {
         &self.rows
     }
 
-    pub fn inventory_digest(&self) -> &str {
-        &self.inventory_digest
+    pub fn inventory_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.inventory_identity
+    }
+
+    pub fn inventory_for_reporting(&self) -> &str {
+        self.inventory_identity.as_str()
     }
 }
 
@@ -226,7 +253,7 @@ pub struct EffectLifecyclePublicSurfaceRow {
     primary_artifact_kind: Option<EffectReceiptArtifactKind>,
     availability: EffectPublicSurfaceAvailability,
     lower_runtime_visibility_hidden: bool,
-    row_digest: String,
+    row_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectLifecyclePublicSurfaceRow {
@@ -237,25 +264,41 @@ impl EffectLifecyclePublicSurfaceRow {
         availability: EffectPublicSurfaceAvailability,
         lower_runtime_visibility_hidden: bool,
     ) -> Self {
-        let row_digest = hash_parts(&[
-            format!("surface_kind:{}", surface_kind.as_str()),
-            format!("entrypoint:{}", entrypoint.unwrap_or("none")),
-            format!(
-                "artifact:{}",
+        let row_identity = ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "effect_lifecycle_public_surface_row_v1",
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("surface_kind"),
+                surface_kind.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("entrypoint"),
+                entrypoint.unwrap_or("none"),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("artifact"),
                 primary_artifact_kind
                     .map(|kind| kind.as_str())
-                    .unwrap_or("none")
-            ),
-            format!("availability:{}", availability.as_str()),
-            format!("hidden:{lower_runtime_visibility_hidden}"),
-        ]);
+                    .unwrap_or("none"),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("availability"),
+                availability.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("hidden"),
+                lower_runtime_visibility_hidden.to_string().as_str(),
+            )
+            .seal();
         Self {
             surface_kind,
             entrypoint,
             primary_artifact_kind,
             availability,
             lower_runtime_visibility_hidden,
-            row_digest,
+            row_identity,
         }
     }
 
@@ -279,15 +322,19 @@ impl EffectLifecyclePublicSurfaceRow {
         self.lower_runtime_visibility_hidden
     }
 
-    pub fn row_digest(&self) -> &str {
-        &self.row_digest
+    pub fn row_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.row_identity
+    }
+
+    pub fn row_for_reporting(&self) -> &str {
+        self.row_identity.as_str()
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectLifecyclePublicSurfaceInventory {
     rows: Vec<EffectLifecyclePublicSurfaceRow>,
-    inventory_digest: String,
+    inventory_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectLifecyclePublicSurfaceInventory {
@@ -295,36 +342,57 @@ impl EffectLifecyclePublicSurfaceInventory {
         &self.rows
     }
 
-    pub fn inventory_digest(&self) -> &str {
-        &self.inventory_digest
+    pub fn inventory_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.inventory_identity
     }
+
+    pub fn inventory_for_reporting(&self) -> &str {
+        self.inventory_identity.as_str()
+    }
+}
+
+fn compose_inventory_identity(
+    identity_family: &str,
+    rows: &[ForgeQueryEvidenceIdentity],
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            identity_family,
+        )
+        .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("rows"), rows)
+        .seal()
 }
 
 pub fn effect_lifecycle_family_inventory() -> EffectLifecycleFamilyInventory {
     let rows = effect_lifecycle_family_rows();
-    let inventory_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
+    let row_identities = rows
+        .iter()
+        .map(|row| row.row_identity().clone())
+        .collect::<Vec<_>>();
+    let inventory_identity = compose_inventory_identity(
+        "effect_lifecycle_family_inventory_v1",
+        &row_identities,
     );
     EffectLifecycleFamilyInventory {
         rows,
-        inventory_digest,
+        inventory_identity,
     }
 }
 
 pub fn effect_lifecycle_public_surface_inventory() -> EffectLifecyclePublicSurfaceInventory {
     let rows = effect_lifecycle_public_surface_rows();
-    let inventory_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
+    let row_identities = rows
+        .iter()
+        .map(|row| row.row_identity().clone())
+        .collect::<Vec<_>>();
+    let inventory_identity = compose_inventory_identity(
+        "effect_lifecycle_public_surface_inventory_v1",
+        &row_identities,
     );
     EffectLifecyclePublicSurfaceInventory {
         rows,
-        inventory_digest,
+        inventory_identity,
     }
 }
 

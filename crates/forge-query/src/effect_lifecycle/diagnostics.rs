@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::envelope::SelfDescribingEffectEnvelope;
 use super::receipt::EffectExecutionReceipt;
@@ -26,10 +28,10 @@ impl EffectDiagnosticsRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectDiagnosticsMaterialization {
-    receipt_digest: String,
-    envelope_digest: String,
+    receipt_identity: ForgeQueryEvidenceIdentity,
+    envelope_identity: ForgeQueryEvidenceIdentity,
     detail_sections: Vec<String>,
-    diagnostics_digest: String,
+    diagnostics_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectDiagnosticsMaterialization {
@@ -38,74 +40,76 @@ impl EffectDiagnosticsMaterialization {
         envelope: &SelfDescribingEffectEnvelope,
         request: EffectDiagnosticsRequest,
     ) -> Self {
+        let receipt_identity = receipt.receipt_identity().clone();
+        let envelope_identity = envelope.envelope_identity().clone();
         let mut detail_sections = vec![
             format!("family:{}", receipt.declared_effect_family().as_str()),
             format!("authority_lane:{}", receipt.authority_lane().as_str()),
             format!("basis_lane:{}", receipt.basis_lane().as_str()),
-            format!("trace:{}", receipt.decision_trace().decision_trace_digest()),
+            format!(
+                "trace:{}",
+                receipt.decision_trace().decision_trace_for_reporting()
+            ),
         ];
         if request.include_lowered_digest {
             detail_sections.push(format!(
                 "lowered:{}",
-                receipt.decision_trace().lowered_digest()
+                receipt.decision_trace().lowered_for_reporting()
             ));
         }
         if request.include_counter_snapshot {
-            detail_sections.push(format!("counters:{}", receipt.delivery_counters().digest()));
+            detail_sections.push(format!("counters:{}", receipt.delivery_counters().counter_for_reporting()));
         }
         if request.include_integrity_markers {
             detail_sections.push(format!(
                 "integrity:{}",
-                receipt.integrity_markers().integrity_digest()
+                receipt.integrity_markers().integrity_for_reporting()
             ));
         }
         if request.include_transition_rules {
             detail_sections.push(format!(
                 "transitions:{}",
-                receipt.transition_rules().rules_digest()
+                receipt.transition_rules().rules_for_reporting()
             ));
         }
         if request.include_source_refs {
-            detail_sections.push(format!("sources:{}", envelope.sources().sources_digest()));
+            detail_sections.push(format!("sources:{}", envelope.sources().sources_for_reporting()));
         }
-        let diagnostics_digest = hash_parts(
-            &std::iter::once("effect_diagnostics_materialization_v1".to_string())
-                .chain(std::iter::once(format!(
-                    "receipt:{}",
-                    receipt.receipt_digest()
-                )))
-                .chain(std::iter::once(format!(
-                    "envelope:{}",
-                    envelope.envelope_digest()
-                )))
-                .chain(
-                    detail_sections
-                        .iter()
-                        .map(|section| format!("section:{section}")),
-                )
-                .collect::<Vec<_>>(),
-        );
+        let diagnostics_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::EffectIntentReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "effect_diagnostics_materialization_v1",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), &receipt_identity)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("envelope"), &envelope_identity)
+        .seal();
         Self {
-            receipt_digest: receipt.receipt_digest().to_string(),
-            envelope_digest: envelope.envelope_digest().to_string(),
+            receipt_identity,
+            envelope_identity,
             detail_sections,
-            diagnostics_digest,
+            diagnostics_identity,
         }
     }
 
-    pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+    pub fn receipt_for_reporting(&self) -> &str {
+        self.receipt_identity.as_str()
     }
 
-    pub fn envelope_digest(&self) -> &str {
-        &self.envelope_digest
+    pub fn envelope_for_reporting(&self) -> &str {
+        self.envelope_identity.as_str()
     }
 
     pub fn detail_sections(&self) -> &[String] {
         &self.detail_sections
     }
 
-    pub fn diagnostics_digest(&self) -> &str {
-        &self.diagnostics_digest
+    pub fn diagnostics_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.diagnostics_identity
+    }
+
+    pub fn diagnostics_for_reporting(&self) -> &str {
+        self.diagnostics_identity.as_str()
     }
 }

@@ -47,6 +47,13 @@ impl ProjectionConsumptionBindingContext {
         }
     }
 
+    pub fn from_result_shape_identity(
+        result_shape_identity: &crate::evidence_identity::ForgeQueryEvidenceIdentity,
+        authorized_projection: &AuthorizedProjectionArtifact,
+    ) -> Self {
+        Self::from_result_shape_digest(result_shape_identity.as_str(), authorized_projection)
+    }
+
     pub fn from_projection_metadata(
         result_shape_digest: impl Into<String>,
         authorized_projection_query_digest: impl Into<String>,

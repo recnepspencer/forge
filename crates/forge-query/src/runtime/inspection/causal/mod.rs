@@ -107,7 +107,7 @@ pub use request::{
 pub(crate) use identity::{
     causal_test_bridge_binding_reference_for_reporting,
     causal_test_compose_bridge_causal_denial_for_reporting,
-    causal_test_compose_bridge_causal_envelope_digest,
-    causal_test_compose_bridge_causal_envelope_receipt_digest,
-    causal_test_compose_bridge_causal_explanation_envelope_digest,
+    causal_test_compose_bridge_causal_envelope_identity_for_reporting,
+    causal_test_compose_bridge_causal_envelope_receipt_identity_for_reporting,
+    causal_test_compose_bridge_causal_explanation_envelope_identity_for_reporting,
 };

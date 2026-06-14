@@ -56,10 +56,10 @@ impl CausalInspectionRepresentativeRowDigestSet {
         kind: CausalInspectionRepresentativeKind,
         artifact: &QueryCausalInspectionArtifact,
     ) -> Self {
-        let query_observation_receipt_digest = artifact.query_observation_digest().to_string();
+        let query_observation_receipt_digest = artifact.query_observation_for_reporting().to_string();
         let causal_observation_anchor_digest =
             RepresentativeCausalObservationAnchorDigest::from_digest(
-                artifact.causal_identity_digest(),
+                artifact.causal_identity_for_reporting(),
             );
         let query_digest = hash_parts(&[
             "causal_inspection_representative_query_digest_v1".to_string(),
@@ -82,8 +82,8 @@ impl CausalInspectionRepresentativeRowDigestSet {
             query_observation_receipt_digest: &query_observation_receipt_digest,
             causal_observation_anchor_digest: causal_observation_anchor_digest.as_str(),
             inspection_digest: Some(&inspection_digest),
-            artifact_digest: Some(artifact.artifact_digest()),
-            causal_envelope_digest: artifact.bridge_envelope_digest(),
+            artifact_digest: Some(artifact.artifact_for_reporting()),
+            causal_envelope_digest: artifact.bridge_envelope_for_reporting(),
             evidence_reference_collection_digest: Some(&evidence_reference_collection_digest),
             relational_authority_digest: slots.relational_authority_digest.as_deref(),
             bridge_route_digest: slots.bridge_route_digest.as_deref(),
@@ -117,8 +117,8 @@ impl CausalInspectionRepresentativeRowDigestSet {
             query_observation_receipt_digest,
             causal_observation_anchor_digest,
             inspection_digest: Some(inspection_digest),
-            artifact_digest: Some(artifact.artifact_digest().to_string()),
-            causal_envelope_digest: artifact.bridge_envelope_digest().map(str::to_string),
+            artifact_digest: Some(artifact.artifact_for_reporting().to_string()),
+            causal_envelope_digest: artifact.bridge_envelope_for_reporting().map(str::to_string),
             evidence_reference_collection_digest: Some(evidence_reference_collection_digest),
             relational_authority_digest: slots.relational_authority_digest,
             bridge_route_digest: slots.bridge_route_digest,

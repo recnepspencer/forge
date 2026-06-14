@@ -3,7 +3,7 @@ use super::super::matrix_kind::CausalInspectionRepresentativeKind;
 
 pub(super) fn inspection_digest(artifact: &QueryCausalInspectionArtifact) -> &str {
     match artifact {
-        QueryCausalInspectionArtifact::Admitted(artifact) => artifact.query_admission_digest(),
+        QueryCausalInspectionArtifact::Admitted(artifact) => artifact.query_admission_for_reporting(),
         QueryCausalInspectionArtifact::Advisory(artifact) => artifact.query_advisory_for_reporting(),
         QueryCausalInspectionArtifact::Denied(artifact) => artifact.query_denial_for_reporting(),
     }

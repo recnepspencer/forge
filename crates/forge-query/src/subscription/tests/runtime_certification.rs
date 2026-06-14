@@ -475,7 +475,7 @@ fn runtime_certification_artifacts_for_source(
     )
     .unwrap();
     let support_report = report_query_subscription_support(
-        QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &active_admission),
+        QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &admission, &active_admission),
         QuerySubscriptionSupportEvidence::admission(&declaration, &admission).unwrap(),
     )
     .unwrap()

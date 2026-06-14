@@ -345,7 +345,7 @@ const FORBIDDEN_DIGEST_FOLKLORE_PATTERNS: &[&str] = &[
     "format!(\"{:#?}|",
     "optional_identity(",
     "bridge_digest",
-    "query_observation_digest: &str",
+    "query_observation_for_reporting: &str",
     "reference_digest: &str",
     "source_identity: impl AsRef<str>",
     "performance_digest: String",

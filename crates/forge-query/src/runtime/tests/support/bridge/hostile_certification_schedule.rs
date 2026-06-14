@@ -258,7 +258,7 @@ impl HostileExecutionState {
             other => panic!("expected pending published artifact posture, got {other:?}"),
         };
         self.reader_results
-            .push(pending_state.result_state_digest().to_string());
+            .push(pending_state.result_state_for_reporting().to_string());
         self.published_artifacts
             .push(hostile_published_artifact_digest(&unpublished, None));
     }

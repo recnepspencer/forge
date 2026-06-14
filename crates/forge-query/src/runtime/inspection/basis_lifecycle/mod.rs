@@ -2,6 +2,9 @@ mod build;
 
 use crate::application::ForgeQueryAdmittedWorldBasis;
 use crate::identity::hash_parts;
+use crate::runtime::evidence_identities::{
+    runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
+};
 use crate::query_basis_lifecycle::{
     BasisIntentDenial, BasisLifecyclePosture, BasisOperationLaneRequest, BasisVisibility,
     DeniedBasisCapability, InspectionBasisCapability, LowerRuntimeBoundInspectionBasis,
@@ -45,9 +48,17 @@ impl ForgeQueryBasisLifecycleInspection {
         let explanation = format!(
             "retained admitted world basis `{}` exposes basis lifecycle support `{}` and support snapshot `{}`",
             basis.domain_key(),
-            basis.basis_lifecycle_support_digest(),
+            basis.basis_lifecycle_support_for_reporting(),
             basis.support_snapshot_digest()
         );
+        let basis_digest = runtime_state_snapshot_basis_label_identity(
+            basis.basis_lifecycle_support_identity(),
+        )
+        .as_str()
+        .to_string();
+        let shape_digest = runtime_state_snapshot_result_shape_label_identity(basis.handle_identity())
+            .as_str()
+            .to_string();
         let inspection_digest = hash_parts(&[
             "forge_query_basis_lifecycle_inspection_v1".to_string(),
             "subject:admitted_world_basis".to_string(),
@@ -56,16 +67,16 @@ impl ForgeQueryBasisLifecycleInspection {
                 "authority_lane:{}",
                 ForgeQueryAuthorityLane::AuthoritativeTruth.as_str()
             ),
-            format!("basis:{}", basis.basis_lifecycle_support_digest()),
-            format!("shape:{}", basis.handle_identity_digest()),
+            format!("basis:{}", basis_digest),
+            format!("shape:{}", shape_digest),
             format!("support:{}", basis.support_snapshot_digest()),
         ]);
         Self {
             subject_label: "admitted_world_basis",
             state_kind: ForgeQueryRuntimeStateKind::Ready,
             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-            basis_digest: basis.basis_lifecycle_support_digest().to_string(),
-            shape_digest: basis.handle_identity_digest().to_string(),
+            basis_digest,
+            shape_digest,
             family: None,
             operation_lane: None,
             visibility: None,
@@ -221,7 +232,7 @@ impl From<&LowerRuntimeBoundObservationBasis> for ForgeQueryBasisLifecycleInspec
             "lower_runtime_bound_observation_basis",
             value.capability(),
             value.authority_name(),
-            value.binding_digest(),
+            value.binding_for_reporting(),
         )
     }
 }
@@ -232,7 +243,7 @@ impl From<&LowerRuntimeBoundInspectionBasis> for ForgeQueryBasisLifecycleInspect
             "lower_runtime_bound_inspection_basis",
             value.capability(),
             value.authority_name(),
-            value.binding_digest(),
+            value.binding_for_reporting(),
         )
     }
 }
@@ -243,7 +254,7 @@ impl From<&LowerRuntimeBoundSubscriptionDeclarationBasis> for ForgeQueryBasisLif
             "lower_runtime_bound_subscription_declaration_basis",
             value.capability(),
             value.authority_name(),
-            value.binding_digest(),
+            value.binding_for_reporting(),
         )
     }
 }
@@ -254,7 +265,7 @@ impl From<&LowerRuntimeBoundSubscriptionActivationBasis> for ForgeQueryBasisLife
             "lower_runtime_bound_subscription_activation_basis",
             value.capability(),
             value.authority_name(),
-            value.binding_digest(),
+            value.binding_for_reporting(),
         )
     }
 }

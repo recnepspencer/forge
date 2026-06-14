@@ -46,8 +46,8 @@ impl ActiveSubscriptionLaneRegistry {
             let handle = ActiveSubscriptionLaneHandle::new(
                 admission.lane_digest.clone(),
                 admission.future_selection.clone(),
-                admission.basis_binding_digest.clone(),
-                admission.checkpoint_identity_digest.clone(),
+                admission.basis_binding_identity.clone(),
+                admission.checkpoint_identity.clone(),
                 lane_index as u64,
                 self.generation,
             );
@@ -61,8 +61,8 @@ impl ActiveSubscriptionLaneRegistry {
         let handle = ActiveSubscriptionLaneHandle::new(
             admission.lane_digest.clone(),
             admission.future_selection.clone(),
-            admission.basis_binding_digest.clone(),
-            admission.checkpoint_identity_digest.clone(),
+            admission.basis_binding_identity.clone(),
+            admission.checkpoint_identity.clone(),
             lane_index as u64,
             self.generation,
         );
@@ -75,8 +75,8 @@ impl ActiveSubscriptionLaneRegistry {
             query_declaration_digest: admission.query_declaration_digest,
             bridge_declaration_digest: admission.bridge_declaration_digest,
             future_selection: admission.future_selection,
-            basis_binding_digest: admission.basis_binding_digest,
-            checkpoint_identity_digest: admission.checkpoint_identity_digest,
+            basis_binding_identity: admission.basis_binding_identity,
+            checkpoint_identity: admission.checkpoint_identity,
             signal_strategy_digest: admission.signal_strategy_digest,
             lifecycle_posture: admission.lifecycle_posture,
             delivery_posture: admission.delivery_posture,

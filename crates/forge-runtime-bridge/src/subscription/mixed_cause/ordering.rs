@@ -223,6 +223,10 @@ impl BridgeOrderedMixedCause {
         }
     }
 
+    pub fn ordered_cause_identity(&self) -> &BridgeSubscriptionMixedCauseOrderedCauseIdentity {
+        &self.ordered_cause_identity
+    }
+
     pub fn family_kind(&self) -> BridgeMixedCauseOrderFamilyKind {
         self.family_kind
     }
@@ -276,6 +280,10 @@ impl BridgeSuppressedMixedCause {
         }
     }
 
+    pub fn suppressed_cause_identity(&self) -> &BridgeSubscriptionMixedCauseSuppressedCauseIdentity {
+        &self.suppressed_cause_identity
+    }
+
     pub fn suppressed_kind(&self) -> BridgeMixedCauseSuppressedKind {
         self.suppressed_kind
     }
@@ -325,6 +333,10 @@ impl BridgeDeniedMixedCause {
             canonical_basis,
             digest: Arc::from(format!("bridge-denied-mixed-cause:sha256:{digest:x}")),
         }
+    }
+
+    pub fn denied_cause_identity(&self) -> &BridgeSubscriptionMixedCauseDeniedCauseIdentity {
+        &self.denied_cause_identity
     }
 
     pub fn denied_kind(&self) -> BridgeMixedCauseDeniedKind {

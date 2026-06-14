@@ -33,6 +33,18 @@ impl BridgeIdentityEvidence {
         }
     }
 
+    pub fn from_query_evidence_identity(
+        scope: impl AsRef<str>,
+        identity_token: impl Into<Arc<str>>,
+    ) -> Self {
+        Self {
+            value: identity_token.into(),
+            payload: BridgeIdentityEvidencePayload::QueryEvidenceIdentity {
+                scope: Arc::from(scope.as_ref()),
+            },
+        }
+    }
+
     pub(crate) fn from_arc(value: &Arc<str>) -> Self {
         Self {
             value: Arc::clone(value),
@@ -93,6 +105,7 @@ impl Hash for BridgeIdentityEvidence {
 enum BridgeIdentityEvidencePayload {
     ExternalAuthority,
     CanonicalBridgeEvidence { scope: &'static str },
+    QueryEvidenceIdentity { scope: Arc<str> },
 }
 
 impl AsRef<str> for BridgeIdentityEvidence {
@@ -145,6 +158,10 @@ impl<Tag> BridgeIdentity<Tag> {
             value: Arc::clone(&self.value),
             payload: BridgeIdentityEvidencePayload::ExternalAuthority,
         }
+    }
+
+    pub(crate) fn from_reference_evidence(evidence: &BridgeIdentityEvidence) -> Self {
+        Self::new(evidence.as_str())
     }
 }
 

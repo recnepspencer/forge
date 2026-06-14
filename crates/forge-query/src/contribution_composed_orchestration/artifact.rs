@@ -204,10 +204,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn composed_digest(&self) -> &str {
-        self.composition.composition_digest()
+        self.composition.composition_for_reporting()
     }
 
-    pub fn composition_digest(&self) -> &str {
-        self.composition.composition_digest()
+    pub fn composition_for_reporting(&self) -> &str {
+        self.composition.composition_for_reporting()
+    }
+
+    pub fn composition_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        self.composition.composition_identity()
     }
 }

@@ -1,18 +1,27 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::super::error::QuerySubscriptionFamilySelectionError;
+use super::super::evidence_identities::{
+    diagnostic_selection_context_denied_identity, diagnostic_selection_context_selected_identity,
+};
 use super::super::input::LiveQueryAdmissionArtifact;
 use super::super::selection::QuerySubscriptionFamilySelection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum QuerySubscriptionDiagnosticSelectionContextKind {
-    Selected(QuerySubscriptionFamilySelection),
+    Selected {
+        selection: QuerySubscriptionFamilySelection,
+        context_identity: ForgeQueryEvidenceIdentity,
+        context_for_reporting: String,
+    },
     Denied {
-        source_digest: String,
+        source_identity: ForgeQueryEvidenceIdentity,
+        source_for_reporting: String,
         query_family_label: String,
         declaration_family_label: String,
         basis_posture_label: String,
-        digest: String,
+        context_identity: ForgeQueryEvidenceIdentity,
+        context_for_reporting: String,
     },
 }
 
@@ -23,8 +32,16 @@ pub struct QuerySubscriptionDiagnosticSelectionContext {
 
 impl QuerySubscriptionDiagnosticSelectionContext {
     pub fn from_selection(selection: &QuerySubscriptionFamilySelection) -> Self {
+        let context_identity = diagnostic_selection_context_selected_identity(
+            selection.equivalence_basis().evidence_identity(),
+        );
+        let context_for_reporting = context_identity.as_str().to_string();
         Self {
-            kind: QuerySubscriptionDiagnosticSelectionContextKind::Selected(selection.clone()),
+            kind: QuerySubscriptionDiagnosticSelectionContextKind::Selected {
+                selection: selection.clone(),
+                context_identity,
+                context_for_reporting,
+            },
         }
     }
 
@@ -41,29 +58,34 @@ impl QuerySubscriptionDiagnosticSelectionContext {
             None => format!("selection_unresolved:{}:none", live.live_family().as_str()),
         };
         let declaration_family_label = format!("not_declared:{query_family_label}");
-        let source_digest = error.diagnostic().source_digest().to_string();
-        let digest = hash_parts(&[
-            "query_subscription_diagnostic_selection_context_v1".to_string(),
-            "selection_denied".to_string(),
-            format!("source:{source_digest}"),
-            format!("query_family:{query_family_label}"),
-            format!("declaration_family:{declaration_family_label}"),
-            format!("basis_posture:{}", live.basis_posture().as_str()),
-        ]);
+        let source_for_reporting = error.diagnostic().source_digest().to_string();
+        let source_identity =
+            super::super::evidence_identities::diagnostic_source_projection_identity(
+                &source_for_reporting,
+            );
+        let context_identity = diagnostic_selection_context_denied_identity(
+            &source_identity,
+            &query_family_label,
+            &declaration_family_label,
+            live.basis_posture().as_str(),
+        );
+        let context_for_reporting = context_identity.as_str().to_string();
         Self {
             kind: QuerySubscriptionDiagnosticSelectionContextKind::Denied {
-                source_digest,
+                source_identity,
+                source_for_reporting,
                 query_family_label,
                 declaration_family_label,
                 basis_posture_label: live.basis_posture().as_str().to_string(),
-                digest,
+                context_identity,
+                context_for_reporting,
             },
         }
     }
 
     pub fn query_family_label(&self) -> &str {
         match &self.kind {
-            QuerySubscriptionDiagnosticSelectionContextKind::Selected(selection) => {
+            QuerySubscriptionDiagnosticSelectionContextKind::Selected { selection, .. } => {
                 selection.family().as_str()
             }
             QuerySubscriptionDiagnosticSelectionContextKind::Denied {
@@ -74,7 +96,7 @@ impl QuerySubscriptionDiagnosticSelectionContext {
 
     pub fn declaration_family_label(&self) -> &str {
         match &self.kind {
-            QuerySubscriptionDiagnosticSelectionContextKind::Selected(selection) => {
+            QuerySubscriptionDiagnosticSelectionContextKind::Selected { selection, .. } => {
                 selection.family().as_str()
             }
             QuerySubscriptionDiagnosticSelectionContextKind::Denied {
@@ -86,7 +108,7 @@ impl QuerySubscriptionDiagnosticSelectionContext {
 
     pub fn basis_posture_label(&self) -> &str {
         match &self.kind {
-            QuerySubscriptionDiagnosticSelectionContextKind::Selected(selection) => {
+            QuerySubscriptionDiagnosticSelectionContextKind::Selected { selection, .. } => {
                 selection.basis_posture().as_str()
             }
             QuerySubscriptionDiagnosticSelectionContextKind::Denied {
@@ -97,29 +119,59 @@ impl QuerySubscriptionDiagnosticSelectionContext {
     }
 
     pub fn digest(&self) -> &str {
+        self.context_for_reporting()
+    }
+
+    pub fn context_identity(&self) -> &ForgeQueryEvidenceIdentity {
         match &self.kind {
-            QuerySubscriptionDiagnosticSelectionContextKind::Selected(selection) => {
-                selection.equivalence_basis().digest().as_str()
+            QuerySubscriptionDiagnosticSelectionContextKind::Selected {
+                context_identity, ..
             }
-            QuerySubscriptionDiagnosticSelectionContextKind::Denied { digest, .. } => digest,
+            | QuerySubscriptionDiagnosticSelectionContextKind::Denied {
+                context_identity, ..
+            } => context_identity,
+        }
+    }
+
+    pub fn context_for_reporting(&self) -> &str {
+        match &self.kind {
+            QuerySubscriptionDiagnosticSelectionContextKind::Selected {
+                context_for_reporting, ..
+            }
+            | QuerySubscriptionDiagnosticSelectionContextKind::Denied {
+                context_for_reporting, ..
+            } => context_for_reporting,
         }
     }
 
     pub(crate) fn selection(&self) -> Option<&QuerySubscriptionFamilySelection> {
         match &self.kind {
-            QuerySubscriptionDiagnosticSelectionContextKind::Selected(selection) => Some(selection),
+            QuerySubscriptionDiagnosticSelectionContextKind::Selected { selection, .. } => {
+                Some(selection)
+            }
             QuerySubscriptionDiagnosticSelectionContextKind::Denied { .. } => None,
+        }
+    }
+
+    pub(crate) fn source_identity(&self) -> ForgeQueryEvidenceIdentity {
+        match &self.kind {
+            QuerySubscriptionDiagnosticSelectionContextKind::Selected { selection, .. } => {
+                selection.equivalence_basis().evidence_identity().clone()
+            }
+            QuerySubscriptionDiagnosticSelectionContextKind::Denied {
+                source_identity, ..
+            } => source_identity.clone(),
         }
     }
 
     pub(crate) fn source_digest(&self) -> &str {
         match &self.kind {
-            QuerySubscriptionDiagnosticSelectionContextKind::Selected(selection) => {
+            QuerySubscriptionDiagnosticSelectionContextKind::Selected { selection, .. } => {
                 selection.equivalence_basis().digest().as_str()
             }
-            QuerySubscriptionDiagnosticSelectionContextKind::Denied { source_digest, .. } => {
-                source_digest
-            }
+            QuerySubscriptionDiagnosticSelectionContextKind::Denied {
+                source_for_reporting, ..
+            } => source_for_reporting,
         }
     }
 

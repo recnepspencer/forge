@@ -1,7 +1,6 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner,
-    BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary,
-    BridgeIdentityEvidence, BridgeRoute, TruthCommitIdentity,
+    BridgeCausalEvidenceReferenceIdentity, BridgeIdentityEvidence, BridgeRoute, TruthCommitIdentity,
 };
 
 use super::super::super::materialization::{bridge_reference, external_reference, query_reference};
@@ -13,26 +12,14 @@ pub(super) fn bridge_request_with_lower_runtime_slot_references(
     retained_evidence: &super::RetainedLowerRuntimeSlotEvidence,
     commit_identity: &TruthCommitIdentity,
 ) -> BridgeCausalEnvelopeAssemblyRequest {
-    let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.admitted_inspection_digest(),
-        ),
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_for_reporting(),
-        ),
-    )
-    .expect("query admission summary should be valid");
+    let summary = crate::runtime::tests::causal_inspection::bridge_admitted_summary(admitted);
     let commit_identity = commit_identity.evidence_identity();
     BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         summary,
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        admitted
-                            .subject()
-                            .query_observation_bridge_evidence_identity(),
-                    ),
+                    admitted.subject().query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference identity should be valid"),
             ),

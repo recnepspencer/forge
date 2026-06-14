@@ -2,6 +2,9 @@ use crate::correspondence::{
     CorrespondenceEvaluationRequest, StructuralCandidateBudget, StructuralCandidateDiscoveryPlan,
     StructuralCandidateOrderingContract,
 };
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryContinuityCorrespondenceSemantics {
@@ -114,6 +117,86 @@ impl ForgeQueryContinuityCorrespondenceSemantics {
                 ordering_contract.clone(),
             ),
         }
+    }
+
+    pub fn semantics_identity(&self) -> ForgeQueryEvidenceIdentity {
+        let mut identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_continuity_correspondence_semantics_v1",
+        );
+        identity = match self {
+            Self::LineageOnly {
+                canonical_subject,
+                authoritative_counterpart,
+                discovery_plan,
+                budget,
+            } => identity
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), "lineage")
+                .field_shape(ForgeQueryEvidenceTag::new("canonical_subject"), canonical_subject)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authoritative_counterpart"),
+                    authoritative_counterpart,
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("discovery_plan"),
+                    discovery_plan.as_str(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("budget"),
+                    budget.max_candidates(),
+                ),
+            Self::StructuralOnly {
+                candidates,
+                discovery_plan,
+                budget,
+                ordering_contract,
+            } => identity
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), "structural")
+                .field_value_sequence(ForgeQueryEvidenceTag::new("candidates"), candidates)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("discovery_plan"),
+                    discovery_plan.as_str(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("budget"),
+                    budget.max_candidates(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("ordering_contract"),
+                    ordering_contract.as_str(),
+                ),
+            Self::Mixed {
+                canonical_subject,
+                authoritative_counterpart,
+                candidates,
+                discovery_plan,
+                budget,
+                ordering_contract,
+            } => identity
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), "mixed")
+                .field_shape(ForgeQueryEvidenceTag::new("canonical_subject"), canonical_subject)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authoritative_counterpart"),
+                    authoritative_counterpart,
+                )
+                .field_value_sequence(ForgeQueryEvidenceTag::new("candidates"), candidates)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("discovery_plan"),
+                    discovery_plan.as_str(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("budget"),
+                    budget.max_candidates(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("ordering_contract"),
+                    ordering_contract.as_str(),
+                ),
+        };
+        identity.seal()
     }
 
     pub fn digest_fragment(&self) -> String {

@@ -23,9 +23,15 @@ use super::preview_isolation::{
 use super::scale::QuerySubscriptionScaleSlopeReport;
 use super::selection::QuerySubscriptionFamilySelection;
 use super::evidence_identities::{
-    certification_activation_bundle_identity, lifecycle_certification_bundle_identity,
-    subscription_certification_projection, subscription_certification_sequence_projection,
-    typed_identity_drift,
+    certification_activation_bundle_identity, lifecycle_absent_continuation_identity,
+    lifecycle_absent_performance_receipt_identity, lifecycle_active_lane_handle_identity,
+    lifecycle_active_delivery_density_posture_identity, lifecycle_active_lane_lookup_class_identity,
+    lifecycle_allocation_posture_identity, lifecycle_certification_bundle_identity,
+    lifecycle_context_basis_posture_identity, lifecycle_context_query_identity,
+    lifecycle_context_view_shape_identity, lifecycle_counter_sequence_identity,
+    lifecycle_labeled_counter_identity, lifecycle_performance_sequence_identity,
+    lifecycle_preview_promotion_residue_identity, lifecycle_subscription_budget_identity, lifecycle_subscription_equivalence_identity,
+    lifecycle_subscription_family_identity, lifecycle_support_matrix_identity, typed_identity_drift,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -108,36 +114,39 @@ pub struct QuerySubscriptionCertificationBundle {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubscriptionLifecycleCertificationContext {
     query_digest: String,
-    subscription_family_digest: String,
-    subscription_equivalence_digest: String,
+    query_scope_identity: ForgeQueryEvidenceIdentity,
+    subscription_family_identity: ForgeQueryEvidenceIdentity,
+    subscription_equivalence_identity: ForgeQueryEvidenceIdentity,
     policy_digest: String,
     tenant_basis_digest: String,
     relationship_proof_digest: String,
-    view_shape_digest: String,
-    basis_digest: String,
+    view_shape_identity: ForgeQueryEvidenceIdentity,
+    basis_posture_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl SubscriptionLifecycleCertificationContext {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn admitted(
         query_digest: impl Into<String>,
-        subscription_family_digest: impl Into<String>,
-        subscription_equivalence_digest: impl Into<String>,
+        query_scope_identity: ForgeQueryEvidenceIdentity,
+        subscription_family_identity: ForgeQueryEvidenceIdentity,
+        subscription_equivalence_identity: ForgeQueryEvidenceIdentity,
         policy_digest: impl Into<String>,
         tenant_basis_digest: impl Into<String>,
         relationship_proof_digest: impl Into<String>,
-        view_shape_digest: impl Into<String>,
-        basis_digest: impl Into<String>,
+        view_shape_identity: ForgeQueryEvidenceIdentity,
+        basis_posture_identity: ForgeQueryEvidenceIdentity,
     ) -> Self {
         Self {
             query_digest: query_digest.into(),
-            subscription_family_digest: subscription_family_digest.into(),
-            subscription_equivalence_digest: subscription_equivalence_digest.into(),
+            query_scope_identity,
+            subscription_family_identity,
+            subscription_equivalence_identity,
             policy_digest: policy_digest.into(),
             tenant_basis_digest: tenant_basis_digest.into(),
             relationship_proof_digest: relationship_proof_digest.into(),
-            view_shape_digest: view_shape_digest.into(),
-            basis_digest: basis_digest.into(),
+            view_shape_identity,
+            basis_posture_identity,
         }
     }
 
@@ -145,31 +154,25 @@ impl SubscriptionLifecycleCertificationContext {
         live: &LiveQueryAdmissionArtifact,
         selection: &QuerySubscriptionFamilySelection,
     ) -> Self {
+        let subscription_family_identity =
+            lifecycle_subscription_family_identity(selection.family());
+        let subscription_equivalence_identity =
+            lifecycle_subscription_equivalence_identity(selection.equivalence_basis());
+        let query_scope_identity = lifecycle_context_query_identity(live);
         Self::admitted(
             live.query_digest(),
-            subscription_certification_projection(
-                "subscription_lifecycle_family_v1",
-                [("family", selection.family().as_str().to_string())],
-            ),
-            selection.equivalence_basis().digest().as_str().to_string(),
+            query_scope_identity,
+            subscription_family_identity,
+            subscription_equivalence_identity,
             live.policy_digest().unwrap_or("none").to_string(),
             live.tenant_digest().unwrap_or("none").to_string(),
             live.relationship_proof_digest()
                 .unwrap_or("none")
                 .to_string(),
-            subscription_certification_projection(
-                "subscription_lifecycle_view_shape_v1",
-                [(
-                    "view",
-                    live.view_family()
-                        .map(|family| family.as_str().to_string())
-                        .unwrap_or_else(|| "none".to_string()),
-                )],
+            lifecycle_context_view_shape_identity(
+                live.view_family().map(|family| family.as_str()),
             ),
-            subscription_certification_projection(
-                "subscription_lifecycle_basis_v1",
-                [("basis", live.basis_posture().as_str().to_string())],
-            ),
+            lifecycle_context_basis_posture_identity(live.basis_posture().as_str()),
         )
     }
 
@@ -177,12 +180,24 @@ impl SubscriptionLifecycleCertificationContext {
         &self.query_digest
     }
 
-    pub fn subscription_family_digest(&self) -> &str {
-        &self.subscription_family_digest
+    pub fn query_scope_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_scope_identity
     }
 
-    pub fn subscription_equivalence_digest(&self) -> &str {
-        &self.subscription_equivalence_digest
+    pub fn subscription_family_for_reporting(&self) -> &str {
+        self.subscription_family_identity.as_str()
+    }
+
+    pub fn subscription_family_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subscription_family_identity
+    }
+
+    pub fn subscription_equivalence_for_reporting(&self) -> &str {
+        self.subscription_equivalence_identity.as_str()
+    }
+
+    pub fn subscription_equivalence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subscription_equivalence_identity
     }
 
     pub fn policy_digest(&self) -> &str {
@@ -197,12 +212,20 @@ impl SubscriptionLifecycleCertificationContext {
         &self.relationship_proof_digest
     }
 
-    pub fn view_shape_digest(&self) -> &str {
-        &self.view_shape_digest
+    pub fn view_shape_for_reporting(&self) -> &str {
+        self.view_shape_identity.as_str()
     }
 
-    pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+    pub fn view_shape_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.view_shape_identity
+    }
+
+    pub fn basis_for_reporting(&self) -> &str {
+        self.basis_posture_identity.as_str()
+    }
+
+    pub fn basis_posture_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_posture_identity
     }
 }
 
@@ -258,9 +281,10 @@ pub enum SubscriptionLifecyclePreviewCertification<'a> {
 struct PreviewCertificationEvidence {
     preview_isolation_digest: String,
     preview_residue_digest: String,
-    counter_evidence: Vec<String>,
-    support_evidence: Vec<String>,
+    counter_identities: Vec<ForgeQueryEvidenceIdentity>,
+    support_identities: Vec<ForgeQueryEvidenceIdentity>,
     performance_receipt_digest: String,
+    performance_receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -306,41 +330,40 @@ impl SubscriptionLifecycleCertificationError {
 pub struct SubscriptionLifecycleCertificationBundle {
     certification_bundle_identity: ForgeQueryEvidenceIdentity,
     query_digest: String,
-    subscription_family_digest: String,
+    subscription_family_for_reporting: String,
     query_declaration_for_reporting: String,
     subscription_declaration_identity: ForgeQueryEvidenceIdentity,
-    subscription_equivalence_digest: String,
+    subscription_equivalence_for_reporting: String,
     admission_identity: ForgeQueryEvidenceIdentity,
-    active_lane_digest: String,
-    active_lane_handle_digest: String,
-    active_lane_lookup_class_digest: String,
-    subscription_budget_digest: String,
-    subscription_performance_receipt_digest: String,
-    consumer_attachment_digest: String,
-    acknowledgement_frontier_digest: String,
-    delivery_window_digest: String,
-    maintenance_delta_digest: String,
-    active_delivery_work_packet_digest: String,
-    active_delivery_density_posture_digest: String,
-    allocation_posture_digest: String,
-    delivery_batch_digest: String,
-    patch_group_digest: String,
-    delivery_receipt_digest: String,
-    continuation_digest: String,
-    preview_isolation_digest: String,
-    preview_residue_digest: String,
+    active_lane_for_reporting: String,
+    active_lane_handle_identity: ForgeQueryEvidenceIdentity,
+    active_lane_lookup_class_identity: ForgeQueryEvidenceIdentity,
+    subscription_budget_identity: ForgeQueryEvidenceIdentity,
+    subscription_performance_receipt_identity: ForgeQueryEvidenceIdentity,
+    consumer_attachment_for_reporting: String,
+    acknowledgement_frontier_for_reporting: String,
+    delivery_window_for_reporting: String,
+    maintenance_delta_for_reporting: String,
+    active_delivery_work_packet_for_reporting: String,
+    active_delivery_density_posture_identity: ForgeQueryEvidenceIdentity,
+    allocation_posture_identity: ForgeQueryEvidenceIdentity,
+    delivery_batch_for_reporting: String,
+    patch_group_for_reporting: String,
+    delivery_receipt_for_reporting: String,
+    continuation_identity: ForgeQueryEvidenceIdentity,
+    preview_isolation_for_reporting: String,
+    preview_residue_for_reporting: String,
     policy_digest: String,
     tenant_basis_digest: String,
     relationship_proof_digest: String,
-    view_shape_digest: String,
-    basis_digest: String,
+    view_shape_for_reporting: String,
+    basis_for_reporting: String,
     bridge_declaration_for_reporting: String,
     bridge_declaration_identity: ForgeQueryEvidenceIdentity,
     signal_strategy_identity: ForgeQueryEvidenceIdentity,
-    counter_snapshot: String,
-    counter_evidence: Vec<String>,
-    subscription_lifecycle_scale_slope_digest: String,
-    support_matrix_digest: String,
+    counter_sequence_identity: ForgeQueryEvidenceIdentity,
+    subscription_lifecycle_scale_slope_for_reporting: String,
+    support_matrix_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl SubscriptionLifecycleCertificationBundle {
@@ -356,8 +379,8 @@ impl SubscriptionLifecycleCertificationBundle {
         &self.query_digest
     }
 
-    pub fn subscription_family_digest(&self) -> &str {
-        &self.subscription_family_digest
+    pub fn subscription_family_for_reporting(&self) -> &str {
+        &self.subscription_family_for_reporting
     }
 
     pub fn query_declaration_for_reporting(&self) -> &str {
@@ -368,8 +391,8 @@ impl SubscriptionLifecycleCertificationBundle {
         &self.subscription_declaration_identity
     }
 
-    pub fn subscription_equivalence_digest(&self) -> &str {
-        &self.subscription_equivalence_digest
+    pub fn subscription_equivalence_for_reporting(&self) -> &str {
+        &self.subscription_equivalence_for_reporting
     }
 
     pub fn admission_for_reporting(&self) -> &str {
@@ -380,76 +403,104 @@ impl SubscriptionLifecycleCertificationBundle {
         &self.admission_identity
     }
 
-    pub fn active_lane_digest(&self) -> &str {
-        &self.active_lane_digest
+    pub fn active_lane_for_reporting(&self) -> &str {
+        &self.active_lane_for_reporting
     }
 
-    pub fn active_lane_handle_digest(&self) -> &str {
-        &self.active_lane_handle_digest
+    pub fn active_lane_handle_for_reporting(&self) -> &str {
+        self.active_lane_handle_identity.as_str()
     }
 
-    pub fn active_lane_lookup_class_digest(&self) -> &str {
-        &self.active_lane_lookup_class_digest
+    pub fn active_lane_handle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.active_lane_handle_identity
     }
 
-    pub fn subscription_budget_digest(&self) -> &str {
-        &self.subscription_budget_digest
+    pub fn active_lane_lookup_class_for_reporting(&self) -> &str {
+        self.active_lane_lookup_class_identity.as_str()
     }
 
-    pub fn subscription_performance_receipt_digest(&self) -> &str {
-        &self.subscription_performance_receipt_digest
+    pub fn active_lane_lookup_class_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.active_lane_lookup_class_identity
     }
 
-    pub fn consumer_attachment_digest(&self) -> &str {
-        &self.consumer_attachment_digest
+    pub fn subscription_budget_for_reporting(&self) -> &str {
+        self.subscription_budget_identity.as_str()
     }
 
-    pub fn acknowledgement_frontier_digest(&self) -> &str {
-        &self.acknowledgement_frontier_digest
+    pub fn subscription_budget_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subscription_budget_identity
     }
 
-    pub fn delivery_window_digest(&self) -> &str {
-        &self.delivery_window_digest
+    pub fn subscription_performance_receipt_for_reporting(&self) -> &str {
+        self.subscription_performance_receipt_identity.as_str()
     }
 
-    pub fn maintenance_delta_digest(&self) -> &str {
-        &self.maintenance_delta_digest
+    pub fn subscription_performance_receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subscription_performance_receipt_identity
     }
 
-    pub fn active_delivery_work_packet_digest(&self) -> &str {
-        &self.active_delivery_work_packet_digest
+    pub fn consumer_attachment_for_reporting(&self) -> &str {
+        &self.consumer_attachment_for_reporting
     }
 
-    pub fn active_delivery_density_posture_digest(&self) -> &str {
-        &self.active_delivery_density_posture_digest
+    pub fn acknowledgement_frontier_for_reporting(&self) -> &str {
+        &self.acknowledgement_frontier_for_reporting
     }
 
-    pub fn allocation_posture_digest(&self) -> &str {
-        &self.allocation_posture_digest
+    pub fn delivery_window_for_reporting(&self) -> &str {
+        &self.delivery_window_for_reporting
     }
 
-    pub fn delivery_batch_digest(&self) -> &str {
-        &self.delivery_batch_digest
+    pub fn maintenance_delta_for_reporting(&self) -> &str {
+        &self.maintenance_delta_for_reporting
     }
 
-    pub fn patch_group_digest(&self) -> &str {
-        &self.patch_group_digest
+    pub fn active_delivery_work_packet_for_reporting(&self) -> &str {
+        &self.active_delivery_work_packet_for_reporting
     }
 
-    pub fn delivery_receipt_digest(&self) -> &str {
-        &self.delivery_receipt_digest
+    pub fn active_delivery_density_posture_for_reporting(&self) -> &str {
+        self.active_delivery_density_posture_identity.as_str()
     }
 
-    pub fn continuation_digest(&self) -> &str {
-        &self.continuation_digest
+    pub fn active_delivery_density_posture_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.active_delivery_density_posture_identity
     }
 
-    pub fn preview_isolation_digest(&self) -> &str {
-        &self.preview_isolation_digest
+    pub fn allocation_posture_for_reporting(&self) -> &str {
+        self.allocation_posture_identity.as_str()
     }
 
-    pub fn preview_residue_digest(&self) -> &str {
-        &self.preview_residue_digest
+    pub fn allocation_posture_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.allocation_posture_identity
+    }
+
+    pub fn delivery_batch_for_reporting(&self) -> &str {
+        &self.delivery_batch_for_reporting
+    }
+
+    pub fn patch_group_for_reporting(&self) -> &str {
+        &self.patch_group_for_reporting
+    }
+
+    pub fn delivery_receipt_for_reporting(&self) -> &str {
+        &self.delivery_receipt_for_reporting
+    }
+
+    pub fn continuation_for_reporting(&self) -> &str {
+        self.continuation_identity.as_str()
+    }
+
+    pub fn continuation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.continuation_identity
+    }
+
+    pub fn preview_isolation_for_reporting(&self) -> &str {
+        &self.preview_isolation_for_reporting
+    }
+
+    pub fn preview_residue_for_reporting(&self) -> &str {
+        &self.preview_residue_for_reporting
     }
 
     pub fn policy_digest(&self) -> &str {
@@ -464,12 +515,12 @@ impl SubscriptionLifecycleCertificationBundle {
         &self.relationship_proof_digest
     }
 
-    pub fn view_shape_digest(&self) -> &str {
-        &self.view_shape_digest
+    pub fn view_shape_for_reporting(&self) -> &str {
+        &self.view_shape_for_reporting
     }
 
-    pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+    pub fn basis_for_reporting(&self) -> &str {
+        &self.basis_for_reporting
     }
 
     pub fn bridge_declaration_for_reporting(&self) -> &str {
@@ -488,20 +539,24 @@ impl SubscriptionLifecycleCertificationBundle {
         &self.signal_strategy_identity
     }
 
-    pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
+    pub fn counter_snapshot_for_reporting(&self) -> &str {
+        self.counter_sequence_identity.as_str()
     }
 
-    pub fn counter_evidence(&self) -> &[String] {
-        &self.counter_evidence
+    pub fn counter_sequence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.counter_sequence_identity
     }
 
-    pub fn subscription_lifecycle_scale_slope_digest(&self) -> &str {
-        &self.subscription_lifecycle_scale_slope_digest
+    pub fn subscription_lifecycle_scale_slope_for_reporting(&self) -> &str {
+        &self.subscription_lifecycle_scale_slope_for_reporting
     }
 
-    pub fn support_matrix_digest(&self) -> &str {
-        &self.support_matrix_digest
+    pub fn support_matrix_for_reporting(&self) -> &str {
+        self.support_matrix_identity.as_str()
+    }
+
+    pub fn support_matrix_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.support_matrix_identity
     }
 }
 
@@ -542,7 +597,7 @@ pub fn certify_subscription_lifecycle(
         || active_admission.admission_digest() != admission.admission_for_reporting()
         || active_admission.query_declaration_digest() != admission.query_declaration_for_reporting()
         || active_admission.bridge_declaration_digest() != admission.bridge_declaration_for_reporting()
-        || active_admission.basis_binding_digest() != admission.basis_binding_for_reporting()
+        || active_admission.basis_binding_for_reporting() != admission.basis_binding_for_reporting()
         || active_admission.signal_strategy_digest() != admission.signal_strategy_for_reporting()
     {
         return Err(SubscriptionLifecycleCertificationError::new(
@@ -691,237 +746,197 @@ pub fn certify_subscription_lifecycle(
         ));
     }
 
-    let active_lane_handle_digest = subscription_certification_projection(
-        "subscription_active_lane_handle_v1",
-        [
-            ("lane", active_lane_handle.lane_digest().as_str().to_string()),
-            ("index", active_lane_handle.lane_index().to_string()),
-            (
-                "generation",
-                active_lane_handle.registry_generation().to_string(),
-            ),
-        ],
+    let active_lane_handle_identity = lifecycle_active_lane_handle_identity(
+        active_admission.lane_digest().evidence_identity(),
+        active_lane_handle,
     );
-    let active_lane_lookup_class_digest = subscription_certification_projection(
-        "subscription_active_lane_lookup_class_v1",
-        [(
-            "lookup_class",
-            active_admission.lookup_class().as_str().to_string(),
-        )],
+    let active_lane_lookup_class_identity = lifecycle_active_lane_lookup_class_identity(
+        active_admission.lookup_class().as_str(),
     );
-    let subscription_budget_digest = subscription_certification_projection(
-        "active_subscription_budget_v1",
-        [
-            (
-                "lookup_width",
-                active_admission.budget().registry_lookup_width().to_string(),
-            ),
-            (
-                "fanout_width",
-                active_admission.budget().fanout_width().to_string(),
-            ),
-            (
-                "allocation_scope_width",
-                active_admission
-                    .budget()
-                    .allocation_scope_width()
-                    .to_string(),
-            ),
-            (
-                "lookup_class",
-                active_admission.budget().lookup_class().as_str().to_string(),
-            ),
-            (
-                "allocation_posture",
-                active_admission
-                    .budget()
-                    .allocation_posture()
-                    .as_str()
-                    .to_string(),
-            ),
-            (
-                "durable_checkpoint_requested",
-                active_admission
-                    .budget()
-                    .durable_checkpoint_requested()
-                    .to_string(),
-            ),
-            (
-                "store_backed_restart_requested",
-                active_admission
-                    .budget()
-                    .store_backed_restart_requested()
-                    .to_string(),
-            ),
-        ],
+    let subscription_budget_identity = lifecycle_subscription_budget_identity(
+        active_admission.budget().registry_lookup_width(),
+        active_admission.budget().fanout_width(),
+        active_admission
+            .budget()
+            .allocation_scope_width(),
+        active_admission.budget().lookup_class().as_str(),
+        active_admission
+            .budget()
+            .allocation_posture()
+            .as_str(),
+        active_admission.budget().durable_checkpoint_requested(),
+        active_admission
+            .budget()
+            .store_backed_restart_requested(),
     );
-    let continuation_digest = continuation
-        .map(|report| report.continuation_digest().to_string())
-        .unwrap_or_else(|| "none".to_string());
-    let subscription_performance_receipt_digest = subscription_certification_sequence_projection(
-        "subscription_performance_receipt_v1",
-        "subscription_performance_receipt_element_v1",
-        &[
-            active_admission
-                .performance_receipt()
-                .performance_receipt_for_reporting()
-                .to_string(),
-            attachment
-                .performance_receipt()
-                .performance_receipt_for_reporting()
-                .to_string(),
-            continuation
-                .map(|report| {
-                    report
-                        .performance_receipt()
-                        .performance_receipt_for_reporting()
-                        .to_string()
-                })
-                .unwrap_or_else(|| "none".to_string()),
-            work_packet
-                .performance_receipt()
-                .performance_receipt_for_reporting()
-                .to_string(),
-            lifecycle_closeout
-                .performance_receipt()
-                .performance_receipt_for_reporting()
-                .to_string(),
-            preview_evidence.performance_receipt_digest.clone(),
-        ],
-    );
-    let allocation_posture_digest = subscription_certification_projection(
-        "subscription_allocation_posture_v1",
-        [
-            (
-                "posture",
-                work_packet.allocation_posture().as_str().to_string(),
-            ),
-            (
-                "allocation_scope_width",
-                work_packet.allocation_scope_width().to_string(),
-            ),
-        ],
-    );
-    let counter_evidence = lifecycle_counter_evidence(
-        admission.counters().digest(),
-        active_admission.counters().digest(),
-        acknowledged_attachment.acknowledgement_frontier(),
-        delivery_batch.counters().digest(),
-        lifecycle_closeout.counters().digest(),
-        continuation.map(|report| report.report_digest()),
-        &preview_evidence.counter_evidence,
-    );
-    let counter_snapshot =
-        subscription_certification_sequence_projection("subscription_counter_snapshot_v1", "counter", &counter_evidence);
-    let mut support_parts = vec![
-        admission.support_profile().digest().to_string(),
-        lifecycle_closeout.support_profile().digest().to_string(),
-        lifecycle_closeout.closeout_digest().to_string(),
+    let absent_performance = lifecycle_absent_performance_receipt_identity();
+    let preview_performance_identity = if preview_evidence.performance_receipt_digest == "none" {
+        absent_performance.clone()
+    } else {
+        preview_evidence.performance_receipt_identity.clone()
+    };
+    let performance_receipt_identities = [
+        active_admission
+            .performance_receipt()
+            .performance_receipt_identity(),
+        attachment
+            .performance_receipt()
+            .performance_receipt_identity(),
+        continuation
+            .map(|report| report.performance_receipt().performance_receipt_identity())
+            .unwrap_or(&absent_performance),
+        work_packet
+            .performance_receipt()
+            .performance_receipt_identity(),
+        lifecycle_closeout
+            .performance_receipt()
+            .performance_receipt_identity(),
+        &preview_performance_identity,
     ];
-    support_parts.extend(preview_evidence.support_evidence.iter().cloned());
-    let support_matrix_digest = subscription_certification_sequence_projection(
-        "subscription_support_matrix_v1",
-        "support",
-        &support_parts,
+    let subscription_performance_receipt_identity =
+        lifecycle_performance_sequence_identity(performance_receipt_identities);
+    let continuation_identity = continuation
+        .map(|report| report.evidence_identity().clone())
+        .unwrap_or_else(lifecycle_absent_continuation_identity);
+    let allocation_posture_identity = lifecycle_allocation_posture_identity(
+        work_packet.allocation_posture().as_str(),
+        work_packet.allocation_scope_width(),
     );
+    let active_delivery_density_posture_identity =
+        lifecycle_active_delivery_density_posture_identity(work_packet.density_posture().as_str());
+    let counter_identities = lifecycle_counter_identities(
+        &admission.counters().evidence_identity(),
+        &active_admission.counters().evidence_identity(),
+        acknowledged_attachment.acknowledgement_frontier(),
+        &delivery_batch.counters().evidence_identity(),
+        &lifecycle_closeout.counters().evidence_identity(),
+        continuation.map(|report| report.evidence_identity()),
+        &preview_evidence.counter_identities,
+    );
+    let counter_sequence_identity = {
+        let refs: Vec<&ForgeQueryEvidenceIdentity> = counter_identities.iter().collect();
+        lifecycle_counter_sequence_identity(refs)
+    };
+    let mut support_identities: Vec<&ForgeQueryEvidenceIdentity> = vec![
+        admission.support_profile().profile_identity(),
+        lifecycle_closeout.support_profile().profile_identity(),
+        lifecycle_closeout.evidence_identity(),
+    ];
+    support_identities.extend(preview_evidence.support_identities.iter());
+    let support_matrix_identity = lifecycle_support_matrix_identity(support_identities);
+    let delivery_window_identity = delivery_batch.delivery_window_identity();
     let certification_bundle_identity = lifecycle_certification_bundle_identity(
         base.certification_bundle_identity(),
         admission.evidence_identity(),
         admission.query_declaration_identity(),
         admission.bridge_declaration_identity(),
         admission.signal_strategy_identity(),
-        context.query_digest(),
-        context.subscription_family_digest(),
-        context.subscription_equivalence_digest(),
-        active_admission.lane_digest().as_str(),
-        &active_lane_handle_digest,
-        &subscription_performance_receipt_digest,
-        attachment.attachment_digest().as_str(),
-        &delivery_window_digest,
-        maintenance_delta.maintenance_delta_digest(),
-        work_packet.work_packet_digest(),
-        delivery_batch.delivery_batch_digest(),
-        delivery_batch.receipt().receipt_digest(),
-        &continuation_digest,
-        lifecycle_closeout.closeout_digest(),
-        &support_matrix_digest,
-        &counter_snapshot,
+        context.query_scope_identity(),
+        context.subscription_family_identity(),
+        context.subscription_equivalence_identity(),
+        active_admission.lane_digest().evidence_identity(),
+        &active_lane_handle_identity,
+        &subscription_performance_receipt_identity,
+        attachment.attachment_digest().evidence_identity(),
+        delivery_window_identity,
+        maintenance_delta.evidence_identity(),
+        work_packet.evidence_identity(),
+        delivery_batch.evidence_identity(),
+        delivery_batch.receipt().evidence_identity(),
+        &continuation_identity,
+        lifecycle_closeout.evidence_identity(),
+        &support_matrix_identity,
+        &counter_sequence_identity,
     );
 
     Ok(SubscriptionLifecycleCertificationBundle {
         certification_bundle_identity,
         query_digest: context.query_digest().to_string(),
-        subscription_family_digest: context.subscription_family_digest().to_string(),
+        subscription_family_for_reporting: context.subscription_family_for_reporting().to_string(),
         query_declaration_for_reporting: admission.query_declaration_for_reporting().to_string(),
         subscription_declaration_identity: admission.query_declaration_identity().clone(),
-        subscription_equivalence_digest: context.subscription_equivalence_digest().to_string(),
+        subscription_equivalence_for_reporting: context.subscription_equivalence_for_reporting().to_string(),
         admission_identity: admission.evidence_identity().clone(),
-        active_lane_digest: active_admission.lane_digest().as_str().to_string(),
-        active_lane_handle_digest,
-        active_lane_lookup_class_digest,
-        subscription_budget_digest,
-        subscription_performance_receipt_digest,
-        consumer_attachment_digest: attachment.attachment_digest().as_str().to_string(),
-        acknowledgement_frontier_digest: acknowledged_attachment
+        active_lane_for_reporting: active_admission.lane_digest().as_str().to_string(),
+        active_lane_handle_identity,
+        active_lane_lookup_class_identity,
+        subscription_budget_identity,
+        subscription_performance_receipt_identity,
+        consumer_attachment_for_reporting: attachment.attachment_digest().as_str().to_string(),
+        acknowledgement_frontier_for_reporting: acknowledged_attachment
             .acknowledgement_frontier()
-            .frontier_digest()
+            .frontier_for_reporting()
             .to_string(),
-        delivery_window_digest,
-        maintenance_delta_digest: maintenance_delta.maintenance_delta_digest().to_string(),
-        active_delivery_work_packet_digest: work_packet.work_packet_digest().to_string(),
-        active_delivery_density_posture_digest: subscription_certification_projection(
-            "subscription_active_delivery_density_posture_v1",
-            [(
-                "posture",
-                work_packet.density_posture().as_str().to_string(),
-            )],
-        ),
-        allocation_posture_digest,
-        delivery_batch_digest: delivery_batch.delivery_batch_digest().to_string(),
-        patch_group_digest: delivery_batch
+        delivery_window_for_reporting: delivery_window_digest,
+        maintenance_delta_for_reporting: maintenance_delta.maintenance_delta_digest().to_string(),
+        active_delivery_work_packet_for_reporting: work_packet.work_packet_digest().to_string(),
+        active_delivery_density_posture_identity,
+        allocation_posture_identity,
+        delivery_batch_for_reporting: delivery_batch.delivery_batch_digest().to_string(),
+        patch_group_for_reporting: delivery_batch
             .patch_group()
-            .patch_group_digest()
+            .patch_group_for_reporting()
             .to_string(),
-        delivery_receipt_digest: delivery_batch.receipt().receipt_digest().to_string(),
-        continuation_digest,
-        preview_isolation_digest: preview_evidence.preview_isolation_digest,
-        preview_residue_digest: preview_evidence.preview_residue_digest,
+        delivery_receipt_for_reporting: delivery_batch.receipt().receipt_digest().to_string(),
+        continuation_identity,
+        preview_isolation_for_reporting: preview_evidence.preview_isolation_digest,
+        preview_residue_for_reporting: preview_evidence.preview_residue_digest,
         policy_digest: context.policy_digest().to_string(),
         tenant_basis_digest: context.tenant_basis_digest().to_string(),
         relationship_proof_digest: context.relationship_proof_digest().to_string(),
-        view_shape_digest: context.view_shape_digest().to_string(),
-        basis_digest: context.basis_digest().to_string(),
+        view_shape_for_reporting: context.view_shape_for_reporting().to_string(),
+        basis_for_reporting: context.basis_for_reporting().to_string(),
         bridge_declaration_for_reporting: admission.bridge_declaration_for_reporting().to_string(),
         bridge_declaration_identity: admission.bridge_declaration_identity().clone(),
         signal_strategy_identity: admission.signal_strategy_identity().clone(),
-        counter_snapshot,
-        counter_evidence,
-        subscription_lifecycle_scale_slope_digest: scale_report.digest().to_string(),
-        support_matrix_digest,
+        counter_sequence_identity,
+        subscription_lifecycle_scale_slope_for_reporting: scale_report.digest().to_string(),
+        support_matrix_identity,
     })
 }
 
-fn lifecycle_counter_evidence(
-    admission_counter_digest: String,
-    active_counter_digest: String,
+fn lifecycle_counter_identities(
+    admission_counters: &ForgeQueryEvidenceIdentity,
+    active_counters: &ForgeQueryEvidenceIdentity,
     frontier: &SubscriptionAcknowledgementFrontier,
-    batch_counter_digest: String,
-    closeout_counter_digest: String,
-    continuation_report_digest: Option<&str>,
-    preview_counter_evidence: &[String],
-) -> Vec<String> {
-    let mut evidence = vec![
-        format!("admission:{admission_counter_digest}"),
-        format!("active:{active_counter_digest}"),
-        format!("frontier:{}", frontier.frontier_digest()),
-        format!("batch:{batch_counter_digest}"),
-        format!("closeout:{closeout_counter_digest}"),
+    batch_counters: &ForgeQueryEvidenceIdentity,
+    closeout_counters: &ForgeQueryEvidenceIdentity,
+    continuation_report_identity: Option<&ForgeQueryEvidenceIdentity>,
+    preview_counter_identities: &[ForgeQueryEvidenceIdentity],
+) -> Vec<ForgeQueryEvidenceIdentity> {
+    let mut identities = vec![
+        lifecycle_labeled_counter_identity("admission", admission_counters),
+        lifecycle_labeled_counter_identity("active", active_counters),
+        lifecycle_labeled_counter_identity(
+            "frontier",
+            &ForgeQueryEvidenceIdentity::compose(
+                crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+            )
+            .field_shape(
+                crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+                "subscription_acknowledgement_frontier_v1",
+            )
+            .field_evidence_identity(
+                crate::evidence_identity::ForgeQueryEvidenceTag::new("attachment"),
+                frontier.attachment_digest().evidence_identity(),
+            )
+            .field_usize(
+                crate::evidence_identity::ForgeQueryEvidenceTag::new("sequence"),
+                frontier.acknowledged_sequence().get() as usize,
+            )
+            .seal(),
+        ),
+        lifecycle_labeled_counter_identity("batch", batch_counters),
+        lifecycle_labeled_counter_identity("closeout", closeout_counters),
     ];
-    if let Some(report_digest) = continuation_report_digest {
-        evidence.push(format!("continuation:{report_digest}"));
+    if let Some(report_identity) = continuation_report_identity {
+        identities.push(lifecycle_labeled_counter_identity(
+            "continuation",
+            report_identity,
+        ));
     }
-    evidence.extend(preview_counter_evidence.iter().cloned());
-    evidence
+    identities.extend(preview_counter_identities.iter().cloned());
+    identities
 }
 
 fn preview_certification_evidence(
@@ -950,9 +965,17 @@ fn preview_certification_evidence(
             Ok(PreviewCertificationEvidence {
                 preview_isolation_digest: "none".to_string(),
                 preview_residue_digest: "none".to_string(),
-                counter_evidence: Vec::new(),
-                support_evidence: vec!["preview:none".to_string()],
+                counter_identities: Vec::new(),
+                support_identities: vec![ForgeQueryEvidenceIdentity::compose(
+                    crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+                )
+                .field_shape(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+                    "subscription_preview_support_absent_v1",
+                )
+                .seal()],
                 performance_receipt_digest: "none".to_string(),
+                performance_receipt_identity: lifecycle_absent_performance_receipt_identity(),
             })
         }
         SubscriptionLifecyclePreviewCertification::Discard {
@@ -965,18 +988,21 @@ fn preview_certification_evidence(
                 || isolation.active_lane_digest() != active_lane_handle.lane_digest()
                 || isolation.attachment_digest() != attachment.attachment_digest()
                 || lifecycle_closeout.future_selection() != isolation.future_selection()
-                || lifecycle_closeout.basis_binding_digest() != isolation.basis_binding_digest()
-                || lifecycle_closeout.checkpoint_identity_digest()
-                    != isolation.checkpoint_identity_digest()
+                || lifecycle_closeout.basis_binding_for_reporting()
+                    != isolation.basis_binding_for_reporting()
+                || lifecycle_closeout.checkpoint_for_reporting()
+                    != isolation.checkpoint_for_reporting()
                 || discard_closeout.active_lane_digest() != active_lane_handle.lane_digest()
                 || discard_closeout.attachment_digest() != attachment.attachment_digest()
                 || discard_closeout.future_selection() != isolation.future_selection()
-                || discard_closeout.basis_binding_digest() != isolation.basis_binding_digest()
-                || discard_closeout.checkpoint_identity_digest()
-                    != isolation.checkpoint_identity_digest()
-                || discard_closeout.preview_epoch_digest() != isolation.preview_epoch_digest()
+                || discard_closeout.basis_binding_for_reporting()
+                    != isolation.basis_binding_for_reporting()
+                || discard_closeout.checkpoint_for_reporting()
+                    != isolation.checkpoint_for_reporting()
+                || discard_closeout.preview_epoch_for_reporting()
+                    != isolation.preview_epoch_for_reporting()
                 || discard_closeout.residue_report_digest() != residue_report.report_digest()
-                || lifecycle_closeout.source_digest() != discard_closeout.closeout_digest()
+                || lifecycle_closeout.source_digest() != discard_closeout.closeout_for_reporting()
             {
                 return Err(SubscriptionLifecycleCertificationError::new(
                     SubscriptionLifecycleCertificationDenialKind::PreviewSourceMismatch,
@@ -999,29 +1025,64 @@ fn preview_certification_evidence(
             }
 
             Ok(PreviewCertificationEvidence {
-                preview_isolation_digest: isolation.isolation_digest().to_string(),
+                preview_isolation_digest: isolation.isolation_for_reporting().to_string(),
                 preview_residue_digest: residue_report.report_digest().to_string(),
-                counter_evidence: vec![
-                    format!("preview_isolation:{}", isolation.counters().digest()),
-                    format!("preview_discard:{}", discard_closeout.counters().digest()),
-                    format!(
-                        "preview_authoritative_residue:{}",
-                        residue_report.authoritative_residue_width()
+                counter_identities: vec![
+                    lifecycle_labeled_counter_identity(
+                        "preview_isolation",
+                        &isolation.counters().evidence_identity(),
                     ),
-                    format!(
-                        "preview_residue_width:{}",
-                        residue_report.preview_residue_width()
+                    lifecycle_labeled_counter_identity(
+                        "preview_discard",
+                        &discard_closeout.counters().evidence_identity(),
                     ),
                 ],
-                support_evidence: vec![
-                    format!("preview_isolation:{}", isolation.isolation_digest()),
-                    format!("preview_residue:{}", residue_report.report_digest()),
-                    format!("preview_discard:{}", discard_closeout.closeout_digest()),
+                support_identities: vec![
+                    ForgeQueryEvidenceIdentity::compose(
+                        crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+                    )
+                    .field_shape(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+                        "subscription_preview_isolation_support_v1",
+                    )
+                    .field_evidence_identity(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("isolation"),
+                        isolation.isolation_identity(),
+                    )
+                    .seal(),
+                    ForgeQueryEvidenceIdentity::compose(
+                        crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+                    )
+                    .field_shape(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+                        "subscription_preview_residue_support_v1",
+                    )
+                    .field_shape(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("residue"),
+                        residue_report.report_digest(),
+                    )
+                    .seal(),
+                    ForgeQueryEvidenceIdentity::compose(
+                        crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+                    )
+                    .field_shape(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+                        "subscription_preview_discard_support_v1",
+                    )
+                    .field_evidence_identity(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("discard"),
+                        discard_closeout.closeout_identity(),
+                    )
+                    .seal(),
                 ],
                 performance_receipt_digest: discard_closeout
                     .performance_receipt()
                     .performance_receipt_for_reporting()
                     .to_string(),
+                performance_receipt_identity: discard_closeout
+                    .performance_receipt()
+                    .performance_receipt_identity()
+                    .clone(),
             })
         }
         SubscriptionLifecyclePreviewCertification::Promotion {
@@ -1034,19 +1095,21 @@ fn preview_certification_evidence(
                 || isolation.active_lane_digest() != active_lane_handle.lane_digest()
                 || isolation.attachment_digest() != attachment.attachment_digest()
                 || lifecycle_closeout.future_selection() != isolation.future_selection()
-                || lifecycle_closeout.basis_binding_digest() != isolation.basis_binding_digest()
-                || lifecycle_closeout.checkpoint_identity_digest()
-                    != isolation.checkpoint_identity_digest()
+                || lifecycle_closeout.basis_binding_for_reporting()
+                    != isolation.basis_binding_for_reporting()
+                || lifecycle_closeout.checkpoint_for_reporting()
+                    != isolation.checkpoint_for_reporting()
                 || promotion_handoff.preview_lane_digest() != active_lane_handle.lane_digest()
                 || promotion_handoff.attachment_digest() != attachment.attachment_digest()
                 || promotion_handoff.future_selection() != isolation.future_selection()
-                || promotion_handoff.preview_basis_binding_digest()
-                    != isolation.basis_binding_digest()
-                || promotion_handoff.preview_checkpoint_identity_digest()
-                    != isolation.checkpoint_identity_digest()
-                || promotion_handoff.preview_epoch_digest() != isolation.preview_epoch_digest()
+                || promotion_handoff.preview_basis_binding_for_reporting()
+                    != isolation.basis_binding_for_reporting()
+                || promotion_handoff.preview_checkpoint_for_reporting()
+                    != isolation.checkpoint_for_reporting()
+                || promotion_handoff.preview_epoch_for_reporting()
+                    != isolation.preview_epoch_for_reporting()
                 || promotion_handoff.residue_report_digest() != residue_report.report_digest()
-                || lifecycle_closeout.source_digest() != promotion_handoff.handoff_digest()
+                || lifecycle_closeout.source_digest() != promotion_handoff.handoff_for_reporting()
             {
                 return Err(SubscriptionLifecycleCertificationError::new(
                     SubscriptionLifecycleCertificationDenialKind::PreviewSourceMismatch,
@@ -1064,48 +1127,72 @@ fn preview_certification_evidence(
             }
 
             Ok(PreviewCertificationEvidence {
-                preview_isolation_digest: isolation.isolation_digest().to_string(),
-                preview_residue_digest: subscription_certification_projection(
-                    "subscription_preview_residue_v1",
-                    [
-                        (
-                            "residue",
-                            residue_report.report_digest().to_string(),
-                        ),
-                        (
-                            "handoff",
-                            promotion_handoff.handoff_digest().to_string(),
-                        ),
-                        (
-                            "authoritative_lane",
-                            promotion_handoff
-                                .authoritative_active_lane_digest()
-                                .as_str()
-                                .to_string(),
-                        ),
-                    ],
-                ),
-                counter_evidence: vec![
-                    format!("preview_isolation:{}", isolation.counters().digest()),
-                    format!(
-                        "preview_promotion:{}",
-                        promotion_handoff.counters().digest()
+                preview_isolation_digest: isolation.isolation_for_reporting().to_string(),
+                preview_residue_digest: lifecycle_preview_promotion_residue_identity(
+                    residue_report.report_digest(),
+                    promotion_handoff.handoff_for_reporting(),
+                    promotion_handoff
+                        .authoritative_active_lane_digest()
+                        .as_str(),
+                )
+                .as_str()
+                .to_string(),
+                counter_identities: vec![
+                    lifecycle_labeled_counter_identity(
+                        "preview_isolation",
+                        &isolation.counters().evidence_identity(),
                     ),
-                    format!(
-                        "preview_authoritative_residue:{}",
-                        residue_report.authoritative_residue_width()
+                    lifecycle_labeled_counter_identity(
+                        "preview_promotion",
+                        &promotion_handoff.counters().evidence_identity(),
                     ),
-                    "promotion_authority_boundary_crossed:true".to_string(),
                 ],
-                support_evidence: vec![
-                    format!("preview_isolation:{}", isolation.isolation_digest()),
-                    format!("preview_residue:{}", residue_report.report_digest()),
-                    format!("preview_promotion:{}", promotion_handoff.handoff_digest()),
+                support_identities: vec![
+                    ForgeQueryEvidenceIdentity::compose(
+                        crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+                    )
+                    .field_shape(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+                        "subscription_preview_isolation_support_v1",
+                    )
+                    .field_evidence_identity(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("isolation"),
+                        isolation.isolation_identity(),
+                    )
+                    .seal(),
+                    ForgeQueryEvidenceIdentity::compose(
+                        crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+                    )
+                    .field_shape(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+                        "subscription_preview_residue_support_v1",
+                    )
+                    .field_shape(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("residue"),
+                        residue_report.report_digest(),
+                    )
+                    .seal(),
+                    ForgeQueryEvidenceIdentity::compose(
+                        crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+                    )
+                    .field_shape(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+                        "subscription_preview_promotion_support_v1",
+                    )
+                    .field_evidence_identity(
+                        crate::evidence_identity::ForgeQueryEvidenceTag::new("promotion"),
+                        promotion_handoff.handoff_identity(),
+                    )
+                    .seal(),
                 ],
                 performance_receipt_digest: promotion_handoff
                     .performance_receipt()
                     .performance_receipt_for_reporting()
                     .to_string(),
+                performance_receipt_identity: promotion_handoff
+                    .performance_receipt()
+                    .performance_receipt_identity()
+                    .clone(),
             })
         }
     }
@@ -1260,7 +1347,7 @@ pub fn certify_query_subscription_activation(
     let certification_bundle_identity = certification_activation_bundle_identity(
         admission.evidence_identity(),
         activation.evidence_identity(),
-        admission.query_declaration_for_reporting(),
+        admission.query_declaration_identity(),
         admission.bridge_declaration_identity(),
         admission.basis_binding_identity(),
         admission.signal_strategy_identity(),
@@ -1269,8 +1356,6 @@ pub fn certify_query_subscription_activation(
         &admission.counters().evidence_identity(),
         &activation.counters().evidence_identity(),
         &scale_report.evidence_identity(),
-        scale_report.activation_digest(),
-        scale_report.admission_digest(),
     );
     Ok(QuerySubscriptionCertificationBundle {
         certification_bundle_identity,

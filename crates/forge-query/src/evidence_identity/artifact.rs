@@ -1,4 +1,5 @@
 use forge_foundational::facade::CanonicalDerivedDigest;
+use forge_runtime_bridge::facade::BridgeIdentityEvidence;
 
 use super::encoder::ForgeQueryEvidenceIdentityEncoder;
 use super::scheme::ForgeQueryEvidenceIdentityScheme;
@@ -53,6 +54,10 @@ impl ForgeQueryEvidenceIdentity {
 
     pub fn as_str(&self) -> &str {
         &self.digest_token
+    }
+
+    pub fn bridge_evidence_identity(&self) -> BridgeIdentityEvidence {
+        BridgeIdentityEvidence::from_query_evidence_identity(self.scope.as_str(), self.as_str())
     }
 
     pub fn eq_same_scheme(

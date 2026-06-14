@@ -684,7 +684,7 @@ fn bind_preview_context(
 
     Ok(QueryBasisContextBinding {
         query_digest: foundation.validated_query_digest().as_str().to_string(),
-        basis_digest: foundation.digest().to_string(),
+        basis_digest: foundation.artifact_for_reporting().to_string(),
         basis_authority_family: BasisAuthorityFamily::Runtime,
         drift_outcome: QueryContextDriftOutcome::BasisExact,
         cost_class: QueryContextCostClass::PreviewDerivedHistoricalBounded,

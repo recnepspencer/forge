@@ -155,7 +155,7 @@ where
             )))
             .chain(std::iter::once(format!(
                 "binding:{}",
-                binding.binding_digest()
+                binding.binding_for_reporting()
             )))
             .chain(std::iter::once(format!("view:{view_name}")))
             .chain(std::iter::once(format!(
@@ -174,7 +174,7 @@ where
 
     Ok(ForgeQueryRetainedScalarFactSet {
         artifact_name: binding.artifact_name().to_string(),
-        binding_digest: binding.binding_digest().to_string(),
+        binding_digest: binding.binding_for_reporting().to_string(),
         view_name: view_name.to_string(),
         source_result_digest: materialization.receipt().result_digest().to_string(),
         fact_set_digest,

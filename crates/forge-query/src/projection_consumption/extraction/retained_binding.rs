@@ -17,7 +17,7 @@ pub(super) fn extract_retained_binding_facts(
         contract,
         ProjectionSourceFamily::RetainedDerivedArtifactBinding,
     )?;
-    super::ensure_source_identity(contract.source_identity(), binding.binding_digest())?;
+    super::ensure_source_identity(contract.source_identity(), binding.binding_for_reporting())?;
 
     let extracts_view_local_identity = contract
         .fact_families()
@@ -50,7 +50,7 @@ pub(super) fn extract_retained_binding_facts(
         for (index, row) in materialization.rows().iter().enumerate() {
             row_count += 1;
             let row_identity =
-                retained_binding_row_identity(binding.binding_digest(), view_name, index);
+                retained_binding_row_identity(binding.binding_for_reporting(), view_name, index);
             for fact_family in contract.fact_families() {
                 match fact_family.kind() {
                     ProjectionFactKind::ViewLocalIdentity => {

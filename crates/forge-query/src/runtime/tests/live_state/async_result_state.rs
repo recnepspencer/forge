@@ -1,3 +1,4 @@
+use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 use super::super::support::*;
 
 fn bridge_projection_for(
@@ -63,7 +64,8 @@ fn runtime_state_and_inspection_project_async_result_state_parity() {
     let view: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.async-state", task_live_request(), task_schema())
         .expect("live view should declare");
-    let (basis_digest, generation_digest) = live_subscription_async_identity(&runtime, view.name());
+    let (basis_identity, checkpoint_identity) =
+        live_subscription_async_identity(&runtime, view.name());
     let cases = [
         (
             ForgeQueryRuntimeAsyncResultStateKind::Pending,
@@ -106,7 +108,7 @@ fn runtime_state_and_inspection_project_async_result_state_parity() {
     for (kind, expected_state_kind) in cases {
         let projection = bridge_projection_for(kind);
         let projected = runtime
-            .project_async_result_state(view.name(), &projection, &basis_digest, &generation_digest)
+            .project_async_result_state(view.name(), &projection, &basis_identity, &checkpoint_identity)
             .expect("async result state should project");
         let state =
             <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
@@ -135,22 +137,22 @@ fn runtime_async_result_state_preserves_runtime_and_replay_parity() {
         .declare_live_view("tasks.async-replay", task_live_request(), task_schema())
         .expect("second live view should declare");
 
-    let (basis_a, generation_a) = live_subscription_async_identity(&runtime_a, view_a.name());
-    let (basis_b, generation_b) = live_subscription_async_identity(&runtime_b, view_b.name());
+    let (basis_a, checkpoint_a) = live_subscription_async_identity(&runtime_a, view_a.name());
+    let (basis_b, checkpoint_b) = live_subscription_async_identity(&runtime_b, view_b.name());
     assert_eq!(basis_a, basis_b);
-    assert_eq!(generation_a, generation_b);
+    assert_eq!(checkpoint_a, checkpoint_b);
 
     let projection = bridge_projection_for(ForgeQueryRuntimeAsyncResultStateKind::Current);
     let runtime_state = runtime_a
-        .project_async_result_state(view_a.name(), &projection, &basis_a, &generation_a)
+        .project_async_result_state(view_a.name(), &projection, &basis_a, &checkpoint_a)
         .expect("runtime-backed async projection should succeed");
     let replay_state = runtime_b
-        .project_async_result_state(view_b.name(), &projection, &basis_b, &generation_b)
+        .project_async_result_state(view_b.name(), &projection, &basis_b, &checkpoint_b)
         .expect("replayed async projection should succeed");
 
     assert_eq!(
-        runtime_state.result_state_digest(),
-        replay_state.result_state_digest()
+        runtime_state.result_state_for_reporting(),
+        replay_state.result_state_for_reporting()
     );
     assert_eq!(
         <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
@@ -159,14 +161,14 @@ fn runtime_async_result_state_preserves_runtime_and_replay_parity() {
         .expect("runtime-backed state should snapshot")
         .async_result_state()
         .expect("runtime-backed async result state should exist")
-        .result_state_digest(),
+        .result_state_for_reporting(),
         <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(
             &view_b, &runtime_b,
         )
         .expect("replayed state should snapshot")
         .async_result_state()
         .expect("replayed async result state should exist")
-        .result_state_digest()
+        .result_state_for_reporting()
     );
 }
 
@@ -176,7 +178,11 @@ fn runtime_async_result_state_fails_closed_for_generation_drift_and_preview_mism
     let view: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.async-drift", task_live_request(), task_schema())
         .expect("live view should declare");
-    let (basis_digest, generation_digest) = live_subscription_async_identity(&runtime, view.name());
+    let (basis_identity, checkpoint_identity) =
+        live_subscription_async_identity(&runtime, view.name());
+
+    let drifted_checkpoint = runtime_async_checkpoint_label_identity("generation:drifted");
+    let drifted_basis = runtime_async_checkpoint_label_identity("basis:drifted");
 
     let generation_drift = runtime
         .project_async_result_state(
@@ -185,8 +191,8 @@ fn runtime_async_result_state_fails_closed_for_generation_drift_and_preview_mism
                 BridgeAsyncCompletionState::Admitted(BridgeAsyncCompletionClass::Fulfilled),
                 "async:generation-drift",
             ),
-            &basis_digest,
-            "generation:drifted",
+            &basis_identity,
+            &drifted_checkpoint,
         )
         .expect_err("current generation drift should deny");
     let preview_mismatch = runtime
@@ -196,16 +202,16 @@ fn runtime_async_result_state_fails_closed_for_generation_drift_and_preview_mism
                 BridgeAsyncCompletionState::Admitted(BridgeAsyncCompletionClass::Fulfilled),
                 "async:preview-mismatch",
             ),
-            "basis:drifted",
-            &generation_digest,
+            &drifted_basis,
+            &checkpoint_identity,
         )
         .expect_err("current preview mismatch should deny");
     let superseded = runtime
         .project_async_result_state(
             view.name(),
             &ForgeQueryRuntimeAsyncResultProjection::supersession("async:superseded-drift"),
-            &basis_digest,
-            "generation:drifted",
+            &basis_identity,
+            &drifted_checkpoint,
         )
         .expect("superseded generation drift should stay typed");
     let denied = runtime
@@ -217,8 +223,8 @@ fn runtime_async_result_state_fails_closed_for_generation_drift_and_preview_mism
                 ),
                 "async:denied-preview",
             ),
-            "basis:drifted",
-            &generation_digest,
+            &drifted_basis,
+            &checkpoint_identity,
         )
         .expect("denied preview mismatch should stay typed");
 
@@ -247,6 +253,6 @@ fn runtime_async_result_state_fails_closed_for_generation_drift_and_preview_mism
     assert_eq!(state.kind(), ForgeQueryRuntimeStateKind::Denied);
     assert_eq!(state.async_result_state(), Some(&denied));
     assert_eq!(inspection.async_result_state(), Some(&denied));
-    assert_eq!(superseded.generation_digest(), "generation:drifted");
-    assert_eq!(denied.basis_digest(), "basis:drifted");
+    assert_eq!(superseded.checkpoint_identity(), &drifted_checkpoint);
+    assert_eq!(denied.basis_identity(), &drifted_basis);
 }

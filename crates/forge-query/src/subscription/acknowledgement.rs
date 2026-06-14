@@ -1,6 +1,9 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::attachment_digest::SubscriptionConsumerAttachmentDigest;
+use super::evidence_identities::{
+    lifecycle_acknowledgement_frontier_identity, lifecycle_delivery_batch_receipt_identity,
+};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct QueryDeliverySequence(u64);
@@ -23,7 +26,7 @@ impl QueryDeliverySequence {
 pub struct SubscriptionAcknowledgementFrontier {
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     acknowledged_sequence: QueryDeliverySequence,
-    frontier_digest: String,
+    frontier_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl SubscriptionAcknowledgementFrontier {
@@ -39,15 +42,14 @@ impl SubscriptionAcknowledgementFrontier {
         attachment_digest: SubscriptionConsumerAttachmentDigest,
         acknowledged_sequence: QueryDeliverySequence,
     ) -> Self {
-        let frontier_digest = hash_parts(&[
-            "subscription_acknowledgement_frontier_v1".to_string(),
-            format!("attachment:{}", attachment_digest.as_str()),
-            format!("sequence:{}", acknowledged_sequence.get()),
-        ]);
+        let frontier_identity = lifecycle_acknowledgement_frontier_identity(
+            attachment_digest.evidence_identity(),
+            acknowledged_sequence.get(),
+        );
         Self {
             attachment_digest,
             acknowledged_sequence,
-            frontier_digest,
+            frontier_identity,
         }
     }
 
@@ -59,8 +61,12 @@ impl SubscriptionAcknowledgementFrontier {
         self.acknowledged_sequence
     }
 
-    pub fn frontier_digest(&self) -> &str {
-        &self.frontier_digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.frontier_identity
+    }
+
+    pub fn frontier_for_reporting(&self) -> &str {
+        self.frontier_identity.as_str()
     }
 }
 
@@ -68,6 +74,7 @@ impl SubscriptionAcknowledgementFrontier {
 pub struct QueryDeliveryBatchReceipt {
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     sequence: QueryDeliverySequence,
+    receipt_identity: ForgeQueryEvidenceIdentity,
     receipt_digest: String,
 }
 
@@ -76,14 +83,15 @@ impl QueryDeliveryBatchReceipt {
         attachment_digest: SubscriptionConsumerAttachmentDigest,
         sequence: QueryDeliverySequence,
     ) -> Self {
-        let receipt_digest = hash_parts(&[
-            "query_delivery_batch_receipt_v1".to_string(),
-            format!("attachment:{}", attachment_digest.as_str()),
-            format!("sequence:{}", sequence.get()),
-        ]);
+        let receipt_identity = lifecycle_delivery_batch_receipt_identity(
+            attachment_digest.evidence_identity(),
+            sequence.get(),
+        );
+        let receipt_digest = receipt_identity.as_str().to_string();
         Self {
             attachment_digest,
             sequence,
+            receipt_identity,
             receipt_digest,
         }
     }
@@ -98,5 +106,9 @@ impl QueryDeliveryBatchReceipt {
 
     pub fn receipt_digest(&self) -> &str {
         &self.receipt_digest
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
     }
 }

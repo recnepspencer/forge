@@ -171,6 +171,7 @@ pub use delivery::QuerySubscriptionDeliveryIntent;
 pub use delivery_budget::QueryDeliveryWindowBudget;
 #[allow(unused_imports)]
 pub use delivery_cause::{QuerySubscriptionDeliveryCause, QuerySubscriptionDeliveryCauseKind};
+pub(crate) use delivery_cause::delivery_cause_evidence_label_identity;
 pub use delivery_denials::{deny_raw_bridge_invalidation_delivery, deny_raw_cdc_delivery_fallback};
 pub use delivery_density::ActiveDeliveryDensityPosture;
 pub use delivery_dimensions::{

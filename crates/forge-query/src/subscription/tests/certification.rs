@@ -850,34 +850,32 @@ fn lifecycle_certification_emits_runtime_backed_bundle() {
 
     assert!(!bundle.certification_bundle_for_reporting().is_empty());
     assert_eq!(
-        bundle.active_lane_digest(),
+        bundle.active_lane_for_reporting(),
         artifacts.handle.lane_digest().as_str()
     );
     assert_eq!(
-        bundle.delivery_receipt_digest(),
+        bundle.delivery_receipt_for_reporting(),
         artifacts.delivery_batch.receipt().receipt_digest()
     );
     assert_eq!(
-        bundle.acknowledgement_frontier_digest(),
+        bundle.acknowledgement_frontier_for_reporting(),
         artifacts
             .acknowledged_attachment
             .acknowledgement_frontier()
-            .frontier_digest()
+            .frontier_for_reporting()
     );
-    assert_eq!(bundle.continuation_digest(), "none");
-    assert_eq!(bundle.preview_isolation_digest(), "none");
-    assert!(!bundle.support_matrix_digest().is_empty());
-    assert!(!bundle.counter_snapshot().is_empty());
-    assert!(bundle.counter_evidence().iter().any(|entry| {
-        entry
-            == &format!(
-                "frontier:{}",
-                artifacts
-                    .acknowledged_attachment
-                    .acknowledgement_frontier()
-                    .frontier_digest()
-            )
-    }));
+    assert!(artifacts.continuation_report.is_none());
+    assert_eq!(bundle.preview_isolation_for_reporting(), "none");
+    assert!(!bundle.support_matrix_for_reporting().is_empty());
+    assert!(!bundle.counter_snapshot_for_reporting().is_empty());
+    assert!(
+        !bundle.counter_sequence_identity().as_str().is_empty(),
+        "lifecycle certification should bind typed counter sequence identity"
+    );
+    assert!(
+        !bundle.certification_bundle_identity().as_str().is_empty(),
+        "certification bundle authority must be typed evidence identity"
+    );
 }
 
 #[test]
@@ -910,8 +908,9 @@ fn lifecycle_certification_binds_continuation_receipt_and_digest() {
     )
     .unwrap();
 
-    assert_ne!(bundle.continuation_digest(), "none");
-    assert!(!bundle.subscription_performance_receipt_digest().is_empty());
+    assert!(artifacts.continuation_report.is_some());
+    assert_ne!(bundle.continuation_for_reporting(), "none");
+    assert!(!bundle.subscription_performance_receipt_for_reporting().is_empty());
 }
 
 #[test]
@@ -982,13 +981,13 @@ fn lifecycle_certification_emits_preview_discard_and_support_evidence() {
     )
     .unwrap();
 
-    assert_ne!(bundle.preview_isolation_digest(), "none");
-    assert_ne!(bundle.preview_residue_digest(), "none");
-    assert!(bundle
-        .counter_evidence()
-        .iter()
-        .any(|entry| entry.starts_with("preview_discard:")));
-    assert!(!bundle.support_matrix_digest().is_empty());
+    assert_ne!(bundle.preview_isolation_for_reporting(), "none");
+    assert_ne!(bundle.preview_residue_for_reporting(), "none");
+    assert!(
+        !bundle.counter_sequence_identity().as_str().is_empty(),
+        "preview discard certification should include typed counter sequence identity"
+    );
+    assert!(!bundle.support_matrix_for_reporting().is_empty());
 }
 
 #[test]
@@ -1015,12 +1014,12 @@ fn lifecycle_certification_emits_preview_promotion_boundary_evidence() {
     )
     .unwrap();
 
-    assert_ne!(bundle.preview_isolation_digest(), "none");
-    assert_ne!(bundle.preview_residue_digest(), "none");
-    assert!(bundle
-        .counter_evidence()
-        .iter()
-        .any(|entry| entry == "promotion_authority_boundary_crossed:true"));
+    assert_ne!(bundle.preview_isolation_for_reporting(), "none");
+    assert_ne!(bundle.preview_residue_for_reporting(), "none");
+    assert!(
+        !bundle.counter_sequence_identity().as_str().is_empty(),
+        "preview promotion certification should include typed counter sequence identity"
+    );
 }
 
 #[test]

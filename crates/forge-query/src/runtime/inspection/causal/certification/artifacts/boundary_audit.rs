@@ -12,7 +12,7 @@ pub struct CausalInspectionBoundaryAudit {
 
 impl CausalInspectionBoundaryAudit {
     pub fn from_query_artifact_public_surface(artifact: &QueryCausalInspectionArtifact) -> Self {
-        let audited_artifact_digest = artifact.artifact_digest().to_string();
+        let audited_artifact_digest = artifact.artifact_for_reporting().to_string();
         let audit_digest = hash_parts(&[
             "causal_inspection_boundary_audit_v1".to_string(),
             "ordinary-path:query-artifact".to_string(),

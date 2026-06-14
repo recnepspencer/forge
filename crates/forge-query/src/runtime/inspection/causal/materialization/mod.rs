@@ -11,13 +11,13 @@ use super::admission::{
     AdmittedCausalInspection, AdvisoryCausalInspection, DeniedCausalInspection,
 };
 use super::identity::{
-    compose_bridge_causal_denial_identity, compose_bridge_causal_envelope_identity,
-    compose_bridge_causal_envelope_receipt_identity,
+    bridge_causal_admission_summary_kind_label, compose_bridge_causal_denial_identity,
+    compose_bridge_causal_envelope_identity, compose_bridge_causal_envelope_receipt_identity,
     compose_bridge_causal_explanation_envelope_identity, compose_causal_artifact_causal_identity,
     compose_causal_artifact_identity, compose_causal_denied_artifact_detail_identity,
     compose_causal_materialized_detail_identity, CausalInspectionArtifactIdentity,
 };
-use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use artifacts::BuiltBridgeBackedArtifact;
 pub use artifacts::DeniedQueryCausalInspectionArtifact;
 pub use artifacts::{
@@ -33,7 +33,6 @@ pub use exploration::{CausalInspectionArtifactDecisionTrace, CausalInspectionArt
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeDenial, BridgeCausalExplanationEnvelope,
     BridgeCausalInspectionAdmissionSummary, BridgeCausalInspectionAdmissionSummaryKind,
-    BridgeIdentityEvidence,
 };
 pub use performance::CausalInspectionPerformanceEnvelope;
 pub use policy::{
@@ -213,31 +212,36 @@ fn validate_bridge_summary(
     if envelope.admission_summary_kind() != expected_kind {
         return Err(CausalInspectionMaterializationError::new(
             CausalInspectionMaterializationErrorKind::AdmissionSummaryKindMismatch,
-            &[
-                format!("expected:{expected_kind:?}"),
-                format!("actual:{:?}", envelope.admission_summary_kind()),
-            ],
+            |identity| {
+                identity
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("expected"),
+                        bridge_causal_admission_summary_kind_label(expected_kind),
+                    )
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("actual"),
+                        bridge_causal_admission_summary_kind_label(
+                            envelope.admission_summary_kind(),
+                        ),
+                    )
+            },
         ));
     }
     let expected_summary = match expected_kind {
         BridgeCausalInspectionAdmissionSummaryKind::Admitted => {
             BridgeCausalInspectionAdmissionSummary::admitted(
-                BridgeIdentityEvidence::from_external_authority(
-                    query_admission_identity.evidence_identity(),
-                ),
-                BridgeIdentityEvidence::from_external_authority(
-                    anchor_identity.evidence_identity(),
-                ),
+                query_admission_identity
+                    .evidence_identity()
+                    .bridge_evidence_identity(),
+                anchor_identity.evidence_identity().bridge_evidence_identity(),
             )
         }
         BridgeCausalInspectionAdmissionSummaryKind::Advisory => {
             BridgeCausalInspectionAdmissionSummary::advisory(
-                BridgeIdentityEvidence::from_external_authority(
-                    query_admission_identity.evidence_identity(),
-                ),
-                BridgeIdentityEvidence::from_external_authority(
-                    anchor_identity.evidence_identity(),
-                ),
+                query_admission_identity
+                    .evidence_identity()
+                    .bridge_evidence_identity(),
+                anchor_identity.evidence_identity().bridge_evidence_identity(),
             )
         }
     }
@@ -245,10 +249,17 @@ fn validate_bridge_summary(
     if expected_summary.summary_for_reporting() != envelope.admission_summary_for_reporting() {
         return Err(CausalInspectionMaterializationError::new(
             CausalInspectionMaterializationErrorKind::AdmissionSummaryDigestMismatch,
-            &[
-                format!("expected:{}", expected_summary.summary_for_reporting()),
-                format!("actual:{}", envelope.admission_summary_for_reporting()),
-            ],
+            |identity| {
+                identity
+                    .field_value(
+                        ForgeQueryEvidenceTag::new("expected"),
+                        expected_summary.summary_for_reporting(),
+                    )
+                    .field_value(
+                        ForgeQueryEvidenceTag::new("actual"),
+                        envelope.admission_summary_for_reporting(),
+                    )
+            },
         ));
     }
     Ok(
@@ -313,7 +324,7 @@ fn build_bridge_backed_artifact(
         Some(readmission_proof),
         detail_identity.evidence_identity(),
     );
-    let causal_identity = causal_identity_digest(
+    let causal_identity = causal_materialization_identity(
         kind,
         query_admission_identity,
         query_observation_identity,
@@ -331,7 +342,7 @@ fn build_bridge_backed_artifact(
     }
 }
 
-pub(super) fn causal_identity_digest(
+pub(super) fn causal_materialization_identity(
     kind: CausalInspectionArtifactKind,
     query_admission_identity: &super::identity::CausalInspectionOutcomeIdentity,
     query_observation_identity: &ForgeQueryEvidenceIdentity,

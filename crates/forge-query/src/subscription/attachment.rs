@@ -16,6 +16,7 @@ use super::attachment_error::{
 };
 use super::attachment_request::SubscriptionConsumerAttachmentRequest;
 use super::delivery_density::ActiveDeliveryDensityPosture;
+use super::evidence_identities::subscription_performance_receipt_source_identity;
 use super::fanout::{SubscriptionFanoutPlan, SubscriptionFanoutReport};
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::performance_receipt::SubscriptionPerformanceReceipt;
@@ -25,8 +26,8 @@ pub struct SubscriptionConsumerAttachment {
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     lane_digest: ActiveSubscriptionLaneDigest,
     future_selection: QuerySubscriptionFutureSelection,
-    basis_binding_digest: String,
-    checkpoint_identity_digest: String,
+    basis_binding_identity: ForgeQueryEvidenceIdentity,
+    checkpoint_identity: ForgeQueryEvidenceIdentity,
     consumer_identity: ForgeQueryEvidenceIdentity,
     delivery_cursor_identity: ForgeQueryEvidenceIdentity,
     attachment_index: u64,
@@ -89,6 +90,11 @@ impl SubscriptionConsumerAttachment {
             } else {
                 ActiveSubscriptionAllocationPosture::LifecycleArena
             };
+        let performance_source_identity = subscription_performance_receipt_source_identity(
+            handle.lane_digest().evidence_identity(),
+            request.consumer_identity(),
+            budget.backpressure_policy(),
+        );
         let performance_receipt = SubscriptionPerformanceReceipt::new(
             3,
             budget.fanout_width()
@@ -96,12 +102,7 @@ impl SubscriptionConsumerAttachment {
                 + budget.allocation_scope_width(),
             ActiveDeliveryDensityPosture::SparseDelta,
             allocation_posture,
-            &format!(
-                "{}:{}:{}",
-                handle.lane_digest().as_str(),
-                request.consumer_digest(),
-                budget.backpressure_policy().as_str()
-            ),
+            &performance_source_identity,
         );
         counters.subscription_performance_receipt_count = 1;
         counters.subscription_budget_consumption_width = performance_receipt.consumed_width();
@@ -113,7 +114,7 @@ impl SubscriptionConsumerAttachment {
             ForgeQueryEvidenceTag::new("identity_family"),
             "subscription_delivery_cursor_v1",
         )
-        .field_identity(ForgeQueryEvidenceTag::new("lane"), lane_digest.as_str())
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_digest.evidence_identity())
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("consumer"),
             request.consumer_identity(),
@@ -139,7 +140,7 @@ impl SubscriptionConsumerAttachment {
                 ForgeQueryEvidenceTag::new("identity_family"),
                 "subscription_consumer_attachment_v1",
             )
-            .field_identity(ForgeQueryEvidenceTag::new("lane"), lane_digest.as_str())
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_digest.evidence_identity())
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("consumer"),
                 request.consumer_identity(),
@@ -160,17 +161,17 @@ impl SubscriptionConsumerAttachment {
                 ForgeQueryEvidenceTag::new("handle_generation"),
                 handle.registry_generation().to_string(),
             )
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("fanout_report"),
-                fanout_report.report_digest(),
+                fanout_report.evidence_identity(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("allocation"),
                 allocation_posture.as_str(),
             )
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("performance"),
-                performance_receipt.performance_receipt_for_reporting(),
+                performance_receipt.performance_receipt_identity(),
             )
             .seal(),
         );
@@ -182,8 +183,8 @@ impl SubscriptionConsumerAttachment {
                 attachment_digest,
                 lane_digest,
                 future_selection: handle.future_selection().clone(),
-                basis_binding_digest: handle.basis_binding_digest().to_string(),
-                checkpoint_identity_digest: handle.checkpoint_identity_digest().to_string(),
+                basis_binding_identity: handle.basis_binding_identity().clone(),
+                checkpoint_identity: handle.checkpoint_identity().clone(),
                 consumer_identity: request.consumer_identity().clone(),
                 delivery_cursor_identity,
                 attachment_index,
@@ -239,12 +240,20 @@ impl SubscriptionConsumerAttachment {
         &self.future_selection
     }
 
-    pub fn basis_binding_digest(&self) -> &str {
-        &self.basis_binding_digest
+    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_binding_identity
     }
 
-    pub fn checkpoint_identity_digest(&self) -> &str {
-        &self.checkpoint_identity_digest
+    pub fn basis_binding_for_reporting(&self) -> &str {
+        self.basis_binding_identity.as_str()
+    }
+
+    pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.checkpoint_identity
+    }
+
+    pub fn checkpoint_for_reporting(&self) -> &str {
+        self.checkpoint_identity.as_str()
     }
 
     pub fn consumer_digest(&self) -> &str {

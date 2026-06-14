@@ -116,7 +116,7 @@ fn future_explanation_families_deny_without_bridge_assembly() {
             .materialize_with_bridge(&runtime)
             .expect("denied future family should materialize without bridge assembly");
         assert!(artifact.is_denied());
-        assert!(artifact.bridge_envelope_digest().is_none());
+        assert!(artifact.bridge_envelope_for_reporting().is_none());
         assert_eq!(artifact.performance().bridge_envelope_assembly_count(), 0);
         assert_eq!(
             artifact.denial_reason(),
@@ -184,14 +184,14 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
             );
 
             match causal_identity_digest {
-                Some(ref digest) => assert_eq!(artifact.causal_identity_digest(), digest),
+                Some(ref digest) => assert_eq!(artifact.causal_identity_for_reporting(), digest),
                 None => {
                     causal_identity_digest =
-                        Some(artifact.causal_identity_digest().to_string())
+                        Some(artifact.causal_identity_for_reporting().to_string())
                 }
             }
             policy_digests.push(artifact.receipt().policy_for_reporting().to_string());
-            artifact_digests.push(artifact.artifact_digest().to_string());
+            artifact_digests.push(artifact.artifact_for_reporting().to_string());
         }
     }
 

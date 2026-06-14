@@ -6,11 +6,7 @@ use super::{
     materialize_admitted_preview_workflow_foundation, materialize_query_workflow_declaration,
     ForgeQueryWorkflowContributionAuthoring,
 };
-use crate::workflow::{
-    workflow_context_basis_identity, workflow_context_basis_token_identity,
-    workflow_context_query_identity, workflow_context_query_token_identity,
-    workflow_context_source_identity, workflow_context_source_token_identity, WorkflowBasisFamily,
-};
+use crate::workflow::{bind_workflow_context, WorkflowBindingSource};
 
 #[test]
 fn workflow_materializer_reuses_admitted_preview_foundation_identity() {
@@ -29,28 +25,21 @@ fn workflow_materializer_reuses_admitted_preview_foundation_identity() {
         ),
     )));
 
+    let expected_binding =
+        bind_workflow_context(WorkflowBindingSource::PreviewFoundation(&foundation))
+            .expect("preview foundation should bind");
+
     assert_eq!(
         declaration.binding().source_for_reporting(),
-        workflow_context_source_identity(&workflow_context_source_token_identity(foundation.digest()))
-            .as_str()
+        expected_binding.source_for_reporting()
     );
     assert_eq!(
         declaration.binding().query_for_reporting(),
-        workflow_context_query_identity(&workflow_context_query_token_identity(
-            foundation.validated_query_digest().as_str(),
-        ))
-        .as_str()
+        expected_binding.query_for_reporting()
     );
     assert_eq!(
         declaration.binding().basis_for_reporting(),
-        workflow_context_basis_identity(
-            &WorkflowBasisFamily::PreviewFoundation,
-            &workflow_context_basis_token_identity(
-                &WorkflowBasisFamily::PreviewFoundation,
-                foundation.binding_digest(),
-            ),
-        )
-        .as_str()
+        expected_binding.basis_for_reporting()
     );
     assert_eq!(
         declaration.binding().preview_request_family(),

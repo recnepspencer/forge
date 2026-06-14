@@ -29,7 +29,7 @@ fn active_lane_admission_preserves_activation_digests_and_phase_one_posture() {
         admission.bridge_declaration_digest(),
         bridge_declaration_digest
     );
-    assert_eq!(admission.basis_binding_digest(), basis_binding_digest);
+    assert_eq!(admission.basis_binding_for_reporting(), basis_binding_digest);
     assert_eq!(admission.signal_strategy_digest(), signal_strategy_digest);
     assert_eq!(
         admission.lifecycle_posture(),

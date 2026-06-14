@@ -1,5 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
+use super::evidence_identities::patch_group_identity;
 use super::maintenance_delta::QuerySubscriptionMaintenanceDeltaKind;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -64,21 +65,20 @@ impl QueryPatchGroupKind {
 pub struct QueryPatchGroup {
     kind: QueryPatchGroupKind,
     width: u64,
-    patch_group_digest: String,
+    patch_group_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QueryPatchGroup {
-    pub(crate) fn new(kind: QueryPatchGroupKind, source_digest: &str, width: u64) -> Self {
-        let patch_group_digest = hash_parts(&[
-            "query_patch_group_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("source:{}", source_digest),
-            format!("width:{}", width),
-        ]);
+    pub(crate) fn new(
+        kind: QueryPatchGroupKind,
+        source_identity: &ForgeQueryEvidenceIdentity,
+        width: u64,
+    ) -> Self {
+        let patch_group_identity = patch_group_identity(kind, source_identity, width);
         Self {
             kind,
             width,
-            patch_group_digest,
+            patch_group_identity,
         }
     }
 
@@ -90,7 +90,11 @@ impl QueryPatchGroup {
         self.width
     }
 
-    pub fn patch_group_digest(&self) -> &str {
-        &self.patch_group_digest
+    pub fn patch_group_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.patch_group_identity
+    }
+
+    pub fn patch_group_for_reporting(&self) -> &str {
+        self.patch_group_identity.as_str()
     }
 }

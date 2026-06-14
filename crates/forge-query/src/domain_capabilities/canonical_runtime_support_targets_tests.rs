@@ -35,8 +35,8 @@ fn declaration_support_traceability_materializer_builds_real_declaration_artifac
         artifact.target_lane(),
         crate::runtime::ForgeQueryAuthorityLane::AuthoritativeTruth
     );
-    assert!(!artifact.target_binding_digest().is_empty());
-    assert!(!artifact.request_digest().is_empty());
+    assert!(!artifact.target_binding_for_reporting().is_empty());
+    assert!(!artifact.request_for_reporting().is_empty());
     assert!(!artifact.materialization_digest().is_empty());
 }
 
@@ -75,8 +75,8 @@ fn lower_runtime_support_traceability_materializer_builds_real_boundary_artifact
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSupportPosture::Admitted
     );
     assert!(!artifact.envelope_for_reporting().is_empty());
-    assert!(!artifact.target_binding_digest().is_empty());
-    assert!(!artifact.request_digest().is_empty());
+    assert!(!artifact.target_binding_for_reporting().is_empty());
+    assert!(!artifact.request_for_reporting().is_empty());
     assert!(!artifact.materialization_digest().is_empty());
 }
 
@@ -107,7 +107,10 @@ fn declaration_support_traceability_digest_changes_when_scope_changes() {
         )),
     );
 
-    assert_ne!(left.target_binding_digest(), right.target_binding_digest());
+    assert_ne!(
+        left.target_binding_for_reporting(),
+        right.target_binding_for_reporting()
+    );
     assert_ne!(
         left.materialization_digest(),
         right.materialization_digest()
@@ -171,7 +174,10 @@ fn lower_runtime_support_traceability_digest_changes_when_scope_changes() {
         ),
     ));
 
-    assert_ne!(left.target_binding_digest(), right.target_binding_digest());
+    assert_ne!(
+        left.target_binding_for_reporting(),
+        right.target_binding_for_reporting()
+    );
     assert_ne!(
         left.materialization_digest(),
         right.materialization_digest()

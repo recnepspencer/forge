@@ -149,15 +149,27 @@ impl QueryCausalEvidenceReferenceArtifact {
         self.family
     }
 
-    pub fn reference_identity(&self) -> &str {
+    pub fn reference_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.reference_identity
+    }
+
+    pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.binding_identity
+    }
+
+    pub fn retained_record_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.retained_record_identity.as_ref()
+    }
+
+    pub fn reference_evidence_for_reporting(&self) -> &str {
         self.reference_identity.as_str()
     }
 
-    pub fn binding_digest(&self) -> &str {
+    pub fn binding_for_reporting(&self) -> &str {
         self.binding_identity.as_str()
     }
 
-    pub fn retained_record_digest(&self) -> Option<&str> {
+    pub fn retained_record_for_reporting(&self) -> Option<&str> {
         self.retained_record_identity
             .as_ref()
             .map(ForgeQueryEvidenceIdentity::as_str)
@@ -258,20 +270,20 @@ impl AdmittedQueryCausalInspectionArtifact {
         }
     }
 
-    pub fn query_admission_digest(&self) -> &str {
+    pub fn query_admission_for_reporting(&self) -> &str {
         self.query_admission_identity.as_str()
     }
 
-    pub fn query_observation_digest(&self) -> &str {
+    pub fn query_admission_identity(&self) -> &CausalInspectionOutcomeIdentity {
+        &self.query_admission_identity
+    }
+
+    pub fn query_observation_for_reporting(&self) -> &str {
         self.query_observation_identity.as_str()
     }
 
     pub fn result_shape_context_for_reporting(&self) -> &str {
         self.result_shape_context_identity.as_str()
-    }
-
-    pub fn bridge_envelope_identity_for_reporting(&self) -> &str {
-        self.bridge_identity.as_str()
     }
 }
 
@@ -313,7 +325,7 @@ impl AdvisoryQueryCausalInspectionArtifact {
         self.query_advisory_identity.as_str()
     }
 
-    pub fn query_observation_digest(&self) -> &str {
+    pub fn query_observation_for_reporting(&self) -> &str {
         self.query_observation_identity.as_str()
     }
 
@@ -323,10 +335,6 @@ impl AdvisoryQueryCausalInspectionArtifact {
 
     pub fn advisory_reason(&self) -> &str {
         &self.advisory_reason
-    }
-
-    pub fn bridge_envelope_identity_for_reporting(&self) -> &str {
-        self.bridge_identity.as_str()
     }
 }
 
@@ -345,8 +353,12 @@ macro_rules! bridge_backed_accessors {
                 &self.boundary_categories
             }
 
-            pub fn bridge_envelope_digest(&self) -> &str {
+            pub fn bridge_envelope_for_reporting(&self) -> &str {
                 self.bridge_envelope_identity.as_str()
+            }
+
+            pub fn bridge_envelope_identity(&self) -> &ForgeQueryEvidenceIdentity {
+                &self.bridge_envelope_identity
             }
 
             pub fn bridge_receipt_for_reporting(&self) -> &str {
@@ -369,7 +381,7 @@ macro_rules! bridge_backed_accessors {
                 &self.readmission_proof
             }
 
-            pub fn bridge_readmission_proof_digest(&self) -> &str {
+            pub fn bridge_readmission_proof_for_reporting(&self) -> &str {
                 self.readmission_proof.readmission_proof_for_reporting()
             }
 
@@ -379,11 +391,15 @@ macro_rules! bridge_backed_accessors {
                 self.readmission_proof.readmission_proof_identity()
             }
 
-            pub fn causal_identity_digest(&self) -> &str {
+            pub fn causal_identity_for_reporting(&self) -> &str {
                 self.causal_identity.as_str()
             }
 
-            pub fn artifact_digest(&self) -> &str {
+            pub fn causal_identity(&self) -> &CausalInspectionArtifactIdentity {
+                &self.causal_identity
+            }
+
+            pub fn artifact_for_reporting(&self) -> &str {
                 self.artifact_identity.as_str()
             }
 
@@ -413,11 +429,11 @@ impl QueryCausalInspectionArtifact {
         }
     }
 
-    pub fn artifact_digest(&self) -> &str {
+    pub fn artifact_for_reporting(&self) -> &str {
         match self {
-            Self::Admitted(artifact) => artifact.artifact_digest(),
-            Self::Advisory(artifact) => artifact.artifact_digest(),
-            Self::Denied(artifact) => artifact.artifact_digest(),
+            Self::Admitted(artifact) => artifact.artifact_for_reporting(),
+            Self::Advisory(artifact) => artifact.artifact_for_reporting(),
+            Self::Denied(artifact) => artifact.artifact_for_reporting(),
         }
     }
 
@@ -429,26 +445,34 @@ impl QueryCausalInspectionArtifact {
         }
     }
 
-    pub fn causal_identity_digest(&self) -> &str {
+    pub fn causal_identity_for_reporting(&self) -> &str {
         match self {
-            Self::Admitted(artifact) => artifact.causal_identity_digest(),
-            Self::Advisory(artifact) => artifact.causal_identity_digest(),
-            Self::Denied(artifact) => artifact.causal_identity_digest(),
+            Self::Admitted(artifact) => artifact.causal_identity_for_reporting(),
+            Self::Advisory(artifact) => artifact.causal_identity_for_reporting(),
+            Self::Denied(artifact) => artifact.causal_identity_for_reporting(),
         }
     }
 
-    pub fn query_observation_digest(&self) -> &str {
+    pub fn causal_identity(&self) -> &CausalInspectionArtifactIdentity {
         match self {
-            Self::Admitted(artifact) => artifact.query_observation_digest(),
-            Self::Advisory(artifact) => artifact.query_observation_digest(),
-            Self::Denied(artifact) => artifact.query_observation_digest(),
+            Self::Admitted(artifact) => artifact.causal_identity(),
+            Self::Advisory(artifact) => artifact.causal_identity(),
+            Self::Denied(artifact) => artifact.causal_identity(),
         }
     }
 
-    pub fn bridge_envelope_digest(&self) -> Option<&str> {
+    pub fn query_observation_for_reporting(&self) -> &str {
         match self {
-            Self::Admitted(artifact) => Some(artifact.bridge_envelope_digest()),
-            Self::Advisory(artifact) => Some(artifact.bridge_envelope_digest()),
+            Self::Admitted(artifact) => artifact.query_observation_for_reporting(),
+            Self::Advisory(artifact) => artifact.query_observation_for_reporting(),
+            Self::Denied(artifact) => artifact.query_observation_for_reporting(),
+        }
+    }
+
+    pub fn bridge_envelope_for_reporting(&self) -> Option<&str> {
+        match self {
+            Self::Admitted(artifact) => Some(artifact.bridge_envelope_for_reporting()),
+            Self::Advisory(artifact) => Some(artifact.bridge_envelope_for_reporting()),
             Self::Denied(_) => None,
         }
     }
@@ -477,10 +501,10 @@ impl QueryCausalInspectionArtifact {
         }
     }
 
-    pub fn bridge_readmission_proof_digest(&self) -> Option<&str> {
+    pub fn bridge_readmission_proof_for_reporting(&self) -> Option<&str> {
         match self {
-            Self::Admitted(artifact) => Some(artifact.bridge_readmission_proof_digest()),
-            Self::Advisory(artifact) => Some(artifact.bridge_readmission_proof_digest()),
+            Self::Admitted(artifact) => Some(artifact.bridge_readmission_proof_for_reporting()),
+            Self::Advisory(artifact) => Some(artifact.bridge_readmission_proof_for_reporting()),
             Self::Denied(_) => None,
         }
     }

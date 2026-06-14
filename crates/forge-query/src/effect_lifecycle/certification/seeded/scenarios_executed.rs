@@ -51,28 +51,28 @@ pub(super) fn scalar_mutation_row(
         basis.family(),
         EffectFamily::Mutation,
         1,
-        support.discovery_digest().to_string(),
+        support.discovery_for_reporting().to_string(),
         Some(normalized.normalized_digest().to_string()),
         executed
             .lowered()
             .authority_scoped_plan()
             .admitted()
-            .admitted_digest()
+            .admitted_for_reporting()
             .to_string(),
         Some(
             executed
                 .lowered()
                 .authority_scoped_plan()
-                .plan_digest()
+                .plan_for_reporting()
                 .to_string(),
         ),
         Some(
             executed
                 .lowered()
-                .lowered_effect_execution_plan_digest()
+                .lowered_effect_execution_plan_for_reporting()
                 .to_string(),
         ),
-        Some(executed.effect_execution_digest().to_string()),
+        Some(executed.effect_execution_for_reporting().to_string()),
         None,
         executed.counters().clone(),
     )
@@ -111,28 +111,28 @@ pub(super) fn scalar_writeback_row(
         basis.family(),
         EffectFamily::Writeback,
         1,
-        support.discovery_digest().to_string(),
+        support.discovery_for_reporting().to_string(),
         Some(normalized.normalized_digest().to_string()),
         executed
             .lowered()
             .authority_scoped_plan()
             .admitted()
-            .admitted_digest()
+            .admitted_for_reporting()
             .to_string(),
         Some(
             executed
                 .lowered()
                 .authority_scoped_plan()
-                .plan_digest()
+                .plan_for_reporting()
                 .to_string(),
         ),
         Some(
             executed
                 .lowered()
-                .lowered_effect_execution_plan_digest()
+                .lowered_effect_execution_plan_for_reporting()
                 .to_string(),
         ),
-        Some(executed.effect_execution_digest().to_string()),
+        Some(executed.effect_execution_for_reporting().to_string()),
         None,
         executed.counters().clone(),
     )
@@ -168,15 +168,15 @@ pub(super) fn merge_lowered_row(
         basis.family(),
         EffectFamily::Merge,
         1,
-        support.discovery_digest().to_string(),
+        support.discovery_for_reporting().to_string(),
         Some(normalized.normalized_digest().to_string()),
         lowered
             .authority_scoped_plan()
             .admitted()
-            .admitted_digest()
+            .admitted_for_reporting()
             .to_string(),
-        Some(lowered.authority_scoped_plan().plan_digest().to_string()),
-        Some(lowered.lowered_effect_execution_plan_digest().to_string()),
+        Some(lowered.authority_scoped_plan().plan_for_reporting().to_string()),
+        Some(lowered.lowered_effect_execution_plan_for_reporting().to_string()),
         None,
         None,
         lowered.counters().clone(),
@@ -219,9 +219,9 @@ pub(super) fn batch_mutation_row(
         .using_basis(basis.clone())
         .admit()
         .expect("batch scenario should admit");
-    let admitted_digest = admitted.batch_digest().to_string();
+    let admitted_digest = admitted.batch_for_reporting().to_string();
     let lowered = admitted.lower().expect("batch scenario should lower");
-    let lowered_digest = lowered.batch_digest().to_string();
+    let lowered_digest = lowered.batch_for_reporting().to_string();
     let executed = lowered
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
         .expect("batch scenario should execute");
@@ -231,12 +231,12 @@ pub(super) fn batch_mutation_row(
         basis.family(),
         EffectFamily::Mutation,
         batch_width,
-        support.discovery_digest().to_string(),
+        support.discovery_for_reporting().to_string(),
         None,
         admitted_digest,
         None,
         Some(lowered_digest),
-        Some(executed.batch_digest().to_string()),
+        Some(executed.batch_for_reporting().to_string()),
         None,
         executed.counters().clone(),
     )

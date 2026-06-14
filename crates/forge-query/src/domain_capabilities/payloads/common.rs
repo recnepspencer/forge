@@ -137,6 +137,7 @@ pub trait ForgeQueryDomainCapabilityPayload: Clone + SealedPayload {
     fn semantic_code(&self) -> &str;
     fn detail(&self) -> &str;
     fn payload_digest(&self) -> &str;
+    fn payload_identity(&self) -> &crate::ForgeQueryEvidenceIdentity;
 }
 
 macro_rules! define_payload_family {
@@ -251,6 +252,10 @@ macro_rules! define_payload_family {
 
             fn payload_digest(&self) -> &str {
                 self.payload_digest()
+            }
+
+            fn payload_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+                &self.payload_identity
             }
         }
     };

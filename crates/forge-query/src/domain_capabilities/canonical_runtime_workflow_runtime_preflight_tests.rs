@@ -8,9 +8,8 @@ use super::{
 };
 use crate::harness::fixtures::execution_preflights;
 use crate::workflow::{
-    bind_workflow_context, workflow_context_basis_identity, workflow_context_basis_token_identity,
-    workflow_context_query_identity, workflow_context_query_token_identity, WorkflowBasisFamily,
-    WorkflowBindingSource,
+    bind_workflow_context, workflow_context_basis_identity, workflow_context_query_identity,
+    WorkflowBasisFamily, WorkflowBindingSource,
 };
 
 #[test]
@@ -51,9 +50,7 @@ fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_ba
     assert_eq!(
         declaration.binding().query_for_reporting(),
         workflow_context_query_identity(
-            &workflow_context_query_token_identity(
-                preflight.plan().query().canonical_query_digest().as_str(),
-            ),
+            &preflight.plan().query().canonical_query_digest().evidence_identity(),
         )
         .as_str()
     );
@@ -61,10 +58,7 @@ fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_ba
         declaration.binding().basis_for_reporting(),
         workflow_context_basis_identity(
             &WorkflowBasisFamily::RuntimePreflight,
-            &workflow_context_basis_token_identity(
-                &WorkflowBasisFamily::RuntimePreflight,
-                preflight.basis().proof().digest().as_str(),
-            ),
+            preflight.basis().proof().identity(),
         )
         .as_str()
     );

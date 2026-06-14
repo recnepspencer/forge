@@ -174,8 +174,8 @@ fn collection_and_grouped_deliveries_have_distinct_patch_digests() {
         QueryPatchGroupKind::GroupedMembershipPatchGroup
     );
     assert_ne!(
-        collection_batch.patch_group().patch_group_digest(),
-        grouped_batch.patch_group().patch_group_digest()
+        collection_batch.patch_group().patch_group_for_reporting(),
+        grouped_batch.patch_group().patch_group_for_reporting()
     );
     assert_eq!(grouped_batch.counters().grouped_membership_patch_width(), 1);
 }

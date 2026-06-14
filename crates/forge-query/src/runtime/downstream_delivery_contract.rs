@@ -1,9 +1,15 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::lower_runtime_routing::{
     forge_query_lower_runtime_support_matrix, ForgeQueryLowerRuntimeSeamKey,
     ForgeQueryLowerRuntimeSupportPosture,
 };
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
 
+use super::evidence_identities::{
+    lower_runtime_support_row_identity, lower_runtime_support_rows_aggregate_identity,
+    runtime_downstream_delivery_contract_identity, runtime_downstream_delivery_identity,
+    RuntimeDownstreamDeliveryIdentityParts,
+};
 use super::{
     aggregate_support_posture, support_gate_resume_kind, ForgeQueryRuntimeAsyncResultState,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeDownstreamResumePosture,
@@ -11,7 +17,6 @@ use super::{
     ForgeQueryRuntimeRemaskDispositionKind, ForgeQueryRuntimeRemaskPosture,
     ForgeQueryRuntimeSupportProfile,
 };
-use crate::identity::hash_parts;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryRuntimeDownstreamDeliveryClass {
@@ -53,10 +58,10 @@ impl ForgeQueryRuntimeDownstreamSupportPosture {
 pub struct ForgeQueryRuntimeDownstreamDeliveryContract {
     backend_posture: ForgeQueryRuntimeBackendPosture,
     runtime_resume_support_status: ForgeQueryLowerRuntimeSupportPosture,
-    runtime_resume_support_digest: String,
+    runtime_resume_support_identity: ForgeQueryEvidenceIdentity,
     durable_resume_support_status: ForgeQueryLowerRuntimeSupportPosture,
-    durable_resume_support_digest: String,
-    contract_digest: String,
+    durable_resume_support_identity: ForgeQueryEvidenceIdentity,
+    contract_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimeDownstreamDeliveryContract {
@@ -81,29 +86,24 @@ impl ForgeQueryRuntimeDownstreamDeliveryContract {
         });
         let durable_resume_support_status =
             aggregate_support_posture(durable_resume_rows.iter().map(|row| row.posture()));
-        let durable_resume_support_digest = hash_parts(
-            &durable_resume_rows
-                .iter()
-                .map(|row| row.row_digest())
-                .collect::<Vec<_>>(),
-        );
+        let runtime_resume_support_identity = lower_runtime_support_row_identity(runtime_resume);
+        let durable_resume_support_identity =
+            lower_runtime_support_rows_aggregate_identity(durable_resume_rows.into_iter());
         let runtime_resume_support_status = runtime_resume.posture();
-        let runtime_resume_support_digest = runtime_resume.row_digest();
-        let contract_digest = hash_parts(&[
-            "forge_query_runtime_downstream_delivery_contract_v1".to_string(),
-            format!("posture:{}", backend_posture.as_str()),
-            format!("runtime_resume:{}", runtime_resume_support_status.as_str()),
-            format!("runtime_resume_digest:{runtime_resume_support_digest}"),
-            format!("durable_resume:{}", durable_resume_support_status.as_str()),
-            format!("durable_resume_digest:{durable_resume_support_digest}"),
-        ]);
+        let contract_identity = runtime_downstream_delivery_contract_identity(
+            backend_posture,
+            runtime_resume_support_status,
+            &runtime_resume_support_identity,
+            durable_resume_support_status,
+            &durable_resume_support_identity,
+        );
         Self {
             backend_posture,
             runtime_resume_support_status,
-            runtime_resume_support_digest,
+            runtime_resume_support_identity,
             durable_resume_support_status,
-            durable_resume_support_digest,
-            contract_digest,
+            durable_resume_support_identity,
+            contract_identity,
         }
     }
 
@@ -119,8 +119,12 @@ impl ForgeQueryRuntimeDownstreamDeliveryContract {
         self.runtime_resume_support_status
     }
 
-    pub fn runtime_resume_support_digest(&self) -> &str {
-        &self.runtime_resume_support_digest
+    pub fn runtime_resume_support_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.runtime_resume_support_identity
+    }
+
+    pub fn runtime_resume_support_for_reporting(&self) -> &str {
+        self.runtime_resume_support_identity.as_str()
     }
 
     pub fn durable_resume_deferred(&self) -> bool {
@@ -131,34 +135,42 @@ impl ForgeQueryRuntimeDownstreamDeliveryContract {
         self.durable_resume_support_status
     }
 
-    pub fn durable_resume_support_digest(&self) -> &str {
-        &self.durable_resume_support_digest
+    pub fn durable_resume_support_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.durable_resume_support_identity
     }
 
-    pub fn contract_digest(&self) -> &str {
-        &self.contract_digest
+    pub fn durable_resume_support_for_reporting(&self) -> &str {
+        self.durable_resume_support_identity.as_str()
+    }
+
+    pub fn contract_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.contract_identity
+    }
+
+    pub fn contract_for_reporting(&self) -> &str {
+        self.contract_identity.as_str()
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeDownstreamDelivery {
     view_name: String,
-    delivery_batch_digest: String,
+    delivery_batch_identity: ForgeQueryEvidenceIdentity,
     delivery_class: ForgeQueryRuntimeDownstreamDeliveryClass,
     delivery_cause_kind: QuerySubscriptionDeliveryCauseKind,
-    delivery_cause_digest: String,
+    delivery_cause_identity: ForgeQueryEvidenceIdentity,
     sequence: u64,
-    basis_digest: String,
+    basis_identity: ForgeQueryEvidenceIdentity,
     support_posture: ForgeQueryRuntimeDownstreamSupportPosture,
-    support_evidence_digest: String,
-    mixed_cause_digest: Option<String>,
-    async_result_state_digest: Option<String>,
-    remask_digest: Option<String>,
+    support_identity: ForgeQueryEvidenceIdentity,
+    mixed_cause_identity: Option<ForgeQueryEvidenceIdentity>,
+    async_result_state_identity: Option<ForgeQueryEvidenceIdentity>,
+    remask_identity: Option<ForgeQueryEvidenceIdentity>,
     runtime_resume_support_posture: ForgeQueryLowerRuntimeSupportPosture,
-    runtime_resume_support_digest: String,
+    runtime_resume_support_identity: ForgeQueryEvidenceIdentity,
     durable_resume_support_posture: ForgeQueryLowerRuntimeSupportPosture,
-    durable_resume_support_digest: String,
-    delivery_digest: String,
+    durable_resume_support_identity: ForgeQueryEvidenceIdentity,
+    delivery_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimeDownstreamDelivery {
@@ -166,8 +178,12 @@ impl ForgeQueryRuntimeDownstreamDelivery {
         &self.view_name
     }
 
-    pub fn delivery_batch_digest(&self) -> &str {
-        &self.delivery_batch_digest
+    pub fn delivery_batch_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_batch_identity
+    }
+
+    pub fn delivery_batch_for_reporting(&self) -> &str {
+        self.delivery_batch_identity.as_str()
     }
 
     pub fn delivery_class(&self) -> ForgeQueryRuntimeDownstreamDeliveryClass {
@@ -178,40 +194,74 @@ impl ForgeQueryRuntimeDownstreamDelivery {
         self.delivery_cause_kind
     }
 
-    pub fn delivery_cause_digest(&self) -> &str {
-        &self.delivery_cause_digest
+    pub fn delivery_cause_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_cause_identity
+    }
+
+    pub fn delivery_cause_for_reporting(&self) -> &str {
+        self.delivery_cause_identity.as_str()
     }
 
     pub fn sequence(&self) -> u64 {
         self.sequence
     }
 
-    pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
+    }
+
+    pub fn basis_for_reporting(&self) -> &str {
+        self.basis_identity.as_str()
     }
 
     pub fn support_posture(&self) -> ForgeQueryRuntimeDownstreamSupportPosture {
         self.support_posture
     }
 
-    pub fn support_evidence_digest(&self) -> &str {
-        &self.support_evidence_digest
+    pub fn support_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.support_identity
     }
 
-    pub fn mixed_cause_digest(&self) -> Option<&str> {
-        self.mixed_cause_digest.as_deref()
+    pub fn support_for_reporting(&self) -> &str {
+        self.support_identity.as_str()
     }
 
-    pub fn async_result_state_digest(&self) -> Option<&str> {
-        self.async_result_state_digest.as_deref()
+    pub fn mixed_cause_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.mixed_cause_identity.as_ref()
     }
 
-    pub fn remask_digest(&self) -> Option<&str> {
-        self.remask_digest.as_deref()
+    pub fn mixed_cause_for_reporting(&self) -> Option<&str> {
+        self.mixed_cause_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
-    pub fn delivery_digest(&self) -> &str {
-        &self.delivery_digest
+    pub fn async_result_state_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.async_result_state_identity.as_ref()
+    }
+
+    pub fn async_result_state_for_reporting(&self) -> Option<&str> {
+        self.async_result_state_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn remask_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.remask_identity.as_ref()
+    }
+
+    pub fn remask_for_reporting(&self) -> Option<&str> {
+        self.remask_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn delivery_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_identity
+    }
+
+    pub fn delivery_for_reporting(&self) -> &str {
+        self.delivery_identity.as_str()
     }
 
     pub fn runtime_resume_support_posture(&self) -> ForgeQueryLowerRuntimeSupportPosture {
@@ -224,37 +274,37 @@ impl ForgeQueryRuntimeDownstreamDelivery {
 
     pub fn negotiate_runtime_resume(
         &self,
-        basis_digest: Option<&str>,
+        basis_identity: Option<&ForgeQueryEvidenceIdentity>,
     ) -> ForgeQueryRuntimeDownstreamResumePosture {
         let support_posture = self.runtime_resume_support_posture;
         if support_posture != ForgeQueryLowerRuntimeSupportPosture::Admitted {
             return ForgeQueryRuntimeDownstreamResumePosture::new(
                 support_gate_resume_kind(support_posture),
-                Some(self.basis_digest.clone()),
+                Some(self.basis_identity.clone()),
                 support_posture,
-                self.runtime_resume_support_digest.clone(),
+                self.runtime_resume_support_identity.clone(),
             );
         }
-        match basis_digest {
-            Some(candidate) if candidate == self.basis_digest => {
+        match basis_identity {
+            Some(candidate) if candidate == &self.basis_identity => {
                 ForgeQueryRuntimeDownstreamResumePosture::new(
                     ForgeQueryRuntimeDownstreamResumePostureKind::RuntimeBackedAdmitted,
-                    Some(self.basis_digest.clone()),
+                    Some(self.basis_identity.clone()),
                     support_posture,
-                    self.runtime_resume_support_digest.clone(),
+                    self.runtime_resume_support_identity.clone(),
                 )
             }
             Some(_) => ForgeQueryRuntimeDownstreamResumePosture::new(
                 ForgeQueryRuntimeDownstreamResumePostureKind::StaleBasisDenied,
-                Some(self.basis_digest.clone()),
+                Some(self.basis_identity.clone()),
                 support_posture,
-                self.runtime_resume_support_digest.clone(),
+                self.runtime_resume_support_identity.clone(),
             ),
             None => ForgeQueryRuntimeDownstreamResumePosture::new(
                 ForgeQueryRuntimeDownstreamResumePostureKind::MissingBasisDenied,
-                Some(self.basis_digest.clone()),
+                Some(self.basis_identity.clone()),
                 support_posture,
-                self.runtime_resume_support_digest.clone(),
+                self.runtime_resume_support_identity.clone(),
             ),
         }
     }
@@ -269,9 +319,9 @@ impl ForgeQueryRuntimeDownstreamDelivery {
         };
         ForgeQueryRuntimeDownstreamResumePosture::new(
             kind,
-            Some(self.basis_digest.clone()),
+            Some(self.basis_identity.clone()),
             support_posture,
-            self.durable_resume_support_digest.clone(),
+            self.durable_resume_support_identity.clone(),
         )
     }
 }
@@ -283,73 +333,59 @@ pub(crate) fn project_downstream_delivery(
     let delivery = state.last_delivery.as_ref()?;
     let delivery_class = classify_delivery(delivery, state.async_result_state.as_ref());
     let support_posture = classify_support_posture(state.remask_posture.as_ref());
-    let mixed_cause_digest = matches!(
+    let mixed_cause_identity = matches!(
         delivery_class,
         ForgeQueryRuntimeDownstreamDeliveryClass::MixedCause
     )
-    .then(|| {
-        delivery
-            .mixed_cause_delivery()
-            .mixed_cause_digest()
-            .to_string()
-    });
-    let async_result_state_digest = state
+    .then(|| delivery.mixed_cause_delivery().mixed_cause_identity().clone());
+    let async_result_state_identity = state
         .async_result_state
         .as_ref()
-        .map(ForgeQueryRuntimeAsyncResultState::result_state_digest)
-        .map(str::to_string);
-    let remask_digest = state
+        .map(ForgeQueryRuntimeAsyncResultState::result_state_identity)
+        .cloned();
+    let remask_identity = state
         .remask_posture
         .as_ref()
-        .map(ForgeQueryRuntimeRemaskPosture::remask_digest)
-        .map(str::to_string);
-    let basis_digest = state.installation.basis_binding_for_reporting().to_string();
-    let support_evidence_digest = state.installation.support_evidence().to_string();
-    let delivery_batch_digest = delivery.delivery_batch_digest().to_string();
-    let delivery_digest = hash_parts(&[
-        "forge_query_runtime_downstream_delivery_v1".to_string(),
-        format!("view:{}", state.installation.view_name()),
-        format!("batch:{delivery_batch_digest}"),
-        format!("class:{}", delivery_class.as_str()),
-        format!("cause:{}", delivery.delivery_cause_kind().as_str()),
-        format!("cause_digest:{}", delivery.delivery_cause_digest()),
-        format!("sequence:{}", delivery.sequence()),
-        format!("basis:{basis_digest}"),
-        format!("support_posture:{}", support_posture.as_str()),
-        format!("support_evidence:{support_evidence_digest}"),
-        format!("mixed:{}", mixed_cause_digest.as_deref().unwrap_or("none")),
-        format!(
-            "async:{}",
-            async_result_state_digest.as_deref().unwrap_or("none")
-        ),
-        format!("remask:{}", remask_digest.as_deref().unwrap_or("none")),
-        format!(
-            "runtime_resume:{}",
-            contract.runtime_resume_support_digest()
-        ),
-        format!(
-            "durable_resume:{}",
-            contract.durable_resume_support_digest()
-        ),
-    ]);
-    Some(ForgeQueryRuntimeDownstreamDelivery {
-        view_name: state.installation.view_name().to_string(),
-        delivery_batch_digest,
+        .map(ForgeQueryRuntimeRemaskPosture::remask_identity)
+        .cloned();
+    let basis_identity = state.installation.basis_binding_identity().clone();
+    let support_identity = state.installation.support_identity().clone();
+    let delivery_batch_identity = delivery.delivery_batch_identity().clone();
+    let delivery_cause_identity = delivery.delivery_cause_identity().clone();
+    let delivery_identity = runtime_downstream_delivery_identity(RuntimeDownstreamDeliveryIdentityParts {
+        view_name: state.installation.view_name(),
+        delivery_batch_identity: &delivery_batch_identity,
         delivery_class,
         delivery_cause_kind: delivery.delivery_cause_kind(),
-        delivery_cause_digest: delivery.delivery_cause_digest().to_string(),
+        delivery_cause_identity: &delivery_cause_identity,
         sequence: delivery.sequence(),
-        basis_digest,
+        basis_identity: &basis_identity,
         support_posture,
-        support_evidence_digest,
-        mixed_cause_digest,
-        async_result_state_digest,
-        remask_digest,
+        support_identity: &support_identity,
+        mixed_cause_identity: mixed_cause_identity.as_ref(),
+        async_result_state_identity: async_result_state_identity.as_ref(),
+        remask_identity: remask_identity.as_ref(),
+        runtime_resume_support_identity: contract.runtime_resume_support_identity(),
+        durable_resume_support_identity: contract.durable_resume_support_identity(),
+    });
+    Some(ForgeQueryRuntimeDownstreamDelivery {
+        view_name: state.installation.view_name().to_string(),
+        delivery_batch_identity,
+        delivery_class,
+        delivery_cause_kind: delivery.delivery_cause_kind(),
+        delivery_cause_identity,
+        sequence: delivery.sequence(),
+        basis_identity,
+        support_posture,
+        support_identity,
+        mixed_cause_identity,
+        async_result_state_identity,
+        remask_identity,
         runtime_resume_support_posture: contract.runtime_resume_support_posture(),
-        runtime_resume_support_digest: contract.runtime_resume_support_digest().to_string(),
+        runtime_resume_support_identity: contract.runtime_resume_support_identity().clone(),
         durable_resume_support_posture: contract.durable_resume_support_posture(),
-        durable_resume_support_digest: contract.durable_resume_support_digest().to_string(),
-        delivery_digest,
+        durable_resume_support_identity: contract.durable_resume_support_identity().clone(),
+        delivery_identity,
     })
 }
 

@@ -8,8 +8,7 @@ use crate::preview::{
 };
 use crate::workflow::{
     foundation::{
-        workflow_context_basis_identity, workflow_context_basis_token_identity,
-        workflow_context_query_identity, workflow_context_query_token_identity,
+        workflow_context_basis_identity, workflow_context_query_identity,
     },
     admit_query_workflow_declaration, bind_workflow_context, WorkflowAdmissionFailureClass,
     WorkflowAuthorityTargetFamily, WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass,
@@ -25,9 +24,7 @@ fn runtime_preflight_binding_preserves_query_and_basis_digests() {
     assert_eq!(
         binding.query_for_reporting(),
         workflow_context_query_identity(
-            &workflow_context_query_token_identity(
-                preflight.plan().query().canonical_query_digest().as_str(),
-            ),
+            &preflight.plan().query().canonical_query_digest().evidence_identity(),
         )
         .as_str()
     );
@@ -35,10 +32,7 @@ fn runtime_preflight_binding_preserves_query_and_basis_digests() {
         binding.basis_for_reporting(),
         workflow_context_basis_identity(
             &WorkflowBasisFamily::RuntimePreflight,
-            &workflow_context_basis_token_identity(
-                &WorkflowBasisFamily::RuntimePreflight,
-                preflight.basis().proof().digest().as_str(),
-            ),
+            preflight.basis().proof().identity(),
         )
         .as_str()
     );    assert_eq!(binding.counters().workflow_basis_binding_count(), 1);
@@ -71,9 +65,7 @@ fn preview_workflow_foundation_binding_preserves_preview_identity() {
     );
     assert_eq!(
         workflow_binding.query_for_reporting(),
-        workflow_context_query_identity(&workflow_context_query_token_identity(
-            foundation.validated_query_digest().as_str(),
-        ))
+        workflow_context_query_identity(&foundation.validated_query_digest().evidence_identity())
         .as_str()
     );    assert_eq!(
         workflow_binding.preview_evaluation_class(),
@@ -120,9 +112,7 @@ fn preview_promotion_comparison_basis_can_author_inspection_and_merge_when_permi
 
     assert_eq!(
         workflow_binding.query_for_reporting(),
-        workflow_context_query_identity(&workflow_context_query_token_identity(
-            comparison.validated_query_digest().as_str(),
-        ))
+        workflow_context_query_identity(&comparison.validated_query_digest().evidence_identity())
         .as_str()
     );
     let inspection = admit_query_workflow_declaration(

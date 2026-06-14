@@ -100,7 +100,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn handle_identity_digest(&self) -> &str {
-        self.world_basis.handle_identity_digest()
+        self.world_basis.handle_identity_for_reporting()
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {
@@ -197,11 +197,11 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
     ForgeQueryDeclarationFoundationalEvidence<D, I>,
     ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>,
 > {
-    if subject.handle_identity_digest() != expected_world_basis.handle_identity_digest() {
+    if subject.handle_identity_digest() != expected_world_basis.handle_identity_for_reporting() {
         return Err(
             ForgeQueryDeclarationFoundationalEvidenceDenial::wrong_world(
                 subject.class(),
-                expected_world_basis.handle_identity_digest().to_string(),
+                expected_world_basis.handle_identity_for_reporting().to_string(),
                 subject.handle_identity_digest().to_string(),
                 expected_world_basis
                     .operating_context_identity_digest()
@@ -216,7 +216,7 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
         return Err(
             ForgeQueryDeclarationFoundationalEvidenceDenial::wrong_world(
                 subject.class(),
-                expected_world_basis.handle_identity_digest().to_string(),
+                expected_world_basis.handle_identity_for_reporting().to_string(),
                 subject.handle_identity_digest().to_string(),
                 expected_world_basis
                     .operating_context_identity_digest()
@@ -244,11 +244,9 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
         expected_world_basis.domain_key(),
         expected_world_basis.display_name(),
         subject.operating_context_identity_digest().to_string(),
-        expected_world_basis.handle_identity_digest().to_string(),
+        expected_world_basis.handle_identity().clone(),
         expected_world_basis.support_snapshot_digest().to_string(),
-        expected_world_basis
-            .basis_lifecycle_support_digest()
-            .to_string(),
+        expected_world_basis.basis_lifecycle_support_identity().clone(),
     );
     let aspect_contract = subject.aspect_contract().clone();
     let aspect_coverage = subject.aspect_coverage();

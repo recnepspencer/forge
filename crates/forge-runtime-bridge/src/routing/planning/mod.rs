@@ -52,7 +52,7 @@ pub use summaries::{
     BridgeRouteSourceSummary, BridgeRoutingSummary,
 };
 
-pub(crate) use bulk::{plan_bulk_workload, plan_bulk_workload_with_route_policy};
+pub(crate) use bulk::{plan_bulk_workload, plan_bulk_workload_with_route_policy, planning_failure_kind_label};
 pub(crate) use ingestion::IngestedBridgePatch;
 pub(crate) use plan::{plan_ingested_patch, BridgePreparedDelivery};
 pub(crate) use replay::replay_route_record;

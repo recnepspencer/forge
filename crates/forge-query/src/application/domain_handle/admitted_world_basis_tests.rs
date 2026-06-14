@@ -1,10 +1,13 @@
-use super::{ForgeQueryAdmittedWorldBasis, ForgeQueryDomainOperatingContext};
+use super::{compose_admitted_configured_domain_handle_identity, ForgeQueryAdmittedWorldBasis, ForgeQueryDomainOperatingContext};
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfig,
     ForgeQueryConfigSectionFamily, ForgeQueryDomainEntryMarker, ForgeQuerySignalConfig,
 };
+use crate::runtime::{
+    runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
+    ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateTarget,
+};
 use crate::runtime::tests::support::stateful_bridge_task_runtime;
-use crate::runtime::{ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateTarget};
 
 const ENTRY_CAPABILITIES: &[ForgeQueryCapabilityFamily] =
     &[ForgeQueryCapabilityFamily::QueryComposition];
@@ -74,6 +77,7 @@ fn retained_world_basis_matches_admitted_handle_identity_and_support() {
         .admit()
         .expect("world should admit");
     let basis = handle.retained_world_basis();
+    let support = crate::query_basis_lifecycle::query_basis_lifecycle_support_report();
 
     assert_eq!(basis.domain_key(), handle.domain_key());
     assert_eq!(basis.display_name(), handle.display_name());
@@ -82,17 +86,14 @@ fn retained_world_basis_matches_admitted_handle_identity_and_support() {
         handle.operating_context_identity_digest()
     );
     assert_eq!(
-        basis.handle_identity_digest(),
-        handle.handle_identity_digest()
+        basis.handle_identity(),
+        &compose_admitted_configured_domain_handle_identity(&handle)
     );
     assert_eq!(
         basis.support_snapshot_digest(),
         handle.support_snapshot().snapshot_digest()
     );
-    assert_eq!(
-        basis.basis_lifecycle_support_digest(),
-        crate::query_basis_lifecycle::query_basis_lifecycle_support_report().report_digest()
-    );
+    assert_eq!(basis.basis_lifecycle_support_identity(), &support.report_identity());
 }
 
 #[test]
@@ -114,10 +115,7 @@ fn changing_operating_context_changes_world_identity_digests() {
         collaborative.operating_context_identity_digest(),
         restricted.operating_context_identity_digest()
     );
-    assert_ne!(
-        collaborative.handle_identity_digest(),
-        restricted.handle_identity_digest()
-    );
+    assert_ne!(collaborative.handle_identity(), restricted.handle_identity());
 }
 
 #[test]
@@ -139,13 +137,10 @@ fn changing_support_snapshot_changes_support_snapshot_digest_without_rebinding_w
         signal_disabled_basis.support_snapshot_digest()
     );
     assert_eq!(
-        default_basis.basis_lifecycle_support_digest(),
-        signal_disabled_basis.basis_lifecycle_support_digest()
+        default_basis.basis_lifecycle_support_identity(),
+        signal_disabled_basis.basis_lifecycle_support_identity()
     );
-    assert_ne!(
-        default_basis.handle_identity_digest(),
-        signal_disabled_basis.handle_identity_digest()
-    );
+    assert_ne!(default_basis.handle_identity(), signal_disabled_basis.handle_identity());
 }
 
 #[test]
@@ -160,6 +155,13 @@ fn retained_world_basis_projects_into_runtime_state_without_raw_world_reconstruc
         .expect("retained world basis should project into runtime state");
 
     assert_eq!(state.kind(), ForgeQueryRuntimeStateKind::Ready);
-    assert_eq!(state.basis_digest(), basis.basis_lifecycle_support_digest());
-    assert_eq!(state.result_shape_digest(), basis.handle_identity_digest());
+    assert_eq!(
+        state.basis_for_reporting(),
+        runtime_state_snapshot_basis_label_identity(basis.basis_lifecycle_support_identity())
+            .as_str()
+    );
+    assert_eq!(
+        state.result_shape_for_reporting(),
+        runtime_state_snapshot_result_shape_label_identity(basis.handle_identity()).as_str()
+    );
 }

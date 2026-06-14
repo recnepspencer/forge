@@ -124,7 +124,7 @@ fn certification_bundle_matches_equivalent_public_and_proof_outputs() {
     assert_eq!(explanation, explanation_proof);
     assert_eq!(
         bundle.output_digest("explanation_artifact_digest"),
-        Some(explanation.artifact_digest())
+        Some(explanation.artifact_for_reporting())
     );
 
     let invariant = forge_query_domain("worth.spatial")
@@ -303,7 +303,7 @@ fn certification_bundle_boundary_and_failure_outputs_track_live_surfaces() {
     );
     assert_eq!(
         bundle.output_digest("failure_digest"),
-        Some(denial.failure_digest().as_str())
+        Some(denial.failure_for_reporting())
     );
 }
 

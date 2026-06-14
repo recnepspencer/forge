@@ -335,7 +335,7 @@ pub fn execute_query_basis_context(
                     .chain(std::iter::once(format!("preview:{}", preview_identity)))
                     .chain(std::iter::once(format!(
                         "foundation:{}",
-                        foundation.digest()
+                        foundation.artifact_for_reporting()
                     )))
                     .collect::<Vec<_>>(),
             );

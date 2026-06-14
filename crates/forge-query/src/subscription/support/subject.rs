@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::super::activation::SubscriptionActivationInput;
 use super::super::active_lane::ActiveSubscriptionLaneAdmission;
@@ -6,6 +6,9 @@ use super::super::admission::QuerySubscriptionAdmissionArtifact;
 use super::super::closeout::SubscriptionLifecycleCloseout;
 use super::super::continuation::SubscriptionContinuationReport;
 use super::super::declaration::QuerySubscriptionDeclarationArtifact;
+use super::super::evidence_identities::{
+    subscription_family_capability_identity, support_subject_identity,
+};
 use super::super::family::QuerySubscriptionFamily;
 use super::super::future_selection::QuerySubscriptionFutureSelection;
 
@@ -74,21 +77,25 @@ impl QuerySubscriptionSupportPosture {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubscriptionFamilyCapabilityDigest {
-    digest: String,
+    capability_identity: ForgeQueryEvidenceIdentity,
+    capability_for_reporting: String,
 }
 
 impl SubscriptionFamilyCapabilityDigest {
     pub(crate) fn for_family(family: &QuerySubscriptionFamily) -> Self {
+        let capability_identity = subscription_family_capability_identity(family);
         Self {
-            digest: hash_parts(&[
-                "query_subscription_family_capability_digest_v1".to_string(),
-                family.as_str().to_string(),
-            ]),
+            capability_for_reporting: capability_identity.as_str().to_string(),
+            capability_identity,
         }
     }
 
+    pub fn capability_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.capability_identity
+    }
+
     pub fn as_str(&self) -> &str {
-        &self.digest
+        &self.capability_for_reporting
     }
 }
 
@@ -97,10 +104,14 @@ pub struct QuerySubscriptionSupportSubject {
     support_class: QuerySubscriptionSupportClass,
     family: QuerySubscriptionFamily,
     future_selection: QuerySubscriptionFutureSelection,
-    declaration_digest: String,
-    admission_digest: Option<String>,
-    source_digest: String,
-    digest: String,
+    declaration_identity: ForgeQueryEvidenceIdentity,
+    declaration_for_reporting: String,
+    admission_identity: Option<ForgeQueryEvidenceIdentity>,
+    admission_for_reporting: Option<String>,
+    source_identity: ForgeQueryEvidenceIdentity,
+    source_for_reporting: String,
+    subject_identity: ForgeQueryEvidenceIdentity,
+    subject_for_reporting: String,
 }
 
 impl QuerySubscriptionSupportSubject {
@@ -109,9 +120,9 @@ impl QuerySubscriptionSupportSubject {
             QuerySubscriptionSupportClass::Declaration,
             declaration.family().clone(),
             declaration.future_selection().clone(),
-            declaration.declaration_digest().as_str(),
+            declaration.declaration_identity(),
             None,
-            declaration.declaration_digest().as_str(),
+            declaration.declaration_identity(),
         )
     }
 
@@ -123,23 +134,24 @@ impl QuerySubscriptionSupportSubject {
             QuerySubscriptionSupportClass::Activation,
             declaration.family().clone(),
             declaration.future_selection().clone(),
-            declaration.declaration_digest().as_str(),
-            Some(activation.admission_for_reporting()),
-            activation.activation_for_reporting(),
+            declaration.declaration_identity(),
+            Some(activation.admission_identity()),
+            activation.evidence_identity(),
         )
     }
 
     pub fn active_lifecycle(
         declaration: &QuerySubscriptionDeclarationArtifact,
+        admission: &QuerySubscriptionAdmissionArtifact,
         active_admission: &ActiveSubscriptionLaneAdmission,
     ) -> Self {
         Self::new(
             QuerySubscriptionSupportClass::ActiveLifecycle,
             declaration.family().clone(),
             declaration.future_selection().clone(),
-            declaration.declaration_digest().as_str(),
-            Some(active_admission.admission_digest()),
-            active_admission.lane_digest().as_str(),
+            declaration.declaration_identity(),
+            Some(admission.evidence_identity()),
+            active_admission.lane_digest().evidence_identity(),
         )
     }
 
@@ -152,9 +164,9 @@ impl QuerySubscriptionSupportSubject {
             QuerySubscriptionSupportClass::Continuation,
             declaration.family().clone(),
             declaration.future_selection().clone(),
-            declaration.declaration_digest().as_str(),
-            Some(admission.admission_for_reporting()),
-            continuation.report_digest(),
+            declaration.declaration_identity(),
+            Some(admission.evidence_identity()),
+            continuation.evidence_identity(),
         )
     }
 
@@ -167,9 +179,9 @@ impl QuerySubscriptionSupportSubject {
             QuerySubscriptionSupportClass::PreviewCloseout,
             declaration.family().clone(),
             closeout.future_selection().clone(),
-            declaration.declaration_digest().as_str(),
-            Some(admission.admission_for_reporting()),
-            closeout.closeout_digest(),
+            declaration.declaration_identity(),
+            Some(admission.evidence_identity()),
+            closeout.evidence_identity(),
         )
     }
 
@@ -178,9 +190,9 @@ impl QuerySubscriptionSupportSubject {
             QuerySubscriptionSupportClass::DurableReplay,
             declaration.family().clone(),
             declaration.future_selection().clone(),
-            declaration.declaration_digest().as_str(),
+            declaration.declaration_identity(),
             None,
-            declaration.declaration_digest().as_str(),
+            declaration.declaration_identity(),
         )
     }
 
@@ -189,9 +201,9 @@ impl QuerySubscriptionSupportSubject {
             QuerySubscriptionSupportClass::StoreBackedRestart,
             declaration.family().clone(),
             declaration.future_selection().clone(),
-            declaration.declaration_digest().as_str(),
+            declaration.declaration_identity(),
             None,
-            declaration.declaration_digest().as_str(),
+            declaration.declaration_identity(),
         )
     }
 
@@ -199,27 +211,30 @@ impl QuerySubscriptionSupportSubject {
         support_class: QuerySubscriptionSupportClass,
         family: QuerySubscriptionFamily,
         future_selection: QuerySubscriptionFutureSelection,
-        declaration_digest: &str,
-        admission_digest: Option<&str>,
-        source_digest: &str,
+        declaration_identity: &ForgeQueryEvidenceIdentity,
+        admission_identity: Option<&ForgeQueryEvidenceIdentity>,
+        source_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
-        let digest = hash_parts(&[
-            "query_subscription_support_subject_v1".to_string(),
-            support_class.as_str().to_string(),
-            family.as_str().to_string(),
-            format!("future_selection:{}", future_selection.projection_digest()),
-            format!("declaration:{declaration_digest}"),
-            format!("admission:{}", admission_digest.unwrap_or("none")),
-            format!("source:{source_digest}"),
-        ]);
+        let subject_identity = support_subject_identity(
+            support_class.as_str(),
+            &family,
+            future_selection.projection_identity(),
+            declaration_identity,
+            admission_identity,
+            source_identity,
+        );
         Self {
             support_class,
             family,
             future_selection,
-            declaration_digest: declaration_digest.to_string(),
-            admission_digest: admission_digest.map(ToOwned::to_owned),
-            source_digest: source_digest.to_string(),
-            digest,
+            declaration_for_reporting: declaration_identity.as_str().to_string(),
+            declaration_identity: declaration_identity.clone(),
+            admission_for_reporting: admission_identity.map(|identity| identity.as_str().to_string()),
+            admission_identity: admission_identity.cloned(),
+            source_for_reporting: source_identity.as_str().to_string(),
+            source_identity: source_identity.clone(),
+            subject_for_reporting: subject_identity.as_str().to_string(),
+            subject_identity,
         }
     }
 
@@ -231,24 +246,44 @@ impl QuerySubscriptionSupportSubject {
         &self.family
     }
 
+    pub fn declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.declaration_identity
+    }
+
     pub fn declaration_digest(&self) -> &str {
-        &self.declaration_digest
+        &self.declaration_for_reporting
     }
 
     pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
         &self.future_selection
     }
 
+    pub fn admission_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.admission_identity.as_ref()
+    }
+
     pub fn admission_digest(&self) -> Option<&str> {
-        self.admission_digest.as_deref()
+        self.admission_for_reporting.as_deref()
+    }
+
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
     }
 
     pub fn source_digest(&self) -> &str {
-        &self.source_digest
+        &self.source_for_reporting
+    }
+
+    pub fn subject_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.subject_identity
     }
 
     pub fn digest(&self) -> &str {
-        &self.digest
+        self.subject_for_reporting()
+    }
+
+    pub fn subject_for_reporting(&self) -> &str {
+        &self.subject_for_reporting
     }
 }
 
@@ -260,23 +295,37 @@ pub struct QuerySubscriptionSupportEvidence {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionSupportEvidenceError {
     message: &'static str,
-    failure_digest: String,
+    failure_identity: ForgeQueryEvidenceIdentity,
+    failure_for_reporting: String,
 }
 
 impl QuerySubscriptionSupportEvidenceError {
     fn new(
         message: &'static str,
-        declaration_digest: &str,
-        admission_declaration_digest: &str,
+        declaration_identity: &ForgeQueryEvidenceIdentity,
+        admission_declaration_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
+        let failure_identity = ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+            "query_subscription_support_evidence_error_v1",
+        )
+        .field_shape(crate::evidence_identity::ForgeQueryEvidenceTag::new("message"), message)
+        .field_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("declaration"),
+            declaration_identity,
+        )
+        .field_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("admission_declaration"),
+            admission_declaration_identity,
+        )
+        .seal();
         Self {
             message,
-            failure_digest: hash_parts(&[
-                "query_subscription_support_evidence_error_v1".to_string(),
-                message.to_string(),
-                format!("declaration:{declaration_digest}"),
-                format!("admission_declaration:{admission_declaration_digest}"),
-            ]),
+            failure_for_reporting: failure_identity.as_str().to_string(),
+            failure_identity,
         }
     }
 
@@ -285,23 +334,27 @@ impl QuerySubscriptionSupportEvidenceError {
     }
 
     pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+        &self.failure_for_reporting
+    }
+
+    pub fn failure_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.failure_identity
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum QuerySubscriptionSupportEvidenceKind {
     Declaration {
-        declaration_digest: String,
+        declaration_identity: ForgeQueryEvidenceIdentity,
         family: QuerySubscriptionFamily,
-        source_digest: String,
+        source_identity: ForgeQueryEvidenceIdentity,
     },
     Admission {
-        declaration_digest: String,
+        declaration_identity: ForgeQueryEvidenceIdentity,
         family: QuerySubscriptionFamily,
-        admission_digest: String,
+        admission_identity: ForgeQueryEvidenceIdentity,
         support_profile: super::profile::QuerySubscriptionSupportProfile,
-        source_digest: String,
+        source_identity: ForgeQueryEvidenceIdentity,
     },
 }
 
@@ -309,9 +362,9 @@ impl QuerySubscriptionSupportEvidence {
     pub fn declaration(declaration: &QuerySubscriptionDeclarationArtifact) -> Self {
         Self {
             kind: QuerySubscriptionSupportEvidenceKind::Declaration {
-                declaration_digest: declaration.declaration_digest().as_str().to_string(),
+                declaration_identity: declaration.declaration_identity().clone(),
                 family: declaration.family().clone(),
-                source_digest: declaration.declaration_digest().as_str().to_string(),
+                source_identity: declaration.declaration_identity().clone(),
             },
         }
     }
@@ -320,34 +373,41 @@ impl QuerySubscriptionSupportEvidence {
         declaration: &QuerySubscriptionDeclarationArtifact,
         admission: &QuerySubscriptionAdmissionArtifact,
     ) -> Result<Self, QuerySubscriptionSupportEvidenceError> {
-        if declaration.declaration_digest().as_str() != admission.query_declaration_for_reporting() {
+        if crate::subscription::evidence_identities::typed_identity_drift(
+            declaration.declaration_identity(),
+            admission.query_declaration_identity(),
+        ) {
             return Err(QuerySubscriptionSupportEvidenceError::new(
                 "subscription support evidence requires declaration and admission artifacts from the same canonical query subscription family",
-                declaration.declaration_digest().as_str(),
-                admission.query_declaration_for_reporting(),
+                declaration.declaration_identity(),
+                admission.query_declaration_identity(),
             ));
         }
 
         Ok(Self {
             kind: QuerySubscriptionSupportEvidenceKind::Admission {
-                declaration_digest: declaration.declaration_digest().as_str().to_string(),
+                declaration_identity: declaration.declaration_identity().clone(),
                 family: declaration.family().clone(),
-                admission_digest: admission.admission_for_reporting().to_string(),
+                admission_identity: admission.evidence_identity().clone(),
                 support_profile: admission.support_profile().clone(),
-                source_digest: admission.admission_for_reporting().to_string(),
+                source_identity: admission.evidence_identity().clone(),
             },
         })
     }
 
-    pub(crate) fn declaration_digest(&self) -> &str {
+    pub(crate) fn declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
         match &self.kind {
             QuerySubscriptionSupportEvidenceKind::Declaration {
-                declaration_digest, ..
+                declaration_identity, ..
             }
             | QuerySubscriptionSupportEvidenceKind::Admission {
-                declaration_digest, ..
-            } => declaration_digest,
+                declaration_identity, ..
+            } => declaration_identity,
         }
+    }
+
+    pub(crate) fn declaration_digest(&self) -> &str {
+        self.declaration_identity().as_str()
     }
 
     pub(crate) fn family(&self) -> &QuerySubscriptionFamily {
@@ -357,13 +417,17 @@ impl QuerySubscriptionSupportEvidence {
         }
     }
 
-    pub(crate) fn admission_digest(&self) -> Option<&str> {
+    pub(crate) fn admission_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
         match &self.kind {
             QuerySubscriptionSupportEvidenceKind::Declaration { .. } => None,
             QuerySubscriptionSupportEvidenceKind::Admission {
-                admission_digest, ..
-            } => Some(admission_digest),
+                admission_identity, ..
+            } => Some(admission_identity),
         }
+    }
+
+    pub(crate) fn admission_digest(&self) -> Option<&str> {
+        self.admission_identity().map(|identity| identity.as_str())
     }
 
     pub(crate) fn support_profile(
@@ -377,12 +441,16 @@ impl QuerySubscriptionSupportEvidence {
         }
     }
 
-    pub(crate) fn source_digest(&self) -> &str {
+    pub(crate) fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
         match &self.kind {
-            QuerySubscriptionSupportEvidenceKind::Declaration { source_digest, .. }
-            | QuerySubscriptionSupportEvidenceKind::Admission { source_digest, .. } => {
-                source_digest
+            QuerySubscriptionSupportEvidenceKind::Declaration { source_identity, .. }
+            | QuerySubscriptionSupportEvidenceKind::Admission { source_identity, .. } => {
+                source_identity
             }
         }
+    }
+
+    pub(crate) fn source_digest(&self) -> &str {
+        self.source_identity().as_str()
     }
 }

@@ -94,7 +94,7 @@ impl CausalEvidenceReferenceDigest {
     pub(in crate::runtime) fn bridge_authority_evidence(&self) -> BridgeIdentityEvidence {
         self.bridge_authority
             .clone()
-            .unwrap_or_else(|| BridgeIdentityEvidence::from_external_authority(self.identity.as_str()))
+            .unwrap_or_else(|| self.identity.bridge_evidence_identity())
     }
 }
 

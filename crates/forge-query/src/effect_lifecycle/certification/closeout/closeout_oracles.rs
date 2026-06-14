@@ -87,7 +87,7 @@ fn scalar_mutation_oracle_digest() -> String {
         .expect("closeout oracle mutation should execute")
         .verify_against_relational_runtime(&runtime)
         .expect("closeout oracle mutation should verify")
-        .relational_oracle_digest()
+        .relational_oracle_for_reporting()
         .expect("relational oracle digest should exist")
         .to_string()
 }
@@ -125,7 +125,7 @@ fn batch_mutation_oracle_digest() -> String {
     executed
         .verify_against_relational_runtime(&runtime)
         .expect("closeout oracle batch should verify")
-        .relational_oracle_digest()
+        .relational_oracle_for_reporting()
         .expect("relational batch oracle digest should exist")
         .to_string()
 }
@@ -156,7 +156,7 @@ fn bridge_oracle_digest() -> String {
     executed
         .verify_against_bridge_runtime(&bridge)
         .expect("closeout bridge oracle should verify")
-        .bridge_oracle_digest()
+        .bridge_oracle_for_reporting()
         .expect("bridge oracle digest should exist")
         .to_string()
 }

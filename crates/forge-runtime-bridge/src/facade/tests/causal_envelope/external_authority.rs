@@ -180,8 +180,6 @@ fn assert_retained_route_binding(
                 route_record.route_identity().as_str(),
                 route_record.invalidation_identity().as_str(),
                 route_record.source_commit().as_str(),
-                route_record.planning_summary_digest(),
-                route_record.lowering_summary_digest(),
             )
             .as_str()
         )

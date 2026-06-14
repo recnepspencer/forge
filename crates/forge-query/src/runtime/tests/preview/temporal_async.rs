@@ -1,4 +1,5 @@
 use super::super::support::*;
+use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
 use forge_runtime_bridge::facade::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionState, BridgeAsyncRequestTruthViewBasis,
@@ -276,7 +277,7 @@ fn preview_promotion_denies_with_typed_rebinding_recovery_posture() {
                 ),
                 "async:preview-mismatch",
             ),
-            "basis:drifted",
+            &runtime_async_checkpoint_label_identity("basis:drifted"),
             &generation_digest,
         )
         .expect("preview mismatch should remain typed");

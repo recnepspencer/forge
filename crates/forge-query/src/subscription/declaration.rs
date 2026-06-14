@@ -5,6 +5,9 @@ use super::declaration_error::{
 };
 use super::delivery::QuerySubscriptionDeliveryIntent;
 use super::diagnostic::QuerySubscriptionDiagnosticStage;
+use super::evidence_identities::{
+    query_subscription_declaration_identity,
+};
 use super::family::QuerySubscriptionFamily;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::posture::{
@@ -24,9 +27,11 @@ pub struct QuerySubscriptionDeclarationArtifact {
     cost_posture: QuerySubscriptionCostPosture,
     basis_posture: QuerySubscriptionBasisPosture,
     bridge_posture: QuerySubscriptionBridgePosture,
-    equivalence_digest: String,
+    equivalence_for_reporting: String,
+    equivalence_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     slice_intent: QuerySubscriptionSliceIntent,
     delivery_intent: QuerySubscriptionDeliveryIntent,
+    declaration_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     declaration_digest: QuerySubscriptionDeclarationDigest,
     slice_budget: QuerySubscriptionSliceBudget,
     counters: QuerySubscriptionDeclarationCounters,
@@ -53,8 +58,12 @@ impl QuerySubscriptionDeclarationArtifact {
         &self.bridge_posture
     }
 
-    pub fn equivalence_digest(&self) -> &str {
-        &self.equivalence_digest
+    pub fn equivalence_for_reporting(&self) -> &str {
+        &self.equivalence_for_reporting
+    }
+
+    pub fn equivalence_identity(&self) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        &self.equivalence_identity
     }
 
     pub fn slice_intent(&self) -> &QuerySubscriptionSliceIntent {
@@ -63,6 +72,14 @@ impl QuerySubscriptionDeclarationArtifact {
 
     pub fn delivery_intent(&self) -> &QuerySubscriptionDeliveryIntent {
         &self.delivery_intent
+    }
+
+    pub fn declaration_for_reporting(&self) -> &str {
+        self.declaration_identity.as_str()
+    }
+
+    pub fn declaration_identity(&self) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        &self.declaration_identity
     }
 
     pub fn declaration_digest(&self) -> &QuerySubscriptionDeclarationDigest {
@@ -92,7 +109,11 @@ pub fn declare_query_subscription(
     slice_budget: QuerySubscriptionSliceBudget,
 ) -> Result<QuerySubscriptionDeclarationArtifact, QuerySubscriptionDeclarationDenial> {
     let mut counters = selection.counters().clone();
-    let source_digest = selection.equivalence_basis().digest().as_str().to_string();
+    let source_digest = selection
+        .equivalence_basis()
+        .evidence_identity()
+        .as_str()
+        .to_string();
     let raw_parts = raw_slice_parts(&selection);
     let input_count = raw_parts.len();
     let sort_comparison_count = input_count.saturating_sub(1);
@@ -187,58 +208,24 @@ pub fn declare_query_subscription(
     counters.slice_deduplication_input_count = input_count as u64;
     counters.slice_sort_comparison_count = sort_comparison_count as u64;
 
-    let mut digest_parts = vec![
-        "query_subscription_declaration_v1".to_string(),
-        format!("family:{}", selection.family().as_str()),
-        format!("live_family:{}", selection.live_family().as_str()),
-        format!(
-            "view_family:{}",
-            selection
-                .view_family()
-                .map(|family| family.as_str())
-                .unwrap_or("none")
-        ),
-        format!("cost:{}", selection.cost_posture().as_str()),
-        format!("basis:{}", selection.basis_posture().as_str()),
-        format!("bridge:{}", selection.bridge_posture().as_str()),
-        format!(
-            "future_selection:{}",
-            selection.future_selection().projection_digest()
-        ),
-        format!(
-            "equivalence:{}",
-            selection.equivalence_basis().digest().as_str()
-        ),
-        format!("slice_intent:{}", slice_intent.digest()),
-        format!("delivery_intent:{}", delivery_intent.digest()),
-        format!(
-            "work_budget:max_slices:{}",
-            selection.work_budget().max_admitted_slice_count()
-        ),
-        format!(
-            "slice_budget:projection:{}",
-            slice_budget.projected_slice_width_limit()
-        ),
-        format!(
-            "slice_budget:ordering:{}",
-            slice_budget.ordering_slice_width_limit()
-        ),
-        format!(
-            "slice_budget:grouping:{}",
-            slice_budget.grouping_slice_width_limit()
-        ),
-        format!(
-            "slice_budget:relation:{}",
-            slice_budget.relation_scope_slice_width_limit()
-        ),
-        format!(
-            "slice_budget:metadata:{}",
-            slice_budget.metadata_slice_width_limit()
-        ),
-    ];
-    digest_parts.sort();
-    counters.declaration_digest_part_count = digest_parts.len() as u64;
-    let declaration_digest = QuerySubscriptionDeclarationDigest::from_parts(&digest_parts);
+    let equivalence_identity = selection.equivalence_basis().evidence_identity().clone();
+    let declaration_identity = query_subscription_declaration_identity(
+        selection.family(),
+        selection.live_family(),
+        selection.view_family(),
+        selection.cost_posture(),
+        selection.basis_posture(),
+        selection.bridge_posture(),
+        selection.future_selection(),
+        &equivalence_identity,
+        &slice_intent,
+        &delivery_intent,
+        selection.work_budget().max_admitted_slice_count(),
+        &slice_budget,
+    );
+    counters.declaration_digest_part_count = 17;
+    let declaration_digest =
+        QuerySubscriptionDeclarationDigest::from_evidence_identity(&declaration_identity);
 
     Ok(QuerySubscriptionDeclarationArtifact {
         family: selection.family().clone(),
@@ -246,9 +233,11 @@ pub fn declare_query_subscription(
         cost_posture: selection.cost_posture().clone(),
         basis_posture: selection.basis_posture().clone(),
         bridge_posture: selection.bridge_posture().clone(),
-        equivalence_digest: selection.equivalence_basis().digest().as_str().to_string(),
+        equivalence_for_reporting: selection.equivalence_basis().digest().as_str().to_string(),
+        equivalence_identity,
         slice_intent,
         delivery_intent,
+        declaration_identity,
         declaration_digest,
         slice_budget,
         counters,

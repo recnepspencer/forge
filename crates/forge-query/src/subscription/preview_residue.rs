@@ -1,6 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::delivery_dimensions::PreviewResidueWidth;
+use super::evidence_identities::preview_residue_report_identity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PreviewSubscriptionResidueClass {
@@ -47,7 +48,8 @@ pub struct PreviewSubscriptionResidueReport {
     authoritative_writeback_width: PreviewResidueWidth,
     temporary_execution_width: PreviewResidueWidth,
     temporary_diagnostics_width: PreviewResidueWidth,
-    report_digest: String,
+    report_identity: ForgeQueryEvidenceIdentity,
+    report_for_reporting: String,
 }
 
 impl PreviewSubscriptionResidueReport {
@@ -61,44 +63,16 @@ impl PreviewSubscriptionResidueReport {
         temporary_execution_width: PreviewResidueWidth,
         temporary_diagnostics_width: PreviewResidueWidth,
     ) -> Self {
-        let report_digest = hash_parts(&[
-            "preview_subscription_residue_report_v1".to_string(),
-            format!(
-                "{}:{}",
-                PreviewSubscriptionResidueClass::AuthoritativeRouting.as_str(),
-                authoritative_routing_width.get()
-            ),
-            format!(
-                "{}:{}",
-                PreviewSubscriptionResidueClass::AuthoritativeCheckpoint.as_str(),
-                authoritative_checkpoint_width.get()
-            ),
-            format!(
-                "{}:{}",
-                PreviewSubscriptionResidueClass::AuthoritativeReplay.as_str(),
-                authoritative_replay_width.get()
-            ),
-            format!(
-                "{}:{}",
-                PreviewSubscriptionResidueClass::AuthoritativeDiagnostics.as_str(),
-                authoritative_diagnostics_width.get()
-            ),
-            format!(
-                "{}:{}",
-                PreviewSubscriptionResidueClass::AuthoritativeWriteback.as_str(),
-                authoritative_writeback_width.get()
-            ),
-            format!(
-                "{}:{}",
-                PreviewSubscriptionResidueClass::TemporaryPreviewExecution.as_str(),
-                temporary_execution_width.get()
-            ),
-            format!(
-                "{}:{}",
-                PreviewSubscriptionResidueClass::TemporaryPreviewDiagnostics.as_str(),
-                temporary_diagnostics_width.get()
-            ),
-        ]);
+        let report_identity = preview_residue_report_identity(
+            authoritative_routing_width.get(),
+            authoritative_checkpoint_width.get(),
+            authoritative_replay_width.get(),
+            authoritative_diagnostics_width.get(),
+            authoritative_writeback_width.get(),
+            temporary_execution_width.get(),
+            temporary_diagnostics_width.get(),
+        );
+        let report_for_reporting = report_identity.as_str().to_string();
         Self {
             authoritative_routing_width,
             authoritative_checkpoint_width,
@@ -107,7 +81,8 @@ impl PreviewSubscriptionResidueReport {
             authoritative_writeback_width,
             temporary_execution_width,
             temporary_diagnostics_width,
-            report_digest,
+            report_identity,
+            report_for_reporting,
         }
     }
 
@@ -153,8 +128,16 @@ impl PreviewSubscriptionResidueReport {
         }
     }
 
+    pub fn report_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.report_identity
+    }
+
+    pub fn report_for_reporting(&self) -> &str {
+        &self.report_for_reporting
+    }
+
     pub fn report_digest(&self) -> &str {
-        &self.report_digest
+        self.report_for_reporting()
     }
 }
 

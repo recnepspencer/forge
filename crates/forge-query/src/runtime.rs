@@ -215,6 +215,11 @@ mod downstream_delivery_contract;
 mod downstream_delivery_resume;
 mod effect;
 mod error;
+mod evidence_identities;
+pub(crate) use evidence_identities::{
+    runtime_state_snapshot_basis_label_identity,
+    runtime_state_snapshot_result_shape_label_identity,
+};
 #[cfg(test)]
 mod fallback_seam_counters;
 mod handle_contract;
@@ -455,7 +460,7 @@ pub use intent::{
     ForgeQueryPreviewIntentReceipt,
 };
 pub(crate) use live_subscription::{
-    live_subscription_source_digest_evidence, live_subscription_source_identity,
+    live_subscription_source_identity, live_subscription_view_shape_source_identity,
 };
 pub use live_subscription::{
     ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,

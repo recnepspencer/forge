@@ -1074,7 +1074,7 @@ pub fn declare_writeback_from_live_session(
     let artifact_digest = hash_parts(&[
         format!("basis:{live_view_basis_digest}"),
         format!("intent:{intent_digest}"),
-        format!("writeback:{}", declaration.lowering_digest()),
+        format!("writeback:{}", declaration.lowering_for_reporting()),
     ]);
 
     Ok(DeclarativeWritebackArtifact {

@@ -12,6 +12,7 @@ fn admitted_diagnostic_bundle_carries_offline_semantic_labels_and_canonical_dige
     );
     let support_subject = QuerySubscriptionSupportSubject::active_lifecycle(
         &artifacts.declaration,
+        &artifacts.admission,
         &artifacts.active_admission,
     );
     let support_evidence =
@@ -88,7 +89,7 @@ fn admitted_diagnostic_bundle_carries_offline_semantic_labels_and_canonical_dige
     );
     assert_eq!(
         bundle.lifecycle_closeout_digest(),
-        Some(artifacts.closeout.closeout_digest())
+        Some(artifacts.closeout.closeout_for_reporting())
     );
     assert_eq!(
         receipt.bundle_assembly_posture(),
@@ -164,6 +165,7 @@ fn admitted_bundle_rejects_trace_with_missing_terminal_certification_stage() {
     let artifacts = runtime_artifacts_for(LiveQueryFamily::Detail, None, 0);
     let support_subject = QuerySubscriptionSupportSubject::active_lifecycle(
         &artifacts.declaration,
+        &artifacts.admission,
         &artifacts.active_admission,
     );
     let support_evidence =
@@ -269,6 +271,7 @@ fn lifecycle_instance_churn_changes_trace_without_changing_family_semantic_label
     let base_support = report_query_subscription_support(
         QuerySubscriptionSupportSubject::active_lifecycle(
             &base.declaration,
+            &base.admission,
             &base.active_admission,
         ),
         QuerySubscriptionSupportEvidence::admission(&base.declaration, &base.admission).unwrap(),
@@ -573,6 +576,7 @@ fn admitted_diagnostic_bundle_preserves_canonical_basis_posture_labels() {
     );
     let support_subject = QuerySubscriptionSupportSubject::active_lifecycle(
         &artifacts.declaration,
+        &artifacts.admission,
         &artifacts.active_admission,
     );
     let support_evidence =

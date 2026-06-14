@@ -2,7 +2,11 @@ use crate::application::{
     ForgeQueryDeclarationEntryInspectionInput, ForgeQueryDeclarationEntryReadinessStatus,
 };
 use crate::runtime::tests::support::stateful_bridge_task_runtime;
-use crate::runtime::{ForgeQueryInspection, ForgeQueryRuntimeStateKind};
+use crate::runtime::{
+    runtime_state_snapshot_basis_label_identity,
+    runtime_state_snapshot_result_shape_label_identity, ForgeQueryInspection,
+    ForgeQueryRuntimeStateKind,
+};
 
 use super::support::{
     async_current_envelope, handle, temporal_current_envelope, AsyncCurrentFamily, AsyncInput,
@@ -27,12 +31,18 @@ fn retained_world_basis_and_subject_aware_temporal_readiness_stay_stitched() {
 
     assert_eq!(world_state.kind(), ForgeQueryRuntimeStateKind::Ready);
     assert_eq!(
-        world_state.basis_digest(),
-        world_basis.basis_lifecycle_support_digest()
+        world_state.basis_for_reporting(),
+        runtime_state_snapshot_basis_label_identity(
+            world_basis.basis_lifecycle_support_identity(),
+        )
+        .as_str()
     );
     assert_eq!(
-        world_state.result_shape_digest(),
-        world_basis.handle_identity_digest()
+        world_state.result_shape_for_reporting(),
+        runtime_state_snapshot_result_shape_label_identity(
+            world_basis.handle_identity(),
+        )
+        .as_str()
     );
 
     match world_inspection {
@@ -43,8 +53,8 @@ fn retained_world_basis_and_subject_aware_temporal_readiness_stay_stitched() {
                 inspection.support_digest(),
                 Some(world_basis.support_snapshot_digest())
             );
-            assert_eq!(inspection.basis_digest(), world_state.basis_digest());
-            assert_eq!(inspection.shape_digest(), world_state.result_shape_digest());
+            assert_eq!(inspection.basis_digest(), world_state.basis_for_reporting());
+            assert_eq!(inspection.shape_digest(), world_state.result_shape_for_reporting());
         }
         other => panic!("expected basis lifecycle inspection, got {other:?}"),
     }

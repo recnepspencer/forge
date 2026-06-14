@@ -152,7 +152,7 @@ pub(super) fn host_override_denial_row() -> EffectLifecyclePhase4CertificationRo
         EffectLifecyclePhase4LaneOutcome::Denied,
         basis.family(),
         EffectFamily::Mutation,
-        denial.denial_digest().to_string(),
+        denial.denial_for_reporting().to_string(),
         denial.message().to_string(),
         denial.counters().clone(),
     )
@@ -197,7 +197,7 @@ pub(super) fn stale_after_admission_row() -> EffectLifecyclePhase4CertificationR
         EffectLifecyclePhase4LaneOutcome::Denied,
         basis.family(),
         EffectFamily::Mutation,
-        denial.denial_digest().to_string(),
+        denial.denial_for_reporting().to_string(),
         denial.message().to_string(),
         denial.counters().clone(),
     )
@@ -248,7 +248,7 @@ pub(super) fn stale_after_lowering_row() -> EffectLifecyclePhase4CertificationRo
         EffectLifecyclePhase4LaneOutcome::Denied,
         basis.family(),
         EffectFamily::Mutation,
-        denial.denial_digest().to_string(),
+        denial.denial_for_reporting().to_string(),
         denial.message().to_string(),
         denial.counters().clone(),
     )

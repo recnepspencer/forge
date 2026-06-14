@@ -7,7 +7,8 @@ use super::{
 };
 use crate::runtime::tests::support::stateful_bridge_task_runtime;
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateTarget,
+    runtime_state_snapshot_basis_label_identity, ForgeQueryAuthorityLane,
+    ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateTarget,
 };
 use forge_runtime_bridge::facade::{BridgeTruthViewEvaluationRequest, TruthBranchIdentity};
 
@@ -99,8 +100,9 @@ fn family_specific_basis_capabilities_project_into_their_public_authority_lanes(
     match current.admission() {
         BasisCapabilityAdmission::Admitted(admitted) => {
             assert_eq!(
-                current_state.basis_digest(),
-                admitted.normalized_basis_intent_digest()
+                current_state.basis_for_reporting(),
+                runtime_state_snapshot_basis_label_identity(&admitted.snapshot_basis_identity())
+                    .as_str()
             );
         }
         other => panic!("unexpected current admission: {other:?}"),
@@ -108,8 +110,9 @@ fn family_specific_basis_capabilities_project_into_their_public_authority_lanes(
     match branch.admission() {
         BasisCapabilityAdmission::Admitted(admitted) => {
             assert_eq!(
-                branch_state.basis_digest(),
-                admitted.normalized_basis_intent_digest()
+                branch_state.basis_for_reporting(),
+                runtime_state_snapshot_basis_label_identity(&admitted.snapshot_basis_identity())
+                    .as_str()
             );
         }
         other => panic!("unexpected branch admission: {other:?}"),
@@ -234,7 +237,10 @@ fn lower_runtime_bound_and_cross_branch_denied_basis_states_preserve_typed_postu
         bound_state.authority_lane(),
         ForgeQueryAuthorityLane::BranchLocalTruth
     );
-    assert_eq!(bound_state.result_shape_digest(), bound.binding_digest());
+    assert_ne!(
+        bound_state.result_shape_for_reporting(),
+        bound.binding_identity().as_str()
+    );
     assert_eq!(denial_state.kind(), ForgeQueryRuntimeStateKind::Denied);
     assert_eq!(
         denial_state.authority_lane(),

@@ -2,6 +2,10 @@ use super::{
     evaluate_basis_intent_common_path, BasisOperationLaneRequest, BasisScopedAdmissionDenial,
     BasisScopedAdmissionStatus, DeniedBasisCapabilityKind, NormalizedBasisFamily, RawBasisIntent,
 };
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::identity::hash_parts;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -70,6 +74,28 @@ impl QueryBasisLifecycleSupportReport {
 
     pub fn report_digest(&self) -> &str {
         &self.report_digest
+    }
+
+    pub fn report_identity(&self) -> ForgeQueryEvidenceIdentity {
+        let row_identities = self
+            .rows
+            .iter()
+            .map(compose_support_row_identity)
+            .collect::<Vec<_>>();
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_query_basis_lifecycle_support_report_v1",
+            )
+            .field_evidence_identity_sequence(
+                ForgeQueryEvidenceTag::new("rows"),
+                row_identities.iter(),
+            )
+            .seal()
+    }
+
+    pub fn report_for_reporting(&self) -> String {
+        self.report_identity().as_str().to_string()
     }
 }
 
@@ -223,6 +249,28 @@ fn preview_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
         "preview:session-1",
     )
     .evidence_identity()
+}
+
+fn compose_support_row_identity(row: &BasisLaneSupportRow) -> ForgeQueryEvidenceIdentity {
+    let mut builder = forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_query_basis_lifecycle_support_row_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            row.family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("operation_lane"),
+            row.operation_lane().as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("status"), row.status().as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("trace"), row.trace_label());
+    if let Some(denial_label) = row.denial_label() {
+        builder = builder.field_shape(ForgeQueryEvidenceTag::new("denial"), denial_label);
+    }
+    builder.seal()
 }
 
 fn denial_label(kind: &DeniedBasisCapabilityKind) -> &'static str {

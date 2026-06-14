@@ -95,12 +95,12 @@ fn time_only_and_relational_delivery_batches_keep_distinct_cause_identity() {
     let relational = emit_query_delivery_batch(&mut runtime, window, packet).unwrap();
 
     assert_ne!(
-        time_only.delivery_cause().delivery_cause_digest(),
-        relational.delivery_cause().delivery_cause_digest()
+        time_only.delivery_cause().delivery_cause_for_reporting(),
+        relational.delivery_cause().delivery_cause_for_reporting()
     );
     assert_ne!(
-        time_only.patch_group().patch_group_digest(),
-        relational.patch_group().patch_group_digest()
+        time_only.patch_group().patch_group_for_reporting(),
+        relational.patch_group().patch_group_for_reporting()
     );
     assert!(!time_only.has_relational_patch());
     assert!(relational.has_relational_patch());

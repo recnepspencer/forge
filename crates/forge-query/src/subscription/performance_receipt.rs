@@ -21,7 +21,7 @@ impl SubscriptionPerformanceReceipt {
         budgeted_width: u64,
         density_posture: ActiveDeliveryDensityPosture,
         allocation_posture: ActiveSubscriptionAllocationPosture,
-        source_for_reporting: &str,
+        source_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         let remaining_width = budgeted_width.saturating_sub(consumed_width);
         let performance_receipt_identity = ForgeQueryEvidenceIdentity::compose(
@@ -31,10 +31,7 @@ impl SubscriptionPerformanceReceipt {
             ForgeQueryEvidenceTag::new("identity_family"),
             "subscription_performance_receipt_v1",
         )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("source"),
-            source_for_reporting,
-        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
         .field_usize(
             ForgeQueryEvidenceTag::new("consumed_width"),
             consumed_width as usize,

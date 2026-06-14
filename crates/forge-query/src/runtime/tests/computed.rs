@@ -1432,7 +1432,7 @@ fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
     let count: CountRow = binding
         .decode_single_row(&count_row)
         .expect("count row should decode through retained artifact binding");
-    assert!(!binding.binding_digest().is_empty());
+    assert!(!binding.binding_for_reporting().is_empty());
     assert!(!title.is_empty());
     assert_eq!(count, CountRow { count: 1 });
 

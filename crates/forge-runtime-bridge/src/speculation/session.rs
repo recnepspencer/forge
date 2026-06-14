@@ -36,6 +36,13 @@ impl PreviewExecutionRecordIdentity {
     pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
         Self::new(value)
     }
+
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
+        Self::new(format!(
+            "bridge-preview-execution-record:external-authority-evidence:{}",
+            evidence_identity.as_str()
+        ))
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

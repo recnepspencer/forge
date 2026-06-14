@@ -243,13 +243,13 @@ pub(in crate::runtime::tests) fn hostile_published_artifact_digest(
     )
     .field_identity(
         crate::ForgeQueryEvidenceTag::new("binding_digest"),
-        inspection.artifact_binding_digest().unwrap_or("none"),
+        inspection.artifact_binding_for_reporting().unwrap_or("none"),
     )
     .field_identity(
         crate::ForgeQueryEvidenceTag::new("async_result_state_digest"),
         inspection
             .async_result_state()
-            .map(|state| state.result_state_digest())
+            .map(|state| state.result_state_for_reporting())
             .unwrap_or("none"),
     )
     .field_shape(

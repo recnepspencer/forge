@@ -118,7 +118,7 @@ pub(in super::super) fn compose_public_support_matrix_row_identity(
         crate::ForgeQueryEvidenceTag::new("admission_fail_closed"),
         row.admission_fail_closed(),
     )
-    .optional_identity(
+    .optional_value(
         crate::ForgeQueryEvidenceTag::new("support_contract_digest"),
         row.support_contract_digest(),
     )
@@ -170,13 +170,13 @@ pub(in super::super) fn compose_state_snapshot_identity(
             crate::ForgeQueryEvidenceTag::new("kind"),
             snapshot.kind().as_str(),
         )
-        .field_identity(
+        .field_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("basis_digest"),
-            snapshot.basis_digest(),
+            snapshot.basis_identity(),
         )
-        .field_identity(
+        .field_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("result_shape_digest"),
-            snapshot.result_shape_digest(),
+            snapshot.result_shape_identity(),
         )
         .field_shape(
             crate::ForgeQueryEvidenceTag::new("authority_lane"),
@@ -186,23 +186,23 @@ pub(in super::super) fn compose_state_snapshot_identity(
             crate::ForgeQueryEvidenceTag::new("explanation"),
             snapshot.explanation(),
         )
-        .optional_identity(
+        .optional_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("ordinary_runtime_posture"),
             snapshot
                 .ordinary_runtime_posture()
-                .map(crate::ordinary_outcome::ForgeQueryOrdinaryRuntimePosture::posture_digest),
+                .map(crate::ordinary_outcome::ForgeQueryOrdinaryRuntimePosture::evidence_identity),
         )
-        .optional_identity(
+        .optional_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("async_result_state"),
             snapshot
                 .async_result_state()
-                .map(ForgeQueryRuntimeAsyncResultState::result_state_digest),
+                .map(ForgeQueryRuntimeAsyncResultState::result_state_identity),
         )
-        .optional_identity(
+        .optional_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("remask_posture"),
             snapshot
                 .remask_posture()
-                .map(ForgeQueryRuntimeRemaskPosture::remask_digest),
+                .map(ForgeQueryRuntimeRemaskPosture::remask_identity),
         )
         .seal()
 }

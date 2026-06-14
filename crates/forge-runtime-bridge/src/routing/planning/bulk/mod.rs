@@ -24,4 +24,6 @@ pub use types::{
     BRIDGE_CANONICAL_BULK_PLAN_RECORD_SCHEMA_V1,
 };
 
-pub(crate) use planner::{plan_bulk_workload, plan_bulk_workload_with_route_policy};
+pub(crate) use planner::{
+    plan_bulk_workload, plan_bulk_workload_with_route_policy, planning_failure_kind_label,
+};

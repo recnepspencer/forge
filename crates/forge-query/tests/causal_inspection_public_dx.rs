@@ -42,7 +42,7 @@ fn plan_inspection_compiles(receipt: QueryObservationReceipt) {
     let _ = plan.materialization_policy();
     let _ = plan.requested_richness();
     let _ = plan.explanation_family();
-    let _ = plan.anchor_digest();
+    let _ = plan.anchor_for_reporting();
     let _ = plan.reference_set_digest();
     let _ = plan.request_digest();
     let _ = plan.admission_digest();
@@ -66,14 +66,14 @@ fn support_discovery_compiles() {
 fn artifact_exploration_compiles(artifact: QueryCausalInspectionArtifact) {
     let _ = artifact.primary_result();
     let _ = artifact.warnings();
-    let _ = artifact.decision_trace().query_decision_digest();
-    let _ = artifact.decision_trace().bridge_envelope_digest();
-    let _ = artifact.decision_trace().bridge_denial_digest();
+    let _ = artifact.decision_trace().query_decision_for_reporting();
+    let _ = artifact.decision_trace().bridge_envelope_for_reporting();
+    let _ = artifact.decision_trace().bridge_denial_for_reporting();
     let _ = artifact.authority_bindings();
     let _ = artifact.evidence();
-    let _ = artifact.integrity().artifact_digest();
-    let _ = artifact.integrity().causal_identity_digest();
-    let _ = artifact.integrity().bridge_readmission_proof_digest();
+    let _ = artifact.integrity().artifact_for_reporting();
+    let _ = artifact.integrity().causal_identity_for_reporting();
+    let _ = artifact.integrity().bridge_readmission_proof_for_reporting();
     let _ = artifact.performance_envelope();
     let _ = artifact.receipt();
     let _ = artifact.denial_reason();

@@ -14,9 +14,7 @@ use super::bridge_slice::{BridgeSubscriptionSliceKind, QueryToBridgeSliceMap};
 use super::counters::QuerySubscriptionDeclarationCounters;
 use super::declaration::QuerySubscriptionDeclarationArtifact;
 use super::diagnostic::QuerySubscriptionDiagnosticStage;
-use super::evidence_identities::{
-    bridge_lowering_plan_identity, bridge_lowering_query_declaration_identity,
-};
+use super::evidence_identities::bridge_lowering_plan_identity;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::posture::QuerySubscriptionBasisPosture;
 use super::posture::QuerySubscriptionBridgePosture;
@@ -87,7 +85,7 @@ pub fn lower_query_subscription_to_bridge(
     lowering_budget: QuerySubscriptionBridgeLoweringBudget,
 ) -> Result<BridgeSubscriptionLoweringPlan, QuerySubscriptionBridgeLoweringError> {
     let mut counters = declaration.counters().clone();
-    let source_digest = declaration.declaration_digest().as_str().to_string();
+    let source_digest = declaration.declaration_for_reporting().to_string();
     counters.bridge_family_registry_lookup_count = 1;
 
     let family_map = QueryToBridgeSubscriptionFamilyMap::for_query_family(declaration.family());
@@ -160,9 +158,8 @@ pub fn lower_query_subscription_to_bridge(
     counters.basis_binding_request_count = 1;
     counters.signal_strategy_request_count = 1;
 
-    let query_declaration_for_reporting = declaration.declaration_digest().as_str().to_string();
-    let query_declaration_identity =
-        bridge_lowering_query_declaration_identity(&query_declaration_for_reporting);
+    let query_declaration_identity = declaration.declaration_identity().clone();
+    let query_declaration_for_reporting = query_declaration_identity.as_str().to_string();
     let bridge_declaration_identity = bridge_lowering_plan_identity(
         &query_declaration_identity,
         family_map.bridge_family(),

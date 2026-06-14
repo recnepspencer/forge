@@ -1,7 +1,6 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner,
-    BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary,
-    BridgeIdentityEvidence, TruthCommitIdentity,
+    BridgeCausalEvidenceReferenceIdentity, BridgeIdentityEvidence, TruthCommitIdentity,
 };
 
 use super::super::super::super::*;
@@ -71,25 +70,13 @@ fn admitted_temporal_wake_materialization_projects_query_owned_temporal_explanat
     let CausalInspectionProofFlow::Admitted(admitted) = admit_causal_inspection(request) else {
         panic!("reference-only temporal wake should admit");
     };
-    let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.admitted_inspection_digest(),
-        ),
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_for_reporting(),
-        ),
-    )
-    .expect("temporal wake admission summary should be valid");
+    let summary = crate::runtime::tests::causal_inspection::bridge_admitted_summary(&admitted);
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         summary,
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        admitted
-                            .subject()
-                            .query_observation_bridge_evidence_identity(),
-                    ),
+                    admitted.subject().query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference should be valid"),
             ),
@@ -104,8 +91,8 @@ fn admitted_temporal_wake_materialization_projects_query_owned_temporal_explanat
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalInvalidation,
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        bridge_evidence("signal-invalidation:temporal-wake"),
+                    crate::runtime::tests::causal_inspection::bridge_external_evidence(
+                        "signal-invalidation:temporal-wake",
                     ),
                 )
                 .expect("signal invalidation reference should be valid"),
@@ -180,25 +167,13 @@ fn advisory_async_completion_materialization_projects_query_owned_async_explanat
     let CausalInspectionProofFlow::Advisory(advisory) = admit_causal_inspection(request) else {
         panic!("materialized async completion should narrow to advisory");
     };
-    let summary = BridgeCausalInspectionAdmissionSummary::advisory(
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            advisory.advisory_inspection_digest(),
-        ),
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            advisory.subject().anchor_for_reporting(),
-        ),
-    )
-    .expect("async completion advisory summary should be valid");
+    let summary = crate::runtime::tests::causal_inspection::bridge_advisory_summary(&advisory);
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         summary,
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        advisory
-                            .subject()
-                            .query_observation_bridge_evidence_identity(),
-                    ),
+                    advisory.subject().query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference should be valid"),
             ),
@@ -297,25 +272,13 @@ fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity
     let CausalInspectionProofFlow::Admitted(admitted) = admit_causal_inspection(request) else {
         panic!("reference-only mixed suppression should admit");
     };
-    let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.admitted_inspection_digest(),
-        ),
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            admitted.subject().anchor_for_reporting(),
-        ),
-    )
-    .expect("mixed suppression summary should be valid");
+    let summary = crate::runtime::tests::causal_inspection::bridge_admitted_summary(&admitted);
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         summary,
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        admitted
-                            .subject()
-                            .query_observation_bridge_evidence_identity(),
-                    ),
+                    admitted.subject().query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference should be valid"),
             ),
@@ -369,7 +332,7 @@ fn admitted_mixed_cause_suppression_materialization_retains_suppression_identity
 }
 
 fn bridge_evidence(value: impl AsRef<str>) -> BridgeIdentityEvidence {
-    BridgeIdentityEvidence::from_external_authority(value)
+    crate::runtime::tests::causal_inspection::bridge_external_evidence(value)
 }
 
 #[test]

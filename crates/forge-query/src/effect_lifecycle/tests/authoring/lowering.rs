@@ -57,7 +57,7 @@ fn admitted_mutation_plan_lowers_into_one_executable_effect_artifact() {
         EffectStrategyIdentityTarget::NativeStrategyCommitRequest
     );
     assert_eq!(lowered.counters().lowered_effect_count(), 1);
-    assert!(!lowered.lowered_effect_execution_plan_digest().is_empty());
+    assert!(!lowered.lowered_effect_execution_plan_for_reporting().is_empty());
 
     let mutation = lowered
         .as_mutation()
@@ -182,5 +182,5 @@ fn lowering_denials_stay_typed_for_admitted_but_invalid_merge_pairs() {
     );
     assert_eq!(denial.counters().lowering_denied_count(), 1);
     assert_eq!(denial.counters().effect_lowering_width(), 1);
-    assert!(!denial.denial_digest().is_empty());
+    assert!(!denial.denial_for_reporting().is_empty());
 }

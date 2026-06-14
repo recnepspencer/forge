@@ -218,7 +218,7 @@ impl ProjectionConsumptionSource {
             ),
             result_digest: None,
             result_shape_digest: None,
-            source_identity: ProjectionSourceIdentity::artifact(binding.binding_digest()),
+            source_identity: ProjectionSourceIdentity::artifact(binding.binding_for_reporting()),
             materialized_fact_posture: None,
         }
     }

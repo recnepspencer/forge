@@ -1,4 +1,5 @@
 use super::super::support::*;
+use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 use crate::ordinary_outcome::{
     ForgeQueryOrdinaryRuntimeAsyncPostureKind, ForgeQueryOrdinaryRuntimeBasisPostureKind,
     ForgeQueryOrdinaryRuntimeCausePostureKind, ForgeQueryOrdinaryRuntimePosture,
@@ -67,7 +68,7 @@ fn runtime_state_and_inspection_share_time_only_compact_posture() {
     );
     assert_eq!(
         posture.support_evidence_digest(),
-        view.subscription_installation().support_evidence()
+        view.subscription_installation().support_for_reporting()
     );
     assert_eq!(posture, &inspect_live_view_posture(&runtime, &view));
 }
@@ -153,7 +154,7 @@ fn runtime_state_and_inspection_share_mixed_async_compact_posture() {
     );
     assert_eq!(
         posture.support_evidence_digest(),
-        view.subscription_installation().support_evidence()
+        view.subscription_installation().support_for_reporting()
     );
     assert_eq!(posture, &inspect_live_view_posture(&runtime, &view));
 }
@@ -169,6 +170,7 @@ fn runtime_compact_posture_keeps_basis_sensitive_denied_async_state_typed_on_sca
         )
         .expect("live view should declare");
     let (basis_digest, generation_digest) = live_subscription_async_identity(&runtime, view.name());
+    let drifted_basis = runtime_async_checkpoint_label_identity("basis:drifted");
     runtime
         .project_async_result_state(
             view.name(),
@@ -178,7 +180,7 @@ fn runtime_compact_posture_keeps_basis_sensitive_denied_async_state_typed_on_sca
                 ),
                 "async:compact-denied",
             ),
-            "basis:drifted",
+            &drifted_basis,
             &generation_digest,
         )
         .expect("denied async state should project");
@@ -205,10 +207,10 @@ fn runtime_compact_posture_keeps_basis_sensitive_denied_async_state_typed_on_sca
         posture.basis_posture(),
         ForgeQueryOrdinaryRuntimeBasisPostureKind::BasisDrift
     );
-    assert_ne!(basis_digest, "basis:drifted");
+    assert_ne!(basis_digest, drifted_basis);
     assert_eq!(
         posture.support_evidence_digest(),
-        view.subscription_installation().support_evidence()
+        view.subscription_installation().support_for_reporting()
     );
     assert_eq!(posture, &inspect_live_view_posture(&runtime, &view));
 }

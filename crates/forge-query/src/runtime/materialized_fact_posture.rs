@@ -14,7 +14,7 @@ pub(super) fn materialized_fact_posture_from_live_subscription_state(
         materialized_fact_posture_kind_from_live_subscription_state(state),
         state.installation.query_for_reporting(),
         basis_identity.as_str(),
-        state.installation.support_evidence(),
+        state.installation.support_for_reporting(),
         Some(state.installation.installation_for_reporting().to_string()),
     )
 }

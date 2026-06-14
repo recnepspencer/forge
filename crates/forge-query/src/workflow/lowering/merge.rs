@@ -27,7 +27,6 @@ pub struct LoweredMergeWorkflowDeclaration {
     freshness_binding: WorkflowFreshnessBinding,
     staleness_class: WorkflowStalenessClass,
     lowering_identity: ForgeQueryEvidenceIdentity,
-    lowering_digest: String,
     counters: WorkflowLoweringCounters,
 }
 
@@ -56,8 +55,8 @@ impl LoweredMergeWorkflowDeclaration {
         &self.staleness_class
     }
 
-    pub fn lowering_digest(&self) -> &str {
-        &self.lowering_digest
+    pub fn lowering_for_reporting(&self) -> &str {
+        self.lowering_identity.as_str()
     }
 
     pub fn lowering_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -86,7 +85,6 @@ pub fn lower_merge_workflow_declaration(
     };
     let lowering_identity =
         merge_lowering_identity(declaration, &input, &freshness_binding, &staleness_class);
-    let lowering_digest = lowering_identity.as_str().to_string();
 
     Ok(LoweredMergeWorkflowDeclaration {
         declaration: declaration.clone(),
@@ -96,7 +94,6 @@ pub fn lower_merge_workflow_declaration(
         freshness_binding,
         staleness_class,
         lowering_identity,
-        lowering_digest,
         counters: merge_lowering_success_counters(1),
     })
 }

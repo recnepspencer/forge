@@ -43,6 +43,20 @@ impl ForgeQueryInvariantCapabilityContributionPosture {
     }
 }
 
+fn graph_invariant_semantics_identity(
+    role: &'static str,
+    digest_label: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_graph_invariant_semantics_digest_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+        .field_shape(ForgeQueryEvidenceTag::new("digest_label"), digest_label)
+        .seal()
+}
+
 fn compose_graph_capability_identity(
     graph_capability: &ForgeQueryGraphCapabilityRuntimeSemantics,
 ) -> ForgeQueryEvidenceIdentity {
@@ -90,13 +104,13 @@ fn compose_graph_invariant_denial_identity(
             ForgeQueryEvidenceTag::new("lifecycle_families"),
             graph_invariant_denial.lifecycle_families(),
         )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("program_digest"),
-            graph_invariant_denial.program_digest(),
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("program"),
+            graph_invariant_denial.program_identity(),
         )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("breadth_digest"),
-            graph_invariant_denial.breadth_digest(),
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("breadth"),
+            graph_invariant_denial.breadth_identity(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("counter_snapshot"),
@@ -105,19 +119,10 @@ fn compose_graph_invariant_denial_identity(
         .seal()
 }
 
-fn compose_invariant_registration_identity(
+pub(crate) fn compose_invariant_registration_identity(
     invariant_registration: &ForgeQueryInvariantRegistrationRuntimeSemantics,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_invariant_registration_runtime_semantics_v1",
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("registration"),
-            invariant_registration.registration_digest(),
-        )
-        .seal()
+    invariant_registration.registration_identity()
 }
 
 fn compose_invariant_capability_payload_identity(
@@ -199,8 +204,8 @@ pub struct ForgeQueryGraphInvariantDenialRuntimeSemantics {
     declared_symbols: Vec<String>,
     target_combination_families: Vec<String>,
     lifecycle_families: Vec<String>,
-    program_digest: String,
-    breadth_digest: String,
+    program_identity: ForgeQueryEvidenceIdentity,
+    breadth_identity: ForgeQueryEvidenceIdentity,
     counter_snapshot: String,
 }
 
@@ -215,6 +220,8 @@ impl ForgeQueryGraphInvariantDenialRuntimeSemantics {
         breadth_digest: impl Into<String>,
         counter_snapshot: impl Into<String>,
     ) -> Self {
+        let program_digest = program_digest.into();
+        let breadth_digest = breadth_digest.into();
         Self {
             invariant_family: invariant_family.into(),
             declared_collections: declared_collections.into_iter().map(Into::into).collect(),
@@ -224,8 +231,8 @@ impl ForgeQueryGraphInvariantDenialRuntimeSemantics {
                 .map(Into::into)
                 .collect(),
             lifecycle_families: lifecycle_families.into_iter().map(Into::into).collect(),
-            program_digest: program_digest.into(),
-            breadth_digest: breadth_digest.into(),
+            program_identity: graph_invariant_semantics_identity("program", &program_digest),
+            breadth_identity: graph_invariant_semantics_identity("breadth", &breadth_digest),
             counter_snapshot: counter_snapshot.into(),
         }
     }
@@ -251,11 +258,19 @@ impl ForgeQueryGraphInvariantDenialRuntimeSemantics {
     }
 
     pub fn program_digest(&self) -> &str {
-        &self.program_digest
+        self.program_identity.as_str()
+    }
+
+    pub fn program_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.program_identity
     }
 
     pub fn breadth_digest(&self) -> &str {
-        &self.breadth_digest
+        self.breadth_identity.as_str()
+    }
+
+    pub fn breadth_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.breadth_identity
     }
 
     pub fn counter_snapshot(&self) -> &str {
@@ -266,17 +281,37 @@ impl ForgeQueryGraphInvariantDenialRuntimeSemantics {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryInvariantRegistrationRuntimeSemantics {
     invariant_catalog: InvariantCatalog,
+    registration_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryInvariantRegistrationRuntimeSemantics {
     pub fn new(invariant_catalog: InvariantCatalog) -> Self {
-        Self { invariant_catalog }
+        let registration_identity = Self::registration_identity_for_catalog(&invariant_catalog);
+        Self {
+            invariant_catalog,
+            registration_identity,
+        }
     }
 
     pub fn from_registration(registration: InvariantRegistration) -> Self {
         Self::new(InvariantCatalog {
             registrations: vec![registration],
         })
+    }
+
+    fn registration_identity_for_catalog(
+        invariant_catalog: &InvariantCatalog,
+    ) -> ForgeQueryEvidenceIdentity {
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_invariant_registration_runtime_semantics_v1",
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("registration_label"),
+                invariant_catalog.canonical_registration_digest(),
+            )
+            .seal()
     }
 
     pub fn invariant_catalog(&self) -> &InvariantCatalog {
@@ -288,7 +323,11 @@ impl ForgeQueryInvariantRegistrationRuntimeSemantics {
     }
 
     pub fn registration_digest(&self) -> String {
-        self.invariant_catalog.canonical_registration_digest()
+        self.registration_identity.as_str().to_string()
+    }
+
+    pub fn registration_identity(&self) -> ForgeQueryEvidenceIdentity {
+        self.registration_identity.clone()
     }
 }
 
@@ -452,5 +491,9 @@ impl ForgeQueryDomainCapabilityPayload for ForgeQueryInvariantCapabilityContribu
 
     fn payload_digest(&self) -> &str {
         self.payload_digest()
+    }
+
+    fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }

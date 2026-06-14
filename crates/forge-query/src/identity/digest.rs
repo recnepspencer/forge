@@ -1,5 +1,10 @@
 use sha2::{Digest, Sha256};
 
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct CanonicalQueryDigest(String);
 
@@ -8,8 +13,22 @@ impl CanonicalQueryDigest {
         Self(hash_parts(parts))
     }
 
+    pub(crate) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
+        Self(identity.as_str().to_string())
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub(crate) fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "canonical_query_digest_v1",
+            )
+            .field_identity(ForgeQueryEvidenceTag::new("canonical_query_digest"), self.as_str())
+            .seal()
     }
 }
 
@@ -21,8 +40,25 @@ impl CanonicalResultShapeDigest {
         Self(hash_parts(parts))
     }
 
+    pub(crate) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
+        Self(identity.as_str().to_string())
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub(crate) fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "canonical_result_shape_digest_v1",
+            )
+            .field_identity(
+                ForgeQueryEvidenceTag::new("result_shape_digest"),
+                self.as_str(),
+            )
+            .seal()
     }
 }
 
@@ -47,8 +83,22 @@ impl ValidatedQueryDigest {
         Self(hash_parts(parts))
     }
 
+    pub(crate) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
+        Self(identity.as_str().to_string())
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub(crate) fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "validated_query_digest_v1",
+            )
+            .field_identity(ForgeQueryEvidenceTag::new("validated_query_digest"), self.as_str())
+            .seal()
     }
 }
 
@@ -75,6 +125,16 @@ impl PlanDigest {
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub(crate) fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "execution_plan_digest_v1",
+            )
+            .field_identity(ForgeQueryEvidenceTag::new("plan_digest"), self.as_str())
+            .seal()
     }
 }
 

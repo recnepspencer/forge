@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
+use super::evidence_identities::slice_intent_identity;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum QuerySubscriptionSliceKind {
@@ -50,20 +52,17 @@ impl QuerySubscriptionSlicePart {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionSliceIntent {
     parts: Vec<QuerySubscriptionSlicePart>,
-    digest: String,
+    slice_intent_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionSliceIntent {
     pub(super) fn from_canonical_parts(mut parts: Vec<QuerySubscriptionSlicePart>) -> Self {
         parts.sort();
         parts.dedup();
-        let digest_parts = parts
-            .iter()
-            .map(QuerySubscriptionSlicePart::canonical_part)
-            .collect::<Vec<_>>();
+        let slice_intent_identity = slice_intent_identity(&parts);
         Self {
             parts,
-            digest: hash_parts(&digest_parts),
+            slice_intent_identity,
         }
     }
 
@@ -71,8 +70,12 @@ impl QuerySubscriptionSliceIntent {
         &self.parts
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.slice_intent_identity
+    }
+
+    pub fn slice_intent_for_reporting(&self) -> &str {
+        self.slice_intent_identity.as_str()
     }
 
     pub fn len(&self) -> usize {

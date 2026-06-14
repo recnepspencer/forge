@@ -256,9 +256,9 @@ pub fn anchor_causal_observation(
                 ForgeQueryEvidenceTag::new("reason"),
                 inspection_reason.as_str(),
             )
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("receipt"),
-                observation_receipt.receipt_identity().as_str(),
+                observation_receipt.receipt_identity().evidence_identity(),
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("observation"),

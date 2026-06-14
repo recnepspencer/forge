@@ -223,7 +223,7 @@ impl ForgeQueryRuntimePublicSupportMatrix {
                 ForgeQueryRuntimeDownstreamDeliveryContract::from_backend_posture(
                     contract.backend_posture(),
                 )
-                .contract_digest()
+                .contract_for_reporting()
                 .to_string(),
             ),
         ));

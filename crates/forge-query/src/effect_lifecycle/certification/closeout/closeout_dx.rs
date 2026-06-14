@@ -67,7 +67,7 @@ impl DxStoryEvidence {
         let digest = hash_parts(
             &std::iter::once(format!("story:{}", kind.as_str()))
                 .chain(std::iter::once(format!("transcript:{transcript}")))
-                .chain(std::iter::once(format!("counters:{}", counters.digest())))
+                .chain(std::iter::once(format!("counters:{}", counters.counter_for_reporting())))
                 .chain(parts)
                 .collect::<Vec<_>>(),
         );
@@ -122,7 +122,7 @@ pub(super) fn build_closeout_dx(
         target_dx_digest.clone(),
         golden_transcript_digest.clone(),
         effect_lifecycle_support_matrix()
-            .matrix_digest()
+            .matrix_for_reporting()
             .to_string(),
     ]);
     let detail = stories
@@ -219,7 +219,7 @@ fn inspectable_lowered_story() -> DxStoryEvidence {
         DxStoryKind::InspectableLoweredPlan,
         transcript,
         vec![
-            lowered.lowered_effect_execution_plan_digest().to_string(),
+            lowered.lowered_effect_execution_plan_for_reporting().to_string(),
             lowered.authority_owner().as_str().to_string(),
             lowered.preview_posture().as_str().to_string(),
             lowered.policy_posture().as_str().to_string(),
@@ -288,7 +288,7 @@ fn denial_or_rebind_story() -> DxStoryEvidence {
         ),
         vec![
             rebind.normalized().normalized_digest().to_string(),
-            rebind.decision_trace().trace_digest().to_string(),
+            rebind.decision_trace().trace_for_reporting().to_string(),
         ],
         rebind.counters().clone(),
     )
@@ -309,9 +309,9 @@ fn support_discovery_story() -> DxStoryEvidence {
             deferred.posture().as_str()
         ),
         vec![
-            admitted.discovery_digest().to_string(),
-            rebind.discovery_digest().to_string(),
-            deferred.discovery_digest().to_string(),
+            admitted.discovery_for_reporting().to_string(),
+            rebind.discovery_for_reporting().to_string(),
+            deferred.discovery_for_reporting().to_string(),
         ],
         admitted
             .counters()
@@ -377,7 +377,7 @@ fn target_dx_digest(public_surface: &EffectLifecyclePublicSurfaceInventory) -> S
                     "{}:{}:{}",
                     kind.as_str(),
                     row.entrypoint().unwrap_or("none"),
-                    row.row_digest()
+                    row.row_for_reporting()
                 )
             })
             .collect::<Vec<_>>(),

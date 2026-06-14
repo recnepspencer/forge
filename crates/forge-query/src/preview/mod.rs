@@ -12,6 +12,7 @@ use crate::identity::{
 };
 use crate::identity::{CollectionPlanDigest, ResultDigest};
 use crate::live::LiveQueryPlan;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 use forge_runtime_bridge::facade::{
     BridgePreviewExecutionRecord, BridgePreviewLifecycleStateKind, BridgePreviewSession,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, PreviewActive,
@@ -1682,14 +1683,14 @@ pub struct PreviewComparisonEligibilityArtifact {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreviewWorkflowFoundationArtifact {
-    digest: String,
-    binding_digest: String,
+    artifact_identity: ForgeQueryEvidenceIdentity,
+    binding_identity: ForgeQueryEvidenceIdentity,
     canonical_query_digest: CanonicalQueryDigest,
     validated_query_digest: ValidatedQueryDigest,
     request_family: PreviewWorkflowFoundationRequest,
     preview_session_identity: BridgePreviewSessionIdentity,
     declaration_identity: BridgePreviewSessionDeclarationIdentity,
-    declaration_digest: String,
+    declaration_digest_identity: ForgeQueryEvidenceIdentity,
     lifecycle_state_kind: BridgePreviewLifecycleStateKind,
     evaluation_class: PreviewEvaluationClass,
     execution_record_identity: PreviewExecutionRecordIdentity,
@@ -1869,12 +1870,20 @@ impl PreviewComparisonEligibilityArtifact {
 }
 
 impl PreviewWorkflowFoundationArtifact {
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn artifact_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.artifact_identity
     }
 
-    pub fn binding_digest(&self) -> &str {
-        &self.binding_digest
+    pub fn artifact_for_reporting(&self) -> &str {
+        self.artifact_identity.as_str()
+    }
+
+    pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.binding_identity
+    }
+
+    pub fn binding_for_reporting(&self) -> &str {
+        self.binding_identity.as_str()
     }
 
     pub fn request_family(&self) -> &PreviewWorkflowFoundationRequest {
@@ -1897,8 +1906,12 @@ impl PreviewWorkflowFoundationArtifact {
         &self.declaration_identity
     }
 
-    pub fn declaration_digest(&self) -> &str {
-        &self.declaration_digest
+    pub fn declaration_digest_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.declaration_digest_identity
+    }
+
+    pub fn declaration_digest_for_reporting(&self) -> &str {
+        self.declaration_digest_identity.as_str()
     }
 
     pub fn lifecycle_state_kind(&self) -> BridgePreviewLifecycleStateKind {
@@ -1919,12 +1932,20 @@ impl PreviewWorkflowFoundationArtifact {
 }
 
 impl AdmittedPreviewWorkflowFoundation {
-    pub fn digest(&self) -> &str {
-        self.artifact.digest()
+    pub fn artifact_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        self.artifact.artifact_identity()
     }
 
-    pub fn binding_digest(&self) -> &str {
-        self.artifact.binding_digest()
+    pub fn artifact_for_reporting(&self) -> &str {
+        self.artifact.artifact_for_reporting()
+    }
+
+    pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        self.artifact.binding_identity()
+    }
+
+    pub fn binding_for_reporting(&self) -> &str {
+        self.artifact.binding_for_reporting()
     }
 
     pub fn request_family(&self) -> &PreviewWorkflowFoundationRequest {
@@ -1947,8 +1968,12 @@ impl AdmittedPreviewWorkflowFoundation {
         self.artifact.declaration_identity()
     }
 
-    pub fn declaration_digest(&self) -> &str {
-        self.artifact.declaration_digest()
+    pub fn declaration_digest_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        self.artifact.declaration_digest_identity()
+    }
+
+    pub fn declaration_digest_for_reporting(&self) -> &str {
+        self.artifact.declaration_digest_for_reporting()
     }
 
     pub fn lifecycle_state_kind(&self) -> BridgePreviewLifecycleStateKind {
@@ -2229,44 +2254,91 @@ fn derive_preview_workflow_foundation(
         .execution_record_identity()
         .cloned()
         .expect("active preview bindings must carry an execution record identity");
-    let digest = hash_parts(&[
-        format!("binding:{}", binding_tuple.digest()),
-        format!("request:{}", request.as_str()),
-        format!(
-            "preview_session:{}",
-            binding_tuple
-                .preview_session_identity()
-                .evidence_identity()
-                .as_str()
-        ),
-        format!(
-            "declaration_identity:{}",
-            binding_tuple
-                .declaration_identity()
-                .evidence_identity()
-                .as_str()
-        ),
-        format!("declaration_digest:{}", binding_tuple.declaration_digest()),
-        format!("lifecycle:{:?}", binding_tuple.lifecycle_state_kind()),
-        format!(
-            "execution_record:{}",
-            execution_record_identity.evidence_identity().as_str()
-        ),
-        format!(
-            "evaluation_class:{}",
-            binding_tuple.evaluation_class().as_str()
-        ),
-    ]);
+    let binding_identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_preview_binding_tuple_identity_v1",
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("binding_digest"),
+                binding_tuple.digest(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("canonical_query"),
+                &binding_tuple.canonical_query_digest().evidence_identity(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("validated_query"),
+                &binding_tuple.validated_query_digest().evidence_identity(),
+            )
+            .seal();
+    let declaration_digest_identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_preview_declaration_digest_identity_v1",
+            )
+            .field_bridge_identity(
+                ForgeQueryEvidenceTag::new("declaration"),
+                &binding_tuple.declaration_identity().evidence_identity(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("declaration_digest"),
+                binding_tuple.declaration_digest(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("canonical_query"),
+                &binding_tuple.canonical_query_digest().evidence_identity(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("validated_query"),
+                &binding_tuple.validated_query_digest().evidence_identity(),
+            )
+            .seal();
+    let artifact_identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_preview_workflow_foundation_artifact_v1",
+            )
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
+            .field_shape(ForgeQueryEvidenceTag::new("request"), request.as_str())
+            .field_bridge_identity(
+                ForgeQueryEvidenceTag::new("preview_session"),
+                &binding_tuple.preview_session_identity().evidence_identity(),
+            )
+            .field_bridge_identity(
+                ForgeQueryEvidenceTag::new("declaration_identity"),
+                &binding_tuple.declaration_identity().evidence_identity(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("declaration_digest"),
+                &declaration_digest_identity,
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("lifecycle"),
+                format!("{:?}", binding_tuple.lifecycle_state_kind()),
+            )
+            .field_bridge_identity(
+                ForgeQueryEvidenceTag::new("execution_record"),
+                &execution_record_identity.evidence_identity(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("evaluation_class"),
+                binding_tuple.evaluation_class().as_str(),
+            )
+            .seal();
 
     PreviewWorkflowFoundationArtifact {
-        digest,
-        binding_digest: binding_tuple.digest().to_string(),
+        artifact_identity,
+        binding_identity,
         canonical_query_digest: binding_tuple.canonical_query_digest().clone(),
         validated_query_digest: binding_tuple.validated_query_digest().clone(),
         request_family: request,
         preview_session_identity: binding_tuple.preview_session_identity().clone(),
         declaration_identity: binding_tuple.declaration_identity().clone(),
-        declaration_digest: binding_tuple.declaration_digest().to_string(),
+        declaration_digest_identity,
         lifecycle_state_kind: binding_tuple.lifecycle_state_kind(),
         evaluation_class: binding_tuple.evaluation_class().clone(),
         execution_record_identity,
@@ -2612,7 +2684,10 @@ pub(crate) fn execute_preview_session_plan(
             ),
             format!("result:{}", execution.report().result_digest().as_str()),
             format!("comparison:{}", comparison_eligibility.digest()),
-            format!("workflow:{}", workflow_foundation.artifact().digest()),
+            format!(
+                "workflow:{}",
+                workflow_foundation.artifact().artifact_for_reporting()
+            ),
         ]),
         binding_digest: binding_tuple.digest().to_string(),
         basis_digest: execution.report().basis_digest().as_str().to_string(),
@@ -2622,7 +2697,10 @@ pub(crate) fn execute_preview_session_plan(
         query_digest: execution.report().query_digest().clone(),
         result_digest: execution.report().result_digest().clone(),
         comparison_eligibility_digest: comparison_eligibility.digest().to_string(),
-        workflow_foundation_digest: workflow_foundation.artifact().digest().to_string(),
+        workflow_foundation_digest: workflow_foundation
+            .artifact()
+            .artifact_for_reporting()
+            .to_string(),
     };
     let envelope = PreviewExecutionEnvelope {
         binding: binding.clone(),
@@ -3920,7 +3998,7 @@ mod tests {
         );
         assert_eq!(
             execution.report().workflow_foundation_digest(),
-            execution.workflow_foundation().digest()
+            execution.workflow_foundation().artifact_for_reporting()
         );
     }
 
@@ -4313,7 +4391,7 @@ mod tests {
             &PreviewEvaluationClass::promotion_eligible()
         );
         assert_eq!(
-            workflow.artifact().binding_digest(),
+            workflow.artifact().binding_for_reporting(),
             binding.basis().binding_tuple().digest()
         );
         assert_eq!(
@@ -4321,7 +4399,7 @@ mod tests {
             &PreviewWorkflowFoundationRequest::compare_basis_pair()
         );
         assert_eq!(
-            workflow.artifact().declaration_digest(),
+            workflow.artifact().declaration_digest_for_reporting(),
             binding.basis().binding_tuple().declaration_digest()
         );
         assert_eq!(
@@ -4362,7 +4440,7 @@ mod tests {
             &PreviewEvaluationClass::promotion_eligible()
         );
         assert_eq!(
-            workflow.artifact().binding_digest(),
+            workflow.artifact().binding_for_reporting(),
             binding.basis().binding_tuple().digest()
         );
         assert_eq!(

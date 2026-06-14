@@ -60,9 +60,9 @@ pub(crate) fn representative_effect_relational_mutation_row() -> RepresentativeA
         ForgeQueryLowerRuntimeAuthorityOwner::Relational,
         "Effect-backed relational mutation",
         effect_execution_evidence_identity(
-            executed.effect_execution_digest(),
-            executed.lowered().lowered_effect_execution_plan_digest(),
-            executed.receipt().receipt_digest(),
+            executed.effect_execution_for_reporting(),
+            executed.lowered().lowered_effect_execution_plan_for_reporting(),
+            executed.receipt().receipt_for_reporting(),
         ),
     )
 }
@@ -106,9 +106,9 @@ pub(crate) fn representative_effect_relational_merge_row() -> RepresentativeArti
         ForgeQueryLowerRuntimeAuthorityOwner::Relational,
         "Effect-backed relational merge",
         effect_execution_evidence_identity(
-            executed.effect_execution_digest(),
-            executed.lowered().lowered_effect_execution_plan_digest(),
-            executed.receipt().receipt_digest(),
+            executed.effect_execution_for_reporting(),
+            executed.lowered().lowered_effect_execution_plan_for_reporting(),
+            executed.receipt().receipt_for_reporting(),
         ),
     )
 }
@@ -136,9 +136,9 @@ pub(crate) fn representative_effect_bridge_writeback_row() -> RepresentativeArti
         ForgeQueryLowerRuntimeAuthorityOwner::RuntimeBridge,
         "Effect-backed bridge writeback",
         effect_execution_evidence_identity(
-            executed.effect_execution_digest(),
-            executed.lowered().lowered_effect_execution_plan_digest(),
-            executed.receipt().receipt_digest(),
+            executed.effect_execution_for_reporting(),
+            executed.lowered().lowered_effect_execution_plan_for_reporting(),
+            executed.receipt().receipt_for_reporting(),
         ),
     )
 }

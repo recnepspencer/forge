@@ -3,7 +3,9 @@ use forge_runtime_bridge::facade::{
     BridgeTruthViewKind, TruthBranchIdentity, TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
-use super::binding_evidence::binding_digest;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
+use super::binding_evidence::binding_identity;
 use super::{
     denied_basis_capability_for_lower_runtime_mismatch,
     denied_basis_capability_for_lower_runtime_unsupported, AdmittedBasisCapability,
@@ -19,7 +21,7 @@ const BRIDGE_AUTHORITY: &str = "forge_runtime_bridge";
 pub struct LowerRuntimeBoundObservationBasis {
     capability: ObservationBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_digest: String,
+    binding_identity: ForgeQueryEvidenceIdentity,
     counters: BasisEligibilityCounters,
 }
 
@@ -27,7 +29,7 @@ pub struct LowerRuntimeBoundObservationBasis {
 pub struct LowerRuntimeBoundInspectionBasis {
     capability: InspectionBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_digest: String,
+    binding_identity: ForgeQueryEvidenceIdentity,
     counters: BasisEligibilityCounters,
 }
 
@@ -35,7 +37,7 @@ pub struct LowerRuntimeBoundInspectionBasis {
 pub struct LowerRuntimeBoundSubscriptionDeclarationBasis {
     capability: SubscriptionDeclarationBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_digest: String,
+    binding_identity: ForgeQueryEvidenceIdentity,
     counters: BasisEligibilityCounters,
 }
 
@@ -43,7 +45,7 @@ pub struct LowerRuntimeBoundSubscriptionDeclarationBasis {
 pub struct LowerRuntimeBoundSubscriptionActivationBasis {
     capability: SubscriptionActivationBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_digest: String,
+    binding_identity: ForgeQueryEvidenceIdentity,
     counters: BasisEligibilityCounters,
 }
 
@@ -62,8 +64,12 @@ macro_rules! impl_bound_accessors {
                 &self.evidence
             }
 
-            pub fn binding_digest(&self) -> &str {
-                &self.binding_digest
+            pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+                &self.binding_identity
+            }
+
+            pub fn binding_for_reporting(&self) -> &str {
+                self.binding_identity.as_str()
             }
 
             pub fn counters(&self) -> &BasisEligibilityCounters {
@@ -105,7 +111,7 @@ pub fn readmit_bridge_truth_view_evidence(
     );
     Ok(LowerRuntimeBoundObservationBasis {
         capability,
-        binding_digest: binding_digest(admitted.capability_digest(), &evidence),
+        binding_identity: binding_identity(admitted.capability_digest(), &evidence),
         evidence,
         counters,
     })
@@ -133,7 +139,7 @@ pub fn readmit_bridge_continuity_evidence(
     );
     Ok(LowerRuntimeBoundInspectionBasis {
         capability,
-        binding_digest: binding_digest(admitted.capability_digest(), &evidence),
+        binding_identity: binding_identity(admitted.capability_digest(), &evidence),
         evidence,
         counters,
     })
@@ -150,7 +156,7 @@ pub fn readmit_bridge_subscription_declaration_evidence(
     let evidence = subscription_evidence(admitted_subscription);
     Ok(LowerRuntimeBoundSubscriptionDeclarationBasis {
         capability,
-        binding_digest: binding_digest(admitted.capability_digest(), &evidence),
+        binding_identity: binding_identity(admitted.capability_digest(), &evidence),
         evidence,
         counters,
     })
@@ -167,7 +173,7 @@ pub fn readmit_bridge_subscription_activation_evidence(
     let evidence = subscription_evidence(admitted_subscription);
     Ok(LowerRuntimeBoundSubscriptionActivationBasis {
         capability,
-        binding_digest: binding_digest(admitted.capability_digest(), &evidence),
+        binding_identity: binding_identity(admitted.capability_digest(), &evidence),
         evidence,
         counters,
     })

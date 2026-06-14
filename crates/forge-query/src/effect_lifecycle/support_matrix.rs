@@ -1,5 +1,7 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::identity::hash_parts;
+use crate::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::counters::EffectLifecycleCounters;
 use super::inventory::{EffectLoweredArtifactKind, EffectReceiptArtifactKind};
@@ -11,6 +13,9 @@ use super::support_contract::{
 use super::support_matrix_rows::support_rows;
 use super::taxonomy::DeniedEffectEligibilityKind;
 use super::taxonomy::EffectFamily;
+
+const EFFECT_LIFECYCLE_IDENTITY_SCOPE: ForgeQueryEvidenceScope =
+    ForgeQueryEvidenceScope::WorkflowMutationLowering;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectSupportPosture {
@@ -69,7 +74,7 @@ pub struct EffectLifecycleSupportRow {
     receipt_artifact_kind: EffectReceiptArtifactKind,
     posture: EffectSupportPosture,
     cause: EffectSupportCause,
-    row_digest: String,
+    row_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectLifecycleSupportRow {
@@ -82,15 +87,34 @@ impl EffectLifecycleSupportRow {
         posture: EffectSupportPosture,
         cause: EffectSupportCause,
     ) -> Self {
-        let row_digest = hash_parts(&[
-            format!("basis_family:{}", basis_family.as_str()),
-            format!("effect_family:{}", effect_family.as_str()),
-            format!("authority_owner:{}", authority_owner.as_str()),
-            format!("lowered_artifact:{}", lowered_artifact_kind.as_str()),
-            format!("receipt_artifact:{}", receipt_artifact_kind.as_str()),
-            format!("posture:{}", posture.as_str()),
-            format!("cause:{}", cause.as_str()),
-        ]);
+        let row_identity = ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "effect_lifecycle_support_row_v1",
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("basis_family"),
+                basis_family.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("effect_family"),
+                effect_family.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("authority_owner"),
+                authority_owner.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("lowered_artifact"),
+                lowered_artifact_kind.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("receipt_artifact"),
+                receipt_artifact_kind.as_str(),
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+            .field_shape(ForgeQueryEvidenceTag::new("cause"), cause.as_str())
+            .seal();
         Self {
             basis_family,
             effect_family,
@@ -99,7 +123,7 @@ impl EffectLifecycleSupportRow {
             receipt_artifact_kind,
             posture,
             cause,
-            row_digest,
+            row_identity,
         }
     }
 
@@ -147,15 +171,19 @@ impl EffectLifecycleSupportRow {
         deferred_support_contract(self.cause)
     }
 
-    pub fn row_digest(&self) -> &str {
-        &self.row_digest
+    pub fn row_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.row_identity
+    }
+
+    pub fn row_for_reporting(&self) -> &str {
+        self.row_identity.as_str()
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectLifecycleSupportMatrix {
     rows: Vec<EffectLifecycleSupportRow>,
-    matrix_digest: String,
+    matrix_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectLifecycleSupportMatrix {
@@ -163,8 +191,12 @@ impl EffectLifecycleSupportMatrix {
         &self.rows
     }
 
-    pub fn matrix_digest(&self) -> &str {
-        &self.matrix_digest
+    pub fn matrix_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.matrix_identity
+    }
+
+    pub fn matrix_for_reporting(&self) -> &str {
+        self.matrix_identity.as_str()
     }
 }
 
@@ -175,9 +207,9 @@ pub struct EffectLifecycleSupportDiscovery {
     posture: EffectSupportPosture,
     cause: EffectSupportCause,
     matched_row: Option<EffectLifecycleSupportRow>,
-    matched_row_digest: Option<String>,
-    support_matrix_digest: String,
-    discovery_digest: String,
+    matched_row_identity: Option<ForgeQueryEvidenceIdentity>,
+    support_matrix_identity: ForgeQueryEvidenceIdentity,
+    discovery_identity: ForgeQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
@@ -186,7 +218,7 @@ impl EffectLifecycleSupportDiscovery {
         requested_basis_family: BasisFamily,
         requested_effect_family: EffectFamily,
         decision: EffectSupportDecision,
-        support_matrix_digest: String,
+        support_matrix_identity: ForgeQueryEvidenceIdentity,
     ) -> Self {
         let EffectSupportDecision {
             posture,
@@ -194,30 +226,49 @@ impl EffectLifecycleSupportDiscovery {
             matched_row,
             rows_consulted,
         } = decision;
-        let matched_row_digest = matched_row.as_ref().map(|row| row.row_digest().to_string());
+        let matched_row_identity = matched_row
+            .as_ref()
+            .map(|row| row.row_identity().clone());
         let counters = EffectLifecycleCounters::support_lookup(rows_consulted);
-        let discovery_digest = hash_parts(&[
-            "effect_lifecycle_support_discovery_v1".to_string(),
-            format!("basis_family:{}", requested_basis_family.as_str()),
-            format!("effect_family:{}", requested_effect_family.as_str()),
-            format!("posture:{}", posture.as_str()),
-            format!("cause:{}", cause.as_str()),
-            format!(
-                "matched_row:{}",
-                matched_row_digest.as_deref().unwrap_or("unsupported")
-            ),
-            format!("matrix:{support_matrix_digest}"),
-            format!("counters:{}", counters.digest()),
-        ]);
+        let mut discovery = ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "effect_lifecycle_support_discovery_v1",
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("basis_family"),
+                requested_basis_family.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("effect_family"),
+                requested_effect_family.as_str(),
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+            .field_shape(ForgeQueryEvidenceTag::new("cause"), cause.as_str())
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("matrix"),
+                &support_matrix_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("counters"),
+                &counters.evidence_identity(),
+            );
+        discovery = match matched_row_identity.as_ref() {
+            Some(row_identity) => {
+                discovery.field_evidence_identity(ForgeQueryEvidenceTag::new("matched_row"), row_identity)
+            }
+            None => discovery.field_shape(ForgeQueryEvidenceTag::new("matched_row"), "unsupported"),
+        };
+        let discovery_identity = discovery.seal();
         Self {
             requested_basis_family,
             requested_effect_family,
             posture,
             cause,
             matched_row,
-            matched_row_digest,
-            support_matrix_digest,
-            discovery_digest,
+            matched_row_identity,
+            support_matrix_identity,
+            discovery_identity,
             counters,
         }
     }
@@ -270,16 +321,30 @@ impl EffectLifecycleSupportDiscovery {
         deferred_support_contract(self.cause)
     }
 
-    pub fn matched_row_digest(&self) -> Option<&str> {
-        self.matched_row_digest.as_deref()
+    pub fn matched_row_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.matched_row_identity.as_ref()
     }
 
-    pub fn support_matrix_digest(&self) -> &str {
-        &self.support_matrix_digest
+    pub fn matched_row_for_reporting(&self) -> Option<&str> {
+        self.matched_row_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
-    pub fn discovery_digest(&self) -> &str {
-        &self.discovery_digest
+    pub fn support_matrix_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.support_matrix_identity
+    }
+
+    pub fn support_matrix_for_reporting(&self) -> &str {
+        self.support_matrix_identity.as_str()
+    }
+
+    pub fn discovery_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.discovery_identity
+    }
+
+    pub fn discovery_for_reporting(&self) -> &str {
+        self.discovery_identity.as_str()
     }
 
     pub fn counters(&self) -> &EffectLifecycleCounters {
@@ -302,15 +367,20 @@ pub fn effect_lifecycle_support_matrix() -> EffectLifecycleSupportMatrix {
             )
         })
         .collect::<Vec<_>>();
-    let matrix_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
-    );
+    let row_identities = rows
+        .iter()
+        .map(|row| row.row_identity().clone())
+        .collect::<Vec<_>>();
+    let matrix_identity = ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "effect_lifecycle_support_matrix_v1",
+        )
+        .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("rows"), &row_identities)
+        .seal();
     EffectLifecycleSupportMatrix {
         rows,
-        matrix_digest,
+        matrix_identity,
     }
 }
 
@@ -323,7 +393,7 @@ pub fn discover_effect_lifecycle_support(
         basis_family,
         effect_family,
         support_decision_for(basis_family, effect_family),
-        support_matrix.matrix_digest().to_string(),
+        support_matrix.matrix_identity().clone(),
     )
 }
 

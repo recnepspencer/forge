@@ -15,7 +15,7 @@ use crate::domain_capabilities::{
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context,
     scoped_runtime_preflight_workflow_binding_for_binding_identity, QueryWorkflowDeclaration,
-    WorkflowBindingSource, WorkflowDeclarationRequest,
+    WorkflowBindingScopeField, WorkflowBindingSource, WorkflowDeclarationRequest,
 };
 
 use self::semantics::{
@@ -46,7 +46,7 @@ where
             "workflow declaration materialization",
             payload,
             target.kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     };
     if !workflow_runtime_semantics_match_posture(payload.posture(), runtime_semantics) {
@@ -55,7 +55,7 @@ where
             payload,
             runtime_semantics,
             target.kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     }
 
@@ -63,11 +63,15 @@ where
     let binding = match runtime_semantics.binding() {
         ForgeQueryWorkflowRuntimeBindingSemantics::RuntimePreflight {
             runtime_snapshot_identity,
-        } => crate::workflow::synthetic_runtime_workflow_binding_scoped_for_snapshot_binding_identity(
-            source_label.as_str(),
-            &target.binding_identity(),
-            runtime_snapshot_identity.clone(),
-        ),
+        } => {
+            let binding_scope =
+                WorkflowBindingScopeField::Identity(&target.binding_identity());
+            crate::workflow::synthetic_runtime_workflow_binding_scoped_for_snapshot_binding_identity(
+                source_label.as_str(),
+                &binding_scope,
+                runtime_snapshot_identity.clone(),
+            )
+        }
         ForgeQueryWorkflowRuntimeBindingSemantics::RuntimePreflightBundle { preflight } =>
             match scoped_runtime_preflight_workflow_binding_for_binding_identity(
                 preflight,
@@ -80,7 +84,7 @@ where
                             ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                             "workflow-preview",
                             domain_contribution.target().kind(),
-                            domain_contribution.request_digest(),
+                            domain_contribution.request_identity().clone(),
                             format!(
                                 "workflow runtime-preflight binding admission denied with `{:?}`: {}",
                                 error.failure_class(),
@@ -106,7 +110,7 @@ where
                             ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                             "workflow-preview",
                             domain_contribution.target().kind(),
-                            domain_contribution.request_digest(),
+                            domain_contribution.request_identity().clone(),
                             format!(
                                 "workflow preview binding admission denied with `{:?}`: {}",
                                 error.failure_class(),
@@ -132,7 +136,7 @@ where
             ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
             "workflow-preview",
             domain_contribution.target().kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
             format!(
                 "workflow declaration materialization denied with `{:?}`: {}",
                 error.failure_class(),

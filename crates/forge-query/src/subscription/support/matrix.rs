@@ -1,6 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::super::family::QuerySubscriptionFamily;
+use super::super::evidence_identities::{support_matrix_identity, support_matrix_row_identity};
 use super::profile::{
     QuerySubscriptionActiveLifecycleSupport, QuerySubscriptionLifecycleCloseoutSupport,
     QuerySubscriptionRuntimeBackedSupport, QuerySubscriptionSupportProfile,
@@ -14,7 +15,8 @@ use super::subject::{
 pub struct QuerySubscriptionSupportMatrixRow {
     support_class: QuerySubscriptionSupportClass,
     posture: QuerySubscriptionSupportPosture,
-    row_digest: String,
+    row_identity: ForgeQueryEvidenceIdentity,
+    row_for_reporting: String,
 }
 
 impl QuerySubscriptionSupportMatrixRow {
@@ -23,16 +25,16 @@ impl QuerySubscriptionSupportMatrixRow {
         support_class: QuerySubscriptionSupportClass,
         posture: QuerySubscriptionSupportPosture,
     ) -> Self {
-        let row_digest = hash_parts(&[
-            "query_subscription_support_matrix_row_v1".to_string(),
-            family.as_str().to_string(),
-            support_class.as_str().to_string(),
-            posture.as_str().to_string(),
-        ]);
+        let row_identity = support_matrix_row_identity(
+            family,
+            support_class.as_str(),
+            posture.as_str(),
+        );
         Self {
             support_class,
             posture,
-            row_digest,
+            row_for_reporting: row_identity.as_str().to_string(),
+            row_identity,
         }
     }
 
@@ -44,8 +46,16 @@ impl QuerySubscriptionSupportMatrixRow {
         &self.posture
     }
 
+    pub fn row_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.row_identity
+    }
+
     pub fn row_digest(&self) -> &str {
-        &self.row_digest
+        self.row_for_reporting()
+    }
+
+    pub fn row_for_reporting(&self) -> &str {
+        &self.row_for_reporting
     }
 }
 
@@ -54,7 +64,8 @@ pub struct QuerySubscriptionSupportMatrix {
     family: QuerySubscriptionFamily,
     capability_digest: SubscriptionFamilyCapabilityDigest,
     rows: Vec<QuerySubscriptionSupportMatrixRow>,
-    digest: String,
+    matrix_identity: ForgeQueryEvidenceIdentity,
+    matrix_for_reporting: String,
 }
 
 impl QuerySubscriptionSupportMatrix {
@@ -75,18 +86,19 @@ impl QuerySubscriptionSupportMatrix {
                 )
             })
             .collect::<Vec<_>>();
-        let mut digest_parts = vec![
-            "query_subscription_support_matrix_v1".to_string(),
-            family.as_str().to_string(),
-            format!("capability:{}", capability_digest.as_str()),
-        ];
-        digest_parts.extend(rows.iter().map(|row| row.row_digest().to_string()));
-        let digest = hash_parts(&digest_parts);
+        let row_refs: Vec<&ForgeQueryEvidenceIdentity> =
+            rows.iter().map(|row| row.row_identity()).collect();
+        let matrix_identity = support_matrix_identity(
+            family,
+            capability_digest.capability_identity(),
+            row_refs,
+        );
         Self {
             family: family.clone(),
             capability_digest,
             rows,
-            digest,
+            matrix_for_reporting: matrix_identity.as_str().to_string(),
+            matrix_identity,
         }
     }
 
@@ -111,8 +123,16 @@ impl QuerySubscriptionSupportMatrix {
             .find(|row| row.support_class() == &support_class)
     }
 
+    pub fn matrix_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.matrix_identity
+    }
+
     pub fn digest(&self) -> &str {
-        &self.digest
+        self.matrix_for_reporting()
+    }
+
+    pub fn matrix_for_reporting(&self) -> &str {
+        &self.matrix_for_reporting
     }
 }
 

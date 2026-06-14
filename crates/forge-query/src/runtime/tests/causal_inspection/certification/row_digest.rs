@@ -25,11 +25,11 @@ fn causal_inspection_representative_rows_expose_digest_inventory() {
 
     assert_eq!(
         digest_set.artifact_digest(),
-        Some(changed.artifact_digest())
+        Some(changed.artifact_for_reporting())
     );
     assert_eq!(
         digest_set.causal_envelope_digest(),
-        changed.bridge_envelope_digest()
+        changed.bridge_envelope_for_reporting()
     );
     assert!(digest_set.inspection_digest().is_some());
     assert!(digest_set.evidence_reference_collection_digest().is_some());

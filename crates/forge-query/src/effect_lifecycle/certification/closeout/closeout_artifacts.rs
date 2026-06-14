@@ -56,7 +56,7 @@ impl EffectExecutionCertificationRow {
         counters: &EffectLifecycleCounters,
         failure_digest: Option<String>,
     ) -> Self {
-        let counter_snapshot_digest = counters.digest();
+        let counter_snapshot_digest = counters.counter_for_reporting().to_string();
         let row_digest = hash_parts(&[
             "effect_execution_certification_row_v1".to_string(),
             format!("lane:{}", lane.as_str()),

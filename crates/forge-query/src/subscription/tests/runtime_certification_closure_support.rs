@@ -162,7 +162,7 @@ pub(crate) fn runtime_backed_subscription_certification_summary(
     )
     .expect("runtime-backed detail family should certify lifecycle");
     let support_report = report_query_subscription_support(
-        QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &active_admission),
+        QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &admission, &active_admission),
         QuerySubscriptionSupportEvidence::admission(&declaration, &admission)
             .expect("runtime-backed detail family should admit support evidence"),
     )

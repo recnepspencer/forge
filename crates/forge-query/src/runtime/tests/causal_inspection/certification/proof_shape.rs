@@ -31,7 +31,7 @@ fn causal_inspection_proof_shape_binds_runtime_path_inputs() {
     assert!(proof_shape.forged_authority_witness_rejected());
     assert_eq!(
         proof_shape.inspected_artifact_digest(),
-        changed.artifact_digest()
+        changed.artifact_for_reporting()
     );
     assert_eq!(
         proof_shape.representative_matrix_digest(),

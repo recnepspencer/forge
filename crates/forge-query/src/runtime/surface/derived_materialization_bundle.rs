@@ -133,6 +133,18 @@ impl ForgeQueryDerivedMaterializationBundle {
         ForgeQueryDerivedArtifactBinding::bind(self, artifact_name, required_targets)
     }
 
+    pub fn bind_retained_artifact_identity(
+        self,
+        artifact_identity: ForgeQueryEvidenceIdentity,
+        required_targets: impl IntoIterator<Item = ForgeQueryDerivedMaterializationTarget>,
+    ) -> Result<ForgeQueryDerivedArtifactBinding, ForgeQueryRuntimeError> {
+        ForgeQueryDerivedArtifactBinding::bind_with_identity(
+            self,
+            artifact_identity,
+            required_targets,
+        )
+    }
+
     #[cfg(test)]
     pub(crate) fn test_only(
         snapshot_identity: ForgeQuerySnapshotIdentity,

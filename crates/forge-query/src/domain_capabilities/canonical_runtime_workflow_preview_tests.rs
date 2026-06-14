@@ -80,7 +80,7 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
         &crate::preview::PreviewEvaluationClass::promotion_eligible()
     );
     assert_eq!(
-        promotion.binding_digest(),
+        promotion.binding_for_reporting(),
         admitted_plan_target_parts(
             "plan-preview-promotion",
             "request-preview",
@@ -133,8 +133,14 @@ fn preview_workflow_artifact_digest_changes_when_scope_changes() {
         ),
     ));
 
-    assert_ne!(left.digest(), right.digest());
-    assert_ne!(left.declaration_digest(), right.declaration_digest());
+    assert_ne!(
+        left.artifact_for_reporting(),
+        right.artifact_for_reporting()
+    );
+    assert_ne!(
+        left.declaration_digest_for_reporting(),
+        right.declaration_digest_for_reporting()
+    );
     assert_ne!(
         left.canonical_query_digest().as_str(),
         right.canonical_query_digest().as_str()
@@ -197,7 +203,10 @@ fn preview_workflow_artifact_separates_request_family_in_identity_basis() {
             .as_str(),
         discard.declaration_identity().evidence_identity().as_str()
     );
-    assert_ne!(promotion.declaration_digest(), discard.declaration_digest());
+    assert_ne!(
+        promotion.declaration_digest_for_reporting(),
+        discard.declaration_digest_for_reporting()
+    );
     assert_ne!(
         promotion.canonical_query_digest().as_str(),
         discard.canonical_query_digest().as_str()

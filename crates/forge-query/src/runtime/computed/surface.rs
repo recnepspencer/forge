@@ -3,6 +3,10 @@ use super::*;
 use crate::runtime::retained_rows::decode_single_retained_row;
 use crate::runtime::ForgeQueryRuntimeError;
 
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::identity::hash_parts;
 use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
@@ -271,12 +275,60 @@ impl ForgeQueryComputedInspectionEvidence {
         &self.dependency_digest
     }
 
+    pub fn dependency_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_computed_dependency_inspection_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("name"), &self.name)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("live"),
+                self.upstream_live_views.join("|"),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("derived"),
+                self.upstream_derived_views.join("|"),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("dependencies"),
+                self.dependency_aspects.join("|"),
+            )
+            .seal()
+    }
+
     pub fn produced_aspect_digest(&self) -> &str {
         &self.produced_aspect_digest
     }
 
     pub fn materialization_digest(&self) -> &str {
         &self.materialization_digest
+    }
+
+    pub fn materialization_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_computed_materialization_inspection_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("name"), &self.name)
+            .field_usize(
+                ForgeQueryEvidenceTag::new("rows"),
+                self.materialized_row_count,
+            )
+            .field_usize(
+                ForgeQueryEvidenceTag::new("pending_patches"),
+                self.pending_patch_count,
+            )
+            .field_usize(
+                ForgeQueryEvidenceTag::new("pending_incremental_patches"),
+                self.pending_incremental_patch_count,
+            )
+            .field_usize(
+                ForgeQueryEvidenceTag::new("pending_refresh_fallbacks"),
+                self.pending_refresh_fallback_count,
+            )
+            .seal()
     }
 
     pub fn pending_patch_digest(&self) -> &str {

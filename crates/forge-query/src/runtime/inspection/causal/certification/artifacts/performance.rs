@@ -7,6 +7,7 @@ use crate::runtime::inspection::causal::identity::{
     compose_causal_performance_certification_identity,
     compose_causal_performance_scale_slope_identity, compose_causal_performance_slope_identity,
     compose_causal_performance_snapshot_identity, CausalInspectionArtifactIdentity,
+    CausalInspectionPerformanceSlopeIdentity, CausalInspectionPerformanceSnapshotIdentity,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -22,7 +23,7 @@ pub struct CausalInspectionScaleCounterSnapshot {
     artifact_serialization_slope_counter: usize,
     bridge_unindexed_scan_count: usize,
     bridge_readmission_proof_identity: Option<ForgeQueryEvidenceIdentity>,
-    snapshot_digest: String,
+    snapshot_identity: CausalInspectionPerformanceSnapshotIdentity,
 }
 
 impl CausalInspectionScaleCounterSnapshot {
@@ -42,7 +43,7 @@ impl CausalInspectionScaleCounterSnapshot {
         let bridge_unindexed_scan_count = performance.bridge_unindexed_scan_count();
         let bridge_readmission_proof_identity =
             artifact.bridge_readmission_proof_identity().cloned();
-        let snapshot_digest = snapshot_digest(SnapshotDigestParts {
+        let snapshot_identity = snapshot_identity(SnapshotDigestParts {
             fixture_size,
             artifact_identity: &artifact_identity,
             evidence_reference_width,
@@ -67,7 +68,7 @@ impl CausalInspectionScaleCounterSnapshot {
             artifact_serialization_slope_counter,
             bridge_unindexed_scan_count,
             bridge_readmission_proof_identity,
-            snapshot_digest,
+            snapshot_identity,
         }
     }
 
@@ -118,7 +119,7 @@ impl CausalInspectionScaleCounterSnapshot {
     }
 
     pub fn snapshot_digest(&self) -> &str {
-        &self.snapshot_digest
+        self.snapshot_identity.as_str()
     }
 
     #[cfg(test)]
@@ -127,7 +128,7 @@ impl CausalInspectionScaleCounterSnapshot {
         bridge_envelope_slope_counter: usize,
     ) -> Self {
         self.bridge_envelope_slope_counter = bridge_envelope_slope_counter;
-        self.snapshot_digest = snapshot_digest(SnapshotDigestParts {
+        self.snapshot_identity = snapshot_identity(SnapshotDigestParts {
             fixture_size: self.fixture_size,
             artifact_identity: &self.artifact_identity,
             evidence_reference_width: self.evidence_reference_width,
@@ -168,89 +169,87 @@ impl CausalInspectionPerformanceCertificationBundle {
         large: &CausalInspectionScaleCounterSnapshot,
     ) -> Result<Self, CausalInspectionCertificationError> {
         validate_scale_slope(small, medium, large)?;
-        let bridge_readmission_proof_digest = small
-            .bridge_readmission_proof_digest()
-            .expect("validated scale snapshots should carry readmission proof")
-            .to_string();
-        let anchor_derivation_slope_digest = slope_digest(
+        let bridge_readmission_proof_identity = small
+            .bridge_readmission_proof_identity
+            .as_ref()
+            .expect("validated scale snapshots should carry readmission proof");
+        let anchor_derivation_slope_identity = slope_identity(
             "causal_anchor_derivation_slope_digest_v1",
             small.anchor_derivation_slope_counter(),
             medium.anchor_derivation_slope_counter(),
             large.anchor_derivation_slope_counter(),
         );
-        let reference_resolution_slope_digest = slope_digest(
+        let reference_resolution_slope_identity = slope_identity(
             "causal_reference_resolution_slope_digest_v1",
             small.reference_resolution_slope_counter(),
             medium.reference_resolution_slope_counter(),
             large.reference_resolution_slope_counter(),
         );
-        let admission_slope_digest = slope_digest(
+        let admission_slope_identity = slope_identity(
             "causal_admission_slope_digest_v1",
             small.admission_slope_counter(),
             medium.admission_slope_counter(),
             large.admission_slope_counter(),
         );
-        let bridge_envelope_slope_digest = slope_digest(
+        let bridge_envelope_slope_identity = slope_identity(
             "causal_bridge_envelope_slope_digest_v1",
             small.bridge_envelope_slope_counter(),
             medium.bridge_envelope_slope_counter(),
             large.bridge_envelope_slope_counter(),
         );
-        let materialization_slope_digest = slope_digest(
+        let materialization_slope_identity = slope_identity(
             "causal_materialization_slope_digest_v1",
             small.materialization_slope_counter(),
             medium.materialization_slope_counter(),
             large.materialization_slope_counter(),
         );
-        let artifact_serialization_slope_digest = compose_causal_performance_slope_identity(
+        let artifact_serialization_slope_identity = compose_causal_performance_slope_identity(
             "causal_artifact_serialization_slope_digest_v1",
             small.artifact_serialization_slope_counter(),
             medium.artifact_serialization_slope_counter(),
             large.artifact_serialization_slope_counter(),
-        )
-        .as_str()
-        .to_string();
-        let scale_slope_digest = compose_causal_performance_scale_slope_identity(
-            &anchor_derivation_slope_digest,
-            &reference_resolution_slope_digest,
-            &admission_slope_digest,
-            &bridge_envelope_slope_digest,
-            &materialization_slope_digest,
-            &artifact_serialization_slope_digest,
-        )
-        .as_str()
-        .to_string();
+        );
+        let scale_slope_identity = compose_causal_performance_scale_slope_identity(
+            &anchor_derivation_slope_identity,
+            &reference_resolution_slope_identity,
+            &admission_slope_identity,
+            &bridge_envelope_slope_identity,
+            &materialization_slope_identity,
+            &artifact_serialization_slope_identity,
+        );
         let scale_slope_digest_part_count = 3;
-        let performance_certification_digest = compose_causal_performance_certification_identity(
-            small.snapshot_digest(),
-            medium.snapshot_digest(),
-            large.snapshot_digest(),
-            &bridge_readmission_proof_digest,
-            &scale_slope_digest,
-            &anchor_derivation_slope_digest,
-            &reference_resolution_slope_digest,
-            &admission_slope_digest,
-            &bridge_envelope_slope_digest,
-            &materialization_slope_digest,
-            &artifact_serialization_slope_digest,
+        let performance_certification_identity = compose_causal_performance_certification_identity(
+            &small.snapshot_identity,
+            &medium.snapshot_identity,
+            &large.snapshot_identity,
+            bridge_readmission_proof_identity,
+            &scale_slope_identity,
+            &anchor_derivation_slope_identity,
+            &reference_resolution_slope_identity,
+            &admission_slope_identity,
+            &bridge_envelope_slope_identity,
+            &materialization_slope_identity,
+            &artifact_serialization_slope_identity,
             scale_slope_digest_part_count,
-        )
-        .as_str()
-        .to_string();
+        );
         Ok(Self {
             small_snapshot_digest: small.snapshot_digest().to_string(),
             medium_snapshot_digest: medium.snapshot_digest().to_string(),
             large_snapshot_digest: large.snapshot_digest().to_string(),
-            bridge_readmission_proof_digest,
-            scale_slope_digest,
-            anchor_derivation_slope_digest,
-            reference_resolution_slope_digest,
-            admission_slope_digest,
-            bridge_envelope_slope_digest,
-            materialization_slope_digest,
-            artifact_serialization_slope_digest,
+            bridge_readmission_proof_digest: bridge_readmission_proof_identity.as_str().to_string(),
+            scale_slope_digest: scale_slope_identity.as_str().to_string(),
+            anchor_derivation_slope_digest: anchor_derivation_slope_identity.as_str().to_string(),
+            reference_resolution_slope_digest: reference_resolution_slope_identity
+                .as_str()
+                .to_string(),
+            admission_slope_digest: admission_slope_identity.as_str().to_string(),
+            bridge_envelope_slope_digest: bridge_envelope_slope_identity.as_str().to_string(),
+            materialization_slope_digest: materialization_slope_identity.as_str().to_string(),
+            artifact_serialization_slope_digest: artifact_serialization_slope_identity
+                .as_str()
+                .to_string(),
             scale_slope_digest_part_count,
-            performance_certification_digest,
+            performance_certification_digest: performance_certification_identity.as_str().to_string(),
         })
     }
 
@@ -321,7 +320,7 @@ struct SnapshotDigestParts<'a> {
     bridge_readmission_proof_identity: Option<&'a ForgeQueryEvidenceIdentity>,
 }
 
-fn snapshot_digest(parts: SnapshotDigestParts<'_>) -> String {
+fn snapshot_identity(parts: SnapshotDigestParts<'_>) -> CausalInspectionPerformanceSnapshotIdentity {
     compose_causal_performance_snapshot_identity(
         parts.fixture_size,
         parts.artifact_identity,
@@ -335,12 +334,13 @@ fn snapshot_digest(parts: SnapshotDigestParts<'_>) -> String {
         parts.bridge_unindexed_scan_count,
         parts.bridge_readmission_proof_identity,
     )
-    .as_str()
-    .to_string()
 }
 
-fn slope_digest(label: &str, small: usize, medium: usize, large: usize) -> String {
+fn slope_identity(
+    label: &str,
+    small: usize,
+    medium: usize,
+    large: usize,
+) -> CausalInspectionPerformanceSlopeIdentity {
     compose_causal_performance_slope_identity(label, small, medium, large)
-        .as_str()
-        .to_string()
 }

@@ -160,13 +160,19 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         .seal();
         let support_identity =
             live_subscription_input_identity("support", &support_source_identity);
-        let subscription_family_source_identity = live_subscription_source_identity(
-            "subscription_family",
-            &live_subscription_source_digest_evidence(
-                "subscription_family",
-                subscription_family.as_str(),
-            ),
-        );
+        let subscription_family_source_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "runtime_live_subscription_family_source_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "subscription_family")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            subscription_family.as_str(),
+        )
+        .seal();
         let subscription_family_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
         )
@@ -184,26 +190,15 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
             &view_shape_identity,
         )
         .seal();
-        let counter_digest = counters.digest();
-        let active_lane_counter_digest = active_lane_counters.digest();
-        let consumer_attachment_counter_digest = consumer_attachment_counters.digest();
-        let counter_identity = live_subscription_source_identity(
-            "counters",
-            &live_subscription_source_digest_evidence("counters", &counter_digest),
-        );
+        let counter_identity =
+            live_subscription_source_identity("counters", &counters.evidence_identity());
         let active_lane_counter_identity = live_subscription_source_identity(
             "active_lane_counters",
-            &live_subscription_source_digest_evidence(
-                "active_lane_counters",
-                &active_lane_counter_digest,
-            ),
+            &active_lane_counters.evidence_identity(),
         );
         let consumer_attachment_counter_identity = live_subscription_source_identity(
             "consumer_attachment_counters",
-            &live_subscription_source_digest_evidence(
-                "consumer_attachment_counters",
-                &consumer_attachment_counter_digest,
-            ),
+            &consumer_attachment_counters.evidence_identity(),
         );
         let installation_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
@@ -212,7 +207,7 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
             ForgeQueryEvidenceTag::new("identity_family"),
             "runtime_live_subscription_installation_v1",
         )
-        .field_identity(ForgeQueryEvidenceTag::new("view"), &view_name)
+        .field_shape(ForgeQueryEvidenceTag::new("view"), view_name.as_str())
         .field_evidence_identity(ForgeQueryEvidenceTag::new("query"), &query_identity)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("view_shape"),
@@ -425,10 +420,6 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         self.support_identity.as_str()
     }
 
-    pub fn support_evidence(&self) -> &str {
-        self.support_for_reporting()
-    }
-
     pub fn support_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.support_identity
     }
@@ -506,17 +497,20 @@ fn live_subscription_input_identity(
         .seal()
 }
 
-pub(crate) fn live_subscription_source_digest_evidence(
-    role: &str,
-    source_identity: &str,
+pub(crate) fn live_subscription_view_shape_source_identity(
+    family: crate::view_shape_live::LiveViewShapeFamily,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(
             ForgeQueryEvidenceTag::new("identity_family"),
-            "runtime_live_subscription_source_digest_v1",
+            "runtime_live_subscription_view_shape_source_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_identity(ForgeQueryEvidenceTag::new("source_digest"), source_identity)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "live_view")
+        .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("underlying"),
+            family.underlying_live_family().as_str(),
+        )
         .seal()
 }
 

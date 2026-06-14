@@ -279,7 +279,8 @@ impl CausalInspectionAdmissionSubject {
     }
 
     pub fn query_observation_bridge_evidence_identity(&self) -> BridgeIdentityEvidence {
-        BridgeIdentityEvidence::from_external_authority(self.query_observation_evidence_identity())
+        self.query_observation_evidence_identity()
+            .bridge_evidence_identity()
     }
 
     pub(super) fn result_shape_context_identity(&self) -> &CausalResultShapeContextIdentity {

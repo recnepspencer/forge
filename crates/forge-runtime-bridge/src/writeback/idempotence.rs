@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
-use crate::identity::{BridgeIdentity, WritebackIdempotenceIdentityTag};
+use crate::identity::{BridgeIdentity, BridgeIdentityEvidence, WritebackIdempotenceIdentityTag};
 
 use super::{
     BridgeDerivedWritebackEffect, BridgeWritebackIdempotenceClass,
@@ -12,10 +12,16 @@ use super::{
 pub type BridgeWritebackIdempotenceIdentity = BridgeIdentity<WritebackIdempotenceIdentityTag>;
 
 impl BridgeWritebackIdempotenceIdentity {
-    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
         Self::new(format!(
             "bridge-writeback-idempotence:external-authority-evidence:{}",
-            evidence_identity.as_ref()
+            evidence_identity.as_str()
+        ))
+    }
+
+    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+        Self::from_bridge_evidence(&BridgeIdentityEvidence::from_external_authority(
+            evidence_identity,
         ))
     }
 }

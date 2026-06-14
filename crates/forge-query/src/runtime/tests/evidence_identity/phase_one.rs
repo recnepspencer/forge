@@ -1,5 +1,8 @@
 use super::super::support::*;
 use super::proof_support::*;
+use crate::runtime::evidence_identities::{
+    runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
+};
 use serde_json::json;
 
 #[test]
@@ -27,8 +30,8 @@ fn support_matrix_and_state_snapshot_emit_canonical_evidence_tokens() {
         ForgeQueryWorkspace::new("evidence-identity-support", runtime).expect("workspace builds");
     let matrix = workspace.public_support_matrix();
     let snapshot = ForgeQueryRuntimeStateSnapshot::ready(
-        "basis|digest",
-        "result:shape",
+        runtime_state_snapshot_basis_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("basis|digest")),
+        runtime_state_snapshot_result_shape_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("result:shape")),
         ForgeQueryAuthorityLane::PreviewTruth,
         "state explanation with | and : punctuation",
     );
@@ -66,9 +69,13 @@ fn state_snapshot_with_optional_postures_recomposes_exactly() {
     );
     let async_result_state = ForgeQueryRuntimeAsyncResultState::new(
         ForgeQueryRuntimeAsyncResultStateKind::Revalidating,
-        "causality|digest",
-        "basis|digest",
-        "generation|digest",
+        &crate::runtime::async_result_state::runtime_async_causality_from_label("causality|digest"),
+        &crate::runtime::async_result_state::runtime_async_checkpoint_label_identity(
+            "basis|digest",
+        ),
+        &crate::runtime::async_result_state::runtime_async_checkpoint_label_identity(
+            "generation|digest",
+        ),
     );
     let remask_projection = ForgeQueryRuntimeRemaskProjection::remasked(
         ForgeQueryRuntimeRemaskReasonKind::SchemaContextDrift,
@@ -80,12 +87,12 @@ fn state_snapshot_with_optional_postures_recomposes_exactly() {
     );
     let remask_posture = ForgeQueryRuntimeRemaskPosture::from_activation_projection(
         &remask_projection,
-        "support|evidence|digest",
-        "basis|digest",
+        &runtime_state_snapshot_basis_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("support|evidence|digest")),
+        &runtime_state_snapshot_basis_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("basis|digest")),
     );
     let snapshot = ForgeQueryRuntimeStateSnapshot::ready(
-        "basis|digest",
-        "result:shape",
+        runtime_state_snapshot_basis_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("basis|digest")),
+        runtime_state_snapshot_result_shape_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("result:shape")),
         ForgeQueryAuthorityLane::BridgeExternalState,
         "state explanation with optional posture pressure",
     )

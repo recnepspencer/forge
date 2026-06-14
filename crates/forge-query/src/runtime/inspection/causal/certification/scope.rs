@@ -43,7 +43,7 @@ impl CausalInspectionHostileRow {
         lane: CausalInspectionCertificationLane,
         artifact: &QueryCausalInspectionArtifact,
     ) -> Self {
-        Self::new(lane, artifact.artifact_digest())
+        Self::new(lane, artifact.artifact_for_reporting())
     }
 
     fn new(lane: CausalInspectionCertificationLane, evidence_digest: &str) -> Self {

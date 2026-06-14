@@ -57,8 +57,8 @@ fn explanation_runtime_materializer_builds_denied_causal_artifact() {
         crate::runtime::CausalInspectionArtifactKind::Denied
     );
     assert!(artifact.is_denied());
-    assert!(artifact.bridge_envelope_digest().is_none());
-    assert!(!artifact.artifact_digest().is_empty());
+    assert!(artifact.bridge_envelope_for_reporting().is_none());
+    assert!(!artifact.artifact_for_reporting().is_empty());
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn explanation_runtime_review_preserves_denied_plan_identity() {
     match artifact {
         crate::runtime::QueryCausalInspectionArtifact::Denied(denied) => {
             assert_eq!(
-                denied.query_denial_digest(),
+                denied.query_denial_for_reporting(),
                 review.plan().admission_digest()
             );
         }

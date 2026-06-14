@@ -205,7 +205,7 @@ impl ForgeQueryRuntime {
                         trace.record_patch_artifact(format!(
                             "query-delivery:{}:{}",
                             batch.view_name(),
-                            batch.delivery_batch_digest()
+                            batch.delivery_batch_for_reporting()
                         ));
                     }
                     patch_batches.push(ForgeQueryPatchBatch {

@@ -1,5 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::lower_runtime_routing::ForgeQueryLowerRuntimeSupportPosture;
+
+use super::evidence_identities::runtime_downstream_resume_posture_identity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryRuntimeDownstreamResumePostureKind {
@@ -27,36 +29,31 @@ impl ForgeQueryRuntimeDownstreamResumePostureKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeDownstreamResumePosture {
     kind: ForgeQueryRuntimeDownstreamResumePostureKind,
-    required_basis_digest: Option<String>,
+    required_basis_identity: Option<ForgeQueryEvidenceIdentity>,
     support_posture: ForgeQueryLowerRuntimeSupportPosture,
-    support_digest: String,
-    posture_digest: String,
+    support_identity: ForgeQueryEvidenceIdentity,
+    posture_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimeDownstreamResumePosture {
     pub(crate) fn new(
         kind: ForgeQueryRuntimeDownstreamResumePostureKind,
-        required_basis_digest: Option<String>,
+        required_basis_identity: Option<ForgeQueryEvidenceIdentity>,
         support_posture: ForgeQueryLowerRuntimeSupportPosture,
-        support_digest: impl Into<String>,
+        support_identity: ForgeQueryEvidenceIdentity,
     ) -> Self {
-        let support_digest = support_digest.into();
-        let posture_digest = hash_parts(&[
-            "forge_query_runtime_downstream_resume_posture_v2".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!(
-                "required_basis:{}",
-                required_basis_digest.as_deref().unwrap_or("none")
-            ),
-            format!("support_posture:{}", support_posture.as_str()),
-            format!("support:{support_digest}"),
-        ]);
+        let posture_identity = runtime_downstream_resume_posture_identity(
+            kind,
+            required_basis_identity.as_ref(),
+            support_posture,
+            &support_identity,
+        );
         Self {
             kind,
-            required_basis_digest,
+            required_basis_identity,
             support_posture,
-            support_digest,
-            posture_digest,
+            support_identity,
+            posture_identity,
         }
     }
 
@@ -64,20 +61,34 @@ impl ForgeQueryRuntimeDownstreamResumePosture {
         self.kind
     }
 
-    pub fn required_basis_digest(&self) -> Option<&str> {
-        self.required_basis_digest.as_deref()
+    pub fn required_basis_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.required_basis_identity.as_ref()
+    }
+
+    pub fn required_basis_for_reporting(&self) -> Option<&str> {
+        self.required_basis_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
     pub fn support_posture(&self) -> ForgeQueryLowerRuntimeSupportPosture {
         self.support_posture
     }
 
-    pub fn support_digest(&self) -> &str {
-        &self.support_digest
+    pub fn support_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.support_identity
     }
 
-    pub fn posture_digest(&self) -> &str {
-        &self.posture_digest
+    pub fn support_for_reporting(&self) -> &str {
+        self.support_identity.as_str()
+    }
+
+    pub fn posture_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.posture_identity
+    }
+
+    pub fn posture_for_reporting(&self) -> &str {
+        self.posture_identity.as_str()
     }
 }
 
@@ -121,6 +132,10 @@ fn support_posture_rank(posture: ForgeQueryLowerRuntimeSupportPosture) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::runtime::evidence_identities::lower_runtime_support_row_identity;
+    use crate::lower_runtime_routing::{
+        forge_query_lower_runtime_support_matrix, ForgeQueryLowerRuntimeSeamKey,
+    };
 
     #[test]
     fn aggregate_support_posture_uses_strictest_row() {
@@ -148,5 +163,21 @@ mod tests {
             support_gate_resume_kind(ForgeQueryLowerRuntimeSupportPosture::Forbidden),
             ForgeQueryRuntimeDownstreamResumePostureKind::SupportGateDenied
         );
+    }
+
+    #[test]
+    fn resume_posture_carries_typed_support_identity() {
+        let matrix = forge_query_lower_runtime_support_matrix();
+        let support = matrix
+            .support_for(ForgeQueryLowerRuntimeSeamKey::BasisReadmissionFromSubscriptionEvidence)
+            .expect("support row must exist");
+        let support_identity = lower_runtime_support_row_identity(support);
+        let posture = ForgeQueryRuntimeDownstreamResumePosture::new(
+            ForgeQueryRuntimeDownstreamResumePostureKind::SupportGateDeferred,
+            None,
+            support.posture(),
+            support_identity,
+        );
+        assert_eq!(posture.support_identity(), posture.support_identity());
     }
 }

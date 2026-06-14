@@ -176,7 +176,7 @@ fn preview_promotion_emits_handoff_to_authoritative_lane_without_in_place_mutati
         PreviewResidueWidth::measured(1),
     )
     .unwrap();
-    let isolation_digest = isolation.isolation_digest().to_string();
+    let isolation_digest = isolation.isolation_for_reporting().to_string();
     let residue_report = measure_preview_subscription_residue(
         PreviewResidueWidth::measured(0),
         PreviewResidueWidth::measured(0),
@@ -204,15 +204,15 @@ fn preview_promotion_emits_handoff_to_authoritative_lane_without_in_place_mutati
         handoff.authoritative_active_lane_digest()
     );
     assert_ne!(
-        handoff.preview_basis_binding_digest(),
-        handoff.authoritative_basis_binding_digest()
+        handoff.preview_basis_binding_for_reporting(),
+        handoff.authoritative_basis_binding_for_reporting()
     );
-    assert_ne!(handoff.handoff_digest(), isolation_digest);
+    assert_ne!(handoff.handoff_for_reporting(), isolation_digest);
     assert_eq!(
         handoff.residue_report_digest(),
         residue_report.report_digest()
     );
-    assert!(!handoff.rebinding_digest().is_empty());
+    assert!(!handoff.rebinding_for_reporting().is_empty());
     assert_eq!(handoff.counters().preview_promotion_handoff_count(), 1);
     assert_eq!(handoff.performance_receipt().consumed_width(), 1);
     assert_eq!(handoff.performance_receipt().remaining_width(), 0);
@@ -295,16 +295,16 @@ fn future_preview_isolation_retains_basis_and_checkpoint_identity() {
         preview_attachment.future_selection().projection_digest()
     );
     assert_eq!(
-        isolation.checkpoint_identity_digest(),
-        preview_attachment.checkpoint_identity_digest()
+        isolation.checkpoint_for_reporting(),
+        preview_attachment.checkpoint_for_reporting()
     );
     assert_ne!(
-        isolation.basis_binding_digest(),
-        authoritative_handle.basis_binding_digest()
+        isolation.basis_binding_for_reporting(),
+        authoritative_handle.basis_binding_for_reporting()
     );
     assert_ne!(
-        isolation.checkpoint_identity_digest(),
-        authoritative_handle.checkpoint_identity_digest()
+        isolation.checkpoint_for_reporting(),
+        authoritative_handle.checkpoint_for_reporting()
     );
     assert_eq!(
         error.denial_kind(),

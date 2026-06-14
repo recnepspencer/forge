@@ -1,3 +1,4 @@
+use super::admitted_world_basis::compose_admitted_configured_domain_handle_identity_parts;
 use super::checked_outcome::ForgeQueryConfiguredDomainHandleInvalidContext;
 use super::draft::ForgeQueryConfiguredDomainHandleDraft;
 use super::operating_context::{
@@ -7,7 +8,6 @@ use super::validated_handle::ForgeQueryValidatedConfiguredDomainHandle;
 use crate::application::{
     ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDomainEntryMarker,
 };
-use crate::identity::hash_parts;
 
 pub(crate) fn validate_configured_domain_handle_draft<
     D: ForgeQueryDomainEntryMarker,
@@ -53,39 +53,17 @@ pub(crate) fn validate_configured_domain_handle_draft<
         ));
     }
 
-    let handle_identity_digest = hash_parts(&[
-        format!("domain:{}", marker.domain_key()),
-        format!("display:{}", marker.display_name()),
-        format!(
-            "required_capabilities:{}",
-            required_capability_families
-                .iter()
-                .map(ForgeQueryCapabilityFamily::as_str)
-                .collect::<Vec<_>>()
-                .join(",")
-        ),
-        format!(
-            "required_sections:{}",
-            required_config_sections
-                .iter()
-                .map(ForgeQueryConfigSectionFamily::as_str)
-                .collect::<Vec<_>>()
-                .join(",")
-        ),
-        format!(
-            "operating_requirements:{}",
-            required_operating_requirements
-                .iter()
-                .map(|requirement| requirement.as_str())
-                .collect::<Vec<_>>()
-                .join(",")
-        ),
-        format!("context:{context_identity_digest}"),
-        format!(
-            "validated_config:{}",
-            support_snapshot.validated_config_digest()
-        ),
-    ]);
+    let handle_identity_digest = compose_admitted_configured_domain_handle_identity_parts(
+        marker.domain_key(),
+        marker.display_name(),
+        &required_capability_families,
+        &required_config_sections,
+        &required_operating_requirements,
+        &context_identity_digest,
+        support_snapshot.validated_config_digest(),
+    )
+    .as_str()
+    .to_string();
 
     Ok(ForgeQueryValidatedConfiguredDomainHandle::new(
         marker,

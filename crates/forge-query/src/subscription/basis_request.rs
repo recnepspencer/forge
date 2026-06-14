@@ -1,9 +1,7 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::declaration::QuerySubscriptionDeclarationArtifact;
-use super::evidence_identities::{
-    basis_binding_request_identity, bridge_lowering_query_declaration_identity,
-};
+use super::evidence_identities::basis_binding_request_identity;
 use super::posture::QuerySubscriptionBasisPosture;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -54,13 +52,12 @@ impl QuerySubscriptionBasisBindingRequest {
                 QuerySubscriptionBasisBindingRequestKind::DeniedUnsupportedBasis
             }
         };
-        let source_declaration_for_reporting = declaration.declaration_digest().as_str().to_string();
-        let source_declaration_identity =
-            bridge_lowering_query_declaration_identity(&source_declaration_for_reporting);
+        let source_declaration_identity = declaration.declaration_identity().clone();
+        let source_declaration_for_reporting = source_declaration_identity.as_str().to_string();
         let evidence_identity = basis_binding_request_identity(
             &request_kind,
             &source_declaration_identity,
-            declaration.equivalence_digest(),
+            declaration.equivalence_identity(),
         );
         Self {
             request_kind,

@@ -195,7 +195,7 @@ fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
     match stale {
         TransitionOutcome::Stale(stale) => {
             assert_eq!(stale.category(), "workflow-preview");
-            assert_eq!(stale.bound_target_digest(), target.target_digest());
+            assert_eq!(stale.bound_target_for_reporting(), target.target_identity().as_str());
         }
         other => panic!("expected stale outcome, got {other:?}"),
     }
@@ -218,7 +218,7 @@ fn discard_required_writeback_lowering_preserves_preview_stale_posture() {
     match stale {
         TransitionOutcome::Stale(stale) => {
             assert_eq!(stale.category(), "workflow-preview");
-            assert_eq!(stale.bound_target_digest(), target.target_digest());
+            assert_eq!(stale.bound_target_for_reporting(), target.target_identity().as_str());
         }
         other => panic!("expected stale outcome, got {other:?}"),
     }
@@ -255,7 +255,7 @@ fn workflow_lowering_materializer_preserves_runtime_rebind_posture() {
     match rebind {
         TransitionOutcome::RebindRequired(rebind) => {
             assert_eq!(rebind.category(), "workflow-preview");
-            assert_eq!(rebind.bound_target_digest(), target.target_digest());
+            assert_eq!(rebind.bound_target_for_reporting(), target.target_identity().as_str());
         }
         other => panic!("expected rebind-required outcome, got {other:?}"),
     }

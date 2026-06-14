@@ -311,4 +311,8 @@ impl ForgeQueryDomainCapabilityPayload for ForgeQueryExplanationContributionPayl
     fn payload_digest(&self) -> &str {
         self.payload_digest()
     }
+
+    fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
+    }
 }

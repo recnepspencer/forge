@@ -34,6 +34,16 @@ impl SubscriptionConsumerAttachmentRequest {
         }
     }
 
+    pub fn from_consumer_identity(
+        consumer_identity: ForgeQueryEvidenceIdentity,
+        delivery_cursor_seed: impl Into<String>,
+    ) -> Self {
+        Self {
+            consumer_identity,
+            delivery_cursor_seed: delivery_cursor_seed.into(),
+        }
+    }
+
     pub fn consumer_digest(&self) -> &str {
         self.consumer_identity.as_str()
     }

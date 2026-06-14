@@ -52,19 +52,19 @@ pub(in super::super) fn compose_support_report_identity(
             .iter()
             .map(crate::application::ForgeQuerySupportSectionPosture::posture_digest),
     )
-    .optional_identity(
+    .optional_value(
         crate::ForgeQueryEvidenceTag::new("query_composition_profile_digest"),
         report
             .query_composition_support_profile()
             .map(crate::application::ForgeQueryQueryCompositionSupportProfile::profile_digest),
     )
-    .optional_identity(
+    .optional_value(
         crate::ForgeQueryEvidenceTag::new("query_context_profile_digest"),
         report
             .query_context_support_profile()
             .map(crate::application::ForgeQueryQueryContextSupportProfile::profile_digest),
     )
-    .optional_identity(
+    .optional_value(
         crate::ForgeQueryEvidenceTag::new("identity_evolution_profile_digest"),
         report
             .identity_evolution_support_profile()

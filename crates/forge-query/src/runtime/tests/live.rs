@@ -201,9 +201,9 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
         inspection.authority_lane(),
         ForgeQueryAuthorityLane::AuthoritativeTruth
     );
-    assert_eq!(inspection.query_digest(), installation.query_for_reporting());
+    assert_eq!(inspection.query_for_reporting(), installation.query_for_reporting());
     assert_eq!(
-        inspection.view_shape_digest(),
+        inspection.view_shape_for_reporting(),
         installation.view_shape_for_reporting()
     );
     assert_eq!(
@@ -211,44 +211,44 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
         installation.subscription_family()
     );
     assert_eq!(
-        inspection.subscription_family_digest(),
+        inspection.subscription_family_for_reporting(),
         installation.subscription_family_for_reporting()
     );
     assert_eq!(
-        inspection.subscription_declaration_digest(),
+        inspection.subscription_declaration_for_reporting(),
         installation.subscription_declaration_for_reporting()
     );
     assert_eq!(
-        inspection.bridge_declaration_digest(),
+        inspection.bridge_declaration_for_reporting(),
         installation.bridge_declaration_for_reporting()
     );
     assert_eq!(
-        inspection.admission_digest(),
+        inspection.admission_for_reporting(),
         installation.admission_for_reporting()
     );
     assert_eq!(
-        inspection.activation_digest(),
+        inspection.activation_for_reporting(),
         installation.activation_for_reporting()
     );
     assert_eq!(
-        inspection.basis_binding_digest(),
+        inspection.basis_binding_for_reporting(),
         installation.basis_binding_for_reporting()
     );
     assert_eq!(
-        inspection.signal_strategy_digest(),
+        inspection.signal_strategy_for_reporting(),
         installation.signal_strategy_for_reporting()
     );
     assert_eq!(
-        inspection.active_lane_digest(),
+        inspection.active_lane_for_reporting(),
         installation.active_lane_for_reporting()
     );
     assert_eq!(
-        inspection.consumer_attachment_digest(),
+        inspection.consumer_attachment_for_reporting(),
         installation.consumer_attachment_for_reporting()
     );
-    assert_eq!(inspection.consumer_digest(), installation.consumer_for_reporting());
+    assert_eq!(inspection.consumer_for_reporting(), installation.consumer_for_reporting());
     assert_eq!(
-        inspection.delivery_cursor_digest(),
+        inspection.delivery_cursor_for_reporting(),
         installation.delivery_cursor_for_reporting()
     );
     assert_eq!(
@@ -264,30 +264,30 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
         installation.consumer_attachment_budget_policy()
     );
     assert_eq!(
-        inspection.runtime_budget_digest(),
+        inspection.runtime_budget_for_reporting(),
         installation.runtime_budget_for_reporting()
     );
     assert_eq!(
-        inspection.support_evidence(),
-        installation.support_evidence()
+        inspection.support_for_reporting(),
+        installation.support_for_reporting()
     );
     assert_eq!(
-        inspection.installation_digest(),
+        inspection.installation_for_reporting(),
         installation.installation_for_reporting()
     );
-    assert!(!inspection.inspection_digest().is_empty());
+    assert!(!inspection.inspection_for_reporting().is_empty());
 
     let counters = inspection.counters();
     assert_eq!(
-        counters.declaration_counter_digest(),
+        counters.declaration_counter_for_reporting(),
         installation.counters().digest()
     );
     assert_eq!(
-        counters.active_lane_counter_digest(),
+        counters.active_lane_counter_for_reporting(),
         installation.active_lane_counters().digest()
     );
     assert_eq!(
-        counters.consumer_attachment_counter_digest(),
+        counters.consumer_attachment_counter_for_reporting(),
         installation.consumer_attachment_counters().digest()
     );
     assert_eq!(counters.family_selection_count(), 1);
@@ -340,23 +340,23 @@ fn grouped_live_view_inspection_preserves_grouped_family_and_baseline_support() 
         "grouped_collection_membership"
     );
     assert_eq!(
-        inspection.subscription_family_digest(),
+        inspection.subscription_family_for_reporting(),
         grouped
             .subscription_installation()
             .subscription_family_for_reporting()
     );
     assert_eq!(
-        inspection.support_evidence(),
-        grouped.subscription_installation().support_evidence()
+        inspection.support_for_reporting(),
+        grouped.subscription_installation().support_for_reporting()
     );
-    assert!(!inspection.support_evidence().is_empty());
+    assert!(!inspection.support_for_reporting().is_empty());
     assert_eq!(inspection.counters().family_selection_count(), 1);
     assert_eq!(inspection.counters().declaration_count(), 1);
     assert_eq!(inspection.counters().bridge_lowering_count(), 1);
     assert_eq!(inspection.counters().admission_count(), 1);
     assert_eq!(inspection.counters().active_lane_creation_count(), 1);
     assert_eq!(inspection.counters().consumer_attachment_count(), 1);
-    assert!(!inspection.inspection_digest().is_empty());
+    assert!(!inspection.inspection_for_reporting().is_empty());
 }
 
 #[test]

@@ -179,13 +179,15 @@ impl SubscriptionActivationReceipt {
         let bridge_declaration_identity = activation.bridge_declaration_identity().clone();
         let basis_binding_identity = activation.basis_binding_identity().clone();
         let signal_strategy_identity = activation.signal_strategy_identity().clone();
+        let support_source_identity =
+            subscription_activation_support_source_identity(&support_evidence);
         let support_identity =
-            subscription_activation_receipt_source_identity("support", &support_evidence);
+            subscription_activation_receipt_source_identity("support", &support_source_identity);
         let remask_posture = remask_projection.map(|projection| {
             ForgeQueryRuntimeRemaskPosture::from_activation_projection(
                 &projection,
-                &support_evidence,
-                activation.basis_binding_for_reporting(),
+                &support_identity,
+                &basis_binding_identity,
             )
         });
         let receipt_identity = ForgeQueryEvidenceIdentity::compose(
@@ -217,11 +219,11 @@ impl SubscriptionActivationReceipt {
             &signal_strategy_identity,
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("support"), &support_identity)
-        .optional_value(
+        .optional_evidence_identity(
             ForgeQueryEvidenceTag::new("remask"),
             remask_posture
                 .as_ref()
-                .map(|posture| posture.remask_digest()),
+                .map(ForgeQueryRuntimeRemaskPosture::remask_identity),
         )
         .seal();
 
@@ -348,9 +350,21 @@ fn typed_identity_drift(
     !matches!(left.eq_same_scheme(right), Ok(true))
 }
 
+fn subscription_activation_support_source_identity(
+    source_label: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_activation_support_source_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
+        .seal()
+}
+
 fn subscription_activation_receipt_source_identity(
     role: &str,
-    source_digest: &str,
+    source_identity: &ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
         .field_shape(
@@ -358,7 +372,7 @@ fn subscription_activation_receipt_source_identity(
             "subscription_activation_receipt_source_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_identity(ForgeQueryEvidenceTag::new("source_digest"), source_digest)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
         .seal()
 }
 

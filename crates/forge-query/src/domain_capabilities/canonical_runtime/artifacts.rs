@@ -19,7 +19,7 @@ where
     contribution: super::super::ForgeQueryMaterializationReadyDomainCapabilityContribution<P, T>,
     canonical_family: &'static str,
     semantic_identity: ForgeQueryEvidenceIdentity,
-    materialization_digest: String,
+    materialization_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl<P, T> ForgeQueryCanonicalRuntimeMaterialization<P, T>
@@ -40,15 +40,14 @@ where
         let target_kind = contribution.payload().target().kind();
         let target_identity = contribution.payload().target().target_identity();
         let binding_identity = contribution.payload().target().binding_identity();
-        let request_identity =
-            canonical_runtime_request_identity(contribution.payload().request_digest());
+        let request_identity = contribution.payload().request_identity();
         let semantic_identity = canonical_runtime_semantic_identity(
             category,
             semantic_posture,
             &semantic_code,
             &detail,
         );
-        let materialization_digest = ForgeQueryEvidenceIdentity::compose(
+        let materialization_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
         )
         .field_shape(
@@ -61,14 +60,12 @@ where
         .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("request"), &request_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("semantic"), &semantic_identity)
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         Self {
             contribution,
             canonical_family: canonical_family_for(category),
             semantic_identity,
-            materialization_digest,
+            materialization_identity,
         }
     }
 
@@ -106,19 +103,13 @@ where
         &self.semantic_identity
     }
 
-    pub fn materialization_digest(&self) -> &str {
-        &self.materialization_digest
+    pub fn materialization_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.materialization_identity
     }
-}
 
-fn canonical_runtime_request_identity(request_digest: &str) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_capability_request_v1",
-        )
-        .field_identity(ForgeQueryEvidenceTag::new("request"), request_digest)
-        .seal()
+    pub fn materialization_digest(&self) -> &str {
+        self.materialization_identity.as_str()
+    }
 }
 
 fn canonical_runtime_semantic_identity(

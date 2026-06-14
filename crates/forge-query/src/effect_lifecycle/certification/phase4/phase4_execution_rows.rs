@@ -3,8 +3,11 @@ use forge_relational::facade::history::BranchId;
 use crate::effect_lifecycle::{
     admit_effect_intent, discover_effect_lifecycle_support, effect_batch,
     evaluate_effect_eligibility, normalize_raw_effect_intent, scope_admitted_effect_plan,
-    BridgeExecutionOracle, EffectAuthoringBasis, EffectEligibilityOutcome,
-    EffectExecutionAuthority, EffectFamily, RawEffectIntent, RelationalExecutionOracle,
+    bridge_observation_execution_record_subject_identity,
+    bridge_observation_outcome_subject_identity, bridge_observation_receipt_subject_identity,
+    bridge_observation_request_subject_identity, BridgeExecutionOracle, EffectAuthoringBasis,
+    EffectEligibilityOutcome, EffectExecutionAuthority, EffectFamily, RawEffectIntent,
+    RelationalExecutionOracle,
 };
 use crate::workflow::{
     MergeLoweringInput, WorkflowAuthorityTargetFamily, WorkflowDeclarationFamily,
@@ -59,11 +62,11 @@ pub(super) fn branch_mutation_execution_row() -> EffectLifecyclePhase4Certificat
         EffectLifecyclePhase4LaneOutcome::Executed,
         basis.family(),
         EffectFamily::Mutation,
-        executed.effect_execution_digest().to_string(),
+        executed.effect_execution_for_reporting().to_string(),
         format!(
             "support:{};plan:{}",
-            support.discovery_digest(),
-            executed.lowered().lowered_effect_execution_plan_digest()
+            support.discovery_for_reporting(),
+            executed.lowered().lowered_effect_execution_plan_for_reporting()
         ),
         executed.counters().clone(),
     )
@@ -112,11 +115,11 @@ pub(super) fn relational_merge_execution_row() -> EffectLifecyclePhase4Certifica
         EffectLifecyclePhase4LaneOutcome::Executed,
         basis.family(),
         EffectFamily::Merge,
-        executed.effect_execution_digest().to_string(),
+        executed.effect_execution_for_reporting().to_string(),
         format!(
             "support:{};plan:{}",
-            support.discovery_digest(),
-            executed.lowered().lowered_effect_execution_plan_digest()
+            support.discovery_for_reporting(),
+            executed.lowered().lowered_effect_execution_plan_for_reporting()
         ),
         executed.counters().clone(),
     )
@@ -149,11 +152,11 @@ pub(super) fn bridge_writeback_execution_row() -> EffectLifecyclePhase4Certifica
         EffectLifecyclePhase4LaneOutcome::Executed,
         basis.family(),
         EffectFamily::Writeback,
-        executed.effect_execution_digest().to_string(),
+        executed.effect_execution_for_reporting().to_string(),
         format!(
             "support:{};plan:{}",
-            support.discovery_digest(),
-            executed.lowered().lowered_effect_execution_plan_digest()
+            support.discovery_for_reporting(),
+            executed.lowered().lowered_effect_execution_plan_for_reporting()
         ),
         executed.counters().clone(),
     )
@@ -199,10 +202,10 @@ pub(super) fn batch_execution_row() -> EffectLifecyclePhase4CertificationRow {
         EffectLifecyclePhase4LaneOutcome::Executed,
         basis.family(),
         EffectFamily::Mutation,
-        executed.batch_digest().to_string(),
+        executed.batch_for_reporting().to_string(),
         format!(
             "support:{};width:{}",
-            support.discovery_digest(),
+            support.discovery_for_reporting(),
             executed.components().len()
         ),
         executed.counters().clone(),
@@ -266,7 +269,7 @@ pub(super) fn relational_oracle_row() -> EffectLifecyclePhase4CertificationRow {
         EffectLifecyclePhase4LaneOutcome::Verified,
         basis.family(),
         EffectFamily::Mutation,
-        verification.verification_digest().to_string(),
+        verification.verification_for_reporting().to_string(),
         "Mutation".to_string(),
         executed.counters().clone(),
     )
@@ -302,11 +305,11 @@ pub(super) fn bridge_oracle_row() -> EffectLifecyclePhase4CertificationRow {
         .as_writeback()
         .expect("writeback artifact should exist");
     let oracle = BridgeExecutionOracle::new(
-        "bridge-record:phase4",
-        outcome.digest(),
+        bridge_observation_execution_record_subject_identity("bridge-record:phase4"),
+        bridge_observation_outcome_subject_identity(outcome.digest()),
         outcome.outcome_class(),
-        receipt.request_digest(),
-        receipt.digest(),
+        bridge_observation_request_subject_identity(receipt.request_digest()),
+        bridge_observation_receipt_subject_identity(receipt.digest()),
     );
     let verification = executed
         .verify_against_bridge_oracle(&oracle)
@@ -316,7 +319,7 @@ pub(super) fn bridge_oracle_row() -> EffectLifecyclePhase4CertificationRow {
         EffectLifecyclePhase4LaneOutcome::Verified,
         basis.family(),
         EffectFamily::Writeback,
-        verification.verification_digest().to_string(),
+        verification.verification_for_reporting().to_string(),
         "Writeback".to_string(),
         executed.counters().clone(),
     )

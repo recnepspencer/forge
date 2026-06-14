@@ -5,7 +5,7 @@ use crate::evidence_identity::{
 
 use super::super::ForgeQueryFeedbackPhaseGraphInspection;
 use super::declaration::ForgeQueryEffectExpressionFailurePosture;
-use super::delivery::ForgeQueryEffectDeliveryFamily;
+use super::delivery::{ForgeQueryEffectDelivery, ForgeQueryEffectDeliveryFamily};
 use super::phase::ForgeQueryEffectPhaseEvidence;
 use super::registry::ForgeQueryEffectRuntime;
 
@@ -180,6 +180,31 @@ fn declaration_inspection_identity(
         .seal()
 }
 
+fn pending_delivery_row_identity(delivery: &ForgeQueryEffectDelivery) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::EffectIntentReceiptPhase)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("effect_name"),
+            delivery.effect_name(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("trigger_commit"),
+            delivery.trigger_commit_evidence_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("trigger_source_kind"),
+            delivery.trigger_source_kind().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            effect_delivery_family_label(delivery.family()),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_path"),
+            delivery.aspect_paths().iter().map(String::as_str),
+        )
+        .seal()
+}
+
 fn pending_delivery_inspection_identity(
     effect: &ForgeQueryEffectRuntime,
     pending_delivery_count: usize,
@@ -188,62 +213,44 @@ fn pending_delivery_inspection_identity(
     pending_expression_failure_count: usize,
     pending_write_intent_count: usize,
 ) -> ForgeQueryEvidenceIdentity {
-    effect
+    let delivery_identities = effect
         .deliveries
         .iter()
-        .fold(
-            forge_query_evidence_identity(ForgeQueryEvidenceScope::EffectIntentReceiptPhase)
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("artifact_kind"),
-                    "pending-delivery",
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("name"),
-                    effect.declaration.name(),
-                )
-                .field_usize(
-                    ForgeQueryEvidenceTag::new("pending_delivery_count"),
-                    pending_delivery_count,
-                )
-                .field_usize(
-                    ForgeQueryEvidenceTag::new("pending_delivered_count"),
-                    pending_delivered_count,
-                )
-                .field_usize(
-                    ForgeQueryEvidenceTag::new("pending_suppressed_count"),
-                    pending_suppressed_count,
-                )
-                .field_usize(
-                    ForgeQueryEvidenceTag::new("pending_expression_failure_count"),
-                    pending_expression_failure_count,
-                )
-                .field_usize(
-                    ForgeQueryEvidenceTag::new("pending_write_intent_count"),
-                    pending_write_intent_count,
-                ),
-            |builder, delivery| {
-                builder
-                    .field_shape(
-                        ForgeQueryEvidenceTag::new("delivery_effect_name"),
-                        delivery.effect_name(),
-                    )
-                    .field_evidence_identity(
-                        ForgeQueryEvidenceTag::new("delivery_trigger_commit_identity"),
-                        delivery.trigger_commit_evidence_identity(),
-                    )
-                    .field_shape(
-                        ForgeQueryEvidenceTag::new("delivery_trigger_source_kind"),
-                        delivery.trigger_source_kind().as_str(),
-                    )
-                    .field_shape(
-                        ForgeQueryEvidenceTag::new("delivery_family"),
-                        effect_delivery_family_label(delivery.family()),
-                    )
-                    .field_value_sequence(
-                        ForgeQueryEvidenceTag::new("delivery_aspect_path"),
-                        delivery.aspect_paths().iter().map(String::as_str),
-                    )
-            },
+        .map(pending_delivery_row_identity)
+        .collect::<Vec<_>>();
+
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::EffectIntentReceiptPhase)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("artifact_kind"),
+            "pending-delivery",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("name"),
+            effect.declaration.name(),
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("pending_delivery_count"),
+            pending_delivery_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("pending_delivered_count"),
+            pending_delivered_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("pending_suppressed_count"),
+            pending_suppressed_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("pending_expression_failure_count"),
+            pending_expression_failure_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("pending_write_intent_count"),
+            pending_write_intent_count,
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("deliveries"),
+            delivery_identities.iter(),
         )
         .seal()
 }

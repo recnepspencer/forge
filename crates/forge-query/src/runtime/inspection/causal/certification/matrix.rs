@@ -26,7 +26,7 @@ impl CausalInspectionRepresentativeEvidence {
         kind: CausalInspectionRepresentativeKind,
         artifact: &QueryCausalInspectionArtifact,
     ) -> Result<Self, CausalInspectionCertificationError> {
-        let artifact_digest = artifact.artifact_digest().to_string();
+        let artifact_digest = artifact.artifact_for_reporting().to_string();
         let row_digest_set =
             CausalInspectionRepresentativeRowDigestSet::from_query_artifact(kind, artifact);
         validate_kind_matches_artifact(kind, artifact, &row_digest_set)?;

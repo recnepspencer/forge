@@ -38,7 +38,7 @@ fn causal_inspection_certification_bundle_closes_runtime_backed_rows() {
     let phase_progression_digest = proof_shape.phase_progression_digest().to_string();
     let witness_authority_digest = proof_shape.witness_authority_digest().to_string();
     let bridge_readmission_proof_digest = changed
-        .bridge_readmission_proof_digest()
+        .bridge_readmission_proof_for_reporting()
         .expect("changed artifact should carry bridge readmission proof")
         .to_string();
     let small = CausalInspectionScaleCounterSnapshot::from_artifact(

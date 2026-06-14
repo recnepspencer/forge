@@ -130,12 +130,7 @@ pub fn shape_mutation_authority_outcome(
     shape_authority_outcome(
         declaration.declaration(),
         WorkflowAuthorityOutcomeFamily::MutationLoweringAdmitted,
-        declaration
-            .strategy_request()
-            .caller_provenance()
-            .correlation_id
-            .as_deref(),
-        declaration.lowering_digest(),
+        declaration.lowering_identity(),
         declaration.counters().clone(),
         1,
     )
@@ -147,8 +142,7 @@ pub fn shape_merge_authority_outcome(
     shape_authority_outcome(
         declaration.declaration(),
         WorkflowAuthorityOutcomeFamily::MergeLoweringAdmitted,
-        None,
-        declaration.lowering_digest(),
+        declaration.lowering_identity(),
         declaration.counters().clone(),
         1,
     )
@@ -160,8 +154,7 @@ pub fn shape_writeback_authority_outcome(
     shape_authority_outcome(
         declaration.declaration(),
         WorkflowAuthorityOutcomeFamily::WritebackLoweringAdmitted,
-        None,
-        declaration.lowering_digest(),
+        declaration.lowering_identity(),
         declaration.counters().clone(),
         1,
     )
@@ -275,13 +268,12 @@ pub fn build_workflow_replay_bundle(
 fn shape_authority_outcome(
     declaration: &QueryWorkflowDeclaration,
     family: WorkflowAuthorityOutcomeFamily,
-    authority_request_digest_hint: Option<&str>,
-    lowering_digest: &str,
+    request_identity: &ForgeQueryEvidenceIdentity,
     counters: WorkflowLoweringCounters,
     realized_width: usize,
 ) -> WorkflowAuthorityOutcomeArtifact {
     let authority_request_identity =
-        workflow_authority_request_identity(family.clone(), authority_request_digest_hint.unwrap_or(lowering_digest));
+        workflow_authority_request_identity(family.clone(), request_identity);
     let authoritative_outcome_identity =
         workflow_authoritative_outcome_identity(declaration, &family, &authority_request_identity);
 
@@ -376,7 +368,7 @@ fn post_merge_scope_identity(
 
 fn workflow_authority_request_identity(
     family: WorkflowAuthorityOutcomeFamily,
-    request_digest: &str,
+    request_identity: &ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
         .field_shape(
@@ -384,7 +376,7 @@ fn workflow_authority_request_identity(
             "workflow_authority_request_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
-        .field_identity(ForgeQueryEvidenceTag::new("request"), request_digest)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("request"), request_identity)
         .seal()
 }
 

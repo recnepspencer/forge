@@ -4,8 +4,8 @@ fn main() {
     let _evidence = SubscriptionContinuationEvidence {
         active_lane_digest: todo!(),
         continuation_class: SubscriptionContinuationClass::IdentityRemap,
-        source_identity_digest: String::new(),
-        target_identity_digest: String::new(),
+        source_identity: todo!(),
+        target_identity: todo!(),
         basis_digest: String::new(),
         authority_digest: String::new(),
         remap_width: todo!(),

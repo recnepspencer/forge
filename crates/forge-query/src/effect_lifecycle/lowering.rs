@@ -54,8 +54,8 @@ pub struct EffectLoweringDenial {
     denial_kind: EffectLoweringDenialKind,
     message: &'static str,
     staleness_class: WorkflowStalenessClass,
-    authority_scoped_plan_digest: String,
-    denial_digest: String,
+    authority_scoped_plan_identity: ForgeQueryEvidenceIdentity,
+    denial_identity: ForgeQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
@@ -74,7 +74,7 @@ impl EffectLoweringDenial {
         error: WorkflowLoweringError,
     ) -> Self {
         let denial_kind = lowering_denial_kind(error.failure_class());
-        let denial_digest = ForgeQueryEvidenceIdentity::compose(
+        let denial_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::WorkflowMutationLowering,
         )
         .field_shape(
@@ -91,15 +91,13 @@ impl EffectLoweringDenial {
             error.staleness_class().as_str(),
         )
         .field_shape(ForgeQueryEvidenceTag::new("message"), error.message())
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         Self {
             denial_kind,
             message: error.message(),
             staleness_class: error.staleness_class().clone(),
-            authority_scoped_plan_digest: execution_subject_identity.as_str().to_string(),
-            denial_digest,
+            authority_scoped_plan_identity: execution_subject_identity.clone(),
+            denial_identity,
             counters: EffectLifecycleCounters::lowering_denied(
                 effect_support_row_count,
                 error.counters().workflow_lowering_width(),
@@ -119,12 +117,20 @@ impl EffectLoweringDenial {
         &self.staleness_class
     }
 
-    pub fn authority_scoped_plan_digest(&self) -> &str {
-        &self.authority_scoped_plan_digest
+    pub fn authority_scoped_plan_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authority_scoped_plan_identity
     }
 
-    pub fn denial_digest(&self) -> &str {
-        &self.denial_digest
+    pub fn authority_scoped_plan_for_reporting(&self) -> &str {
+        self.authority_scoped_plan_identity.as_str()
+    }
+
+    pub fn denial_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.denial_identity
+    }
+
+    pub fn denial_for_reporting(&self) -> &str {
+        self.denial_identity.as_str()
     }
 
     pub fn counters(&self) -> &EffectLifecycleCounters {
@@ -143,7 +149,7 @@ pub enum LoweredEffectExecutionArtifact {
 pub struct LoweredEffectExecutionPlan {
     authority_scoped_plan: AuthorityScopedEffectPlan,
     artifact: LoweredEffectExecutionArtifact,
-    lowered_effect_execution_plan_digest: String,
+    lowered_effect_execution_plan_identity: ForgeQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
@@ -152,7 +158,7 @@ impl LoweredEffectExecutionPlan {
         authority_scoped_plan: AuthorityScopedEffectPlan,
         artifact: LoweredEffectExecutionArtifact,
     ) -> Self {
-        let lowered_effect_execution_plan_digest = ForgeQueryEvidenceIdentity::compose(
+        let lowered_effect_execution_plan_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::WorkflowMutationLowering,
         )
         .field_shape(
@@ -167,9 +173,7 @@ impl LoweredEffectExecutionPlan {
             ForgeQueryEvidenceTag::new("artifact"),
             artifact_identity(&artifact),
         )
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         let counters = EffectLifecycleCounters::lowered(
             authority_scoped_plan.counters().effect_support_row_count(),
             artifact_counters(&artifact).workflow_lowering_width(),
@@ -178,7 +182,7 @@ impl LoweredEffectExecutionPlan {
         Self {
             authority_scoped_plan,
             artifact,
-            lowered_effect_execution_plan_digest,
+            lowered_effect_execution_plan_identity,
             counters,
         }
     }
@@ -264,8 +268,12 @@ impl LoweredEffectExecutionPlan {
         }
     }
 
-    pub fn lowered_effect_execution_plan_digest(&self) -> &str {
-        &self.lowered_effect_execution_plan_digest
+    pub fn lowered_effect_execution_plan_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lowered_effect_execution_plan_identity
+    }
+
+    pub fn lowered_effect_execution_plan_for_reporting(&self) -> &str {
+        self.lowered_effect_execution_plan_identity.as_str()
     }
 
     pub fn counters(&self) -> &EffectLifecycleCounters {

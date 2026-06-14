@@ -75,7 +75,7 @@ impl ForgeQueryUnifiedInspectionReceipt {
 
 pub(super) fn inspection_result_digest(inspection: &ForgeQueryInspection) -> &str {
     match inspection {
-        ForgeQueryInspection::LiveView(inspection) => inspection.inspection_digest(),
+        ForgeQueryInspection::LiveView(inspection) => inspection.inspection_for_reporting(),
         ForgeQueryInspection::DerivedView(inspection) => inspection.inspection_digest(),
         ForgeQueryInspection::Effect(inspection) => inspection.inspection_digest(),
         ForgeQueryInspection::WriteReceipt(inspection) => inspection.inspection_digest(),

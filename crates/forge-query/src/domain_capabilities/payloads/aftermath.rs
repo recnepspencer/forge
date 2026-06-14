@@ -39,6 +39,66 @@ impl ForgeQueryAftermathContributionPosture {
     }
 }
 
+fn aftermath_source_identity(source: &ProjectionConsumptionSource) -> ForgeQueryEvidenceIdentity {
+    let mut identity = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("identity_family"),
+        "forge_query_aftermath_source_v1",
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("source_family"),
+        source.family().as_str(),
+    );
+    identity = match source.source_identity_handle().evidence_identity() {
+        Some(source_identity) => {
+            identity.field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
+        }
+        None => identity.field_shape(
+            ForgeQueryEvidenceTag::new("source_label"),
+            source.source_identity(),
+        ),
+    };
+    identity.seal()
+}
+
+fn aftermath_binding_identity(
+    binding: &ProjectionConsumptionBindingContext,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_aftermath_binding_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("result_shape"),
+            binding.result_shape_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authorized_projection_query"),
+            binding.authorized_projection_query_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authorized_projection_result_shape"),
+            binding.authorized_projection_result_shape_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authorized_projection"),
+            binding.authorized_projection_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("narrowed_result_shape"),
+            binding.narrowed_result_shape_digest(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("policy"), binding.policy_digest())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("tenant_schema_basis"),
+            binding.tenant_schema_basis_digest(),
+        )
+        .seal()
+}
+
 fn compose_aftermath_runtime_semantics_identity(
     runtime_semantics: &ForgeQueryAftermathRuntimeSemantics,
 ) -> ForgeQueryEvidenceIdentity {
@@ -55,25 +115,13 @@ fn compose_aftermath_runtime_semantics_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_domain_capability_aftermath_runtime_semantics_v2",
         )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("source_family"),
-            runtime_semantics.source().family().as_str(),
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("source"),
+            &aftermath_source_identity(runtime_semantics.source()),
         )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("source_identity"),
-            runtime_semantics.source().source_identity(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("result_shape"),
-            runtime_semantics.binding().result_shape_digest(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("authorized_projection"),
-            runtime_semantics.binding().authorized_projection_identity(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("policy"),
-            runtime_semantics.binding().policy_digest(),
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("binding"),
+            &aftermath_binding_identity(runtime_semantics.binding()),
         )
         .field_value_sequence(ForgeQueryEvidenceTag::new("requested"), &requested)
         .seal()
@@ -245,5 +293,9 @@ impl ForgeQueryDomainCapabilityPayload for ForgeQueryAftermathContributionPayloa
 
     fn payload_digest(&self) -> &str {
         self.payload_digest()
+    }
+
+    fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }

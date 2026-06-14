@@ -81,9 +81,9 @@ impl CausalEvidenceReferenceIndexRecord {
         )
         .field_shape(ForgeQueryEvidenceTag::new("owner"), owner.as_str())
         .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("reference"),
-            reference_digest.as_str(),
+            reference_digest.evidence_identity(),
         )
         .seal()
         .into();
@@ -109,6 +109,10 @@ impl CausalEvidenceReferenceIndexRecord {
 
     pub fn record_digest(&self) -> &str {
         self.record_identity.as_str()
+    }
+
+    pub fn record_identity(&self) -> &CausalEvidenceReferenceIndexRecordIdentity {
+        &self.record_identity
     }
 }
 
@@ -256,12 +260,12 @@ fn index_identity(
     >,
 ) -> CausalEvidenceReferenceIndexIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReferenceIndex)
-        .field_identity_sequence(
+        .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("records"),
             records
                 .values()
                 .flat_map(|family_records| family_records.values())
-                .map(CausalEvidenceReferenceIndexRecord::record_digest),
+                .map(|record| record.record_identity().evidence_identity()),
         )
         .seal()
         .into()

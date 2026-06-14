@@ -299,7 +299,7 @@ impl CausalEvidenceReferenceResolutionDenial {
             ForgeQueryEvidenceTag::new("anchor"),
             anchor_digest.evidence_identity(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("missing"),
             missing_families.iter().map(CausalEvidenceFamily::as_str),
         )

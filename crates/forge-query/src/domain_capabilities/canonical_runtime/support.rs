@@ -37,9 +37,9 @@ pub struct ForgeQueryIntentDeclarationSupportTraceabilityArtifact {
     input_contract: String,
     source_lane: crate::runtime::ForgeQueryIntentSourceLane,
     target_lane: crate::runtime::ForgeQueryAuthorityLane,
-    target_binding_digest: String,
-    request_digest: String,
-    materialization_digest: String,
+    target_binding_identity: ForgeQueryEvidenceIdentity,
+    request_identity: ForgeQueryEvidenceIdentity,
+    materialization_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryIntentDeclarationSupportTraceabilityArtifact {
@@ -75,16 +75,28 @@ impl ForgeQueryIntentDeclarationSupportTraceabilityArtifact {
         self.target_lane
     }
 
-    pub fn target_binding_digest(&self) -> &str {
-        &self.target_binding_digest
+    pub fn target_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.target_binding_identity
     }
 
-    pub fn request_digest(&self) -> &str {
-        &self.request_digest
+    pub fn target_binding_for_reporting(&self) -> &str {
+        self.target_binding_identity.as_str()
+    }
+
+    pub fn request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.request_identity
+    }
+
+    pub fn request_for_reporting(&self) -> &str {
+        self.request_identity.as_str()
+    }
+
+    pub fn materialization_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.materialization_identity
     }
 
     pub fn materialization_digest(&self) -> &str {
-        &self.materialization_digest
+        self.materialization_identity.as_str()
     }
 }
 
@@ -99,9 +111,9 @@ pub struct ForgeQueryLowerRuntimeBoundarySupportTraceabilityArtifact {
     route_kind: crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteKind,
     support_posture: crate::lower_runtime_routing::ForgeQueryLowerRuntimeSupportPosture,
     envelope_identity: ForgeQueryEvidenceIdentity,
-    target_binding_digest: String,
-    request_digest: String,
-    materialization_digest: String,
+    target_binding_identity: ForgeQueryEvidenceIdentity,
+    request_identity: ForgeQueryEvidenceIdentity,
+    materialization_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryLowerRuntimeBoundarySupportTraceabilityArtifact {
@@ -141,16 +153,28 @@ impl ForgeQueryLowerRuntimeBoundarySupportTraceabilityArtifact {
         self.envelope_identity.as_str()
     }
 
-    pub fn target_binding_digest(&self) -> &str {
-        &self.target_binding_digest
+    pub fn target_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.target_binding_identity
     }
 
-    pub fn request_digest(&self) -> &str {
-        &self.request_digest
+    pub fn target_binding_for_reporting(&self) -> &str {
+        self.target_binding_identity.as_str()
+    }
+
+    pub fn request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.request_identity
+    }
+
+    pub fn request_for_reporting(&self) -> &str {
+        self.request_identity.as_str()
+    }
+
+    pub fn materialization_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.materialization_identity
     }
 
     pub fn materialization_digest(&self) -> &str {
-        &self.materialization_digest
+        self.materialization_identity.as_str()
     }
 }
 
@@ -180,9 +204,9 @@ pub fn materialize_intent_declaration_support_traceability_artifact(
         input_contract: input_contract.to_string(),
         source_lane,
         target_lane,
-        target_binding_digest: domain_contribution.target().binding_digest().to_string(),
-        request_digest: domain_contribution.request_digest().to_string(),
-        materialization_digest: ForgeQueryEvidenceIdentity::compose(
+        target_binding_identity: domain_contribution.target().binding_identity(),
+        request_identity: domain_contribution.request_identity().clone(),
+        materialization_identity: ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
         )
         .field_shape(
@@ -206,11 +230,9 @@ pub fn materialize_intent_declaration_support_traceability_artifact(
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("request"),
-            &support_request_identity(domain_contribution.request_digest()),
+            domain_contribution.request_identity(),
         )
-        .seal()
-        .as_str()
-        .to_string(),
+        .seal(),
     })
 }
 
@@ -238,7 +260,7 @@ pub fn materialize_lower_runtime_support_traceability_artifact(
         unreachable!("lower-runtime target should preserve lower-runtime semantics");
     };
     let envelope_identity = domain_contribution.target().binding_identity();
-    let materialization_digest = ForgeQueryEvidenceIdentity::compose(
+    let materialization_identity = ForgeQueryEvidenceIdentity::compose(
         ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
     )
     .field_shape(
@@ -271,11 +293,9 @@ pub fn materialize_lower_runtime_support_traceability_artifact(
     )
     .field_evidence_identity(
         ForgeQueryEvidenceTag::new("request"),
-        &support_request_identity(domain_contribution.request_digest()),
+        domain_contribution.request_identity(),
     )
-    .seal()
-    .as_str()
-    .to_string();
+    .seal();
     TransitionOutcome::Success(ForgeQueryLowerRuntimeBoundarySupportTraceabilityArtifact {
         lane: support_lane(payload.posture()),
         support_detail: support_detail(payload.semantic_code(), payload.detail()),
@@ -285,9 +305,9 @@ pub fn materialize_lower_runtime_support_traceability_artifact(
         route_kind,
         support_posture,
         envelope_identity,
-        target_binding_digest: domain_contribution.target().binding_digest().to_string(),
-        request_digest: domain_contribution.request_digest().to_string(),
-        materialization_digest,
+        target_binding_identity: domain_contribution.target().binding_identity(),
+        request_identity: domain_contribution.request_identity().clone(),
+        materialization_identity,
     })
 }
 
@@ -362,14 +382,4 @@ fn support_lane(posture: ForgeQuerySupportContributionPosture) -> &'static str {
 
 fn support_detail(semantic_code: &str, detail: &str) -> String {
     format!("{semantic_code}:{detail}")
-}
-
-fn support_request_identity(request_digest: &str) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_support_request_v1",
-        )
-        .field_identity(ForgeQueryEvidenceTag::new("request"), request_digest)
-        .seal()
 }

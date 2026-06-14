@@ -178,7 +178,7 @@ fn active_lifecycle_subject_reports_certified_support_with_indexed_lookup_receip
     )
     .unwrap();
     let subject =
-        QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &active_admission);
+        QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &admission, &active_admission);
     let evidence = QuerySubscriptionSupportEvidence::admission(&declaration, &admission).unwrap();
 
     let (report, lookup_receipt) = report_query_subscription_support(subject, evidence).unwrap();

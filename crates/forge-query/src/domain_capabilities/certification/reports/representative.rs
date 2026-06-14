@@ -131,11 +131,11 @@ pub fn forge_query_domain_capability_representative_report(
     let support_eligible = success(evaluate_requested_domain_capability_contribution(
         support_requested,
     ));
-    let eligibility_digest = support_eligible.eligibility_digest();
+    let eligibility_digest = support_eligible.eligibility_for_reporting();
     let support_admitted = success(admit_eligible_domain_capability_contribution(
         support_eligible,
     ));
-    let admitted_digest = support_admitted.admitted_digest();
+    let admitted_digest = support_admitted.admitted_for_reporting();
 
     let support_artifact = success(
         materialize_intent_declaration_support_traceability_artifact(admitted_ready(
@@ -333,7 +333,7 @@ pub fn forge_query_domain_capability_representative_report(
             .as_str()
             .to_string(),
         aftermath_artifact_digest: projection_contract.contract_digest().to_string(),
-        explanation_artifact_digest: explanation_artifact.artifact_digest().to_string(),
+        explanation_artifact_digest: explanation_artifact.artifact_for_reporting().to_string(),
         capability_support_row_digest: capability_row.row_digest().to_string(),
         domain_invariant_denial_digest: invariant_denial.denial_digest().to_string(),
         decision_trace_digest: decision_trace.trace_digest().to_string(),
@@ -342,7 +342,7 @@ pub fn forge_query_domain_capability_representative_report(
             .to_string(),
         public_boundary_digest,
         compile_fail_boundary_digest: forge_query_domain_capability_compile_fail_boundary_digest(),
-        failure_digest: denial.failure_digest(),
+        failure_digest: denial.failure_for_reporting().to_string(),
         contribution_width: forge_query_domain_capability_public_surface_inventory()
             .rows()
             .len(),

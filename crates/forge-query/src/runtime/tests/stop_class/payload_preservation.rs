@@ -1,4 +1,5 @@
 use super::super::support::*;
+use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 
 #[test]
 fn unsupported_facade_family_stop_class_preserves_denied_family_and_reason() {
@@ -260,7 +261,7 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
                     ),
                     "async:preview-stop-class-mismatch",
                 ),
-                "basis:drifted",
+                &runtime_async_checkpoint_label_identity("basis:drifted"),
                 &generation_digest,
             )
             .expect("preview mismatch should remain typed");

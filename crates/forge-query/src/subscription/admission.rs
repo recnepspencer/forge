@@ -207,13 +207,14 @@ fn admission_error(
         message,
         source_digest,
     );
+    let source_identity = super::evidence_identities::diagnostic_source_projection_identity(source_digest);
     let pipeline_diagnostic = QuerySubscriptionDiagnosticEvidence::denied(
         admission_pipeline_stage(stage),
         message,
-        source_digest,
-        counters.digest(),
+        &source_identity,
+        &counters.evidence_identity(),
     );
-    let support_profile = QuerySubscriptionSupportProfile::denied(source_digest);
+    let support_profile = QuerySubscriptionSupportProfile::denied(source_identity.as_str());
     QuerySubscriptionAdmissionError::new(
         denial_kind,
         message,

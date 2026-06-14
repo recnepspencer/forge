@@ -29,7 +29,7 @@ fn equivalent_construction_sources_declare_identical_subscription_digest() {
             first.declaration_digest().as_str(),
             declaration.declaration_digest().as_str()
         );
-        assert_eq!(first.equivalence_digest(), declaration.equivalence_digest());
+        assert_eq!(first.equivalence_for_reporting(), declaration.equivalence_for_reporting());
     }
 }
 

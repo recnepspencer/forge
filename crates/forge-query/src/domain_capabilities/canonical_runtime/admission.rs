@@ -64,7 +64,7 @@ pub fn materialize_runtime_admission_decision(
         ForgeQueryAdmissionContributionPosture::SupportOnly => {
             TransitionOutcome::Denied(unsupported_decision_posture_denial(
                 payload.posture(),
-                domain_contribution.request_digest(),
+                domain_contribution.request_identity().clone(),
             ))
         }
     }
@@ -107,7 +107,7 @@ pub fn materialize_runtime_admission_support_traceability_row(
     if payload.posture() != ForgeQueryAdmissionContributionPosture::SupportOnly {
         return TransitionOutcome::Denied(unsupported_support_posture_denial(
             payload.posture(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     }
 
@@ -127,13 +127,13 @@ pub fn materialize_runtime_admission_support_traceability_row(
 
 fn unsupported_decision_posture_denial(
     posture: ForgeQueryAdmissionContributionPosture,
-    request_digest: &str,
+    request_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
         "admission",
         crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
-        request_digest,
+        request_identity,
         format!(
             "admission runtime decision materialization only supports advisory and violation postures; got `{}`",
             posture.as_str()
@@ -143,13 +143,13 @@ fn unsupported_decision_posture_denial(
 
 fn unsupported_support_posture_denial(
     posture: ForgeQueryAdmissionContributionPosture,
-    request_digest: &str,
+    request_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
         "admission",
         crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
-        request_digest,
+        request_identity,
         format!(
             "admission support traceability materialization only supports support-only posture; got `{}`",
             posture.as_str()

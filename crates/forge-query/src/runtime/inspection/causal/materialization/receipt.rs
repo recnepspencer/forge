@@ -93,7 +93,7 @@ impl CausalMaterializationReceipt {
         &self.query_admission_identity
     }
 
-    pub fn bridge_envelope_digest(&self) -> Option<&str> {
+    pub fn bridge_envelope_for_reporting(&self) -> Option<&str> {
         self.bridge_envelope_identity
             .as_ref()
             .map(ForgeQueryEvidenceIdentity::as_str)
@@ -103,7 +103,7 @@ impl CausalMaterializationReceipt {
         self.bridge_envelope_identity.as_ref()
     }
 
-    pub fn bridge_receipt_digest(&self) -> Option<&str> {
+    pub fn bridge_receipt_for_reporting(&self) -> Option<&str> {
         self.bridge_receipt_identity
             .as_ref()
             .map(ForgeQueryEvidenceIdentity::as_str)

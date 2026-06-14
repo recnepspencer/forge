@@ -229,8 +229,8 @@ fn future_bearing_continuation_retains_checkpoint_and_future_identity() {
         "employee:old",
         "employee:new",
         attachment.future_selection().clone(),
-        attachment.basis_binding_digest(),
-        attachment.checkpoint_identity_digest(),
+        attachment.basis_binding_for_reporting(),
+        attachment.checkpoint_for_reporting(),
         "identity-evolution-authority",
         ContinuationRemapWidth::measured(1),
     )
@@ -247,7 +247,7 @@ fn future_bearing_continuation_retains_checkpoint_and_future_identity() {
     );
     assert_eq!(
         report.checkpoint_identity_digest(),
-        attachment.checkpoint_identity_digest()
+        attachment.checkpoint_for_reporting()
     );
     assert_eq!(window.active_lane_digest(), attachment.lane_digest());
 }

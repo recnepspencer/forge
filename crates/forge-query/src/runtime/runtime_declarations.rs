@@ -32,23 +32,17 @@ impl ForgeQueryRuntime {
             &name,
             &activation.request,
         );
-        let pending_async_result_state = activation
-            .active_lane_handle
-            .future_selection()
+        let future_selection = activation.active_lane_handle.future_selection();
+        let pending_async_projection_digest = future_selection.projection_digest().to_string();
+        let pending_async_result_state = future_selection
             .requests_completion_lifecycle()
             .then(|| {
                 ForgeQueryRuntimeAsyncResultProjection::pending(&format!(
-                    "async-pending:{}",
-                    activation
-                        .active_lane_handle
-                        .future_selection()
-                        .projection_digest()
+                    "async-pending:{pending_async_projection_digest}"
                 ))
             });
-        let checkpoint_identity_digest = activation
-            .active_lane_handle
-            .checkpoint_identity_digest()
-            .to_string();
+        let basis_binding_identity = activation.installation.basis_binding_identity().clone();
+        let checkpoint_identity = activation.active_lane_handle.checkpoint_identity().clone();
         self.live_subscriptions.insert(
             name.clone(),
             ForgeQueryRuntimeLiveSubscriptionState {
@@ -66,8 +60,8 @@ impl ForgeQueryRuntime {
             self.project_async_result_state(
                 &name,
                 projection,
-                activation.installation.basis_binding_for_reporting(),
-                &checkpoint_identity_digest,
+                &basis_binding_identity,
+                &checkpoint_identity,
             )?;
         }
         Ok(ForgeQueryLiveView::new(handle, activation.installation))
@@ -238,7 +232,7 @@ fn live_source_declaration_error(
     let closeout_message = match closeout_result {
         Ok(closeout) => format!(
             "active subscription closeout:{}:terminal:{}",
-            closeout.closeout_digest(),
+            closeout.closeout_for_reporting(),
             closeout.lane_terminal()
         ),
         Err(closeout_error) => format!(

@@ -1,5 +1,6 @@
 use super::counters::QuerySubscriptionDeclarationCounters;
 use super::diagnostic::{QuerySubscriptionDiagnosticEvidence, QuerySubscriptionDiagnosticStage};
+use super::evidence_identities::diagnostic_source_projection_identity;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionBridgeLoweringDenialKind {
@@ -39,11 +40,13 @@ impl QuerySubscriptionBridgeLoweringError {
         counters: QuerySubscriptionDeclarationCounters,
     ) -> Self {
         let message = message.into();
+        let source_label = source_digest.into();
+        let source_identity = diagnostic_source_projection_identity(&source_label);
         let diagnostic = QuerySubscriptionDiagnosticEvidence::denied(
             diagnostic_stage,
             message.clone(),
-            source_digest,
-            counters.digest(),
+            &source_identity,
+            &counters.evidence_identity(),
         );
         Self {
             denial_kind,

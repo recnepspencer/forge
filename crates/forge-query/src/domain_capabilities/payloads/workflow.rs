@@ -68,23 +68,23 @@ fn compose_workflow_payload_identity(
     .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
     .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
     identity = match runtime_semantics {
-        Some(runtime) => identity.field_shape(
+        Some(runtime) => identity.field_evidence_identity(
             ForgeQueryEvidenceTag::new("runtime"),
-            runtime.digest_fragment(),
+            &runtime.semantics_identity(),
         ),
         None => identity.field_shape(ForgeQueryEvidenceTag::new("runtime"), "none"),
     };
     identity = match lowering_semantics {
-        Some(lowering) => identity.field_shape(
+        Some(lowering) => identity.field_evidence_identity(
             ForgeQueryEvidenceTag::new("lowering"),
-            lowering.digest_fragment(),
+            &lowering.semantics_identity(),
         ),
         None => identity.field_shape(ForgeQueryEvidenceTag::new("lowering"), "none"),
     };
     identity = match inspection_semantics {
-        Some(inspection) => identity.field_shape(
+        Some(inspection) => identity.field_evidence_identity(
             ForgeQueryEvidenceTag::new("inspection"),
-            inspection.digest_fragment(),
+            &inspection.semantics_identity(),
         ),
         None => identity.field_shape(ForgeQueryEvidenceTag::new("inspection"), "none"),
     };
@@ -256,5 +256,9 @@ impl ForgeQueryDomainCapabilityPayload for ForgeQueryWorkflowContributionPayload
 
     fn payload_digest(&self) -> &str {
         self.payload_digest()
+    }
+
+    fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }

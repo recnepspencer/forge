@@ -163,7 +163,7 @@ fn shared_read_unpublished_artifact_fails_closed_with_typed_pending_state() {
         ForgeQueryPublishedProjectionConsumption::ResultState(state) => {
             assert_eq!(state.kind(), ForgeQueryRuntimeAsyncResultStateKind::Pending);
             assert_eq!(
-                state.basis_digest(),
+                state.basis_for_reporting(),
                 unpublished.snapshot_identity().evidence_identity().as_str()
             );
         }
@@ -291,11 +291,11 @@ fn shared_read_republication_keeps_old_context_on_old_artifact_and_new_context_o
         old_artifact
             .published_binding()
             .expect("old artifact should stay published")
-            .binding_digest(),
+            .binding_for_reporting(),
         new_artifact
             .published_binding()
             .expect("new artifact should stay published")
-            .binding_digest()
+            .binding_for_reporting()
     );
     assert_eq!(invocations.load(Ordering::SeqCst), 2);
 }

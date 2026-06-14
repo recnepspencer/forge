@@ -165,7 +165,7 @@ fn crossed_authoritative_residue(state: &ForgeQueryRuntimeLiveSubscriptionState)
         .map(|delivery: &ForgeQueryRuntimeRetainedDelivery| {
             !delivery
                 .mixed_cause_delivery()
-                .denied_cause_digests()
+                .denied_cause_identities()
                 .is_empty()
         })
         .unwrap_or(false);
@@ -173,9 +173,9 @@ fn crossed_authoritative_residue(state: &ForgeQueryRuntimeLiveSubscriptionState)
         .async_result_state
         .as_ref()
         .map(|async_state: &ForgeQueryRuntimeAsyncResultState| {
-            async_state.basis_digest() != state.installation.basis_binding_for_reporting()
-                || async_state.generation_digest()
-                    != state.active_lane_handle.checkpoint_identity_digest()
+            async_state.basis_identity() != state.installation.basis_binding_identity()
+                || async_state.checkpoint_identity()
+                    != state.active_lane_handle.checkpoint_identity()
         })
         .unwrap_or(false);
     delivery_crossed || async_crossed

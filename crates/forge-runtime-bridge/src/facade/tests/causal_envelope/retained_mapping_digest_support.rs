@@ -1,10 +1,11 @@
 use crate::diagnostics::causal_envelope::retained_mapping::digest_basis::{
-    compose_retained_causal_mapping_evidence_identity, retained_mapping_external_authority_part,
+    compose_retained_causal_mapping_evidence_identity, retained_mapping_evidence_part,
     retained_mapping_shape_part, RetainedCausalMappingDigestArtifact,
     RetainedCausalMappingIdentityPart,
 };
+use crate::identity::BridgeIdentityEvidence;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(super) enum ExpectedRetainedCausalDigestArtifact {
     ContinuityRecord,
     HistoricalEvaluationRecord,
@@ -65,23 +66,59 @@ pub(super) fn expected_retained_causal_digest(
         .to_string()
 }
 
-fn expected_part_kind<'a>(
+fn expected_part_kind(
     artifact: ExpectedRetainedCausalDigestArtifact,
     index: usize,
-    part: &'a str,
+    part: &str,
 ) -> RetainedCausalMappingIdentityPart {
+    if expected_bridge_identity_index(artifact, index) {
+        return expected_bridge_identity_part(part);
+    }
+    if expected_shape_index(artifact, index) {
+        return retained_mapping_shape_part(part);
+    }
+    panic!(
+        "unexpected retained mapping part index {index} for {artifact:?}: production paths no longer ingest external digest labels as shape authority"
+    );
+}
+
+fn expected_bridge_identity_part(part: &str) -> RetainedCausalMappingIdentityPart {
+    retained_mapping_evidence_part(BridgeIdentityEvidence::from_external_authority(part))
+}
+
+fn expected_bridge_identity_index(
+    artifact: ExpectedRetainedCausalDigestArtifact,
+    index: usize,
+) -> bool {
+    match artifact {
+        ExpectedRetainedCausalDigestArtifact::ContinuityRecord => matches!(index, 0 | 2 | 3),
+        ExpectedRetainedCausalDigestArtifact::HistoricalEvaluationRecord => {
+            matches!(index, 0 | 1 | 2)
+        }
+        ExpectedRetainedCausalDigestArtifact::MergeRecord => matches!(index, 0 | 2),
+        ExpectedRetainedCausalDigestArtifact::PreviewDiscardRecord => matches!(index, 0 | 1),
+        ExpectedRetainedCausalDigestArtifact::PreviewExecutionRecord => index == 0,
+        ExpectedRetainedCausalDigestArtifact::PreviewPromotionRecord => matches!(index, 0 | 1),
+        ExpectedRetainedCausalDigestArtifact::RouteRecord => matches!(index, 0 | 1 | 2),
+        ExpectedRetainedCausalDigestArtifact::SourceMaterializationRecord => index == 0,
+        ExpectedRetainedCausalDigestArtifact::StreamReplayRecord => matches!(index, 0 | 1 | 2),
+        ExpectedRetainedCausalDigestArtifact::StructuralBranchComparisonRecord
+        | ExpectedRetainedCausalDigestArtifact::StructuralRemapRecord => matches!(index, 0 | 2),
+    }
+}
+
+fn expected_shape_index(artifact: ExpectedRetainedCausalDigestArtifact, index: usize) -> bool {
     match artifact {
         ExpectedRetainedCausalDigestArtifact::ContinuityRecord
         | ExpectedRetainedCausalDigestArtifact::MergeRecord
         | ExpectedRetainedCausalDigestArtifact::StructuralBranchComparisonRecord
-        | ExpectedRetainedCausalDigestArtifact::StructuralRemapRecord
-            if index == 1 =>
-        {
-            retained_mapping_shape_part(part)
-        }
-        ExpectedRetainedCausalDigestArtifact::StreamReplayRecord if index == 5 => {
-            retained_mapping_shape_part(part)
-        }
-        _ => retained_mapping_external_authority_part(part),
+        | ExpectedRetainedCausalDigestArtifact::StructuralRemapRecord => index == 1,
+        ExpectedRetainedCausalDigestArtifact::StreamReplayRecord => index == 3,
+        ExpectedRetainedCausalDigestArtifact::HistoricalEvaluationRecord
+        | ExpectedRetainedCausalDigestArtifact::PreviewDiscardRecord
+        | ExpectedRetainedCausalDigestArtifact::PreviewExecutionRecord
+        | ExpectedRetainedCausalDigestArtifact::PreviewPromotionRecord
+        | ExpectedRetainedCausalDigestArtifact::RouteRecord
+        | ExpectedRetainedCausalDigestArtifact::SourceMaterializationRecord => false,
     }
 }

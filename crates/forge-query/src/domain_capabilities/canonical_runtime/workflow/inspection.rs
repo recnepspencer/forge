@@ -31,7 +31,7 @@ where
             "workflow conflict inspection materialization",
             payload,
             domain_contribution.target().kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     };
     if !workflow_runtime_semantics_match_posture(payload.posture(), runtime_semantics) {
@@ -40,21 +40,21 @@ where
             payload,
             runtime_semantics,
             domain_contribution.target().kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     }
     let Some(inspection_semantics) = payload.inspection_semantics() else {
         return TransitionOutcome::Denied(missing_inspection_semantics_denial(
             domain_contribution.target().kind(),
             payload.semantic_code(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     };
     if !workflow_inspection_semantics_match_runtime(runtime_semantics, inspection_semantics) {
         return TransitionOutcome::Denied(inconsistent_inspection_semantics_denial(
             domain_contribution.target().kind(),
             payload.semantic_code(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
             "workflow conflict inspection semantics do not match runtime declaration semantics",
         ));
     }
@@ -64,7 +64,7 @@ where
         return TransitionOutcome::Denied(inconsistent_inspection_semantics_denial(
             domain_contribution.target().kind(),
             payload.semantic_code(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
             "workflow conflict inspection requires merge-conflict semantics",
         ));
     };
@@ -85,7 +85,7 @@ where
                 ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                 "workflow-preview",
                 domain_contribution.target().kind(),
-                domain_contribution.request_digest(),
+                domain_contribution.request_identity().clone(),
                 format!(
                     "workflow conflict inspection declaration denied for `{}` with `{:?}`",
                     payload.semantic_code(),
@@ -101,7 +101,7 @@ where
                 ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                 "workflow-preview",
                 domain_contribution.target().kind(),
-                domain_contribution.request_digest(),
+                domain_contribution.request_identity().clone(),
                 format!(
                     "workflow conflict inspection denied for `{}` with `{:?}`",
                     payload.semantic_code(),
@@ -126,7 +126,7 @@ where
             "workflow post-merge inspection materialization",
             payload,
             domain_contribution.target().kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     };
     if !workflow_runtime_semantics_match_posture(payload.posture(), runtime_semantics) {
@@ -135,21 +135,21 @@ where
             payload,
             runtime_semantics,
             domain_contribution.target().kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     }
     let Some(inspection_semantics) = payload.inspection_semantics() else {
         return TransitionOutcome::Denied(missing_inspection_semantics_denial(
             domain_contribution.target().kind(),
             payload.semantic_code(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     };
     if !workflow_inspection_semantics_match_runtime(runtime_semantics, inspection_semantics) {
         return TransitionOutcome::Denied(inconsistent_inspection_semantics_denial(
             domain_contribution.target().kind(),
             payload.semantic_code(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
             "workflow post-merge inspection semantics do not match runtime declaration semantics",
         ));
     }
@@ -169,7 +169,7 @@ where
         return TransitionOutcome::Denied(inconsistent_inspection_semantics_denial(
             domain_contribution.target().kind(),
             payload.semantic_code(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
             "workflow post-merge inspection requires merge-outcome or writeback-outcome semantics",
         ));
     };
@@ -190,7 +190,7 @@ where
                 ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                 "workflow-preview",
                 domain_contribution.target().kind(),
-                domain_contribution.request_digest(),
+                domain_contribution.request_identity().clone(),
                 format!(
                     "workflow post-merge inspection declaration denied for `{}` with `{:?}`",
                     payload.semantic_code(),
@@ -206,7 +206,7 @@ where
                 ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                 "workflow-preview",
                 domain_contribution.target().kind(),
-                domain_contribution.request_digest(),
+                domain_contribution.request_identity().clone(),
                 format!(
                     "workflow post-merge inspection denied for `{}` with `{:?}`",
                     payload.semantic_code(),
@@ -221,13 +221,13 @@ where
 fn missing_inspection_semantics_denial(
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
     semantic_code: &str,
-    request_digest: &str,
+    request_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::MissingCanonicalMaterializationSemantics,
         "workflow-preview",
         target_kind,
-        request_digest,
+        request_identity,
         format!("workflow inspection materialization requires inspection semantics for `{semantic_code}`"),
     )
 }
@@ -235,14 +235,14 @@ fn missing_inspection_semantics_denial(
 fn inconsistent_inspection_semantics_denial(
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
     semantic_code: &str,
-    request_digest: &str,
+    request_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     message: &str,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::InconsistentCanonicalMaterializationSemantics,
         "workflow-preview",
         target_kind,
-        request_digest,
+        request_identity,
         format!("{message} for `{semantic_code}`"),
     )
 }

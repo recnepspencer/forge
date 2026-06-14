@@ -34,7 +34,6 @@ pub struct LoweredMutationIntentDeclaration {
     freshness_binding: WorkflowFreshnessBinding,
     staleness_class: WorkflowStalenessClass,
     lowering_identity: ForgeQueryEvidenceIdentity,
-    lowering_digest: String,
     counters: WorkflowLoweringCounters,
 }
 
@@ -67,8 +66,8 @@ impl LoweredMutationIntentDeclaration {
         &self.staleness_class
     }
 
-    pub fn lowering_digest(&self) -> &str {
-        &self.lowering_digest
+    pub fn lowering_for_reporting(&self) -> &str {
+        self.lowering_identity.as_str()
     }
 
     pub fn lowering_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -142,8 +141,6 @@ pub fn lower_mutation_intent_declaration(
         &freshness_binding,
         &request,
     );
-    let lowering_digest = lowering_identity.as_str().to_string();
-
     Ok(LoweredMutationIntentDeclaration {
         declaration: declaration.clone(),
         mutation_family,
@@ -157,7 +154,6 @@ pub fn lower_mutation_intent_declaration(
         freshness_binding,
         staleness_class: WorkflowStalenessClass::ExactBasisPreserved,
         lowering_identity,
-        lowering_digest,
         counters: mutation_lowering_success_counters(1),
     })
 }

@@ -1,5 +1,6 @@
 use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityEncoder, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 
 use forge_runtime_bridge::facade::BridgeCausalEnvelopeDenial;
@@ -108,16 +109,17 @@ pub struct CausalInspectionMaterializationError {
 }
 
 impl CausalInspectionMaterializationError {
-    pub(super) fn new(kind: CausalInspectionMaterializationErrorKind, evidence: &[String]) -> Self {
+    pub(super) fn new(
+        kind: CausalInspectionMaterializationErrorKind,
+        detail: impl FnOnce(ForgeQueryEvidenceIdentityEncoder) -> ForgeQueryEvidenceIdentityEncoder,
+    ) -> Self {
         Self {
             kind,
-            failure_identity: ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::CausalInspectionDeniedArtifactDetail,
-            )
-            .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
-            .field_identity_sequence(
-                ForgeQueryEvidenceTag::new("evidence"),
-                evidence.iter().map(String::as_str),
+            failure_identity: detail(
+                ForgeQueryEvidenceIdentity::compose(
+                    ForgeQueryEvidenceScope::CausalInspectionDeniedArtifactDetail,
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str()),
             )
             .seal(),
         }

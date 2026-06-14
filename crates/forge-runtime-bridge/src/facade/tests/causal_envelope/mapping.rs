@@ -133,13 +133,7 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
         Some(
             expected_retained_causal_digest(
                 ExpectedRetainedCausalDigestArtifact::PreviewExecutionRecord,
-                &[
-                    discard_execution.record_identity().as_str(),
-                    discard_execution.preview_session_identity(),
-                    discard_execution.preview_declaration_digest(),
-                    discard_execution.branch_binding_digest(),
-                    discard_execution.digest(),
-                ],
+                &[discard_execution.record_identity().as_str()],
             )
             .as_str()
         )
@@ -157,10 +151,7 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
                 ExpectedRetainedCausalDigestArtifact::PreviewDiscardRecord,
                 &[
                     discard_record.record_identity().as_str(),
-                    discard_record.preview_session_identity(),
                     discard_record.preview_execution_record_identity().as_str(),
-                    discard_record.residue_report().digest(),
-                    discard_record.digest(),
                 ],
             )
             .as_str()
@@ -179,14 +170,9 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
                 ExpectedRetainedCausalDigestArtifact::PreviewPromotionRecord,
                 &[
                     promotion_record.record_identity().as_str(),
-                    promotion_record.preview_session_identity(),
                     promotion_record
                         .preview_execution_record_identity()
                         .as_str(),
-                    promotion_record.promotion_proof_digest(),
-                    promotion_record.authoritative_commit_boundary_digest(),
-                    promotion_record.authoritative_artifact_digest(),
-                    promotion_record.digest(),
                 ],
             )
             .as_str()

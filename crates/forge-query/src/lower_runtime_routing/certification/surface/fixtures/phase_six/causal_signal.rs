@@ -42,11 +42,11 @@ pub(crate) fn representative_causal_bridge_materialization_row() -> Representati
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
             .field_identity(
                 ForgeQueryEvidenceTag::new("artifact"),
-                artifact.artifact_digest(),
+                artifact.artifact_for_reporting(),
             )
             .field_identity(
                 ForgeQueryEvidenceTag::new("bridge_envelope"),
-                artifact.bridge_envelope_digest().unwrap_or("none"),
+                artifact.bridge_envelope_for_reporting().unwrap_or("none"),
             )
             .seal();
     route_planned_row(

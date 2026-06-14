@@ -45,7 +45,7 @@ fn legal_declaration_review_yields_legality_evidence() {
     );
     assert_eq!(
         legal.canonical_declaration().handle_identity_digest(),
-        world_basis.handle_identity_digest()
+        world_basis.handle_identity_for_reporting()
     );
     assert_eq!(
         legal.aspect_contract().required(),

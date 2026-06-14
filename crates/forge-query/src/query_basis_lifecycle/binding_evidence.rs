@@ -304,10 +304,10 @@ fn bridge_identity_field(
     encoder.field_identity(tag, identity.as_str())
 }
 
-pub(super) fn binding_digest(
+pub(super) fn binding_identity(
     capability_digest: &str,
     evidence: &BridgeLowerRuntimeEvidenceReference,
-) -> String {
+) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::BridgeLowerRuntimeBasisBinding)
         .field_identity(
             ForgeQueryEvidenceTag::new("capability_digest"),
@@ -318,6 +318,4 @@ pub(super) fn binding_digest(
             &evidence.evidence_identity(),
         )
         .seal()
-        .as_str()
-        .to_string()
 }

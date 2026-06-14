@@ -1,6 +1,11 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::family::QuerySubscriptionFamily;
+
+const DELIVERY_INTENT_IDENTITY_SCOPE: ForgeQueryEvidenceScope =
+    ForgeQueryEvidenceScope::SubscriptionActivationReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum QuerySubscriptionDeliveryIntent {
@@ -38,10 +43,17 @@ impl QuerySubscriptionDeliveryIntent {
         }
     }
 
-    pub fn digest(&self) -> String {
-        hash_parts(&[
-            "query_subscription_delivery_intent_v1".to_string(),
-            self.as_str().to_string(),
-        ])
+    pub fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        ForgeQueryEvidenceIdentity::compose(DELIVERY_INTENT_IDENTITY_SCOPE)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "query_subscription_delivery_intent_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("intent"), self.as_str())
+            .seal()
+    }
+
+    pub fn delivery_intent_for_reporting(&self) -> &str {
+        self.as_str()
     }
 }

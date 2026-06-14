@@ -84,14 +84,14 @@ where
             ForgeQueryDomainCapabilityTargetKind::LowerRuntimeBoundaryEnvelope => {
                 TransitionOutcome::Stale(ForgeQueryDomainCapabilityStale::new(
                     category,
-                    bound_target.target_digest(),
-                    current_target.target_digest(),
+                    bound_target.target_identity(),
+                    current_target.target_identity(),
                 ))
             }
             _ => TransitionOutcome::RebindRequired(ForgeQueryDomainCapabilityRebindRequired::new(
                 category,
-                bound_target.target_digest(),
-                current_target.target_digest(),
+                bound_target.target_identity(),
+                current_target.target_identity(),
             )),
         };
     }
@@ -114,7 +114,7 @@ where
         kind,
         contribution.category().as_str(),
         contribution.target().kind(),
-        contribution.request_digest(),
+        contribution.request_identity().clone(),
         message,
     )
 }

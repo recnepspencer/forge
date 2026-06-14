@@ -295,7 +295,7 @@ pub fn certify_query_subscription_runtime_family(
             query_digest: scope.lifecycle_certification().query_digest().to_string(),
             subscription_family_digest: scope
                 .lifecycle_certification()
-                .subscription_family_digest()
+                .subscription_family_for_reporting()
                 .to_string(),
             subscription_declaration_digest: scope
                 .lifecycle_certification()

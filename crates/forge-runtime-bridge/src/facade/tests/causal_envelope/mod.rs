@@ -97,18 +97,10 @@ fn expected_retained_route_digest(
     route_identity: &str,
     invalidation_identity: &str,
     source_commit: &str,
-    planning_summary_digest: &str,
-    lowering_summary_digest: &str,
 ) -> String {
     expected_retained_causal_digest(
         ExpectedRetainedCausalDigestArtifact::RouteRecord,
-        &[
-            route_identity,
-            invalidation_identity,
-            source_commit,
-            planning_summary_digest,
-            lowering_summary_digest,
-        ],
+        &[route_identity, invalidation_identity, source_commit],
     )
 }
 

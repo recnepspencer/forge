@@ -18,6 +18,11 @@ use super::{
     ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeAsyncResultStateKind,
     ForgeQueryRuntimeError, ForgeQuerySharedReadGenerationLease,
 };
+use super::async_result_state::runtime_async_causality_identity;
+use super::evidence_identities::{
+    shared_read_bind_retained_artifact_label_identity, shared_read_republishing_causality_identity,
+    shared_read_unpublished_causality_identity,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ForgeQueryPublishedProjectionConsumption {
@@ -28,7 +33,7 @@ pub enum ForgeQueryPublishedProjectionConsumption {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryPublishedProjectionInspection {
     published: bool,
-    artifact_binding_digest: Option<String>,
+    artifact_binding_identity: Option<ForgeQueryEvidenceIdentity>,
     snapshot_identity: ForgeQuerySnapshotIdentity,
     snapshot_evidence_identity: ForgeQueryEvidenceIdentity,
     async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
@@ -39,8 +44,14 @@ impl ForgeQueryPublishedProjectionInspection {
         self.published
     }
 
-    pub fn artifact_binding_digest(&self) -> Option<&str> {
-        self.artifact_binding_digest.as_deref()
+    pub fn artifact_binding_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.artifact_binding_identity.as_ref()
+    }
+
+    pub fn artifact_binding_for_reporting(&self) -> Option<&str> {
+        self.artifact_binding_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
     pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
@@ -84,10 +95,10 @@ impl ForgeQueryPublishedDerivedArtifactHandle {
     pub fn inspect_projection_consumption(&self) -> ForgeQueryPublishedProjectionInspection {
         ForgeQueryPublishedProjectionInspection {
             published: self.published_binding.is_some(),
-            artifact_binding_digest: self
+            artifact_binding_identity: self
                 .published_binding
                 .as_ref()
-                .map(|binding| binding.binding_digest().to_string()),
+                .map(|binding| binding.binding_identity().clone()),
             snapshot_identity: self.snapshot_identity().clone(),
             snapshot_evidence_identity: self.snapshot_identity().evidence_identity(),
             async_result_state: self.async_result_state.clone(),
@@ -103,7 +114,7 @@ impl ForgeQueryPublishedDerivedArtifactHandle {
         match &self.published_binding {
             Some(binding) => Ok(ForgeQueryPublishedProjectionConsumption::Current(
                 binding.consume_projection_facts(
-                    result_shape.digest().as_str(),
+                    result_shape,
                     authorized_projection,
                     requested,
                 )?,
@@ -148,9 +159,12 @@ impl ForgeQuerySharedReadContext {
                 published_binding: None,
                 async_result_state: Some(ForgeQueryRuntimeAsyncResultState::new(
                     ForgeQueryRuntimeAsyncResultStateKind::Pending,
-                    format!("shared-read:unpublished:{}", view.name()),
-                    self.snapshot_identity().evidence_identity().to_string(),
-                    shared_read_generation_digest(self.snapshot_identity()),
+                    &runtime_async_causality_identity(&shared_read_unpublished_causality_identity(
+                        view.name(),
+                        &self.snapshot_identity().evidence_identity(),
+                    )),
+                    &self.snapshot_identity().evidence_identity(),
+                    &shared_read_generation_identity(self.snapshot_identity()),
                 )),
             });
         }
@@ -203,9 +217,13 @@ impl SharedReadDerivedViewState {
 
         Some(ForgeQueryRuntimeAsyncResultState::new(
             kind,
-            format!("shared-read:republishing:{view_name}:{}", kind.as_str()),
-            snapshot_identity.evidence_identity().to_string(),
-            shared_read_generation_digest(snapshot_identity),
+            &runtime_async_causality_identity(&shared_read_republishing_causality_identity(
+                view_name,
+                kind,
+                &snapshot_identity.evidence_identity(),
+            )),
+            &snapshot_identity.evidence_identity(),
+            &shared_read_generation_identity(snapshot_identity),
         ))
     }
 }
@@ -315,18 +333,22 @@ fn bind_shared_read_artifact(
         snapshot_identity.clone(),
         BTreeMap::from([(view_name.to_string(), materialization)]),
     );
-    bundle.bind_retained_artifact(
-        format!("shared-read:{view_name}"),
+    bundle.bind_retained_artifact_identity(
+        shared_read_bind_retained_artifact_label_identity(
+            view_name,
+            &snapshot_identity.evidence_identity(),
+        ),
         [ForgeQueryDerivedMaterializationTarget::new(view_name)],
     )
 }
 
-fn shared_read_generation_digest(snapshot_identity: &ForgeQuerySnapshotIdentity) -> String {
+fn shared_read_generation_identity(
+    snapshot_identity: &ForgeQuerySnapshotIdentity,
+) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::SharedReadGeneration)
-        .field_identity(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("snapshot_identity"),
-            snapshot_identity.evidence_identity().as_str(),
+            &snapshot_identity.evidence_identity(),
         )
         .seal()
-        .to_string()
 }

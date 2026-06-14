@@ -1,4 +1,5 @@
 use super::super::super::support::*;
+use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
 use crate::facade::TraversalSelector;
 use crate::schema_view::{QuerySchemaView, SchemaRelationView};
@@ -269,7 +270,7 @@ pub(in super::super) fn preview_promotion_rebinding_required_error() -> ForgeQue
                 ),
                 "async:preview-stop-class-mismatch",
             ),
-            "basis:drifted",
+            &runtime_async_checkpoint_label_identity("basis:drifted"),
             &generation_digest,
         )
         .expect("preview mismatch should remain typed");

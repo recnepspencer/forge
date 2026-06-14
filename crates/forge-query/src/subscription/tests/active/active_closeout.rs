@@ -80,8 +80,8 @@ fn final_consumer_closeout_carries_support_and_performance_receipt() {
         .future_selection()
         .projection_digest()
         .to_string();
-    let expected_basis = attachment.basis_binding_digest().to_string();
-    let expected_checkpoint = attachment.checkpoint_identity_digest().to_string();
+    let expected_basis = attachment.basis_binding_for_reporting().to_string();
+    let expected_checkpoint = attachment.checkpoint_for_reporting().to_string();
 
     let closeout = close_subscription_lifecycle(
         &mut runtime,
@@ -111,11 +111,11 @@ fn final_consumer_closeout_carries_support_and_performance_receipt() {
         closeout.future_selection().projection_digest(),
         expected_future
     );
-    assert_eq!(closeout.basis_binding_digest(), expected_basis);
-    assert_eq!(closeout.checkpoint_identity_digest(), expected_checkpoint);
+    assert_eq!(closeout.basis_binding_for_reporting(), expected_basis);
+    assert_eq!(closeout.checkpoint_for_reporting(), expected_checkpoint);
     assert_eq!(closeout.performance_receipt().consumed_width(), 2);
     assert_eq!(closeout.performance_receipt().remaining_width(), 0);
-    assert!(!closeout.closeout_digest().is_empty());
+    assert!(!closeout.closeout_for_reporting().is_empty());
     assert_eq!(runtime.lane_count(), 0);
 }
 
@@ -198,8 +198,8 @@ fn preview_discard_closeout_can_close_the_runtime_lane() {
         attachment.future_selection().projection_digest()
     );
     assert_eq!(
-        closeout.checkpoint_identity_digest(),
-        attachment.checkpoint_identity_digest()
+        closeout.checkpoint_for_reporting(),
+        attachment.checkpoint_for_reporting()
     );
     assert_eq!(closeout.counters().active_lane_close_count(), 1);
     assert_eq!(closeout.counters().consumer_attachment_close_count(), 1);

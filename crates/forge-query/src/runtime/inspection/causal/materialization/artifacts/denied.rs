@@ -5,7 +5,7 @@ use super::super::super::observation_identity::{
     CausalObservationReceiptIdentity, CausalResultShapeContextIdentity,
 };
 use super::super::{
-    causal_identity_digest, CausalInspectionArtifactKind, CausalInspectionBoundaryEnvelopeCategory,
+    causal_materialization_identity, CausalInspectionArtifactKind, CausalInspectionBoundaryEnvelopeCategory,
     CausalInspectionPerformanceEnvelope, CausalMaterializationReceipt,
     QueryCausalTemporalAsyncExplanation,
 };
@@ -44,7 +44,7 @@ impl DeniedQueryCausalInspectionArtifact {
         receipt: CausalMaterializationReceipt,
         artifact_identity: CausalInspectionArtifactIdentity,
     ) -> Self {
-        let causal_identity = causal_identity_digest(
+        let causal_identity = causal_materialization_identity(
             CausalInspectionArtifactKind::Denied,
             query_denial_identity,
             query_observation_identity.evidence_identity(),
@@ -72,20 +72,12 @@ impl DeniedQueryCausalInspectionArtifact {
         self.query_denial_identity.as_str()
     }
 
-    pub fn query_denial_digest(&self) -> &str {
-        self.query_denial_for_reporting()
-    }
-
-    pub fn query_observation_digest(&self) -> &str {
+    pub fn query_observation_for_reporting(&self) -> &str {
         self.query_observation_identity.as_str()
     }
 
     pub fn result_shape_context_for_reporting(&self) -> &str {
         self.result_shape_context_identity.as_str()
-    }
-
-    pub fn result_shape_context_digest(&self) -> &str {
-        self.result_shape_context_for_reporting()
     }
 
     pub fn denial_reason(&self) -> &str {
@@ -96,10 +88,6 @@ impl DeniedQueryCausalInspectionArtifact {
         self.bridge_denial_identity
             .as_ref()
             .map(ForgeQueryEvidenceIdentity::as_str)
-    }
-
-    pub fn bridge_denial_digest(&self) -> Option<&str> {
-        self.bridge_denial_for_reporting()
     }
 
     pub fn bridge_denial_kind(&self) -> Option<&str> {
@@ -138,11 +126,15 @@ impl DeniedQueryCausalInspectionArtifact {
         &self.receipt
     }
 
-    pub fn causal_identity_digest(&self) -> &str {
+    pub fn causal_identity_for_reporting(&self) -> &str {
         self.causal_identity.as_str()
     }
 
-    pub fn artifact_digest(&self) -> &str {
+    pub fn causal_identity(&self) -> &CausalInspectionArtifactIdentity {
+        &self.causal_identity
+    }
+
+    pub fn artifact_for_reporting(&self) -> &str {
         self.artifact_identity.as_str()
     }
 

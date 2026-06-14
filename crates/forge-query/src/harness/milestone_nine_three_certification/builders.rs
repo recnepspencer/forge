@@ -415,7 +415,7 @@ fn certification_bundle(
         query_digest: artifacts.lifecycle_bundle.query_digest().to_string(),
         subscription_family_digest: artifacts
             .lifecycle_bundle
-            .subscription_family_digest()
+            .subscription_family_for_reporting()
             .to_string(),
         subscription_declaration_digest: artifacts
             .lifecycle_bundle
@@ -423,13 +423,13 @@ fn certification_bundle(
             .to_string(),
         subscription_equivalence_digest: artifacts
             .lifecycle_bundle
-            .subscription_equivalence_digest()
+            .subscription_equivalence_for_reporting()
             .to_string(),
         bridge_declaration_digest: artifacts
             .lifecycle_bundle
             .bridge_declaration_for_reporting()
             .to_string(),
-        bridge_basis_digest: artifacts.lifecycle_bundle.basis_digest().to_string(),
+        bridge_basis_digest: artifacts.lifecycle_bundle.basis_for_reporting().to_string(),
         signal_strategy_digest: artifacts
             .lifecycle_bundle
             .signal_strategy_for_reporting()
@@ -842,7 +842,7 @@ fn lane_for(
     .unwrap();
     let support_subject = match scenario {
         LaneScenario::ActiveLifecycle => {
-            QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &active_admission)
+            QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &admission, &active_admission)
         }
         LaneScenario::Continuation => QuerySubscriptionSupportSubject::continuation(
             &declaration,
@@ -943,7 +943,7 @@ fn lane_for(
             .unwrap_or_else(|| "none".to_string()),
         preview_isolation_digest: preview_isolation
             .as_ref()
-            .map(|value| value.isolation_digest().to_string())
+            .map(|value| value.isolation_for_reporting().to_string())
             .unwrap_or_else(|| "none".to_string()),
     }
 }

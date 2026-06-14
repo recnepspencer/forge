@@ -243,8 +243,8 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
         ForgeQueryInspection::LiveView(inspection) => inspection,
         other => panic!("expected live view inspection, got {other:?}"),
     };
-    let live_installation_digest = live_inspection.installation_digest().to_string();
-    let live_active_lane_digest = live_inspection.active_lane_digest().to_string();
+    let live_installation_digest = live_inspection.installation_for_reporting().to_string();
+    let live_active_lane_digest = live_inspection.active_lane_for_reporting().to_string();
     let computed_inspection = match workspace
         .inspect(&second)
         .expect("nested computed transcript surface should inspect")

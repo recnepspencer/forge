@@ -262,13 +262,13 @@ impl QueryContextExecutionArtifact {
 impl ForgeQueryDerivedArtifactBinding {
     pub fn consume_projection_facts(
         &self,
-        result_shape_digest: &str,
+        result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
         requested: ProjectMaterializedFacts,
     ) -> Result<ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError> {
         let declaration = self
             .declare_projection_fact_consumption(
-                result_shape_digest,
+                result_shape,
                 authorized_projection,
                 requested,
             )
@@ -290,13 +290,13 @@ impl ForgeQueryDerivedArtifactBinding {
 impl ForgeQueryLiveArtifactBinding {
     pub fn consume_projection_facts(
         &self,
-        result_shape_digest: &str,
+        result_shape_identity: &crate::evidence_identity::ForgeQueryEvidenceIdentity,
         authorized_projection: &AuthorizedProjectionArtifact,
         requested: ProjectMaterializedFacts,
     ) -> Result<ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError> {
         let declaration = self
             .declare_projection_fact_consumption(
-                result_shape_digest,
+                result_shape_identity,
                 authorized_projection,
                 requested,
             )

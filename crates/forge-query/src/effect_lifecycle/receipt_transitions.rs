@@ -1,7 +1,12 @@
-use crate::identity::hash_parts;
+use crate::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::inventory::EffectReceiptArtifactKind;
 use super::support_contract::EffectDeferredNeighborFamily;
+
+const EFFECT_LIFECYCLE_IDENTITY_SCOPE: ForgeQueryEvidenceScope =
+    ForgeQueryEvidenceScope::WorkflowMutationLowering;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectReceiptTransitionKind {
@@ -47,7 +52,7 @@ pub struct EffectReceiptTransitionRule {
     posture: EffectReceiptTransitionPosture,
     detail: &'static str,
     deferred_neighbor: Option<EffectDeferredNeighborFamily>,
-    rule_digest: String,
+    rule_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectReceiptTransitionRule {
@@ -57,24 +62,28 @@ impl EffectReceiptTransitionRule {
         detail: &'static str,
         deferred_neighbor: Option<EffectDeferredNeighborFamily>,
     ) -> Self {
-        let rule_digest = hash_parts(&[
-            "effect_receipt_transition_rule_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("posture:{}", posture.as_str()),
-            format!("detail:{detail}"),
-            format!(
-                "neighbor:{}",
-                deferred_neighbor
-                    .map(|neighbor| neighbor.as_str())
-                    .unwrap_or("none")
+        let mut rule = ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "effect_receipt_transition_rule_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+            .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+            .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+        rule = match deferred_neighbor {
+            Some(neighbor) => rule.field_shape(
+                ForgeQueryEvidenceTag::new("neighbor"),
+                neighbor.as_str(),
             ),
-        ]);
+            None => rule.field_shape(ForgeQueryEvidenceTag::new("neighbor"), "none"),
+        };
+        let rule_identity = rule.seal();
         Self {
             kind,
             posture,
             detail,
             deferred_neighbor,
-            rule_digest,
+            rule_identity,
         }
     }
 
@@ -94,8 +103,12 @@ impl EffectReceiptTransitionRule {
         self.deferred_neighbor
     }
 
-    pub fn rule_digest(&self) -> &str {
-        &self.rule_digest
+    pub fn rule_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.rule_identity
+    }
+
+    pub fn rule_for_reporting(&self) -> &str {
+        self.rule_identity.as_str()
     }
 }
 
@@ -103,7 +116,7 @@ impl EffectReceiptTransitionRule {
 pub struct EffectReceiptTransitionRules {
     receipt_family: EffectReceiptArtifactKind,
     rules: Vec<EffectReceiptTransitionRule>,
-    rules_digest: String,
+    rules_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectReceiptTransitionRules {
@@ -146,23 +159,25 @@ impl EffectReceiptTransitionRules {
                 Some(EffectDeferredNeighborFamily::StoreBackedExecutionParity),
             ),
         ];
-        let rules_digest = hash_parts(
-            &std::iter::once("effect_receipt_transition_rules_v1".to_string())
-                .chain(std::iter::once(format!(
-                    "receipt_family:{}",
-                    receipt_family.as_str()
-                )))
-                .chain(
-                    rules
-                        .iter()
-                        .map(|rule| format!("rule:{}", rule.rule_digest())),
-                )
-                .collect::<Vec<_>>(),
-        );
+        let rule_identities = rules
+            .iter()
+            .map(|rule| rule.rule_identity().clone())
+            .collect::<Vec<_>>();
+        let rules_identity = ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "effect_receipt_transition_rules_v1",
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("receipt_family"),
+                receipt_family.as_str(),
+            )
+            .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("rules"), &rule_identities)
+            .seal();
         Self {
             receipt_family,
             rules,
-            rules_digest,
+            rules_identity,
         }
     }
 
@@ -174,7 +189,11 @@ impl EffectReceiptTransitionRules {
         &self.rules
     }
 
-    pub fn rules_digest(&self) -> &str {
-        &self.rules_digest
+    pub fn rules_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.rules_identity
+    }
+
+    pub fn rules_for_reporting(&self) -> &str {
+        self.rules_identity.as_str()
     }
 }

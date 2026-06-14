@@ -1,70 +1,62 @@
-use forge_runtime_bridge::facade::RuntimeBridge;
+use forge_runtime_bridge::facade::{BridgeIdentityEvidence, BridgeWritebackOutcomeClass, RuntimeBridge};
 
-use crate::identity::hash_parts;
+use crate::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
-use super::{EffectExecutionOracleError, EffectExecutionOracleErrorKind};
+use super::error::{bridge_oracle_observation_subject, EffectExecutionOracleError, EffectExecutionOracleErrorKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeExecutionOracle {
-    execution_record_digest: String,
-    outcome_digest: String,
-    outcome_class: forge_runtime_bridge::facade::BridgeWritebackOutcomeClass,
-    request_digest: String,
-    receipt_digest: String,
-    execution_receipt_digest: Option<String>,
-    bridge_oracle_digest: String,
+    execution_record_identity: ForgeQueryEvidenceIdentity,
+    outcome_subject_identity: ForgeQueryEvidenceIdentity,
+    outcome_class: BridgeWritebackOutcomeClass,
+    request_subject_identity: ForgeQueryEvidenceIdentity,
+    receipt_subject_identity: ForgeQueryEvidenceIdentity,
+    execution_receipt_subject_identity: Option<ForgeQueryEvidenceIdentity>,
+    bridge_oracle_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl BridgeExecutionOracle {
     pub fn new(
-        execution_record_digest: impl Into<String>,
-        outcome_digest: impl Into<String>,
-        outcome_class: forge_runtime_bridge::facade::BridgeWritebackOutcomeClass,
-        request_digest: impl Into<String>,
-        receipt_digest: impl Into<String>,
+        execution_record_identity: ForgeQueryEvidenceIdentity,
+        outcome_subject_identity: ForgeQueryEvidenceIdentity,
+        outcome_class: BridgeWritebackOutcomeClass,
+        request_subject_identity: ForgeQueryEvidenceIdentity,
+        receipt_subject_identity: ForgeQueryEvidenceIdentity,
     ) -> Self {
-        let execution_record_digest = execution_record_digest.into();
-        let outcome_digest = outcome_digest.into();
-        let request_digest = request_digest.into();
-        let receipt_digest = receipt_digest.into();
-        let bridge_oracle_digest = hash_parts(&[
-            "bridge_execution_oracle_v1".to_string(),
-            format!("record:{execution_record_digest}"),
-            format!("outcome:{outcome_digest}"),
-            format!("outcome_class:{outcome_class:?}"),
-            format!("request:{request_digest}"),
-            format!("receipt:{receipt_digest}"),
-            format!("execution_receipt:{}", optional_digest_basis(None)),
-        ]);
-        Self {
-            execution_record_digest,
-            outcome_digest,
+        let bridge_oracle_identity = compose_bridge_oracle_identity(
+            &execution_record_identity,
+            &outcome_subject_identity,
             outcome_class,
-            request_digest,
-            receipt_digest,
-            execution_receipt_digest: None,
-            bridge_oracle_digest,
+            &request_subject_identity,
+            &receipt_subject_identity,
+            None,
+        );
+        Self {
+            execution_record_identity,
+            outcome_subject_identity,
+            outcome_class,
+            request_subject_identity,
+            receipt_subject_identity,
+            execution_receipt_subject_identity: None,
+            bridge_oracle_identity,
         }
     }
 
-    pub fn with_execution_receipt_digest(
+    pub fn with_execution_receipt_subject_identity(
         mut self,
-        execution_receipt_digest: impl Into<String>,
+        execution_receipt_subject_identity: ForgeQueryEvidenceIdentity,
     ) -> Self {
-        let execution_receipt_digest = execution_receipt_digest.into();
-        self.bridge_oracle_digest = hash_parts(&[
-            "bridge_execution_oracle_v1".to_string(),
-            format!("record:{}", self.execution_record_digest),
-            format!("outcome:{}", self.outcome_digest),
-            format!("outcome_class:{:?}", self.outcome_class),
-            format!("request:{}", self.request_digest),
-            format!("receipt:{}", self.receipt_digest),
-            format!(
-                "execution_receipt:{}",
-                optional_digest_basis(Some(execution_receipt_digest.as_str()))
-            ),
-        ]);
-        self.execution_receipt_digest = Some(execution_receipt_digest);
+        self.bridge_oracle_identity = compose_bridge_oracle_identity(
+            &self.execution_record_identity,
+            &self.outcome_subject_identity,
+            self.outcome_class,
+            &self.request_subject_identity,
+            &self.receipt_subject_identity,
+            Some(&execution_receipt_subject_identity),
+        );
+        self.execution_receipt_subject_identity = Some(execution_receipt_subject_identity);
         self
     }
 
@@ -78,7 +70,7 @@ impl BridgeExecutionOracle {
                 EffectExecutionOracleError::new(
                     EffectExecutionOracleErrorKind::BridgeObservationMissingWritebackRecord,
                     "independent bridge oracle inspection could not find a writeback execution record",
-                    "bridge:last-writeback".to_string(),
+                    &bridge_oracle_observation_subject(),
                     None,
                 )
             })?;
@@ -91,54 +83,167 @@ impl BridgeExecutionOracle {
         let receipt_digest = record
             .receipt_digest()
             .ok_or_else(|| incomplete_bridge_record_error("receipt", record.digest()))?;
+        let execution_record_identity =
+            bridge_observation_execution_record_subject_identity(record.digest());
         let oracle = Self::new(
-            record.digest(),
-            outcome_digest,
+            execution_record_identity,
+            bridge_observation_outcome_subject_identity(outcome_digest),
             record
                 .outcome_class()
                 .ok_or_else(|| incomplete_bridge_record_error("outcome_class", record.digest()))?,
-            request_digest,
-            receipt_digest,
+            bridge_observation_request_subject_identity(request_digest),
+            bridge_observation_receipt_subject_identity(receipt_digest),
         );
         Ok(match record.execution_receipt_digest() {
-            Some(execution_receipt_digest) => {
-                oracle.with_execution_receipt_digest(execution_receipt_digest)
-            }
+            Some(execution_receipt_digest) => oracle.with_execution_receipt_subject_identity(
+                bridge_observation_execution_receipt_subject_identity(execution_receipt_digest),
+            ),
             None => oracle,
         })
     }
 
-    pub fn execution_record_digest(&self) -> &str {
-        &self.execution_record_digest
+    pub fn execution_record_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.execution_record_identity
     }
 
-    pub fn outcome_digest(&self) -> &str {
-        &self.outcome_digest
+    pub fn execution_record_for_reporting(&self) -> &str {
+        self.execution_record_identity.as_str()
     }
 
-    pub fn outcome_class(&self) -> forge_runtime_bridge::facade::BridgeWritebackOutcomeClass {
+    pub fn outcome_subject_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.outcome_subject_identity
+    }
+
+    pub fn outcome_for_reporting(&self) -> &str {
+        self.outcome_subject_identity.as_str()
+    }
+
+    pub fn outcome_class(&self) -> BridgeWritebackOutcomeClass {
         self.outcome_class
     }
 
-    pub fn request_digest(&self) -> &str {
-        &self.request_digest
+    pub fn request_subject_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.request_subject_identity
     }
 
-    pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+    pub fn request_for_reporting(&self) -> &str {
+        self.request_subject_identity.as_str()
     }
 
-    pub fn execution_receipt_digest(&self) -> Option<&str> {
-        self.execution_receipt_digest.as_deref()
+    pub fn receipt_subject_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_subject_identity
     }
 
-    pub fn bridge_oracle_digest(&self) -> &str {
-        &self.bridge_oracle_digest
+    pub fn receipt_for_reporting(&self) -> &str {
+        self.receipt_subject_identity.as_str()
+    }
+
+    pub fn execution_receipt_subject_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.execution_receipt_subject_identity.as_ref()
+    }
+
+    pub fn execution_receipt_for_reporting(&self) -> Option<&str> {
+        self.execution_receipt_subject_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn bridge_oracle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_oracle_identity
+    }
+
+    pub fn bridge_oracle_for_reporting(&self) -> &str {
+        self.bridge_oracle_identity.as_str()
     }
 }
 
-fn optional_digest_basis(value: Option<&str>) -> &str {
-    value.unwrap_or("none")
+pub fn bridge_observation_execution_record_subject_identity(
+    record_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    bridge_observation_subject_identity("execution_record", record_digest)
+}
+
+pub fn bridge_observation_outcome_subject_identity(
+    outcome_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    bridge_observation_subject_identity("outcome", outcome_digest)
+}
+
+pub fn bridge_observation_request_subject_identity(
+    request_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    bridge_observation_subject_identity("request", request_digest)
+}
+
+pub fn bridge_observation_receipt_subject_identity(
+    receipt_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    bridge_observation_subject_identity("receipt", receipt_digest)
+}
+
+pub fn bridge_observation_execution_receipt_subject_identity(
+    execution_receipt_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    bridge_observation_subject_identity("execution_receipt", execution_receipt_digest)
+}
+
+fn bridge_observation_subject_identity(
+    kind: &str,
+    observed_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "bridge_observation_subject_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind)
+        .field_bridge_identity(
+            ForgeQueryEvidenceTag::new("observed"),
+            &BridgeIdentityEvidence::from_external_authority(observed_digest),
+        )
+        .seal()
+}
+
+fn compose_bridge_oracle_identity(
+    execution_record_identity: &ForgeQueryEvidenceIdentity,
+    outcome_subject_identity: &ForgeQueryEvidenceIdentity,
+    outcome_class: BridgeWritebackOutcomeClass,
+    request_subject_identity: &ForgeQueryEvidenceIdentity,
+    receipt_subject_identity: &ForgeQueryEvidenceIdentity,
+    execution_receipt_subject_identity: Option<&ForgeQueryEvidenceIdentity>,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "bridge_execution_oracle_v1",
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("execution_record"),
+            execution_record_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("outcome"),
+            outcome_subject_identity,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("outcome_class"),
+            writeback_outcome_class_label(outcome_class),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("request"), request_subject_identity)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), receipt_subject_identity)
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("execution_receipt"),
+            execution_receipt_subject_identity,
+        )
+        .seal()
+}
+
+fn writeback_outcome_class_label(outcome_class: BridgeWritebackOutcomeClass) -> &'static str {
+    match outcome_class {
+        BridgeWritebackOutcomeClass::CanonicalNoop => "canonical-noop",
+        BridgeWritebackOutcomeClass::AuthoritativeCommit => "authoritative-commit",
+        BridgeWritebackOutcomeClass::Rejected => "rejected",
+    }
 }
 
 fn incomplete_bridge_record_error(
@@ -150,7 +255,7 @@ fn incomplete_bridge_record_error(
         format!(
             "independent bridge oracle inspection found writeback record `{record_digest}` without `{missing_field}`"
         ),
-        "bridge:last-writeback".to_string(),
-        Some(record_digest),
+        &bridge_oracle_observation_subject(),
+        Some(&bridge_observation_execution_record_subject_identity(record_digest)),
     )
 }

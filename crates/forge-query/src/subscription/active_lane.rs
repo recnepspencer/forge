@@ -1,3 +1,5 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
 use super::active_budget::{ActiveSubscriptionAllocationPosture, ActiveSubscriptionWorkBudget};
 use super::active_counters::ActiveSubscriptionCounters;
 use super::active_digest::ActiveSubscriptionLaneDigest;
@@ -15,8 +17,8 @@ pub struct ActiveSubscriptionLaneAdmission {
     pub(super) query_declaration_digest: String,
     pub(super) bridge_declaration_digest: String,
     pub(super) future_selection: QuerySubscriptionFutureSelection,
-    pub(super) basis_binding_digest: String,
-    pub(super) checkpoint_identity_digest: String,
+    pub(super) basis_binding_identity: ForgeQueryEvidenceIdentity,
+    pub(super) checkpoint_identity: ForgeQueryEvidenceIdentity,
     pub(super) signal_strategy_digest: String,
     pub(super) lifecycle_posture: ActiveSubscriptionLifecyclePosture,
     pub(super) delivery_posture: ActiveSubscriptionDeliveryPosture,
@@ -52,12 +54,20 @@ impl ActiveSubscriptionLaneAdmission {
         &self.future_selection
     }
 
-    pub fn basis_binding_digest(&self) -> &str {
-        &self.basis_binding_digest
+    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_binding_identity
     }
 
-    pub fn checkpoint_identity_digest(&self) -> &str {
-        &self.checkpoint_identity_digest
+    pub fn basis_binding_for_reporting(&self) -> &str {
+        self.basis_binding_identity.as_str()
+    }
+
+    pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.checkpoint_identity
+    }
+
+    pub fn checkpoint_for_reporting(&self) -> &str {
+        self.checkpoint_identity.as_str()
     }
 
     pub fn signal_strategy_digest(&self) -> &str {
@@ -105,8 +115,8 @@ pub struct ActiveSubscriptionLane {
     pub(super) query_declaration_digest: String,
     pub(super) bridge_declaration_digest: String,
     pub(super) future_selection: QuerySubscriptionFutureSelection,
-    pub(super) basis_binding_digest: String,
-    pub(super) checkpoint_identity_digest: String,
+    pub(super) basis_binding_identity: ForgeQueryEvidenceIdentity,
+    pub(super) checkpoint_identity: ForgeQueryEvidenceIdentity,
     pub(super) signal_strategy_digest: String,
     pub(super) lifecycle_posture: ActiveSubscriptionLifecyclePosture,
     pub(super) delivery_posture: ActiveSubscriptionDeliveryPosture,
@@ -140,12 +150,20 @@ impl ActiveSubscriptionLane {
         &self.future_selection
     }
 
-    pub fn basis_binding_digest(&self) -> &str {
-        &self.basis_binding_digest
+    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_binding_identity
     }
 
-    pub fn checkpoint_identity_digest(&self) -> &str {
-        &self.checkpoint_identity_digest
+    pub fn basis_binding_for_reporting(&self) -> &str {
+        self.basis_binding_identity.as_str()
+    }
+
+    pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.checkpoint_identity
+    }
+
+    pub fn checkpoint_for_reporting(&self) -> &str {
+        self.checkpoint_identity.as_str()
     }
 
     pub fn signal_strategy_digest(&self) -> &str {

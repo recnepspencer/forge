@@ -3,17 +3,23 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use crate::facade::BridgeRequestKind;
-use crate::identity::{BridgeIdentity, PolicyDeclarationIdentityTag};
+use crate::identity::{BridgeIdentity, BridgeIdentityEvidence, PolicyDeclarationIdentityTag};
 
 use super::{BridgeDiagnosticsTier, BridgeExecutionPolicyClass};
 
 pub type BridgePolicyDeclarationIdentity = BridgeIdentity<PolicyDeclarationIdentityTag>;
 
 impl BridgePolicyDeclarationIdentity {
-    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
         Self::new(format!(
             "bridge-policy-declaration:external-authority-evidence:{}",
-            evidence_identity.as_ref()
+            evidence_identity.as_str()
+        ))
+    }
+
+    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+        Self::from_bridge_evidence(&BridgeIdentityEvidence::from_external_authority(
+            evidence_identity,
         ))
     }
 }

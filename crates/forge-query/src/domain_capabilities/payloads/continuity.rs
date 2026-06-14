@@ -41,31 +41,62 @@ impl ForgeQueryContinuityContributionPosture {
     }
 }
 
-fn compose_continuity_runtime_semantics_identity(
-    runtime_semantics: &ForgeQueryContinuityRuntimeSemantics,
+fn continuity_authoritative_identity(
+    role: &str,
+    source_label: &str,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
         .field_shape(
             ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_capability_continuity_runtime_semantics_v1",
+            "forge_query_continuity_authoritative_source_v1",
         )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("family"),
-            runtime_semantics.family().as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("outcome_class"),
-            runtime_semantics.outcome_class().as_str(),
-        )
-        .field_identity(
-            ForgeQueryEvidenceTag::new("prior_authoritative"),
-            runtime_semantics.prior_authoritative_identity(),
-        )
-        .field_identity_sequence(
-            ForgeQueryEvidenceTag::new("successor_authoritative"),
-            runtime_semantics.successor_authoritative_identities(),
-        )
+        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
         .seal()
+}
+
+fn continuity_successor_authoritative_identity(
+    index: usize,
+    source_label: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_continuity_authoritative_source_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "successor")
+        .field_usize(ForgeQueryEvidenceTag::new("index"), index)
+        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
+        .seal()
+}
+
+fn compose_continuity_runtime_semantics_identity(
+    runtime_semantics: &ForgeQueryContinuityRuntimeSemantics,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("identity_family"),
+        "forge_query_domain_capability_continuity_runtime_semantics_v1",
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("family"),
+        runtime_semantics.family().as_str(),
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("outcome_class"),
+        runtime_semantics.outcome_class().as_str(),
+    )
+    .field_evidence_identity(
+        ForgeQueryEvidenceTag::new("prior_authoritative"),
+        runtime_semantics.prior_authoritative_identity(),
+    )
+    .field_evidence_identity_sequence(
+        ForgeQueryEvidenceTag::new("successor_authoritative"),
+        runtime_semantics.successor_authoritative_identities().iter(),
+    )
+    .seal()
 }
 
 fn compose_continuity_payload_identity(
@@ -97,9 +128,9 @@ fn compose_continuity_payload_identity(
         None => identity.field_shape(ForgeQueryEvidenceTag::new("runtime"), "none"),
     };
     identity = match correspondence_semantics {
-        Some(correspondence) => identity.field_shape(
+        Some(correspondence) => identity.field_evidence_identity(
             ForgeQueryEvidenceTag::new("correspondence"),
-            correspondence.digest_fragment(),
+            &correspondence.semantics_identity(),
         ),
         None => identity.field_shape(ForgeQueryEvidenceTag::new("correspondence"), "none"),
     };
@@ -110,8 +141,10 @@ fn compose_continuity_payload_identity(
 pub struct ForgeQueryContinuityRuntimeSemantics {
     family: ForgeQueryContinuityMutationFamily,
     outcome_class: ForgeQueryContinuityMutationOutcomeClass,
-    prior_authoritative_identity: String,
-    successor_authoritative_identities: Vec<String>,
+    prior_authoritative_source_label_for_reporting: String,
+    prior_authoritative_identity: ForgeQueryEvidenceIdentity,
+    successor_authoritative_source_labels_for_reporting: Vec<String>,
+    successor_authoritative_identities: Vec<ForgeQueryEvidenceIdentity>,
 }
 
 impl ForgeQueryContinuityRuntimeSemantics {
@@ -125,14 +158,24 @@ impl ForgeQueryContinuityRuntimeSemantics {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
+        let prior_authoritative_source_label_for_reporting = prior_authoritative_identity.into();
+        let prior_label = prior_authoritative_source_label_for_reporting.clone();
+        let successor_labels = successor_authoritative_identities
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<String>>();
+        let successor_authoritative_identities = successor_labels
+            .iter()
+            .enumerate()
+            .map(|(index, label)| continuity_successor_authoritative_identity(index, label))
+            .collect();
         Self {
             family,
             outcome_class,
-            prior_authoritative_identity: prior_authoritative_identity.into(),
-            successor_authoritative_identities: successor_authoritative_identities
-                .into_iter()
-                .map(Into::into)
-                .collect(),
+            prior_authoritative_source_label_for_reporting,
+            prior_authoritative_identity: continuity_authoritative_identity("prior", &prior_label),
+            successor_authoritative_source_labels_for_reporting: successor_labels,
+            successor_authoritative_identities,
         }
     }
 
@@ -144,12 +187,24 @@ impl ForgeQueryContinuityRuntimeSemantics {
         self.outcome_class
     }
 
-    pub fn prior_authoritative_identity(&self) -> &str {
+    pub fn prior_authoritative_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.prior_authoritative_identity
     }
 
-    pub fn successor_authoritative_identities(&self) -> &[String] {
+    pub fn prior_authoritative_for_reporting(&self) -> &str {
+        self.prior_authoritative_identity.as_str()
+    }
+
+    pub fn prior_authoritative_source_label_for_reporting(&self) -> &str {
+        &self.prior_authoritative_source_label_for_reporting
+    }
+
+    pub fn successor_authoritative_identities(&self) -> &[ForgeQueryEvidenceIdentity] {
         &self.successor_authoritative_identities
+    }
+
+    pub fn successor_authoritative_source_labels_for_reporting(&self) -> &[String] {
+        &self.successor_authoritative_source_labels_for_reporting
     }
 }
 
@@ -284,5 +339,9 @@ impl ForgeQueryDomainCapabilityPayload for ForgeQueryContinuityContributionPaylo
 
     fn payload_digest(&self) -> &str {
         self.payload_digest()
+    }
+
+    fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }

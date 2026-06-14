@@ -9,7 +9,7 @@ use crate::speculation::{
 
 use super::super::digest_basis::{
     compose_retained_causal_mapping_evidence_identity, retained_mapping_bridge_identity_part,
-    retained_mapping_external_authority_part, RetainedCausalMappingDigestArtifact,
+    RetainedCausalMappingDigestArtifact,
 };
 
 pub(crate) fn route_record_digest(
@@ -17,7 +17,9 @@ pub(crate) fn route_record_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .route_record_for_route_identity(&BridgeRouteIdentity::new(reference_identity.as_str()))
+        .route_record_for_route_identity(&BridgeRouteIdentity::from_reference_evidence(
+            reference_identity,
+        ))
         .map(|record| {
             compose_retained_causal_mapping_evidence_identity(
                 RetainedCausalMappingDigestArtifact::RouteRecord,
@@ -25,8 +27,6 @@ pub(crate) fn route_record_digest(
                     retained_mapping_bridge_identity_part(record.route_identity()),
                     retained_mapping_bridge_identity_part(record.invalidation_identity()),
                     retained_mapping_bridge_identity_part(record.source_commit()),
-                    retained_mapping_external_authority_part(record.planning_summary_digest()),
-                    retained_mapping_external_authority_part(record.lowering_summary_digest()),
                 ],
             )
         })
@@ -63,13 +63,7 @@ pub(crate) fn preview_execution_record_digest(
         .map(|record| {
             compose_retained_causal_mapping_evidence_identity(
                 RetainedCausalMappingDigestArtifact::PreviewExecutionRecord,
-                &[
-                    retained_mapping_bridge_identity_part(record.record_identity()),
-                    retained_mapping_external_authority_part(record.preview_session_identity()),
-                    retained_mapping_external_authority_part(record.preview_declaration_digest()),
-                    retained_mapping_external_authority_part(record.branch_binding_digest()),
-                    retained_mapping_external_authority_part(record.digest()),
-                ],
+                &[retained_mapping_bridge_identity_part(record.record_identity())],
             )
         })
 }
@@ -87,10 +81,7 @@ pub(crate) fn preview_discard_record_digest(
                 RetainedCausalMappingDigestArtifact::PreviewDiscardRecord,
                 &[
                     retained_mapping_bridge_identity_part(record.record_identity()),
-                    retained_mapping_external_authority_part(record.preview_session_identity()),
                     retained_mapping_bridge_identity_part(record.preview_execution_record_identity()),
-                    retained_mapping_external_authority_part(record.residue_report().digest()),
-                    retained_mapping_external_authority_part(record.digest()),
                 ],
             )
         })
@@ -109,14 +100,7 @@ pub(crate) fn preview_promotion_record_digest(
                 RetainedCausalMappingDigestArtifact::PreviewPromotionRecord,
                 &[
                     retained_mapping_bridge_identity_part(record.record_identity()),
-                    retained_mapping_external_authority_part(record.preview_session_identity()),
                     retained_mapping_bridge_identity_part(record.preview_execution_record_identity()),
-                    retained_mapping_external_authority_part(record.promotion_proof_digest()),
-                    retained_mapping_external_authority_part(
-                        record.authoritative_commit_boundary_digest(),
-                    ),
-                    retained_mapping_external_authority_part(record.authoritative_artifact_digest()),
-                    retained_mapping_external_authority_part(record.digest()),
                 ],
             )
         })

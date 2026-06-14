@@ -113,7 +113,7 @@ pub fn select_query_subscription_family(
     live: LiveQueryAdmissionArtifact,
     budget: QuerySubscriptionWorkBudget,
 ) -> Result<QuerySubscriptionFamilySelection, QuerySubscriptionFamilySelectionError> {
-    let source_digest = live.diagnostic_source_digest();
+    let source_digest = live.diagnostic_source_for_reporting().to_string();
     let mut counters = QuerySubscriptionDeclarationCounters::default();
 
     if !live.relationship_proof_posture.admits_subscription() {

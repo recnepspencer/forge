@@ -49,7 +49,7 @@ pub(in super::super) fn compose_basis_admission_identity(
             authority_lane.as_str(),
         )
         .field_identity_sequence(
-            crate::ForgeQueryEvidenceTag::new("evidence_row"),
+            crate::ForgeQueryEvidenceTag::new("basis_evidence"),
             evidence_rows.iter().map(|row| row.row_digest().as_str()),
         )
         .seal()

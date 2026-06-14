@@ -55,7 +55,7 @@ fn truth_view_readmission_binds_branch_head_observation_evidence() {
     );
     assert_eq!(bound.counters().lower_runtime_check_count(), 1);
     assert_eq!(bound.counters().denied_residue_count(), 0);
-    assert!(!bound.binding_digest().is_empty());
+    assert!(!bound.binding_for_reporting().is_empty());
 }
 
 #[test]

@@ -1,8 +1,9 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::active_digest::ActiveSubscriptionLaneDigest;
 use super::active_posture::ActiveSubscriptionDeliveryPosture;
 use super::delivery_dimensions::MaintenanceDeltaWidth;
+use super::evidence_identities::lifecycle_maintenance_delta_identity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionMaintenanceDeltaKind {
@@ -35,8 +36,9 @@ impl QuerySubscriptionMaintenanceDeltaKind {
 pub struct QuerySubscriptionMaintenanceDelta {
     kind: QuerySubscriptionMaintenanceDeltaKind,
     active_lane_digest: ActiveSubscriptionLaneDigest,
-    affected_scope_digest: String,
+    affected_scope: String,
     width: MaintenanceDeltaWidth,
+    maintenance_delta_identity: ForgeQueryEvidenceIdentity,
     maintenance_delta_digest: String,
 }
 
@@ -47,22 +49,20 @@ impl QuerySubscriptionMaintenanceDelta {
         affected_scope: impl Into<String>,
         width: MaintenanceDeltaWidth,
     ) -> Self {
-        let affected_scope_digest = hash_parts(&[
-            "query_subscription_affected_scope_v1".to_string(),
-            format!("scope:{}", affected_scope.into()),
-        ]);
-        let maintenance_delta_digest = hash_parts(&[
-            "query_subscription_maintenance_delta_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("lane:{}", active_lane_digest.as_str()),
-            format!("scope:{}", affected_scope_digest),
-            format!("width:{}", width.get()),
-        ]);
+        let affected_scope = affected_scope.into();
+        let maintenance_delta_identity = lifecycle_maintenance_delta_identity(
+            kind,
+            active_lane_digest.evidence_identity(),
+            &affected_scope,
+            width.get(),
+        );
+        let maintenance_delta_digest = maintenance_delta_identity.as_str().to_string();
         Self {
             kind,
             active_lane_digest,
-            affected_scope_digest,
+            affected_scope,
             width,
+            maintenance_delta_identity,
             maintenance_delta_digest,
         }
     }
@@ -76,7 +76,11 @@ impl QuerySubscriptionMaintenanceDelta {
     }
 
     pub fn affected_scope_digest(&self) -> &str {
-        &self.affected_scope_digest
+        self.affected_scope.as_str()
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.maintenance_delta_identity
     }
 
     pub fn width(&self) -> u64 {
@@ -106,19 +110,36 @@ impl QuerySubscriptionMaintenanceDelta {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryMaintenanceDeltaLoweringReport {
     maintenance_delta_digest: String,
+    lowering_report_identity: ForgeQueryEvidenceIdentity,
     lowering_report_digest: String,
 }
 
 impl QueryMaintenanceDeltaLoweringReport {
     pub(super) fn new(delta: &QuerySubscriptionMaintenanceDelta) -> Self {
-        let lowering_report_digest = hash_parts(&[
-            "query_maintenance_delta_lowering_report_v1".to_string(),
-            format!("delta:{}", delta.maintenance_delta_digest()),
-            format!("kind:{}", delta.kind().as_str()),
-            format!("width:{}", delta.width()),
-        ]);
+        let lowering_report_identity = ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+            "query_maintenance_delta_lowering_report_v1",
+        )
+        .field_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("maintenance_delta"),
+            delta.evidence_identity(),
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("kind"),
+            delta.kind().as_str(),
+        )
+        .field_usize(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("width"),
+            delta.width() as usize,
+        )
+        .seal();
+        let lowering_report_digest = lowering_report_identity.as_str().to_string();
         Self {
             maintenance_delta_digest: delta.maintenance_delta_digest().to_string(),
+            lowering_report_identity,
             lowering_report_digest,
         }
     }
@@ -129,5 +150,9 @@ impl QueryMaintenanceDeltaLoweringReport {
 
     pub fn lowering_report_digest(&self) -> &str {
         &self.lowering_report_digest
+    }
+
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lowering_report_identity
     }
 }

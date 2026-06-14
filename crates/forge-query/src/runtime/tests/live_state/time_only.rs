@@ -84,7 +84,7 @@ fn runtime_state_and_inspection_retain_last_time_only_delivery_after_drain() {
     assert!(state.explanation().contains("window_entry"));
     assert!(state.explanation().contains("relational_patch=false"));
     assert_eq!(
-        state.result_shape_digest(),
+        state.result_shape_for_reporting(),
         view.subscription_installation().view_shape_for_reporting()
     );
     assert_eq!(
@@ -92,8 +92,8 @@ fn runtime_state_and_inspection_retain_last_time_only_delivery_after_drain() {
         Some(QuerySubscriptionDeliveryCauseKind::WindowEntry)
     );
     assert_eq!(
-        inspection.last_delivery_cause_digest(),
-        Some(emitted.delivery_cause_digest())
+        inspection.last_delivery_cause_for_reporting(),
+        Some(emitted.delivery_cause_for_reporting())
     );
     assert!(!inspection.last_delivery_had_relational_patch());
 }

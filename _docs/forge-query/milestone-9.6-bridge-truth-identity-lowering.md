@@ -432,6 +432,232 @@ Do not treat Phase 8 as complete for sequencing or closeout until then.
 consume the typed receipt/query facade must compile without string shims before
 Phase 10 closeout.
 
+### End-to-End Trace Map — Phase 7 Through Phase 9
+
+Use this trace map before changing row status. The Collapse Matrix remains the
+inventory, but these lanes define what a complete fix must prove end to end.
+
+**Trace classification rules**
+
+- `Phase 7 blocker`: an ordinary `forge-query` or `forge-runtime-bridge`
+  authority path composes, routes, compares, recovers, mints, or admits from a
+  string/digest/reporting projection instead of typed evidence.
+- `Phase 8 blocker`: production `worth-topo` consumes Query or bridge identity
+  through string commit/snapshot/entity/route authority instead of typed
+  carriers.
+- `Phase 9 blocker`: harness, certification, compat, or downstream code still
+  teaches or depends on old string authority. Legitimate HTTP/JSON/display text
+  is allowed only as terminal compatibility projection.
+- `Allowed projection`: explicit `*_for_reporting()` or compatibility display
+  output backed by typed internal fields and never fed back into authority.
+
+| Lane | Phase | Authoritative roots | Pipeline to trace | Current blockers / watchpoints |
+|------|-------|---------------------|-------------------|--------------------------------|
+| Upstream relational and signal roots | 7/8/9 | relational bridge snapshot/commit/record parts, grouped truth row identities, signal branch basis identities, signal merge compatibility basis, host output identity tokens | relational runtime IDs -> bridge truth identities -> grouped/read artifacts; signal branch/snapshot/output tokens -> branch basis -> merge compatibility/support -> Query/runtime subscription feeders | Relational bridge root appears typed in scoped pass. Signal is not bridge-truth-rooted, but it has its own domain-token/branch-basis lane; Phase 8/9 must not treat signal output/domain tokens or signal digest proofs as substitutes for bridge/query truth identities. |
+| Declaration identity | 7/8/9 | `ForgeQueryAdmittedWorldBasis`, canonical declaration artifacts, `ForgeQueryDeclarationProgressionPayload`, foundational evidence, route plans | admitted handle/world basis -> checked declaration -> legality -> progression -> foundational evidence -> route plan -> receipt/envelope -> bridge continuation lowering | Phase 8 watchpoint: `application/declaration_evidence/artifact.rs` compares retained-world handle identity through reporting accessors. Keep `application/declaration_bridge_routing/lower_identity.rs` sealed; query truth IDs may be derived only from typed Query evidence, not caller display strings. |
+| Workflow binding and preview | 7 | `WorkflowContextBinding`, workflow declaration reports, workflow runtime semantics, preview foundation artifacts, bridge preview session identities | payload authoring -> declaration/admitted-plan target -> request + target binding -> runtime semantics -> workflow binding -> declaration admission -> lowering/preview materialization | Phase 7 open: `workflow/foundation.rs` digest accessors, `workflow/lowering/mutation.rs::binding_digest`, `domain_capabilities/payloads/workflow.rs::payload_digest`, and `workflow/inspection/operations.rs::inspect_post_merge_outcome` reporting-string equality. |
+| Canonical runtime materialization | 7 | domain-capability contribution phase wrappers, target bindings, `ForgeQueryCanonicalRuntimeMaterialization`, typed payload identities | payload + typed target binding -> requested/eligible/admitted contribution -> materialization-ready contribution -> canonical runtime artifact/support/continuity/explanation/invariant evidence | Scoped lane is mostly typed. Watch projection re-entry through `target_digest()`, `binding_digest()`, materialization/report digests, source labels, and payload feeders. Include `continuity_correspondence.rs`, `aftermath.rs`, and `explanation.rs` in future QA. |
+| Effect execution | 7/9 | `EffectAuthoringBasis`, workflow binding/declaration, `LoweredEffectExecutionPlan`, `ExecutedEffectPlan`, `EffectExecutionReceipt` | authoring basis -> normalized intent -> eligibility/admission -> authority-scoped plan -> workflow lowering -> relational/bridge execution -> typed receipt -> envelope/oracle/certification | Phase 7 open: `effect_lifecycle/batch_admission.rs` compares scoped basis and lower-runtime binding through `*_digest()` accessors for admission coherence. |
+| Causal inspection | 7/9 | causal inspection identity wrappers, observation receipts, bridge envelopes/bindings, materialization receipts/proofs | observation receipt -> causal anchor/reference resolution -> request/admission -> bridge envelope -> materialization/readmission proof -> query causal artifact -> exploration/proof/certification projections | Phase 7 watchpoint: remaining `*_digest()` aliases and wrapper `as_str()` accessors can look authoritative beside typed identities. Phase 9 remains open in causal tests/support fixtures. |
+| Subscription and session lifecycle | 7/9 | subscription declarations/admissions, activation receipts, active lanes, continuation evidence, live installation/session identities | declaration/admission -> bridge lowering -> basis binding -> signal strategy -> activation -> active lane -> attachment -> delivery/continuation/closeout -> runtime session/live installation | Phase 7 open: active lane, registry, and continuation paths still expose or accept digest/string-shaped source/target/basis/checkpoint/authority values in ordinary lifecycle decisions. |
+| Bridge retained evidence | 7/9 | `BridgeIdentityEvidence`, bridge causal references/bindings/envelopes/receipts, retained mapping evidence parts, Query causal reference artifacts | Query causal reference -> bridge causal reference -> retained mapping lookup -> bridge binding/envelope/receipt -> Query materialized causal reference artifact | Phase 7 watchpoint: retained mapping adapters still cross legacy string-keyed bridge lookup APIs in `route_history_preview.rs`, `planning_checkpoint.rs`, and `source_structural_stream.rs`; QA must inspect them directly. |
+| Worth-topo production downstream | 8 | relational commit/snapshot/record parts, bridge truth identities, Query commit/snapshot/entity identities | relational parts -> bridge truth identity -> Query typed receipt/read identity -> worth-topo write/read adapters -> diagnostic or JSON projection | Phase 8 open: commit/snapshot/route lanes look typed, but production entity/relation authority still re-enters through formatted strings in write lowering, patch matching, read execution anchors, retained row lookup, and handle-read anchor inputs. |
+| Phase 9 downstream and harness cleanup | 9 | relational IDs, bridge truth carriers, Query typed mutation/read receipts | typed lower identity -> bridge/Query typed receipt -> harness/downstream adapter -> terminal report/compat projection | Phase 9 open: Query harnesses/certification, worth-topo certification, forge-server adapters, hadwiger-research, and forge-ui still contain string-authority consumers. `worth-kernel` and `forge-kernel` had no current blocker in this sweep. |
+
+### Detailed End-to-End Pipeline Matrix
+
+This section is the working trace inventory. Each row must be resolved,
+explicitly quarantined as projection-only, or moved to a later owner milestone
+before Phase 10 closeout. Do not collapse these rows back into broad folder
+claims.
+
+#### Upstream Relational And Signal Root Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Relational bridge snapshot identity | `SnapshotHandle`, `SnapshotId`, `VersionId` | `bridge_snapshot_identity_for_handle`, `bridge_snapshot_identity_for_commit`, `parse_bridge_snapshot_identity` | bridge snapshot display string | Upstream covered | Keep typed `TruthSnapshotIdentity` with relational snapshot parts; no string parse authority in scoped pass |
+| Relational bridge commit identity | `CommitId` | `TruthCommitIdentity::from_relational_commit_id` -> `parse_bridge_commit_identity` | bridge commit display string | Upstream covered | Keep relational commit extraction through typed bridge identity parts |
+| Relational record identity | `RecordRef`, `EntityId`, `RelationId` | `record_ref_identity` -> `RelationalBridgeRecordIdentityParts` -> `record_ref_from_identity_parts` | `RelationalRowIdentity::as_str()` diagnostic label | Projection quarantine | Row display label must remain diagnostic; authority is record identity parts |
+| Relational patch envelope identity | publication bundle / canonical commit envelope | `publication_patch_to_bridge_envelope` -> `BridgeCommittedPatchEnvelopeIdentity` | branch/patch/snapshot display labels | Upstream covered | Keep envelope built from typed commit, patch position, snapshot, and branch identities |
+| Grouped truth row set | bridge snapshot read packet/result | `materialize_relational_authoritative_row_set` -> `RelationalAuthoritativeRowSetArtifact` | row-set digest, request-key error labels | Upstream covered with projection watchpoint | Digest is artifact evidence; request key is error reporting only |
+| Grouped projection | grouped row set + contract | `grouped_projection.rs::RelationalGroupedProjectionArtifact` implements `GroupedProjectionSource` | `GroupedProjectionMemberSource::row_identity() -> &str` at `grouped_projection.rs:67` | Projection quarantine | Exact projection site identified; downstream must not parse this row string back into authority |
+| Grouped truth canonical digest | typed snapshot + typed row parts | `row_set_digest`, `grouped_projection_digest` | prefixed SHA strings | Allowed artifact digest | Canonical digest may certify artifact contents, not replace snapshot/record identity |
+| Signal branch identity | `SignalBranchId`, `SignalSnapshotId`, branch posture, restore posture | `SignalBranchBasisIdentity` -> `SignalBranchBasisArtifact` | branch component, snapshot component, head component, restore component, basis digests | Upstream signal root | Valid signal authority lane; must stay distinct from bridge truth identity lane |
+| Signal branch trust-boundary bridge | `SignalBranchBasisArtifact` | `bridge_signal_branch_basis_trust_boundary` -> `BoundaryBridgedSignalBranchBasisArtifact` | basis digest reporting | Upstream signal watchpoint | Boundary-bridged signal basis requires revalidation; do not consume digest as current authority |
+| Signal merge compatibility basis | signal branch basis identity + scoped merge proof + strategy witness | `compatibility/readmission.rs::build_compatibility_basis` -> `SignalMergeCompatibilityBasis` | declaration, admitted-scope, strategy-witness digests copied into basis | Exact signal audit site | Exact constructor identified; digest fields are proof components and must not become bridge/query identity authority |
+| Signal merge compatibility witness | compatibility fact inventory | `SignalMergeCompatibilityWitness::new` / replay decode | compatibility digest | Allowed proof digest | Digest validates fact inventory equality only; not a bridge/query identity |
+| Signal output identity | host-provided `OutputIdentity` | `data/output.rs::NodeEvaluationResult::with_output_identity` -> `branching/merge_runtime.rs::resolve_identity_matches` -> `IdentityCorrespondenceRecord` | opaque string token + stable hash; `target_index.get(&source_output_identity)` | Exact signal audit site | Host/domain equivalence token is used for signal merge correspondence only; never promote this token into query/bridge truth identity |
+| Signal partition/detail tokens | host-provided `PartitionToken`, changed regions, subscriptions | partition interner -> scoped invalidation/reuse matching | partition/detail strings | Domain boundary token | Allowed for signal domain scoping; keep separate from relational record/entity identity |
+| Signal identity matcher registry | `IdentityMatcherDescriptor`, typed IDs/names/policies | frozen registry -> selected matcher -> lowered merge plan | descriptor/registry digests | Upstream signal proof evidence | Registry digests certify selected strategy; not entity or branch identity |
+| Signal scoped merge proof | normalized scope + scoped candidates | `merge/scoped_proof.rs::ScopedMergeProofPacket` -> `compatibility/readmission.rs::compare_retained_inputs` and `inspection/support_witness.rs::compare_retained_support_inputs` | declaration/admitted/skipped/no-op scope digests compared directly | Exact signal audit site | Exact digest-comparison sites identified; acceptable only if scoped proof remains the proof authority and never becomes query/bridge identity |
+| Query subscription signal handoff | Query subscription/runtime session identity + signal strategy/basis | subscription activation -> active lane -> signal invalidation/support | signal basis/strategy digest-looking fields | Cross-lane blocker | Query must carry typed Query/bridge identities and treat signal digest fields as signal proof evidence only |
+| Worth-topo via signal-derived read freshness | signal invalidation/session proof + Query typed read identity | signal domain event -> Query read execution/read views | output identity / partition token strings | Phase 8 watchpoint | Worth-topo must not use signal domain tokens as relational entity/relation anchors |
+
+#### Declaration Identity Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Declaration entry orchestration | `ForgeQueryAdmittedConfiguredDomainHandle` | `orchestrate_declaration_entry` -> `forge_query_lower_declaration_entry_orchestration_on_handle` | orchestration transcript digests | Phase 7 covered | Keep as typed pipeline root |
+| World basis identity | `ForgeQueryAdmittedWorldBasis` | typed `handle_identity()` and `basis_lifecycle_support_identity()` | `handle_identity_for_reporting()`, `basis_lifecycle_support_for_reporting()` | Phase 8 watchpoint | Reporting accessors may stay only if equality checks use typed identity |
+| Canonical declaration identity | `ForgeQueryCanonicalDeclarationArtifact` | canonical declaration artifact -> progression payload | canonical digest rendering | Phase 7 covered | Keep digest as declaration artifact identity, not bridge truth identity |
+| Progression payload | retained legality evidence + world basis | `ForgeQueryDeclarationProgressionPayload` -> checked outcome | `hash_parts` progression digest | Phase 7 watchpoint | Document digest as progression proof carrier only |
+| Foundational evidence | `ForgeQueryDeclarationFoundationalEvidenceInput` | admitted progression -> foundational evidence | `handle_identity_digest()` | Phase 8 blocker | Compare typed world-basis handle identity, project only in denial detail |
+| Route planning | admitted progression + foundational evidence | `ForgeQueryDeclarationRoutePlanInput::admitted` -> checked route plan | route report strings | Phase 9 covered | Keep route plan typed; no Phase 9 blocker found in lane |
+| Bridge continuation lowering | declaration envelope + bridge contract | `declaration_bridge_routing/lower.rs` -> bridge bindings | `AspectValue::String(envelope.declaration_digest())` | Projection quarantine | Payload display only; do not use as route authority |
+| Query truth identity mint | Query evidence | `query_truth_*_identity` in `lower_identity.rs` | stable hash positions | Re-entry risk | Keep sealed; forbid caller display strings as input |
+| Contribution-composed composition | composed contribution evidence | `ForgeQueryContributionComposedComposition` | aggregate ordering by `as_str()` | Projection quarantine | Sorting sealed identities is allowed only for deterministic aggregate projection |
+
+#### Workflow Binding And Preview Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Workflow context binding | `WorkflowContextBinding` | source/query/basis/binding identities | `binding_digest()`, `query_for_reporting()`, `basis_for_reporting()` | Phase 7 blocker | Rename/quarantine digest accessors and keep authority on typed identities |
+| Workflow declaration | `QueryWorkflowDeclaration` | binding + request -> admission report | `declaration_digest()` | Phase 7 blocker | Projection accessor must not feed downstream authority |
+| Mutation authority binding | workflow lowering | `MutationAuthorityBinding` | `binding_digest()` | Phase 7 blocker | Carry typed binding identity through mutation lowering |
+| Workflow payload identity | workflow payload | `ForgeQueryWorkflowContributionPayload` | `payload_digest()` | Phase 7 blocker | Use typed payload identity in composition; report digest only at output |
+| Preview canonical query | preview binding + request | preview canonical query identity -> `CanonicalQueryDigest` | canonical digest label | Phase 7 covered | Keep derived from typed evidence identity |
+| Preview validated query | canonical query identity | validated query identity -> `ValidatedQueryDigest` | validated digest label | Phase 7 covered | Keep derived from typed evidence identity |
+| Preview declaration identity | payload + binding + request + preview session | `BridgePreviewSessionDeclarationIdentity` | declaration digest identity | Phase 7 covered | Use bridge evidence identity, not external authority text |
+| Unsupported preview denial | payload posture + target kind | denial receives request identity | denial message | Phase 7 covered | Keep request identity typed in denial constructor |
+| Post-merge inspection | workflow declaration + merge outcome | `inspect_post_merge_outcome` | `query_for_reporting()` / `basis_for_reporting()` equality | Phase 7 blocker | Compare typed query/basis identities or typed outcome evidence |
+
+#### Canonical Runtime Materialization Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Contribution request | `ForgeQueryDomainCapabilityContribution<P,T>` | request identity into eligible/admitted phases | request digest/reporting | Phase 7 covered | Keep request identity typed |
+| Target binding | `ForgeQueryDomainCapabilityTargetBinding` | target identity + binding identity | `target_digest()`, `binding_digest()` | Projection watchpoint | Future composition must consume identities, not digest accessors |
+| Materialization-ready proof | admitted contribution | `ForgeQueryMaterializationReadyDomainCapabilityContribution` | proof/report labels | Phase 7 covered | Keep as required carrier into materializers |
+| Generic canonical artifact | contribution + target + payload | `ForgeQueryCanonicalRuntimeMaterialization::new` | materialization digest | Phase 7 covered | Compose typed target/binding/request/payload/materialization evidence |
+| Support materialization | support payload + target binding | support artifact/support rows | support report digest | Projection watchpoint | Include payload feeder in QA |
+| Invariant capability materialization | invariant/capability payload | invariant capability artifact | program/breadth digests | Projection watchpoint | Consume `program_identity()` / `breadth_identity()` where available |
+| Continuity materialization | continuity payload | continuity artifact | source labels | Projection watchpoint | Labels are source labels only, not parsed identity |
+| Continuity correspondence | correspondence payload | correspondence artifact | correspondence report labels | Projection watchpoint | Add file to Phase 7 feeder row coverage |
+| Aftermath materialization | aftermath payload | aftermath artifact | source label fallback | Projection watchpoint | Prefer source evidence identity when present |
+| Explanation materialization | explanation payload + bridge/query evidence | explanation artifact | requested evidence family join string | Projection watchpoint | Family-set string is descriptive only |
+| Workflow semantics payload | workflow runtime semantics | preview/writeback/lowering materializers | payload/report digests | Cross-lane feeder | Keep tied to workflow lane blockers |
+
+#### Effect Execution Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Authoring basis | `EffectAuthoringBasis` | capability/scoped basis identities | capability/scoped basis reporting | Phase 7 covered | Keep typed basis identity methods as source |
+| Normalized intent | raw effect intent | `NormalizedEffectIntent` | `capability_digest()`, `scoped_basis_digest()`, `expected_lower_runtime_binding_digest()`, `normalized_digest()` | Re-entry risk | Projection accessors must not drive admission/coherence |
+| Eligibility/admission | normalized intent | eligibility/admission output | denial strings | Phase 7 covered | Keep typed normalized identity |
+| Batch admission | normalized batch items | mixed-basis check | `scoped_basis_digest()` and `expected_lower_runtime_binding_digest()` comparisons | Phase 7 blocker | Compare typed identities for batch coherence |
+| Lowered effect plan | admitted effect | `LoweredEffectExecutionPlan` | plan reporting | Phase 7 covered | Keep plan identity typed |
+| Execution authority | relational/bridge runtime | `EffectExecutionAuthority` -> executed artifact | runtime error messages | Phase 7 covered | Do not use diagnostic strings as authority |
+| Executed plan | lowered plan + authority artifact | `ExecutedEffectPlan` | artifact reporting | Phase 7 covered | `executed_authority_artifact_identity` composes typed evidence |
+| Execution receipt | executed plan | `EffectExecutionReceipt` | `*_for_reporting()` | Phase 7 covered | Reporting only |
+| Oracle verification | execution receipt + retained bridge records | oracle verification identities | bridge digest wrappers | Phase 9 watchpoint | Certification/reporting only unless reused for execution |
+| Closeout certification | seeded/phase4/closeout rows | closeout bundle digests | `hash_parts` report digests | Phase 9 watchpoint | Allowed as certification evidence if not execution authority |
+
+#### Causal Inspection Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Observation receipt | query/write/read observation | causal anchor/reference set | observation reporting | Phase 7 covered | Keep typed observation identities |
+| Causal request | target + anchor + requested families | `CausalInspectionRequestIdentity` | `request_digest()` alias | Phase 7 watchpoint | Alias must be projection-only or renamed |
+| Reference resolution | reference artifacts | `QueryCausalEvidenceReferenceArtifact` | `reference_for_reporting()` | Phase 7 covered with watchpoint | Do not feed reporting reference into request input |
+| Admission proof | request + decision trace | admission receipt/outcome identities | decision trace strings | Phase 7 covered | Keep typed decision identity |
+| Bridge envelope assembly | runtime bridge diagnostics | `BridgeCausalExplanationEnvelope` | envelope reporting | Cross-lane feeder | Consumes bridge retained-evidence lane |
+| Materialized detail | readmission proof + evidence references | materialized detail identity | materialization report labels | Phase 7 covered | Compose typed reference receipt identities |
+| Denied detail | denial + target/result identities | denied artifact detail identity | denial reason | Phase 7 covered | Denial reason remains message only |
+| Bridge-backed artifact | bridge envelope + built artifact | causal/artifact identities | `bridge_envelope_for_reporting()`, `causal_identity_for_reporting()` | Phase 7 watchpoint | Reporting names are clear; digest aliases still need review |
+| Exploration | causal artifact | decision/integrity traces | reporting trace fields | Phase 7 covered | Exploration may report, not recompose authority |
+| Certification rows | causal inspection tests/support | row digests from reporting strings | certification digest strings | Phase 9 blocker | Keep open for test/support cleanup |
+
+#### Subscription And Session Lifecycle Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Subscription declaration | declaration/admission evidence | subscription input/admission | declaration reporting | Phase 7 covered | Keep typed evidence identity |
+| Bridge lowering | subscription declaration | bridge declaration and basis binding | lowering diagnostics | Phase 7 covered | Keep typed source identities |
+| Activation input | admitted subscription + checkpoint | `SubscriptionActivationInput` | checkpoint reporting | Phase 7 covered | Activation receipt uses typed checkpoint identity |
+| Active lane admission | activation/admission/query/bridge/signal identities | `ActiveSubscriptionLaneAdmission` | digest-looking accessors | Phase 7 blocker | Verify all lane authority fields are typed, not string digests |
+| Active lane registry | active lane + attachment | registry keys/handles | stringified keys | Phase 7 blocker | Avoid registry authority keyed only by display digest |
+| Consumer attachment | lane handle + consumer | `SubscriptionConsumerAttachment` | consumer/delivery cursor labels | Phase 7 covered | Labels can remain consumer/display data |
+| Delivery window | lane + attachment + sequence | `QueryDeliveryWindow` | sequence/report labels | Phase 7 covered | Typed lane/attachment identities feed composition |
+| Delivery batch | work packet + patch group + receipt | `QueryDeliveryBatch` | patch/report labels | Phase 7 covered | Keep patch group identity typed |
+| Continuation evidence | source/target/basis/checkpoint/authority | `SubscriptionContinuationEvidence::new` | `impl Into<String>` endpoint inputs | Phase 7 blocker | Accept typed identities or narrow wrappers instead of free strings |
+| Closeout | close request + lane/attachment/checkpoint | lifecycle closeout identity | closeout kind labels | Phase 7 covered | Kind labels are descriptive only |
+| Runtime live installation | session setup | `ForgeQueryRuntimeLiveSubscriptionInstallation` | view/policy labels | Phase 7 covered | Counter/source identities are typed |
+| Runtime backend receipt tests | typed receipt construction | test receipts | external label rejection fixture | Phase 9 fixed/narrowed | Matrix row now fixed for raw string fields |
+
+#### Bridge Retained Evidence Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Query causal reference | Query causal evidence reference | `CausalEvidenceReferenceDigest` with optional bridge authority | reference reporting | Phase 7 feeder | Do not construct from Query reporting strings |
+| Builder bridge conversion | Query reference -> bridge reference | `builder_bridge.rs` | bridge reference labels | Phase 7 covered | Must preserve typed bridge evidence |
+| Bridge evidence reference | bridge causal protocol | `BridgeCausalEvidenceReferenceIdentity` | `*_for_reporting()` | Phase 7 covered | Reporting only |
+| Bridge evidence binding | retained bridge record/reference | `BridgeCausalEvidenceBinding` | owner/family labels | Phase 7 covered | Labels are shape fields only |
+| Retained mapping digest basis | retained record evidence | retained mapping identity parts | digest basis labels | Phase 7 watchpoint | Split into direct matrix subrow |
+| Route history preview retained mapping | retained route preview evidence | legacy lookup key bridge | `reference_identity.as_str()` lookup | Phase 7 watchpoint | Audit string-keyed bridge lookup as compatibility only |
+| Planning checkpoint retained mapping | retained planning evidence | legacy lookup key bridge | `from_reference_evidence(...).as_str()` | Phase 7 watchpoint | Audit string-keyed bridge lookup as compatibility only |
+| Source structural stream retained mapping | retained stream evidence | legacy lookup key bridge | string-keyed bridge lookup | Phase 7 watchpoint | Audit string-keyed bridge lookup as compatibility only |
+| Envelope identity | bridge envelope | `BridgeCausalEnvelopeIdentity` | envelope reporting | Phase 7 covered | Keep bridge typed identity |
+| Envelope receipt | bridge receipt | `BridgeCausalEnvelopeReceipt` | receipt reporting | Phase 7 covered | Reporting only |
+| Query materialization import | bridge binding -> Query reference artifact | `field_bridge_identity` | Query `for_reporting()` | Phase 7 covered | Do not feed Query reporting back into bridge input |
+
+#### Worth-Topo Production Downstream Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Write authority commit | relational commit parts | `ForgeQueryCommitIdentity::from_relational_commit_id` | commit diagnostic label | Phase 8 covered | Keep row fixed |
+| Write authority snapshot | relational snapshot parts | `ForgeQuerySnapshotIdentity::from_relational_snapshot` | snapshot diagnostic label | Phase 8 covered | Keep row fixed |
+| Mutation receipt | commit/snapshot/entity typed parts | `ForgeQueryMutationReceipt::from_authoritative_parts` | receipt report labels | Phase 8 covered | Keep row fixed for commit/snapshot |
+| Query rows / deltas | topology row identity | `ForgeQueryEntityIdentity` where present | endpoint labels | Phase 8 open | Split typed row identity from endpoint authority labels |
+| Entity parse support | formatted entity/relation label | `write_support.rs::parse_entity_identity` | `entity:*` / `relation:*` | Phase 8 blocker | Replace with typed relational record identity source |
+| Relation endpoint lowering | relation endpoints | `write_lowering.rs::lower_relation_endpoint` | endpoint label parse | Phase 8 blocker | Lower from typed entity/relation parts |
+| Patch matching | patch entity identity | `patch_matching.rs::entity_matches_identity` | formatted identity compare | Phase 8 blocker | Match typed record identity |
+| Bridge source support | bridge/query identities | typed commit/snapshot/record parts extraction | evidence-label projection | Phase 8 covered | Keep row fixed if no string authority re-entry |
+| Bridge source reads | bridge request/read packets | typed branch/commit/snapshot/record accessors | read packet labels | Phase 8 covered | Keep row fixed |
+| Runtime binding snapshot | runtime binding state | `current_snapshot_identity()` | empty-state diagnostic | Phase 8 covered | Keep row fixed |
+| Declaration initialization | typed read basis | declaration metadata | mismatch detail labels | Phase 8 covered | Keep row fixed |
+| Source adapter | runtime source adapter | `ForgeQueryRuntimeSnapshotIdentityAdapter` | none | Phase 8 covered | Keep row fixed |
+| Historical read basis | historical snapshot | `ForgeQuerySnapshotIdentity` | evidence-label projection | Phase 8 covered | Keep row fixed |
+| Read execution query shape | user/read anchor | `identity_anchor_predicate` | string anchor | Phase 8 blocker | Use typed record/read-anchor authority |
+| Read family execution | family anchors | read family execution predicates | string anchor | Phase 8 blocker | Preserve typed anchor through family execution |
+| Row decode | retained rows | row lookup by identity label | formatted entity/relation label | Phase 8 blocker | Decode by typed relational record identity |
+| Handle reads | public read session | handle read anchor inputs | `&str` anchor params | Phase 8 blocker | Accept typed anchor or typed entity identity |
+| Read proof report | executed snapshot | typed executed snapshot identity | diagnostic label | Phase 8 covered | Keep row fixed |
+| Static signal sink | typed receipt route | bridge route identity construction | route diagnostics | Phase 8 covered | Keep row fixed |
+| Bridge certification | relational truth constructors | proof rows | evidence labels | Phase 8 covered / Phase 9 tests separate | Keep production-adjacent row fixed, tests remain Phase 9 |
+
+#### Phase 9 Downstream And Harness Cleanup Lane
+
+| Trace | Root authority | Carrier / edge | Projection points | Classification | Matrix action |
+|-------|----------------|----------------|-------------------|----------------|---------------|
+| Runtime transcript intent | relational commit/snapshot | transcript runtime fixtures | external label commit/snapshot authority | Phase 9 blocker | Keep fixture row open or narrow residual |
+| Transcript authority | typed relational constructors now present | transcript authority fixtures | old formatted transcript strings | Phase 9 narrowed | Update row from broad string folklore to residual if any |
+| Aspect API finalization | Query mutation receipt | certification row digest | `receipt.commit_identity().to_string()` | Phase 9 blocker | Keep open |
+| Public bridge runtime support | bridge runtime test support | mutation receipts / hostile cert digests | public bridge commit/snapshot labels | Phase 9 blocker | Keep open |
+| Lower-runtime routing fixtures | typed evidence/relational truth constructors | certification fixtures | old raw truth constructors | Phase 9 fixed | Keep fixed |
+| Causal inspection tests | bridge harness labels | causal write/read/support fixtures | `from_bridge_harness_label`, `query-trigger:*` | Phase 9 blocker | Keep open |
+| Effect lifecycle seeded support | typed relational snapshot handles | seeded support fixtures | old patch from commit text | Phase 9 fixed | Keep fixed |
+| Milestone-eight harness | bridge harness labels | patch/head/snapshot/branch fixtures | raw labels/request commit text | Phase 9 blocker | Keep open |
+| Projection consumption tests | bridge harness labels | projection facts tests | raw truth snapshot/branch/commit labels | Phase 9 blocker | Keep open |
+| Query basis lifecycle tests | bridge harness labels | basis lifecycle tests | formatted patch/head commit text | Phase 9 blocker | Keep open |
+| Intent admission bridge fixtures | bridge certification fixtures | patch identity derivation | commit text patch label | Phase 9 blocker | Keep open, fix note contradiction |
+| Intent admission runtime/read fixtures | certification labels | placeholder receipts/read fixtures | formatted commit/snapshot, `snapshot_token: &str` | Phase 9 blocker | Keep open |
+| Hostile journal gap count | relational commit identity | hostile helper | old `rsplit('-')` parse | Phase 9 fixed | Row now fixed |
+| Hostile receipt/artifact digest | write receipts/artifacts | hostile digest helpers | receipt/artifact snapshot/commit strings | Phase 9 blocker | Keep open |
+| Native patch envelope fixture | bridge fixture | patch/snapshot/branch/entity fixture | commit evidence label/raw literals | Phase 9 blocker | Keep open |
+| Runtime backend receipt tests | typed mutation receipts | signal routing tests | old raw string fields | Phase 9 fixed | Row now fixed; residual lives in fixture rows |
+| Worth-topo bridge tests | bridge route tests | topology bridge test routes | old `TruthCommitIdentity::new(format!(...))` not found in targeted scan | Phase 9 re-check | Keep open until row is verified and narrowed |
+| Worth-topo read proof harness | topology read certification | historical read target | `workspace.snapshot_token().to_string()` | Phase 9 blocker | Keep open |
+| Worth-topo derived chain | topology derived-chain certification | inspection/write receipt assertions | string commit identity comparison | Phase 9 blocker | Keep open |
+| Hadwiger research | test write authority | `ForgeQueryMutationReceipt` literal | `commit_identity: String`, formatted snapshot token | Phase 9 blocker | Keep open |
+| Forge UI todo truth | UI truth state | task truth/snapshot routing | `snapshot_token: String`, string entity identities | Phase 9 blocker | Keep open |
+| Forge-server compat request | HTTP JSON request | compat request parsing | `entity_identity` JSON strings | Allowed projection / re-check | Split HTTP projection from canonical authority feeder |
+| Forge-server mutation result | direct/compat mutation response | result digest | `receipt.commit_identity()` | Phase 9 blocker | Keep open |
+| Forge-server query execution | handoff workspace | compatibility precondition | `workspace().snapshot_token()` | Phase 9 blocker | Keep open |
+| Forge-server test adapters | runtime test adapters | snapshot adapter + mutation receipt fixtures | `snapshot_token() -> String`, formatted receipts | Phase 9 blocker | Keep open |
+| Forge-server integration tests | direct mutation/projection tests | inspection/read receipt assertions | snapshot/commit string equality | Phase 9 blocker | Keep open |
+| Worth-kernel / forge-kernel | local/display formatting only in sweep | no identity-lowering authority found | ordinary local strings | Out of scope | Do not add blocker without new evidence |
+| Subscription replay tests | bridge replay tests | truth identities from string literals | deferred replay fixture labels | Deferred | Owner milestone remains subscription replay typed identity milestone |
+
 ### Phase 10 — closure
 
 - [ ] Phase 7 QA gate `CLEARED` (recorded in matrix header)
@@ -563,7 +789,7 @@ restoring public string ctors, closing Phase 7 from row-scoped scans alone.
 > **Phase 1 scan status:** `Closed` — agent scan completed on 2026-06-11;
 > Cursor QA omissions corrected on 2026-06-11.
 >
-> **Phase 7 QA status:** `NOT CLEARED` — 2026-06-09 fifth hostile pass (code inspection). Pass 4 closed blockers 1–9 on the targeted spine but uneven depth remains across feeder bundles (blockers 1–9 below). Local test gates green (forge-runtime-bridge causal_envelope 26, subscription 155, workflow 76, effect_lifecycle 74, domain_capabilities 127, causal_inspection 61).
+> **Phase 7 QA status:** `NOT CLEARED` — 2026-06-12 sixth hostile pass (code inspection). Pass 5 blockers 1–9 addressed on targeted spine; sixth pass finds remaining string-first lanes in declaration birth, payload composition, effect_lifecycle execution artifacts, bridge retained-mapping external-authority, and causal projection naming debt.
 >
 > **Phase 7 QA blockers (2026-06-09 pass 5):**
 > 1. `subscription/evidence_identities.rs::lifecycle_certification_bundle_identity` — lifecycle delivery auxiliaries (performance, attachment, delivery_window, work_packet, closeout, etc.) still composed via `field_identity(&str)` from certification sequence-projection strings, not typed handles.
@@ -587,9 +813,9 @@ restoring public string ctors, closing Phase 7 from row-scoped scans alone.
 > 8. ~~`effect_lifecycle/lowering.rs`~~ — plan/artifact via `field_evidence_identity`.
 > 9. ~~`workflow/foundation.rs`~~ — context source/query/basis accept typed identities.
 >
-> **Phase 8 milestone status:** `Blocked on Phase 7 QA` — Phase 7 QA is `NOT CLEARED` (pass 5); Phase 8 may not proceed per sequencing rules.
+> **Phase 8 milestone status:** `Blocked on Phase 7 QA` — Phase 7 QA is `NOT CLEARED`; Phase 8 may not proceed per sequencing rules, and the 2026-06-13 trace sweep found production worth-topo entity/read-anchor blockers even though commit/snapshot/route rows are mostly typed.
 >
-> **Last updated:** 2026-06-09
+> **Last updated:** 2026-06-13
 >
 > This matrix is the **only** authoritative inventory for this milestone. The
 > implementing agent fills it in Phase 1 by reading the codebase — not via a Rust
@@ -699,14 +925,16 @@ restoring public string ctors, closing Phase 7 from row-scoped scans alone.
 | 7 | forge-query | `view_shape_live/grouped_execution.rs` | Fixed: grouped execution compares bridge snapshot identity through `ForgeQueryEvidenceIdentity`, grouped bridge row-set materialization preserves typed relational record identity for projection parity, and grouped fixtures derive query basis identity from the same typed bridge snapshot instead of matching display labels. | Fixed | View-shape grouped execution snapshot boundary |
 | 7 | forge-query | `lower_runtime_routing/adapters/runtime_backend.rs`, `lower_runtime_routing/plans/mod.rs` | Fixed: write-authority lower-runtime routing binds mutation commit evidence as `ForgeQueryEvidenceIdentity`, signal invalidation subjects compose from typed routing receipt/commit/snapshot identities, `ForgeQueryLowerRuntimeCapabilityRequest` requires `ForgeQueryLowerRuntimeSubjectIdentity`, and `ForgeQueryLowerRuntimeRoutePlan` now requires `ForgeQueryLowerRuntimeRouteSubjectIdentity` instead of accepting raw route-subject strings. | Fixed | Production lower-runtime routing adapter |
 | 7 | forge-runtime-bridge | `src/diagnostics/records/route_entry.rs`, `src/diagnostics/state/` | Fixed: route diagnostics now carry `BridgeRouteRecordEntityIdentity` (`RelationalRecord` or `TruthSurface`) with a hard-broken constructor/accessor API; route diagnostic state indexes route, invalidation, continuity, and source commit lookups by typed bridge/truth identities; JSON export performs explicit diagnostic-label projection instead of treating canonical identity as `String`. | Fixed | Adjacent bridge diagnostic feeder |
-| 7 | forge-query | `subscription/`, `runtime/live_subscription.rs`, `runtime/runtime_sessions.rs`, `runtime/backend/receipts.rs` | Subscription activation/live-installation/runtime-session feeders store activation, declaration, basis, signal, support, counter, and budget identities as strings or digest-only wrappers before feeding runtime receipt and inspection surfaces. | Fixed | Feeder bundle — typed `ForgeQueryEvidenceIdentity` spine via `subscription/evidence_identities.rs`; activation receipt and live installation consume typed identities; drift compares evidence handles |
-| 7 | forge-query | `workflow/`, `workflow/lowering/`, `domain_capabilities/payloads/workflow_semantics.rs`, `domain_capabilities/authoring/workflow.rs`, `domain_capabilities/canonical_runtime/workflow/` | Workflow/domain-capability lowering stores authority binding, basis, causality, runtime-preflight scope, preview declaration, and target binding evidence as digest strings before lowering mutation/writeback/preview bridge evidence. | Fixed | Feeder bundle — `WorkflowContextBinding` stores typed binding/source/query/basis identities; writeback lowering and canonical_runtime workflow paths compose evidence identities |
-| 7 | forge-query | `domain_capabilities/canonical_runtime/continuity.rs`, `domain_capabilities/canonical_runtime/support.rs`, `domain_capabilities/canonical_runtime/artifacts.rs`, `domain_capabilities/canonical_runtime/invariant_capability.rs` | Canonical runtime materialization and support artifacts derive continuity/support/materialization/invariant identities from target binding digest strings and `hash_parts(...)` instead of typed contribution target evidence. | Fixed | Feeder bundle — artifacts/support/invariant materialization compose typed contribution target evidence |
-| 7 | forge-query | `effect_lifecycle/` | Effect lifecycle normalization, lowering, batch lowering, and execution bridge paths preserve lower-runtime authority binding and workflow mutation/writeback evidence as strings before calling workflow lowering and bridge execution. | Fixed | Feeder bundle — normalized/lowering/batch/receipt paths compose typed workflow binding and capability evidence |
-| 7 | forge-query | `runtime/inspection/causal/`, `runtime/inspection/causal/materialization/` | Causal inspection request failures, materialization receipts/proofs, bridge references, and receipt-derived evidence can collapse typed query/bridge evidence into formatted strings or value sequences. | Fixed | Feeder bundle — causal identity wrappers drop `AsRef<str>` dual API; composition uses `field_evidence_identity`; reporting via `*_for_reporting()` |
-| 7 | forge-runtime-bridge | `src/diagnostics/causal_envelope/`, `src/diagnostics/causal_envelope/retained_mapping/` | Bridge causal evidence references, bindings, retained-record lookup, receipts, and retained mapping helpers expose or compose reference/binding/retained identities through digest strings, external-authority wrappers, or string projections. | Fixed | Feeder bundle — removed `retained_mapping_identity_digest_part` double-wrap; typed bridge/external/evidence parts; envelope identity/receipt accessors renamed to `*_for_reporting()` |
+| 7 | forge-query | `subscription/`, `runtime/live_subscription.rs`, `runtime/runtime_sessions.rs`, `runtime/backend/receipts.rs` | Subscription activation/live-installation/runtime-session feeders store activation, declaration, basis, signal, support, counter, and budget identities as strings or digest-only wrappers before feeding runtime receipt and inspection surfaces. | Open | Feeder bundle mostly typed, but active lane/registry/continuation still expose or accept digest/string-shaped source, target, basis, checkpoint, and authority values in ordinary lifecycle decisions |
+| 7 | forge-query | `workflow/`, `workflow/lowering/`, `domain_capabilities/payloads/workflow_semantics.rs`, `domain_capabilities/authoring/workflow.rs`, `domain_capabilities/canonical_runtime/workflow/` | Workflow/domain-capability lowering stores authority binding, basis, causality, runtime-preflight scope, preview declaration, and target binding evidence as digest strings before lowering mutation/writeback/preview bridge evidence. | Open | `WorkflowContextBinding` is typed, but digest/projection accessors and `inspect_post_merge_outcome` still allow reporting strings to participate in authority checks |
+| 7 | forge-query | `domain_capabilities/canonical_runtime/continuity.rs`, `domain_capabilities/canonical_runtime/support.rs`, `domain_capabilities/canonical_runtime/artifacts.rs`, `domain_capabilities/canonical_runtime/invariant_capability.rs`, `domain_capabilities/canonical_runtime/continuity_correspondence.rs`, `domain_capabilities/canonical_runtime/aftermath.rs`, `domain_capabilities/canonical_runtime/explanation.rs` | Canonical runtime materialization and support artifacts derive continuity/support/materialization/invariant identities from target binding digest strings and `hash_parts(...)` instead of typed contribution target evidence. | Fixed | Scoped canonical runtime lane composes typed target/binding/request/payload/materialization evidence; remaining risk is projection re-entry through digest/reporting accessors and payload feeders |
+| 7 | forge-query | `effect_lifecycle/` | Effect lifecycle normalization, lowering, batch lowering, and execution bridge paths preserve lower-runtime authority binding and workflow mutation/writeback evidence as strings before calling workflow lowering and bridge execution. | Open | Normalization/lowering/receipt paths are mostly typed, but `batch_admission.rs` still compares scoped basis and lower-runtime binding through digest accessors for admission coherence |
+| 7 | forge-query | `runtime/inspection/causal/`, `runtime/inspection/causal/materialization/` | Causal inspection request failures, materialization receipts/proofs, bridge references, and receipt-derived evidence can collapse typed query/bridge evidence into formatted strings or value sequences. | Open | Production lane is mostly typed, but `*_digest()` aliases and public wrapper string projections remain close enough to authority to require cleanup or explicit projection quarantine |
+| 7 | forge-runtime-bridge | `src/diagnostics/causal_envelope/`, `src/diagnostics/causal_envelope/retained_mapping/` | Bridge causal evidence references, bindings, retained-record lookup, receipts, and retained mapping helpers expose or compose reference/binding/retained identities through digest strings, external-authority wrappers, or string projections. | Open | Typed bridge evidence is mostly present, but retained mapping lookup adapters still cross string-keyed bridge lookup APIs in route-history, planning-checkpoint, and source-structural-stream retained artifact modules |
 | 8 | worth-topo | `projection/runtime_boundary/query_runtime/adapters/write_authority.rs` | Production write authority builds `ForgeQueryMutationReceipt` with `format!("commit-*")` and `bridge_snapshot_identity_for_commit(...).as_str().to_string()` for single and batch writes. | Fixed | Write authority now builds mutation receipts from `ForgeQueryCommitIdentity` / `ForgeQuerySnapshotIdentity` derived from relational commit parts. Milestone-blocked until Phase 7 QA CLEARED |
-| 8 | worth-topo | `projection/runtime_boundary/query_runtime/adapters/write_support.rs`, `query_rows.rs` | Topology query rows/deltas format and parse `entity:*`/`relation:*` identities as strings for mutation targets and live rows. | Fixed | Live rows and mutation deltas now carry `ForgeQueryEntityIdentity` with relational record parts; endpoint labels are explicit payload projections only |
+| 8 | worth-topo | `projection/runtime_boundary/query_runtime/adapters/write_support.rs`, `query_rows.rs` | Topology query rows/deltas format and parse `entity:*`/`relation:*` identities as strings for mutation targets and live rows. | Open | Query rows/deltas carry more typed identity, but production endpoint/read-anchor authority still re-enters through formatted entity/relation strings |
+| 8 | worth-topo | `projection/runtime_boundary/query_runtime/adapters/write_authority/write_lowering.rs`, `projection/runtime_boundary/query_runtime/adapters/write_authority/patch_matching.rs` | Relation endpoint lowering and patch matching parse/compare formatted entity or relation labels to decide production write authority. | Open | Must use relational record parts or typed `ForgeQueryEntityIdentity` rather than string endpoint labels for authority decisions |
+| 8 | worth-topo | `projection/runtime_boundary/read_execution/query_shape.rs`, `projection/runtime_boundary/read_execution/family_execution.rs`, `projection/runtime_boundary/read_execution/row_decode.rs`, `projection/read_views/domain/handle_reads.rs` | Read execution anchors, family execution, retained-row decode, and handle-read inputs select production records from string identity anchors. | Open | Must preserve typed entity/relation/read-anchor authority internally; string labels are allowed only as external query/display projections |
 | 8 | worth-topo | `projection/runtime_boundary/query_runtime/adapters/bridge_source_support.rs` | Topology bridge source parses `commit-*`, `relational-snapshot:*:version:*`, and `entity:*`/`relation:*` strings back into relational IDs. | Fixed | Bridge source support extracts relational commit, snapshot, and record parts from typed bridge/query identities |
 | 8 | worth-topo | `projection/runtime_boundary/query_runtime/adapters/bridge_source.rs` | Bridge source calls `request.commit_identity().as_str()`, compares branch/snapshot identity text, and reads snapshot packets by parsing `read.entity_identity()`. | Fixed | Bridge source now resolves branch/commit/snapshot/record authority through typed relational payload accessors |
 | 8 | worth-topo | `projection/runtime_boundary/query_runtime/adapters/binding.rs` | `TopologyRuntimeBinding::snapshot_token()` mints erased snapshot text by calling `bridge_snapshot_identity_for_commit/handle(...).as_str().to_string()` and falling back to a string sentinel for empty state. | Fixed | Runtime binding exposes `current_snapshot_identity() -> ForgeQuerySnapshotIdentity` and preserves typed relational snapshot parts |
@@ -731,10 +959,10 @@ restoring public string ctors, closing Phase 7 from row-scoped scans alone.
 | 9 | forge-query | `projection_consumption/tests/`, `query_basis_lifecycle/tests/` | Projection consumption and query-basis lifecycle tests construct bridge truth snapshot/branch/commit identities from raw strings and formatted patch/head commit text. | Open | Query projection/basis fixture folklore |
 | 9 | forge-query | `intent_admission/certification/fixtures/bridge.rs` | Bridge certification fixtures derive patch identity text from commit identity via `format!("patch:{}", commit_identity.as_str())` or request commit text. | Open | No old string folklore in bridge certification |
 | 9 | forge-query | `intent_admission/certification/fixtures/runtime.rs`, `intent_admission/certification/fixtures/read.rs` | Intent admission certification fixtures still contain receipt/read folklore outside the Phase 5 adapter seam: intent-authority placeholder receipts construct formatted `certification-*` commit/snapshot identities, cloned receipt identity strings feed certification digests, and read fixtures pass `snapshot_token: &str`. | Open | Intent admission certification fixtures; the bridge-backed runtime adapter assembly itself was migrated in Phase 5 |
-| 9 | forge-query | `runtime/tests/support/bridge/hostile_certification.rs::hostile_journal_gap_count` | Hostile journal helper calls `receipt.commit_identity().rsplit('-').next().and_then(|suffix| suffix.parse::<usize>().ok())`. | Open | Exact Phase 9 journal parse ban |
+| 9 | forge-query | `runtime/tests/support/bridge/hostile_certification.rs::hostile_journal_gap_count` | Hostile journal helper calls `receipt.commit_identity().rsplit('-').next().and_then(|suffix| suffix.parse::<usize>().ok())`. | Fixed | Exact `rsplit('-')` ban is fixed; helper now uses typed relational commit identity extraction |
 | 9 | forge-query | `runtime/tests/support/bridge/hostile_certification.rs::hostile_write_receipt_digest`, `runtime/tests/support/bridge/hostile_certification.rs::hostile_published_artifact_digest` | Hostile certification digest helpers seal digest parts from `receipt.commit_identity()`, `receipt.snapshot_token()`, and `artifact.snapshot_token()` string accessors. | Open | Hostile certification receipt/artifact digest folklore |
 | 9 | forge-query | `runtime/tests/support/bridge/fixture.rs::native_patch_envelope` | Bridge fixture support derives harness patch identity from commit evidence labels and wraps snapshot, branch, and entity identities from raw fixture string literals. | Open | Bridge fixture native patch folklore |
-| 9 | forge-query | `runtime/backend/receipts.rs` tests | Signal routing tests construct `ForgeQueryMutationReceipt { commit_identity: "commit-1".to_string(), snapshot_token: "snapshot-1".to_string(), ... }` and assert string equality. | Open | Compile-fail/typed tests must replace string literals |
+| 9 | forge-query | `runtime/backend/receipts.rs` tests | Signal routing tests construct `ForgeQueryMutationReceipt { commit_identity: "commit-1".to_string(), snapshot_token: "snapshot-1".to_string(), ... }` and assert string equality. | Fixed | Raw string receipt fields are gone; residual authority-less external-label rejection coverage belongs to fixture-specific rows |
 | 9 | forge-relational | `presentation/bridge/bridge_source_tests/` | Bridge source tests mint `TruthCommitIdentity::new(format!("commit-*"))`, compare branch/snapshot identities by `as_str()`, and route committed patch requests from formatted commit text. | Fixed | Moved into Phase 3 because relational bridge-source certification is part of the ordinary relational spine; tests now use relational typed commit/branch/snapshot/record constructors and extractors |
 | 9 | worth-topo | `projection/runtime_boundary/bridge/tests.rs` | Bridge tests call `.route(TruthCommitIdentity::new(format!(...)))` and compare route/record identities as strings. | Open | Hostile production bridge certification |
 | 9 | worth-topo | `certification/support/read_proof_harness.rs`, `certification/projection_closeout/tests/topology_reads/` | Topology read-proof certification harnesses copy `workspace.snapshot_token().to_string()` into historical read execution targets and assert executed snapshot tokens as string values. | Open | Topology read certification snapshot consumers |

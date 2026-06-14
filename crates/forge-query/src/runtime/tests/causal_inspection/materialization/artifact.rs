@@ -24,10 +24,12 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
         panic!("reference-only cross-runtime inspection should admit");
     };
     let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+        bridge_query_evidence(
+            "causal-inspection-outcome",
             admitted.admitted_inspection_digest(),
         ),
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+        bridge_query_evidence(
+            "causal-observation-anchor",
             admitted.subject().anchor_for_reporting(),
         ),
     )
@@ -37,11 +39,7 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        admitted
-                            .subject()
-                            .query_observation_bridge_evidence_identity(),
-                    ),
+                    admitted.subject().query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -72,7 +70,7 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
     };
 
     assert_eq!(
-        artifact.query_observation_digest(),
+        artifact.query_observation_for_reporting(),
         admitted
             .subject()
             .query_observation_bridge_evidence_identity()
@@ -83,8 +81,8 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
         admitted.subject().result_shape_context_for_reporting()
     );
     assert_eq!(
-        artifact.bridge_envelope_digest(),
-        crate::runtime::tests::causal_test_compose_bridge_causal_explanation_envelope_digest(
+        artifact.bridge_envelope_for_reporting(),
+        crate::runtime::tests::causal_test_compose_bridge_causal_explanation_envelope_identity_for_reporting(
             &envelope
         )
     );
@@ -98,25 +96,25 @@ fn admitted_query_causal_artifact_materializes_sealed_bridge_envelope() {
     );
     assert_eq!(
         artifact.readmission_proof().bridge_envelope_for_reporting(),
-        crate::runtime::tests::causal_test_compose_bridge_causal_envelope_digest(&envelope)
+        crate::runtime::tests::causal_test_compose_bridge_causal_envelope_identity_for_reporting(&envelope)
     );
     assert_eq!(
-        artifact.bridge_readmission_proof_digest(),
+        artifact.bridge_readmission_proof_for_reporting(),
         artifact.readmission_proof().readmission_proof_for_reporting()
     );
     let expected_bridge_receipt =
-        crate::runtime::tests::causal_test_compose_bridge_causal_envelope_receipt_digest(
+        crate::runtime::tests::causal_test_compose_bridge_causal_envelope_receipt_identity_for_reporting(
             envelope.receipt(),
         );
     assert_eq!(
-        artifact.receipt().bridge_receipt_digest(),
+        artifact.receipt().bridge_receipt_for_reporting(),
         Some(expected_bridge_receipt.as_str())
     );
     assert_eq!(artifact.evidence_references().len(), 2);
     assert!(artifact
         .evidence_references()
         .iter()
-        .any(|reference| reference.retained_record_digest().is_some()));
+        .any(|reference| reference.retained_record_for_reporting().is_some()));
     assert_eq!(artifact.performance().bridge_envelope_assembly_count(), 1);
     assert_eq!(artifact.performance().artifact_serialization_count(), 1);
     assert_eq!(artifact.performance().bridge_unindexed_scan_count(), 0);
@@ -144,10 +142,12 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
         panic!("materialized detail should narrow to advisory");
     };
     let summary = BridgeCausalInspectionAdmissionSummary::advisory(
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+        bridge_query_evidence(
+            "causal-inspection-outcome",
             advisory.advisory_inspection_digest(),
         ),
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+        bridge_query_evidence(
+            "causal-observation-anchor",
             advisory.subject().anchor_for_reporting(),
         ),
     )
@@ -157,11 +157,7 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        advisory
-                            .subject()
-                            .query_observation_bridge_evidence_identity(),
-                    ),
+                    advisory.subject().query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -196,13 +192,13 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
     .expect("redacted advisory materialization should consume bridge envelope");
 
     assert_eq!(
-        full_artifact.causal_identity_digest(),
-        redacted_artifact.causal_identity_digest(),
+        full_artifact.causal_identity_for_reporting(),
+        redacted_artifact.causal_identity_for_reporting(),
         "redaction must not change query causal identity"
     );
     assert_ne!(
-        full_artifact.artifact_digest(),
-        redacted_artifact.artifact_digest(),
+        full_artifact.artifact_for_reporting(),
+        redacted_artifact.artifact_for_reporting(),
         "redaction should change materialized artifact detail"
     );
 
@@ -211,7 +207,7 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
     };
 
     assert_eq!(
-        artifact.query_observation_digest(),
+        artifact.query_observation_for_reporting(),
         advisory
             .subject()
             .query_observation_bridge_evidence_identity()
@@ -222,8 +218,8 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
         advisory.subject().result_shape_context_for_reporting()
     );
     assert_eq!(
-        artifact.bridge_envelope_digest(),
-        crate::runtime::tests::causal_test_compose_bridge_causal_explanation_envelope_digest(
+        artifact.bridge_envelope_for_reporting(),
+        crate::runtime::tests::causal_test_compose_bridge_causal_explanation_envelope_identity_for_reporting(
             &envelope
         )
     );
@@ -236,7 +232,7 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
         advisory.subject().anchor_for_reporting()
     );
     assert_eq!(
-        artifact.bridge_readmission_proof_digest(),
+        artifact.bridge_readmission_proof_for_reporting(),
         artifact.readmission_proof().readmission_proof_for_reporting()
     );
     assert!(artifact
@@ -246,7 +242,7 @@ fn advisory_query_causal_artifact_redacts_detail_without_changing_bridge_identit
     assert!(artifact
         .evidence_references()
         .iter()
-        .all(|reference| reference.retained_record_digest().is_none()));
+        .all(|reference| reference.retained_record_for_reporting().is_none()));
     assert_eq!(
         artifact.performance().redaction_count(),
         artifact.evidence_references().len()
@@ -292,7 +288,7 @@ fn denied_query_causal_artifact_carries_boundary_context_without_bridge_envelope
     };
 
     assert_eq!(
-        artifact.query_observation_digest(),
+        artifact.query_observation_for_reporting(),
         denied
             .subject()
             .query_observation_bridge_evidence_identity()
@@ -310,7 +306,7 @@ fn denied_query_causal_artifact_carries_boundary_context_without_bridge_envelope
     assert_eq!(artifact.performance().bridge_envelope_assembly_count(), 0);
     assert_eq!(artifact.performance().materialization_count(), 1);
     assert_eq!(artifact.performance().artifact_serialization_count(), 1);
-    assert!(!artifact.causal_identity_digest().is_empty());
+    assert!(!artifact.causal_identity_for_reporting().is_empty());
 }
 
 #[test]
@@ -340,10 +336,12 @@ fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
         panic!("durable causal archive should deny before materialization");
     };
     let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+        bridge_query_evidence(
+            "causal-inspection-outcome",
             denied.denied_inspection_digest(),
         ),
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+        bridge_query_evidence(
+            "causal-observation-anchor",
             denied.subject().anchor_for_reporting(),
         ),
     )
@@ -353,11 +351,7 @@ fn denied_query_causal_artifact_carries_bridge_denial_posture_and_counters() {
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        denied
-                            .subject()
-                            .query_observation_bridge_evidence_identity(),
-                    ),
+                    denied.subject().query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -430,10 +424,12 @@ fn admitted_materialization_rejects_wrong_bridge_summary_kind() {
         panic!("reference-only cross-runtime inspection should admit");
     };
     let wrong_summary = BridgeCausalInspectionAdmissionSummary::advisory(
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+        bridge_query_evidence(
+            "causal-inspection-outcome",
             admitted.admitted_inspection_digest(),
         ),
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
+        bridge_query_evidence(
+            "causal-observation-anchor",
             admitted.subject().anchor_for_reporting(),
         ),
     )
@@ -443,11 +439,7 @@ fn admitted_materialization_rejects_wrong_bridge_summary_kind() {
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        admitted
-                            .subject()
-                            .query_observation_bridge_evidence_identity(),
-                    ),
+                    admitted.subject().query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -482,4 +474,8 @@ fn admitted_materialization_rejects_wrong_bridge_summary_kind() {
 
 fn bridge_evidence(value: impl AsRef<str>) -> BridgeIdentityEvidence {
     BridgeIdentityEvidence::from_external_authority(value)
+}
+
+fn bridge_query_evidence(scope: &str, token: &str) -> BridgeIdentityEvidence {
+    BridgeIdentityEvidence::from_query_evidence_identity(scope, token)
 }

@@ -219,7 +219,7 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
     );
     assert_eq!(
         time_delivery
-            .negotiate_runtime_resume(Some(time_delivery.basis_digest()))
+            .negotiate_runtime_resume(Some(time_delivery.basis_identity()))
             .kind(),
         ForgeQueryRuntimeDownstreamResumePostureKind::RuntimeBackedAdmitted
     );
@@ -227,13 +227,13 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         mixed_delivery.delivery_class(),
         ForgeQueryRuntimeDownstreamDeliveryClass::MixedCause
     );
-    assert!(mixed_delivery.mixed_cause_digest().is_some());
-    assert!(mixed_delivery.async_result_state_digest().is_some());
+    assert!(mixed_delivery.mixed_cause_for_reporting().is_some());
+    assert!(mixed_delivery.async_result_state_for_reporting().is_some());
     assert_eq!(
         remask_delivery.support_posture(),
         ForgeQueryRuntimeDownstreamSupportPosture::Denied
     );
-    assert!(remask_delivery.remask_digest().is_some());
+    assert!(remask_delivery.remask_for_reporting().is_some());
     assert_eq!(
         remask_delivery.durable_resume_posture().kind(),
         ForgeQueryRuntimeDownstreamResumePostureKind::DurableDeferredDebt
@@ -309,12 +309,12 @@ fn runtime_backed_closure_matrix_preserves_equivalent_and_distinct_public_meanin
         preview_session_basis_and_promotion_parity_artifact();
 
     assert_eq!(
-        runtime_contract.contract_digest(),
-        workspace_contract.contract_digest()
+        runtime_contract.contract_for_reporting(),
+        workspace_contract.contract_for_reporting()
     );
     assert_eq!(
         support_row.support_contract_digest(),
-        Some(workspace_contract.contract_digest())
+        Some(workspace_contract.contract_for_reporting())
     );
     assert_eq!(
         runtime_contract.runtime_resume_support_posture(),

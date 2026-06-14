@@ -1,9 +1,9 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::super::activation::SubscriptionActivationInput;
 use super::super::bridge_lowering::BridgeSubscriptionLoweringPlan;
 use super::super::declaration::QuerySubscriptionDeclarationArtifact;
-use super::super::evidence_identities::typed_identity_drift;
+use super::super::evidence_identities::{manual_bridge_witness_identity, typed_identity_drift};
 use super::explanation::{
     QuerySubscriptionBridgeParityClass, QuerySubscriptionBridgeParityCounters,
     QuerySubscriptionBridgeParityError, QuerySubscriptionBridgeParityFailure,
@@ -43,7 +43,7 @@ pub struct QuerySubscriptionManualBridgeWitness {
     signal_strategy_digest: String,
     activation_digest: String,
     assembly_posture: BridgeWitnessAssemblyPosture,
-    witness_digest: String,
+    witness_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionManualBridgeWitness {
@@ -95,8 +95,16 @@ impl QuerySubscriptionManualBridgeWitness {
         &self.assembly_posture
     }
 
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.witness_identity
+    }
+
+    pub fn witness_for_reporting(&self) -> &str {
+        self.witness_identity.as_str()
+    }
+
     pub fn witness_digest(&self) -> &str {
-        &self.witness_digest
+        self.witness_for_reporting()
     }
 }
 
@@ -113,30 +121,22 @@ pub fn build_query_subscription_manual_bridge_witness(
         .map(|slice| slice.as_str().to_string())
         .collect::<Vec<_>>();
     let assembly_posture = BridgeWitnessAssemblyPosture::PreLoweredWitness;
-    let mut digest_parts = vec![
-        "query_subscription_manual_bridge_witness_v1".to_string(),
-        declaration.family().as_str().to_string(),
-        lowering.bridge_family().as_str().to_string(),
-        declaration.basis_posture().as_str().to_string(),
+    let witness_identity = manual_bridge_witness_identity(
+        declaration.family().as_str(),
+        lowering.bridge_family().as_str(),
+        declaration.basis_posture().as_str(),
         lowering
             .signal_strategy_request()
             .request_kind()
-            .as_str()
-            .to_string(),
-        declaration.declaration_digest().as_str().to_string(),
-        lowering.bridge_declaration_for_reporting().to_string(),
-        lowering.basis_request().evidence_identity().as_str().to_string(),
-        lowering.signal_strategy_request().evidence_identity().as_str().to_string(),
-        activation.activation_for_reporting().to_string(),
-        assembly_posture.as_str().to_string(),
-    ];
-    digest_parts.extend(
-        bridge_slice_labels
-            .iter()
-            .enumerate()
-            .map(|(index, label)| format!("bridge_slice:{index}:{label}")),
+            .as_str(),
+        declaration.declaration_identity(),
+        lowering.bridge_declaration_identity(),
+        lowering.basis_request().evidence_identity(),
+        lowering.signal_strategy_request().evidence_identity(),
+        activation.evidence_identity(),
+        assembly_posture.as_str(),
+        lowering.bridge_slices(),
     );
-    let witness_digest = hash_parts(&digest_parts);
 
     Ok(QuerySubscriptionManualBridgeWitness {
         query_family_label: declaration.family().as_str().to_string(),
@@ -159,7 +159,7 @@ pub fn build_query_subscription_manual_bridge_witness(
             .to_string(),
         activation_digest: activation.activation_for_reporting().to_string(),
         assembly_posture,
-        witness_digest,
+        witness_identity,
     })
 }
 
@@ -168,17 +168,21 @@ fn validate_authoritative_sources(
     lowering: &BridgeSubscriptionLoweringPlan,
     activation: &SubscriptionActivationInput,
 ) -> Result<(), QuerySubscriptionBridgeParityError> {
-    if declaration.declaration_digest().as_str() != lowering.query_declaration_for_reporting()
-        || declaration.declaration_digest().as_str() != activation.query_declaration_for_reporting()
-    {
+    if typed_identity_drift(
+        declaration.declaration_identity(),
+        lowering.query_declaration_identity(),
+    ) || typed_identity_drift(
+        declaration.declaration_identity(),
+        activation.query_declaration_identity(),
+    ) {
         return Err(QuerySubscriptionBridgeParityError::new(
             QuerySubscriptionBridgeParityFailure::new(
                 QuerySubscriptionBridgeParityFailureKind::DeclarationMismatch,
                 QuerySubscriptionBridgeParityClass::DeniedSourceMismatch,
-                "manual bridge witness requires declaration, lowering, and activation to bind the same canonical declaration digest",
-                declaration.declaration_digest().as_str(),
+                "manual bridge witness requires declaration, lowering, and activation to bind the same canonical declaration identity",
+                declaration.declaration_for_reporting(),
                 &[
-                    format!("declaration:{}", declaration.declaration_digest().as_str()),
+                    format!("declaration:{}", declaration.declaration_for_reporting()),
                     format!("lowering:{}", lowering.query_declaration_for_reporting()),
                     format!(
                         "activation:{}",

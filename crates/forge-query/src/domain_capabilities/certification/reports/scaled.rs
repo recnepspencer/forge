@@ -163,7 +163,7 @@ fn scaled_evidence(scale: usize) -> ForgeQueryDomainCapabilityScaledEvidence {
             .because("scaled explanation evidence should remain canonical")
             .materialize_artifact()
             .expect("scaled explanation should materialize");
-        contribution_digests.push(explanation.artifact_digest().to_string());
+        contribution_digests.push(explanation.artifact_for_reporting().to_string());
     }
 
     if categories.contains(&ForgeQueryDomainCapabilityCategory::InvariantCapability) {

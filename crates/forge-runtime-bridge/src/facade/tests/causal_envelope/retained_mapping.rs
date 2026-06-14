@@ -252,16 +252,7 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         Some(
             expected_retained_causal_digest(
                 ExpectedRetainedCausalDigestArtifact::SourceMaterializationRecord,
-                &[
-                    source_record.record_identity().as_str(),
-                    source_record.source_contract_identity(),
-                    source_record.source_declaration_identity(),
-                    source_record.source_capability_digest(),
-                    source_record.adapter_capability_digest(),
-                    source_record.planned_packet_set_digest(),
-                    source_record.materialized_packet_set_digest(),
-                    source_record.digest(),
-                ],
+                &[source_record.record_identity().as_str()],
             )
             .as_str()
         )
@@ -279,10 +270,7 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
                 &[
                     structural_record.record_identity().as_str(),
                     structural_record.schema_version(),
-                    structural_record.contract().digest(),
-                    structural_record.planned_packet_set().digest(),
-                    structural_record.reduced_match_set().digest(),
-                    structural_record.artifact().digest(),
+                    structural_record.contract().contract_identity().as_str(),
                 ],
             )
             .as_str()
@@ -301,10 +289,7 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
                 &[
                     branch_record.record_identity().as_str(),
                     branch_record.schema_version(),
-                    branch_record.contract().digest(),
-                    branch_record.planned_packet_set().digest(),
-                    branch_record.reduced_match_set().digest(),
-                    branch_record.artifact().digest(),
+                    branch_record.contract().contract_identity().as_str(),
                 ],
             )
             .as_str()
@@ -324,10 +309,7 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
                     stream_record.replay_record_identity().as_str(),
                     stream_record.consumer_contract_identity().as_str(),
                     stream_record.stream_window_identity().as_str(),
-                    stream_record.checkpoint_token_identity(),
-                    stream_record.replay_basis_digest(),
                     stream_record.protocol_semantics_version(),
-                    stream_record.digest(),
                 ],
             )
             .as_str()
@@ -346,8 +328,6 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
                 &[
                     continuity.route_identity().as_str(),
                     continuity.schema_version(),
-                    continuity.continuity_request_digest(),
-                    continuity.continuity_resolution_digest(),
                     continuity.continuity_artifact_identity().as_str(),
                     continuity.remapped_subscription_slice_identity().as_str(),
                 ],
@@ -368,8 +348,7 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
                 &[
                     merge_record.record_identity().as_str(),
                     merge_record.schema_version(),
-                    merge_record.contract().digest(),
-                    merge_record.bundle().digest(),
+                    merge_record.contract().contract_identity().as_str(),
                 ],
             )
             .as_str()

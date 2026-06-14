@@ -266,13 +266,13 @@ fn unified_effect_execution_certification_binds_phase4_seeded_and_phase5_surface
     assert!(proof_shape.evidence_detail().contains("phase_progression:"));
     assert_ne!(
         proof_shape.counter_snapshot_digest(),
-        crate::effect_lifecycle::EffectLifecycleCounters::default().digest()
+        crate::effect_lifecycle::EffectLifecycleCounters::default().counter_for_reporting()
     );
     assert!(performance.evidence_detail().contains("normalization:"));
     assert!(performance.evidence_detail().contains("support:"));
     assert!(
         performance.counter_snapshot_digest()
-            != crate::effect_lifecycle::EffectLifecycleCounters::default().digest()
+            != crate::effect_lifecycle::EffectLifecycleCounters::default().counter_for_reporting()
     );
     assert_ne!(
         proof_shape.counter_snapshot_digest(),
@@ -306,7 +306,7 @@ fn unified_effect_execution_certification_binds_phase4_seeded_and_phase5_surface
         .contains("basis()->effect(writeback)->using_basis(tenant_scoped)->admit("));
     assert!(
         support_and_dx.counter_snapshot_digest()
-            != crate::effect_lifecycle::EffectLifecycleCounters::default().digest()
+            != crate::effect_lifecycle::EffectLifecycleCounters::default().counter_for_reporting()
     );
     assert_ne!(
         performance.counter_snapshot_digest(),

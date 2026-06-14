@@ -402,47 +402,47 @@ fn shipped_bundle(
 ) -> SubscriptionLifecycleCertificationBundle {
     SubscriptionLifecycleCertificationBundle {
         query_digest: bundle.query_digest().to_string(),
-        subscription_family_digest: bundle.subscription_family_digest().to_string(),
+        subscription_family_digest: bundle.subscription_family_for_reporting().to_string(),
         subscription_declaration_digest: bundle.query_declaration_for_reporting().to_string(),
-        subscription_equivalence_digest: bundle.subscription_equivalence_digest().to_string(),
-        active_lane_digest: bundle.active_lane_digest().to_string(),
-        active_lane_handle_digest: bundle.active_lane_handle_digest().to_string(),
-        active_lane_lookup_class_digest: bundle.active_lane_lookup_class_digest().to_string(),
-        subscription_budget_digest: bundle.subscription_budget_digest().to_string(),
+        subscription_equivalence_digest: bundle.subscription_equivalence_for_reporting().to_string(),
+        active_lane_digest: bundle.active_lane_for_reporting().to_string(),
+        active_lane_handle_digest: bundle.active_lane_handle_for_reporting().to_string(),
+        active_lane_lookup_class_digest: bundle.active_lane_lookup_class_for_reporting().to_string(),
+        subscription_budget_digest: bundle.subscription_budget_for_reporting().to_string(),
         subscription_performance_receipt_digest: bundle
-            .subscription_performance_receipt_digest()
+            .subscription_performance_receipt_for_reporting()
             .to_string(),
-        consumer_attachment_digest: bundle.consumer_attachment_digest().to_string(),
-        acknowledgement_frontier_digest: bundle.acknowledgement_frontier_digest().to_string(),
-        delivery_window_digest: bundle.delivery_window_digest().to_string(),
-        maintenance_delta_digest: bundle.maintenance_delta_digest().to_string(),
-        active_delivery_work_packet_digest: bundle.active_delivery_work_packet_digest().to_string(),
+        consumer_attachment_digest: bundle.consumer_attachment_for_reporting().to_string(),
+        acknowledgement_frontier_digest: bundle.acknowledgement_frontier_for_reporting().to_string(),
+        delivery_window_digest: bundle.delivery_window_for_reporting().to_string(),
+        maintenance_delta_digest: bundle.maintenance_delta_for_reporting().to_string(),
+        active_delivery_work_packet_digest: bundle.active_delivery_work_packet_for_reporting().to_string(),
         active_delivery_density_posture_digest: bundle
-            .active_delivery_density_posture_digest()
+            .active_delivery_density_posture_for_reporting()
             .to_string(),
-        allocation_posture_digest: bundle.allocation_posture_digest().to_string(),
-        delivery_batch_digest: bundle.delivery_batch_digest().to_string(),
-        patch_group_digest: bundle.patch_group_digest().to_string(),
-        delivery_receipt_digest: bundle.delivery_receipt_digest().to_string(),
-        continuation_digest: bundle.continuation_digest().to_string(),
-        preview_isolation_digest: bundle.preview_isolation_digest().to_string(),
-        preview_residue_digest: bundle.preview_residue_digest().to_string(),
+        allocation_posture_digest: bundle.allocation_posture_for_reporting().to_string(),
+        delivery_batch_digest: bundle.delivery_batch_for_reporting().to_string(),
+        patch_group_digest: bundle.patch_group_for_reporting().to_string(),
+        delivery_receipt_digest: bundle.delivery_receipt_for_reporting().to_string(),
+        continuation_digest: bundle.continuation_for_reporting().to_string(),
+        preview_isolation_digest: bundle.preview_isolation_for_reporting().to_string(),
+        preview_residue_digest: bundle.preview_residue_for_reporting().to_string(),
         policy_digest: bundle.policy_digest().to_string(),
         tenant_basis_digest: bundle.tenant_basis_digest().to_string(),
         relationship_proof_digest: bundle.relationship_proof_digest().to_string(),
-        view_shape_digest: bundle.view_shape_digest().to_string(),
-        basis_digest: bundle.basis_digest().to_string(),
+        view_shape_digest: bundle.view_shape_for_reporting().to_string(),
+        basis_digest: bundle.basis_for_reporting().to_string(),
         bridge_declaration_digest: bundle.bridge_declaration_for_reporting().to_string(),
         signal_strategy_digest: bundle.signal_strategy_for_reporting().to_string(),
         failure_digest: "none".to_string(),
         lifecycle_denial_digest: "none".to_string(),
-        counter_snapshot: bundle.counter_snapshot().to_string(),
-        counter_evidence: bundle.counter_evidence().to_vec(),
+        counter_snapshot: bundle.counter_snapshot_for_reporting().to_string(),
+        counter_evidence: Vec::new(),
         subscription_lifecycle_scale_slope_digest: bundle
-            .subscription_lifecycle_scale_slope_digest()
+            .subscription_lifecycle_scale_slope_for_reporting()
             .to_string(),
         compile_fail_boundary_digest: compile_fail_boundary_digest(),
-        support_matrix_digest: bundle.support_matrix_digest().to_string(),
+        support_matrix_digest: bundle.support_matrix_for_reporting().to_string(),
     }
 }
 
@@ -679,14 +679,14 @@ fn deliver_to_attachment(
     let batch_counter_digest = batch.counters().digest();
     let delivery_batch_digest = batch.delivery_batch_digest().to_string();
     let delivery_window_digest = batch.delivery_window_digest().to_string();
-    let patch_group_digest = batch.patch_group().patch_group_digest().to_string();
+    let patch_group_digest = batch.patch_group().patch_group_for_reporting().to_string();
     let delivery_receipt_digest = batch.receipt().receipt_digest().to_string();
     let acknowledgement =
         advance_subscription_acknowledgement(runtime, attachment, batch.receipt().clone()).unwrap();
     let ack_counter_digest = runtime.counters().digest();
     let acknowledgement_frontier_digest = acknowledgement
         .acknowledgement_frontier()
-        .frontier_digest()
+        .frontier_for_reporting()
         .to_string();
 
     DeliveryEvidence {

@@ -208,7 +208,7 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
     );
     assert!(
         view.subscription_installation()
-            .support_evidence()
+            .support_for_reporting()
             .starts_with("forge.query.evidence-identity.v1:")
     );
     assert!(!view

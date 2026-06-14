@@ -32,7 +32,7 @@ fn deferred_support_discovery_exposes_exact_contract_for_store_backed_writeback(
         contract.residue_posture(),
         EffectDeferredResiduePosture::ZeroOperationalResidue
     );
-    assert!(!contract.contract_digest().is_empty());
+    assert!(!contract.contract_for_reporting().is_empty());
 }
 
 #[test]
@@ -127,7 +127,7 @@ fn deferred_contracts_diverge_for_intentionally_different_future_neighbors() {
     };
 
     assert_ne!(
-        store_contract.contract_digest(),
-        durable_contract.contract_digest()
+        store_contract.contract_for_reporting(),
+        durable_contract.contract_for_reporting()
     );
 }

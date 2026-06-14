@@ -188,16 +188,17 @@ impl NormalizedEffectIntent {
         &self.counters
     }
 
-    pub(crate) fn admitted_digest(&self) -> String {
+    pub(crate) fn admitted_identity(&self) -> ForgeQueryEvidenceIdentity {
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
             .field_shape(
                 ForgeQueryEvidenceTag::new("identity_family"),
                 "admitted_effect_intent_v1",
             )
-            .field_evidence_identity(ForgeQueryEvidenceTag::new("normalized"), &self.normalized_identity)
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("normalized"),
+                &self.normalized_identity,
+            )
             .seal()
-            .as_str()
-            .to_string()
     }
 }
 

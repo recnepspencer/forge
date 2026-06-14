@@ -1,5 +1,6 @@
+use super::evidence_identities::runtime_live_view_consumer_attachment_identity;
 use super::live_subscription::{
-    live_subscription_source_digest_evidence, live_subscription_source_identity,
+    live_subscription_source_identity, live_subscription_view_shape_source_identity,
 };
 use super::*;
 use crate::subscription::SubscriptionActivationInput;
@@ -210,13 +211,12 @@ impl ForgeQueryRuntime {
                     },
                 )?;
         let active_lane_counters = self.active_subscriptions.counters().clone();
-        let active_lane_digest = active_lane_handle.lane_digest().as_str().to_string();
         let consumer_attachment = attach_subscription_consumer(
             &mut self.active_subscriptions,
             &active_lane_handle,
-            SubscriptionConsumerAttachmentRequest::admitted(
-                format!("runtime-live-view:{view_name}"),
-                activation_receipt.activation_for_reporting().to_string(),
+            SubscriptionConsumerAttachmentRequest::from_consumer_identity(
+                runtime_live_view_consumer_attachment_identity(view_name),
+                activation_receipt.activation_for_reporting(),
             ),
             runtime_consumer_attachment_budget(),
         )
@@ -245,7 +245,7 @@ impl ForgeQueryRuntime {
             lowered_subscription.signal_strategy_identity,
             live_subscription_source_identity(
                 "active_lane",
-                &live_subscription_source_digest_evidence("active_lane", &active_lane_digest),
+                active_lane_handle.lane_digest().evidence_identity(),
             ),
             &consumer_attachment,
             runtime_subscription_budget_policy(),
@@ -311,7 +311,6 @@ fn lower_runtime_live_subscription_request(
                 message: format!("{error:?}"),
             }
         })?;
-    let subscription_declaration_digest = declaration.declaration_digest().as_str().to_string();
     let lowering =
         lower_query_subscription_to_bridge(declaration, runtime_bridge_lowering_budget()).map_err(
             |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
@@ -332,25 +331,16 @@ fn lower_runtime_live_subscription_request(
     Ok(LoweredRuntimeLiveSubscriptionRequest {
         query_identity: live_subscription_source_identity(
             "query",
-            &live_subscription_source_digest_evidence(
-                "query",
-                session.canonical().query().digest().as_str(),
-            ),
+            admission.query_declaration_identity(),
         ),
         live_view_identity: live_subscription_source_identity(
             "live_view",
-            &live_subscription_source_digest_evidence(
-                "live_view",
-                session.live_view().lowering().digest(),
-            ),
+            &live_subscription_view_shape_source_identity(view_family),
         ),
         subscription_family,
         subscription_declaration_identity: live_subscription_source_identity(
             "subscription_declaration",
-            &live_subscription_source_digest_evidence(
-                "subscription_declaration",
-                subscription_declaration_digest.as_str(),
-            ),
+            admission.query_declaration_identity(),
         ),
         admission_identity: live_subscription_source_identity("admission", admission.evidence_identity()),
         bridge_declaration_identity: live_subscription_source_identity(

@@ -1,3 +1,7 @@
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::identity::hash_parts;
 
 use super::{
@@ -80,6 +84,14 @@ impl AdmittedBasisCapability {
     pub fn capability_digest(&self) -> &str {
         &self.capability_digest
     }
+
+    pub fn snapshot_basis_identity(&self) -> ForgeQueryEvidenceIdentity {
+        compose_admitted_capability_snapshot_basis_identity(self)
+    }
+
+    pub fn snapshot_result_shape_identity(&self) -> ForgeQueryEvidenceIdentity {
+        compose_admitted_capability_snapshot_result_shape_identity(self)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -152,6 +164,14 @@ impl AdvisoryBasisCapability {
 
     pub fn advisory_digest(&self) -> &str {
         &self.advisory_digest
+    }
+
+    pub fn snapshot_basis_identity(&self) -> ForgeQueryEvidenceIdentity {
+        compose_advisory_capability_snapshot_basis_identity(self)
+    }
+
+    pub fn snapshot_result_shape_identity(&self) -> ForgeQueryEvidenceIdentity {
+        compose_advisory_capability_snapshot_result_shape_identity(self)
     }
 }
 
@@ -336,3 +356,97 @@ define_lane_admission!(
     CertificationBasisCapability,
     Certification
 );
+
+fn compose_admitted_capability_snapshot_basis_identity(
+    capability: &AdmittedBasisCapability,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "basis_capability_snapshot_basis_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("disposition"), "admitted")
+        .field_shape(ForgeQueryEvidenceTag::new("family"), capability.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("operation_lane"),
+            capability.operation_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("visibility"),
+            capability.visibility().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("lifecycle_posture"),
+            capability.lifecycle_posture().as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("scope_label"), capability.scope_label())
+        .seal()
+}
+
+fn compose_admitted_capability_snapshot_result_shape_identity(
+    capability: &AdmittedBasisCapability,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "basis_capability_snapshot_result_shape_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("disposition"), "admitted")
+        .field_shape(ForgeQueryEvidenceTag::new("family"), capability.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("operation_lane"),
+            capability.operation_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority"),
+            capability.authority_posture().as_str(),
+        )
+        .seal()
+}
+
+fn compose_advisory_capability_snapshot_basis_identity(
+    capability: &AdvisoryBasisCapability,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "basis_capability_snapshot_basis_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("disposition"), "advisory")
+        .field_shape(ForgeQueryEvidenceTag::new("family"), capability.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("operation_lane"),
+            capability.operation_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("visibility"),
+            capability.visibility().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("lifecycle_posture"),
+            capability.lifecycle_posture().as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("scope_label"), capability.scope_label())
+        .seal()
+}
+
+fn compose_advisory_capability_snapshot_result_shape_identity(
+    capability: &AdvisoryBasisCapability,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "basis_capability_snapshot_result_shape_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("disposition"), "advisory")
+        .field_shape(ForgeQueryEvidenceTag::new("family"), capability.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("operation_lane"),
+            capability.operation_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority"),
+            capability.authority_posture().as_str(),
+        )
+        .seal()
+}

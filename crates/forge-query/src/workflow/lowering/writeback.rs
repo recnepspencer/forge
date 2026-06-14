@@ -32,7 +32,7 @@ pub struct WritebackCausalityBinding {
 }
 
 impl WritebackCausalityBinding {
-    pub fn binding_digest(&self) -> &str {
+    pub fn binding_for_reporting(&self) -> &str {
         self.binding_identity.as_str()
     }
 
@@ -40,7 +40,7 @@ impl WritebackCausalityBinding {
         &self.basis_family
     }
 
-    pub fn basis_digest(&self) -> &str {
+    pub fn basis_for_reporting(&self) -> &str {
         self.basis_identity.as_str()
     }
 
@@ -48,7 +48,7 @@ impl WritebackCausalityBinding {
         self.request_kind
     }
 
-    pub fn causality_digest(&self) -> &str {
+    pub fn causality_for_reporting(&self) -> &str {
         self.causality_identity.as_str()
     }
 
@@ -73,7 +73,6 @@ pub struct QueryWritebackDeclaration {
     bridge_declaration: BridgeWritebackDeclaration,
     freshness_binding: WorkflowFreshnessBinding,
     staleness_class: WorkflowStalenessClass,
-    lowering_digest: String,
     lowering_identity: ForgeQueryEvidenceIdentity,
     counters: WorkflowLoweringCounters,
 }
@@ -103,8 +102,8 @@ impl QueryWritebackDeclaration {
         &self.staleness_class
     }
 
-    pub fn lowering_digest(&self) -> &str {
-        &self.lowering_digest
+    pub fn lowering_for_reporting(&self) -> &str {
+        self.lowering_identity.as_str()
     }
 
     pub fn lowering_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -136,7 +135,6 @@ pub fn lower_query_writeback_declaration(
         &bridge_declaration,
         &causality_identity,
     );
-    let lowering_digest = lowering_identity.as_str().to_string();
 
     Ok(QueryWritebackDeclaration {
         declaration: declaration.clone(),
@@ -151,7 +149,6 @@ pub fn lower_query_writeback_declaration(
         bridge_declaration,
         freshness_binding: WorkflowFreshnessBinding::RuntimeBasisExact,
         staleness_class: WorkflowStalenessClass::AuthorityValidationRequired,
-        lowering_digest,
         lowering_identity,
         counters: writeback_lowering_success_counters(1),
     })
@@ -221,9 +218,9 @@ fn writeback_bridge_declaration(
                 ForgeQueryEvidenceTag::new("identity_family"),
                 "workflow_writeback_bridge_declaration_v1",
             )
-            .field_identity(
+            .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("declaration"),
-                declaration.report().declaration_digest(),
+                declaration.report().declaration_identity(),
             )
             .seal();
     BridgeWritebackDeclaration::writeback_capable(
@@ -301,32 +298,20 @@ fn writeback_lowering_identity(
     bridge_declaration: &BridgeWritebackDeclaration,
     causality_identity: &ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryEvidenceIdentity {
-    let declaration_identity =
-        writeback_source_identity("declaration", declaration.report().declaration_digest());
-    let bridge_declaration_identity =
-        writeback_source_identity("bridge_declaration", bridge_declaration.digest());
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
         .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_lowering")
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("declaration"),
-            &declaration_identity,
+            declaration.report().declaration_identity(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("writeback_family"),
             family.as_str(),
         )
-        .field_evidence_identity(
+        .field_bridge_identity(
             ForgeQueryEvidenceTag::new("bridge_declaration"),
-            &bridge_declaration_identity,
+            &bridge_declaration.declaration_identity().evidence_identity(),
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("causality"), causality_identity)
-        .seal()
-}
-
-fn writeback_source_identity(role: &str, source_value: &str) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
-        .field_shape(ForgeQueryEvidenceTag::new("role"), "writeback_source")
-        .field_shape(ForgeQueryEvidenceTag::new("source_role"), role)
-        .field_identity(ForgeQueryEvidenceTag::new("source_identity"), source_value)
         .seal()
 }

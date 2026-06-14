@@ -242,7 +242,7 @@ fn published_artifact_digest(
         ForgeQueryEvidenceTag::new("binding"),
         artifact
             .published_binding()
-            .map(|binding| binding.binding_digest())
+            .map(|binding| binding.binding_for_reporting())
             .unwrap_or("none"),
     )
     .field_shape(ForgeQueryEvidenceTag::new("title"), title.unwrap_or("none"))

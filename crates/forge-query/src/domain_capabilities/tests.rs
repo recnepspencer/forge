@@ -82,7 +82,7 @@ fn declaration_drift_requires_rebind() {
     let eligible = success(evaluate_requested_domain_capability_contribution(requested));
     let admitted = success(admit_eligible_domain_capability_contribution(eligible));
     let rebound_target = declaration_target("different-intent-digest");
-    let rebound_digest = rebound_target.target_digest().to_string();
+    let rebound_target_for_reporting = rebound_target.target_identity().as_str().to_string();
 
     match prepare_admitted_domain_capability_contribution_for_materialization(
         admitted,
@@ -90,7 +90,10 @@ fn declaration_drift_requires_rebind() {
     ) {
         TransitionOutcome::RebindRequired(rebind) => {
             assert_eq!(rebind.category(), "admission");
-            assert_eq!(rebind.current_target_digest(), rebound_digest);
+            assert_eq!(
+                rebind.current_target_for_reporting(),
+                rebound_target_for_reporting
+            );
         }
         _ => panic!("expected rebind-required outcome"),
     }
@@ -115,7 +118,10 @@ fn lower_runtime_boundary_drift_is_stale_not_rebind() {
     ) {
         TransitionOutcome::Stale(stale) => {
             assert_eq!(stale.category(), "support-traceability");
-            assert_ne!(stale.bound_target_digest(), stale.current_target_digest());
+            assert_ne!(
+                stale.bound_target_for_reporting(),
+                stale.current_target_for_reporting()
+            );
         }
         _ => panic!("expected stale outcome"),
     }

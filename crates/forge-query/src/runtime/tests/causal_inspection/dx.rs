@@ -1,7 +1,6 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily,
-    BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary,
-    BridgeIdentityEvidence, TruthCommitIdentity,
+    BridgeCausalEvidenceReferenceIdentity, BridgeIdentityEvidence, TruthCommitIdentity,
 };
 
 use super::super::super::*;
@@ -265,7 +264,7 @@ fn unsupported_durable_family_denies_without_bridge_assembly() {
         Some("unsupported_explanation_family")
     );
     assert_eq!(artifact.performance().bridge_envelope_assembly_count(), 0);
-    assert!(artifact.bridge_envelope_digest().is_none());
+    assert!(artifact.bridge_envelope_for_reporting().is_none());
 }
 
 #[test]
@@ -286,7 +285,7 @@ fn bridge_envelope_denial_materializes_denied_artifact_with_bridge_fields() {
 
     assert!(artifact.is_denied());
     assert_eq!(artifact.denial_reason(), Some("bridge_envelope_denial"));
-    assert!(artifact.decision_trace().bridge_denial_digest().is_some());
+    assert!(artifact.decision_trace().bridge_denial_for_reporting().is_some());
     assert_eq!(artifact.performance().bridge_envelope_assembly_count(), 1);
 }
 
@@ -355,25 +354,15 @@ fn common_path_preserves_core_digests_from_explicit_pipeline() {
         explicit_admitted.admitted_inspection_digest()
     );
 
-    let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            explicit_admitted.admitted_inspection_digest(),
-        ),
-        forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-            explicit_admitted.subject().anchor_for_reporting(),
-        ),
-    )
-    .expect("summary should be valid");
+    let summary = crate::runtime::tests::causal_inspection::bridge_admitted_summary(&explicit_admitted);
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         summary,
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    forge_runtime_bridge::facade::BridgeIdentityEvidence::from_external_authority(
-                        explicit_admitted
-                            .subject()
-                            .query_observation_bridge_evidence_identity(),
-                    ),
+                    explicit_admitted
+                        .subject()
+                        .query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -403,12 +392,12 @@ fn common_path_preserves_core_digests_from_explicit_pipeline() {
         .expect("common materialization should work");
 
     assert_eq!(
-        common_artifact.bridge_envelope_digest(),
-        explicit_artifact.bridge_envelope_digest()
+        common_artifact.bridge_envelope_for_reporting(),
+        explicit_artifact.bridge_envelope_for_reporting()
     );
     assert_eq!(
-        common_artifact.artifact_digest(),
-        explicit_artifact.artifact_digest()
+        common_artifact.artifact_for_reporting(),
+        explicit_artifact.artifact_for_reporting()
     );
     assert_eq!(
         common_artifact.receipt().receipt_for_reporting(),

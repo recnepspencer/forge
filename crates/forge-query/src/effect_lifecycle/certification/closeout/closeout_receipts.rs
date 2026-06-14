@@ -154,35 +154,35 @@ pub(super) fn batch_receipt_surface() -> ReceiptSurfaceEvidence {
         normalized_digest: hash_parts(&["batch-normalized".to_string()]),
         eligibility_digest: receipt
             .decision_trace()
-            .admitted_or_batch_digest()
+            .admitted_or_batch_for_reporting()
             .to_string(),
         plan_digest: receipt
             .decision_trace()
-            .admitted_or_batch_digest()
+            .admitted_or_batch_for_reporting()
             .to_string(),
-        lowered_digest: receipt.lowered_digest().to_string(),
-        receipt_digest: receipt.receipt_digest().to_string(),
-        envelope_digest: envelope.envelope_digest().to_string(),
-        diagnostics_digest: diagnostics.diagnostics_digest().to_string(),
-        transition_digest: receipt.transition_rules().rules_digest().to_string(),
+        lowered_digest: receipt.lowered_for_reporting().to_string(),
+        receipt_digest: receipt.receipt_for_reporting().to_string(),
+        envelope_digest: envelope.envelope_for_reporting().to_string(),
+        diagnostics_digest: diagnostics.diagnostics_for_reporting().to_string(),
+        transition_digest: receipt.transition_rules().rules_for_reporting().to_string(),
         authority_artifact_digest: receipt
             .integrity_markers()
-            .authority_artifact_digest()
+            .authority_artifact_for_reporting()
             .to_string(),
-        decision_trace_digest: receipt.decision_trace().decision_trace_digest().to_string(),
+        decision_trace_digest: receipt.decision_trace().decision_trace_for_reporting().to_string(),
         structural_delta_digest: hash_parts(
             &envelope
-                .structural_deltas()
+                .structural_delta_identities()
                 .iter()
-                .map(|delta| delta.to_string())
+                .map(|delta| delta.as_str().to_string())
                 .collect::<Vec<_>>(),
         ),
-        integrity_digest: receipt.integrity_markers().integrity_digest().to_string(),
+        integrity_digest: receipt.integrity_markers().integrity_for_reporting().to_string(),
         normalization_counter_digest: hash_parts(&["batch-normalization-counters".to_string()]),
         eligibility_counter_digest: hash_parts(&["batch-eligibility-counters".to_string()]),
-        lowering_counter_digest: receipt.delivery_counters().digest(),
-        execution_counter_digest: receipt.delivery_counters().digest(),
-        envelope_counter_digest: envelope.sources().counter_snapshot_digest().to_string(),
+        lowering_counter_digest: receipt.delivery_counters().counter_for_reporting().to_string(),
+        execution_counter_digest: receipt.delivery_counters().counter_for_reporting().to_string(),
+        envelope_counter_digest: envelope.sources().counter_snapshot_for_reporting().to_string(),
         counters: receipt.delivery_counters().clone(),
     }
 }
@@ -195,13 +195,13 @@ fn scalar_surface_evidence(
     let raw_digest = raw_effect_intent_digest(&raw);
     let normalized =
         normalize_raw_effect_intent(basis, raw).expect("closeout receipt surface should normalize");
-    let normalization_counter_digest = normalized.counters().digest();
+    let normalization_counter_digest = normalized.counters().counter_for_reporting().to_string();
     let eligibility = match evaluate_effect_eligibility(normalized.clone()) {
         EffectEligibilityOutcome::Admitted(eligibility) => eligibility,
         other => panic!("expected admitted closeout surface, got {other:?}"),
     };
-    let eligibility_digest = eligibility.decision_trace().trace_digest().to_string();
-    let eligibility_counter_digest = eligibility.counters().digest();
+    let eligibility_digest = eligibility.decision_trace().trace_for_reporting().to_string();
+    let eligibility_counter_digest = eligibility.counters().counter_for_reporting().to_string();
     let admitted = admit_effect_intent(eligibility);
     let scoped_plan = scope_admitted_effect_plan(admitted);
     let query_digest = normalized
@@ -237,12 +237,12 @@ fn scalar_surface_evidence(
             scoped_plan.permitted_lowering_family().as_str()
         ),
     ]);
-    let plan_digest = scoped_plan.plan_digest().to_string();
+    let plan_digest = scoped_plan.plan_for_reporting().to_string();
     let lowered = scoped_plan
         .lower()
         .expect("closeout receipt surface should lower");
-    let lowering_counter_digest = lowered.counters().digest();
-    let lowered_digest = lowered.lowered_effect_execution_plan_digest().to_string();
+    let lowering_counter_digest = lowered.counters().counter_for_reporting().to_string();
+    let lowered_digest = lowered.lowered_effect_execution_plan_for_reporting().to_string();
     let receipt = lowered
         .execute_receipt_with(authority)
         .expect("closeout receipt surface should execute");
@@ -261,28 +261,28 @@ fn scalar_surface_evidence(
         eligibility_digest,
         plan_digest,
         lowered_digest,
-        receipt_digest: receipt.receipt_digest().to_string(),
-        envelope_digest: envelope.envelope_digest().to_string(),
-        diagnostics_digest: diagnostics.diagnostics_digest().to_string(),
-        transition_digest: receipt.transition_rules().rules_digest().to_string(),
+        receipt_digest: receipt.receipt_for_reporting().to_string(),
+        envelope_digest: envelope.envelope_for_reporting().to_string(),
+        diagnostics_digest: diagnostics.diagnostics_for_reporting().to_string(),
+        transition_digest: receipt.transition_rules().rules_for_reporting().to_string(),
         authority_artifact_digest: receipt
             .integrity_markers()
-            .authority_artifact_digest()
+            .authority_artifact_for_reporting()
             .to_string(),
-        decision_trace_digest: receipt.decision_trace().decision_trace_digest().to_string(),
+        decision_trace_digest: receipt.decision_trace().decision_trace_for_reporting().to_string(),
         structural_delta_digest: hash_parts(
             &envelope
-                .structural_deltas()
+                .structural_delta_identities()
                 .iter()
-                .map(|delta| delta.to_string())
+                .map(|delta| delta.as_str().to_string())
                 .collect::<Vec<_>>(),
         ),
-        integrity_digest: receipt.integrity_markers().integrity_digest().to_string(),
+        integrity_digest: receipt.integrity_markers().integrity_for_reporting().to_string(),
         normalization_counter_digest,
         eligibility_counter_digest,
         lowering_counter_digest,
-        execution_counter_digest: receipt.delivery_counters().digest(),
-        envelope_counter_digest: envelope.sources().counter_snapshot_digest().to_string(),
+        execution_counter_digest: receipt.delivery_counters().counter_for_reporting().to_string(),
+        envelope_counter_digest: envelope.sources().counter_snapshot_for_reporting().to_string(),
         counters: receipt.delivery_counters().clone(),
     }
 }
