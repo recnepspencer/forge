@@ -20,8 +20,9 @@ Read the docs in this order if you are new to the surface:
 2. [Equivalence And Mismatch Classification](./equivalence-and-mismatch-classification.md)
 3. [Export Bundles And Producer Shape](./export-bundles-and-producer-shape.md)
 4. [Digest Derivation And Slot Semantics](./digest-derivation-and-slot-semantics.md)
-5. [Grouped Public Lanes And Front-Door Usage](./grouped-public-lanes-and-front-door-usage.md)
-6. [Canonical Production Readiness](./canonical-production-readiness.md)
+5. [Authority Identity Boundaries](./authority-identity-boundaries.md)
+6. [Grouped Public Lanes And Front-Door Usage](./grouped-public-lanes-and-front-door-usage.md)
+7. [Canonical Production Readiness](./canonical-production-readiness.md)
 
 The order matters.
 
@@ -29,6 +30,10 @@ The order matters.
 - Compare basis before you publish bundles or manifests.
 - Export only after you already hold ready canonical basis artifacts.
 - Derive digests after readiness, not before it.
+- Treat authority identity as witness-admitted, not as a string, digest, or
+  projection label.
+- Prefer the authority identity helper functions for the normal lifecycle.
+  They reduce call-site ceremony without hiding the authority witness.
 - Use the grouped public lanes when you want the teachable common path or the
   supported lower or stronger lanes.
 - Use readiness when you need the exact machine-checkable closure contract for
