@@ -1,1 +1,2 @@
+mod authority_identity_boundaries;
 mod category_boundaries;
