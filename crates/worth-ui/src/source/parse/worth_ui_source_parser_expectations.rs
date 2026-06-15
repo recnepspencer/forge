@@ -129,8 +129,11 @@ pub(super) fn token_string_literal_text(token: &WorthUiSourceToken) -> String {
 #[derive(Clone, Copy)]
 pub(super) enum TokenExpectation {
     LeftBrace,
+    LeftParen,
+    RightParen,
     Semicolon,
     Equals,
+    Colon,
 }
 
 impl TokenExpectation {
@@ -138,14 +141,20 @@ impl TokenExpectation {
         matches!(
             (self, token_kind),
             (Self::LeftBrace, WorthUiSourceTokenKind::LeftBrace)
+                | (Self::LeftParen, WorthUiSourceTokenKind::LeftParen)
+                | (Self::RightParen, WorthUiSourceTokenKind::RightParen)
                 | (Self::Semicolon, WorthUiSourceTokenKind::Semicolon)
                 | (Self::Equals, WorthUiSourceTokenKind::Equals)
+                | (Self::Colon, WorthUiSourceTokenKind::Colon)
         )
     }
 
     fn missing_code(self) -> WorthUiParseDiagnosticCode {
         match self {
             Self::LeftBrace => WorthUiParseDiagnosticCode::MissingBlockStart,
+            Self::LeftParen | Self::RightParen | Self::Colon => {
+                WorthUiParseDiagnosticCode::UnexpectedToken
+            }
             Self::Semicolon => WorthUiParseDiagnosticCode::MissingSemicolon,
             Self::Equals => WorthUiParseDiagnosticCode::MissingEquals,
         }

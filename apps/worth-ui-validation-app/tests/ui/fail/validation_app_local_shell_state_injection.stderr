@@ -1,10 +1,19 @@
-error[E0624]: method `observe_runtime_launch` is private
- --> tests/ui/fail/validation_app_local_shell_state_injection.rs:6:14
+error[E0432]: unresolved import `worth_ui_validation_app::ValidationWorkspaceState`
+ --> tests/ui/fail/validation_app_local_shell_state_injection.rs:2:58
   |
-6 |     evidence.observe_runtime_launch(injected_basis);
-  |              ^^^^^^^^^^^^^^^^^^^^^^ private method
-  |
- ::: $WORKSPACE/crates/worth-ui-harness/src/evidence/bundle.rs
-  |
-  |     pub(crate) fn observe_runtime_launch(&mut self, basis: HarnessEvidenceBasis) {
-  |     ---------------------------------------------------------------------------- private method defined here
+2 |     ValidationWorkbenchLaunch, ValidationWorkspaceShell, ValidationWorkspaceState,
+  |                                                          ^^^^^^^^^^^^^^^^^^^^^^^^
+  |                                                          |
+  |                                                          no `ValidationWorkspaceState` in the root
+  |                                                          help: a similar name exists in the module: `ValidationWorkspaceShell`
+
+error[E0624]: method `state_mut` is private
+  --> tests/ui/fail/validation_app_local_shell_state_injection.rs:11:11
+   |
+11 |     shell.state_mut().set_rail_width(240.0);
+   |           ^^^^^^^^^ private method
+   |
+  ::: src/workspace/validation_workspace_shell.rs
+   |
+   |     pub(crate) fn state_mut(&mut self) -> &mut ValidationWorkspaceState {
+   |     ------------------------------------------------------------------- private method defined here

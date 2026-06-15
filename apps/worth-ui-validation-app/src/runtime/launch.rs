@@ -1,90 +1,77 @@
 use worth_ui::facade::{
-    WorthUi, WorthUiApp, WorthUiRuntimeHost, WorthUiRuntimeLaunchDenial,
-    WorthUiRuntimeLaunchPreparationDenial, WorthUiRuntimeSourceModule,
-};
-use worth_ui_harness::facade::{
-    HarnessDensity, HarnessVisualFoundationBundle, HarnessVisualFoundationDenial,
-    HarnessVisualFoundationReceipt, HarnessVisualFoundationRegistration,
+    WorthUi, WorthUiApp, WorthUiLayoutTopologyCatalog, WorthUiRuntimeHost,
+    WorthUiRuntimeLaunchDenial, WorthUiRuntimeLaunchPreparationDenial,
 };
 
-use crate::shell::{NavigationSelection, ValidationPageId, ValidationRunSummary};
-use crate::theme::{ValidationWorkbenchTheme, ValidationWorkbenchThemeError};
+use crate::honesty::ValidationAppPublicFacadeLaunch;
+use crate::runtime::ValidationWorkbenchSnapshot;
+use crate::runtime::{
+    ValidationLayoutMeasurementCatalog, ValidationLayoutMeasurementCatalogDenial,
+};
+use crate::sample::{ValidationAuthoringSample, VALIDATION_AUTHORING_SAMPLE};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ValidationWorkbenchLaunch {
-    initial_page: ValidationPageId,
-}
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct ValidationWorkbenchLaunch;
 
 pub struct PreparedValidationWorkbenchLaunch {
     app: WorthUiApp,
     runtime: WorthUiRuntimeHost,
-    visual_foundation: HarnessVisualFoundationReceipt,
-    render_theme: ValidationWorkbenchTheme,
-    density: HarnessDensity,
-    latest_run_receipt: Option<&'static str>,
-    navigation: NavigationSelection,
+    layout_topology: WorthUiLayoutTopologyCatalog,
+    layout_measurements: ValidationLayoutMeasurementCatalog,
+    sample: ValidationAuthoringSample,
 }
 
 #[derive(Debug)]
 pub enum ValidationWorkbenchLaunchError {
-    VisualFoundation(HarnessVisualFoundationDenial),
-    RenderTheme(ValidationWorkbenchThemeError),
+    LayoutMeasurements {
+        page_name: String,
+        token_name: String,
+    },
     RuntimePreparation(WorthUiRuntimeLaunchPreparationDenial),
     RuntimeLaunch(WorthUiRuntimeLaunchDenial),
 }
 
 impl ValidationWorkbenchLaunch {
     pub fn new() -> Self {
-        Self {
-            initial_page: ValidationPageId::SurfaceAtlas,
-        }
-    }
-
-    pub fn with_initial_page(mut self, initial_page: ValidationPageId) -> Self {
-        self.initial_page = initial_page;
-        self
-    }
-
-    pub fn with_default_vscode_dark_theme(self) -> Self {
-        self
+        Self
     }
 
     pub fn prepare(
         self,
     ) -> Result<PreparedValidationWorkbenchLaunch, ValidationWorkbenchLaunchError> {
-        let foundation = HarnessVisualFoundationBundle::vscode_like_dark()
-            .prepare()
-            .map_err(ValidationWorkbenchLaunchError::VisualFoundation)?;
-        let foundation_receipt = foundation.receipt().clone();
-        let render_theme = ValidationWorkbenchTheme::from_theme_tokens(foundation.theme_tokens())
-            .map_err(ValidationWorkbenchLaunchError::RenderTheme)?;
-        let app = WorthUi::app()
-            .install_harness_visual_foundation(foundation)
-            .freeze();
-        let runtime_launch = WorthUi::runtime_launch()
-            .from_source_module(WorthUiRuntimeSourceModule::new("validation/main.wui", ""))
-            .prepare_for(&app)
+        let app = WorthUi::app().freeze();
+        let prepared_authoring = ValidationAppPublicFacadeLaunch::DEFAULT
+            .prepare_authoring_for(&app)
             .map_err(ValidationWorkbenchLaunchError::RuntimePreparation)?;
+        let (runtime_launch, layout_topology) = prepared_authoring.into_parts();
+        let layout_measurements = ValidationLayoutMeasurementCatalog::shopify_admin_defaults();
+        layout_measurements
+            .validate_topology(&layout_topology)
+            .map_err(map_layout_measurement_denial)?;
         let runtime = app
             .launch_runtime(runtime_launch)
             .map_err(ValidationWorkbenchLaunchError::RuntimeLaunch)?;
-        let mut navigation = NavigationSelection::default();
-        navigation.select_page(self.initial_page);
         Ok(PreparedValidationWorkbenchLaunch {
             app,
             runtime,
-            visual_foundation: foundation_receipt,
-            render_theme,
-            density: HarnessDensity::DEFAULT,
-            latest_run_receipt: None,
-            navigation,
+            layout_topology,
+            layout_measurements,
+            sample: VALIDATION_AUTHORING_SAMPLE,
         })
     }
 }
 
-impl Default for ValidationWorkbenchLaunch {
-    fn default() -> Self {
-        Self::new()
+fn map_layout_measurement_denial(
+    denial: ValidationLayoutMeasurementCatalogDenial,
+) -> ValidationWorkbenchLaunchError {
+    match denial {
+        ValidationLayoutMeasurementCatalogDenial::MissingNamedToken {
+            page_name,
+            token_name,
+        } => ValidationWorkbenchLaunchError::LayoutMeasurements {
+            page_name,
+            token_name,
+        },
     }
 }
 
@@ -97,35 +84,19 @@ impl PreparedValidationWorkbenchLaunch {
         &self.app
     }
 
-    pub fn navigation(&self) -> &NavigationSelection {
-        &self.navigation
+    pub(crate) fn layout_topology(&self) -> &WorthUiLayoutTopologyCatalog {
+        &self.layout_topology
     }
 
-    pub fn navigation_mut(&mut self) -> &mut NavigationSelection {
-        &mut self.navigation
+    pub(crate) fn layout_measurements(&self) -> &ValidationLayoutMeasurementCatalog {
+        &self.layout_measurements
     }
 
-    pub fn visual_foundation(&self) -> &HarnessVisualFoundationReceipt {
-        &self.visual_foundation
+    pub fn sample(&self) -> ValidationAuthoringSample {
+        self.sample
     }
 
-    pub fn render_theme(&self) -> &ValidationWorkbenchTheme {
-        &self.render_theme
-    }
-
-    pub fn density(&self) -> HarnessDensity {
-        self.density
-    }
-
-    pub fn latest_run_receipt(&self) -> Option<&'static str> {
-        self.latest_run_receipt
-    }
-
-    pub fn run_summary(&self) -> ValidationRunSummary {
-        ValidationRunSummary::new(
-            self.navigation.selected_scenario(),
-            self.latest_run_receipt,
-            self.runtime.inspect_active(),
-        )
+    pub fn snapshot(&self) -> ValidationWorkbenchSnapshot {
+        ValidationWorkbenchSnapshot::from_launch(self.sample, self.runtime.inspect_active())
     }
 }

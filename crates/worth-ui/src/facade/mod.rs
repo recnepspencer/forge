@@ -247,9 +247,16 @@ pub use crate::runtime::{
     WorthUiWatcherEvent,
 };
 pub use crate::source::WorthUiArtifactSubtreeDigest;
+pub use crate::source::{
+    WorthUiLayoutAxis, WorthUiLayoutDimension, WorthUiLayoutSizingSpec, WorthUiLayoutSizingValue,
+    WorthUiLayoutSlotNode, WorthUiLayoutTopologyCatalog, WorthUiLayoutTopologyChild,
+    WorthUiLayoutTopologyDiagnostic, WorthUiLayoutTopologyDiagnosticCode,
+    WorthUiLayoutTopologyNode, WorthUiLayoutTopologyReport, WorthUiPageLayoutTopology,
+};
 pub use app::WorthUiApp;
 pub use builder::WorthUiAppBuilder;
 pub use entry::WorthUi;
 pub use runtime_launch::{
-    WorthUiRuntimeLaunchBuilder, WorthUiRuntimeLaunchPreparationDenial, WorthUiRuntimeSourceModule,
+    WorthUiPreparedRuntimeAuthoring, WorthUiRuntimeLaunchBuilder,
+    WorthUiRuntimeLaunchPreparationDenial, WorthUiRuntimeSourceModule,
 };

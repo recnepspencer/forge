@@ -127,7 +127,8 @@ fn file_authored_artifact(
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourcePackageRejected))?;
     let parsed = WorthUiSourceParser::parse_package(&source_package)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourceParseRejected))?;
-    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed);
+    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed)
+        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
     canonical_artifact_from_input(artifact_input, snapshot)
 }
 

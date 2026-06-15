@@ -9,6 +9,7 @@ mod equivalence;
 mod identity_seeded;
 mod import_graph;
 mod inspection;
+mod layout_topology;
 mod lower;
 mod module;
 mod package;
@@ -73,8 +74,15 @@ pub(crate) use inspection::{
     WorthUiArtifactNodeInspection, WorthUiArtifactProvenanceMap, WorthUiArtifactSourceOrigin,
     WorthUiQueryInspectionLink, WorthUiQueryInspectionLinkRole,
 };
+pub use layout_topology::{
+    WorthUiLayoutAxis, WorthUiLayoutDimension, WorthUiLayoutSizingSpec, WorthUiLayoutSizingValue,
+    WorthUiLayoutSlotNode, WorthUiLayoutTopologyCatalog, WorthUiLayoutTopologyChild,
+    WorthUiLayoutTopologyDiagnostic, WorthUiLayoutTopologyDiagnosticCode,
+    WorthUiLayoutTopologyNode, WorthUiLayoutTopologyReport, WorthUiPageLayoutTopology,
+};
 #[allow(unused_imports)]
 pub(crate) use lower::{
+    build_layout_topology_catalog, validate_layout_topology_tokens,
     WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyDiagnosticCode,
     WorthUiArtifactAssemblyMetrics, WorthUiArtifactAssemblyReport,
     WorthUiArtifactDependencyDeriver, WorthUiArtifactDependencyMetrics,
@@ -83,20 +91,21 @@ pub(crate) use lower::{
     WorthUiArtifactInspectionBasis, WorthUiArtifactInspectionBasisBuilder,
     WorthUiArtifactInspectionDeriver, WorthUiArtifactInspectionDiagnostic,
     WorthUiArtifactInspectionDiagnosticCode, WorthUiArtifactInspectionMetrics,
-    WorthUiArtifactInspectionReport, WorthUiBindingDiagnostic, WorthUiBindingDiagnosticCode,
-    WorthUiBindingSemanticsLowerer, WorthUiBindingSemanticsMetrics, WorthUiBindingSemanticsReport,
-    WorthUiCanonicalArtifactAssembler, WorthUiIdentityReplacementClassifier,
-    WorthUiIdentitySeedLowerer, WorthUiIdentitySeedingDiagnostic,
-    WorthUiIdentitySeedingDiagnosticCode, WorthUiIdentitySeedingMetrics,
-    WorthUiIdentitySeedingReport, WorthUiParsedSourceToArtifactInputLowerer,
-    WorthUiResolutionDiagnostic, WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics,
-    WorthUiResolutionReport, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiRustCompositionInput, WorthUiRustCompositionMetrics, WorthUiRustCompositionModule,
-    WorthUiRustCompositionReport, WorthUiRustCompositionToArtifactInputLowerer,
-    WorthUiStructuralLegalityDiagnostic, WorthUiStructuralLegalityDiagnosticCode,
-    WorthUiStructuralLegalityLowerer, WorthUiStructuralLegalityMetrics,
-    WorthUiStructuralLegalityReport,
+    WorthUiArtifactInspectionReport, WorthUiAuthoringEntryDiagnostic,
+    WorthUiAuthoringEntryDiagnosticCode, WorthUiAuthoringEntryReport, WorthUiBindingDiagnostic,
+    WorthUiBindingDiagnosticCode, WorthUiBindingSemanticsLowerer, WorthUiBindingSemanticsMetrics,
+    WorthUiBindingSemanticsReport, WorthUiCanonicalArtifactAssembler,
+    WorthUiIdentityReplacementClassifier, WorthUiIdentitySeedLowerer,
+    WorthUiIdentitySeedingDiagnostic, WorthUiIdentitySeedingDiagnosticCode,
+    WorthUiIdentitySeedingMetrics, WorthUiIdentitySeedingReport,
+    WorthUiParsedSourceToArtifactInputLowerer, WorthUiResolutionDiagnostic,
+    WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics, WorthUiResolutionReport,
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
+    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiRustCompositionInput,
+    WorthUiRustCompositionMetrics, WorthUiRustCompositionModule, WorthUiRustCompositionReport,
+    WorthUiRustCompositionToArtifactInputLowerer, WorthUiStructuralLegalityDiagnostic,
+    WorthUiStructuralLegalityDiagnosticCode, WorthUiStructuralLegalityLowerer,
+    WorthUiStructuralLegalityMetrics, WorthUiStructuralLegalityReport,
 };
 pub(crate) use module::{WorthUiSourceModuleId, WorthUiSourceModuleRecord};
 #[allow(unused_imports)]
@@ -107,10 +116,12 @@ pub(crate) use package::{
 };
 #[allow(unused_imports)]
 pub(crate) use parse::{
-    WorthUiParseDiagnostic, WorthUiParseDiagnosticCode, WorthUiParseReport, WorthUiParsedBlockBody,
-    WorthUiParsedBlockDeclaration, WorthUiParsedImportDeclaration, WorthUiParsedSourceDeclaration,
-    WorthUiParsedSourceModule, WorthUiParsedSourcePackage, WorthUiParsedTokenDeclaration,
-    WorthUiSourceParser, WorthUiSourceSpan, WorthUiSourceToken, WorthUiSourceTokenKind,
+    WorthUiParseDiagnostic, WorthUiParseDiagnosticCode, WorthUiParseReport,
+    WorthUiParsedAuthoringDeclaration, WorthUiParsedBlockBody, WorthUiParsedBlockDeclaration,
+    WorthUiParsedImportDeclaration, WorthUiParsedPageDeclaration, WorthUiParsedSourceDeclaration,
+    WorthUiParsedSourceModule, WorthUiParsedSourcePackage, WorthUiParsedTemplateParameter,
+    WorthUiParsedTokenDeclaration, WorthUiSourceParser, WorthUiSourceSpan, WorthUiSourceToken,
+    WorthUiSourceTokenKind,
 };
 pub(crate) use resolved::{
     WorthUiResolvedArtifactInput, WorthUiResolvedArtifactInputBindingNode,

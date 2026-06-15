@@ -260,9 +260,10 @@ fn file_authored_import_artifact(target_module_path: &str) -> WorthUiArtifact {
         .expect("file-authored package compiles");
     let parsed_source_package =
         WorthUiSourceParser::parse_package(&source_package).expect("source package parses");
-    canonical_artifact_from_input(WorthUiParsedSourceToArtifactInputLowerer::lower(
-        &parsed_source_package,
-    ))
+    canonical_artifact_from_input(
+        WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package)
+            .expect("authoring entry should lower to artifact input"),
+    )
 }
 
 fn rust_authored_reordered_import_artifact(target_module_path: &str) -> WorthUiArtifact {

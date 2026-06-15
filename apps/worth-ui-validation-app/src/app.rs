@@ -1,12 +1,13 @@
 use eframe::{App, Frame, NativeOptions};
 use egui::Context;
 
-use crate::runtime::PreparedValidationWorkbenchLaunch;
-use crate::shell::{ShellFrameSnapshot, ValidationShellFrame};
+use crate::{
+    runtime::{PreparedValidationWorkbenchLaunch, ValidationWorkbenchSnapshot},
+    workspace::ValidationWorkspaceShell,
+};
 
 pub struct ValidationWorkbenchApp {
-    launch: PreparedValidationWorkbenchLaunch,
-    shell: ValidationShellFrame,
+    workspace: ValidationWorkspaceShell,
 }
 
 #[derive(Debug)]
@@ -16,8 +17,9 @@ pub enum ValidationWorkbenchRunError {
 
 impl ValidationWorkbenchApp {
     pub fn new(launch: PreparedValidationWorkbenchLaunch) -> Self {
-        let shell = ValidationShellFrame::new(&launch);
-        Self { launch, shell }
+        Self {
+            workspace: ValidationWorkspaceShell::from_launch(launch),
+        }
     }
 
     pub fn run_native(launch: PreparedValidationWorkbenchLaunch) -> eframe::Result<()> {
@@ -29,21 +31,25 @@ impl ValidationWorkbenchApp {
         )
     }
 
-    pub fn snapshot(&self) -> ShellFrameSnapshot {
-        self.shell.snapshot(&self.launch)
+    pub fn snapshot(&self) -> ValidationWorkbenchSnapshot {
+        self.workspace.snapshot()
     }
 
     pub fn launch(&self) -> &PreparedValidationWorkbenchLaunch {
-        &self.launch
+        self.workspace.launch()
     }
 
-    pub fn launch_mut(&mut self) -> &mut PreparedValidationWorkbenchLaunch {
-        &mut self.launch
+    pub fn workspace(&self) -> &ValidationWorkspaceShell {
+        &self.workspace
+    }
+
+    pub fn workspace_mut(&mut self) -> &mut ValidationWorkspaceShell {
+        &mut self.workspace
     }
 }
 
 impl App for ValidationWorkbenchApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-        self.shell.render(ctx, &self.launch);
+        self.workspace.render(ctx);
     }
 }

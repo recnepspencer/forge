@@ -15,6 +15,7 @@ pub enum WorthUiSourceIngressDenialReason {
     NoCandidateMaterial,
     SourcePackageRejected,
     SourceParseRejected,
+    AuthoringEntryRejected,
     ArtifactResolutionRejected,
     StructuralLegalityRejected,
     BindingSemanticsRejected,

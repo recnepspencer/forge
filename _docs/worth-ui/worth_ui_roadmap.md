@@ -298,77 +298,64 @@ honesty.
 - steady-state frame execution proves source parsing, artifact validation,
   registry string lookup, and broad artifact scans remain absent
 
-## Milestone 4: Interactive Workbench Validation App and Shell Acceptance
+## Milestone 4: Authoring DX Reset and Shopify Dashboard Product Hardening
 
 Detailed spec: [milestone-4.md](./milestone-4.md)
 
 ### Goal
 
-Build the first real Worth UI workbench validation app: an interactive, replayable,
-native desktop diagnostic UI over the Rust/egui Worth UI platform path that
-exercises the platform shell, mosaic layout, command projection,
-persistence/restore, and hot-reload survival paths as composed product behavior
-rather than isolated primitive tests.
+Replace the current low-level Worth UI authoring surface with a first-class
+`app -> workspace -> page -> layout -> content -> surface -> component ->
+appearance` model, then harden that model by building a serious native
+Shopify-style admin dashboard on top of the existing Worth UI compiler,
+runtime, Query-binding, and hot-reload substrate.
 
 ### Must Ship
 
-- one canonical interactive sample workbench built through Worth UI facade,
-  source/artifact, runtime, mosaic, command, and state surfaces rather than
-  app-local shell logic
-- explicit guardrails that forbid browser, Vite, React, DOM, HTML/CSS, or
-  web-view validation app implementation artifacts for this milestone
-- scenario runner for scripted shell operations including open, close, dock,
-  split, tab, pin, overlay, persist, restore, valid reload, invalid reload,
-  and restart/recovery replay
-- visible validation app UI for running scenarios, inspecting active artifact and plan
-  digests, viewing state carry-forward receipts, and reading typed diagnostics
-- nested mosaic shell scenario with pinned sidebar, stacked scroll regions,
-  bottom/status region, tabbed editor area, and overlay surface
-- command projection scenario proving menu bar, toolbar, command palette, and
-  context surfaces project the same command backbone
-- persistence and restore scenario that compares pre-restart and post-restore
-  shell state, active plan, stable IDs, and durable UI state receipts
-- hot-reload scenario that applies valid, invalid, equivalent, and
-  identity-preserving workspace layout edits while preserving the active shell
-  when candidates are denied
-- manual validation panel with expected-observation checklists, scenario
-  receipts, failure localization, and room for later screenshot or visual
-  golden capture
-- validation app support surfaces narrow enough that future milestones can add
-  Query-bound views, forms, components, accessibility, native integration, and
-  plugin scenarios without rewriting the runner
+- first-class authoring for `app`, `workspace`, `page`, `layout`, `content`,
+  typed runtime families, `component`, and `appearance`
+- a workspace-owned shell with typed page navigation and shared overlays,
+  toasts, inspector, rail, and status surfaces
+- mosaic-native layout DX for `fit`, `fill`, `share`, `clamp`, `ratio`,
+  resizable regions, and explicit scroll ownership that lowers into the
+  existing structural-facts pipeline
+- typed runtime declaration families that consume existing `ViewBindingDescriptor`,
+  bound-binding, runtime-hook, and Query-support substrate rather than
+  inventing page-local hydration
+- explicit iteration bindings for repeated live collections and virtualized
+  execution
+- seam arbitration and appearance/theme separation so touching boundaries dedupe
+  by default while chrome remains distinct from structure
+- one serious native Shopify-style admin workspace with overview, products,
+  orders, and customers pages
+- reload, restore, diagnostics, and counter evidence proving the dashboard uses
+  the platform honestly
 
 ### Must Preserve
 
-- validation app behavior remains a consumer of Worth UI platform contracts, not a
-  privileged internal path or a second shell runtime
-- workspace layout remains a platform artifact, not a pile of widget-local
-  geometry state hidden inside the sample app
-- manual validation observes receipts, counters, diagnostics, and visible UI
-  behavior; it must not replace mechanical tests or bless untyped drift
-- persisted shell state remains distinct from authoritative runtime truth and
-  from derived diagnostics
-- scenario scripts are replayable and deterministic enough to expose layout,
-  command, reload, and restore drift
-- the validation app must make missing platform proof visible instead of compensating
-  with app-local workarounds
+- the existing source -> artifact -> runtime proof chain and snapshot authority
+  boundaries
+- runtime ownership of active artifact, active plan, durable state, and Query
+  posture drift
+- no browser, DOM, CSS, React, or web-view implementation escapes
+- no UI-local dependency graph, props runtime, hydration graph, or shadow shell
+  runtime
+- no broad lookup or scan regressions on the hot path
+- no layout/style/runtime blob objects that collapse distinct responsibilities
 
 ### Acceptance Evidence
 
-- one sample workbench can open, close, dock, split, tab, persist, and restore
-  its shell without app-local shell logic, and the validation app displays the
-  receipts that prove which platform paths ran
-- one nested mosaic shell can express pinned sidebar, stacked scroll regions,
-  bottom/status surface, tab stack, and overlay surfaces without DOM-style
-  height or overflow hacks
-- shell state restore is deterministic enough that restart and recovery do not
-  invent layout drift, with digest/receipt comparison visible in the validation app
-- command palette, menus, toolbar entries, and context surfaces all project the
-  same command backbone and expose matching command identities
-- workspace layout edits survive hot reload when stable IDs remain intact, and
-  denied edits preserve the previous active shell with typed diagnostics
-- a human can run the acceptance scenario set from the validation app UI and compare
-  visible behavior against the same runtime evidence that automated tests assert
+- equivalent old-form and new-form authoring converge on the same canonical
+  artifact meaning
+- the Shopify workspace runs inside one persistent shell with materially
+  different pages and no page-local shell reimplementation
+- repeated live data proves stable iteration identity and bounded visibility
+  execution
+- seams dedupe by default and only diverge when explicit posture requires it
+- reload, restore, and theme/density changes preserve runtime truth and shell
+  continuity
+- receipts, counters, and diagnostics prove the dashboard consumes the existing
+  substrate rather than bypassing it
 
 ## Milestone 5: Command Spine, Focus, Selection, and Keyboard Routing
 

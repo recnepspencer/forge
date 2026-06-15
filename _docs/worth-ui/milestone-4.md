@@ -1,1169 +1,1553 @@
-# Milestone 4: Interactive Workbench Validation App And Shell Acceptance
+# Milestone 4: Authoring DX Reset and Shopify Dashboard Product Hardening
 
 ## Goal
 
-Build the first real Worth UI workbench validation app: an interactive, replayable,
-native desktop diagnostic UI that runs through Worth UI's Rust/egui platform
-path and exercises platform shell behavior, mosaic layout, command projection,
-theme posture, persistence/restore, and hot-reload survival as composed product
-behavior rather than isolated primitive tests.
+Replace the current low-level Worth UI authoring surface with a first-class
+authoring model for `app -> workspace -> page -> layout -> content -> surface ->
+component -> appearance`, then prove that model by building a serious
+Shopify-style native admin dashboard on top of the existing Worth UI compiler,
+runtime, and Forge Query integration.
 
-The default validation app theme should intentionally resemble the clarity and
-density of VS Code dark mode: dark editor canvas, slightly differentiated
-sidebars and panels, quiet borders, blue command/accent focus, readable neutral
-text, and restrained runtime-state colors.
+This milestone is not allowed to rebuild the runtime, rebuild Query, or invent
+page-local shell folklore. It must refine the author-facing layer while
+preserving the stronger lower substrate that already exists.
 
 ## Why This Milestone Exists
 
-Milestone 3 closed the active runtime, execution-plan, durable-state,
-reconciliation, Query-binding, lane, reload, diagnostics, and frame-cost
-foundation. The remaining risk is not that Worth UI lacks individual primitive
-tests. The risk is that those primitives can pass in isolation while a real
-shell still drifts, cheats, looks bad, hides runtime evidence, or requires
-app-local glue when composed.
+Milestones 1 through 3 already established the hard lower architecture:
 
-This milestone turns the original shell acceptance evidence into a hostile
-interactive desktop validation app. It must let a human see the native UI, run
-scenarios, inspect the same receipts and counters the automated tests assert,
-and catch composed failures that primitive tests miss.
+- typed capability registration and frozen snapshot lookup
+- source-to-artifact compiler phases
+- structural legality over mosaic topology
+- Query-aware binding semantics and runtime dependency hooks
+- hot replacement, durable state reconciliation, and execution-plan lowering
 
-The validation app must consume the foundations from Milestones 1 through 3:
-facade/capability registries, canonical source/artifact lowering, active
-runtime launch, execution-plan inspection, durable-state reconciliation,
-command projection, diagnostics, replacement candidates, reload preservation,
-and frame-cost evidence. It must not introduce a browser, DOM, React, Vite,
-HTML/CSS, or web-view substitute for the product surface being validated.
+What is still weak is the author-facing language that feeds those systems.
+Today, the crate already has serious runtime authority and replacement logic,
+but authoring is still too close to low-level `component` / `surface` /
+`binding` blocks with `region` / `mount` statements.
+
+Milestone 4 exists to fix that mismatch honestly:
+
+- preserve the existing proof chain
+- replace the weak authoring surface
+- prove the result against a dense real product
 
 ## Governing Summaries
 
-- `MENTALITY.md`: protects Worth UI from MVP/demo instincts. The validation app must
-  be built for the UI platform Worth UI is becoming, not as a comforting toy
-  dashboard.
-- `arch_laws.md`: protects proof-bearing boundaries. Validation app operations must
-  consume typed source, artifact, runtime, state, command, and diagnostic
-  envelopes rather than re-deciding platform truth.
-- `composition_laws.md`: protects the validation app from becoming a god demo. Scenario
-  registry, operation runner, evidence capture, visual shell, theme surface,
-  manual validation, and QA probes must be separate responsibilities.
-- `domain_structure_laws.md`: protects authority and derivation in the tree.
-  Scenario scripts, runtime evidence, visible UI, manual observations, and
-  hostile validation app probes need distinct structural homes.
-- `perf_laws.md`: protects hot-path honesty. Validation app visual polish and evidence
-  projection must not introduce source parsing, broad artifact scans, registry
-  string lookup, rich diagnostics, or allocation-heavy behavior into steady
-  frame execution.
-- `worth_ui_roadmap.md`: protects the sequence. M4 belongs immediately after M3
-  because the active runtime foundation now needs composed product evidence
-  before command, focus, Query-bound view, form, component, accessibility, and
-  native breadth expand.
+`MENTALITY.md`
+
+- The main thing this document protects is foundation-first honesty.
+- The spec must solve the real structural mismatch now instead of layering
+  convenience syntax over the current low-level authoring and calling that done.
+
+`arch_laws.md`
+
+- The main thing this document protects is proof-carrying structure.
+- The spec must add authoring phases that lower into the existing typed
+  artifact/runtime chain rather than bypassing it with ad hoc runtime objects.
+
+`composition_laws.md`
+
+- The main thing this document protects is named semantic decomposition.
+- The spec must keep layout, content, runtime binding, appearance, actions, and
+  evidence as separate responsibilities instead of one giant page DSL.
+
+`domain_structure_laws.md`
+
+- The main thing this document protects is boundary truth in the tree.
+- The spec must keep authority, derivation, shell ownership, runtime truth, and
+  presentation artifacts structurally separate.
+
+`perf_laws.md`
+
+- The main thing this document protects is bounded execution tied to semantic
+  delta.
+- The spec must consume the existing snapshot, dependency-hook, invalidation,
+  and lane substrate rather than introducing props, broad scans, or UI-local
+  dependency graphs.
+
+`dx_laws.md`
+
+- The main thing this document protects is honest layered ergonomics.
+- The common path must read like page-authoring intent, while lower runtime and
+  plan boundaries remain visible where responsibility genuinely changes.
+
+`worth_ui_roadmap.md`
+
+- The main thing this roadmap protects is milestone ordering around real
+  platform capability.
+- Milestone 4 belongs here because the next blocker is no longer lower runtime
+  machinery; it is authoring and product-hardening over machinery that already
+  exists.
 
 ## Adversarial Constraint
 
-A real workbench validation app must run hostile shell scenarios where
-open/close/dock/split/tab/pin/overlay/persist/restore/restart/hot-reload
-operations replay deterministically, expose the same runtime receipts as
-automated tests, preserve stable-ID state only where eligible, deny invalid
-edits without corrupting the active shell, keep visual theme and density changes
-on declared platform token paths, and make any app-local shell workaround or
-visual-only success mechanically visible as a failure.
+This milestone must survive the kind of native dashboard that breaks weak UI
+systems:
+
+- one persistent workspace shell with rails, top bar, page host, inspector
+  dock, overlay layer, toast layer, and status surfaces
+- multiple materially different pages such as overview, products, orders, and
+  customers
+- dynamic page instances such as product detail, order detail, filtered search
+  result, and contextual inspector flows opened from runtime data
+- dense live data surfaces that update through Forge Query invalidation rather
+  than parent hydration or local reconciliation
+- mixed `fit`, `fill`, `share`, `clamp`, `ratio`, and user-resizable regions
+- shared seams and touching regions that must dedupe borders by default
+- hot reload, restore, and theme or density changes without breaking runtime
+  truth, identity, or layout continuity
+
+If the dashboard only works by introducing props plumbing, page-local shell
+state, broad registry scans, or style/layout/runtime blob objects, the
+milestone fails even if the pixels look better.
 
 ## Product Decision Lock
 
-- The validation app is product infrastructure, not a demo gallery.
-- The validation app is a native Rust desktop app over Worth UI and egui. Browser,
-  web-view, Vite, React, DOM, or HTML/CSS implementations are not acceptable
-  milestone implementation paths.
-- The validation app is an ordinary Worth UI consumer and receives no privileged
-  internal active-plan, state, command, or diagnostic authority.
-- Manual validation observes typed evidence; it cannot replace mechanical
-  proof.
-- The sample workbench must look intentionally designed. Theme, typography,
-  spacing, density, focus, overlay, and runtime-state visuals are part of the
-  acceptance surface.
-- The default visual target is a VS Code-like dark workbench palette expressed
-  through named Worth UI theme tokens, not copied as raw colors in component or
-  validation app code.
-- Scenario success requires both visible behavior and attached runtime evidence.
-- The validation app must be hostile enough to expose production weakness instead of
-  smoothing over it with helpers.
-- Every major acceptance claim gets one explicit end-to-end scenario phase.
-- Future milestones may add scenarios to the validation app, but may not rewrite the
-  runner to hide weaker proof.
-- Per-phase `Relevant APIs` sections cite already-existing public Worth UI
-  surfaces or existing `worth-ui-harness` test-support surfaces for
-  orientation. They are reference surfaces, not construction instructions, and
-  they do not authorize invented APIs, placeholder type names, or
-  implementation outside the current facade.
+The following are locked for this milestone:
+
+- The existing public runtime-preparation chain remains authoritative:
+  `WorthUiRuntimeLaunchBuilder::prepare_for` ->
+  `WorthUiParsedSourceToArtifactInputLowerer` ->
+  `WorthUiArtifactInputResolver` ->
+  `WorthUiStructuralLegalityLowerer` ->
+  `WorthUiBindingSemanticsLowerer` ->
+  `WorthUiIdentitySeedLowerer` ->
+  `WorthUiCanonicalArtifactAssembler`.
+- `CapabilitySnapshot`, `CapabilitySnapshotIndex`, and
+  `CapabilitySupportCatalog` remain the only capability/support authority.
+- `WorthUiMosaicStructureFacts` remains the structural target for layout
+  topology after lowering.
+- `ViewBindingDescriptor`, `WorthUiBoundBindingSemantics`,
+  `WorthUiRuntimeDependencyHook`, and `WorthUiQuerySupportReceipt` remain the
+  Query-facing runtime substrate that Worth UI must consume rather than shadow.
+- `WorthUiRuntimeHost`, durable state families, query-binding comparison, live
+  rebind planning, and lane execution remain runtime-owned.
+- `WorthUiVirtualizedDataFrameTarget` and the virtualized data lane remain the
+  basis for repeated or windowed live data surfaces.
+- Dynamic navigation must be typed page instantiation over declared page
+  templates, not route strings or app-local scene switching.
+- The current top-level source language is too weak, but the current artifact
+  and runtime chain is not the problem. New authoring constructs must lower
+  into the existing chain instead of forking it.
+
+## Target DX
+
+The target for this milestone must look substantially better than the current
+`component ... { region ... mount ... }` authoring. The common path should read
+like product structure, not parser substrate.
+
+The end-state target for this milestone is intentionally concrete:
+
+```rust
+app ShopifyAdminApp {
+    theme ShopifyAdminTheme
+    workspace AdminWorkspace
+}
+```
+
+```rust
+workspace AdminWorkspace {
+    title "Shopify Admin"
+
+    shell {
+        topbar AdminTopbar
+        rail AdminPrimaryRail
+        page_host AdminPageHost
+        inspector AdminInspectorDock
+        status AdminStatusBar
+        overlays [CommandPaletteOverlay, GlobalSearchOverlay]
+        toasts AdminToastCenter
+    }
+
+    pages [
+        OverviewPage,
+        ProductsPage,
+        OrdersPage,
+        CustomersPage,
+    ]
+
+    dynamic_pages [
+        ProductDetailPage(product_id: ProductId),
+        OrderDetailPage(order_id: OrderId),
+    ]
+}
+```
+
+```rust
+page ProductsPage {
+    title "Products"
+    runtime ProductsRuntime
+    layout ProductsLayout
+    content ProductsContent
+}
+```
+
+```rust
+page ProductDetailPage(product_id: ProductId) {
+    title "Product"
+    runtime ProductDetailRuntime(product_id)
+    layout ProductDetailLayout
+    content ProductDetailContent
+}
+```
+
+```rust
+runtime ProductsRuntime {
+    live_views {
+        ProductRows: shop.products.table();
+        SelectedProduct: shop.products.selected();
+        ProductTimeline: shop.products.activity(SelectedProduct);
+    }
+
+    computed {
+        InventorySummary: shop.products.inventory_summary(ProductRows);
+        PublishTarget: shop.products.publish_target(SelectedProduct);
+    }
+
+    posture {
+        ProductsPagePosture: shop.products.page_posture(ProductRows);
+        PublishPosture: shop.products.publish_posture(PublishTarget);
+    }
+
+    effects {
+        PublishSelectedProduct: shop.products.publish(PublishTarget);
+        ArchiveSelectedProduct: shop.products.archive(PublishTarget);
+    }
+}
+```
+
+```rust
+layout ProductsLayout {
+    column {
+        row height fit {
+            slot toolbar
+        }
+
+        row height fill {
+            column width clamp(min: rail.md, preferred: share(2), max: rail.xl)
+            scroll_owner {
+                slot filters
+            }
+
+            column width fill {
+                row height clamp(min: panel.lg, preferred: share(5), max: ratio(3, 5))
+                scroll_owner {
+                    slot collection
+                }
+
+                row height share(2) scroll_owner {
+                    slot activity
+                }
+            }
+
+            column width clamp(
+                min: inspector.md,
+                preferred: share(2),
+                max: inspector.xl,
+            ) {
+                slot inspector
+            }
+        }
+
+        row height fit {
+            slot status
+        }
+    }
+}
+```
+
+```rust
+content ProductsContent {
+    toolbar -> ProductsToolbarSurface
+    filters -> ProductFiltersSurface
+    collection -> ProductsGridSurface
+    activity -> ProductActivitySurface
+    inspector -> ProductInspectorSurface
+    status -> ProductStatusSurface
+}
+```
+
+```rust
+surface ProductsGridSurface {
+    iterate ProductRows as ProductRow
+    present ProductCard in card_grid(columns: clamp(min: 2, preferred: 4, max: 6))
+}
+```
+
+```rust
+surface ProductsBulkActionsMenu {
+    iterate BulkActionItems as BulkActionItem
+    present BulkActionMenuItem in menu
+}
+```
+
+```rust
+surface ProductsGroupedActionsMenu {
+    iterate_groups BulkActionGroups as BulkActionGroup {
+        section BulkActionGroup.label {
+            iterate BulkActionGroup.items as BulkActionItem
+            present BulkActionMenuItem in menu
+        }
+    }
+}
+```
+
+```rust
+component ProductCard {
+    uses row ProductRow
+    uses posture PublishPosture
+
+    appearance ProductCardAppearance
+
+    column gap space.300 {
+        header {
+            title row.title
+            badge row.status tone status
+        }
+
+        media {
+            image row.primary_image
+        }
+
+        stack {
+            price row.price
+            inventory row.inventory_count
+            sku row.sku
+        }
+
+        actions {
+            primary "Make live" -> PublishSelectedProduct
+            danger "Archive" -> ArchiveSelectedProduct
+        }
+    }
+}
+```
+
+```rust
+component BulkActionMenuItem {
+    uses item BulkActionItem
+
+    menu_item {
+        label item.label
+        icon item.icon
+        action item.action
+        posture item.posture
+    }
+}
+```
+
+```rust
+appearance ProductCardAppearance {
+    chrome card
+    background surface.raised
+    padding space.400
+    gap space.300
+    radius radius.300
+    seams isolated
+    shadow elevation.200
+
+    action_tones {
+        primary button.primary
+        danger button.danger
+    }
+}
+```
+
+What this target is protecting:
+
+- pages are selected by typed reference, not stringly page IDs
+- layout is structural and content is occupancy
+- runtime truth is declared by family and consumed directly
+- repeated data, repeated UI projections, and grouped repeated projections are
+  explicit through `iterate` and `iterate_groups`, not hidden in naming tricks
+- components are local anatomy, not parent data pipes
+- appearance is separate from layout and runtime
+- seams are automatic by default, with posture-aware override only when needed
+
+The milestone should also lock these ergonomics rules:
+
+- identity comes from typed symbols and file/module ownership, not manual string
+  page IDs
+- pages are declared once and referenced by typed symbol from the workspace
+- repeated namespace prefixes like `validation.surface.surface_atlas` are not
+  acceptable end-state DX
+- single-use page-local structure should stay inline by default
+- extraction into named `Runtime`, `Layout`, `Content`, or `Appearance`
+  declarations should happen only when reuse, independent inspection, or
+  conceptual weight justifies it
+- dynamic pages are declared as typed templates and opened as typed instances,
+  not synthesized from strings or opaque route payloads
+
+That means the most common path should be even lighter than the extracted
+end-state examples above. The default page authoring should be allowed to read
+like this:
+
+```rust
+page ProductsPage {
+    title "Products"
+
+    runtime {
+        live_views {
+            ProductRows: shop.products.table();
+            SelectedProduct: shop.products.selected();
+        }
+
+        posture {
+            PublishPosture: shop.products.publish_posture(SelectedProduct);
+        }
+
+        effects {
+            PublishSelectedProduct: shop.products.publish(SelectedProduct);
+        }
+    }
+
+    layout {
+        column {
+            row height fit { slot toolbar }
+            row height fill { slot collection }
+            row height fit { slot status }
+        }
+    }
+
+    content {
+        toolbar -> ProductsToolbarSurface
+        collection -> ProductsGridSurface
+        status -> ProductStatusSurface
+    }
+}
+```
+
+The extracted form is for weight and reuse. The inline form is the ordinary
+path.
+
+## Seam And Style Model
+
+The milestone must not treat seams and style as late decorative paint. They are
+part of the product grammar.
+
+The default posture should feel like a real admin app:
+
+- structural shell siblings are flush by default
+- touching shell regions merge seams by default
+- page content regions own inset padding and internal gap rhythm
+- cards, popovers, overlays, and detached inspectors own independent perimeters
+- scroll owners paint and size the full region they own rather than shrinking to
+  inner content width
+- content groups should look intentional before any app-local overrides exist
+
+The target visual grammar is:
+
+```rust
+appearance AdminWorkspaceShellAppearance {
+    chrome shell
+    background surface.canvas
+    padding none
+    seams merged
+}
+```
+
+```rust
+appearance AdminPageSectionAppearance {
+    chrome section
+    background surface.subtle
+    padding space.400
+    gap space.400
+    seams merged
+}
+```
+
+```rust
+appearance ProductCardAppearance {
+    chrome card
+    background surface.raised
+    padding space.400
+    gap space.300
+    radius radius.300
+    seams isolated
+    shadow elevation.200
+
+    action_tones {
+        primary button.primary
+        danger button.danger
+    }
+}
+```
+
+The intent behind those defaults:
+
+- `shell` means flush platform structure with shared boundaries and no accidental
+  cardification
+- `section` means content grouping inside a page with its own inset rhythm but
+  still structurally part of the page plane
+- `card` means detached visual ownership with radius, independent perimeter,
+  and room around it
+
+Seam override vocabulary should stay tiny and obvious:
+
+```rust
+seams merged
+seams isolated
+seams hidden
+seams emphasized
+```
+
+That is enough to express the important cases:
+
+- merged shell borders
+- detached cards and overlays
+- intentionally invisible joins
+- emphasized split boundaries such as inspector and resize rails
+
+The milestone should also protect the web-layout lessons that are still worth
+keeping:
+
+- scroll containers fill their owned region
+- resize handles keep the region they divide visually honest
+- center content gets breathing room from rails and inspectors
+- stacked sections have explicit gap or seam posture instead of accidental
+  border collisions
+- background color grows with the owned region, not only with intrinsic child
+  size
 
 ## Phase Plan
 
-### Phase 1: Workbench App Shell And Navigation
+### Phase 1: Authoring Hierarchy Entry Layer
 
-Freeze the first real validation app shell: a VS Code-like validation
-desktop workbench with pages, persistent navigation, command surfaces, run
-status, and room for future scenario families without changing the app frame.
+This phase adds the first-class authoring hierarchy above the current
+`component` / `surface` / `binding` / `token` block model while preserving the
+existing proof-bearing lower pipeline.
 
 **Relevant subsystems**
-
-- native validation workbench app
-- native Rust/egui app entrypoint
-- page registry
-- activity rail and page navigation
-- menu bar, toolbar, and command palette shell
-- status bar and run summary surface
-- theme token consumption
+- source parsing and parsed declaration topology
+- source-to-artifact-input lowering
+- canonical runtime launch preparation
 
 **Relevant APIs**
+- `WorthUiSourceParser`
+- `WorthUiParsedSourceToArtifactInputLowerer`
+- `WorthUiArtifactInput`
+- `WorthUiResolvedArtifactInput`
+- `WorthUiRuntimeLaunchBuilder::prepare_for`
 
-- `WorthUi`
-- `WorthUiAppBuilder`
-- `WorthUiApp`
-- `WorthUiRuntimeLaunchBuilder`
-- `WorthUiRuntimeSourceModule`
-- `WorthUiRuntimeLaunch`
-- `WorthUiRuntimeHost`
-- `WorthUiActiveRuntimeObservation`
-- `WorthUiRuntimeDiagnosticsProjection`
-- `WorthUiExecutionPlanInspection`
-- `CommandProjectionDescriptor`
-- `ThemeTokenDescriptor`
+**DX target**
 
-**Warnings**
+By the end of this phase, the common entry path should read like this:
 
-- Do not make a landing page. The first screen is the usable validation
-  workbench.
-- Do not implement the workbench as a web app, web-view, Vite app, React app,
-  DOM shell, or HTML/CSS prototype.
-- Do not build a separate demo shell that later needs to be replaced by the
-  validation app.
-- Do not hide menu, toolbar, palette, context, status, inspector, or bottom
-  panel surfaces behind future work; the first page must reserve and render
-  them.
-- Do not let app-local page state masquerade as scenario or runtime truth.
+```rust
+app ShopifyAdminApp {
+    theme ShopifyAdminTheme
+    workspace AdminWorkspace
+}
 
-**Test requirements**
+workspace AdminWorkspace {
+    pages [OverviewPage, ProductsPage, OrdersPage, CustomersPage]
+}
 
-- `validation_app_workbench_app_loads_first_page_with_all_shell_surfaces`: the app
-  opens directly to a workbench page with activity rail, scenario nav, menu,
-  toolbar, command palette affordance, editor tabs, inspector, bottom timeline,
-  status bar, and overlay surface present.
-- `validation_app_page_navigation_preserves_active_run_context`: switching between
-  validation app pages preserves the selected scenario, latest run receipt reference,
-  theme, and density state without rebuilding the shell frame.
-- `validation_app_shell_surface_ids_are_stable_across_reload`: hot reload or native
-  app restart preserves stable IDs for the activity rail, page host,
-  inspector, bottom panel, command palette, and status bar.
-- `validation_app_workbench_cannot_be_implemented_through_web_tooling`: compile or
-  repository guard coverage rejects browser/Vite/React/web-view validation app
-  surfaces as milestone implementation artifacts.
-- `validation_app_shell_does_not_use_marketing_or_demo_only_routes`: no app route may
-  replace the workbench with a hero, landing page, or disconnected showcase.
+page ProductsPage {
+    runtime ProductsRuntime
+    layout ProductsLayout
+    content ProductsContent
+}
+```
 
-**Engineering decisions**
+And the lighter ordinary path should also be valid when those sections are only
+used once:
 
-- The validation app shell is product infrastructure and should feel like a real
-  desktop tool from the first slice.
-- Pages are registered as workbench surfaces; the app frame owns navigation,
-  while scenario pages own their local presentation.
-- All visible shell surfaces use the default VS Code-like Worth UI dark theme
-  tokens.
+```rust
+page ProductsPage {
+    runtime { ... }
+    layout { ... }
+    content { ... }
+}
+```
 
-**Open questions**
+Not like this:
 
-- None.
+```rust
+component validation.surface.surface_atlas {
+    region validation.region.main {
+        mount validation.surface.inspector
+            placement validation.placement.sidebar;
+    }
+}
+```
 
-### Phase 2: Surface Atlas Workbench Page
-
-Build the first loaded page as a surface atlas: one dense, inspectable
-workbench page that shows every major validation app surface before the runner is
-fully wired to all scenario families.
-
-**Relevant subsystems**
-
-- surface atlas page
-- sample workbench canvas
-- pinned sidebar and stacked panes
-- tabbed editor region
-- evidence inspector
-- bottom run timeline
-- overlay preview
-- theme and density controls
-
-**Relevant APIs**
-
-- `SurfaceDescriptor`
-- `SurfaceId`
-- `SurfacePlacementClass`
-- `ComponentDescriptor`
-- `CommandProjectionDescriptor`
-- `ThemeTokenDescriptor`
-- `IconDescriptor`
-- `RuntimeOutcomeProjectionDescriptor`
-- `HarnessEvidenceBundle`
-- `HarnessRunReceipt`
-- `HarnessExpectedObservation`
-- `HarnessVisualFoundationReceipt`
-- `PreparedHarnessVisualFoundation`
+**Build shape**
+- Add new top-level authoring constructs for `app`, `workspace`, `page`,
+  `layout`, `content`, `appearance`, and typed runtime declarations.
+- Keep these constructs as author-facing declarations only; they must lower into
+  the current artifact-input model instead of introducing a second runtime
+  artifact family.
+- Introduce typed references so pages, layouts, content blocks, and appearances
+  are referenced symbolically after declaration rather than by ad hoc strings in
+  later phases.
+- Allow single-use runtime/layout/content sections to remain inline so the
+  common path does not force extraction ceremony.
+- Preserve the current lower proof chain unchanged after authoring has been
+  translated into artifact input.
 
 **Warnings**
-
-- Do not wait for every backend scenario before the first page exists.
-- Do not implement the surface atlas outside the native Rust/egui/Worth UI
-  desktop path.
-- Do not fake success; placeholder data must be visibly labeled as fixture or
-  sample evidence until a live runner surface owns it.
-- Do not let the page collapse into decorative cards. It must expose real
-  shell surfaces: panes, tabs, overlays, command projections, inspectors,
-  scroll regions, and status surfaces.
-- Do not make the first page sparse. The purpose is to see the platform
-  surface density early.
+- Do not bypass the current `artifact_input -> resolved -> structured -> bound
+  -> identity_seeded -> artifact` chain.
+- Do not collapse the hierarchy into one generic `screen` or `view` object.
+- Do not let `workspace` or `page` become new authority objects that compete
+  with the canonical artifact.
 
 **Test requirements**
-
-- `surface_atlas_renders_all_required_surface_families`: the first page
-  renders activity/navigation, scenario list, command projection surfaces,
-  tabbed editor, pinned sidebar, stacked scroll panes, evidence inspector,
-  bottom timeline, overlay, and status surfaces.
-- `surface_atlas_fixture_data_is_labeled_and_cannot_mark_success`: fixture
-  evidence may populate the first page visually but cannot produce a completed
-  validation record.
-- `surface_atlas_theme_controls_update_tokens_without_layout_drift`: theme and
-  density controls update token/density displays without moving the workbench
-  region topology.
-- `surface_atlas_mobile_layout_preserves_surface_access`: narrower viewports
-  keep the scenario list, workbench canvas, inspector, and run timeline
-  reachable without text overlap or hidden critical controls.
+- Equivalent old-form and new-form authoring that describe the same structure
+  must lower to equivalent artifact input and equivalent canonical artifact.
+- Mis-nested authoring such as `page` outside `workspace` must be rejected at
+  the new authoring boundary rather than leaking downstream as generic parse
+  failure.
 
 **Engineering decisions**
-
-- The first page is intentionally ambitious: it is the visual contract for the
-  validation app.
-- Fixture evidence is allowed only as sample projection data and must remain
-  distinguishable from live runner receipts.
-- The page should make later scenario wiring obvious by naming the exact
-  surface and evidence slots the runner will fill.
+- New authoring constructs are syntactic and semantic sugar over the existing
+  proof chain, not a replacement for it.
+- File-derived identity is preferred where it stays stable and removes ceremony.
+- Extraction is by semantic weight or reuse, not by default.
 
 **Open questions**
+- Whether `content` should remain a distinct declaration or become a typed
+  section inside `page`, provided the layout/content boundary stays explicit.
 
-- None.
+### Phase 2: Workspace-Owned Shell and Typed Page Navigation
 
-### Phase 3: Validation App Honesty Boundary
-
-Freeze the rule that the validation app is a normal Worth UI application consuming
-public platform contracts, not a privileged internal test runtime.
-
-**Relevant subsystems**
-
-- validation app crate or example topology
-- Worth UI facade construction
-- source-to-artifact path
-- runtime host launch path
-- validation app QA probes
-
-**Relevant APIs**
-
-- `WorthUi`
-- `WorthUiAppBuilder`
-- `WorthUiApp`
-- `WorthUiRuntimeLaunchBuilder`
-- `WorthUiRuntimeSourceModule`
-- `WorthUiRuntimeLaunch`
-- `WorthUiRuntimeHost`
-- `WorthUiRuntimeLaunchDenial`
-- `WorthUiActiveRuntimeObservation`
-- `WorthUiReplacementCandidate`
-- `WorthUiExecutionPlan`
-- `WorthUiExecutionPlanInspection`
-
-**Warnings**
-
-- Do not build the validation app by importing runtime internals to make scenarios
-  convenient.
-- Do not let validation app helpers inject state, commands, active plans, or receipts
-  that real product code could not earn.
-- Do not certify a scenario whose setup path has already solved the hard
-  authority, identity, state, or command routing conditions.
-- Do not hide a production gap behind an app-local fallback in the validation app.
-
-**Test requirements**
-
-- `validation_app_launch_uses_only_public_worth_ui_facade`: compile-pass coverage
-  proves the validation app can construct and launch its workbench through public
-  Worth UI surfaces.
-- `validation_app_cannot_import_internal_runtime_or_registry_modules`: compile-fail
-  coverage rejects deep imports into runtime, registry, active-plan, or
-  diagnostic internals.
-- `validation_app_rejects_app_local_shell_state_injection`: an attempted scenario that
-  provides pre-minted shell state or active-plan evidence fails before scenario
-  execution.
-- `validation_app_result_requires_runtime_receipts_not_visual_success`: a scenario
-  cannot be marked complete with only a visible frame or user note.
-
-**Engineering decisions**
-
-- The validation app owns scenario orchestration and presentation; Worth UI owns shell
-  runtime truth.
-- Validation app evidence is derived from runtime receipts and counters, not from
-  local assumptions.
-- Validation app test support must obey the same file and function composition bar as
-  production code.
-
-**Open questions**
-
-- None.
-
-### Phase 4: Theme And Visual Foundation
-
-Freeze the validation app visual substrate so manual validation happens inside a
-beautiful, token-driven workbench rather than an ugly diagnostic wrapper.
-
-The initial palette should be close to VS Code dark mode while remaining a
-Worth UI theme: near-black editor canvas, darker activity/sidebar chrome,
-slightly raised panel surfaces, low-contrast separators, bright blue accent,
-subtle selection/focus treatment, and clear warning/error/success colors that
-do not overwhelm the shell.
+This phase builds the persistent workspace shell as a real platform concept so
+pages vary inside a durable host rather than each page re-implementing shell
+chrome.
 
 **Relevant subsystems**
-
-- theme token registry
-- icon registry
-- mosaic sizing contracts
-- runtime-state visual tokens
-- density and typography posture
-- focus, selection, overlay, and diagnostic visual treatment
-
-**Relevant APIs**
-
-- `ThemeTokenDescriptor`
-- `ThemeTokenId`
-- `IconDescriptor`
-- `MosaicSizingContractDescriptor`
-- `NamedMeasurementToken`
-- `RuntimeOutcomeProjectionDescriptor`
-- `CommandProjectionDescriptor`
-
-**Warnings**
-
-- Do not use raw colors, raw spacing numbers, or one-off focus visuals in the
-  validation app shell.
-- Do not hard-code VS Code-like colors directly in widgets; the palette must
-  enter through named Worth UI theme token descriptors.
-- Do not make the validation app theme prettier by bypassing declared token or sizing
-  surfaces.
-- Do not let density changes mutate shell meaning, stable IDs, or persisted
-  state.
-- Do not delay visual quality until after scenario proof; this validation app is a UI
-  platform artifact.
-
-**Test requirements**
-
-- `theme_density_change_preserves_shell_artifact_meaning`: changing theme or
-  density updates visual token evidence without changing shell structure,
-  stable IDs, command identity, or active plan equivalence where layout posture
-  is unchanged.
-- `raw_visual_values_are_rejected_from_validation_app_shell_source`: source or facade
-  declarations that try to use raw color/spacing/overlay values fail with typed
-  diagnostics.
-- `validation_app_theme_tokens_cover_focus_selection_overlay_and_runtime_states`:
-  accepted validation app theme includes explicit tokens for focus, selection,
-  overlays, diagnostics, success, warning, danger, disabled, and active states.
-- `vscode_like_dark_theme_token_palette_is_complete_and_inspectable`: the
-  default dark theme exposes named tokens for editor canvas, sidebar, panel,
-  elevated overlay, border, text, muted text, accent, focus, selection, command
-  highlight, warning, danger, and success.
-- `theme_reload_does_not_create_layout_drift`: visual-only theme reloads do not
-  change persisted mosaic state, splitter position, tab identity, or scroll
-  ownership receipts.
-
-**Engineering decisions**
-
-- The validation app should ship with a polished VS Code-like dark default theme and
-  one density variant.
-- Theme and sizing are platform declarations consumed by the validation app, not
-  renderer-local constants.
-- Manual validation panels display both visual expectation and the token or
-  sizing evidence that produced it.
-
-**Open questions**
-
-- None.
-
-### Phase 5: Scenario Runner And Evidence Model
-
-Freeze the typed scenario model: scenario identity, ordered steps, expected
-observations, runtime evidence capture, failure localization, and replay
-records.
-
-**Relevant subsystems**
-
-- scenario registry
-- operation script model
-- evidence envelope
-- scenario result ledger
-- deterministic replay basis
-- failure localization
-
-**Relevant APIs**
-
-- `HarnessScenarioId`
-- `HarnessScenario`
-- `HarnessScenarioOperation`
-- `HarnessScenarioStep`
-- `HarnessExpectedObservation`
-- `HarnessRunReceipt`
-- `HarnessReplayRecord`
-- `HarnessEvidenceBundle`
-- `HarnessEvidenceLedger`
-- `HarnessEvidenceRequirement`
-- `HarnessFailureLocation`
-- `HarnessRunner`
-- `WorthUiRuntimeDiagnosticsProjection`
-- `WorthUiReloadStormCertification`
-
-**Warnings**
-
-- Do not let scenarios assert on arbitrary strings where structured evidence
-  exists.
-- Do not let expected digests be hard-coded without proving they derive from
-  current scenario inputs.
-- Do not merge setup, execution, assertion, and UI reporting into one helper.
-- Do not let manual observations become the only source of pass/fail truth.
-
-**Test requirements**
-
-- `scenario_replay_produces_equivalent_evidence_bundle`: replaying the same
-  scenario from the same fixture produces equivalent operation receipts,
-  artifact/plan digests, state receipts, command identities, counters, and
-  denials.
-- `scenario_result_rejects_missing_required_evidence_family`: a result missing
-  a required runtime receipt, counter family, command evidence, state receipt,
-  or visual observation is denied.
-- `scenario_expected_digest_must_be_derived_from_run_inputs`: hard-coded
-  expected digests that do not match the current run basis fail.
-- `scenario_failure_localizes_to_operation_and_evidence_family`: failure output
-  identifies the scenario step and evidence family rather than only final
-  mismatch.
-
-**Engineering decisions**
-
-- Scenario definitions are declarative and replayable.
-- Scenario results carry evidence; UI panels derive from those results.
-- The runner owns orchestration but never owns platform truth.
-
-**Open questions**
-
-- None.
-
-### Phase 6: Open And Close Workbench Surface Scenario
-
-Prove that the sample workbench can open and close document or panel surfaces
-through platform shell operations without app-local shell mutation.
-
-**Relevant subsystems**
-
-- workbench shell fixture
-- document/panel surface declaration
-- active shell structure
-- stable surface identity
-- durable panel visibility state
-- runtime diagnostics projection
-
-**Relevant APIs**
-
-- `SurfaceDescriptor`
-- `ComponentDescriptor`
-- `MosaicPlacementPolicyDescriptor`
-- `MosaicStateSlotDescriptor`
-- `WorthUiReplacementCandidate`
-- `WorthUiDurableStateReconciliationPlan`
-- `WorthUiNodeReplacementPlan`
-
-**Warnings**
-
-- Do not implement open/close as local boolean widget state.
-- Do not let a closed panel leave orphan durable state unless a receipt explains
-  why it is intentionally retained.
-- Do not let duplicate surface IDs collapse into one visible panel.
-- Do not treat visual disappearance as proof of correct shell state.
-
-**Test requirements**
-
-- `workbench_open_close_surface_round_trip_preserves_unrelated_state`: opening
-  and closing a panel changes only the intended shell surface and preserves
-  unrelated splitter, tab, scroll, and command state.
-- `duplicate_or_stale_panel_identity_rejected_before_activation`: duplicate or
-  stale panel IDs fail before active shell mutation.
-- `closed_surface_state_has_explicit_drop_or_retention_receipt`: closing a
-  surface either drops or retains durable state with a typed receipt.
-- `open_close_visible_state_matches_active_plan_inspection`: visible panel
-  presence agrees with active execution-plan inspection and diagnostics.
-
-**Engineering decisions**
-
-- Open/close is represented as shell structure replacement through platform
-  runtime paths.
-- Panel visibility is a durable UI state family, not domain truth.
-- The validation app displays the surface identity and receipt that explains the
-  visible shell result.
-
-**Open questions**
-
-- None.
-
-### Phase 7: Dock, Split, And Tab Workbench Scenario
-
-Prove that dock, split, and tab operations compose in one workbench through the
-mosaic and runtime substrate rather than through app-owned geometry mutation.
-
-**Relevant subsystems**
-
-- mosaic placement policy
-- mosaic region topology
-- tab state family
-- splitter state family
-- execution-plan topology
-- plan equivalence and replay
-
-**Relevant APIs**
-
-- `MosaicPlacementAction`
-- `MosaicPlacementPolicyDescriptor`
-- `MosaicStableIdentityBehavior`
-- `MosaicPlacementReloadReconciliation`
-- `MosaicStateSlotDescriptor`
-- `WorthUiTabStateReconciliation`
-- `WorthUiSplitterPositionReconciliation`
-- `WorthUiExecutionPlanInspection`
-- `WorthUiExecutionPlanEquivalence`
-- `WorthUiPlanTopology`
-
-**Warnings**
-
-- Do not represent dock or split placement as anonymous geometry.
-- Do not let tab order or active tab be inferred from display order without a
-  stable state slot.
-- Do not allow split ratios to become raw local numbers detached from mosaic
-  sizing contracts.
-- Do not make equivalent replay depend on declaration order accidents.
-
-**Test requirements**
-
-- `dock_split_tab_replay_produces_equivalent_shell_plan`: replaying the same
-  dock/split/tab operation script produces equivalent active plan digests,
-  topology inspection, and state receipts.
-- `stale_splitter_or_tab_receipt_rejected_before_restore`: stale tab or
-  splitter receipts cannot certify a later layout restore.
-- `tab_reorder_preserves_state_only_for_stable_tab_identity`: reordering tabs
-  preserves eligible tab state only when stable identity matches.
-- `dock_target_mismatch_denied_without_mutating_active_shell`: docking a
-  surface into an incompatible target region fails before activation.
-
-**Engineering decisions**
-
-- Dock, split, and tab operations are scenario operations over platform layout
-  artifacts.
-- Tab and splitter state are durable UI state, not ad hoc egui memory.
-- The validation app must show active region IDs, tab IDs, split receipts, and plan
-  topology for each operation.
-
-**Open questions**
-
-- None.
-
-### Phase 8: Pinned Sidebar And Stacked Scroll Scenario
-
-Prove that a nested mosaic shell can express a pinned sidebar and stacked
-scroll regions without DOM-style percentage-height, overflow, or implicit parent
-measurement hacks.
-
-**Relevant subsystems**
-
-- mosaic region kind registry
-- mosaic sizing contracts
-- named measurement definitions
-- scroll ownership
-- pinned region posture
-- stacked region topology
-
-**Relevant APIs**
-
-- `MosaicRegionKindDescriptor`
-- `MosaicRegionRole`
-- `MosaicSizingBehavior`
-- `MosaicScrollOwnership`
-- `MosaicChildRule`
-- `MosaicClippingPosture`
-- `MosaicSizingContractDescriptor`
-- `NamedMeasurementDefinition`
-
-**Warnings**
-
-- Do not model the sidebar as a special-case widget wrapper.
-- Do not make scroll ownership implicit from widget nesting.
-- Do not allow raw height or overflow settings to masquerade as mosaic sizing.
-- Do not let resize behavior mutate stable identity or restore state.
-
-**Test requirements**
-
-- `pinned_sidebar_and_stacked_scroll_regions_restore_without_drift`: sidebar,
-  stacked scroll regions, and resize/restart restore to equivalent layout
-  evidence.
-- `raw_height_or_overflow_hack_rejected_from_nested_mosaic_shell`: DOM-style
-  raw sizing or overflow declarations fail validation.
-- `scroll_position_preserved_only_for_declared_scroll_owner`: scroll state
-  carries forward only for regions with declared scroll ownership and stable
-  identity.
-- `sidebar_resize_uses_named_measurement_contract`: sidebar width changes route
-  through named sizing contracts and produce explicit state receipts.
-
-**Engineering decisions**
-
-- Pinned sidebar is a region/topology declaration, not a separate layout system.
-- Stacked scroll regions must name scroll ownership at the region boundary.
-- The validation app should make scroll owner, sizing token, and region identity
-  visible in the evidence panel.
-
-**Open questions**
-
-- None.
-
-### Phase 9: Overlay Surface Scenario
-
-Prove that overlay surfaces can appear above the shell without corrupting
-layout, focus posture, command routing, hit testing, or underlying durable
-state.
-
-**Relevant subsystems**
-
-- overlay placement policy
-- overlay region kind
-- focus and command routing posture
-- hit-test posture
-- real-time overlay or HUD lane where applicable
-- active-plan inspection
-
-**Relevant APIs**
-
-- `MosaicPlacementAction`
-- `SurfacePlacementClass`
-- `MosaicRegionRole`
-- `MosaicClippingPosture`
-- `MosaicHitTestPosture`
-- `WorthUiRealtimeOverlayHook`
-- `WorthUiRealtimeOverlayLane`
-- `WorthUiHudPlan`
-- `WorthUiCanvasOverlayPlan`
-- `WorthUiExecutionPlanInspection`
-- `CommandProjectionDescriptor`
-
-**Warnings**
-
-- Do not let an overlay become ordinary layout geometry just because that is
-  easier to draw.
-- Do not let overlay focus steal command routing without explicit posture.
-- Do not allow overlay close to drop unrelated underlying shell state.
-- Do not certify overlays visually without active-plan and hit-test evidence.
-
-**Test requirements**
-
-- `overlay_open_close_preserves_underlying_shell_state`: opening and closing an
-  overlay preserves underlying sidebar, tab, splitter, scroll, and command
-  state.
-- `overlay_as_ordinary_layout_region_is_rejected`: an overlay declaration that
-  enters ordinary layout placement instead of overlay placement fails.
-- `overlay_command_routing_uses_declared_focus_posture`: overlay commands route
-  according to declared focus and command projection posture.
-- `overlay_hit_test_and_z_order_evidence_match_visible_surface`: overlay
-  visible position agrees with hit-test/z-order evidence and plan inspection.
-
-**Engineering decisions**
-
-- Overlays are platform shell surfaces with explicit placement, focus, and
-  clipping posture.
-- The validation app should include at least one normal modal-like overlay and one
-  diagnostic/inspector overlay.
-- Overlay visuals must consume theme tokens for scrim, border, elevation, and
-  focus.
-
-**Open questions**
-
-- None.
-
-### Phase 10: Command Backbone Scenario
-
-Prove that menu bar, toolbar, command palette, and context surfaces project the
-same command registry meaning instead of each surface inventing local command
-behavior.
-
-**Relevant subsystems**
-
-- command registry
-- command projection registry
-- command readiness posture
-- menu, toolbar, palette, and context projection surfaces
-- active shell routing
-- command evidence display
-
-**Relevant APIs**
-
-- `CommandDescriptor`
-- `CommandId`
-- `CommandProjectionDescriptor`
-- `CommandProjectionId`
-- `CommandReadinessBinding`
-- `CommandProjectionSurface`
-- `WorthUiCommandHandle`
-- `WorthUiCommandBindingInvalidation`
-- `WorthUiPlanLookupIndex`
-- `WorthUiOrdinaryFrameTarget`
-
-**Warnings**
-
-- Do not let menu entries, toolbar buttons, palette rows, or context actions
-  own separate labels, readiness, icons, or routing.
-- Do not flatten structured readiness into a boolean in the validation app UI.
-- Do not assert command correctness by matching visible text only.
-- Do not let context surfaces smuggle app-local command identities.
-
-**Test requirements**
-
-- `same_command_identity_projects_to_menu_toolbar_palette_and_context`:
-  one command appears across all projection surfaces with the same command ID,
-  label/icon posture, readiness evidence, and routing target.
-- `projection_drift_between_command_surfaces_is_rejected`: a surface that
-  changes label, readiness, icon, grouping, shortcut visibility, or command
-  identity outside the command backbone fails.
-- `context_command_requires_declared_mosaic_scope`: region/context commands
-  require declared mosaic scope and cannot attach to arbitrary visible widgets.
-- `command_invocation_receipt_matches_projection_identity`: invoking a command
-  from any projection records the same command identity and route basis.
-
-**Engineering decisions**
-
-- Command projections are views over canonical command meaning.
-- The validation app command palette is useful UI, but also an acceptance evidence
-  surface.
-- The manual validation panel must show command ID, projection surface, routing
-  scope, readiness, and invocation evidence.
-
-**Open questions**
-
-- None.
-
-### Phase 11: Persist And Restore Scenario
-
-Prove that shell state can persist and restore after runtime recreation without
-inventing layout drift or promoting persisted UI state into authoritative truth.
-
-**Relevant subsystems**
-
-- persisted shell state envelope
-- durable state inventory
+- canonical artifact authoring and identity
 - durable state reconciliation
-- runtime launch/recreate path
-- artifact and plan equivalence
-- restore diagnostics
+- plan swap and restore continuity
 
 **Relevant APIs**
-
-- `WorthUiDurableStateInventory`
-- `WorthUiDurableStateInventoryBuilder`
-- `WorthUiDurableStateFamily`
-- `WorthUiDurableStateFamilyId`
-- `WorthUiDurableStateReconciliationPlan`
-- `WorthUiDurableStateReconciliationReceipt`
-- `WorthUiStateCarryForwardReceipt`
-- `WorthUiLastValidObservation`
-- `WorthUiExecutionPlanEquivalence`
-- `WorthUiRuntimeDiagnosticsProjection`
-
-**Warnings**
-
-- Do not restore by replaying local egui memory.
-- Do not let persisted shell state claim authoritative domain truth.
-- Do not accept best-effort restore without explicit preserve, replace, drop,
-  or create receipts.
-- Do not compare only final visuals when pre/post evidence can be compared.
-
-**Test requirements**
-
-- `persist_restore_recreates_equivalent_shell_state_after_runtime_restart`:
-  saving shell state, recreating the runtime, and restoring produces equivalent
-  eligible state receipts, active plan digest, and visible shell structure.
-- `restore_rejects_state_from_mismatched_artifact_or_snapshot`: persisted state
-  from a different artifact, snapshot, or runtime basis cannot silently restore.
-- `restore_drops_ineligible_state_with_explicit_receipts`: stale, orphaned, or
-  ineligible state is dropped or replaced with typed receipts.
-- `manual_restore_validation_requires_pre_and_post_evidence`: manual completion
-  requires both pre-save and post-restore evidence bundles.
-
-**Engineering decisions**
-
-- Persisted shell state is a replayable input to runtime reconciliation, not an
-  active runtime object.
-- Restore is a scenario operation with visible before/after evidence.
-- The validation app should include a restart/recreate button that runs the real
-  restore path, not a UI reset shortcut.
-
-**Open questions**
-
-- None.
-
-### Phase 12: Hot Reload Layout Edit Scenario
-
-Prove that workspace layout edits survive hot reload when stable IDs remain
-intact, and invalid edits preserve the previous active shell with typed
-diagnostics.
-
-**Relevant subsystems**
-
-- file-authored source edit path
-- Rust-authored replacement path where relevant
-- replacement candidate admission
-- impact narrowing
-- identity matching
-- state reconciliation
-- activation gate and atomic swap
-- reload diagnostics
-
-**Relevant APIs**
-
-- `WorthUiReplacementCandidate`
-- `WorthUiCandidateAdmission`
-- `WorthUiRuntimeArtifactComparison`
-- `WorthUiRuntimeImpactNarrowing`
-- `WorthUiIdentityMatchGraph`
-- `WorthUiDurableStateReconciliationPlan`
-- `WorthUiReadyActivation`
-- `WorthUiPlanSwapReceipt`
-- `WorthUiReloadStormCertification`
-
-**Warnings**
-
-- Do not make hot reload a validation app-local patch of visible widgets.
-- Do not allow equivalent edits to force unnecessary swaps.
-- Do not let invalid source blank or partially mutate the active shell.
-- Do not infer state preservation from matching layout position alone.
-
-**Test requirements**
-
-- `valid_layout_reload_preserves_stable_id_shell_state`: valid layout edits
-  with stable IDs activate and carry forward eligible sidebar, tab, splitter,
-  scroll, and overlay state.
-- `invalid_layout_reload_preserves_previous_active_shell`: malformed,
-  unsupported, or denied layout edits leave the previous active plan and shell
-  evidence intact.
-- `equivalent_layout_reload_noops_without_plan_swap`: equivalent source edits
-  classify as no-op and avoid unnecessary activation.
-- `layout_reload_with_identity_change_replaces_or_drops_state_explicitly`:
-  identity-changing edits do not preserve state by accident.
-
-**Engineering decisions**
-
-- Hot reload scenarios must enter through the same candidate-to-active-plan
-  pipeline M3 certified.
-- The validation app UI shows candidate classification, denial, state receipts, and
-  swap/no-op evidence for each edit.
-- Layout edit fixtures should include valid, invalid, equivalent, stable-ID,
-  and identity-changing variants.
-
-**Open questions**
-
-- None.
-
-### Phase 13: Hostile Replay And Recovery Scenario
-
-Run interleaved shell operations under interruption pressure to prove replay,
-restart, invalid reload, overlay, command, and restore behavior converge to the
-same active shell evidence.
-
-**Relevant subsystems**
-
-- scenario replay engine
-- operation interruption and recovery
-- reload failure preservation
-- command routing during recovery
-- overlay and durable state residue scan
-- diagnostics projection
-
-**Relevant APIs**
-
-- `HarnessScenarioOperation`
-- `HarnessReplayRecord`
-- `HarnessReplayDenial`
-- `HarnessRunReceipt`
-- `WorthUiReloadFailure`
-- `WorthUiReloadPreservationReceipt`
-- `WorthUiIdentityStateCertification`
-- `WorthUiQueryDriftCertification`
-- `WorthUiRuntimeDiagnosticsProjection`
-- `WorthUiPlanSwapRollback`
-
-**Warnings**
-
-- Do not curate only clean operation sequences.
-- Do not let recovery repair state through hidden cleanup.
-- Do not let stale receipts from one operation certify a later operation.
-- Do not accept final convergence if residue remains in diagnostics, live
-  bindings, state inventory, command routing, or overlay surfaces.
-
-**Test requirements**
-
-- `interleaved_shell_replay_converges_after_invalid_reload_and_restart`:
-  dock/split/tab/overlay/command/invalid-reload/restart sequences replay to the
-  same active shell evidence.
-- `stale_operation_receipts_cannot_certify_later_recovery`: receipts from
-  earlier operations cannot be reused after source, artifact, snapshot, or
-  runtime basis changes.
-- `recovery_residue_scan_finds_no_orphan_shell_state`: mixed failure and
-  success flows leave no orphan panel state, stale overlay, stale command
-  route, or unpaired diagnostics residue.
-- `command_invocation_during_overlay_recovery_uses_current_active_route`:
-  commands invoked during recovery bind to current active shell context, not
-  stale pre-failure context.
-
-**Engineering decisions**
-
-- Hostile replay is the first full composed acceptance storm for the validation app.
-- Recovery evidence must distinguish preservation, rollback, restore, and
-  fresh activation.
-- The validation app should make the operation timeline and evidence timeline visible
-  side by side.
-
-**Open questions**
-
-- None.
-
-### Phase 14: Manual Validation Panel
-
-Build the human-facing validation UI that lets a reviewer run scenarios, inspect
-expected visible behavior, compare runtime evidence, record observations, and
-mark scenario outcomes without detaching from mechanical proof.
-
-**Relevant subsystems**
-
-- manual validation UI
-- expected observation model
-- scenario evidence display
-- pass/fail record
-- reviewer notes
-- screenshot or visual capture extension seam
-
-**Relevant APIs**
-
-- `HarnessExpectedObservation`
-- `HarnessEvidenceBundle`
-- `HarnessEvidenceFamily`
-- `HarnessEvidenceRequirement`
-- `HarnessRunReceipt`
-- `HarnessEvidenceLedger`
-- `HarnessOperationReceipt`
-- `WorthUiDiagnosticsProjection`
-- `WorthUiFrameCostCertification`
-
-**Warnings**
-
-- Do not let a reviewer mark success without attached evidence.
-- Do not use manual validation as a substitute for typed denial, receipt, or
-  counter assertions.
-- Do not make validation notes the source of truth for scenario outcome.
-- Do not build screenshot/golden support in a way that snapshots noise instead
-  of semantic visual state.
-
-**Test requirements**
-
-- `manual_validation_record_requires_scenario_evidence_bundle`: a manual
-  validation record cannot be completed without the run evidence bundle and
-  required receipt families.
-- `manual_visible_observation_must_attach_to_named_scenario_step`: observations
-  must attach to specific scenario steps and expected visible outcomes.
-- `manual_success_rejected_when_required_counter_or_receipt_fails`: a reviewer
-  cannot override a failed required receipt, digest, denial, or counter family
-  with a success note.
-- `visual_capture_extension_cannot_change_scenario_result`: screenshot or
-  visual capture hooks observe the result but cannot change pass/fail truth.
-
-**Engineering decisions**
-
-- Manual validation is a structured review artifact over scenario evidence.
-- Expected visible behavior is named per step rather than freeform prose only.
-- Screenshot/golden capture is prepared as an extension seam, but the first
-  milestone can close with structured manual validation and runtime evidence.
-
-**Open questions**
-
-- None.
-
-### Phase 15: Validation App Self-QA Scenario
-
-Try to make the validation app lie, and prove those lies fail. This phase closes the
-milestone by treating the validation app itself as hostile test infrastructure.
-
-**Relevant subsystems**
-
-- validation app QA probes
-- fake scenario fixtures
-- forbidden helper paths
-- evidence integrity validation
-- test-support structure
-- line-cap and composition guardrails for validation app code
-
-**Relevant APIs**
-
-- `HarnessEvidenceBundle`
-- `HarnessEvidenceRequirement`
-- `HarnessRunReceipt`
-- `HarnessRunDenial`
-- `HarnessHonestyDenial`
-- `HarnessRunner`
 - `WorthUiRuntimeHost`
-- `WorthUiExecutionPlanInspection`
-- `WorthUiDiagnosticsProjection`
+- durable state families including panel, tab, and splitter state
+- shell-facing surfaces already proven in Milestone 3 and the validation app
+
+**DX target**
+
+By the end of this phase, shell ownership should read like this:
+
+```rust
+workspace AdminWorkspace {
+    shell {
+        topbar AdminTopbar
+        rail AdminPrimaryRail
+        page_host AdminPageHost
+        inspector AdminInspectorDock
+        status AdminStatusBar
+        overlays [CommandPaletteOverlay]
+        toasts AdminToastCenter
+    }
+
+    pages [OverviewPage, ProductsPage, OrdersPage, CustomersPage]
+
+    dynamic_pages [
+        ProductDetailPage(product_id: ProductId),
+        OrderDetailPage(order_id: OrderId),
+    ]
+}
+```
+
+The author should not need to restate shell chrome inside each page.
+
+Workspace composition should also be light enough that adding a new page feels
+like extending a product, not wiring a runtime:
+
+```rust
+workspace AdminWorkspace {
+    pages [OverviewPage, ProductsPage, OrdersPage, CustomersPage]
+}
+```
+
+The workspace chooses pages by typed symbol, not by page IDs or route strings.
+Dynamic work should feel equally native:
+
+```rust
+component ProductCard {
+    actions {
+        primary "Open product" -> navigate ProductDetailPage(row.id)
+    }
+}
+```
+
+And multiple typed page instances should be allowed to coexist inside the page
+host without inventing a second navigation model.
+
+**Build shape**
+- Add workspace-level shell authoring for top bar, rail, page host, inspector
+  dock, status region, toast layer, and overlay layer.
+- Make page navigation choose typed page references within workspace scope.
+- Add typed dynamic page templates and typed page-instance navigation so
+  runtime-driven product detail and contextual pages can open inside the same
+  workspace shell.
+- Ensure page switches preserve the active workspace shell and only replace the
+  page-hosted content subtree.
+- Ensure multiple dynamic page instances can coexist when their typed page
+  instance identity differs.
+- Ensure restore and reload treat shell continuity as workspace-owned platform
+  state rather than page-local widget memory.
 
 **Warnings**
-
-- Do not trust the validation app because it looks polished.
-- Do not let helpers hide lifecycle edges, pre-solve state, or inject receipts.
-- Do not weaken assertions to make visual scenarios pass.
-- Do not certify the validation app with synthetic-only tests.
+- Do not let pages smuggle permanent shell regions into page-local layout.
+- Do not make toasts or overlays page-owned when their scope is workspace-wide.
+- Do not fall back to route strings, raw path fragments, or app-local scene
+  registries for dynamic page opening.
 
 **Test requirements**
-
-- `validation_app_rejects_visual_only_success_path`: a scenario with correct-looking
-  visuals and missing runtime evidence fails.
-- `validation_app_rejects_hard_coded_expected_digest`: expected digests not derived
-  from the current run basis fail.
-- `validation_app_rejects_helper_injected_state_or_command_route`: helper-injected
-  durable state, command route, or active shell evidence fails integrity
-  validation.
-- `validation_app_self_qa_runs_against_real_workbench_scenarios`: self-QA probes run
-  against the real scenario runner and workbench fixture, not a miniature fake
-  validation app.
-- `validation_app_test_support_obeys_production_composition_laws`: validation app test
-  support stays decomposed by scenario family, operation family, evidence
-  family, and assertion family rather than becoming a broad helper bucket.
+- Switching between pages with different page layouts must preserve workspace
+  shell state and stable shell identity.
+- Restart and restore with a non-default last-active page must converge to the
+  same shell geometry, page selection, and eligible durable state.
+- Opening multiple dynamic page instances such as different product details
+  must preserve typed instance identity, tab/page-host continuity, and restore
+  determinism.
+- Invalid dynamic page instantiation must fail at the typed navigation boundary
+  rather than becoming a dead route or blank shell.
 
 **Engineering decisions**
-
-- The final M4 proof is not that the validation app can pass scenarios; it is that the
-  validation app can expose dishonest scenarios.
-- Validation app QA is allowed to include intentionally fake fixtures, but only to
-  prove the real runner rejects them.
-- Any production weakness exposed by validation app QA must be fixed in production or
-  explicitly made visible as a blocked acceptance path.
+- Reuse the existing reload, restore, and durable-state substrate rather than
+  inventing a second workspace continuity model.
+- Keep page-host selection distinct from page-content resolution.
+- Static pages and dynamic page instances share one navigation model; dynamic
+  pages are page templates plus typed context, not a separate router.
 
 **Open questions**
+- Whether the first version should expose dynamic page instances only through
+  explicit `navigate PageTemplate(args...)` actions or also through runtime-
+  populated navigation lists in workspace chrome.
 
+### Phase 3: Mosaic DX That Lowers to Existing Structural Facts
+
+This phase makes mosaics read like the Worth-native replacement for flex/grid
+while still lowering into the existing structural legality and mosaic-facts
+pipeline.
+
+**Relevant subsystems**
+- structural body lowering
+- mosaic structure facts
+- sizing, placement, and state-slot legality
+
+**Relevant APIs**
+- `WorthUiMosaicStructureFacts`
+- `WorthUiStructuralLegalityLowerer`
+- `MosaicSizingKind`
+- `MosaicSizingContractDescriptor`
+- `MosaicScrollOwnership`
+- `MosaicResizePermission`
+- `MosaicSizingPersistence`
+
+**DX target**
+
+By the end of this phase, dashboard layout should read like a Worth-native
+structural language:
+
+```rust
+layout ProductsLayout {
+    column {
+        row height fit {
+            slot toolbar
+        }
+
+        row height fill {
+            column width clamp(min: rail.md, preferred: share(2), max: rail.xl)
+            scroll_owner {
+                slot filters
+            }
+
+            column width fill {
+                row height ratio(3, 5) scroll_owner {
+                    slot collection
+                }
+
+                row height share(2) scroll_owner {
+                    slot activity
+                }
+            }
+
+            column width clamp(
+                min: inspector.md,
+                preferred: share(2),
+                max: inspector.xl,
+            ) {
+                slot inspector
+            }
+        }
+    }
+}
+```
+
+The author should not have to think in flexbox percentages or overflow hacks.
+
+**Build shape**
+- Add author-facing sizing vocabulary for `fit`, `fill`, `share`, `clamp`,
+  `fixed`, `ratio`, and typed min/max bounds.
+- Add explicit region-level scroll ownership and resizable-region declaration.
+- Lower the friendly layout vocabulary into region kinds, sizing contracts,
+  placement policies, and state slots that the current structural legality layer
+  already understands.
+- Extend the substrate only where an honest mapping does not already exist.
+
+**Warnings**
+- Do not expose web-era `flex` or `grid` metaphors as the main model.
+- Do not hide expensive measurement or broad reflow behind cheap-looking
+  vocabulary.
+
+**Test requirements**
+- Nested combinations of `fit`, `fill`, `share`, `clamp`, and `ratio` must
+  lower deterministically and preserve legality under module reorder.
+- User-resizable regions must preserve eligible persisted size state across
+  reload and restart without snap-back or hidden geometry fallback.
+
+**Engineering decisions**
+- Friendly sizing syntax should compile into current sizing contracts whenever
+  that mapping is semantically honest.
+- If `share` cannot be expressed honestly with current substrate, extend the
+  substrate instead of faking it with hidden derived weights.
+
+**Open questions**
 - None.
+
+### Phase 4: Separate Layout Topology from Content Slotting
+
+This phase adds an explicit content-slot layer so page structure and what gets
+mounted into that structure are different authoring responsibilities.
+
+**Relevant subsystems**
+- page/layout/content authoring
+- structural lowering to regions and mounts
+- canonical artifact assembly
+
+**Relevant APIs**
+- `WorthUiParsedSourceToArtifactInputLowerer`
+- `WorthUiMosaicRegionFacts`
+- `WorthUiMosaicMountFacts`
+- `WorthUiCanonicalArtifactAssembler`
+
+**DX target**
+
+By the end of this phase, structure and occupancy should be distinct:
+
+```rust
+layout ProductsLayout {
+    column {
+        row height fit { slot toolbar }
+        row height fill { slot collection }
+        row height fit { slot status }
+    }
+}
+
+content ProductsContent {
+    toolbar -> ProductsToolbarSurface
+    collection -> ProductsGridSurface
+    status -> ProductStatusSurface
+}
+```
+
+The author should be able to read layout without knowing what is mounted, and
+read content without re-learning geometry.
+
+When a page is simple enough, the same distinction should still be expressible
+inline without forcing extraction:
+
+```rust
+page OverviewPage {
+    layout {
+        column {
+            row height fit { slot hero }
+            row height fill { slot overview }
+        }
+    }
+
+    content {
+        hero -> OverviewHeroSurface
+        overview -> OverviewMetricsSurface
+    }
+}
+```
+
+**Build shape**
+- Add typed region-slot declarations in layouts.
+- Add typed content declarations that fill slots with surfaces or surface groups.
+- Lower layout and content together into the same region/mount facts currently
+  consumed by structural legality.
+- Preserve deterministic mount ordering and stable identity even when layout and
+  content are authored in separate declarations.
+
+**Warnings**
+- Do not merge slot filling back into raw region statements once this phase
+  lands.
+- Do not let content declarations own sizing, scroll rules, or shell topology.
+
+**Test requirements**
+- Reordering content-slot declarations without changing meaning must preserve
+  equivalent canonical structure and identity.
+- Assigning a surface to an unknown slot or an illegal slot class must fail at
+  this phase with localized diagnostics.
+
+**Engineering decisions**
+- Layout owns structure; content owns occupancy; later appearance owns chrome.
+- Slotting should reduce ceremony without weakening deterministic structure.
+
+**Open questions**
+- None.
+
+### Phase 5: Typed Runtime Declaration Families Over Forge Query
+
+This phase resets runtime authoring so pages and components declare retained
+runtime surfaces by family instead of hiding everything in one flat binding
+bucket.
+
+**Relevant subsystems**
+- view binding descriptors
+- bound binding semantics
+- runtime dependency hook derivation
+- query support admission
+
+**Relevant APIs**
+- `ViewBindingDescriptor`
+- `WorthUiBoundBindingSemantics`
+- `WorthUiRuntimeDependencyHook`
+- `WorthUiQuerySupportReceipt`
+- `WorthUiArtifactInputResolver`
+
+**DX target**
+
+By the end of this phase, runtime declaration should read like this:
+
+```rust
+runtime ProductsRuntime {
+    live_views {
+        ProductRows: shop.products.table();
+        SelectedProduct: shop.products.selected();
+    }
+
+    computed {
+        PublishTarget: shop.products.publish_target(SelectedProduct);
+    }
+
+    posture {
+        PublishPosture: shop.products.publish_posture(PublishTarget);
+    }
+
+    effects {
+        PublishSelectedProduct: shop.products.publish(PublishTarget);
+    }
+}
+```
+
+Not like one undifferentiated bucket where live views, posture, and effects all
+look the same.
+
+For the common path, local runtime declaration should also be allowed inline:
+
+```rust
+page ProductsPage {
+    runtime {
+        live_views {
+            ProductRows: shop.products.table();
+        }
+
+        effects {
+            PublishSelectedProduct: shop.products.publish(selected_product());
+        }
+    }
+}
+```
+
+**Build shape**
+- Add typed runtime declaration families such as `live_views`, `computed`,
+  `effects`, `posture`, and other proved families as needed.
+- Add explicit visibility/import rules so pages, surfaces, and components can
+  only consume runtime artifacts that are intentionally exposed to them.
+- Lower these families into the current view-binding and runtime-hook substrate
+  instead of inventing page-local hydration or local result-state models.
+- Preserve Query-owned support, admission, live-compatibility, async/result,
+  denial, inspection, and explanation posture where the current substrate
+  already carries it.
+
+**Warnings**
+- Do not create a UI-local dependency graph where Forge Query already owns one.
+- Do not collapse live views, computed surfaces, and action posture into one
+  untyped runtime bucket.
+
+**Test requirements**
+- Illegal visibility, illegal family mixing, and unresolved runtime references
+  must fail at lowering time with typed diagnostics.
+- Live runtime invalidation must update consumers through retained runtime
+  surfaces without parent re-hydration or props threading.
+
+**Engineering decisions**
+- Existing runtime dependency hook derivation remains the correct lower seam.
+- Query support receipts remain authoritative evidence rather than mirrored
+  local enums.
+
+**Open questions**
+- Whether workspace-scoped runtime artifacts may be re-exported under page-local
+  aliases or must always be referenced directly.
+
+### Phase 6: Iteration Bindings and Repeated Runtime Projections
+
+This phase makes repeated runtime-backed UI explicit so card grids, tables,
+timelines, menus, palettes, toolbars, and other repeated projections bind
+honestly to runtime truth and virtualization where needed.
+
+**Relevant subsystems**
+- repeated runtime bindings
+- virtualized data lane
+- stable identity and query invalidation
+- repeated action and projection surfaces
+
+**Relevant APIs**
+- `WorthUiVirtualizedDataFrameTarget`
+- query binding comparison and rebind planning
+- view-binding handles and visible-range execution
+
+**DX target**
+
+By the end of this phase, repeated rendering should read like this:
+
+```rust
+surface ProductsGridSurface {
+    iterate ProductRows as ProductRow
+    present ProductCard in card_grid(columns: share(4))
+}
+```
+
+And repeated runtime-driven projections should read like this:
+
+```rust
+surface ProductsBulkActionsMenu {
+    iterate BulkActionItems as BulkActionItem
+    present BulkActionMenuItem in menu
+}
+```
+
+Grouped repeated projections should also be first-class:
+
+```rust
+surface ProductsGroupedActionsMenu {
+    iterate_groups BulkActionGroups as BulkActionGroup {
+        section BulkActionGroup.label {
+            iterate BulkActionGroup.items as BulkActionItem
+            present BulkActionMenuItem in menu
+        }
+    }
+}
+```
+
+And component-local repeated access should read like this:
+
+```rust
+component ProductCard {
+    uses row ProductRow
+}
+```
+
+```rust
+component BulkActionMenuItem {
+    uses item BulkActionItem
+}
+```
+
+Not like `.row`, hidden suffix conventions, or parent-plumbed row props.
+
+The author should be able to understand the repeated data or repeated
+projection contract by reading `iterate ... as ...` once, not by
+reverse-engineering naming convention.
+
+**Build shape**
+- Add explicit iteration artifacts for repeated runtime projections, including
+  content iteration and projection iteration.
+- Content iteration covers repeated cards, rows, grids, lists, timelines, and
+  similar view content.
+- Projection iteration covers repeated menu items, palette entries, toolbar
+  items, inspector sections, and other runtime-populated command or projection
+  surfaces.
+- Add a first-class grouped iteration artifact for grouped repeated
+  projections such as menu sections, grouped action clusters, inspector
+  sections, and similar two-level repeated structures.
+- Let surfaces and components consume row-scoped or item-scoped runtime
+  bindings directly without parent props or naming conventions.
+- Tie repeated live surfaces to existing virtualized data lane mechanics where
+  collection size or visibility windows require it.
+- Preserve stable item identity across filtering, sorting, selection,
+  invalidation, regrouping, and window movement.
+- Preserve stable group identity, canonical group ordering, and canonical item
+  ordering within each group.
+- Carry collection-level posture so empty, loading, deferred, denied, and
+  partial states can be expressed at the iteration boundary rather than faked by
+  local wrapper logic.
+- Carry group-level posture and optional section chrome metadata so grouped
+  iteration does not devolve into local wrapper folklore.
+- Preserve item-scoped action access so repeated menu items and repeated cards
+  can project direct runtime-backed actions without closure glue.
+
+**Warnings**
+- Do not hide repeated rendering behind string conventions like `.row`.
+- Do not force off-screen rows or items to materialize just to preserve a
+  friendly API.
+- Do not treat repeated menus or command groups as a separate ad hoc runtime
+  path from repeated content.
+- Do not jump from grouped iteration to arbitrary recursive tree iteration in
+  this milestone.
+
+**Test requirements**
+- Row identity must remain stable across reorder, filter, and partial
+  invalidation where the underlying runtime identity is still the same.
+- Virtualized views must prove off-screen rows do not trigger full collection
+  materialization or broad scan frame targets.
+- Runtime-populated menu or action-item iteration must preserve stable item
+  identity and item-scoped action meaning across invalidation and regrouping.
+- Collection-level empty, denied, deferred, and partial posture must remain
+  explicit and typed instead of collapsing into local placeholder branches.
+- Grouped iteration must preserve stable group identity, stable item identity
+  within group, and deterministic group/item ordering across invalidation and
+  regrouping.
+- Group-level empty, denied, deferred, and partial posture must remain typed
+  and must not require app-local wrapper surfaces.
+
+**Engineering decisions**
+- Repeated data should ride on existing lane specialization rather than invent a
+  second collection runtime.
+- Iteration artifacts must carry enough proof that row/item lookup remains
+  direct and that repeated projection surfaces do not become hidden broad scans.
+- Grouped iteration is first-class in this milestone, but it remains narrow:
+  two-level grouped projection/content support is in scope; arbitrary recursive
+  tree iteration is not.
+
+**Open questions**
+- Whether grouped iteration should allow optional section-level appearance
+  recipes in the first version or defer that to a follow-on styling refinement.
+
+### Phase 7: Components as Local Visual Anatomy, Not Data Plumbing
+
+This phase defines components as local visual structure and action affordance
+boundaries while keeping runtime truth in Forge Query and binding semantics in
+Worth UI.
+
+**Relevant subsystems**
+- component authoring
+- appearance attachment
+- action and posture consumption
+
+**Relevant APIs**
+- `ComponentDescriptor`
+- `ComponentPropSchema`
+- command projection surfaces
+- bound binding semantics produced by earlier phases
+
+**DX target**
+
+By the end of this phase, a component should read like local anatomy:
+
+```rust
+component ProductCard {
+    uses row ProductRow
+    uses posture PublishPosture
+
+    column gap space.300 {
+        header {
+            title row.title
+            badge row.status tone status
+        }
+
+        media {
+            image row.primary_image
+        }
+
+        stack {
+            price row.price
+            inventory row.inventory_count
+        }
+
+        actions {
+            primary "Make live" -> PublishSelectedProduct
+            danger "Archive" -> ArchiveSelectedProduct
+        }
+    }
+}
+```
+
+The component should not need parent props just to reach its runtime truth.
+
+**Build shape**
+- Add readable component authoring for local anatomy such as headers, media,
+  summaries, pricing rows, pills, action groups, and inline editor regions.
+- Require components to declare the runtime, row, posture, and action artifacts
+  they consume explicitly.
+- Keep components local to visual anatomy; they must not become page or shell
+  layout owners.
+- Keep data access direct through retained runtime artifacts rather than
+  parent-to-child props threading.
+
+**Warnings**
+- Do not recreate React-style props as the primary composition model.
+- Do not allow hidden runtime reads that are not declared at the component
+  boundary.
+
+**Test requirements**
+- Components that reference undeclared runtime or row bindings must fail at the
+  authoring/lowering boundary rather than at render time.
+- Equivalent components with different cosmetic recipes must preserve the same
+  runtime dependencies, binding meaning, and action identity.
+
+**Engineering decisions**
+- Existing prop-schema metadata is not a license to build a props-driven runtime
+  model on top of the crate.
+- Components optimize for local readability and explicit resource use.
+
+**Open questions**
+- Whether tiny purely decorative subcomponents should remain inline-only or earn
+  separate declaration forms later.
+
+### Phase 8: Appearance, Theme, and Seam Arbitration
+
+This phase separates structure from chrome and solves shared boundaries at the
+platform level instead of making every touching region paint its own borders.
+
+**Relevant subsystems**
+- theme token surfaces
+- component and surface appearance
+- mosaic adjacency and region boundaries
+
+**Relevant APIs**
+- `ThemeTokenDescriptor`
+- surface and component descriptors
+- mosaic region topology derived by structural lowering
+
+**DX target**
+
+By the end of this phase, appearance should read like this:
+
+```rust
+appearance AdminWorkspaceShellAppearance {
+    chrome shell
+    background surface.canvas
+    padding none
+    seams merged
+}
+
+appearance AdminPageSectionAppearance {
+    chrome section
+    background surface.subtle
+    padding space.400
+    gap space.400
+    seams merged
+}
+
+appearance ProductCardAppearance {
+    chrome card
+    background surface.raised
+    padding space.400
+    gap space.300
+    radius radius.300
+    seams isolated
+    shadow elevation.200
+
+    action_tones {
+        primary button.primary
+        danger button.danger
+    }
+}
+```
+
+And shell/page composition should be able to read like this:
+
+```rust
+surface ProductsGridSurface {
+    appearance AdminPageSectionAppearance
+    iterate ProductRows as ProductRow
+    present ProductCard in card_grid(
+        columns: clamp(min: 2, preferred: 4, max: 6),
+        gap: space.400,
+    )
+}
+```
+
+Region adjacency should not require manually authoring both touching borders
+just to avoid double seams, and cards should not visually slop together just
+because they live inside one scrolling region.
+
+**Build shape**
+- Add semantic appearance recipes for surfaces and components that own radius,
+  padding, elevation, seam posture, tones, and typography usage without owning
+  structure.
+- Add default seam arbitration derived from mosaic adjacency and boundary
+  posture so touching regions dedupe seams automatically.
+- Keep detached overlays, cards, popovers, and elevated elements capable of
+  retaining independent perimeters.
+- Keep theme tokens authoritative for color, seam weight, spacing, radius,
+  elevation, and density inputs.
+- Add explicit default visual postures for shell, section, and card-like chrome
+  so authors do not have to manually rediscover basic admin-app composition on
+  every page.
+- Ensure scroll-owner backgrounds and resize-adjacent surfaces paint the full
+  owned region instead of shrinking to intrinsic child size.
+
+**Warnings**
+- Do not solve seam merging with post hoc pixel overlap hacks.
+- Do not let appearance blocks smuggle layout or runtime posture decisions.
+- Do not make authors hand-author margins between every grid card, section, and
+  rail just to get reasonable breathing room.
+
+**Test requirements**
+- Touching horizontal, vertical, nested, and T-junction regions must dedupe or
+  preserve seams according to explicit boundary posture rules.
+- Theme or density swaps must preserve structural topology, slot assignment, and
+  runtime truth while changing appearance output deterministically.
+- Scroll-owner backgrounds must expand with owned width/height under resize
+  instead of only painting behind intrinsic child content.
+- Adjacent section regions, detached cards, and emphasized split boundaries
+  must each render the correct seam ownership without duplicated borders.
+
+**Engineering decisions**
+- Seam topology derives from layout adjacency; theme only influences seam
+  styling.
+- Appearance lowers into inspectable semantic recipes rather than opaque paint
+  callbacks.
+- Default shell, section, and card posture is part of the platform contract,
+  not app-local styling folklore.
+
+**Open questions**
+- Whether splitters should own distinct seam posture or inherit the seam of the
+  regions they separate.
+
+### Phase 9: Action Projection, Toasts, Overlays, and Inspector Flows
+
+This phase unifies product actions so buttons, menus, palette entries,
+inspectors, overlays, and toasts all project one retained action story.
+
+**Relevant subsystems**
+- command projection
+- action posture and denial presentation
+- workspace overlays and toast center
+
+**Relevant APIs**
+- command projection descriptors and registries
+- bound query and posture semantics
+- runtime diagnostics and outcome surfaces already exposed through the facade
+
+**DX target**
+
+By the end of this phase, action usage should read like one shared action story:
+
+```rust
+component ProductCard {
+    actions {
+        primary "Make live" -> PublishSelectedProduct
+        danger "Archive" -> ArchiveSelectedProduct
+    }
+}
+
+surface ProductsBulkActionsMenu {
+    iterate BulkActionItems as BulkActionItem
+    present BulkActionMenuItem in menu
+}
+
+overlay CommandPaletteOverlay {
+    project [PublishSelectedProduct, ArchiveSelectedProduct]
+}
+
+toast AdminToastCenter {
+    present action_outcomes
+}
+```
+
+The same action meaning should be reusable across button, inspector, palette,
+overlay, and toast surfaces without redefining the action per surface.
+Repeated action projections should also be able to come from runtime data rather
+than only from static lists.
+
+**Build shape**
+- Add authoring for product actions that resolve to typed retained runtime
+  targets.
+- Allow the same action meaning to project into command palette, toolbar,
+  card-button, context-menu, and inspector surfaces.
+- Allow runtime-populated action collections to project through explicit
+  iteration artifacts into menus, palettes, and grouped action surfaces.
+- Add workspace-owned overlay and toast recipes that bind to typed action
+  outcomes and posture.
+- Preserve structured denial, advisory, async, recovery, and inspection posture
+  rather than flattening actions into enabled/disabled booleans.
+
+**Warnings**
+- Do not create a parallel UI-local command runtime.
+- Do not reduce action posture to anonymous booleans where existing runtime
+  meaning is richer.
+
+**Test requirements**
+- One action identity must remain stable across multiple projections such as
+  toolbar, palette, and inspector invocation paths.
+- Failed, deferred, and denied actions must preserve typed posture and recovery
+  semantics through overlays and toasts.
+- Runtime-populated action menus must preserve item identity and action meaning
+  under invalidation, regrouping, and posture change.
+
+**Engineering decisions**
+- Command identity remains platform-owned and must not be duplicated per surface.
+- Feedback rides on retained runtime lanes wherever that substrate already
+  exists.
+
+**Open questions**
+- Whether pages may define local toast recipes that still emit through the
+  workspace toast center.
+
+### Phase 10: Shopify Dashboard Proof Workspace
+
+This phase builds the real product proof: a native Shopify-style admin
+workspace that uses the new authoring model under varied page shapes.
+
+**Relevant subsystems**
+- workspace, page, layout, content, runtime, component, and appearance surfaces
+- shell continuity and navigation
+- repeated live data and action projection
+
+**Relevant APIs**
+- all authoring and lowering surfaces introduced by Phases 1 through 9
+- existing validation app runtime launch and evidence host surfaces
+
+**Build shape**
+- Build one workspace with at least overview, products, orders, and customers
+  pages.
+- Include at least one dynamic detail-page family such as `ProductDetailPage`
+  or `OrderDetailPage` that opens typed page instances from runtime data.
+- Ensure those pages are materially different in geometry and interaction:
+  summary-card overview, dense products collection with inspector editing,
+  status-heavy orders flow, and an alternate customers balance.
+- Ensure the dynamic detail flow can open multiple instances, restore them, and
+  keep them distinct inside the shared page host.
+- Use the same workspace shell, runtime substrate, action projection, seam
+  rules, and appearance system across the page set.
+- Keep the app native and Worth-owned; no browser-shaped fallback artifacts are
+  allowed.
+
+**Warnings**
+- Do not fake page diversity by swapping labels on one generic template.
+- Do not patch page-specific layout pain with app-local geometry state.
+
+**Test requirements**
+- Switching among materially different pages must preserve workspace continuity,
+  shell state, and typed navigation identity.
+- Each proof page must exercise a different combination of layout, runtime,
+  iteration, action, or inspector behavior so that page diversity actually hardens
+  the platform.
+- Dynamic detail-page instances opened from repeated runtime data must preserve
+  typed page-instance identity across open, close, reopen, reload, and restore.
+
+**Engineering decisions**
+- One serious product family is more valuable than a wide set of toy pages.
+- The proof app should stay honest about gaps instead of compensating with local
+  infrastructure.
+
+**Open questions**
+- None.
+
+### Phase 11: Reload, Restore, and Evidence Hardening
+
+This phase closes the milestone by proving the new authoring model remains hot
+reload-safe, restore-safe, and performance-honest under real dashboard use.
+
+**Relevant subsystems**
+- runtime host replacement and admission
+- durable state reconciliation
+- query-binding comparison and live rebind planning
+- diagnostics and counter surfaces
+
+**Relevant APIs**
+- `WorthUiRuntimeHost`
+- query-binding comparison and posture drift surfaces
+- durable state families
+- reload, plan, and diagnostics evidence already exposed by the validation app
+
+**Build shape**
+- Add evidence views that surface active artifact identity, plan identity,
+  replace/no-op/deny outcomes, durable-state carry-forward, and relevant query
+  support posture.
+- Certify valid reload, invalid reload, equivalent reload, and restore behavior
+  against the real dashboard workspace.
+- Prove theme/density swaps do not alter runtime truth, binding posture, or
+  seam topology.
+- Add counter-backed proof that the dashboard is still consuming direct lookup,
+  retained runtime, and bounded invalidation rather than hidden broad scans.
+
+**Warnings**
+- Visual survival alone is not enough; receipts and counters must prove the
+  architectural claim.
+- Evidence surfaces must not become a second privileged control path.
+
+**Test requirements**
+- Invalid reloads must preserve the previously active artifact and expose typed
+  diagnostics without blanking the shell.
+- Dashboard interactions and reloads must prove no broad registry lookup,
+  broad artifact scan, or pseudo-hydration path has entered the hot path.
+
+**Engineering decisions**
+- Reuse the existing runtime evidence and validation-app surfaces where they
+  remain honest.
+- Preserve current runtime authority boundaries; Milestone 4 only adds better
+  authoring and better product proof over them.
+
+**Open questions**
+- Whether screenshot-golden capture belongs in this milestone or the next one.
 
 ## Must Ship
 
-- public-facade-only validation app target that launches a real Worth UI native
-  desktop workbench over the Rust/egui platform path
-- repository guard or compile proof that M4 does not introduce browser, Vite,
-  React, DOM, HTML/CSS, or web-view validation app implementation artifacts
-- workbench app shell with activity rail, page registry, menu bar, toolbar,
-  command palette affordance, scenario navigation, inspector, bottom timeline,
-  overlay layer, and status bar from the first loaded page
-- surface atlas first page that visibly exposes shell surfaces, command
-  surfaces, evidence surfaces, theme controls, fixture/sample evidence labels,
-  and the future live-runner slots
-- polished VS Code-like dark, token-driven theme and density foundation for
-  the validation app shell
-- typed scenario registry, operation script model, evidence bundle, run
-  receipt, and validation record
-- canonical workbench shell with pinned sidebar, tabbed editor region, stacked
-  scroll regions, bottom/status region, overlays, menus, toolbar, command
-  palette, and context surfaces
-- scenario operations for open, close, dock, split, tab, pin, overlay, persist,
-  restore, restart/recreate, valid reload, invalid reload, equivalent reload,
-  and identity-changing reload
-- runtime evidence projection UI for artifact/plan digests, state receipts,
-  command identities, reload diagnostics, activation/swap receipts, and frame
-  counters
-- manual validation panel with expected visible observations tied to scenario
-  steps and required runtime evidence
-- hostile validation app QA suite proving the validation app cannot certify visual-only,
-  helper-injected, hard-coded, stale, or privileged-internal success
+- first-class authoring for `app`, `workspace`, `page`, `layout`, `content`,
+  typed runtime families, `component`, and `appearance`
+- workspace-owned shell and typed page navigation
+- mosaic-native sizing and scroll semantics that lower into existing structural
+  facts
+- typed runtime declaration families that consume existing Forge Query-facing
+  binding surfaces
+- explicit iteration bindings for repeated live collections
+- appearance and seam arbitration that separate chrome from structure
+- one real Shopify-style native admin workspace with materially different pages
+- reload, restore, diagnostics, and counter evidence proving the dashboard uses
+  the platform honestly
 
 ## Must Preserve
 
-- Worth UI runtime remains the owner of active artifacts, active plans,
-  diagnostics, state reconciliation, plan swaps, and frame-cost evidence.
-- The validation app remains a consumer of public Worth UI contracts.
-- Manual validation observes structured evidence; it does not replace typed
-  tests, receipts, counters, denials, or digests.
-- Theme and visual quality use declared tokens, sizing contracts, and runtime
-  posture surfaces rather than raw local styling.
-- The VS Code-like dark palette remains a Worth UI theme contract, not a direct
-  dependency on VS Code assets or raw component-local color constants.
-- Workspace layout remains a platform artifact, not app-local geometry state.
-- Persisted shell state remains distinct from authoritative runtime truth.
-- Scenario helpers clarify proof pressure and never pre-solve production
-  authority, identity, state, command, restore, or reload conditions.
-- Steady frame execution remains free of source parsing, artifact validation,
-  registry string lookup, broad artifact scans, and rich diagnostics by
-  default.
+- the existing proof chain from source through canonical artifact
+- frozen snapshot and support-catalog authority boundaries
+- runtime ownership of active artifact, active plan, durable state, and Query
+  posture drift
+- virtualized-data lane ownership of repeated live collection execution
+- no browser, DOM, CSS, React, or web-view implementation escapes
+- no UI-local dependency graph, props runtime, hydration graph, or shell shadow
+  runtime
 
 ## Acceptance Evidence
 
-- the validation app launches as a normal Worth UI app through public facade and
-  native desktop runtime paths
-- the validation app consumes the M1-M3 facade, canonical artifact, active runtime,
-  execution-plan, durable-state, command projection, diagnostics, reload, and
-  frame-cost foundations rather than creating replacement UI infrastructure
-- the first visible screen is a usable workbench validation page, not a
-  marketing or demo-only route
-- the first page renders all primary validation app surfaces at once: activity rail,
-  scenario list, menu, toolbar, command palette affordance, tabbed workbench,
-  pinned sidebar, stacked panes, overlay, evidence inspector, bottom run
-  timeline, and status bar
-- the sample workbench can open, close, dock, split, tab, persist, restore, and
-  restart without app-local shell logic
-- nested mosaic shell evidence shows pinned sidebar, stacked scroll regions,
-  bottom/status region, tab stack, and overlays without DOM-style height or
-  overflow hacks
-- the default validation app theme resembles a polished VS Code-like dark workbench,
-  is fully token-driven, and density/theme changes do not create layout or
-  state drift
-- menu bar, toolbar, command palette, and context surfaces expose the same
-  command identities and routing evidence
-- valid layout reloads preserve eligible stable-ID shell state; invalid reloads
-  preserve the previous active shell with typed diagnostics
-- interleaved hostile replay converges without stale command routes, orphan
-  state, stale overlay surfaces, or diagnostics residue
-- a human can run each acceptance scenario from the validation app UI and see the
-  visible shell result beside the exact runtime evidence required for success
-- validation app self-QA proves visual-only success, hard-coded expected values,
-  helper-injected state, stale receipts, and privileged internals are rejected
+- a reader can locate the new authoring hierarchy in code and see where it
+  lowers into existing artifact and runtime phases
+- equivalent old-form and new-form authoring prove convergence on the same
+  canonical artifact meaning
+- the Shopify workspace runs with overview, products, orders, and customers
+  pages inside one persistent shell
+- repeated live data proves stable iteration identity and bounded visibility
+  execution
+- seam arbitration dedupes touching boundaries by default and diverges only when
+  posture says it should
+- reload, restore, and theme/density changes preserve runtime truth and shell
+  continuity
+- receipts, counters, and diagnostics prove the product surface is consuming the
+  existing substrate rather than bypassing it
 
 ## Sequencing Notes
 
-This milestone belongs immediately after Milestone 3 because the active runtime
-and shell-relevant primitives now exist, but the platform still needs composed
-product evidence before broader command, focus, Query-bound view, form,
-component, accessibility, native, plugin, and tooling milestones depend on the
-shell behaving as a real product surface.
-
-It deliberately does not replace later component-system or accessibility
-milestones. It creates the workbench and validation validation app those later
-milestones can extend.
-
-## Self-Check
-
-- Does the milestone solve a real structural problem or just package work
-  cosmetically? Yes: it closes the gap between primitive proof and composed
-  product evidence.
-- Is the adversarial constraint precise and load-bearing? Yes: the validation app must
-  survive hostile replay, restore, reload, visual, command, and self-QA pressure.
-- Does the roadmap justify this milestone now? Yes: M3 built the runtime
-  substrate and the next risk is invisible primitive-only proof.
-- Does the spec preserve crate authority boundaries? Yes: the validation app consumes
-  public Worth UI contracts and cannot own active runtime truth.
-- Are the phases carrying most of the real design information? Yes.
-- Is each phase centered on one conceptual detail or boundary? Yes.
-- Does each phase contain at least 2 adversarial tests by default? Yes.
-- Could a competent engineer map this spec into honest types, modules, and
-  tests? Yes.
-- Does the milestone belong in this roadmap sequence, or is it out of order?
-  It belongs here, directly after M3 and before broader product-surface growth.
+- Phase 1 must land before any further product polish. Otherwise the milestone
+  will fossilize the current weak authoring model behind nicer screenshots.
+- Reuse existing lower substrate aggressively when it already expresses the
+  needed proof. Add substrate only where the current lower form cannot honestly
+  represent the desired authoring or runtime meaning.
+- Query-facing runtime behavior must keep following `forge-query` strength
+  rather than reinventing local support, result-state, recovery, or explanation
+  models.
+- The milestone earns its place only if it improves authoring while preserving
+  the existing runtime/compiler integrity already built in Milestones 1 through
+  3.

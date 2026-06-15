@@ -1,11 +1,12 @@
-use worth_ui_harness::facade::{HarnessEvidenceBasis, HarnessEvidenceBundle};
+use worth_ui_validation_app::{
+    ValidationWorkbenchLaunch, ValidationWorkspaceShell, ValidationWorkspaceState,
+};
 
 fn main() {
-    let mut evidence = HarnessEvidenceBundle::empty();
-    let injected_basis = injected_runtime_basis();
-    evidence.observe_runtime_launch(injected_basis);
-}
-
-fn injected_runtime_basis() -> HarnessEvidenceBasis {
-    panic!("compile-fail fixture")
+    let launch = ValidationWorkbenchLaunch::new()
+        .prepare()
+        .expect("validation launch should prepare");
+    let mut shell = ValidationWorkspaceShell::from_launch(launch);
+    let _state = ValidationWorkspaceState::default();
+    shell.state_mut().set_rail_width(240.0);
 }

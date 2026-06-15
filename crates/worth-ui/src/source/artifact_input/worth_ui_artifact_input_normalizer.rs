@@ -68,14 +68,32 @@ fn body_atoms_key(body_atoms: &[crate::source::WorthUiArtifactInputBodyAtom]) ->
 fn body_atom_key(body_atom: &crate::source::WorthUiArtifactInputBodyAtom) -> String {
     match body_atom {
         crate::source::WorthUiArtifactInputBodyAtom::Identifier(text) => format!("id:{text}"),
+        crate::source::WorthUiArtifactInputBodyAtom::NumberLiteral(value) => {
+            format!("num:{value}")
+        }
         crate::source::WorthUiArtifactInputBodyAtom::StringLiteral(text) => format!("str:{text}"),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordImport => "kw:import".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordApp => "kw:app".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordWorkspace => "kw:workspace".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordPage => "kw:page".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordRuntime => "kw:runtime".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordLayout => "kw:layout".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordContent => "kw:content".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordAppearance => {
+            "kw:appearance".to_owned()
+        }
         crate::source::WorthUiArtifactInputBodyAtom::KeywordComponent => "kw:component".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordSurface => "kw:surface".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordBinding => "kw:binding".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordToken => "kw:token".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::LeftBrace => "{".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::RightBrace => "}".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::LeftParen => "(".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::RightParen => ")".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::LeftBracket => "[".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::RightBracket => "]".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::Comma => ",".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::Colon => ":".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::Semicolon => ";".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::Equals => "=".to_owned(),
     }

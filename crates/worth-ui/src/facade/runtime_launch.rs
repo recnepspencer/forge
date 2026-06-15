@@ -3,9 +3,10 @@ use std::path::PathBuf;
 use crate::facade::WorthUiApp;
 use crate::runtime::{WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeLaunch};
 use crate::source::{
-    WorthUiArtifact, WorthUiArtifactInput, WorthUiArtifactInputResolver,
-    WorthUiBindingSemanticsLowerer, WorthUiBoundArtifactInput, WorthUiCanonicalArtifactAssembler,
-    WorthUiIdentitySeedLowerer, WorthUiIdentitySeededArtifactInput,
+    build_layout_topology_catalog, WorthUiArtifact, WorthUiArtifactInput,
+    WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer, WorthUiBoundArtifactInput,
+    WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
+    WorthUiIdentitySeededArtifactInput, WorthUiLayoutTopologyCatalog,
     WorthUiLegallyStructuredArtifactInput, WorthUiParsedSourcePackage,
     WorthUiParsedSourceToArtifactInputLowerer, WorthUiResolvedArtifactInput, WorthUiSourcePackage,
     WorthUiSourcePackageLoader, WorthUiSourceParser, WorthUiStructuralLegalityLowerer,
@@ -25,12 +26,20 @@ pub struct WorthUiRuntimeLaunchBuilder {
     diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
 }
 
+/// Prepared authoring support derived from the same source package as a runtime launch.
+#[derive(Debug)]
+pub struct WorthUiPreparedRuntimeAuthoring {
+    layout_topology: WorthUiLayoutTopologyCatalog,
+    runtime_launch: WorthUiRuntimeLaunch,
+}
+
 /// Structured denial for public runtime launch preparation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiRuntimeLaunchPreparationDenial {
     EmptySourcePackage,
     SourcePackageRejected { diagnostic_count: usize },
     ParseRejected { diagnostic_count: usize },
+    AuthoringEntryRejected { diagnostic_count: usize },
     SnapshotResolutionRejected { diagnostic_count: usize },
     StructuralLegalityRejected { diagnostic_count: usize },
     BindingSemanticsRejected { diagnostic_count: usize },
@@ -78,20 +87,53 @@ impl WorthUiRuntimeLaunchBuilder {
         self,
         app: &WorthUiApp,
     ) -> Result<WorthUiRuntimeLaunch, WorthUiRuntimeLaunchPreparationDenial> {
+        self.prepare_authoring_for(app)
+            .map(WorthUiPreparedRuntimeAuthoring::into_runtime_launch)
+    }
+
+    pub fn prepare_authoring_for(
+        self,
+        app: &WorthUiApp,
+    ) -> Result<WorthUiPreparedRuntimeAuthoring, WorthUiRuntimeLaunchPreparationDenial> {
         reject_empty_source_package(&self.modules)?;
         let source_package = compile_source_package(self.modules)?;
         let parsed_package = parse_source_package(&source_package)?;
-        let artifact_input = lower_parsed_source_package(&parsed_package);
+        let artifact_input = lower_parsed_source_package(&parsed_package)?;
+        let layout_topology = prepare_layout_topology(&parsed_package);
         let resolved = resolve_artifact_input(&artifact_input, app)?;
         let structured = enforce_structural_legality(&resolved, app)?;
         let bound = enforce_binding_semantics(&structured, app)?;
         let identity_seeded = seed_artifact_identity(&bound)?;
         let artifact = assemble_canonical_artifact(&identity_seeded)?;
 
-        Ok(WorthUiRuntimeLaunch::from_facade_artifact(
-            artifact,
-            self.diagnostic_policy,
+        Ok(WorthUiPreparedRuntimeAuthoring::new(
+            layout_topology,
+            WorthUiRuntimeLaunch::from_facade_artifact(artifact, self.diagnostic_policy),
         ))
+    }
+}
+
+impl WorthUiPreparedRuntimeAuthoring {
+    fn new(
+        layout_topology: WorthUiLayoutTopologyCatalog,
+        runtime_launch: WorthUiRuntimeLaunch,
+    ) -> Self {
+        Self {
+            layout_topology,
+            runtime_launch,
+        }
+    }
+
+    pub fn layout_topology(&self) -> &WorthUiLayoutTopologyCatalog {
+        &self.layout_topology
+    }
+
+    pub fn into_runtime_launch(self) -> WorthUiRuntimeLaunch {
+        self.runtime_launch
+    }
+
+    pub fn into_parts(self) -> (WorthUiRuntimeLaunch, WorthUiLayoutTopologyCatalog) {
+        (self.runtime_launch, self.layout_topology)
     }
 }
 
@@ -131,8 +173,20 @@ fn parse_source_package(
 
 fn lower_parsed_source_package(
     parsed_package: &WorthUiParsedSourcePackage,
-) -> WorthUiArtifactInput {
-    WorthUiParsedSourceToArtifactInputLowerer::lower(parsed_package)
+) -> Result<WorthUiArtifactInput, WorthUiRuntimeLaunchPreparationDenial> {
+    WorthUiParsedSourceToArtifactInputLowerer::lower(parsed_package).map_err(|report| {
+        WorthUiRuntimeLaunchPreparationDenial::AuthoringEntryRejected {
+            diagnostic_count: report.diagnostics().len(),
+        }
+    })
+}
+
+fn prepare_layout_topology(
+    parsed_package: &WorthUiParsedSourcePackage,
+) -> WorthUiLayoutTopologyCatalog {
+    build_layout_topology_catalog(parsed_package).expect(
+        "authoring-entry validation should certify page layout topology before facade preparation",
+    )
 }
 
 fn resolve_artifact_input(

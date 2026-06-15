@@ -46,6 +46,13 @@ pub(crate) fn tokenize_module_source(
             continue;
         }
 
+        if next.is_ascii_digit() {
+            let (token, next_position) = consume_number_literal(&module_id, source_text, position);
+            tokens.push(token);
+            position = next_position;
+            continue;
+        }
+
         if is_identifier_start(next) {
             let (token, next_position) = consume_identifier(&module_id, source_text, position);
             tokens.push(token);
@@ -68,6 +75,30 @@ pub(crate) fn tokenize_module_source(
     }
 }
 
+fn consume_number_literal(
+    module_id: &WorthUiSourceModuleId,
+    source_text: &str,
+    start: usize,
+) -> (WorthUiSourceToken, usize) {
+    let mut end = start;
+    for character in source_text[start..].chars() {
+        if !character.is_ascii_digit() {
+            break;
+        }
+        end += character.len_utf8();
+    }
+    let value = source_text[start..end]
+        .parse::<u32>()
+        .expect("number literal should fit within u32");
+    (
+        WorthUiSourceToken::new(
+            WorthUiSourceTokenKind::NumberLiteral(value),
+            WorthUiSourceSpan::new(module_id.clone(), start, end),
+        ),
+        end,
+    )
+}
+
 fn consume_identifier(
     module_id: &WorthUiSourceModuleId,
     source_text: &str,
@@ -83,6 +114,13 @@ fn consume_identifier(
     let raw_text = &source_text[start..end];
     let kind = match raw_text {
         "import" => WorthUiSourceTokenKind::KeywordImport,
+        "app" => WorthUiSourceTokenKind::KeywordApp,
+        "workspace" => WorthUiSourceTokenKind::KeywordWorkspace,
+        "page" => WorthUiSourceTokenKind::KeywordPage,
+        "runtime" => WorthUiSourceTokenKind::KeywordRuntime,
+        "layout" => WorthUiSourceTokenKind::KeywordLayout,
+        "content" => WorthUiSourceTokenKind::KeywordContent,
+        "appearance" => WorthUiSourceTokenKind::KeywordAppearance,
         "component" => WorthUiSourceTokenKind::KeywordComponent,
         "surface" => WorthUiSourceTokenKind::KeywordSurface,
         "binding" => WorthUiSourceTokenKind::KeywordBinding,
@@ -147,6 +185,12 @@ fn consume_punctuation(
     let kind = match character {
         '{' => WorthUiSourceTokenKind::LeftBrace,
         '}' => WorthUiSourceTokenKind::RightBrace,
+        '(' => WorthUiSourceTokenKind::LeftParen,
+        ')' => WorthUiSourceTokenKind::RightParen,
+        '[' => WorthUiSourceTokenKind::LeftBracket,
+        ']' => WorthUiSourceTokenKind::RightBracket,
+        ',' => WorthUiSourceTokenKind::Comma,
+        ':' => WorthUiSourceTokenKind::Colon,
         ';' => WorthUiSourceTokenKind::Semicolon,
         '=' => WorthUiSourceTokenKind::Equals,
         _ => return None,

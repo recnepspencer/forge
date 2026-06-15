@@ -20,7 +20,8 @@ pub(super) fn bind_file_source_with_view_binding_rejected(
 ) -> WorthUiSampleCertificationFailure {
     let parsed_package =
         WorthUiSourceParser::parse_package(&source_package).expect("source should parse");
-    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_package);
+    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_package)
+        .expect("authoring entry should lower to artifact input");
     let app = identity_test_app();
     let snapshot = app.capabilities();
     let resolved = WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
@@ -46,7 +47,8 @@ pub(super) fn resolve_file_source_with_component_unsupported(
 ) -> WorthUiSampleCertificationFailure {
     let parsed_package =
         WorthUiSourceParser::parse_package(&source_package).expect("source should parse");
-    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_package);
+    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_package)
+        .expect("authoring entry should lower to artifact input");
     let app = identity_test_app();
     let unsupported_snapshot = sample_snapshot_with_support_catalog(
         app.capabilities(),
