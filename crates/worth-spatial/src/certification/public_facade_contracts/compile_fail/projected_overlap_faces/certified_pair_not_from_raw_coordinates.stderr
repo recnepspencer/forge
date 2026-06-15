@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `from_raw_coordinates` found for struct `CertifiedProjectedOverlapCandidatePair` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/projected_overlap_faces/certified_pair_not_from_raw_coordinates.rs:4:57
+  |
+4 |     let _pair = CertifiedProjectedOverlapCandidatePair::from_raw_coordinates(
+  |                                                         ^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `CertifiedProjectedOverlapCandidatePair`

@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_authority/fail/unadmitted_candidate_cannot_enter_identity_matching.rs:10:56
+   |
+10 |     let _ = host.build_identity_match_graph(narrowing, candidate);
+   |                  --------------------------            ^^^^^^^^^ expected `&WorthUiAdmittedReplacementCandidate`, found `&WorthUiReplacementCandidate`
+   |                  |
+   |                  arguments to this method are incorrect
+   |
+   = note: expected reference `&WorthUiAdmittedReplacementCandidate`
+              found reference `&WorthUiReplacementCandidate`
+note: method defined here
+  --> src/runtime/host.rs
+   |
+   |     pub fn build_identity_match_graph(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_authority/fail/pointer_identity_cannot_replace_plan_equivalence.rs:8:30
+  |
+8 |     consume_plan_equivalence(std::ptr::eq(left, right));
+  |     ------------------------ ^^^^^^^^^^^^^^^^^^^^^^^^^ expected `WorthUiExecutionPlanEquivalence`, found `bool`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/ui/runtime_authority/fail/pointer_identity_cannot_replace_plan_equivalence.rs:3:4
+  |
+3 | fn consume_plan_equivalence(_: WorthUiExecutionPlanEquivalence) {}
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^ ----------------------------------

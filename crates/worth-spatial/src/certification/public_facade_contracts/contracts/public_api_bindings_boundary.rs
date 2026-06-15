@@ -83,6 +83,7 @@ fn spatial_bindings_boundary_no_longer_teaches_parallel_report_ecologies() {
     assert!(facade.contains("pub mod continuation;"));
     assert!(facade.contains("pub mod inspection;"));
     assert!(facade.contains("pub mod neighborhood;"));
+    assert!(facade.contains("pub mod planar_predicates;"));
     assert!(facade.contains("pub mod projection;"));
     assert!(facade.contains("pub mod rebinding;"));
     assert!(facade.contains("pub mod recovery;"));
@@ -169,6 +170,16 @@ fn spatial_bindings_boundary_no_longer_teaches_parallel_report_ecologies() {
     assert!(!facade_bindings.contains("ToleranceAndPrecisionCertificationDeclarationFamily"));
     assert!(facade_tolerance
         .contains("primitive_construction_tolerance_and_precision_certification_facts"));
+    let facade_planar_predicates = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/facade/planar_predicates.rs"
+    ));
+    assert!(!facade_bindings.contains("query_native_planar_predicate::{"));
+    assert!(!facade_bindings.contains("planar_predicate_authority_facts"));
+    assert!(!facade_bindings.contains("PlanarPredicateAuthorityDeclarationFamily"));
+    assert!(facade_planar_predicates.contains("query_native_planar_predicate::{"));
+    assert!(facade_planar_predicates.contains("planar_predicate_authority_facts"));
+    assert!(facade_planar_predicates.contains("PlanarPredicateAuthorityDeclarationFamily"));
     assert!(!binding_authoring.contains("pub fn admit("));
     assert!(!anchor_binding_authoring.contains("pub fn admit("));
     assert!(!rebinding_authoring.contains("pub fn admit("));
@@ -176,9 +187,8 @@ fn spatial_bindings_boundary_no_longer_teaches_parallel_report_ecologies() {
     assert!(!anchor_binding_authoring.contains("fn admit_intent("));
     assert!(!rebinding_authoring.contains("fn admit_intent("));
     assert!(!rebinding_authoring.contains("impl Into<PrimitiveRebindingPriorBindingFact>"));
-    assert!(rebinding_authoring.contains(
-        "pub fn replace_surface_binding(\n        prior_binding: PrimitiveRebindingPriorBindingFact,"
-    ));
+    assert!(rebinding_authoring.contains("pub fn replace_surface_binding("));
+    assert!(rebinding_authoring.contains("prior_binding: PrimitiveRebindingPriorBindingFact"));
     assert!(!rebinding_authoring.contains("replace_surface_binding_from_admitted_binding"));
     assert!(!rebinding_authoring.contains("replace_curve_binding_from_admitted_binding"));
     assert!(!rebinding_authoring.contains("replace_pcurve_binding_from_admitted_binding"));

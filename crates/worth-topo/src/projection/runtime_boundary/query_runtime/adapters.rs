@@ -1,15 +1,14 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::{
-    DeclarativeLiveQueryRequest, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy,
-    ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
-    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
-    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
+    DeclarativeLiveQueryRequest, ForgeQueryEffectPolicy, ForgeQueryEntity, ForgeQueryLivePatch,
+    ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
+    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError,
-    ForgeQueryWriteReceipt, QuerySchemaView, SubscriptionActivationInput,
+    ForgeQuerySessionLabel, ForgeQueryWorkspaceError, ForgeQueryWriteReceipt, QuerySchemaView,
+    SubscriptionActivationInput,
 };
 use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, InvalidationSink, RuntimeBridge, SignalBridgeSinkError,
@@ -129,12 +128,12 @@ impl ForgeQueryRuntimeSourceAdapter for TopologyRuntimeSourceAdapter {
 
     fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
         let mut affected = receipt
-            .deltas()
+            .deltas
             .iter()
             .flat_map(|delta| {
                 self.live_views
                     .iter()
-                    .filter(move |(_, target)| *target == delta.collection())
+                    .filter(move |(_, target)| *target == &delta.collection)
                     .map(|(name, _)| name.clone())
             })
             .collect::<Vec<_>>();
@@ -142,11 +141,9 @@ impl ForgeQueryRuntimeSourceAdapter for TopologyRuntimeSourceAdapter {
         affected.dedup();
         affected
     }
-}
 
-impl ForgeQueryRuntimeSnapshotIdentityAdapter for TopologyRuntimeSourceAdapter {
-    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
-        self.binding.current_snapshot_identity()
+    fn snapshot_token(&self) -> String {
+        self.binding.snapshot_token()
     }
 }
 
@@ -158,8 +155,8 @@ impl ForgeQueryRuntimeSignalSinkAdapter for TopologyStaticSignalSink {
         receipt: &ForgeQueryMutationReceipt,
     ) -> Result<forge_query::facade::SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError>
     {
-        let routing_receipt = self.build_signal_invalidation_routing_receipt(receipt)?;
-        self.build_signal_invalidation_boundary_receipt(receipt, routing_receipt)
+        let routing_receipt = self.build_signal_invalidation_routing_receipt(receipt);
+        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routing_receipt))
     }
 }
 
@@ -219,7 +216,7 @@ impl ForgeQueryRuntimePreviewBasisAdapter for TopologyPreviewBasis {
                 authority,
                 label.clone(),
                 effect_policy,
-                ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([*support_evidence]),
+                [*support_evidence],
             )),
             Self::Denied { denial_reason } => Err(ForgeQueryWorkspaceError::new(*denial_reason)),
         }

@@ -1,0 +1,4 @@
+mod view_binding_accepted_registration_proof;
+mod view_binding_registration;
+
+pub(crate) use view_binding_accepted_registration_proof::ViewBindingAcceptedRegistrationProof;

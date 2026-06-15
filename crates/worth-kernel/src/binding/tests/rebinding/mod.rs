@@ -1,14 +1,6 @@
-mod asymmetric_pressure;
-mod canonical_replay;
-mod continuity;
-mod contribution_workflow;
-mod curved_pressure;
-mod diagnostics;
-mod grouped_workflow;
-mod mutation_evidence;
-mod outcome_transport;
-mod outcomes;
-mod projection_consumption;
+mod continuity_evidence;
+mod identity_pressure;
+mod outcome_surfaces;
 
 use worth_spatial::facade::bindings::{
     author_primitive_binding_declaration, author_primitive_rebinding_declaration,

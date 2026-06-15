@@ -1,0 +1,21 @@
+error[E0451]: fields `pending_activation`, `candidate_execution_plan_digest`, `handle_allocation_basis_digest`, `reconciliation_basis_digest`, `query_rebind_basis_digest`, `query_rebind_denied_count`, `lane_parity_semantic_reference_digest` and `counters` of struct `WorthUiReadyActivation` are private
+  --> tests/ui/runtime_authority/fail/ready_activation_fields_not_public.rs:8:9
+   |
+ 7 |     let _ready = WorthUiReadyActivation {
+   |                  ---------------------- in this type
+ 8 |         pending_activation: pending_activation(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 9 |         candidate_execution_plan_digest: execution_plan_digest(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         handle_allocation_basis_digest: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         reconciliation_basis_digest: 2,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         query_rebind_basis_digest: 3,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         query_rebind_denied_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         lane_parity_semantic_reference_digest: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         counters: WorthUiActivationGateCounters::default(),
+   |         ^^^^^^^^ private field

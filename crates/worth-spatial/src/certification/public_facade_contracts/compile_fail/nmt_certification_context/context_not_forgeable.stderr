@@ -1,0 +1,28 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/nmt_certification_context/context_not_forgeable.rs:6:26
+  |
+5 |         topology_scope: todo!(),
+  |                         ------- any code following this expression is unreachable
+6 |         surface_support: todo!(),
+  |                          ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `topology_scope`, `surface_support`, `projection`, `motion`, `retained_replay` and `parity` of struct `NmtCertifiedScopeContext` are private
+  --> src/certification/public_facade_contracts/compile_fail/nmt_certification_context/context_not_forgeable.rs:5:9
+   |
+ 4 |     let _context = NmtCertifiedScopeContext {
+   |                    ------------------------ in this type
+ 5 |         topology_scope: todo!(),
+   |         ^^^^^^^^^^^^^^ private field
+ 6 |         surface_support: todo!(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 7 |         projection: todo!(),
+   |         ^^^^^^^^^^ private field
+ 8 |         motion: todo!(),
+   |         ^^^^^^ private field
+ 9 |         retained_replay: todo!(),
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         parity: todo!(),
+   |         ^^^^^^ private field

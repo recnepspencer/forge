@@ -1,0 +1,16 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_authority/fail/local_subscription_recovery_path_cannot_replace_query_rebind.rs:10:26
+   |
+10 |       accepts_query_rebind(LocalSubscriptionRecoveryPath {
+   |  _____--------------------_^
+   | |     |
+   | |     arguments to this function are incorrect
+11 | |         retry_label: "retry locally",
+12 | |     });
+   | |_____^ expected `WorthUiQueryBindingRebind`, found `LocalSubscriptionRecoveryPath`
+   |
+note: function defined here
+  --> tests/ui/runtime_authority/fail/local_subscription_recovery_path_cannot_replace_query_rebind.rs:7:4
+   |
+ 7 | fn accepts_query_rebind(_rebind: WorthUiQueryBindingRebind) {}
+   |    ^^^^^^^^^^^^^^^^^^^^ ----------------------------------

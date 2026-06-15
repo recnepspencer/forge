@@ -175,9 +175,7 @@ fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
             "preview promotion writeback should preserve stale posture at lowering time",
             Some(ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
-                        "preview-session:88",
-                    ),
+                    crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:88"),
                     crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::WritebackLoweringNarrow,
@@ -235,9 +233,7 @@ fn workflow_lowering_materializer_preserves_runtime_rebind_posture() {
             "preview-scoped writeback should preserve explicit rebind posture",
             Some(ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
-                        "preview-session:89",
-                    ),
+                    crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:89"),
                     crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::WritebackLoweringNarrow,

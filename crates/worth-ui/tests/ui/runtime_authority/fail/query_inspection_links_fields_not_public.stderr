@@ -1,0 +1,25 @@
+error[E0451]: fields `binding_identity`, `support_admission_digest`, `basis_capability_digest`, `live_compatibility_digest`, `inspection_digest`, `projection_consumption_digest`, `async_result_state_digest`, `recovery_digest`, `preservation_receipt` and `required_surfaces` of struct `WorthUiQueryInspectionLinks` are private
+  --> tests/ui/runtime_authority/fail/query_inspection_links_fields_not_public.rs:9:9
+   |
+ 8 |     let _links = WorthUiQueryInspectionLinks {
+   |                  --------------------------- in this type
+ 9 |         binding_identity: uninhabited(),
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         support_admission_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         basis_capability_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         live_compatibility_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+14 |         projection_consumption_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         async_result_state_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         recovery_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+17 |         preservation_receipt: None,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+18 |         required_surfaces: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field

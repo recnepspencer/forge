@@ -1,0 +1,22 @@
+error[E0603]: module `capability` is private
+ --> tests/ui/facade/native_capability/facade/native_capability_registry_internal_module_not_public.rs:2:23
+  |
+2 |     let _ = worth_ui::capability::registry::native_capability::NativeCapabilityRegistry::empty();
+  |                       ^^^^^^^^^^ private module                ------------------------ struct `NativeCapabilityRegistry` is not publicly re-exported
+  |
+note: the module `capability` is defined here
+ --> src/lib.rs
+  |
+  | mod capability;
+  | ^^^^^^^^^^^^^^
+
+error[E0624]: associated function `empty` is private
+ --> tests/ui/facade/native_capability/facade/native_capability_registry_internal_module_not_public.rs:2:90
+  |
+2 |     let _ = worth_ui::capability::registry::native_capability::NativeCapabilityRegistry::empty();
+  |                                                                                          ^^^^^ private associated function
+  |
+ ::: src/capability/registry/native_capability/native_capability_registry.rs
+  |
+  |     pub(crate) fn empty() -> Self {
+  |     ----------------------------- private associated function defined here

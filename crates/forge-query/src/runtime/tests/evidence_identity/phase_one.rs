@@ -140,7 +140,7 @@ fn basis_admissions_emit_canonical_evidence_tokens() {
         ["basis|one", "basis:two"],
     );
     assert_eq!(
-        preview.admission_identity().as_str(),
+        preview.admission_digest().as_str(),
         manual_preview_identity.as_str()
     );
 }

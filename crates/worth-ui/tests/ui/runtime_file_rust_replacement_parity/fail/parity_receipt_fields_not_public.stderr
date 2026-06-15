@@ -1,0 +1,13 @@
+error[E0451]: fields `file_report`, `rust_report`, `semantic_receipt` and `counters` of struct `WorthUiFileRustReplacementParityReceipt` are private
+  --> tests/ui/runtime_file_rust_replacement_parity/fail/parity_receipt_fields_not_public.rs:7:9
+   |
+ 6 |     let _receipt = WorthUiFileRustReplacementParityReceipt {
+   |                    --------------------------------------- in this type
+ 7 |         file_report: uninitialized_field(),
+   |         ^^^^^^^^^^^ private field
+ 8 |         rust_report: uninitialized_field(),
+   |         ^^^^^^^^^^^ private field
+ 9 |         semantic_receipt: uninitialized_field(),
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         counters: WorthUiFileRustReplacementParityCounters::default(),
+   |         ^^^^^^^^ private field

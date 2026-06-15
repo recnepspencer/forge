@@ -59,10 +59,15 @@ pub enum TopologyConstructionQueryFactKind {
     VertexBirth,
     EdgeBirth,
     LoopMembership,
+    LoopClosure,
     WireMembership,
     FaceMembership,
+    FaceOrientation,
     ShellMembership,
+    ShellClosure,
     BodyMembership,
+    PlanarNeighborhoodBasis,
+    ValidationSurface,
 }
 
 impl TopologyConstructionQueryFactKind {
@@ -71,10 +76,15 @@ impl TopologyConstructionQueryFactKind {
             Self::VertexBirth => "vertex-birth",
             Self::EdgeBirth => "edge-birth",
             Self::LoopMembership => "loop-membership",
+            Self::LoopClosure => "loop-closure",
             Self::WireMembership => "wire-membership",
             Self::FaceMembership => "face-membership",
+            Self::FaceOrientation => "face-orientation",
             Self::ShellMembership => "shell-membership",
+            Self::ShellClosure => "shell-closure",
             Self::BodyMembership => "body-membership",
+            Self::PlanarNeighborhoodBasis => "planar-neighborhood-basis",
+            Self::ValidationSurface => "validation-surface",
         }
     }
 }

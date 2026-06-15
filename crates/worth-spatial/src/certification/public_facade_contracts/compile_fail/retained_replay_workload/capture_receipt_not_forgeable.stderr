@@ -1,0 +1,15 @@
+error[E0451]: fields `capture_identity`, `retained_artifact_identity`, `retained_basis_identity`, `replay_checkpoint_identity` and `retained_artifact_rows` of struct `RetainedArtifactCaptureReceipt` are private
+ --> src/certification/public_facade_contracts/compile_fail/retained_replay_workload/capture_receipt_not_forgeable.rs:5:9
+  |
+4 |     let _ = RetainedArtifactCaptureReceipt {
+  |             ------------------------------ in this type
+5 |         capture_identity: String::new(),
+  |         ^^^^^^^^^^^^^^^^ private field
+6 |         retained_artifact_identity: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+7 |         retained_basis_identity: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+8 |         replay_checkpoint_identity: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+9 |         retained_artifact_rows: 0,
+  |         ^^^^^^^^^^^^^^^^^^^^^^ private field

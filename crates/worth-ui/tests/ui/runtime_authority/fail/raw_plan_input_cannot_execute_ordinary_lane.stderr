@@ -1,0 +1,25 @@
+warning: unreachable statement
+ --> tests/ui/runtime_authority/fail/raw_plan_input_cannot_execute_ordinary_lane.rs:7:5
+  |
+6 |     let host: WorthUiRuntimeHost = todo!();
+  |                                    ------- any code following this expression is unreachable
+7 |     let input: WorthUiExecutionPlanInput = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> tests/ui/runtime_authority/fail/raw_plan_input_cannot_execute_ordinary_lane.rs:8:46
+  |
+8 |     let _ = host.execute_ordinary_lane_frame(&input, WorthUiOrdinaryFrameTarget::root_shell());
+  |                  --------------------------- ^^^^^^ expected `&WorthUiOrdinaryLanePlan`, found `&WorthUiExecutionPlanInput`
+  |                  |
+  |                  arguments to this method are incorrect
+  |
+  = note: expected reference `&WorthUiOrdinaryLanePlan`
+             found reference `&WorthUiExecutionPlanInput`
+note: method defined here
+ --> src/runtime/host_ordinary_lane.rs
+  |
+  |     pub fn execute_ordinary_lane_frame(
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^

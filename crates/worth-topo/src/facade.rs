@@ -81,3 +81,19 @@ pub use crate::topology_operators::{
     TopologySplitSingleFaceFromTwoFaceShellToNewShellFamily, TopologyWireRehomeHalfEdgeMember,
     TopologyWireSplitHalfEdgeMember,
 };
+pub use crate::workload_platform::{
+    NmtTopologyConstruction, NmtTopologyConstructionCounters, NmtTopologyConstructionDenial,
+    NmtTopologyConstructionDenialClass, NmtTopologyConstructionReceipt, NmtTopologyPattern,
+    NmtTopologyPosture, NmtTopologyScopeCounters, NmtTopologyScopeDenial, NmtTopologyScopeKind,
+    NmtTopologyScopeReceipt, NmtTopologyScopeSet, OpenBoundaryReceipt, OpenLayerPattern,
+    OpenLayerStackSpec, OpenPatternIdentityReceipt, OpenRadialFanSpec, OpenSheetPatchSpec,
+    OpenWireChainSpec, RadialAdjacencyReceipt, TopologyPostureReceipt, TopologySeed,
+    TopologySeedCleanFailClass, TopologySeedCleanFailReasonCode, TopologySeedCleanFailReceipt,
+    TopologySeedCleanFailStage, TopologySeedCounters, TopologySeedEntityIdentities,
+    TopologySeedKind, TopologySeedNeighborhoodReceipt, TopologySeedQueryReceipts,
+    TopologySeedReceipt, TopologySeedRecipe, TopologySeedTopologyPosture,
+    TopologySeedValidationReceipt, TopologyWorkload, TopologyWorkloadCounters,
+    TopologyWorkloadDeclaration, TopologyWorkloadDeclarationIdentity, TopologyWorkloadDenial,
+    TopologyWorkloadEnvelope, TopologyWorkloadFamily, TopologyWorkloadReceipt,
+    TopologyWorkloadSupport, TopologyWorkloadSupportPosture,
+};

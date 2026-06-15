@@ -1,0 +1,11 @@
+error[E0451]: fields `family`, `status` and `reason` of struct `QueryViewCapabilityReference` are private
+ --> tests/ui/facade/view_binding/construction/admitted_query_view_binding_witness_is_not_publicly_mintable.rs:6:9
+  |
+5 |     let _witness = QueryViewCapabilityReference {
+  |                    ---------------------------- in this type
+6 |         family: ForgeQueryCapabilityFamily::QueryComposition,
+  |         ^^^^^^ private field
+7 |         status: ForgeQueryCapabilityStatus::Admitted,
+  |         ^^^^^^ private field
+8 |         reason: "local admission claim",
+  |         ^^^^^^ private field

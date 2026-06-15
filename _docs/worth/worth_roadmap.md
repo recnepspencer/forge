@@ -38,6 +38,10 @@ The operating rule is:
 - `Milestone 5`: Binding/rebinding authority and Query-native geometry
   hard-break work are the current predecessor for Milestone 6; do not treat
   Milestone 6 as starting from the older pre-Query-native geometry shape
+- `Milestone 6.5`: Planned as the operational workload platform between exact
+  planar contracts and booleans; hostile tests must consume real topology,
+  binding, projection, retained replay, transform, response, and evidence rails
+  rather than private synthetic fixtures
 - Milestones `6+`: Planned
 
 Milestone 1 closeout record:
@@ -275,7 +279,8 @@ The Worth crate split must stay explicit as the roadmap widens:
   geometry binding, exact planar classification contracts, and later
   intersection-facing spatial contracts
 - `worth-kernel` owns primitive construction, body construction, and higher
-  engine programs that consume `worth-topo` and `worth-spatial` contracts
+  engine programs that consume Query-lowered `worth-topo` and `worth-spatial`
+  contracts through canonical declaration, receipt, and envelope lanes
 - booleans require both `worth-spatial` and `worth-kernel`; they are not
   purely topo work
 
@@ -318,6 +323,7 @@ These must be closed by `Milestone 7`, `Milestone 8`, and `Milestone 9`:
 
 - boolean boundary certification
 - split / classify / assemble consistency
+- planar B-rep boolean result legality, replay, and diagnostics closure
 - EMBER / B-rep parity or explicit divergence classification
 - boolean corruption-localization and brutality-tier determinism
 - trim loop closure in UV
@@ -398,8 +404,11 @@ These should be widened across `Milestone 5` and `Milestone 6`:
 
 These should be widened across `Milestone 7` and `Milestone 8`:
 
-- EMBER boolean pipeline operators
 - B-rep boolean pipeline operators
+- Query-lowered planar boolean declaration, readiness, route, receipt, and
+  envelope operators
+- planar boolean parity and divergence operators
+- EMBER boolean pipeline operators
 - split / classify / assemble / postprocess operators
 - brutality-tier replay and corruption-localization operators
 
@@ -454,7 +463,8 @@ Critical path:
 - `Milestone 1` -> `Milestone 2` -> `Forge Query Runtime Rewrite Gate` ->
   `Worth Read Composition Side Quest` ->
   `Worth Topology Domain Structure Gate` -> `Milestone 3` ->
-  `Milestone 4` -> `Milestone 5` -> `Milestone 6` -> `Milestone 7` ->
+  `Milestone 4` -> `Milestone 5` -> `Milestone 6` -> `Milestone 6.5` ->
+  `Milestone 7` ->
   `Milestone 8` -> `Milestone 9` -> `Milestone 10` -> `Milestone 11` ->
   `Milestone 12` -> `Milestone 13` -> `Milestone 14` -> `Milestone 15` ->
   `Milestone 16` -> `Milestone 17` -> `Milestone 18` -> `Milestone 19` ->
@@ -1099,6 +1109,13 @@ consuming the resulting contracts rather than reimplementing geometric logic,
 and `worth-kernel` assembling boolean-readiness proof without becoming a second
 planar predicate or identity runtime.
 
+The certified predicate machinery itself already lives in `worth-math`
+(`orient2d`, `orient3d`, `incircle`, `in_sphere`, `CertifiedTriSign`,
+`PrecisionEscalation`, `PrecisionMode`, and exact-rational budget tracking).
+Milestone 6 must route admitted planar predicate authority through that existing
+math substrate and use Query-native spatial facts to retain the local basis,
+tolerance policy, movement/rotation posture, and certification context.
+
 ### Excluded Surface
 
 - full hostile boolean certification
@@ -1126,16 +1143,29 @@ generically over:
 ### Operator Closure
 
 - exact-planar classification operators for admitted cases
+- `PlanarLocalFrameCertificate`
+- `ProjectPointToCertifiedPlane2D`
+- `CertifiedSegmentSegment2D`
+- `CertifiedPolygonWinding2D`
+- `CertifiedSignedArea2D`
+- `CoplanarOverlapContractExtractor`
 - planar structural-identity and fingerprint lookup operators
 - typed clean-fail outcomes for impossible or policy-gated planar cases
 - Query-native retained/projection/recovery operators for admitted planar facts
   where those surfaces are relevant
+- `PlanarContractBundleValidator`
+- `PredicateCertificateConsumptionValidator`
 - boolean-readiness certification operators that prove M7 can consume the
   planar substrate without inventing identity or predicate shortcuts
 
 ### Validator Closure
 
-- predicate-pipeline validators for admitted planar cases
+- predicate-pipeline validators for admitted planar cases, including proof that
+  they consume `worth-math` certified signs and precision metadata rather than a
+  local kernel or spatial substitute
+- local-frame, certified projection, certified segment-contact,
+  winding/containment, signed-area/degeneracy, and coplanar-overlap contract
+  validators for admitted planar cases
 - degeneracy classification consistency for admitted planar cases
 - topology-to-spatial contract completeness validators
 - structural identity separation from naming, lineage, topology identity, and
@@ -1194,37 +1224,160 @@ predicate authority, structural identity, retained planar truth, and
 projection-consumable planar facts before split/classify/assemble work can be
 trusted.
 
-## Milestone 7: Boolean Foundation With EMBER And B-Rep Pipelines
+## Milestone 6.5: Operational Workload Platform
+
+Engineering spec:
+[milestone-6.5.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth-kernel/milestone-6.5.md)
 
 ### Goal
 
-Establish the first honest boolean foundation with both required pipeline
-families:
+Build the reusable Worth workload platform that makes real topology-to-geometry
+proof easier than synthetic fixture staging.
 
-- EMBER
-- B-rep
-
-Neither pipeline may be treated as a demo-only side path.
+Milestone 6.5 consumes M6 exact planar contracts and produces the operational
+rails that hostile tests and later operators must use: topology workload seeds,
+geometry binding workloads, surface support classification, local frame and
+projection workloads, transform workloads, retained replay workloads, user
+response outcomes, evidence ledgers, operator harnesses, and canonical workload
+catalog recipes.
 
 ### Adversarial Constraint
 
-Boolean work must not start from a topology or spatial substrate that is still
-under-resolved, and the two boolean pipelines must not silently disagree about
-classification, topology assembly, or failure surfaces.
+Hostile tests and future operator proof must not be able to claim end-to-end
+Worth evidence through hand-built spatial fixtures, label-only transforms,
+re-extraction replay, fixture-generator arithmetic, or hand-filled evidence
+ledgers.
+
+### Admitted Surface
+
+- topology-backed workload seeds for common and hostile model classes
+- receipt-backed geometry binding, certified plane support, projection,
+  transform, retained replay, diagnostics, and user response workloads
+- evidence ledgers and honesty guards proving which stages actually ran
+- operator harness support with coplanar overlap as the first concrete consumer
+- canonical workload catalog recipes for real reusable test and certification
+  setup
+
+### Excluded Surface
+
+- boolean split/classify/assemble execution
+- implementation of future surface or feature operator families
+- synthetic end-to-end fixture paths
+- unsupported surface families masquerading as admitted support
+
+### Workflow Surface
+
+Milestone 6.5 is not done because one cube, tetrahedron, or overlap storm can
+be built.
+
+It is done only when the workload platform can build admitted topology-backed
+shape families, bind them to geometry, certify planar support, project them,
+transform them, retain and replay them, run the first operator consumer, and
+emit evidence that blocks synthetic end-to-end claims.
+
+### Operator Closure
+
+- workload operator harness
+- coplanar overlap workload operator
+- unsupported operator family posture
+
+### Validator Closure
+
+- evidence ledger honesty guards
+- synthetic fixture registration blockers
+- topology-to-binding-to-projection receipt validation
+- transform and retained replay validation
+- human-readable response validation
+
+### Replay Closure
+
+- retained replay workloads must consume retained artifacts
+- replay must not be modeled as re-extraction with the same inputs
+
+### Diagnostics Closure
+
+- unsupported workload stages must produce typed reasons
+- no-options and denied user outcomes must explain their cause in readable
+  language
+- legacy synthetic fixture paths must produce diagnosable rejection
+
+### Determinism Closure
+
+- catalog recipes must produce stable workload identities and evidence digests
+- equivalent transform workloads must converge through evidence, not labels
+
+### Complexity / Proof Closure
+
+- expose counters for topology breadth, binding breadth, surface support,
+  projection, transform, retained replay, operator execution, and evidence
+  ledger stages
+- block counter claims based only on fixture-generator arithmetic
+
+### Allowed Debt
+
+- future surface and feature operator families may remain typed unsupported
+- synthetic end-to-end claims, fake replay, fake transforms, and hand-filled
+  ledgers may not remain
+
+### Milestone Done When
+
+Milestone 6.5 is done only when MB-M6-1 runs on the workload platform and
+MB-M6-2 through MB-M6-8 each has its own workload-platform phase, explicit
+outcome matrix, missing production feature list, and registration gate that
+prevents synthetic or incomplete evidence from counting as closeout proof.
+
+### Sequencing Notes
+
+This belongs after M6 exact planar contracts and before M7 booleans because
+booleans and hostile proof need trustworthy operational workloads, not private
+test worlds.
+
+## Milestone 7: Planar Boolean Foundation Through The B-Rep Pipeline
+
+### Goal
+
+Establish the first honest planar boolean foundation by hardening the B-rep
+pipeline against the real planar workload surface that comes out of
+`Milestone 6` and `Milestone 6.5`.
+
+This milestone must also freeze the Query-owned declaration and lowering
+contract that keeps planar boolean work future-compatible with EMBER without
+pretending EMBER is already a co-equal admitted execution lane.
+
+### Adversarial Constraint
+
+Boolean work must not begin from a fake substrate, and planar boolean closure
+must not depend on a caller-owned router, local status taxonomy, or
+kernel-invented pseudo-Query lane.
+
+The B-rep lane must survive planar coplanar overlap, thin-feature,
+scale-separated, cancellation-chain, high-valence, unbounded/open, and dirty
+input pressure through the real workload platform, while Query-owned
+declaration, admission, readiness, route-plan, receipt, envelope,
+projection-consumption, and ordinary-outcome artifacts already preserve the
+future ability to run the same admitted planar workload through EMBER later
+without re-authoring the public boundary.
 
 ### Admitted Surface
 
 - first admitted planar boolean workflow classes
-- explicit EMBER boolean pipeline
-- explicit B-rep boolean pipeline
-- explicit typed divergence or parity surfaces between the two pipelines
+- explicit planar B-rep boolean pipeline
+- explicit Query-owned planar boolean declaration family with support posture,
+  readiness, route-plan, receipt, and envelope surfaces that classify:
+  - planar workloads admitted to B-rep now
+  - planar workloads reserved for future EMBER execution
+  - planar workloads denied or policy-gated before execution
 - typed clean-fail outcomes for unsupported or policy-gated boolean cases
 
-This milestone belongs to `worth-kernel` over `worth-topo` plus `worth-spatial`
-contracts. Booleans are not a pure-topology milestone.
+This milestone belongs to Query as the ordinary runtime-facing boundary, with
+`worth-kernel` consuming the lowered boolean declaration path over
+`worth-topo` plus `worth-spatial` contracts. Booleans are not a pure-topology
+milestone.
 
 ### Excluded Surface
 
+- EMBER execution as an admitted required path
+- full dual-pipeline parity closure
 - full hostile boolean certification
 - broad curved boolean classes
 - freeform boolean classes
@@ -1240,70 +1393,95 @@ It is only done when admitted boolean workflows operate generically over:
 - arbitrary admitted coplanar and near-coplanar planar interactions within the
   milestone's class
 - arbitrary admitted boolean replay histories
-- both EMBER and B-rep executions over the same admitted workflow surface
+- the real planar metaboss suite through the B-rep lane
+- Query-owned declaration artifacts that make the same admitted planar
+  workload legible to a future EMBER lane without changing the public boolean
+  entry contract
 
 ### Operator Closure
 
-- EMBER boolean split / classify / assemble / postprocess pipeline
 - B-rep boolean split / classify / assemble / postprocess pipeline
-- typed pipeline divergence or parity classification
+- Query-lowered planar boolean declaration entry, readiness, route-plan,
+  receipt, and envelope operators
+- workload-platform-backed replay, checkpoint, and causal-localization
+  operators for admitted planar boolean families
 
 ### Validator Closure
 
 - boolean boundary certification for admitted cases
 - split / classify / assemble consistency for admitted cases
+- planar result topology legality, cleanup, and clean-fail honesty for admitted
+  B-rep outcomes
+- Query declaration/support/readiness/route posture remains machine-checkable
+  and per-family-row explicit rather than inferred from visible exports
 - topology legality of boolean results remains subordinate to topology truth
 
 ### Replay Closure
 
-- admitted EMBER boolean histories replay identically
 - admitted B-rep boolean histories replay identically
-- same admitted input history yields either parity or explicit typed divergence
+- checkpointed and non-checkpointed B-rep histories converge to the same
+  outcome class
+- Query declaration, route, receipt, envelope, and denial posture replay
+  identically for the same admitted planar workload history
 
 ### Diagnostics Closure
 
 - boolean failures localize to exact phase and affected scope
-- diagnostics must distinguish topology failure, spatial/predicate failure, and
-  pipeline divergence
+- diagnostics must distinguish topology failure, spatial/predicate failure,
+  Query-lane denial, and B-rep execution failure
 
 ### Determinism Closure
 
-- each admitted pipeline must be deterministic under replay
-- parity or typed divergence classification must be deterministic
+- the admitted B-rep pipeline must be deterministic under replay
+- declaration classification, readiness, route-plan, denial, and admitted
+  execution classification must be deterministic
 
 ### Complexity / Proof Closure
 
-- name EMBER and B-rep boolean contracts
+- name planar B-rep boolean contracts and the Query-owned declaration/lowering
+  contract that future EMBER execution must inherit
 - expose exact counters for split breadth, classify breadth, assemble breadth,
-  and postprocess breadth
+  postprocess breadth, replay breadth, localization breadth, and route-lowering
+  breadth
 
 ### Allowed Debt
 
+- EMBER execution may remain `Debt` only as a typed, explicit future-admitted
+  lane
 - full brutality closure may remain `Debt`
-- the existence of both pipeline families and their typed relation may not
+- the real planar B-rep lane and future-proof Query declaration/lowering
+  contract may not
 
 ### Milestone Done When
 
-Milestone 7 is done only when both EMBER and B-rep boolean pipelines operate
-honestly over the admitted planar workflow surface, with deterministic internal
-behavior and explicit parity or divergence surfaces.
+Milestone 7 is done only when the planar B-rep boolean pipeline operates
+honestly over the admitted planar workflow surface, including the planar
+metaboss closure, while the public Query declaration/lowering contract already
+preserves the future EMBER lane explicitly instead of baking B-rep-only
+assumptions into the boundary.
 
 ### Sequencing Notes
 
-This belongs before hostile boolean proof and before curved geometry because
-both boolean pipeline families must exist before we can torture them honestly.
+This belongs before EMBER parity work and before curved geometry because Worth
+needs one hardened real planar boolean lane before it can honestly compare two
+lanes or widen into curved cases.
 
-## Milestone 8: Hostile Boolean Proof Program
+## Milestone 8: EMBER Boolean Lane And Dual-Pipeline Hostile Proof
 
 ### Goal
 
-Prove the boolean layer under hostile workloads before curved surfaces, freeform
-surfaces, fillets, or other advanced geometry are allowed to widen the system.
+Add the EMBER planar boolean lane on top of the same Query declaration and
+lowering contract and then prove both boolean lanes under hostile workloads
+before curved surfaces,
+freeform surfaces, fillets, or other advanced geometry are allowed to widen the
+system.
 
 ### Adversarial Constraint
 
-If the old boolean brutality families can still punch holes in the system, then
-Worth is not ready to move on to curved surfaces.
+If the old boolean brutality families can still punch holes in the system, or
+if the EMBER lane and B-rep lane can disagree silently about the same admitted
+planar workload after Query has lowered them through the same declaration
+family, then Worth is not ready to move on to curved surfaces.
 
 This milestone must therefore absorb the brutality bar represented by the
 legacy suites under
@@ -1316,6 +1494,8 @@ legacy suites under
 
 ### Admitted Surface
 
+- explicit EMBER planar boolean pipeline over the same admitted planar routing
+  surface
 - hostile boolean proof harnesses over the admitted planar boolean foundation
 - replay-safe corruption-localization and checkpoint diagnostics
 - parity or typed-divergence proof between EMBER and B-rep boolean pipelines
@@ -1342,6 +1522,8 @@ It is only done when hostile proof covers workflow classes such as:
 
 ### Operator Closure
 
+- EMBER boolean split / classify / assemble / postprocess pipeline
+- Query-lowered parity, divergence, and cross-lane replay comparison operators
 - hostile boolean replay and checkpoint operators
 - brutality-tier causal localization operators
 - typed outcome classification into exact success, exact structured failure, or
@@ -1351,6 +1533,7 @@ It is only done when hostile proof covers workflow classes such as:
 
 - corruption-localization validators for hostile boolean chains
 - deterministic replay validators for hostile boolean histories
+- Query declaration/receipt/envelope parity validators across both lanes
 - parity or divergence validators between EMBER and B-rep boolean runs
 
 ### Replay Closure
@@ -1384,13 +1567,15 @@ It is only done when hostile proof covers workflow classes such as:
 ### Allowed Debt
 
 - some extreme hostile cases may remain typed `Debt`
-- the brutality gate before curved surfaces may not
+- the EMBER lane, parity/divergence surface, and brutality gate before curved
+  surfaces may not
 
 ### Milestone Done When
 
 Milestone 8 is done only when hostile boolean workloads across the admitted
 workflow surface either succeed exactly or fail with exact localized proof,
-with replay-safe outcome classification and no silent corruption, crash, or
+with replay-safe outcome classification, deterministic parity or explicit typed
+divergence between EMBER and B-rep, and no silent corruption, crash, or
 hang across either EMBER or B-rep paths.
 
 ### Sequencing Notes
@@ -1406,8 +1591,9 @@ The corrected dependency chain through the boolean gate is now:
 - `Milestone 4`: topology-certified primitive construction
 - `Milestone 5`: spatial binding and topology-to-geometry contracts
 - `Milestone 6`: spatially exact planar contracts and structural identity
-- `Milestone 7`: boolean foundation with EMBER and B-rep pipelines
-- `Milestone 8`: hostile boolean proof gate
+- `Milestone 6.5`: operational workload platform and hostile-test rails
+- `Milestone 7`: planar B-rep boolean foundation and planar metaboss closure
+- `Milestone 8`: EMBER lane plus dual-pipeline hostile boolean proof
 
 The milestones that follow in this roadmap were originally written against the
 older sequence and should now be read as provisional placeholders until they

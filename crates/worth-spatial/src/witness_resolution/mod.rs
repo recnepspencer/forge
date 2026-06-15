@@ -8,7 +8,7 @@ pub(crate) use frame_admission::admit_spatial_frame;
 pub use frame_admission::{AdmittedSpatialFrameRef, SpatialFrameBasis, SpatialFrameError};
 pub use resolution::ResolvedSpatialDirectionWitness;
 #[cfg(test)]
-pub use resolution::ResolvedSpatialPointWitness;
+pub(crate) use resolution::ResolvedSpatialPointWitness;
 pub use witness_support::{SpatialWitnessFailureClass, SpatialWitnessResolutionClass};
 
 pub(crate) mod witness_resolution {

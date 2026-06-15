@@ -1,0 +1,4 @@
+mod native_capability_accepted_registration_proof;
+mod native_capability_registration;
+
+pub(crate) use native_capability_accepted_registration_proof::NativeCapabilityAcceptedRegistrationProof;

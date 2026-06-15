@@ -169,7 +169,7 @@ fn prepared_result_bundles_phase_chain_artifact_and_birth_mapping() {
             .topology_query_envelope()
             .fact_rows()
             .len(),
-        7
+        12
     );
     assert_ne!(result.result_digest(), result.artifact_digest());
 }

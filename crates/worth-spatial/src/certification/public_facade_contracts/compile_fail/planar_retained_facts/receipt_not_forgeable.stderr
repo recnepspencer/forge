@@ -1,0 +1,21 @@
+error[E0451]: fields `basis`, `declaration_digest`, `progression_digest`, `route_plan_digest`, `query_receipt_digest`, `envelope_digest`, `retained_fact_digest` and `counters` of struct `RetainedPlanarFactsReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_retained_facts/receipt_not_forgeable.rs:5:9
+   |
+ 4 |     let _receipt = RetainedPlanarFactsReceipt {
+   |                    -------------------------- in this type
+ 5 |         basis: fake(),
+   |         ^^^^^ private field
+ 6 |         declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 7 |         progression_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 8 |         route_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 9 |         query_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+10 |         envelope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         retained_fact_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+12 |         counters: fake(),
+   |         ^^^^^^^^ private field
