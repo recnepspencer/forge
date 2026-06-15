@@ -1,3 +1,4 @@
+mod boolean_common_plane_reduction;
 mod boolean_entry;
 mod boolean_entry_basis;
 mod boolean_evidence;
@@ -7,6 +8,25 @@ mod stage_requirements;
 mod workload_catalog;
 mod worth_workload;
 
+pub use boolean_common_plane_reduction::{
+    PlanarBooleanCommonPlaneAdmittedOperandScope,
+    PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
+    PlanarBooleanCommonPlaneLocalFrameSelectionError,
+    PlanarBooleanCommonPlaneOperandAProjectedRequest,
+    PlanarBooleanCommonPlaneOperandAProjectionConsumptionError,
+    PlanarBooleanCommonPlaneOperandBProjectedRequest,
+    PlanarBooleanCommonPlaneOperandBProjectionConsumptionError,
+    PlanarBooleanCommonPlanePlaneAgreedRequest, PlanarBooleanCommonPlanePlaneAgreementError,
+    PlanarBooleanCommonPlanePostureAgreedRequest, PlanarBooleanCommonPlanePostureAgreementError,
+    PlanarBooleanCommonPlanePrecisionAgreedRequest,
+    PlanarBooleanCommonPlanePrecisionAgreementError,
+    PlanarBooleanCommonPlaneReducedOperandPairAssemblyError,
+    PlanarBooleanCommonPlaneReducedOperandPairRequest, PlanarBooleanCommonPlaneReductionRequest,
+    PlanarBooleanCommonPlaneReductionRequestError, PlanarBooleanCommonPlaneScopeAdmissionError,
+    PlanarBooleanCommonPlaneScopeAdmittedRequest,
+    PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest,
+    PlanarBooleanCommonPlaneSharedPlaneIdentityError,
+};
 pub use boolean_entry::{
     PlanarBooleanDeclaration, PlanarBooleanDeclarationReceipt, PlanarBooleanEntryError,
     PlanarBooleanExecutionLane, PlanarBooleanFamily, PlanarBooleanOperandPairIdentity,

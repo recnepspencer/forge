@@ -41,6 +41,12 @@ impl WorkloadCatalog {
         )
     }
 
+    pub fn planar_boolean_mismatched_posture_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
+        WorkloadCatalogBooleanOperandPairRecipe::new(
+            WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair,
+        )
+    }
+
     pub fn planar_boolean_coplanar_overlap_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
         WorkloadCatalogBooleanOperandPairRecipe::new(
             WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair,
@@ -233,6 +239,7 @@ impl WorkloadCatalogRecipe {
         let topology_neighborhood = workload_build.topology_neighborhood().cloned();
         let topology_construction = workload_build.topology_construction().cloned();
         let bound_geometry = workload_build.bound_geometry().clone();
+        let surface_support = workload_build.surface_support().clone();
         let projected = workload_build.projected().clone();
         let transform_receipts = workload_build.transform_receipts().clone();
         let replay_receipts = workload_build.replay_receipts().cloned();
@@ -244,6 +251,7 @@ impl WorkloadCatalogRecipe {
             topology_neighborhood,
             topology_construction,
             bound_geometry,
+            surface_support,
             projected,
             transform_receipts,
             replay_receipts,

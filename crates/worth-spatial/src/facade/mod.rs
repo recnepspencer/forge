@@ -19,6 +19,7 @@ pub mod nmt_radial_fan;
 pub mod open_class_triad_parity;
 pub mod open_planar_posture;
 pub mod placement;
+pub mod planar_boolean_common_plane;
 pub mod planar_clean_fail_boundary;
 pub mod planar_contract_bundle;
 pub mod planar_contracts;

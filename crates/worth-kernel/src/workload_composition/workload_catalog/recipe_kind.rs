@@ -4,6 +4,7 @@ pub enum WorkloadCatalogRecipeKind {
     Tetrahedron,
     SingleFaceLoop,
     BooleanCleanPlanarBodyPair,
+    BooleanMismatchedPosturePair,
     BooleanCoplanarOverlapPair,
     BooleanThinFeaturePair,
     BooleanHighValenceContactPair,
@@ -31,6 +32,7 @@ impl WorkloadCatalogRecipeKind {
             Self::Tetrahedron => "worth.catalog.tetrahedron",
             Self::SingleFaceLoop => "worth.catalog.single_face_loop",
             Self::BooleanCleanPlanarBodyPair => "worth.catalog.boolean_clean_planar_body_pair",
+            Self::BooleanMismatchedPosturePair => "worth.catalog.boolean_mismatched_posture_pair",
             Self::BooleanCoplanarOverlapPair => "worth.catalog.boolean_coplanar_overlap_pair",
             Self::BooleanThinFeaturePair => "worth.catalog.boolean_thin_feature_pair",
             Self::BooleanHighValenceContactPair => {
@@ -62,6 +64,7 @@ impl WorkloadCatalogRecipeKind {
             Self::Tetrahedron => "tetrahedron workload recipe",
             Self::SingleFaceLoop => "single face loop workload recipe",
             Self::BooleanCleanPlanarBodyPair => "boolean clean planar body pair recipe",
+            Self::BooleanMismatchedPosturePair => "boolean mismatched posture pair recipe",
             Self::BooleanCoplanarOverlapPair => "boolean coplanar overlap pair recipe",
             Self::BooleanThinFeaturePair => "boolean thin feature pair recipe",
             Self::BooleanHighValenceContactPair => "boolean high-valence contact pair recipe",
@@ -89,6 +92,7 @@ impl WorkloadCatalogRecipeKind {
             Self::Tetrahedron => "catalog tetrahedron workload",
             Self::SingleFaceLoop => "catalog single face loop workload",
             Self::BooleanCleanPlanarBodyPair => "catalog boolean clean planar body pair",
+            Self::BooleanMismatchedPosturePair => "catalog boolean mismatched posture pair",
             Self::BooleanCoplanarOverlapPair => "catalog boolean coplanar overlap pair",
             Self::BooleanThinFeaturePair => "catalog boolean thin feature pair",
             Self::BooleanHighValenceContactPair => "catalog boolean high-valence contact pair",
@@ -147,6 +151,7 @@ impl WorkloadCatalogSupportPosture {
 pub enum TransformRecipe {
     MovementRotationStack,
     HostileCancellation,
+    ReorientedMovementRotationStack,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

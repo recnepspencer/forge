@@ -3,11 +3,16 @@ use worth_spatial::facade::workload_vocabulary::{
     BooleanEvidenceReceipt, CompleteWorkloadEvidenceLedger, DiagnosticWorkloadReceipt,
     GeometryBindingWorkloadReceipt, ProjectionWorkloadReceipt, ResponseWorkloadReceipt,
     RetainedReplayWorkloadReceipt, SurfaceSupportWorkloadReceipt, TransformWorkloadReceipt,
-    WorkloadEvidenceStage, WorkloadEvidenceSupport, WorkloadStageSupport,
+    WorkloadEvidenceLedgerError, WorkloadEvidenceStage, WorkloadStageSupport,
 };
 
 use super::{
-    PlanarBooleanBlockerEvidenceReceipt, PlanarBooleanDeclarationReceipt,
+    PlanarBooleanBlockerEvidenceReceipt, PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
+    PlanarBooleanCommonPlaneOperandAProjectedRequest,
+    PlanarBooleanCommonPlaneOperandBProjectedRequest,
+    PlanarBooleanCommonPlanePrecisionAgreedRequest,
+    PlanarBooleanCommonPlaneReducedOperandPairRequest,
+    PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest, PlanarBooleanDeclarationReceipt,
     PlanarBooleanOperandPairConstructionReceipt, PlanarBooleanSupportReceipt,
     WorkloadStageRequirement,
 };
@@ -135,6 +140,72 @@ impl WorthWorkload {
             WorkloadStageRequirement::BooleanBlockerProvenance,
         )
     }
+
+    pub fn require_boolean_shared_plane_identity(
+        &self,
+        shared_plane_identity: &PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest,
+    ) -> Result<(), WorkloadCompositionError> {
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            shared_plane_identity,
+            WorkloadStageRequirement::BooleanSharedPlaneIdentity,
+        )
+    }
+
+    pub fn require_boolean_precision_agreement(
+        &self,
+        precision_agreement: &PlanarBooleanCommonPlanePrecisionAgreedRequest,
+    ) -> Result<(), WorkloadCompositionError> {
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            precision_agreement,
+            WorkloadStageRequirement::BooleanPrecisionAgreement,
+        )
+    }
+
+    pub fn require_boolean_local_frame_selection(
+        &self,
+        local_frame_selection: &PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
+    ) -> Result<(), WorkloadCompositionError> {
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            local_frame_selection,
+            WorkloadStageRequirement::BooleanLocalFrameSelection,
+        )
+    }
+
+    pub fn require_boolean_operand_a_projection_consumption(
+        &self,
+        operand_a_projection: &PlanarBooleanCommonPlaneOperandAProjectedRequest,
+    ) -> Result<(), WorkloadCompositionError> {
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            operand_a_projection,
+            WorkloadStageRequirement::BooleanOperandAProjectionConsumption,
+        )
+    }
+
+    pub fn require_boolean_operand_b_projection_consumption(
+        &self,
+        operand_b_projection: &PlanarBooleanCommonPlaneOperandBProjectedRequest,
+    ) -> Result<(), WorkloadCompositionError> {
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            operand_b_projection,
+            WorkloadStageRequirement::BooleanOperandBProjectionConsumption,
+        )
+    }
+
+    pub fn require_boolean_reduced_operand_pair(
+        &self,
+        reduced_operand_pair: &PlanarBooleanCommonPlaneReducedOperandPairRequest,
+    ) -> Result<(), WorkloadCompositionError> {
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            reduced_operand_pair,
+            WorkloadStageRequirement::BooleanReducedOperandPair,
+        )
+    }
 }
 
 fn require_admitted_stage_postures(
@@ -222,7 +293,6 @@ pub enum WorkloadCompositionError {
     ManualEvidenceStage(WorkloadEvidenceStage),
     CounterlessEvidenceStage(WorkloadEvidenceStage),
     MismatchedEvidenceStage(WorkloadEvidenceStage),
-    UnsupportedEvidenceStage(WorkloadEvidenceStage),
 }
 
 impl WorkloadCompositionError {
@@ -252,12 +322,6 @@ impl WorkloadCompositionError {
             Self::MismatchedEvidenceStage(stage) => {
                 format!(
                     "workload evidence ledger does not match the {} receipt",
-                    stage.human_name()
-                )
-            }
-            Self::UnsupportedEvidenceStage(stage) => {
-                format!(
-                    "workload evidence ledger records {} as non-admitted for this composition step",
                     stage.human_name()
                 )
             }
@@ -296,6 +360,15 @@ fn require_boolean_evidence(
     receipt: &impl BooleanEvidenceReceipt,
     requirement: WorkloadStageRequirement,
 ) -> Result<(), WorkloadCompositionError> {
+    ledger
+        .require_boolean_receipt(receipt)
+        .map_err(|error| map_boolean_ledger_error(error, requirement))
+}
+
+fn map_boolean_ledger_error(
+    error: WorkloadEvidenceLedgerError,
+    requirement: WorkloadStageRequirement,
+) -> WorkloadCompositionError {
     let stage = match requirement {
         WorkloadStageRequirement::BooleanDeclarationEntry => {
             WorkloadEvidenceStage::BooleanDeclarationEntry
@@ -307,30 +380,44 @@ fn require_boolean_evidence(
         WorkloadStageRequirement::BooleanBlockerProvenance => {
             WorkloadEvidenceStage::BooleanBlockerProvenance
         }
+        WorkloadStageRequirement::BooleanPrecisionAgreement => {
+            WorkloadEvidenceStage::BooleanPrecisionAgreement
+        }
+        WorkloadStageRequirement::BooleanSharedPlaneIdentity => {
+            WorkloadEvidenceStage::BooleanSharedPlaneIdentity
+        }
+        WorkloadStageRequirement::BooleanLocalFrameSelection => {
+            WorkloadEvidenceStage::BooleanLocalFrameSelection
+        }
+        WorkloadStageRequirement::BooleanOperandAProjectionConsumption => {
+            WorkloadEvidenceStage::BooleanOperandAProjectionConsumption
+        }
+        WorkloadStageRequirement::BooleanOperandBProjectionConsumption => {
+            WorkloadEvidenceStage::BooleanOperandBProjectionConsumption
+        }
+        WorkloadStageRequirement::BooleanReducedOperandPair => {
+            WorkloadEvidenceStage::BooleanReducedOperandPair
+        }
         _ => unreachable!("boolean evidence requirements must map to boolean stages"),
     };
-    let row = ledger
-        .row_for_stage(stage)
-        .ok_or(WorkloadCompositionError::MissingEvidenceStage(stage))?;
-    if !row.is_receipt_backed() {
-        return Err(WorkloadCompositionError::ManualEvidenceStage(stage));
+    match error {
+        WorkloadEvidenceLedgerError::MissingBooleanStage(_) => {
+            WorkloadCompositionError::MissingEvidenceStage(stage)
+        }
+        WorkloadEvidenceLedgerError::ManualBooleanStage(_) => {
+            WorkloadCompositionError::ManualEvidenceStage(stage)
+        }
+        WorkloadEvidenceLedgerError::CounterlessBooleanStage(_) => {
+            WorkloadCompositionError::CounterlessEvidenceStage(stage)
+        }
+        WorkloadEvidenceLedgerError::MismatchedBooleanStage(_) => {
+            WorkloadCompositionError::MismatchedEvidenceStage(stage)
+        }
+        WorkloadEvidenceLedgerError::UnsupportedBooleanStage(_) => {
+            WorkloadCompositionError::UnsupportedStage(requirement)
+        }
+        other => {
+            panic!("unexpected non-boolean ledger error while checking boolean evidence: {other:?}")
+        }
     }
-    if row.counters().total_receipt_backed_counters() == 0 {
-        return Err(WorkloadCompositionError::CounterlessEvidenceStage(stage));
-    }
-    if row.evidence_identity() != receipt.evidence_identity() {
-        return Err(WorkloadCompositionError::MismatchedEvidenceStage(stage));
-    }
-    if row.support() != receipt.evidence_support() {
-        return Err(match receipt.evidence_support() {
-            WorkloadEvidenceSupport::Admitted => {
-                WorkloadCompositionError::UnsupportedStage(requirement)
-            }
-            WorkloadEvidenceSupport::Unsupported | WorkloadEvidenceSupport::Blocked => {
-                WorkloadCompositionError::UnsupportedEvidenceStage(stage)
-            }
-            WorkloadEvidenceSupport::Manual => WorkloadCompositionError::ManualEvidenceStage(stage),
-        });
-    }
-    Ok(())
 }

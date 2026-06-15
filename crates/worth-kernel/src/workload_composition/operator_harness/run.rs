@@ -120,7 +120,13 @@ impl WorkloadStageRequirement {
             Self::BooleanDeclarationEntry
             | Self::BooleanRoutePlan
             | Self::BooleanOperandPairConstruction
-            | Self::BooleanBlockerProvenance => {
+            | Self::BooleanBlockerProvenance
+            | Self::BooleanPrecisionAgreement
+            | Self::BooleanSharedPlaneIdentity
+            | Self::BooleanLocalFrameSelection
+            | Self::BooleanOperandAProjectionConsumption
+            | Self::BooleanOperandBProjectionConsumption
+            | Self::BooleanReducedOperandPair => {
                 Err(OperatorWorkloadError::UnsupportedRequirement(self))
             }
             Self::EvidenceLedger => Ok(None),

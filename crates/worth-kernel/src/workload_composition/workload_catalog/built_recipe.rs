@@ -3,6 +3,7 @@ use topology::facade::{
 };
 use worth_spatial::facade::projection_workload::ProjectedPlanarWorkload;
 use worth_spatial::facade::retained_replay_workload::ReplayReceiptSet;
+use worth_spatial::facade::surface_support::CertifiedSurfaceSupport;
 use worth_spatial::facade::transform_workload::TransformReceiptSet;
 use worth_spatial::facade::workload_binding::BoundGeometryWorkload;
 
@@ -19,6 +20,7 @@ pub struct BuiltWorkloadCatalogRecipe {
     topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
     topology_construction: Option<NmtTopologyConstructionReceipt>,
     bound_geometry: BoundGeometryWorkload,
+    surface_support: CertifiedSurfaceSupport,
     projected: ProjectedPlanarWorkload,
     transform_receipts: TransformReceiptSet,
     replay_receipts: Option<ReplayReceiptSet>,
@@ -33,6 +35,7 @@ impl BuiltWorkloadCatalogRecipe {
         topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
         topology_construction: Option<NmtTopologyConstructionReceipt>,
         bound_geometry: BoundGeometryWorkload,
+        surface_support: CertifiedSurfaceSupport,
         projected: ProjectedPlanarWorkload,
         transform_receipts: TransformReceiptSet,
         replay_receipts: Option<ReplayReceiptSet>,
@@ -45,6 +48,7 @@ impl BuiltWorkloadCatalogRecipe {
             topology_neighborhood,
             topology_construction,
             bound_geometry,
+            surface_support,
             projected,
             transform_receipts,
             replay_receipts,
@@ -81,6 +85,10 @@ impl BuiltWorkloadCatalogRecipe {
 
     pub fn bound_geometry(&self) -> &BoundGeometryWorkload {
         &self.bound_geometry
+    }
+
+    pub(crate) fn surface_support(&self) -> &CertifiedSurfaceSupport {
+        &self.surface_support
     }
 
     pub fn transform_receipts(&self) -> &TransformReceiptSet {

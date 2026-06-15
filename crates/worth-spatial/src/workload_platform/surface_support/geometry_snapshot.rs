@@ -1,12 +1,14 @@
 use crate::workload_platform::geometry_binding::{
     BoundGeometryWorkload, GeometryCarrierFamily, PlanarLoopBoundaryGeometry,
 };
+use worth_primitives::{truth_digest_parts, PrimitiveSupportPlaneIdentity, TruthDigestScope};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SurfaceSupportCarrierRow {
     topology_entity_identity: String,
     geometry_carrier_identity: String,
     carrier_family: GeometryCarrierFamily,
+    support_plane_identity_digests: Vec<String>,
     loop_boundary: Option<PlanarLoopBoundaryGeometry>,
 }
 
@@ -15,11 +17,13 @@ impl SurfaceSupportCarrierRow {
         topology_entity_identity: impl Into<String>,
         geometry_carrier_identity: impl Into<String>,
         carrier_family: GeometryCarrierFamily,
+        support_plane_identity_digests: Vec<String>,
     ) -> Self {
         Self {
             topology_entity_identity: topology_entity_identity.into(),
             geometry_carrier_identity: geometry_carrier_identity.into(),
             carrier_family,
+            support_plane_identity_digests,
             loop_boundary: None,
         }
     }
@@ -39,6 +43,10 @@ impl SurfaceSupportCarrierRow {
 
     pub fn carrier_family(&self) -> GeometryCarrierFamily {
         self.carrier_family
+    }
+
+    pub(crate) fn support_plane_identity_digests(&self) -> &[String] {
+        &self.support_plane_identity_digests
     }
 
     pub fn loop_boundary(&self) -> Option<&PlanarLoopBoundaryGeometry> {
@@ -63,6 +71,9 @@ impl SurfaceSupportGeometrySnapshot {
                     face.topology_face_identity(),
                     face.carrier_identity().carrier_identity(),
                     face.carrier_identity().family(),
+                    support_plane_identity_digests(
+                        face.binding_spec().geometry_identity().support_planes(),
+                    ),
                 )
             })
             .collect();
@@ -74,6 +85,9 @@ impl SurfaceSupportGeometrySnapshot {
                     edge.topology_edge_identity(),
                     edge.carrier_identity().carrier_identity(),
                     edge.carrier_identity().family(),
+                    support_plane_identity_digests(
+                        edge.binding_spec().geometry_identity().support_planes(),
+                    ),
                 )
             })
             .collect();
@@ -85,6 +99,12 @@ impl SurfaceSupportGeometrySnapshot {
                     loop_geometry.topology_loop_identity(),
                     loop_geometry.carrier_identity().carrier_identity(),
                     loop_geometry.carrier_identity().family(),
+                    support_plane_identity_digests(
+                        loop_geometry
+                            .binding_spec()
+                            .geometry_identity()
+                            .support_planes(),
+                    ),
                 )
                 .with_loop_boundary(loop_geometry.boundary().clone())
             })
@@ -107,4 +127,20 @@ impl SurfaceSupportGeometrySnapshot {
     pub fn loop_rows(&self) -> &[SurfaceSupportCarrierRow] {
         &self.loop_rows
     }
+}
+
+fn support_plane_identity_digests(planes: &[PrimitiveSupportPlaneIdentity]) -> Vec<String> {
+    planes.iter().map(support_plane_identity_digest).collect()
+}
+
+fn support_plane_identity_digest(plane: &PrimitiveSupportPlaneIdentity) -> String {
+    truth_digest_parts(
+        TruthDigestScope::GeometryIdentity,
+        &plane
+            .digest_parts()
+            .into_iter()
+            .enumerate()
+            .map(|(index, value)| format!("support-plane:{index}:{value}"))
+            .collect::<Vec<_>>(),
+    )
 }

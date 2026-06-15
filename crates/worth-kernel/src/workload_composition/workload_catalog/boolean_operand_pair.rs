@@ -147,6 +147,7 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
     fn support_decision(&self) -> Result<WorkloadCatalogSupportDecision, WorkloadCatalogError> {
         Ok(match self.kind {
             WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair
+            | WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair
             | WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair
             | WorkloadCatalogRecipeKind::BooleanThinFeaturePair
             | WorkloadCatalogRecipeKind::BooleanHighValenceContactPair => {
@@ -185,6 +186,10 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
             WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair => {
                 WorkloadCatalog::single_face_loop()
             }
+            WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair => {
+                WorkloadCatalog::single_face_loop()
+                    .with_transform(super::recipe_kind::TransformRecipe::MovementRotationStack)
+            }
             WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair => {
                 WorkloadCatalog::coplanar_overlap_storm().with_retained_replay_artifacts()
             }
@@ -209,6 +214,11 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
         match self.kind {
             WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair => {
                 WorkloadCatalog::single_face_loop()
+            }
+            WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair => {
+                WorkloadCatalog::single_face_loop().with_transform(
+                    super::recipe_kind::TransformRecipe::ReorientedMovementRotationStack,
+                )
             }
             WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair => {
                 WorkloadCatalog::coplanar_overlap_storm().with_retained_replay_artifacts()

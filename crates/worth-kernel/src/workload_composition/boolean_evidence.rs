@@ -5,8 +5,14 @@ use worth_spatial::facade::workload_vocabulary::{
 };
 
 use super::{
-    BuiltBooleanOperandPairRecipe, PlanarBooleanDeclarationReceipt, PlanarBooleanOutcomeKind,
-    PlanarBooleanOutcomeReceipt, PlanarBooleanSupportPosture, PlanarBooleanSupportReceipt,
+    BuiltBooleanOperandPairRecipe, PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
+    PlanarBooleanCommonPlaneOperandAProjectedRequest,
+    PlanarBooleanCommonPlaneOperandBProjectedRequest,
+    PlanarBooleanCommonPlanePrecisionAgreedRequest,
+    PlanarBooleanCommonPlaneReducedOperandPairRequest,
+    PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest, PlanarBooleanDeclarationReceipt,
+    PlanarBooleanOutcomeKind, PlanarBooleanOutcomeReceipt, PlanarBooleanSupportPosture,
+    PlanarBooleanSupportReceipt,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -165,5 +171,113 @@ impl BooleanEvidenceReceipt for PlanarBooleanBlockerEvidenceReceipt {
 
     fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
         WorkloadEvidenceStageCounters::boolean_blocker()
+    }
+}
+
+impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        BooleanEvidenceStageKind::SharedPlaneIdentity
+    }
+
+    fn evidence_identity(&self) -> &str {
+        self.shared_plane_identified_request_identity()
+    }
+
+    fn evidence_support(&self) -> WorkloadEvidenceSupport {
+        WorkloadEvidenceSupport::Admitted
+    }
+
+    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+        WorkloadEvidenceStageCounters::boolean_shared_plane_identity()
+    }
+}
+
+impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneLocalFrameSelectedRequest {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        BooleanEvidenceStageKind::LocalFrameSelection
+    }
+
+    fn evidence_identity(&self) -> &str {
+        self.local_frame_selection_identity()
+    }
+
+    fn evidence_support(&self) -> WorkloadEvidenceSupport {
+        WorkloadEvidenceSupport::Admitted
+    }
+
+    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+        WorkloadEvidenceStageCounters::boolean_local_frame_selection()
+    }
+}
+
+impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneOperandAProjectedRequest {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        BooleanEvidenceStageKind::OperandAProjectionConsumption
+    }
+
+    fn evidence_identity(&self) -> &str {
+        self.operand_a_projection_identity()
+    }
+
+    fn evidence_support(&self) -> WorkloadEvidenceSupport {
+        WorkloadEvidenceSupport::Admitted
+    }
+
+    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+        WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption()
+    }
+}
+
+impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneOperandBProjectedRequest {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        BooleanEvidenceStageKind::OperandBProjectionConsumption
+    }
+
+    fn evidence_identity(&self) -> &str {
+        self.operand_b_projection_identity()
+    }
+
+    fn evidence_support(&self) -> WorkloadEvidenceSupport {
+        WorkloadEvidenceSupport::Admitted
+    }
+
+    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+        WorkloadEvidenceStageCounters::boolean_operand_b_projection_consumption()
+    }
+}
+
+impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneReducedOperandPairRequest {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        BooleanEvidenceStageKind::ReducedOperandPair
+    }
+
+    fn evidence_identity(&self) -> &str {
+        self.reduced_operand_pair_request_identity()
+    }
+
+    fn evidence_support(&self) -> WorkloadEvidenceSupport {
+        WorkloadEvidenceSupport::Admitted
+    }
+
+    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+        WorkloadEvidenceStageCounters::boolean_reduced_operand_pair()
+    }
+}
+
+impl BooleanEvidenceReceipt for PlanarBooleanCommonPlanePrecisionAgreedRequest {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        BooleanEvidenceStageKind::PrecisionAgreement
+    }
+
+    fn evidence_identity(&self) -> &str {
+        self.precision_agreement_identity()
+    }
+
+    fn evidence_support(&self) -> WorkloadEvidenceSupport {
+        WorkloadEvidenceSupport::Admitted
+    }
+
+    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+        WorkloadEvidenceStageCounters::boolean_precision_agreement()
     }
 }
