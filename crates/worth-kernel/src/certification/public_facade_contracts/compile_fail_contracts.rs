@@ -6,6 +6,15 @@ use std::time::{SystemTime, UNIX_EPOCH};
 const PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE: &str =
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_kernel_summary_substitution.rs";
 
+const PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/pb_common_plane/reduction_request_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_common_plane/scope_admitted_request_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_common_plane/plane_agreed_request_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_common_plane/local_frame_selected_request_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_common_plane/reduced_pair_request_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_common_plane/shared_plane_identified_request_fields_private.rs",
+];
+
 const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_prepare_helpers_demoted.rs",
@@ -36,6 +45,12 @@ const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry/public_planar_boolean_operand_pair_construction_receipt_fields_not_public.rs",
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry/public_planar_boolean_outcome_receipt_fields_not_public.rs",
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry/public_planar_boolean_support_receipt_constructor_not_exported.rs",
+    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[0],
+    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[1],
+    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[2],
+    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[3],
+    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[4],
+    PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[5],
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_fields_not_public.rs",
     PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE,
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_generic_ledger_substitution.rs",
@@ -95,6 +110,13 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
 }
 
 #[test]
+fn kernel_public_boundary_rejects_planar_boolean_common_plane_reduction_constructor_bypass() {
+    for fixture in PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES {
+        assert_compile_fail_fixture(fixture);
+    }
+}
+
+#[test]
 fn kernel_public_boundary_rejects_planar_boolean_summary_substitution_fixture() {
     assert_compile_fail_fixture(PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE);
 }
@@ -111,6 +133,7 @@ fn assert_compile_fail_fixture(fixture: &str) {
         .arg("--quiet")
         .arg("--manifest-path")
         .arg(temp_root.join("Cargo.toml"))
+        .env("CARGO_TARGET_DIR", compile_fail_target_dir(&manifest_dir))
         .output()
         .expect("run cargo check for compile-fail fixture");
 
@@ -161,5 +184,14 @@ fn temp_fixture_dir() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .expect("system time before unix epoch")
         .as_nanos();
-    std::env::temp_dir().join(format!("worth-kernel-compile-fail-{stamp}"))
+    std::env::temp_dir().join(format!("wkcf-{stamp}"))
+}
+
+fn compile_fail_target_dir(manifest_dir: &Path) -> PathBuf {
+    manifest_dir
+        .parent()
+        .and_then(Path::parent)
+        .expect("worth-kernel lives under workspace crates/")
+        .join("target")
+        .join("worth-kernel-compile-fail")
 }

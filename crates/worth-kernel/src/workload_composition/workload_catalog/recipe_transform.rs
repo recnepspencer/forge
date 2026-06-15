@@ -17,6 +17,10 @@ impl TransformRecipe {
                 .rotate(RotationTurn::quarter_turn_clockwise())
                 .reorient(TransformReorientation::preserves_handedness())
                 .cancel_with_exact_replay(64),
+            Self::ReorientedMovementRotationStack => TransformSequence::new()
+                .translate(VectorDelta::xy(10, 0))
+                .rotate(RotationTurn::quarter_turn_clockwise())
+                .reorient(TransformReorientation::ReversesHandedness),
         }
     }
 }

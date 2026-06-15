@@ -28,6 +28,8 @@
 //! - [`facade::projection`] for receipt-backed geometry projection consumption
 //! - [`facade::recovery`] for typed geometry recovery actions
 //! - [`facade::planar_contracts`] for M6 planar admission vocabulary
+//! - [`facade::planar_boolean_common_plane`] for pair-level common-plane
+//!   eligibility receipts over certified planar support
 //! - [`facade::planar_predicates`] for Query-native exact planar predicate
 //!   authority backed by `worth-math` certified predicates
 //! - [`facade::planar_predicate_consumption`] for Query-native validation that

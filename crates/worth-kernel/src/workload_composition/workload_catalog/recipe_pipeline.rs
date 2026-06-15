@@ -35,6 +35,7 @@ pub(crate) struct CatalogWorkloadBuild {
     topology_neighborhood: Option<TopologySeedNeighborhoodReceipt>,
     topology_construction: Option<NmtTopologyConstructionReceipt>,
     bound_geometry: BoundGeometryWorkload,
+    surface_support: CertifiedSurfaceSupport,
     projected: ProjectedPlanarWorkload,
     transform_receipts: TransformReceiptSet,
     replay_receipts: Option<ReplayReceiptSet>,
@@ -55,6 +56,10 @@ impl CatalogWorkloadBuild {
 
     pub(crate) fn projected(&self) -> &ProjectedPlanarWorkload {
         &self.projected
+    }
+
+    pub(crate) fn surface_support(&self) -> &CertifiedSurfaceSupport {
+        &self.surface_support
     }
 
     pub(crate) fn bound_geometry(&self) -> &BoundGeometryWorkload {
@@ -90,7 +95,7 @@ pub(crate) fn build_catalog_workload(
     let geometry_receipts = bound_geometry.receipts().clone();
     let surface_support = certify_surface_support(bound_geometry, declaration)?;
     let support_receipts = surface_support.receipts().clone();
-    let projected = project_supported_geometry(surface_support, declaration)?;
+    let projected = project_supported_geometry(surface_support.clone(), declaration)?;
     let projection_receipts = projected.receipts().clone();
     let transformed =
         transform_projected_geometry(projected.clone(), declaration, transform_recipe)?;
@@ -140,6 +145,7 @@ pub(crate) fn build_catalog_workload(
         topology_neighborhood,
         topology_construction,
         bound_geometry: bound_geometry_for_catalog,
+        surface_support,
         projected,
         transform_receipts,
         replay_receipts,
@@ -201,6 +207,7 @@ fn build_topology_seed(
 fn default_topology_seed(recipe: WorkloadCatalogRecipeKind) -> TopologySeedRecipe {
     match recipe {
         WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair
+        | WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair
         | WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair
         | WorkloadCatalogRecipeKind::BooleanThinFeaturePair
         | WorkloadCatalogRecipeKind::BooleanHighValenceContactPair

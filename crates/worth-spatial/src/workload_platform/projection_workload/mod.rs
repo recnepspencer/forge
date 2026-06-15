@@ -5,6 +5,7 @@ mod projection_receipt;
 mod projection_workload;
 mod unsupported_projection;
 
+pub(crate) use local_frame::common_plane_projection_local_basis_identity;
 pub use local_frame::{CertifiedLocalFrameReceipt, CertifiedLocalFrameWorkload, LocalFrameBasis};
 pub(crate) use projected_entities::ProjectedTopologyEntities;
 pub use projected_entities::{

@@ -1,0 +1,17 @@
+error[E0451]: fields `agreement_identity`, `shared_plane_identity`, `left_surface_support_identity`, `right_surface_support_identity`, `left_witness` and `right_witness` of struct `PlanarBooleanCommonPlaneAgreementReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_common_plane/receipt_not_forgeable.rs:5:9
+   |
+ 4 |     let _receipt = PlanarBooleanCommonPlaneAgreementReceipt {
+   |                    ---------------------------------------- in this type
+ 5 |         agreement_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 6 |         shared_plane_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         left_surface_support_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         right_surface_support_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         left_witness: fake(),
+   |         ^^^^^^^^^^^^ private field
+10 |         right_witness: fake(),
+   |         ^^^^^^^^^^^^^ private field

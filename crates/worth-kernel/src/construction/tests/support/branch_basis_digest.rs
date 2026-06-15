@@ -1,7 +1,7 @@
 use forge_query::facade::{
     ForgeQueryAuthorityLane, ForgeQueryBranchOptions, ForgeQueryEffectPolicy,
     ForgeQueryPreviewOptions, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryWorkspace,
+    ForgeQuerySessionLabel, ForgeQueryWorkspace,
 };
 
 use crate::construction::digest::digest_owned_parts;
@@ -32,7 +32,8 @@ pub(crate) fn prepare_branch_basis_digest(
         .to_string();
     let (preview_label, preview_effect_policy, preview_authority_lane, preview_evidence) = {
         let preview = workspace.preview_with_options(
-            format!("worth-kernel.{}.preview", family.as_str()),
+            ForgeQuerySessionLabel::scoped_strs("worth-kernel", [family.as_str(), "preview"])
+                .expect("preview label"),
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )?;
         let preview_basis = preview.basis_admission();
@@ -44,7 +45,8 @@ pub(crate) fn prepare_branch_basis_digest(
         )
     };
     let branch = workspace.branch_with_options(
-        format!("worth-kernel.{}.branch", family.as_str()),
+        ForgeQuerySessionLabel::scoped_strs("worth-kernel", [family.as_str(), "branch"])
+            .expect("branch label"),
         ForgeQueryBranchOptions::sandboxed_write_intent(),
     )?;
     let branch_basis = branch.basis_admission();

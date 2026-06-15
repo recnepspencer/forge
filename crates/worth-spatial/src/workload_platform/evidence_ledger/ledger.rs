@@ -1,6 +1,7 @@
 use super::{
-    WorkloadEvidenceCounters, WorkloadEvidenceGuard, WorkloadEvidenceGuardError,
-    WorkloadEvidenceRow, WorkloadEvidenceStage,
+    BooleanEvidenceReceipt, WorkloadEvidenceCounters, WorkloadEvidenceGuard,
+    WorkloadEvidenceGuardError, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceSupport,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -59,7 +60,9 @@ impl WorkloadEvidenceLedger {
                 .filter(|row| {
                     row.stage().is_boolean_stage()
                         && row.is_receipt_backed()
-                        && row.counters().total_receipt_backed_counters() > 0
+                        && row
+                            .counters()
+                            .has_receipt_backed_counter_for_stage(row.stage())
                 })
                 .count(),
         )
@@ -89,6 +92,13 @@ impl WorkloadEvidenceLedger {
 
     pub fn row_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&WorkloadEvidenceRow> {
         self.rows.iter().find(|row| row.stage() == stage)
+    }
+
+    pub fn boolean_row_for_receipt(
+        &self,
+        receipt: &impl BooleanEvidenceReceipt,
+    ) -> Option<&WorkloadEvidenceRow> {
+        self.row_for_stage(receipt.boolean_stage().evidence_stage())
     }
 
     fn first_manual_authority_stage(&self) -> Option<WorkloadEvidenceStage> {
@@ -133,6 +143,20 @@ impl CompleteWorkloadEvidenceLedger {
         self.ledger.row_for_stage(stage)
     }
 
+    pub fn boolean_row_for_receipt(
+        &self,
+        receipt: &impl BooleanEvidenceReceipt,
+    ) -> Option<&WorkloadEvidenceRow> {
+        self.ledger.boolean_row_for_receipt(receipt)
+    }
+
+    pub fn require_boolean_receipt(
+        &self,
+        receipt: &impl BooleanEvidenceReceipt,
+    ) -> Result<(), WorkloadEvidenceLedgerError> {
+        require_boolean_receipt_row(&self.ledger, receipt)
+    }
+
     pub fn into_ledger(self) -> WorkloadEvidenceLedger {
         self.ledger
     }
@@ -146,6 +170,11 @@ pub enum WorkloadEvidenceLedgerError {
     MissingAuthorityStage(WorkloadEvidenceStage),
     ManualAuthorityStage(WorkloadEvidenceStage),
     UnadmittedAuthorityStage(WorkloadEvidenceStage),
+    MissingBooleanStage(WorkloadEvidenceStage),
+    ManualBooleanStage(WorkloadEvidenceStage),
+    CounterlessBooleanStage(WorkloadEvidenceStage),
+    MismatchedBooleanStage(WorkloadEvidenceStage),
+    UnsupportedBooleanStage(WorkloadEvidenceStage),
     GuardFailed(WorkloadEvidenceGuardError),
 }
 
@@ -179,6 +208,33 @@ impl WorkloadEvidenceLedgerError {
                     stage.human_name()
                 )
             }
+            Self::MissingBooleanStage(stage) => {
+                format!("workload evidence ledger is missing {}", stage.human_name())
+            }
+            Self::ManualBooleanStage(stage) => {
+                format!(
+                    "workload evidence ledger has hand-filled {} instead of a source receipt",
+                    stage.human_name()
+                )
+            }
+            Self::CounterlessBooleanStage(stage) => {
+                format!(
+                    "workload evidence ledger cannot count {} without receipt-backed counters",
+                    stage.human_name()
+                )
+            }
+            Self::MismatchedBooleanStage(stage) => {
+                format!(
+                    "workload evidence ledger does not match the {} receipt",
+                    stage.human_name()
+                )
+            }
+            Self::UnsupportedBooleanStage(stage) => {
+                format!(
+                    "workload evidence ledger records {} with the wrong support posture",
+                    stage.human_name()
+                )
+            }
             Self::GuardFailed(error) => error.human_reason().to_string(),
         }
     }
@@ -197,4 +253,36 @@ fn duplicate_stage(rows: &[WorkloadEvidenceRow]) -> Option<WorkloadEvidenceStage
             .any(|candidate| candidate.stage() == row.stage())
             .then_some(row.stage())
     })
+}
+
+fn require_boolean_receipt_row(
+    ledger: &WorkloadEvidenceLedger,
+    receipt: &impl BooleanEvidenceReceipt,
+) -> Result<(), WorkloadEvidenceLedgerError> {
+    let stage = receipt.boolean_stage().evidence_stage();
+    let row = ledger
+        .boolean_row_for_receipt(receipt)
+        .ok_or(WorkloadEvidenceLedgerError::MissingBooleanStage(stage))?;
+    if !row.is_receipt_backed() {
+        return Err(WorkloadEvidenceLedgerError::ManualBooleanStage(stage));
+    }
+    if !row.counters().has_receipt_backed_counter_for_stage(stage) {
+        return Err(WorkloadEvidenceLedgerError::CounterlessBooleanStage(stage));
+    }
+    if row.evidence_identity() != receipt.evidence_identity() {
+        return Err(WorkloadEvidenceLedgerError::MismatchedBooleanStage(stage));
+    }
+    if row.support() != receipt.evidence_support() {
+        return Err(match receipt.evidence_support() {
+            WorkloadEvidenceSupport::Manual => {
+                WorkloadEvidenceLedgerError::ManualBooleanStage(stage)
+            }
+            WorkloadEvidenceSupport::Admitted
+            | WorkloadEvidenceSupport::Unsupported
+            | WorkloadEvidenceSupport::Blocked => {
+                WorkloadEvidenceLedgerError::UnsupportedBooleanStage(stage)
+            }
+        });
+    }
+    Ok(())
 }

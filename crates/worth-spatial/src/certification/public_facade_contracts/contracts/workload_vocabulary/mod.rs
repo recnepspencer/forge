@@ -1,3 +1,4 @@
+mod boolean_evidence_ledger;
 pub(crate) mod evidence_ledger_receipts;
 mod honesty_guards;
 

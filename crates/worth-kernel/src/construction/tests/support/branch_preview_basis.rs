@@ -1,7 +1,7 @@
 use forge_query::facade::{
     ForgeQueryAuthorityLane, ForgeQueryBranchOptions, ForgeQueryEffectPolicy,
     ForgeQueryPreviewOptions, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryWorkspace,
+    ForgeQuerySessionLabel, ForgeQueryWorkspace,
 };
 use worth_geom::facade::{
     PrimitiveNormalizationDisposition, PrimitiveRealizationExhaustionReason,
@@ -225,7 +225,8 @@ fn capture_branch_preview_basis(
     let (preview_label, preview_effect_policy, preview_authority_lane, preview_evidence) = {
         let preview = workspace
             .preview_with_options(
-                format!("worth-kernel.{}.preview", family.as_str()),
+                ForgeQuerySessionLabel::scoped_strs("worth-kernel", [family.as_str(), "preview"])
+                    .expect("preview label"),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .map_err(BranchPreviewBasisError::QueryRuntime)?;
@@ -239,7 +240,8 @@ fn capture_branch_preview_basis(
     };
     let branch = workspace
         .branch_with_options(
-            format!("worth-kernel.{}.branch", family.as_str()),
+            ForgeQuerySessionLabel::scoped_strs("worth-kernel", [family.as_str(), "branch"])
+                .expect("branch label"),
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .map_err(BranchPreviewBasisError::QueryRuntime)?;

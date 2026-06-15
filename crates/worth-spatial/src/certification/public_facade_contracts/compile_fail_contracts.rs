@@ -84,6 +84,18 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/planar_admission/receipt_not_forgeable.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_common_plane/receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_common_plane/shared_plane_identity_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_common_plane/local_frame_selection_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_common_plane/operand_projection_consumption_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/planar_predicate/receipt_not_forgeable.rs"
     ));
     t.compile_fail(format!(

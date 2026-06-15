@@ -14,6 +14,8 @@ mod public_api_neighborhood_and_projection;
 mod public_api_nmt_certification_context;
 #[path = "planar_admission/mod.rs"]
 mod public_api_planar_admission;
+#[path = "planar_boolean_common_plane/mod.rs"]
+mod public_api_planar_boolean_common_plane;
 #[path = "planar_clean_fail_boundary/mod.rs"]
 mod public_api_planar_clean_fail_boundary;
 #[path = "planar_contract_bundle/mod.rs"]
