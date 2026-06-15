@@ -1,0 +1,25 @@
+[package]
+name = "worth-ui-validation-app"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "worth_ui_validation_app"
+path = "src/lib.rs"
+
+[[bin]]
+name = "worth-ui-validation-app"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+eframe = { workspace = true }
+egui = { workspace = true }
+worth-ui = { workspace = true }
+worth-ui-harness = { workspace = true }
+
+[dev-dependencies]
+trybuild = { workspace = true }

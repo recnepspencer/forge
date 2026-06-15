@@ -1,0 +1,10 @@
+error[E0624]: method `observe_runtime_launch` is private
+ --> tests/ui/fail/validation_app_local_shell_state_injection.rs:6:14
+  |
+6 |     evidence.observe_runtime_launch(injected_basis);
+  |              ^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: $WORKSPACE/crates/worth-ui-harness/src/evidence/bundle.rs
+  |
+  |     pub(crate) fn observe_runtime_launch(&mut self, basis: HarnessEvidenceBasis) {
+  |     ---------------------------------------------------------------------------- private method defined here

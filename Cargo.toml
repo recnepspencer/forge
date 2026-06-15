@@ -34,7 +34,10 @@ members = [
     "crates/forge-ui-components",
     "crates/forge-ui-adapters",
     "crates/forge-ui-state",
-    "crates/worth-ui", "crates/forge-relational",
+    "crates/worth-ui",
+    "crates/worth-ui-harness",
+    "apps/worth-ui-validation-app",
+    "crates/forge-relational",
 ]
 
 [workspace.package]
@@ -79,6 +82,7 @@ forge-ui-components = { path = "crates/forge-ui-components" }
 forge-ui-adapters   = { path = "crates/forge-ui-adapters" }
 forge-ui-state      = { path = "crates/forge-ui-state" }
 worth-ui            = { path = "crates/worth-ui" }
+worth-ui-harness    = { path = "crates/worth-ui-harness" }
 
 # Benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }

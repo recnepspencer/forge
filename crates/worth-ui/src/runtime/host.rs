@@ -379,6 +379,17 @@ fn build_active_runtime_state(
 }
 
 impl WorthUiRuntimeLaunch {
+    pub(crate) fn from_facade_artifact(
+        artifact: WorthUiArtifact,
+        diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
+    ) -> Self {
+        Self {
+            artifact,
+            frame_epoch: WorthUiRuntimeFrameEpoch::initial(),
+            diagnostic_policy,
+        }
+    }
+
     #[allow(dead_code)]
     pub(crate) fn from_canonical_artifact(artifact: WorthUiArtifact) -> Self {
         Self {

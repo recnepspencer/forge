@@ -45,8 +45,18 @@ The shipped baseline for Worth UI today is:
 - the milestone ordering needed to avoid drifting into widget-first or
   application-local infrastructure before the platform foundations exist
 
-This roadmap therefore tracks the work needed to turn the vision into a real
-platform sequence.
+Milestones 1 through 3 have now closed the platform skeleton, canonical
+artifact, and active runtime/execution-plan foundations. In particular,
+Milestone 3 absorbed more of the original shell prerequisite work than the
+initial roadmap expected: durable state reconciliation, panel and tab state
+families, mosaic layout/state capability registries, command projections,
+runtime diagnostics, hot replacement, lane execution, and frame-cost
+certification are no longer future prerequisites.
+
+The next gap is therefore not another invisible primitive layer. The next gap
+is composed trust evidence: a real interactive validation app that can run, display,
+replay, and manually validate the shell and reload scenarios that are already
+mechanically supported by the runtime substrate.
 
 ## Roadmap Rules
 
@@ -80,16 +90,19 @@ platform or a shallow collection of components:
 - canonical lowering and artifact architecture
 - hot iteration and stable identity
 - frame-efficient execution lanes and cost certification
+- interactive validation app and composed shell acceptance evidence
 - app shell and command/interaction foundations
 - Query-bound views and forms/workflow surfaces
 
 If this section is weak, everything above it inherits the same failure mode:
 
 - hot reload devolves into interpreted UI or Rust rebuild friction
-- shell behavior becomes app-local glue
+- shell behavior becomes app-local glue or invisible primitive-only proof
 - components ship without coherent focus, accessibility, or runtime posture
 - Query-bound surfaces drift back toward local caches and event plumbing
 - performance claims remain vibes rather than certified contracts
+- manual validation depends on developer memory instead of a replayable
+  platform workbench
 
 ## Milestone 1: Platform Skeleton, Facade, and Capability Registries
 
@@ -285,53 +298,77 @@ honesty.
 - steady-state frame execution proves source parsing, artifact validation,
   registry string lookup, and broad artifact scans remain absent
 
-## Milestone 4: Application Shell and Workspace Layout
+## Milestone 4: Interactive Workbench Validation App and Shell Acceptance
+
+Detailed spec: [milestone-4.md](./milestone-4.md)
 
 ### Goal
 
-Make Worth UI able to host real desktop products by owning the app shell,
-workspace model, and persisted layout semantics rather than leaving them to
-every downstream application.
+Build the first real Worth UI workbench validation app: an interactive, replayable,
+native desktop diagnostic UI over the Rust/egui Worth UI platform path that
+exercises the platform shell, mosaic layout, command projection,
+persistence/restore, and hot-reload survival paths as composed product behavior
+rather than isolated primitive tests.
 
 ### Must Ship
 
-- mosaic as the primary structural layout model for shell and page composition
-- multi-window application model
-- nested mosaic regions that can split, stack, overlay, and pin
-- region-level sizing contracts such as fixed, fill, ratio, bounded, and hug
-- explicit scroll ownership and grow-then-scroll behavior at the region level
-- dock, split, tab, sidebar, bottom-panel, and status-surface layout primitives
-  expressed through or alongside the mosaic model where appropriate
-- persisted workspace layout and restore semantics
-- menu bar, toolbar, command palette, context menu, dialog, and modal-sheet
-  shell surfaces
-- active document, active panel, and active window routing contracts
-- enough shell polish that one real workbench-style app can be built without
-  custom layout infrastructure
+- one canonical interactive sample workbench built through Worth UI facade,
+  source/artifact, runtime, mosaic, command, and state surfaces rather than
+  app-local shell logic
+- explicit guardrails that forbid browser, Vite, React, DOM, HTML/CSS, or
+  web-view validation app implementation artifacts for this milestone
+- scenario runner for scripted shell operations including open, close, dock,
+  split, tab, pin, overlay, persist, restore, valid reload, invalid reload,
+  and restart/recovery replay
+- visible validation app UI for running scenarios, inspecting active artifact and plan
+  digests, viewing state carry-forward receipts, and reading typed diagnostics
+- nested mosaic shell scenario with pinned sidebar, stacked scroll regions,
+  bottom/status region, tabbed editor area, and overlay surface
+- command projection scenario proving menu bar, toolbar, command palette, and
+  context surfaces project the same command backbone
+- persistence and restore scenario that compares pre-restart and post-restore
+  shell state, active plan, stable IDs, and durable UI state receipts
+- hot-reload scenario that applies valid, invalid, equivalent, and
+  identity-preserving workspace layout edits while preserving the active shell
+  when candidates are denied
+- manual validation panel with expected-observation checklists, scenario
+  receipts, failure localization, and room for later screenshot or visual
+  golden capture
+- validation app support surfaces narrow enough that future milestones can add
+  Query-bound views, forms, components, accessibility, native integration, and
+  plugin scenarios without rewriting the runner
 
 ### Must Preserve
 
+- validation app behavior remains a consumer of Worth UI platform contracts, not a
+  privileged internal path or a second shell runtime
 - workspace layout remains a platform artifact, not a pile of widget-local
-  geometry state
-- mosaic remains the structural space-allocation language rather than
-  collapsing into a grab bag of unrelated layout models for ordinary shell work
-- shell meaning remains command-routed and identity-stable across reloads and
-  restore flows
-- shell does not force app authors to choose between multi-window support and
-  hot-lowered composition
-- persisted shell state remains distinct from authoritative runtime truth
+  geometry state hidden inside the sample app
+- manual validation observes receipts, counters, diagnostics, and visible UI
+  behavior; it must not replace mechanical tests or bless untyped drift
+- persisted shell state remains distinct from authoritative runtime truth and
+  from derived diagnostics
+- scenario scripts are replayable and deterministic enough to expose layout,
+  command, reload, and restore drift
+- the validation app must make missing platform proof visible instead of compensating
+  with app-local workarounds
 
 ### Acceptance Evidence
 
 - one sample workbench can open, close, dock, split, tab, persist, and restore
-  its shell without app-local shell logic
+  its shell without app-local shell logic, and the validation app displays the
+  receipts that prove which platform paths ran
 - one nested mosaic shell can express pinned sidebar, stacked scroll regions,
-  and overlay surfaces without DOM-style height or overflow hacks
+  bottom/status surface, tab stack, and overlay surfaces without DOM-style
+  height or overflow hacks
 - shell state restore is deterministic enough that restart and recovery do not
-  invent layout drift
-- command palette, menus, and context surfaces all project the same command
-  backbone
-- workspace layout edits can survive hot reload when stable IDs remain intact
+  invent layout drift, with digest/receipt comparison visible in the validation app
+- command palette, menus, toolbar entries, and context surfaces all project the
+  same command backbone and expose matching command identities
+- workspace layout edits survive hot reload when stable IDs remain intact, and
+  denied edits preserve the previous active shell with typed diagnostics
+- a human can run the acceptance scenario set from the validation app UI and compare
+  visible behavior against the same runtime evidence that automated tests assert
 
 ## Milestone 5: Command Spine, Focus, Selection, and Keyboard Routing
 

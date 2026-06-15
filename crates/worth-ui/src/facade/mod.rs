@@ -3,6 +3,7 @@
 mod app;
 mod builder;
 mod entry;
+mod runtime_launch;
 
 pub use crate::capability::{
     AdmittedCapability, AmbientHostCheck, ArbitraryKeyValueSettingBag, CapabilityDiagnosticCode,
@@ -249,3 +250,6 @@ pub use crate::source::WorthUiArtifactSubtreeDigest;
 pub use app::WorthUiApp;
 pub use builder::WorthUiAppBuilder;
 pub use entry::WorthUi;
+pub use runtime_launch::{
+    WorthUiRuntimeLaunchBuilder, WorthUiRuntimeLaunchPreparationDenial, WorthUiRuntimeSourceModule,
+};

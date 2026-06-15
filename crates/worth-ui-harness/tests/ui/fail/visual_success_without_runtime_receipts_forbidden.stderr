@@ -1,0 +1,10 @@
+error[E0624]: method `observe_visible_frame` is private
+ --> tests/ui/fail/visual_success_without_runtime_receipts_forbidden.rs:5:14
+  |
+5 |     evidence.observe_visible_frame();
+  |              ^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/evidence/bundle.rs
+  |
+  |     pub(crate) fn observe_visible_frame(&mut self) {
+  |     ---------------------------------------------- private method defined here

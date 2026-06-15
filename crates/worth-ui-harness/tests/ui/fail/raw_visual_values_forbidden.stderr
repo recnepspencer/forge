@@ -1,0 +1,11 @@
+error[E0599]: no function or associated item named `from_raw_colors` found for struct `HarnessVisualFoundationBundle` in the current scope
+ --> tests/ui/fail/raw_visual_values_forbidden.rs:4:54
+  |
+4 |     let _foundation = HarnessVisualFoundationBundle::from_raw_colors([
+  |                                                      ^^^^^^^^^^^^^^^ function or associated item not found in `HarnessVisualFoundationBundle`
+  |
+note: if you're trying to build a new `HarnessVisualFoundationBundle`, consider using `HarnessVisualFoundationBundle::vscode_like_dark` which returns `HarnessVisualFoundationBundle`
+ --> src/visual_foundation/visual_foundation_bundle.rs
+  |
+  |     pub fn vscode_like_dark() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

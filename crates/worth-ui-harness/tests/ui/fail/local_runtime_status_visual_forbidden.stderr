@@ -1,0 +1,5 @@
+error[E0599]: no variant or associated item named `from_local_status` found for enum `HarnessRuntimeOutcomeVisualRole` in the current scope
+ --> tests/ui/fail/local_runtime_status_visual_forbidden.rs:4:50
+  |
+4 |     let _role = HarnessRuntimeOutcomeVisualRole::from_local_status("green");
+  |                                                  ^^^^^^^^^^^^^^^^^ variant or associated item not found in `HarnessRuntimeOutcomeVisualRole`

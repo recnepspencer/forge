@@ -1,0 +1,22 @@
+error: cannot construct `HarnessRunReceipt` with struct literal syntax due to private fields
+  --> tests/ui/fail/app_local_shell_state_injection_forbidden.rs:7:13
+   |
+ 7 |     let _ = HarnessRunReceipt {
+   |             ^^^^^^^^^^^^^^^^^
+ 8 |         scenario_id,
+   |         ----------- private field
+ 9 |         evidence: HarnessEvidenceBundle::empty(),
+   |         ---------------------------------------- private field
+10 |         completed_steps: 1,
+   |         ------------------ private field
+   |
+   = note: ...and other private fields `evidence_ledger` and `replay_record` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+ 7 -     let _ = HarnessRunReceipt {
+ 8 -         scenario_id,
+ 9 -         evidence: HarnessEvidenceBundle::empty(),
+10 -         completed_steps: 1,
+11 -     };
+ 7 +     let _ = HarnessRunReceipt::new(_, _, _, _);
+   |

@@ -1,0 +1,12 @@
+pub mod activity_navigation;
+pub mod command_projection_surface;
+pub mod evidence_inspector;
+pub mod overlay_preview;
+pub mod pinned_sidebar;
+pub mod run_timeline;
+pub mod scenario_list;
+pub mod stacked_scroll_panes;
+pub mod status_surface;
+pub mod tabbed_editor;
+pub mod theme_density_controls;
+pub mod workbench_canvas;

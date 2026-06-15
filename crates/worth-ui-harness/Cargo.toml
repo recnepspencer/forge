@@ -1,0 +1,19 @@
+[package]
+name = "worth-ui-harness"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "worth_ui_harness"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+forge-query = { workspace = true }
+worth-ui = { workspace = true }
+
+[dev-dependencies]
+trybuild = { workspace = true }

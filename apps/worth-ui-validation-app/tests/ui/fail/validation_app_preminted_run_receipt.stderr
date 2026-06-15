@@ -1,0 +1,15 @@
+error[E0451]: fields `scenario_id`, `evidence`, `evidence_ledger`, `replay_record` and `completed_steps` of struct `HarnessRunReceipt` are private
+  --> tests/ui/fail/validation_app_preminted_run_receipt.rs:8:9
+   |
+ 7 |     let _receipt = HarnessRunReceipt {
+   |                    ----------------- in this type
+ 8 |         scenario_id: scenario_id(),
+   |         ^^^^^^^^^^^ private field
+ 9 |         evidence: evidence_bundle(),
+   |         ^^^^^^^^ private field
+10 |         evidence_ledger: evidence_ledger(),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         replay_record: replay_record(),
+   |         ^^^^^^^^^^^^^ private field
+12 |         completed_steps: completed_steps(),
+   |         ^^^^^^^^^^^^^^^ private field
