@@ -53,6 +53,205 @@ pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
         "query_context/execution.rs" => Some(include_str!("../../query_context/execution.rs")),
         "query_context/metadata.rs" => Some(include_str!("../../query_context/metadata.rs")),
         "query_context/support.rs" => Some(include_str!("../../query_context/support.rs")),
+        "projection_consumption/certification/audits/boundary.rs" => Some(include_str!(
+            "../../projection_consumption/certification/audits/boundary.rs"
+        )),
+        "projection_consumption/certification/audits/forbidden_fallback.rs" => Some(
+            include_str!("../../projection_consumption/certification/audits/forbidden_fallback.rs"),
+        ),
+        "projection_consumption/certification/audits/lane_local_hostile.rs" => Some(
+            include_str!("../../projection_consumption/certification/audits/lane_local_hostile.rs"),
+        ),
+        "projection_consumption/certification/audits/mod.rs" => Some(include_str!(
+            "../../projection_consumption/certification/audits/mod.rs"
+        )),
+        "projection_consumption/certification/audits/proof_shape.rs" => Some(include_str!(
+            "../../projection_consumption/certification/audits/proof_shape.rs"
+        )),
+        "projection_consumption/certification/audits/support_matrix.rs" => Some(include_str!(
+            "../../projection_consumption/certification/audits/support_matrix.rs"
+        )),
+        "projection_consumption/certification/audits/surfaces.rs" => Some(include_str!(
+            "../../projection_consumption/certification/audits/surfaces.rs"
+        )),
+        "projection_consumption/certification/bundle.rs" => {
+            Some(include_str!("../../projection_consumption/certification/bundle.rs"))
+        }
+        "projection_consumption/certification/bundle_outputs.rs" => Some(include_str!(
+            "../../projection_consumption/certification/bundle_outputs.rs"
+        )),
+        "projection_consumption/certification/fixtures.rs" => {
+            Some(include_str!("../../projection_consumption/certification/fixtures.rs"))
+        }
+        "projection_consumption/certification/grouped_projection_contract.rs" => Some(
+            include_str!("../../projection_consumption/certification/grouped_projection_contract.rs"),
+        ),
+        "projection_consumption/certification/mod.rs" => {
+            Some(include_str!("../../projection_consumption/certification/mod.rs"))
+        }
+        "projection_consumption/certification/oracle/comparison_terms.rs" => Some(
+            include_str!("../../projection_consumption/certification/oracle/comparison_terms.rs"),
+        ),
+        "projection_consumption/certification/oracle/mod.rs" => Some(include_str!(
+            "../../projection_consumption/certification/oracle/mod.rs"
+        )),
+        "projection_consumption/certification/oracle/report.rs" => Some(include_str!(
+            "../../projection_consumption/certification/oracle/report.rs"
+        )),
+        "projection_consumption/certification/oracle/value_terms.rs" => Some(include_str!(
+            "../../projection_consumption/certification/oracle/value_terms.rs"
+        )),
+        "projection_consumption/certification/proof_artifacts.rs" => Some(include_str!(
+            "../../projection_consumption/certification/proof_artifacts.rs"
+        )),
+        "projection_consumption/certification/seeded.rs" => {
+            Some(include_str!("../../projection_consumption/certification/seeded.rs"))
+        }
+        "projection_consumption/certification/slopes.rs" => {
+            Some(include_str!("../../projection_consumption/certification/slopes.rs"))
+        }
+        "projection_consumption/consumed/facts.rs" => {
+            Some(include_str!("../../projection_consumption/consumed/facts.rs"))
+        }
+        "projection_consumption/consumed/mod.rs" => {
+            Some(include_str!("../../projection_consumption/consumed/mod.rs"))
+        }
+        "projection_consumption/consumed/set.rs" => {
+            Some(include_str!("../../projection_consumption/consumed/set.rs"))
+        }
+        "projection_consumption/contracts.rs" => {
+            Some(include_str!("../../projection_consumption/contracts.rs"))
+        }
+        "projection_consumption/declaration.rs" => {
+            Some(include_str!("../../projection_consumption/declaration.rs"))
+        }
+        "projection_consumption/declaration_authoring.rs" => Some(include_str!(
+            "../../projection_consumption/declaration_authoring.rs"
+        )),
+        "projection_consumption/dx.rs" => Some(include_str!("../../projection_consumption/dx.rs")),
+        "projection_consumption/eligibility.rs" => {
+            Some(include_str!("../../projection_consumption/eligibility.rs"))
+        }
+        "projection_consumption/envelope.rs" => {
+            Some(include_str!("../../projection_consumption/envelope.rs"))
+        }
+        "projection_consumption/extraction/aspect_value_projection.rs" => Some(include_str!(
+            "../../projection_consumption/extraction/aspect_value_projection.rs"
+        )),
+        "projection_consumption/extraction/grouped.rs" => Some(include_str!(
+            "../../projection_consumption/extraction/grouped.rs"
+        )),
+        "projection_consumption/extraction/live_binding.rs" => Some(include_str!(
+            "../../projection_consumption/extraction/live_binding.rs"
+        )),
+        "projection_consumption/extraction/mod.rs" => {
+            Some(include_str!("../../projection_consumption/extraction/mod.rs"))
+        }
+        "projection_consumption/extraction/query_context.rs" => Some(include_str!(
+            "../../projection_consumption/extraction/query_context.rs"
+        )),
+        "projection_consumption/extraction/retained_binding.rs" => Some(include_str!(
+            "../../projection_consumption/extraction/retained_binding.rs"
+        )),
+        "projection_consumption/extraction/row_like.rs" => Some(include_str!(
+            "../../projection_consumption/extraction/row_like.rs"
+        )),
+        "projection_consumption/extraction/write_receipt.rs" => Some(include_str!(
+            "../../projection_consumption/extraction/write_receipt.rs"
+        )),
+        "projection_consumption/facts.rs" => Some(include_str!("../../projection_consumption/facts.rs")),
+        "projection_consumption/identity/certification.rs" => Some(include_str!(
+            "../../projection_consumption/identity/certification.rs"
+        )),
+        "projection_consumption/identity/certification_closeout.rs" => Some(include_str!(
+            "../../projection_consumption/identity/certification_closeout.rs"
+        )),
+        "projection_consumption/identity/certification_oracle.rs" => Some(include_str!(
+            "../../projection_consumption/identity/certification_oracle.rs"
+        )),
+        "projection_consumption/identity/certification_seeded.rs" => Some(include_str!(
+            "../../projection_consumption/identity/certification_seeded.rs"
+        )),
+        "projection_consumption/identity/core/contract.rs" => Some(include_str!(
+            "../../projection_consumption/identity/core/contract.rs"
+        )),
+        "projection_consumption/identity/core/counters.rs" => Some(include_str!(
+            "../../projection_consumption/identity/core/counters.rs"
+        )),
+        "projection_consumption/identity/core/declaration.rs" => Some(include_str!(
+            "../../projection_consumption/identity/core/declaration.rs"
+        )),
+        "projection_consumption/identity/core/eligibility.rs" => Some(include_str!(
+            "../../projection_consumption/identity/core/eligibility.rs"
+        )),
+        "projection_consumption/identity/core/entries.rs" => Some(include_str!(
+            "../../projection_consumption/identity/core/entries.rs"
+        )),
+        "projection_consumption/identity/core/envelope.rs" => Some(include_str!(
+            "../../projection_consumption/identity/core/envelope.rs"
+        )),
+        "projection_consumption/identity/core/mod.rs" => {
+            Some(include_str!("../../projection_consumption/identity/core/mod.rs"))
+        }
+        "projection_consumption/identity/core/receipt.rs" => Some(include_str!(
+            "../../projection_consumption/identity/core/receipt.rs"
+        )),
+        "projection_consumption/identity/core/transitions.rs" => Some(include_str!(
+            "../../projection_consumption/identity/core/transitions.rs"
+        )),
+        "projection_consumption/identity/extraction.rs" => Some(include_str!(
+            "../../projection_consumption/identity/extraction.rs"
+        )),
+        "projection_consumption/identity/fact_set.rs" => Some(include_str!(
+            "../../projection_consumption/identity/fact_set.rs"
+        )),
+        "projection_consumption/identity/mod.rs" => {
+            Some(include_str!("../../projection_consumption/identity/mod.rs"))
+        }
+        "projection_consumption/identity/scope.rs" => {
+            Some(include_str!("../../projection_consumption/identity/scope.rs"))
+        }
+        "projection_consumption/mod.rs" => Some(include_str!("../../projection_consumption/mod.rs")),
+        "projection_consumption/receipt.rs" => {
+            Some(include_str!("../../projection_consumption/receipt.rs"))
+        }
+        "projection_consumption/receipt_transitions.rs" => Some(include_str!(
+            "../../projection_consumption/receipt_transitions.rs"
+        )),
+        "projection_consumption/source/constructors.rs" => Some(include_str!(
+            "../../projection_consumption/source/constructors.rs"
+        )),
+        "projection_consumption/source/mod.rs" => {
+            Some(include_str!("../../projection_consumption/source/mod.rs"))
+        }
+        "projection_consumption/source_reference_identity.rs" => Some(include_str!(
+            "../../projection_consumption/source_reference_identity.rs"
+        )),
+        "projection_consumption/support.rs" => {
+            Some(include_str!("../../projection_consumption/support.rs"))
+        }
+        "workflow/foundation.rs" => Some(include_str!("../../workflow/foundation.rs")),
+        "workflow/identity/labels.rs" => Some(include_str!("../../workflow/identity/labels.rs")),
+        "workflow/identity/mod.rs" => Some(include_str!("../../workflow/identity/mod.rs")),
+        "workflow/inspection.rs" => Some(include_str!("../../workflow/inspection.rs")),
+        "workflow/inspection/identities.rs" => {
+            Some(include_str!("../../workflow/inspection/identities.rs"))
+        }
+        "workflow/inspection/operations.rs" => {
+            Some(include_str!("../../workflow/inspection/operations.rs"))
+        }
+        "workflow/inspection_projection.rs" => {
+            Some(include_str!("../../workflow/inspection_projection.rs"))
+        }
+        "workflow/lowering/counters.rs" => Some(include_str!("../../workflow/lowering/counters.rs")),
+        "workflow/lowering/errors.rs" => Some(include_str!("../../workflow/lowering/errors.rs")),
+        "workflow/lowering/merge.rs" => Some(include_str!("../../workflow/lowering/merge.rs")),
+        "workflow/lowering/mod.rs" => Some(include_str!("../../workflow/lowering/mod.rs")),
+        "workflow/lowering/mutation.rs" => Some(include_str!("../../workflow/lowering/mutation.rs")),
+        "workflow/lowering/terms.rs" => Some(include_str!("../../workflow/lowering/terms.rs")),
+        "workflow/lowering/writeback.rs" => Some(include_str!("../../workflow/lowering/writeback.rs")),
+        "workflow/mod.rs" => Some(include_str!("../../workflow/mod.rs")),
+        "workflow/performance.rs" => Some(include_str!("../../workflow/performance.rs")),
         "intent_admission/handoffs/bindings/mod.rs" => Some(include_str!(
             "../../intent_admission/handoffs/bindings/mod.rs"
         )),

@@ -1,16 +1,16 @@
 # Milestone 9.6 Engineering Spec: Product Boundary Debt Closure For Evidence Identity, Typed Stop Classes, And Session Label Identity
 
-> **Status:** Partial — ordinary-path Phases 1–7 and WS-1–WS-4 closed on
-> `query-repair`; Phases 8–11 (bridge-truth closeout, projection consumption,
-> workflow, domain capabilities) remain **mandatory 9.6 scope**, not 9.7.
+> **Status:** Closed for non-spatial identity-boundary scope on `query-repair`;
+> `worth-spatial public_api_contract` remains a named postponed external gate.
 >
 > **Attack plan:** [milestone-9.6-attack-plan.md](./milestone-9.6-attack-plan.md)
 >
-> **Closeout note (2026-06-16, branch `query-repair`):** WS-1–WS-4 restored
-> honest closure for the **curated ordinary runtime path**. Hostile QA then
-> found premature doc `Closed` while same-class folklore still survives in
-> `projection_consumption/`, `workflow/`, `domain_capabilities/`, and bridge-
-> truth Phase 10. Those slices are **9.6 work**, re-opened as Phases 8–11.
+> **Closeout note (2026-06-16, branch `query-repair`):** WS-1–WS-8 restored
+> honest non-spatial closure: curated ordinary runtime paths, bridge-truth
+> gates except postponed spatial integration, `projection_consumption/`,
+> `workflow/`, and `domain_capabilities/` are covered by exact-zero inventory
+> scans and typed evidence identity helpers. These slices are **9.6 work**, not
+> 9.7 deferrals.
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -667,18 +667,22 @@ sub-slices in the attack plan (DC-1 through DC-6), not one pass.
 
 ### Phase 12: Milestone Re-Close And Final Hostile Certification Boundary
 
-Aggregate Phases 7–11 into honest milestone `Closed` posture. Support/profile,
-docs, roadmap, and test-requirements must agree; no same-class exclusions
-remain for forge-query integration subtrees.
+Aggregate Phases 7–11 into honest non-spatial milestone `Closed` posture.
+Support/profile, docs, roadmap, and test-requirements must agree; no same-class
+exclusions remain for forge-query integration subtrees.
 
 **Warnings**
-- Do not mark `Closed` while any Phase 8–11 gate is `Open` or `Partial`.
+- Do not mark non-spatial `Closed` while any Phase 8–11 forge-query gate is
+  `Open` or `Partial`.
 - Deferring `projection_consumption/`, `workflow/`, or `domain_capabilities/`
   to Milestone `9.7` is prohibited — they are same-class 9.6 debt.
+- `worth-spatial public_api_contract` is postponed as an external spatial
+  integration gate; it does not reopen forge-query identity-boundary closure.
 
 **Test requirements**
 - Re-run Phase 7 hostile matrix with expanded inventory covering Phases 9–11.
-- Support `Closed` derives only from zero residue across all phases.
+- Support `Closed` derives only from zero residue across all non-spatial
+  forge-query phases.
 
 **Open questions**
 - None.
@@ -726,8 +730,9 @@ The milestone is only **Closed** when all of the following hold together:
    `domain_capabilities/` is not excludable** — deferral to `9.7` is invalid.
 6. Bridge-truth Phase 10 closeout (Phase 8) is `Closed` with zero unnamed
    ledger deferrals.
-7. Phase 12 aggregates `Closed` posture only when Phases 8–11 each report
-   `Closed` with phase-local inventory and hostile proof.
+7. Phase 12 aggregates non-spatial `Closed` posture only when Phases 8–11 each
+   report `Closed` with phase-local inventory and hostile proof, excluding the
+   named postponed `worth-spatial public_api_contract` integration gate.
 
 In other words: this milestone does not merely add typed APIs. It removes the
 need, excuse, and surviving opportunity for ordinary consumers or adjacent

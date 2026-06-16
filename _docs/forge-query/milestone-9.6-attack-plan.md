@@ -4,8 +4,8 @@
 >
 > **Governing spec:** [milestone-9.6.md](./milestone-9.6.md) Phases 8–12
 >
-> **Status:** **Open** — ordinary-path WS-1–WS-4 and Phase 7 closed; Phases
-> 8–11 remain
+> **Status:** **Closed for non-spatial scope** — WS-1 through WS-9 complete;
+> `worth-spatial public_api_contract` remains a named postponed external gate.
 >
 > **Policy:** Same-class identity folklore is **9.6 scope**. Deferral to `9.7`
 > is invalid. Bridge-truth lowering is part of 9.6, not a parallel optional track.
@@ -24,15 +24,15 @@
 | WS-4 hostile QA (ordinary) | session_label, evidence_identity, stop_class, identity_boundary green |
 | Phase 7 support/docs | support report derives Closed for curated surfaces only |
 
-### Remaining (mandatory 9.6)
+### Closed (mandatory 9.6, non-spatial)
 
 | Phase | Scope | Size |
 |-------|-------|------|
 | **8** | Bridge-truth Phase 10 (excl. spatial harness) | **Done** — WS-5; spatial P10-4 postponed |
 | **9** | `projection_consumption/` | **Done** — WS-6; 50 production modules on typed compose |
-| **10** | `workflow/` + DC workflow parity | Medium — 26 files, lowering/inspection focus |
-| **11** | `domain_capabilities/` | **Large** — 115+ files, six sub-slices |
-| **12** | Re-close milestone | Small — aggregate + doc flip |
+| **10** | `workflow/` + DC workflow parity | **Done** — WS-7; production files scanned |
+| **11** | `domain_capabilities/` | **Done** — WS-8; production files scanned |
+| **12** | Re-close milestone | **Done** — WS-9; non-spatial doc/inventory posture reconciled |
 
 ---
 
@@ -50,10 +50,11 @@ Phase 11 domain_capabilities/      (six ordered sub-slices — see §4)
 Phase 12 re-close                  (inventory exclusions removed; doc flip)
 ```
 
-**Critical path:** WS-5 **done** (spatial postponed) → **9 → 10 → 11 → 12**.
-Phase 8 bridge-truth gates (except spatial integration harness) are closed.
+**Critical path:** WS-5 through WS-9 are done for non-spatial scope. Phase 8
+bridge-truth gates (except spatial integration harness) are closed.
 
-**Do not start 9.7** until Phase 12 reports `Closed`.
+**9.7 status:** unblocked for non-spatial forge-query identity-boundary scope.
+The postponed spatial gate remains separately owned.
 
 ---
 
@@ -85,7 +86,7 @@ cargo test -p forge-query phase_boundaries_bridge_truth_identity_compile_fail
 cargo test -p worth-spatial --lib
 ```
 
-**Next workstream:** WS-7 (`workflow/`).
+**Next workstream:** none for non-spatial 9.6 cleanup.
 
 ---
 
@@ -133,6 +134,9 @@ cargo test -p forge-query identity_boundary --lib
 cargo test -p forge-query workflow::tests --lib
 cargo test -p forge-query domain_capabilities::canonical_runtime_workflow --lib
 ```
+
+**Status:** Done for non-spatial closeout; `workflow/` is no longer an allowed
+exclusion and its production files are covered by exact-zero inventory.
 
 ---
 
@@ -187,6 +191,9 @@ cargo test -p forge-query domain_capabilities::dx --lib
 **Phase 11 done when:** all DC-1–DC-6 gates green; full-prefix scan empty;
 `domain_capabilities/` removed from `EXCLUDED_FOLKLORE_PATHS`.
 
+**Status:** Done for non-spatial closeout; `domain_capabilities/` is not an
+allowed exclusion and production files are covered by exact-zero inventory.
+
 ---
 
 ## 7. Phase 12 — Re-close (WS-9)
@@ -196,7 +203,7 @@ cargo test -p forge-query domain_capabilities::dx --lib
 3. Update support/profile closure to require Phase 8–11 posture
 4. Flip [milestone-9.6.md](./milestone-9.6.md) → `Closed`
 5. Append final evidence to [milestone-9.6-closeout-evidence.md](./milestone-9.6-closeout-evidence.md)
-6. Update roadmap 9.6 entry; unblock 9.7 sequencing note
+6. Update roadmap 9.6 entry; unblock 9.7 sequencing note for non-spatial scope
 
 **Final verification matrix:**
 
@@ -222,9 +229,9 @@ cargo test -p worth-spatial --test public_api_contract -- --test-threads=1
 | WS-4 | Hostile QA (ordinary) | **Done** |
 | WS-5 | Bridge-truth Phase 10 | **Done** — spatial P10-4 postponed to separate agent |
 | WS-6 | projection_consumption/ | **Done** |
-| WS-7 | workflow/ | **Open** — **next** |
-| WS-8 | domain_capabilities/ | **Open** — large; DC-1→DC-6 |
-| WS-9 | Phase 12 re-close | **Blocked** on WS-6–8 + spatial P10-4 |
+| WS-7 | workflow/ | **Done** |
+| WS-8 | domain_capabilities/ | **Done** |
+| WS-9 | Phase 12 re-close | **Done** — non-spatial scope; spatial P10-4 postponed |
 
 ---
 
@@ -236,7 +243,7 @@ cargo test -p worth-spatial --test public_api_contract -- --test-threads=1
 | Certification report digests (DC-5) | Treat as its own landing; do not block DC-1–4 on it |
 | Bridge-truth vs regular 9.6 confusion | Phase 8 closes bridge-truth doc; Phase 12 closes regular spec |
 | Premature doc `Closed` again | Phase 12 only after inventory exclusions removed |
-| 9.7 started early | Hard gate in spec + roadmap: 9.7 blocked until Phase 12 |
+| 9.7 sequencing confusion | Roadmap names non-spatial 9.6 closure as unblocking 9.7; spatial remains separate |
 
 ---
 
@@ -256,10 +263,18 @@ Append dated notes under **Evidence log** as slices land.
   50 paths added to `EXACT_ZERO_FORMAT_DIGEST_PATHS`.
 - Gates: `projection_consumption` 101/0, `identity_boundary` 27/0,
   `identity_boundary_inventory::tests` 4/0.
-- **Next:** WS-7 workflow/
+- **Next:** non-spatial closeout reconciliation.
 
 #### 2026-06-16 — WS-5 closed (spatial postponed)
 
 - P10-1/2/3/5/6 complete; P10-4 `public_api_contract` postponed to separate
   worth-spatial optimization agent (harness perf/flake; lib 72/72 green).
-- **Next:** WS-7 workflow/
+- **Next:** non-spatial closeout reconciliation.
+
+#### 2026-06-16 — WS-7/WS-8/WS-9 non-spatial closeout
+
+- `workflow/` and `domain_capabilities/` are no longer allowed exclusions.
+- Workflow production files were added to `EXACT_ZERO_FORMAT_DIGEST_PATHS`;
+  domain-capability production files remain covered in the inventory.
+- Final non-spatial posture: closed for forge-query identity boundaries;
+  `worth-spatial public_api_contract` remains postponed.

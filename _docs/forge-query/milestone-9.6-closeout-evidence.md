@@ -4,7 +4,8 @@
 >
 > **Date:** 2026-06-16
 >
-> **Verdict:** **PARTIAL** — ordinary path CLEARED; Phases 8–11 open
+> **Verdict:** **CLOSED for non-spatial 9.6 identity-boundary scope** —
+> `worth-spatial public_api_contract` postponed as a named external gate.
 
 ## Before / after (lib regression burn-down)
 
@@ -47,18 +48,18 @@ cargo test -p forge-query public_doc_coverage::tests::identity_boundary_docs --l
 | worth-kernel construction basis/stop-class consumer paths | Typed `admission_identity()` + `stop_class()` matching; string-matching scan clean |
 | Named exclusions | Documented in `EXCLUDED_FOLKLORE_DEFERRALS` (9.7/9.8 owners) |
 
-## Remaining mandatory scope (Phases 8–11 — Milestone 9.6, not 9.7)
+## Mandatory scope closeout (Phases 8–11 — Milestone 9.6, not 9.7)
 
 | Prefix | Phase | Attack plan |
 |--------|-------|-------------|
 | Bridge-truth Phase 10 | 8 | WS-5 **done** — spatial P10-4 postponed |
 | `projection_consumption/` | 9 | WS-6 **done** — removed from exclusions; 50 modules in inventory scan |
-| `workflow/` | 10 | WS-7 |
-| `domain_capabilities/` | 11 | WS-8 (DC-1→DC-6) |
+| `workflow/` | 10 | WS-7 **done** — removed from exclusions; production files in inventory scan |
+| `domain_capabilities/` | 11 | WS-8 **done** — production files in inventory scan |
 
 **Invalid deferrals:** assigning forge-query integration dirs to Milestone 9.7 is
 prohibited. **worth-spatial `public_api_contract`** is the one valid postponement
-— separate agent, harness optimization, Phase 12 blocker only.
+— separate agent, harness optimization, not part of this non-spatial closeout.
 
 ## Former deferrals (still out of scope — different milestone class)
 

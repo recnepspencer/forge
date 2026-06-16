@@ -3155,11 +3155,11 @@ This milestone is complete only when `forge-query` can prove:
 
 ## Milestone 9.6: Product Boundary Debt Closure For Evidence Identity, Typed Stop Classes, And Session Label Identity
 
-> **Status:** Partial — ordinary-path WS-1–WS-4 closed on `query-repair`;
-> Phases 8–11 (bridge-truth closeout, projection consumption, workflow, domain
-> capabilities) remain mandatory 9.6 scope. Attack plan:
-> [milestone-9.6-attack-plan.md](./milestone-9.6-attack-plan.md). Milestone 9.7
-> is blocked until Phase 12 re-close.
+> **Status:** Closed for non-spatial identity-boundary scope on `query-repair`;
+> `worth-spatial public_api_contract` remains a named postponed external gate.
+> Non-spatial Phases 8–12 are reconciled in
+> [milestone-9.6-attack-plan.md](./milestone-9.6-attack-plan.md), and Milestone
+> 9.7 is unblocked for forge-query identity-boundary sequencing.
 
 ### Goal
 

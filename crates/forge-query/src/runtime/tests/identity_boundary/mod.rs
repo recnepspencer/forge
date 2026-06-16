@@ -367,9 +367,26 @@ fn inventory_documents_excluded_folklore_paths() {
     }
 
     assert!(!EXCLUDED_FOLKLORE_PATHS.contains(&"subscription/"));
+    assert!(
+        !EXCLUDED_FOLKLORE_PATHS.contains(&"projection_consumption/"),
+        "projection_consumption is same-class 9.6 identity-boundary scope"
+    );
+    assert!(
+        !EXCLUDED_FOLKLORE_PATHS.contains(&"workflow/"),
+        "workflow is same-class 9.6 identity-boundary scope"
+    );
+    assert!(
+        !EXCLUDED_FOLKLORE_PATHS.contains(&"domain_capabilities/"),
+        "domain_capabilities is same-class 9.6 identity-boundary scope"
+    );
+    assert!(EXCLUDED_FOLKLORE_PATHS.contains(&"runtime/intent/declaration.rs"));
     assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"subscription/input.rs"));
     assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"subscription/diagnostic/trace.rs"));
     assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"subscription/support/profile.rs"));
+    assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"projection_consumption/receipt.rs"));
+    assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"workflow/foundation.rs"));
+    assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"workflow/lowering/writeback.rs"));
+    assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"domain_capabilities/identity/mod.rs"));
     assert!(!EXCLUDED_FOLKLORE_PATHS.contains(&"runtime/intent/receipt.rs"));
     assert!(!EXCLUDED_FOLKLORE_PATHS.contains(&"runtime/intent/receipt_identity.rs"));
     assert!(!EXCLUDED_FOLKLORE_PATHS.contains(&"runtime/intent/effect_triggered.rs"));
