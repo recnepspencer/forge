@@ -2,30 +2,19 @@
 fn spatial_public_boundary_rejects_internal_constructor_bypass() {
     let t = trybuild::TestCases::new();
     let compile_fail = "src/certification/public_facade_contracts/compile_fail";
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_admitted_witness_request_artifacts_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_top_level_witness_helpers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_top_level_refs_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_top_level_lowering_runtime_products_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_top_level_arbitration_runtime_products_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_policy_namespace_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_arbitration_namespace_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_birth_namespace_not_exported.rs"
-    ));
+    macro_rules! cf {
+        ($case:literal) => {
+            t.compile_fail(format!("{compile_fail}/{}", $case));
+        };
+    }
+    cf!("public_spatial_admitted_witness_request_artifacts_not_exported.rs");
+    cf!("public_spatial_top_level_witness_helpers_not_exported.rs");
+    cf!("public_spatial_top_level_refs_not_exported.rs");
+    cf!("public_spatial_top_level_lowering_runtime_products_not_exported.rs");
+    cf!("public_spatial_top_level_arbitration_runtime_products_not_exported.rs");
+    cf!("public_spatial_policy_namespace_not_exported.rs");
+    cf!("public_spatial_arbitration_namespace_not_exported.rs");
+    cf!("public_spatial_birth_namespace_not_exported.rs");
     t.compile_fail(format!(
         "{compile_fail}/public_spatial_binding_birth_comparison_helpers_not_exported.rs"
     ));
@@ -96,14 +85,111 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/planar_boolean_common_plane/operand_projection_consumption_receipt_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/planar_predicate/receipt_not_forgeable.rs"
+        "{compile_fail}/planar_boolean_events/segment_carrier_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/planar_precision/receipt_not_forgeable.rs"
+        "{compile_fail}/planar_boolean_events/segment_carrier_set_not_from_coordinate_segments.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/planar_local_frame/receipt_not_forgeable.rs"
+        "{compile_fail}/planar_boolean_events/canonical_segment_not_forgeable.rs"
     ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/canonical_segment_set_not_from_coordinate_segments.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/normalized_endpoint_pair_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/endpoint_order_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/segment_pair_work_item_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/candidate_row_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/candidate_index_product_not_from_raw_rows.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/segment_pair_enumeration_receipt_not_from_raw_pairs.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/predicate_bound_pair_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/event_predicate_binding_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/event_classifier_requires_predicate_binding_context.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/event_classifier_input_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/point_event_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/point_event_coordinate_fact_not_from_raw_coordinates.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/point_event_extraction_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/interval_event_receipt_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/event_group_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/planar_boolean_events/event_ledger_receipt_not_forgeable.rs"
+    ));
+    cf!("planar_boolean_edge_splitting/candidate_index_consumption_gate_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/edge_split_request_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/edge_split_request_not_from_raw_split_inputs.rs");
+    cf!("planar_boolean_edge_splitting/split_scope_admission_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_scope_admission_not_from_raw_events.rs");
+    cf!("planar_boolean_edge_splitting/split_scope_admission_not_boolean_evidence_receipt.rs");
+    cf!("planar_boolean_edge_splitting/source_edge_carrier_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/source_edge_carrier_set_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/source_edge_carrier_recovery_not_from_raw_carriers.rs");
+    cf!("planar_boolean_edge_splitting/participation_index_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/participation_row_not_from_raw_strings.rs");
+    cf!("planar_boolean_edge_splitting/point_split_candidate_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/admitted_point_split_candidate_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/admitted_point_split_candidate_set_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/postured_point_split_candidate_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/raw_edge_split_schedule_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/ordered_edge_split_schedule_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/duplicate_split_cut_key_not_public.rs");
+    cf!("planar_boolean_edge_splitting/normalized_split_cut_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/normalized_edge_split_schedule_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/normalized_edge_split_schedule_set_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/endpoint_contact_decision_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/endpoint_boundary_normalized_schedule_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/endpoint_boundary_normalized_schedule_set_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/retained_interval_split_entry_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/normalized_interval_subdivision_row_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/interval_subdivision_normalized_schedule_set_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_vertex_identity_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_vertex_identity_set_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_edge_fragment_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_edge_fragment_set_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/fragment_endpoint_ref_not_hand_filled.rs");
+    cf!("planar_boolean_edge_splitting/overlap_edge_chain_member_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/overlap_edge_chain_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/overlap_edge_chain_set_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_chain_validation_receipt_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_fragment_coverage_row_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/overlap_chain_coverage_row_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/coordinate_only_split_vertex_identity_rejected.rs");
+    cf!("planar_boolean_edge_splitting/interval_split_candidate_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/interval_split_candidate_set_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/admitted_interval_split_candidate_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/admitted_interval_split_candidate_set_not_forgeable.rs");
+    cf!("planar_predicate/receipt_not_forgeable.rs");
+    cf!("planar_precision/receipt_not_forgeable.rs");
+    cf!("planar_local_frame/receipt_not_forgeable.rs");
     t.compile_fail(format!(
         "{compile_fail}/planar_projection/receipt_not_forgeable.rs"
     ));
@@ -172,6 +258,15 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/workload_vocabulary/evidence_ledger_complete_not_hand_filled.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/workload_vocabulary/evidence_stage_index_product_not_hand_filled.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/workload_operators/coplanar_overlap_operator_not_from_raw_evidence_rows.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/workload_operators/operator_stage_links_not_hand_filled.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/geometry_binding_workload/bound_workload_not_forgeable.rs"

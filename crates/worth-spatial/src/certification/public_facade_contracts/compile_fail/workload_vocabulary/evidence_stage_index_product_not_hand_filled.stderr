@@ -1,0 +1,11 @@
+error: cannot construct `WorkloadEvidenceStageIndexProduct` with struct literal syntax due to private fields
+ --> src/certification/public_facade_contracts/compile_fail/workload_vocabulary/evidence_stage_index_product_not_hand_filled.rs:4:13
+  |
+4 |     let _ = WorkloadEvidenceStageIndexProduct {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         rows: Vec::new(),
+  |         ---------------- private field
+6 |         stage_offsets: [None; 26],
+  |         ------------------------- private field
+  |
+  = note: ...and other private fields `counters` and `index_identity` that were not provided

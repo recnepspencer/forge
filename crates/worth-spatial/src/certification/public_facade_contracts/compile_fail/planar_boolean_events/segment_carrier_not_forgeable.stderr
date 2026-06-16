@@ -1,0 +1,27 @@
+error[E0451]: fields `operand_side`, `source_face_identity`, `source_loop_identity`, `source_edge_identity`, `loop_role`, `start`, `end`, `local_frame_identity`, `projection_stage_identity`, `precision_basis_identity` and `carrier_identity` of struct `PlanarBooleanSegmentCarrier` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/segment_carrier_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = PlanarBooleanSegmentCarrier {
+   |             --------------------------- in this type
+ 8 |         operand_side: PlanarBooleanCommonPlaneOperandSide::Left,
+   |         ^^^^^^^^^^^^ private field
+ 9 |         source_face_identity: String::from("face"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+10 |         source_loop_identity: String::from("loop"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         source_edge_identity: String::from("edge"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+12 |         loop_role: PlanarBooleanLoopRole::OuterBoundary,
+   |         ^^^^^^^^^ private field
+13 |         start: unavailable_endpoint_fact(),
+   |         ^^^^^ private field
+14 |         end: unavailable_endpoint_fact(),
+   |         ^^^ private field
+15 |         local_frame_identity: String::from("frame"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+16 |         projection_stage_identity: String::from("projection"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         precision_basis_identity: String::from("precision"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         carrier_identity: String::from("forged"),
+   |         ^^^^^^^^^^^^^^^^ private field

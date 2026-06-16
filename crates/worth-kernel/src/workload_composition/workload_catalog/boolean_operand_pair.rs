@@ -6,11 +6,13 @@ use super::built_recipe::{
 };
 use super::catalog::WorkloadCatalog;
 use super::error::WorkloadCatalogError;
+use super::recipe_kind::WorkloadTopologyBreadth;
 use super::recipe_kind::{WorkloadCatalogRecipeKind, WorkloadCatalogSupportPosture};
 use super::support_receipt::{
     WorkloadCatalogDeclarationReceipt, WorkloadCatalogSupportDecision,
     WorkloadCatalogSupportReceipt,
 };
+use worth_spatial::facade::workload_binding::PlanarLoopBoundaryCatalogProfile;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkloadCatalogBooleanOperandPairRecipe {
@@ -147,6 +149,8 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
     fn support_decision(&self) -> Result<WorkloadCatalogSupportDecision, WorkloadCatalogError> {
         Ok(match self.kind {
             WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair
+            | WorkloadCatalogRecipeKind::BooleanEventCarrierCleanPlanarBodyPair
+            | WorkloadCatalogRecipeKind::BooleanEventExtractionMetabossPair
             | WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair
             | WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair
             | WorkloadCatalogRecipeKind::BooleanThinFeaturePair
@@ -186,6 +190,18 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
             WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair => {
                 WorkloadCatalog::single_face_loop()
             }
+            WorkloadCatalogRecipeKind::BooleanEventCarrierCleanPlanarBodyPair => {
+                WorkloadCatalog::single_face_loop()
+            }
+            WorkloadCatalogRecipeKind::BooleanEventExtractionMetabossPair => {
+                WorkloadCatalog::single_face_loop()
+                    .with_topology_breadth(WorkloadTopologyBreadth::SingleFaceLoopEdges {
+                        edge_count: 24,
+                    })
+                    .with_planar_loop_boundary_profile(
+                        PlanarLoopBoundaryCatalogProfile::BooleanEventMetabossLeft,
+                    )
+            }
             WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair => {
                 WorkloadCatalog::single_face_loop()
                     .with_transform(super::recipe_kind::TransformRecipe::MovementRotationStack)
@@ -214,6 +230,18 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
         match self.kind {
             WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair => {
                 WorkloadCatalog::single_face_loop()
+            }
+            WorkloadCatalogRecipeKind::BooleanEventCarrierCleanPlanarBodyPair => {
+                WorkloadCatalog::single_face_loop()
+            }
+            WorkloadCatalogRecipeKind::BooleanEventExtractionMetabossPair => {
+                WorkloadCatalog::single_face_loop()
+                    .with_topology_breadth(WorkloadTopologyBreadth::SingleFaceLoopEdges {
+                        edge_count: 24,
+                    })
+                    .with_planar_loop_boundary_profile(
+                        PlanarLoopBoundaryCatalogProfile::BooleanEventMetabossRight,
+                    )
             }
             WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair => {
                 WorkloadCatalog::single_face_loop().with_transform(

@@ -1,9 +1,12 @@
-use crate::workload_platform::evidence_ledger::WorkloadEvidenceStage;
+use crate::workload_platform::evidence_ledger::{
+    WorkloadEvidenceStage, WorkloadEvidenceStageLinkSet,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CoplanarOverlapOperatorReceipt {
     pub(crate) operator_digest: String,
     pub(crate) consumed_evidence_identities: Vec<String>,
+    pub(crate) consumed_stage_links: WorkloadEvidenceStageLinkSet,
     pub(crate) overlap_extraction_identities: Vec<String>,
     pub(crate) operator_input_count: usize,
     pub(crate) operator_receipt_count: usize,
@@ -24,6 +27,10 @@ impl CoplanarOverlapOperatorReceipt {
 
     pub fn consumed_evidence_identities(&self) -> &[String] {
         &self.consumed_evidence_identities
+    }
+
+    pub fn consumed_stage_links(&self) -> &WorkloadEvidenceStageLinkSet {
+        &self.consumed_stage_links
     }
 
     pub fn overlap_extraction_identities(&self) -> &[String] {
@@ -71,8 +78,6 @@ impl CoplanarOverlapOperatorReceipt {
     }
 
     pub fn links_to_stage(&self, stage: WorkloadEvidenceStage) -> bool {
-        self.consumed_evidence_identities
-            .iter()
-            .any(|identity| identity.starts_with(&format!("{stage:?}:")))
+        self.consumed_stage_links.links_to(stage)
     }
 }

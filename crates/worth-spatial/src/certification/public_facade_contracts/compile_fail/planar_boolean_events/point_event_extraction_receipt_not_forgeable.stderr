@@ -1,0 +1,13 @@
+error[E0451]: fields `predicate_binding_identity`, `point_events`, `counters` and `extraction_identity` of struct `PlanarBooleanPointEventExtractionReceipt` are private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/point_event_extraction_receipt_not_forgeable.rs:5:9
+  |
+4 |     let _ = PlanarBooleanPointEventExtractionReceipt {
+  |             ---------------------------------------- in this type
+5 |         predicate_binding_identity: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+6 |         point_events: Vec::new(),
+  |         ^^^^^^^^^^^^ private field
+7 |         counters: Default::default(),
+  |         ^^^^^^^^ private field
+8 |         extraction_identity: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^ private field

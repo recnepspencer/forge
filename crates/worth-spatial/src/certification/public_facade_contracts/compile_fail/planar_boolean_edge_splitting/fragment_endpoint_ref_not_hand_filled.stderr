@@ -1,0 +1,16 @@
+error[E0624]: associated function `split_vertex` is private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/fragment_endpoint_ref_not_hand_filled.rs:4:56
+  |
+4 |       let _ = PlanarBooleanSplitEdgeFragmentEndpointRef::split_vertex(
+  |                                                          ^^^^^^^^^^^^ private associated function
+  |
+ ::: src/workload_platform/planar_boolean_edge_splitting/split_edge_fragments/endpoint_ref.rs
+  |
+  | /     pub(crate) fn split_vertex(
+  | |         split_vertex_identity: &str,
+  | |         source_edge_identity: &str,
+  | |         carrier_identity: &str,
+... |
+  | |         precision_basis_identity: &str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

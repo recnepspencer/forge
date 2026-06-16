@@ -1,0 +1,15 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/predicate_bound_pair_not_forgeable.rs:4:46
+  |
+4 |       let _ = PlanarBooleanPredicateBoundPair::new;
+  |                                                ^^^ private associated function
+  |
+ ::: src/workload_platform/planar_boolean_events/predicate_binding/bound_pair.rs
+  |
+  | /     pub(crate) fn new(
+  | |         reduced_pair_identity: &str,
+  | |         candidate_row: &PlanarBooleanSegmentCandidateRowReceipt,
+  | |         segment_receipt: &CertifiedSegmentSegment2DReceipt,
+  | |         predicate_consumption_fact_digest: &str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

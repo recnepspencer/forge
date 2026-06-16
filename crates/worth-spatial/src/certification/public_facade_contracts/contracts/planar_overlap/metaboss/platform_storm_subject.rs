@@ -60,12 +60,13 @@ pub(crate) fn certify_platform_storm_with_transform(
         built.projected_workload(),
         built.transform_receipts(),
     );
-    let operator_receipt =
-        CoplanarOverlapWorkloadOperator::from_consumed_evidence(run.consumed_evidence())
-            .with_certification_context(&context)
-            .with_extraction_bundle(&extraction_bundle)
-            .execute()
-            .expect("platform storm operator should execute");
+    let operator_receipt = CoplanarOverlapWorkloadOperator::from_stage_links(
+        run.evidence_binding().required_stage_links(),
+    )
+    .with_certification_context(&context)
+    .with_extraction_bundle(&extraction_bundle)
+    .execute()
+    .expect("platform storm operator should execute");
     let operator_outcome =
         OperatorOutcome::from_coplanar_overlap_receipt(run, operator_receipt.clone())
             .expect("kernel operator outcome should consume spatial receipt");
@@ -142,11 +143,13 @@ pub(crate) fn mismatched_operator_stage_link_error(
             operator_source.projected_workload(),
             operator_source.transform_receipts(),
         );
-        CoplanarOverlapWorkloadOperator::from_consumed_evidence(operator_run.consumed_evidence())
-            .with_certification_context(&context)
-            .with_extraction_bundle(&bundle)
-            .execute()
-            .expect("operator source should execute")
+        CoplanarOverlapWorkloadOperator::from_stage_links(
+            operator_run.evidence_binding().required_stage_links(),
+        )
+        .with_certification_context(&context)
+        .with_extraction_bundle(&bundle)
+        .execute()
+        .expect("operator source should execute")
     };
 
     CoplanarOverlapStormWorkload::from_platform_evidence(

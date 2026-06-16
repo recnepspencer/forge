@@ -19,6 +19,9 @@ pub enum WorkloadEvidenceStage {
     BooleanOperandAProjectionConsumption,
     BooleanOperandBProjectionConsumption,
     BooleanReducedOperandPair,
+    BooleanEventExtractionRequest,
+    BooleanSegmentPairEnumeration,
+    BooleanEventLedger,
     BooleanSplit,
     BooleanClassify,
     BooleanAssemble,
@@ -37,6 +40,9 @@ pub enum BooleanEvidenceStageKind {
     OperandAProjectionConsumption,
     OperandBProjectionConsumption,
     ReducedOperandPair,
+    EventExtractionRequest,
+    SegmentPairEnumeration,
+    EventLedger,
     Split,
     Classify,
     Assemble,
@@ -44,6 +50,8 @@ pub enum BooleanEvidenceStageKind {
 }
 
 impl WorkloadEvidenceStage {
+    pub(crate) const STAGE_COUNT: usize = 26;
+
     pub const AUTHORITY_STAGES: [Self; 8] = [
         Self::Topology,
         Self::GeometryBinding,
@@ -55,7 +63,7 @@ impl WorkloadEvidenceStage {
         Self::Response,
     ];
 
-    pub const BOOLEAN_STAGES: [Self; 14] = [
+    pub const BOOLEAN_STAGES: [Self; 17] = [
         Self::BooleanDeclarationEntry,
         Self::BooleanRoutePlan,
         Self::BooleanOperandPairConstruction,
@@ -66,6 +74,9 @@ impl WorkloadEvidenceStage {
         Self::BooleanOperandAProjectionConsumption,
         Self::BooleanOperandBProjectionConsumption,
         Self::BooleanReducedOperandPair,
+        Self::BooleanEventExtractionRequest,
+        Self::BooleanSegmentPairEnumeration,
+        Self::BooleanEventLedger,
         Self::BooleanSplit,
         Self::BooleanClassify,
         Self::BooleanAssemble,
@@ -97,6 +108,9 @@ impl WorkloadEvidenceStage {
                 "boolean operand-B projection consumption evidence"
             }
             Self::BooleanReducedOperandPair => "boolean reduced operand-pair evidence",
+            Self::BooleanEventExtractionRequest => "boolean event extraction request evidence",
+            Self::BooleanSegmentPairEnumeration => "boolean segment-pair enumeration evidence",
+            Self::BooleanEventLedger => "boolean event ledger evidence",
             Self::BooleanSplit => "boolean split evidence",
             Self::BooleanClassify => "boolean classify evidence",
             Self::BooleanAssemble => "boolean assemble evidence",
@@ -106,6 +120,37 @@ impl WorkloadEvidenceStage {
 
     pub fn is_boolean_stage(self) -> bool {
         Self::BOOLEAN_STAGES.contains(&self)
+    }
+
+    pub(crate) fn index_slot(self) -> usize {
+        match self {
+            Self::Topology => 0,
+            Self::GeometryBinding => 1,
+            Self::SurfaceSupport => 2,
+            Self::Projection => 3,
+            Self::Transform => 4,
+            Self::RetainedReplay => 5,
+            Self::Diagnostics => 6,
+            Self::Response => 7,
+            Self::Operator => 8,
+            Self::BooleanDeclarationEntry => 9,
+            Self::BooleanRoutePlan => 10,
+            Self::BooleanOperandPairConstruction => 11,
+            Self::BooleanBlockerProvenance => 12,
+            Self::BooleanPrecisionAgreement => 13,
+            Self::BooleanSharedPlaneIdentity => 14,
+            Self::BooleanLocalFrameSelection => 15,
+            Self::BooleanOperandAProjectionConsumption => 16,
+            Self::BooleanOperandBProjectionConsumption => 17,
+            Self::BooleanReducedOperandPair => 18,
+            Self::BooleanEventExtractionRequest => 19,
+            Self::BooleanSegmentPairEnumeration => 20,
+            Self::BooleanEventLedger => 21,
+            Self::BooleanSplit => 22,
+            Self::BooleanClassify => 23,
+            Self::BooleanAssemble => 24,
+            Self::BooleanCleanup => 25,
+        }
     }
 }
 
@@ -126,6 +171,9 @@ impl BooleanEvidenceStageKind {
                 WorkloadEvidenceStage::BooleanOperandBProjectionConsumption
             }
             Self::ReducedOperandPair => WorkloadEvidenceStage::BooleanReducedOperandPair,
+            Self::EventExtractionRequest => WorkloadEvidenceStage::BooleanEventExtractionRequest,
+            Self::SegmentPairEnumeration => WorkloadEvidenceStage::BooleanSegmentPairEnumeration,
+            Self::EventLedger => WorkloadEvidenceStage::BooleanEventLedger,
             Self::Split => WorkloadEvidenceStage::BooleanSplit,
             Self::Classify => WorkloadEvidenceStage::BooleanClassify,
             Self::Assemble => WorkloadEvidenceStage::BooleanAssemble,

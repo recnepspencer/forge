@@ -1,0 +1,11 @@
+error[E0451]: fields `segment_pair_enumeration_identity`, `candidate_index_product` and `work_items` of struct `PlanarBooleanSegmentPairEnumerationReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/segment_pair_enumeration_receipt_not_from_raw_pairs.rs:8:9
+   |
+ 7 |     let _ = PlanarBooleanSegmentPairEnumerationReceipt {
+   |             ------------------------------------------ in this type
+ 8 |         segment_pair_enumeration_identity: String::from("forged"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         candidate_index_product: unavailable_candidate_index_product(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         work_items: Vec::<PlanarBooleanSegmentPairWorkItem>::new(),
+   |         ^^^^^^^^^^ private field

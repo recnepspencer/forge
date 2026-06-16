@@ -135,4 +135,10 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     t.compile_fail(format!(
         "{compile_fail}/public_topology_declaration_entry_refusal_class_not_exported.rs"
     ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_edge_split_operator_row_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_edge_split_validator_row_not_forgeable.rs"
+    ));
 }

@@ -1,13 +1,24 @@
-use super::{WorkloadEvidenceLedger, WorkloadEvidenceStage};
+use std::fmt;
 
-#[derive(Debug)]
+use super::{WorkloadEvidenceStage, WorkloadEvidenceStageIndexProduct};
+
 pub struct WorkloadEvidenceGuard<'a> {
-    ledger: &'a WorkloadEvidenceLedger,
+    stage_index: &'a WorkloadEvidenceStageIndexProduct,
+}
+
+impl fmt::Debug for WorkloadEvidenceGuard<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let stage_index_identity = self.stage_index.index_identity();
+        formatter
+            .debug_struct("WorkloadEvidenceGuard")
+            .field("stage_index_identity", &stage_index_identity)
+            .finish()
+    }
 }
 
 impl<'a> WorkloadEvidenceGuard<'a> {
-    pub(crate) fn new(ledger: &'a WorkloadEvidenceLedger) -> Self {
-        Self { ledger }
+    pub(crate) fn new(stage_index: &'a WorkloadEvidenceStageIndexProduct) -> Self {
+        Self { stage_index }
     }
 
     pub fn assert_uses_real_topology(self) -> Result<Self, WorkloadEvidenceGuardError> {
@@ -53,7 +64,7 @@ impl<'a> WorkloadEvidenceGuard<'a> {
             .iter()
             .copied()
             .find(|stage| {
-                self.ledger
+                self.stage_index
                     .row_for_stage(*stage)
                     .is_some_and(|row| row.counters().total_receipt_backed_counters() == 0)
             });
@@ -73,7 +84,7 @@ impl<'a> WorkloadEvidenceGuard<'a> {
     }
 
     pub fn assert_no_synthetic_end_to_end_claim(self) -> Result<Self, WorkloadEvidenceGuardError> {
-        if let Some(stage) = self.ledger.missing_authority_stage() {
+        if let Some(stage) = self.stage_index.missing_authority_stage() {
             return Err(WorkloadEvidenceGuardError::IncompleteEndToEndClaim(stage));
         }
         if let Some(stage) = self.manual_authority_stage() {
@@ -90,7 +101,7 @@ impl<'a> WorkloadEvidenceGuard<'a> {
         stage: WorkloadEvidenceStage,
     ) -> Result<&super::WorkloadEvidenceRow, WorkloadEvidenceGuardError> {
         let row = self
-            .ledger
+            .stage_index
             .row_for_stage(stage)
             .ok_or(WorkloadEvidenceGuardError::MissingReceiptBackedStage(stage))?;
         if row.is_receipt_backed() {
@@ -105,7 +116,7 @@ impl<'a> WorkloadEvidenceGuard<'a> {
             .iter()
             .copied()
             .find(|stage| {
-                self.ledger
+                self.stage_index
                     .row_for_stage(*stage)
                     .is_some_and(|row| !row.is_receipt_backed())
             })
@@ -116,7 +127,7 @@ impl<'a> WorkloadEvidenceGuard<'a> {
             .iter()
             .copied()
             .find(|stage| {
-                self.ledger
+                self.stage_index
                     .row_for_stage(*stage)
                     .is_some_and(|row| row.is_receipt_backed() && !row.is_admitted())
             })

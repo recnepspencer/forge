@@ -1,8 +1,9 @@
 use worth_spatial::facade::workload_vocabulary::{
-    WorkloadEvidenceGuardError, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceGuardError, WorkloadEvidenceStage,
 };
 
 use super::declaration::{OperatorDeclarationReceipt, WorkloadOperatorFamily};
+use super::evidence_binding::OperatorEvidenceBinding;
 use super::support::{OperatorSupportReceipt, OperatorWorkloadError};
 use crate::workload_composition::{WorkloadStageRequirement, WorthWorkload};
 
@@ -22,7 +23,7 @@ pub struct OperatorRun {
     requirement: WorkloadStageRequirement,
     declaration: OperatorDeclarationReceipt,
     support: OperatorSupportReceipt,
-    consumed_evidence: Vec<WorkloadEvidenceRow>,
+    evidence_binding: OperatorEvidenceBinding,
 }
 
 impl OperatorRun {
@@ -39,12 +40,16 @@ impl OperatorRun {
                 .evidence_for_stage(stage)
                 .ok_or(OperatorWorkloadError::MissingRequiredStage(stage))?;
         }
+        let evidence_binding = OperatorEvidenceBinding::from_ledger(
+            workload.evidence_ledger(),
+            &required_operator_stage_links(declaration.requirement())?,
+        )?;
         Ok(Self {
             family: declaration.family(),
             requirement: declaration.requirement(),
             declaration,
             support,
-            consumed_evidence: workload.evidence_ledger().rows().to_vec(),
+            evidence_binding,
         })
     }
 
@@ -64,12 +69,12 @@ impl OperatorRun {
         &self.support
     }
 
-    pub fn consumed_evidence(&self) -> &[WorkloadEvidenceRow] {
-        &self.consumed_evidence
+    pub fn evidence_binding(&self) -> &OperatorEvidenceBinding {
+        &self.evidence_binding
     }
 
     pub fn evidence_rows(&self) -> usize {
-        self.consumed_evidence.len()
+        self.evidence_binding.evidence_row_count()
     }
 }
 
@@ -91,9 +96,16 @@ fn require_honest_evidence(workload: &WorthWorkload) -> Result<(), OperatorWorkl
 fn require_projection_counters(workload: &WorthWorkload) -> Result<(), OperatorWorkloadError> {
     let projection = workload
         .evidence_ledger()
-        .rows()
-        .iter()
-        .find(|row| row.stage() == WorkloadEvidenceStage::Projection)
+        .stage_index()
+        .link_required_stages(&[WorkloadEvidenceStage::Projection])
+        .map_err(|error| match error {
+            worth_spatial::facade::workload_vocabulary::WorkloadEvidenceLedgerError::MissingAuthorityStage(stage) => {
+                OperatorWorkloadError::MissingRequiredStage(stage)
+            }
+            other => OperatorWorkloadError::EvidenceStageBindingFailed(other),
+        })?
+        .link_for_stage(WorkloadEvidenceStage::Projection)
+        .cloned()
         .ok_or(OperatorWorkloadError::MissingRequiredStage(
             WorkloadEvidenceStage::Projection,
         ))?;
@@ -102,6 +114,18 @@ fn require_projection_counters(workload: &WorthWorkload) -> Result<(), OperatorW
         return Err(OperatorWorkloadError::SyntheticProjection);
     }
     Ok(())
+}
+
+fn required_operator_stage_links(
+    requirement: WorkloadStageRequirement,
+) -> Result<Vec<WorkloadEvidenceStage>, OperatorWorkloadError> {
+    let mut stages = WorkloadEvidenceStage::AUTHORITY_STAGES.to_vec();
+    if let Some(stage) = requirement.operator_evidence_stage()? {
+        if !stages.contains(&stage) {
+            stages.push(stage);
+        }
+    }
+    Ok(stages)
 }
 
 impl WorkloadStageRequirement {
@@ -126,9 +150,11 @@ impl WorkloadStageRequirement {
             | Self::BooleanLocalFrameSelection
             | Self::BooleanOperandAProjectionConsumption
             | Self::BooleanOperandBProjectionConsumption
-            | Self::BooleanReducedOperandPair => {
-                Err(OperatorWorkloadError::UnsupportedRequirement(self))
-            }
+            | Self::BooleanReducedOperandPair
+            | Self::BooleanEventExtractionRequest
+            | Self::BooleanSegmentPairEnumeration
+            | Self::BooleanEventLedger
+            | Self::BooleanSplit => Err(OperatorWorkloadError::UnsupportedRequirement(self)),
             Self::EvidenceLedger => Ok(None),
         }
     }

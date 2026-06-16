@@ -64,6 +64,7 @@
 //! parallel support namespace.
 
 #![forbid(unsafe_code)]
+#![cfg_attr(test, allow(dead_code, unused_imports))]
 
 mod anchor_selection;
 mod authored_refs;

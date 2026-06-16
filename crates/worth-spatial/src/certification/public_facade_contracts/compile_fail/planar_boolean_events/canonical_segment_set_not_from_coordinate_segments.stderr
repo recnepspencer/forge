@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `from_coordinate_segments` found for struct `PlanarBooleanCanonicalSegmentSet` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/canonical_segment_set_not_from_coordinate_segments.rs:4:47
+  |
+4 |     let _ = PlanarBooleanCanonicalSegmentSet::from_coordinate_segments(vec![
+  |                                               ^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `PlanarBooleanCanonicalSegmentSet`

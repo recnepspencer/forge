@@ -1,7 +1,9 @@
 mod boolean_common_plane_reduction;
 mod boolean_entry;
 mod boolean_entry_basis;
+mod boolean_event_extraction;
 mod boolean_evidence;
+mod boolean_evidence_requirement;
 mod boolean_outcome;
 mod operator_harness;
 mod stage_requirements;
@@ -33,6 +35,7 @@ pub use boolean_entry::{
     PlanarBooleanOperation, PlanarBooleanSupportPosture, PlanarBooleanSupportReceipt,
 };
 pub use boolean_entry_basis::{PlanarBooleanEntryBasis, PlanarBooleanEntryBasisError};
+pub use boolean_event_extraction::PlanarBooleanEventExtractionRequest;
 pub use boolean_evidence::{
     PlanarBooleanBlockerEvidenceReceipt, PlanarBooleanOperandPairConstructionReceipt,
 };
@@ -40,10 +43,10 @@ pub use boolean_outcome::{
     PlanarBooleanBlockerContext, PlanarBooleanOutcomeKind, PlanarBooleanOutcomeReceipt,
 };
 pub use operator_harness::{
-    OperatorDeclarationReceipt, OperatorOutcome, OperatorOutcomeKind, OperatorReadyWorkload,
-    OperatorReceiptSet, OperatorRun, OperatorSupportPosture, OperatorSupportReceipt,
-    OperatorWorkloadError, OperatorWorkloadReceipt, UnsupportedOperatorFamily, WorkloadOperator,
-    WorkloadOperatorFamily,
+    OperatorDeclarationReceipt, OperatorEvidenceBinding, OperatorOutcome, OperatorOutcomeKind,
+    OperatorReadyWorkload, OperatorReceiptSet, OperatorRun, OperatorSupportPosture,
+    OperatorSupportReceipt, OperatorWorkloadError, OperatorWorkloadReceipt,
+    UnsupportedOperatorFamily, WorkloadOperator, WorkloadOperatorFamily,
 };
 pub use stage_requirements::WorkloadStageRequirement;
 pub use workload_catalog::{

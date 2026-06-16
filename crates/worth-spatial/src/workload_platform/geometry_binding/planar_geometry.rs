@@ -1,6 +1,6 @@
 use super::{
-    catalog_loop_boundary_geometry, GeometryCarrierFamily, GeometryCarrierIdentity,
-    PlanarLoopBoundaryGeometry,
+    catalog_loop_boundary_geometry_for_profile, GeometryCarrierFamily, GeometryCarrierIdentity,
+    PlanarLoopBoundaryCatalogProfile, PlanarLoopBoundaryGeometry,
 };
 use crate::bindings::authority::{
     CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite, EdgeCurveBindingSpec,
@@ -264,9 +264,17 @@ pub struct PlanarLoopCarrierSet {
 
 impl PlanarLoopCarrierSet {
     pub fn for_seed_loops(seed: &TopologySeedReceipt) -> Self {
+        Self::for_seed_loops_with_profile(seed, PlanarLoopBoundaryCatalogProfile::Default)
+    }
+
+    pub fn for_seed_loops_with_profile(
+        seed: &TopologySeedReceipt,
+        profile: PlanarLoopBoundaryCatalogProfile,
+    ) -> Self {
         let contract = birth_contract_for_seed(seed);
         let topology_receipt_identity = topology_receipt_identity(seed);
         let face_identities = seed.entity_identities().face_identity_tokens();
+        let edge_identities = seed.entity_identities().edge_identity_tokens();
         let loops = seed
             .entity_identities()
             .loop_identity_tokens()
@@ -288,7 +296,12 @@ impl PlanarLoopCarrierSet {
                     spec.birth_contract(),
                     spec.geometry_identity(),
                 ));
-                let boundary = catalog_loop_boundary_geometry(index, owning_face_identity);
+                let boundary = catalog_loop_boundary_geometry_for_profile(
+                    profile,
+                    index,
+                    owning_face_identity,
+                    &edge_identities,
+                );
                 BoundPlanarLoopGeometry::new(topology_identity, spec, binding_identity, boundary)
             })
             .collect();

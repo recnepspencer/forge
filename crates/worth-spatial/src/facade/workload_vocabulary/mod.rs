@@ -2,7 +2,9 @@ pub use crate::workload_platform::evidence_ledger::{
     BooleanEvidenceReceipt, BooleanEvidenceStageKind, CompleteWorkloadEvidenceLedger,
     WorkloadEvidenceBacking, WorkloadEvidenceCounters, WorkloadEvidenceGuard,
     WorkloadEvidenceGuardError, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
-    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageBinding,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceStageIndexCounters,
+    WorkloadEvidenceStageIndexProduct, WorkloadEvidenceStageLink, WorkloadEvidenceStageLinkSet,
     WorkloadEvidenceSupport,
 };
 pub use crate::workload_platform::vocabulary::{

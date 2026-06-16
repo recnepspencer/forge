@@ -9,8 +9,15 @@ use worth_spatial::facade::planar_boolean_common_plane::{
 };
 use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
 
+#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_fake_evidence.rs"]
+mod fake_evidence;
 #[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
 mod reduced_pair_support;
+
+use fake_evidence::{
+    CounterlessReducedOperandPairEvidence, SupportMismatchedReducedOperandPairEvidence,
+    WrongCounterFamilyReducedOperandPairEvidence,
+};
 
 #[test]
 fn reduced_operand_pair_request_converges_across_construction_paths() {
@@ -281,7 +288,7 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_reduced_pair
         let counterless = reduced_pair_support::rebuild_left_workload(
             &pair,
             vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &reduced_pair_support::CounterlessReducedOperandPairEvidence::new(&reduced_pair),
+                &CounterlessReducedOperandPairEvidence::new(&reduced_pair),
             )],
         );
         assert_eq!(
@@ -296,9 +303,7 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_reduced_pair
         let unsupported = reduced_pair_support::rebuild_left_workload(
             &pair,
             vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &reduced_pair_support::SupportMismatchedReducedOperandPairEvidence::new(
-                    &reduced_pair,
-                ),
+                &SupportMismatchedReducedOperandPairEvidence::new(&reduced_pair),
             )],
         );
         assert_eq!(
@@ -313,9 +318,7 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_reduced_pair
         let wrong_counter_family = reduced_pair_support::rebuild_left_workload(
             &pair,
             vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &reduced_pair_support::WrongCounterFamilyReducedOperandPairEvidence::new(
-                    &reduced_pair,
-                ),
+                &WrongCounterFamilyReducedOperandPairEvidence::new(&reduced_pair),
             )],
         );
         assert_eq!(

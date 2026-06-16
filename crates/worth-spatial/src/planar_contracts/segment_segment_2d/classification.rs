@@ -49,11 +49,13 @@ pub(crate) fn classify_segment_segment_2d(
 fn classify_endpoint_touch_or_disjoint(
     signs: [TriSign; 4],
 ) -> CertifiedSegmentSegment2DClassification {
-    let first_pair_touches = signs[0].is_zero() || signs[1].is_zero();
-    let second_pair_touches = signs[2].is_zero() || signs[3].is_zero();
-    let first_pair_spans = signs[0].is_zero() || signs[1].is_zero() || signs[0] != signs[1];
-    let second_pair_spans = signs[2].is_zero() || signs[3].is_zero() || signs[2] != signs[3];
-    if first_pair_touches && second_pair_touches && first_pair_spans && second_pair_spans {
+    let b_endpoint_on_a_line = signs[0].is_zero() || signs[1].is_zero();
+    let a_endpoint_on_b_line = signs[2].is_zero() || signs[3].is_zero();
+    let b_spans_a_line = signs[0].is_zero() || signs[1].is_zero() || signs[0] != signs[1];
+    let a_spans_b_line = signs[2].is_zero() || signs[3].is_zero() || signs[2] != signs[3];
+    let b_endpoint_touches_a = b_endpoint_on_a_line && a_spans_b_line;
+    let a_endpoint_touches_b = a_endpoint_on_b_line && b_spans_a_line;
+    if b_endpoint_touches_a || a_endpoint_touches_b {
         CertifiedSegmentSegment2DClassification::EndpointTouch
     } else {
         CertifiedSegmentSegment2DClassification::Disjoint

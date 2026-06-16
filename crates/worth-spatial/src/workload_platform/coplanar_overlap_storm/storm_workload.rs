@@ -148,11 +148,10 @@ impl<'a> CoplanarOverlapStormWorkload<'a> {
             .row_for_stage(stage)
             .filter(|row| row.is_receipt_backed() && row.is_admitted())
             .ok_or(CoplanarOverlapStormWorkloadError::MissingReceiptBackedStage(stage))?;
-        let expected_link = format!("{stage:?}:{}", row.evidence_identity());
         if self
             .operator_receipt
-            .consumed_evidence_identities()
-            .contains(&expected_link)
+            .consumed_stage_links()
+            .links_to_identity(stage, row.evidence_identity())
         {
             Ok(())
         } else {
@@ -168,7 +167,11 @@ impl<'a> CoplanarOverlapStormWorkload<'a> {
                 .row_for_stage(stage)
                 .filter(|row| row.is_receipt_backed() && row.is_admitted())
                 .ok_or(CoplanarOverlapStormWorkloadError::MissingReceiptBackedStage(stage))?;
-            parts.push(format!("{stage:?}:{}", row.evidence_identity()));
+            parts.push(format!(
+                "stage:{}|identity:{}",
+                stage.human_name(),
+                row.evidence_identity()
+            ));
         }
         Ok(truth_digest_parts(
             TruthDigestScope::ArtifactIdentity,

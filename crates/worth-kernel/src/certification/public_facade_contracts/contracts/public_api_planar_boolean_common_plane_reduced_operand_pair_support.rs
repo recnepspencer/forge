@@ -1,18 +1,15 @@
+#![allow(dead_code)]
+
 use worth_kernel::workload_composition::{
     BuiltBooleanOperandPairRecipe, PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
     PlanarBooleanCommonPlaneOperandAProjectedRequest,
     PlanarBooleanCommonPlaneOperandBProjectedRequest, PlanarBooleanCommonPlanePlaneAgreedRequest,
     PlanarBooleanCommonPlanePostureAgreedRequest, PlanarBooleanCommonPlanePrecisionAgreedRequest,
-    PlanarBooleanCommonPlaneReducedOperandPairRequest, PlanarBooleanCommonPlaneReductionRequest,
-    PlanarBooleanCommonPlaneScopeAdmittedRequest,
+    PlanarBooleanCommonPlaneReductionRequest, PlanarBooleanCommonPlaneScopeAdmittedRequest,
     PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest, PlanarBooleanDeclaration,
     PlanarBooleanEntryBasis, PlanarBooleanExecutionLane, PlanarBooleanFamily,
     PlanarBooleanOperandPairIdentity, PlanarBooleanOperation, WorkloadCatalog, WorthWorkload,
     WorthWorkloadParts,
-};
-use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceSupport,
 };
 use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
 
@@ -37,6 +34,62 @@ pub(crate) fn projected_operand_requests_from_catalog(
     PlanarBooleanCommonPlaneOperandBProjectedRequest,
 ) {
     let pair = build_admitted_operand_pair(readiness_scope);
+    let declaration = bind_boolean_declaration(readiness_scope, &pair);
+    let local_frame = select_common_plane_local_frame(declaration, pair.clone());
+
+    let operand_a =
+        PlanarBooleanCommonPlaneOperandAProjectedRequest::from_local_frame_selected_request(
+            local_frame.clone(),
+        )
+        .expect("operand A should certify");
+    let operand_b =
+        PlanarBooleanCommonPlaneOperandBProjectedRequest::from_local_frame_selected_request(
+            local_frame,
+        )
+        .expect("operand B should certify");
+
+    (pair, operand_a, operand_b)
+}
+
+pub(crate) fn event_carrier_projected_operand_requests_from_catalog(
+    readiness_scope: &'static str,
+) -> (
+    BuiltBooleanOperandPairRecipe,
+    PlanarBooleanCommonPlaneOperandAProjectedRequest,
+    PlanarBooleanCommonPlaneOperandBProjectedRequest,
+) {
+    let pair = WorkloadCatalog::planar_boolean_event_carrier_clean_planar_body_pair()
+        .declared(readiness_scope)
+        .build()
+        .expect("event carrier pair should build");
+    let declaration = bind_boolean_declaration(readiness_scope, &pair);
+    let local_frame = select_common_plane_local_frame(declaration, pair.clone());
+
+    let operand_a =
+        PlanarBooleanCommonPlaneOperandAProjectedRequest::from_local_frame_selected_request(
+            local_frame.clone(),
+        )
+        .expect("operand A should certify");
+    let operand_b =
+        PlanarBooleanCommonPlaneOperandBProjectedRequest::from_local_frame_selected_request(
+            local_frame,
+        )
+        .expect("operand B should certify");
+
+    (pair, operand_a, operand_b)
+}
+
+pub(crate) fn metaboss_projected_operand_requests_from_catalog(
+    readiness_scope: &'static str,
+) -> (
+    BuiltBooleanOperandPairRecipe,
+    PlanarBooleanCommonPlaneOperandAProjectedRequest,
+    PlanarBooleanCommonPlaneOperandBProjectedRequest,
+) {
+    let pair = WorkloadCatalog::planar_boolean_event_extraction_metaboss_pair()
+        .declared(readiness_scope)
+        .build()
+        .expect("metaboss event extraction pair should build");
     let declaration = bind_boolean_declaration(readiness_scope, &pair);
     let local_frame = select_common_plane_local_frame(declaration, pair.clone());
 
@@ -150,100 +203,4 @@ pub(crate) fn run_with_large_stack(body: impl FnOnce() + Send + 'static) {
         .expect("reduced-pair request contract thread should spawn")
         .join()
         .expect("reduced-pair request contract thread should finish");
-}
-
-pub(crate) struct CounterlessReducedOperandPairEvidence {
-    digest: String,
-}
-
-impl CounterlessReducedOperandPairEvidence {
-    pub(crate) fn new(reduced_pair: &PlanarBooleanCommonPlaneReducedOperandPairRequest) -> Self {
-        Self {
-            digest: reduced_pair
-                .reduced_operand_pair_request_identity()
-                .to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for CounterlessReducedOperandPairEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::ReducedOperandPair
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Admitted
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::default()
-    }
-}
-
-pub(crate) struct SupportMismatchedReducedOperandPairEvidence {
-    digest: String,
-}
-
-impl SupportMismatchedReducedOperandPairEvidence {
-    pub(crate) fn new(reduced_pair: &PlanarBooleanCommonPlaneReducedOperandPairRequest) -> Self {
-        Self {
-            digest: reduced_pair
-                .reduced_operand_pair_request_identity()
-                .to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for SupportMismatchedReducedOperandPairEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::ReducedOperandPair
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Unsupported
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::boolean_reduced_operand_pair()
-    }
-}
-
-pub(crate) struct WrongCounterFamilyReducedOperandPairEvidence {
-    digest: String,
-}
-
-impl WrongCounterFamilyReducedOperandPairEvidence {
-    pub(crate) fn new(reduced_pair: &PlanarBooleanCommonPlaneReducedOperandPairRequest) -> Self {
-        Self {
-            digest: reduced_pair
-                .reduced_operand_pair_request_identity()
-                .to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for WrongCounterFamilyReducedOperandPairEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::ReducedOperandPair
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Admitted
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption()
-    }
 }

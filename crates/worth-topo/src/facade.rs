@@ -26,7 +26,11 @@ pub use crate::projection::runtime_boundary::query_runtime::{
 pub use crate::topology_operators::{
     topology_grouped_operator_neighborhood, topology_operator_continuation_target,
     topology_operator_contribution_workflow, topology_operator_signal_workflow,
-    BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, NamingMutationContinuityMatrix,
+    BoundaryMembershipKind, EdgeSplitBlueprintCloseout, EdgeSplitBlueprintCloseoutDenial,
+    EdgeSplitOperatorBlueprint, EdgeSplitOperatorClassification, EdgeSplitOperatorProofObligation,
+    EdgeSplitOperatorRow, EdgeSplitOperatorTruthAuthority, EdgeSplitRequiredQuerySurface,
+    EdgeSplitValidatorProofObligation, EdgeSplitValidatorRow, EdgeSplitValidatorRuntimeLane,
+    LoopEndpointKind, LoopSuccessorKind, NamingMutationContinuityMatrix,
     RejectedMutationScopeReport, RejectedMutationScopeRow, ShellOrWireMembershipKind,
     TopologyAttachBoundaryMembershipDeclaration, TopologyAttachBoundaryMembershipFamily,
     TopologyAttachShellOrWireMembershipDeclaration, TopologyAttachShellOrWireMembershipFamily,

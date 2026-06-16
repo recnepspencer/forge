@@ -28,9 +28,13 @@ use topology::facade::{
     prepare_primitive_construction_query_envelope, prepare_primitive_construction_query_handoff,
     prepare_primitive_construction_query_receipt, topology_grouped_operator_neighborhood,
     topology_operator_continuation_target, topology_operator_contribution_workflow,
-    topology_operator_signal_workflow, topology_runtime, NmtTopologyConstruction,
-    NmtTopologyConstructionDenialClass, NmtTopologyConstructionReceipt, NmtTopologyPosture,
-    OpenLayerPattern, OpenLayerStackSpec, OpenRadialFanSpec, OpenSheetPatchSpec, OpenWireChainSpec,
+    topology_operator_signal_workflow, topology_runtime, EdgeSplitBlueprintCloseout,
+    EdgeSplitBlueprintCloseoutDenial, EdgeSplitOperatorBlueprint, EdgeSplitOperatorClassification,
+    EdgeSplitOperatorProofObligation, EdgeSplitOperatorRow, EdgeSplitOperatorTruthAuthority,
+    EdgeSplitRequiredQuerySurface, EdgeSplitValidatorProofObligation, EdgeSplitValidatorRow,
+    EdgeSplitValidatorRuntimeLane, NmtTopologyConstruction, NmtTopologyConstructionDenialClass,
+    NmtTopologyConstructionReceipt, NmtTopologyPosture, OpenLayerPattern, OpenLayerStackSpec,
+    OpenRadialFanSpec, OpenSheetPatchSpec, OpenWireChainSpec,
     TopologyAttachBoundaryMembershipDeclaration, TopologyAttachShellOrWireMembershipDeclaration,
     TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
     TopologyConstructionQueryFactKind, TopologyConstructionQueryFactProvenance,
@@ -287,6 +291,7 @@ include!("public_api_topology_operator_grouped_rehome_surface.rs");
 include!("public_api_topology_operator_radial_program_surface.rs");
 include!("public_api_topology_operator_successor_surface.rs");
 include!("public_api_topology_operator_split_surface.rs");
+include!("public_api_edge_split_blueprint.rs");
 
 #[path = "topology_workload_seeds/mod.rs"]
 mod public_api_topology_workload_seeds;

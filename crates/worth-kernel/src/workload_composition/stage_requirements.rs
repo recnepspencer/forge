@@ -18,6 +18,10 @@ pub enum WorkloadStageRequirement {
     BooleanOperandAProjectionConsumption,
     BooleanOperandBProjectionConsumption,
     BooleanReducedOperandPair,
+    BooleanEventExtractionRequest,
+    BooleanSegmentPairEnumeration,
+    BooleanEventLedger,
+    BooleanSplit,
     EvidenceLedger,
 }
 
@@ -46,6 +50,10 @@ impl WorkloadStageRequirement {
                 "boolean operand-B projection consumption receipt"
             }
             Self::BooleanReducedOperandPair => "boolean reduced operand-pair receipt",
+            Self::BooleanEventExtractionRequest => "boolean event extraction request receipt",
+            Self::BooleanSegmentPairEnumeration => "boolean segment-pair enumeration receipt",
+            Self::BooleanEventLedger => "boolean event ledger receipt",
+            Self::BooleanSplit => "boolean split receipt",
             Self::EvidenceLedger => "workload evidence ledger",
         }
     }
@@ -74,6 +82,10 @@ impl WorkloadStageRequirement {
                 "boolean_operand_b_projection_consumption"
             }
             Self::BooleanReducedOperandPair => "boolean_reduced_operand_pair",
+            Self::BooleanEventExtractionRequest => "boolean_event_extraction_request",
+            Self::BooleanSegmentPairEnumeration => "boolean_segment_pair_enumeration",
+            Self::BooleanEventLedger => "boolean_event_ledger",
+            Self::BooleanSplit => "boolean_split",
             Self::EvidenceLedger => "evidence_ledger",
         }
     }

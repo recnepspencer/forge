@@ -10,6 +10,8 @@ pub(super) fn admit_operand_scope(
 {
     match request.operand_pair_recipe().recipe() {
         WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair
+        | WorkloadCatalogRecipeKind::BooleanEventCarrierCleanPlanarBodyPair
+        | WorkloadCatalogRecipeKind::BooleanEventExtractionMetabossPair
         | WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair => {
             Ok(PlanarBooleanCommonPlaneAdmittedOperandScope::ClosedPlanarBodyPair)
         }
