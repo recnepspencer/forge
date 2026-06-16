@@ -9,10 +9,20 @@ use crate::source::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiResolvedArtifactInputNode {
     Import(WorthUiArtifactInputImportNode),
+    Page(WorthUiResolvedArtifactInputPageNode),
     Component(WorthUiResolvedArtifactInputComponentNode),
     Surface(WorthUiResolvedArtifactInputSurfaceNode),
     Binding(WorthUiResolvedArtifactInputBindingNode),
     Token(WorthUiResolvedArtifactInputThemeTokenNode),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct WorthUiResolvedArtifactInputPageNode {
+    name_text: String,
+    template_parameters: Vec<(String, String)>,
+    authored_identity: Option<String>,
+    body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+    provenance: WorthUiArtifactInputProvenance,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -73,6 +83,44 @@ impl WorthUiResolvedArtifactInputComponentNode {
 
     pub(crate) fn descriptor(&self) -> &ComponentDescriptor {
         &self.descriptor
+    }
+
+    pub(crate) fn body_atoms(&self) -> &[WorthUiArtifactInputBodyAtom] {
+        &self.body_atoms
+    }
+
+    pub(crate) fn authored_identity(&self) -> Option<&str> {
+        self.authored_identity.as_deref()
+    }
+
+    pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
+        &self.provenance
+    }
+}
+
+impl WorthUiResolvedArtifactInputPageNode {
+    pub(crate) fn new(
+        name_text: impl Into<String>,
+        template_parameters: Vec<(String, String)>,
+        authored_identity: Option<String>,
+        body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+        provenance: WorthUiArtifactInputProvenance,
+    ) -> Self {
+        Self {
+            name_text: name_text.into(),
+            template_parameters,
+            authored_identity,
+            body_atoms,
+            provenance,
+        }
+    }
+
+    pub(crate) fn name_text(&self) -> &str {
+        &self.name_text
+    }
+
+    pub(crate) fn template_parameters(&self) -> &[(String, String)] {
+        &self.template_parameters
     }
 
     pub(crate) fn body_atoms(&self) -> &[WorthUiArtifactInputBodyAtom] {

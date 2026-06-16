@@ -9,18 +9,23 @@ pub(crate) fn worth_ui_canonical_node_sort_key(
             node.target().authored_text().to_owned(),
             node.identity_seed().basis().to_owned(),
         ),
-        WorthUiIdentitySeededArtifactInputNode::Component(node) => (
+        WorthUiIdentitySeededArtifactInputNode::Page(node) => (
             1,
+            node.name_text().to_owned(),
+            node.identity_seed().basis().to_owned(),
+        ),
+        WorthUiIdentitySeededArtifactInputNode::Component(node) => (
+            2,
             node.component().id().as_str().to_owned(),
             node.identity_seed().basis().to_owned(),
         ),
         WorthUiIdentitySeededArtifactInputNode::Surface(node) => (
-            2,
+            3,
             node.surface().id().as_str().to_owned(),
             node.identity_seed().basis().to_owned(),
         ),
         WorthUiIdentitySeededArtifactInputNode::Binding(node) => (
-            3,
+            4,
             node.view_binding_reference()
                 .view_binding()
                 .id()
@@ -29,7 +34,7 @@ pub(crate) fn worth_ui_canonical_node_sort_key(
             node.identity_seed().basis().to_owned(),
         ),
         WorthUiIdentitySeededArtifactInputNode::Token(node) => (
-            4,
+            5,
             node.theme_token().id().as_str().to_owned(),
             node.identity_seed().basis().to_owned(),
         ),
@@ -44,6 +49,9 @@ pub(crate) fn worth_ui_canonical_node_key(node: &WorthUiIdentitySeededArtifactIn
                 node.target().authored_text(),
                 node.identity_seed().basis()
             )
+        }
+        WorthUiIdentitySeededArtifactInputNode::Page(node) => {
+            format!("page:{}:{}", node.name_text(), node.identity_seed().basis())
         }
         WorthUiIdentitySeededArtifactInputNode::Component(node) => format!(
             "component:{}:{}",
@@ -72,6 +80,9 @@ pub(crate) fn worth_ui_semantic_locus(node: &WorthUiIdentitySeededArtifactInputN
     match node {
         WorthUiIdentitySeededArtifactInputNode::Import(node) => {
             format!("import:{}", node.target().authored_text())
+        }
+        WorthUiIdentitySeededArtifactInputNode::Page(node) => {
+            format!("page:{}", node.name_text())
         }
         WorthUiIdentitySeededArtifactInputNode::Component(node) => {
             format!("component:{}", node.component().id().as_str())

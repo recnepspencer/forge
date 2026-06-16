@@ -37,6 +37,14 @@ fn node_normalization_key(
         WorthUiArtifactInputNode::Import(import_node) => {
             format!("import:{}", import_node.target().authored_text())
         }
+        WorthUiArtifactInputNode::Page(page_node) => {
+            format!(
+                "page:{}:{}:{}",
+                page_node.name_text(),
+                template_parameters_key(page_node.template_parameters()),
+                body_atoms_key(page_node.body_atoms())
+            )
+        }
         WorthUiArtifactInputNode::Component(block_node)
         | WorthUiArtifactInputNode::Surface(block_node)
         | WorthUiArtifactInputNode::Binding(block_node) => {
@@ -55,6 +63,14 @@ fn node_normalization_key(
         }
     };
     (node.kind(), detail)
+}
+
+fn template_parameters_key(template_parameters: &[(String, String)]) -> String {
+    template_parameters
+        .iter()
+        .map(|(name, kind)| format!("{name}:{kind}"))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn body_atoms_key(body_atoms: &[crate::source::WorthUiArtifactInputBodyAtom]) -> String {
@@ -96,5 +112,6 @@ fn body_atom_key(body_atom: &crate::source::WorthUiArtifactInputBodyAtom) -> Str
         crate::source::WorthUiArtifactInputBodyAtom::Colon => ":".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::Semicolon => ";".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::Equals => "=".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::Arrow => "->".to_owned(),
     }
 }

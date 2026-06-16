@@ -2,10 +2,12 @@ use crate::capability::MosaicChildRule;
 use crate::source::{
     WorthUiLegallyStructuredArtifactInputBindingNode,
     WorthUiLegallyStructuredArtifactInputComponentNode,
+    WorthUiLegallyStructuredArtifactInputPageNode,
     WorthUiLegallyStructuredArtifactInputSurfaceNode, WorthUiMosaicMountFacts,
     WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts, WorthUiResolvedArtifactInputBindingNode,
-    WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputSurfaceNode,
-    WorthUiStructuralLegalityDiagnostic, WorthUiStructuralLegalityDiagnosticCode,
+    WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputPageNode,
+    WorthUiResolvedArtifactInputSurfaceNode, WorthUiStructuralLegalityDiagnostic,
+    WorthUiStructuralLegalityDiagnosticCode,
 };
 
 use super::worth_ui_structural_body_parser::{
@@ -37,6 +39,27 @@ pub(super) fn lower_component_node(
         component_node.authored_identity().map(str::to_owned),
         structure,
         component_node.provenance().clone(),
+    ))
+}
+
+pub(super) fn lower_page_node(
+    module_id: &crate::source::WorthUiSourceModuleId,
+    page_node: &WorthUiResolvedArtifactInputPageNode,
+    context: &mut WorthUiStructuralLegalityContext<'_>,
+) -> Result<WorthUiLegallyStructuredArtifactInputPageNode, Vec<WorthUiStructuralLegalityDiagnostic>>
+{
+    let structure = lower_structure(
+        module_id,
+        page_node.body_atoms(),
+        page_node.provenance(),
+        context,
+    )?;
+    Ok(WorthUiLegallyStructuredArtifactInputPageNode::new(
+        page_node.name_text(),
+        page_node.template_parameters().to_vec(),
+        page_node.authored_identity().map(str::to_owned),
+        structure,
+        page_node.provenance().clone(),
     ))
 }
 

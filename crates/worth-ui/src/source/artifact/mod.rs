@@ -8,11 +8,12 @@ pub(crate) use worth_ui_artifact::WorthUiArtifact;
 pub(crate) use worth_ui_artifact_equivalent_shape::WorthUiArtifactEquivalentShape;
 pub(crate) use worth_ui_artifact_handle::{
     WorthUiArtifactBindingHandle, WorthUiArtifactComponentHandle, WorthUiArtifactHandle,
-    WorthUiArtifactImportHandle, WorthUiArtifactNodeKind, WorthUiArtifactSurfaceHandle,
-    WorthUiArtifactThemeTokenHandle,
+    WorthUiArtifactImportHandle, WorthUiArtifactNodeKind, WorthUiArtifactPageHandle,
+    WorthUiArtifactSurfaceHandle, WorthUiArtifactThemeTokenHandle,
 };
 pub(crate) use worth_ui_artifact_module::WorthUiArtifactModule;
 pub(crate) use worth_ui_artifact_node::{
     WorthUiArtifactBindingNode, WorthUiArtifactComponentNode, WorthUiArtifactImportNode,
-    WorthUiArtifactNode, WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenNode,
+    WorthUiArtifactNode, WorthUiArtifactPageNode, WorthUiArtifactSurfaceNode,
+    WorthUiArtifactThemeTokenNode,
 };

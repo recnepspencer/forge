@@ -32,7 +32,8 @@ use crate::runtime::{
     WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial,
     WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeHandleAllocation,
     WorthUiRuntimeHandleAllocationDenial, WorthUiRuntimeImpactNarrowing,
-    WorthUiRuntimeImpactNarrowingDenial, WorthUiRuntimeLifecycle,
+    WorthUiRuntimeImpactNarrowingDenial, WorthUiRuntimeInstanceId, WorthUiRuntimeLaunch,
+    WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle,
 };
 use crate::runtime::{
     WorthUiDurableStateInventory, WorthUiDurableStateReconciliationDenial,
@@ -51,24 +52,9 @@ use std::borrow::Borrow;
 /// Runtime host that owns active Worth UI runtime truth.
 #[derive(Debug)]
 pub struct WorthUiRuntimeHost {
+    instance_id: WorthUiRuntimeInstanceId,
     active: WorthUiActiveRuntimeState,
     last_valid: WorthUiLastValidRuntimeState,
-}
-
-/// Launch request for creating an active runtime host from canonical artifact truth.
-#[derive(Debug)]
-pub struct WorthUiRuntimeLaunch {
-    artifact: WorthUiArtifact,
-    frame_epoch: WorthUiRuntimeFrameEpoch,
-    diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthUiRuntimeLaunchDenial {
-    StalePendingActivation {
-        pending_epoch: WorthUiRuntimeFrameEpoch,
-        active_epoch: WorthUiRuntimeFrameEpoch,
-    },
 }
 
 impl WorthUiRuntimeHost {
@@ -87,13 +73,22 @@ impl WorthUiRuntimeHost {
         let active = build_active_runtime_state(
             active_artifact,
             active_plan,
+            snapshot.clone(),
             snapshot_digest,
             frame_epoch,
             diagnostic_policy,
         );
         let last_valid = WorthUiLastValidRuntimeState::record_from_active(&active);
 
-        Ok(Self { active, last_valid })
+        Ok(Self {
+            instance_id: WorthUiRuntimeInstanceId::next(),
+            active,
+            last_valid,
+        })
+    }
+
+    pub(crate) fn instance_id(&self) -> WorthUiRuntimeInstanceId {
+        self.instance_id
     }
 
     pub fn lifecycle(&self) -> WorthUiRuntimeLifecycle {
@@ -316,6 +311,10 @@ impl WorthUiRuntimeHost {
         &mut self.active
     }
 
+    pub(crate) fn active_state_for_read(&self) -> &WorthUiActiveRuntimeState {
+        &self.active
+    }
+
     pub(crate) fn record_last_valid_from_active_for_swap(&mut self) {
         self.last_valid = WorthUiLastValidRuntimeState::record_from_active(&self.active);
     }
@@ -365,6 +364,7 @@ fn derive_launch_execution_plan(
 fn build_active_runtime_state(
     active_artifact: WorthUiActiveArtifact,
     active_plan: WorthUiActiveExecutionPlan,
+    snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
     frame_epoch: WorthUiRuntimeFrameEpoch,
     diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
@@ -372,6 +372,7 @@ fn build_active_runtime_state(
     WorthUiActiveRuntimeState::new(
         active_artifact,
         active_plan,
+        snapshot,
         snapshot_digest,
         frame_epoch,
         diagnostic_policy,

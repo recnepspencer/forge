@@ -11,6 +11,7 @@ use crate::source::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiArtifactNode {
     Import(WorthUiArtifactImportNode),
+    Page(WorthUiArtifactPageNode),
     Component(WorthUiArtifactComponentNode),
     Surface(WorthUiArtifactSurfaceNode),
     Binding(WorthUiArtifactBindingNode),
@@ -21,6 +22,16 @@ pub(crate) enum WorthUiArtifactNode {
 pub(crate) struct WorthUiArtifactImportNode {
     handle: WorthUiArtifactHandle,
     target: WorthUiArtifactInputReference,
+    identity_seed: WorthUiArtifactIdentitySeed,
+    durable_state_eligibility: WorthUiDurableStateEligibility,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct WorthUiArtifactPageNode {
+    handle: WorthUiArtifactHandle,
+    name_text: String,
+    template_parameters: Vec<(String, String)>,
+    structure: WorthUiMosaicStructureFacts,
     identity_seed: WorthUiArtifactIdentitySeed,
     durable_state_eligibility: WorthUiDurableStateEligibility,
 }
@@ -84,6 +95,7 @@ macro_rules! artifact_node_common_accessors {
 }
 
 artifact_node_common_accessors!(WorthUiArtifactImportNode);
+artifact_node_common_accessors!(WorthUiArtifactPageNode);
 artifact_node_common_accessors!(WorthUiArtifactComponentNode);
 artifact_node_common_accessors!(WorthUiArtifactSurfaceNode);
 artifact_node_common_accessors!(WorthUiArtifactBindingNode);
@@ -93,11 +105,44 @@ impl WorthUiArtifactNode {
     pub(crate) fn handle(&self) -> &WorthUiArtifactHandle {
         match self {
             Self::Import(node) => node.handle(),
+            Self::Page(node) => node.handle(),
             Self::Component(node) => node.handle(),
             Self::Surface(node) => node.handle(),
             Self::Binding(node) => node.handle(),
             Self::Token(node) => node.handle(),
         }
+    }
+}
+
+impl WorthUiArtifactPageNode {
+    pub(crate) fn new(
+        handle: WorthUiArtifactHandle,
+        name_text: impl Into<String>,
+        template_parameters: Vec<(String, String)>,
+        structure: WorthUiMosaicStructureFacts,
+        identity_seed: WorthUiArtifactIdentitySeed,
+        durable_state_eligibility: WorthUiDurableStateEligibility,
+    ) -> Self {
+        Self {
+            handle,
+            name_text: name_text.into(),
+            template_parameters,
+            structure,
+            identity_seed,
+            durable_state_eligibility,
+        }
+    }
+
+    pub(crate) fn name_text(&self) -> &str {
+        &self.name_text
+    }
+
+    pub(crate) fn template_parameters(&self) -> &[(String, String)] {
+        &self.template_parameters
+    }
+
+    pub(crate) fn structure(&self) -> &WorthUiMosaicStructureFacts {
+        &self.structure
     }
 }
 

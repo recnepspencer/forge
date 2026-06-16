@@ -4,7 +4,8 @@ use crate::capability::CapabilitySnapshot;
 use crate::source::{
     WorthUiBindingDiagnostic, WorthUiBindingSemanticsReport, WorthUiBoundArtifactInput,
     WorthUiBoundArtifactInputModule, WorthUiBoundArtifactInputNode,
-    WorthUiLegallyStructuredArtifactInput, WorthUiLegallyStructuredArtifactInputNode,
+    WorthUiBoundArtifactInputPageNode, WorthUiLegallyStructuredArtifactInput,
+    WorthUiLegallyStructuredArtifactInputNode,
 };
 
 use super::worth_ui_binding_semantics_context::WorthUiBindingSemanticsContext;
@@ -64,6 +65,15 @@ fn lower_node(
         WorthUiLegallyStructuredArtifactInputNode::Import(import_node) => {
             Ok(WorthUiBoundArtifactInputNode::Import(import_node.clone()))
         }
+        WorthUiLegallyStructuredArtifactInputNode::Page(page_node) => Ok(
+            WorthUiBoundArtifactInputNode::Page(WorthUiBoundArtifactInputPageNode::new(
+                page_node.name_text(),
+                page_node.template_parameters().to_vec(),
+                page_node.authored_identity().map(str::to_owned),
+                page_node.structure().clone(),
+                page_node.provenance().clone(),
+            )),
+        ),
         WorthUiLegallyStructuredArtifactInputNode::Component(component_node) => Ok(
             WorthUiBoundArtifactInputNode::Component(lower_component_node(component_node)),
         ),

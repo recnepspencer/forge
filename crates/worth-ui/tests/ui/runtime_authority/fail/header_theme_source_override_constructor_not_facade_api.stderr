@@ -1,0 +1,14 @@
+error[E0599]: no function or associated item named `from_snapshot_and_source` found for struct `WorthUiHeaderThemePlan` in the current scope
+ --> tests/ui/runtime_authority/fail/header_theme_source_override_constructor_not_facade_api.rs:4:37
+  |
+4 |     let _ = WorthUiHeaderThemePlan::from_snapshot_and_source;
+  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthUiHeaderThemePlan`
+  |
+help: there is an associated function `from_snapshot` with a similar name
+ --> src/runtime/header_surface/theme_plan.rs
+  |
+  | /     pub fn from_snapshot(
+  | |         snapshot: &CapabilitySnapshot,
+  | |         request: WorthUiHeaderThemeTokenRequest,
+  | |     ) -> Result<Self, WorthUiHeaderThemePlanDenial> {
+  | |___________________________________________________^

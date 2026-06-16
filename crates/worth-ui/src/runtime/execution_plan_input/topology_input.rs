@@ -1,5 +1,6 @@
 use crate::source::{
-    WorthUiArtifact, WorthUiArtifactNode, WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts,
+    WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactNode, WorthUiMosaicRegionFacts,
+    WorthUiMosaicStructureFacts,
 };
 use std::collections::BTreeMap;
 
@@ -66,21 +67,33 @@ impl WorthUiPlanNodeTopologyInput {
 }
 
 pub(crate) struct WorthUiPlanNodeTopologyInputIndex {
+    by_handle: BTreeMap<WorthUiArtifactHandle, WorthUiPlanNodeTopologyInput>,
     by_identity_basis: BTreeMap<String, WorthUiPlanNodeTopologyInput>,
 }
 
 impl WorthUiPlanNodeTopologyInputIndex {
     pub(crate) fn from_artifact(artifact: &WorthUiArtifact) -> Self {
+        let mut by_handle = BTreeMap::new();
         let mut by_identity_basis = BTreeMap::new();
         for module_id in artifact.module_ids() {
             let Some(module) = artifact.module(module_id) else {
                 continue;
             };
             for node in module.nodes() {
-                record_artifact_node_topology_input(node, &mut by_identity_basis);
+                record_artifact_node_topology_input(node, &mut by_handle, &mut by_identity_basis);
             }
         }
-        Self { by_identity_basis }
+        Self {
+            by_handle,
+            by_identity_basis,
+        }
+    }
+
+    pub(crate) fn input_for_handle(
+        &self,
+        handle: &WorthUiArtifactHandle,
+    ) -> Option<WorthUiPlanNodeTopologyInput> {
+        self.by_handle.get(handle).copied()
     }
 
     pub(crate) fn input_for_identity(
@@ -93,23 +106,29 @@ impl WorthUiPlanNodeTopologyInputIndex {
 
 fn record_artifact_node_topology_input(
     node: &WorthUiArtifactNode,
+    by_handle: &mut BTreeMap<WorthUiArtifactHandle, WorthUiPlanNodeTopologyInput>,
     by_identity_basis: &mut BTreeMap<String, WorthUiPlanNodeTopologyInput>,
 ) {
     match node {
+        WorthUiArtifactNode::Page(page) => {
+            let topology_input = WorthUiPlanNodeTopologyInput::from_structure(page.structure());
+            by_handle.insert(page.handle().clone(), topology_input);
+            by_identity_basis.insert(page.identity_seed().basis().to_owned(), topology_input);
+        }
         WorthUiArtifactNode::Component(component) => {
-            by_identity_basis.insert(
-                component.identity_seed().basis().to_owned(),
-                WorthUiPlanNodeTopologyInput::from_structure(component.structure()),
-            );
+            let topology_input =
+                WorthUiPlanNodeTopologyInput::from_structure(component.structure());
+            by_handle.insert(component.handle().clone(), topology_input);
+            by_identity_basis.insert(component.identity_seed().basis().to_owned(), topology_input);
         }
         WorthUiArtifactNode::Surface(surface) => {
-            by_identity_basis.insert(
-                surface.identity_seed().basis().to_owned(),
-                WorthUiPlanNodeTopologyInput::from_structure(surface.structure()),
-            );
+            let topology_input = WorthUiPlanNodeTopologyInput::from_structure(surface.structure());
+            by_handle.insert(surface.handle().clone(), topology_input);
+            by_identity_basis.insert(surface.identity_seed().basis().to_owned(), topology_input);
         }
         WorthUiArtifactNode::Binding(binding) => {
             let topology_input = WorthUiPlanNodeTopologyInput::from_structure(binding.structure());
+            by_handle.insert(binding.handle().clone(), topology_input);
             by_identity_basis.insert(binding.identity_seed().basis().to_owned(), topology_input);
             by_identity_basis.insert(
                 binding

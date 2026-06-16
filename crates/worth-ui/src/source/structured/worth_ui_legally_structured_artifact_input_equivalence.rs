@@ -37,6 +37,14 @@ fn nodes_are_equivalent(
             WorthUiLegallyStructuredArtifactInputNode::Import(right),
         ) => left.target() == right.target(),
         (
+            WorthUiLegallyStructuredArtifactInputNode::Page(left),
+            WorthUiLegallyStructuredArtifactInputNode::Page(right),
+        ) => {
+            left.name_text() == right.name_text()
+                && left.template_parameters() == right.template_parameters()
+                && left.structure() == right.structure()
+        }
+        (
             WorthUiLegallyStructuredArtifactInputNode::Component(left),
             WorthUiLegallyStructuredArtifactInputNode::Component(right),
         ) => {

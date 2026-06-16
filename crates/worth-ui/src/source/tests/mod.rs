@@ -1,3 +1,6 @@
+mod authoring_entry_success_tests;
+mod canonical_page_slotting_tests;
+mod content_slotting_rejection_tests;
 mod phase10_artifact_digest_tests;
 mod phase11_dependency_metadata_tests;
 mod phase12_rust_composition_parity_tests;

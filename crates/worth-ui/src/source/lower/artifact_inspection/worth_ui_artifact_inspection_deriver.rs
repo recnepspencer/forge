@@ -94,6 +94,9 @@ fn derive_capability_references(
     let mut references = Vec::new();
     match node {
         WorthUiArtifactNode::Import(_) => {}
+        WorthUiArtifactNode::Page(node) => {
+            extend_structure_references(&mut references, metrics, node.structure());
+        }
         WorthUiArtifactNode::Component(node) => {
             push_reference(
                 &mut references,
@@ -314,6 +317,7 @@ fn push_reference(
 fn node_identity_seed(node: &WorthUiArtifactNode) -> &crate::source::WorthUiArtifactIdentitySeed {
     match node {
         WorthUiArtifactNode::Import(node) => node.identity_seed(),
+        WorthUiArtifactNode::Page(node) => node.identity_seed(),
         WorthUiArtifactNode::Component(node) => node.identity_seed(),
         WorthUiArtifactNode::Surface(node) => node.identity_seed(),
         WorthUiArtifactNode::Binding(node) => node.identity_seed(),
@@ -326,6 +330,7 @@ fn node_durable_state_eligibility(
 ) -> &crate::source::WorthUiDurableStateEligibility {
     match node {
         WorthUiArtifactNode::Import(node) => node.durable_state_eligibility(),
+        WorthUiArtifactNode::Page(node) => node.durable_state_eligibility(),
         WorthUiArtifactNode::Component(node) => node.durable_state_eligibility(),
         WorthUiArtifactNode::Surface(node) => node.durable_state_eligibility(),
         WorthUiArtifactNode::Binding(node) => node.durable_state_eligibility(),

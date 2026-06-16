@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_ui::facade::WorthUiHeaderThemeRuntimeDenial`
+ --> tests/ui/runtime_authority/fail/header_specific_reload_runtime_denial_not_facade_api.rs:1:5
+  |
+1 | use worth_ui::facade::WorthUiHeaderThemeRuntimeDenial;
+  |     ^^^^^^^^^^^^^^^^^^-------------------------------
+  |     |                 |
+  |     |                 help: a similar name exists in the module: `WorthUiHeaderThemePlanDenial`
+  |     no `WorthUiHeaderThemeRuntimeDenial` in `facade`

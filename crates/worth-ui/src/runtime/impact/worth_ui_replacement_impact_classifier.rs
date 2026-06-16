@@ -114,11 +114,11 @@ fn classify_node_semantic_difference(
         WorthUiArtifactNodeKind::Import => {
             deny_broad_replacement_without_receipts(admitted, counters)
         }
-        WorthUiArtifactNodeKind::Component | WorthUiArtifactNodeKind::Binding => {
-            Ok(WorthUiReplacementImpact::LocalSubtree(
-                local_scope_from_candidate(module_id, node_index, admitted, counters),
-            ))
-        }
+        WorthUiArtifactNodeKind::Page
+        | WorthUiArtifactNodeKind::Component
+        | WorthUiArtifactNodeKind::Binding => Ok(WorthUiReplacementImpact::LocalSubtree(
+            local_scope_from_candidate(module_id, node_index, admitted, counters),
+        )),
         WorthUiArtifactNodeKind::Surface => classify_surface_semantic_difference(
             module_id,
             node_index,

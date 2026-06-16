@@ -19,6 +19,72 @@ fn runtime_internal_module_is_not_public() {
 }
 
 #[test]
+fn header_specific_reload_runtime_is_not_facade_api() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/header_specific_reload_runtime_not_facade_api.rs",
+    );
+}
+
+#[test]
+fn header_specific_reload_runtime_frame_is_not_facade_api() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/header_specific_reload_runtime_frame_not_facade_api.rs",
+    );
+}
+
+#[test]
+fn header_specific_reload_runtime_denial_is_not_facade_api() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/header_specific_reload_runtime_denial_not_facade_api.rs",
+    );
+}
+
+#[test]
+fn header_theme_source_override_constructor_is_not_facade_api() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/header_theme_source_override_constructor_not_facade_api.rs",
+    );
+}
+
+#[test]
+fn validation_reload_evidence_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/validation_reload_evidence_fields_not_public.rs",
+    );
+}
+
+#[test]
+fn validation_prepared_reload_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/validation_prepared_reload_fields_not_public.rs",
+    );
+}
+
+#[test]
+fn capability_reload_evidence_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/capability_reload_evidence_fields_not_public.rs",
+    );
+}
+
+#[test]
+fn capability_prepared_reload_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/capability_prepared_reload_fields_not_public.rs",
+    );
+}
+
+#[test]
+fn header_frame_rebind_authority_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/header_frame_plan_fields_not_public.rs",
+    );
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/header_rebind_receipt_fields_not_public.rs",
+    );
+}
+
+#[test]
 fn runtime_launch_fields_are_not_publicly_mintable() {
     runtime_authority_compile_fail(
         "tests/ui/runtime_authority/fail/runtime_launch_fields_not_public.rs",

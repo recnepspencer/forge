@@ -30,6 +30,11 @@ fn nodes_are_equivalent(left: &WorthUiArtifactInputNode, right: &WorthUiArtifact
         (WorthUiArtifactInputNode::Import(left), WorthUiArtifactInputNode::Import(right)) => {
             left.target() == right.target()
         }
+        (WorthUiArtifactInputNode::Page(left), WorthUiArtifactInputNode::Page(right)) => {
+            left.name_text() == right.name_text()
+                && left.template_parameters() == right.template_parameters()
+                && left.body_atoms() == right.body_atoms()
+        }
         (WorthUiArtifactInputNode::Component(left), WorthUiArtifactInputNode::Component(right))
         | (WorthUiArtifactInputNode::Surface(left), WorthUiArtifactInputNode::Surface(right))
         | (WorthUiArtifactInputNode::Binding(left), WorthUiArtifactInputNode::Binding(right)) => {

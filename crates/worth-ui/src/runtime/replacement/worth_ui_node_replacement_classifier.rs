@@ -249,14 +249,20 @@ fn classify_matched_identities(
             narrowing,
             affected_handles,
         );
-        accumulator.record_matched_classification(WorthUiNodeReplacementClassification::new(
-            identity_basis.to_owned(),
-            transition,
-            Some(active_node.kind()),
-            Some(candidate_node.kind()),
-            active_node.durable_state_eligible(),
-            candidate_node.durable_state_eligible(),
-        ))?;
+        accumulator.record_matched_classification(
+            WorthUiNodeReplacementClassification::new(
+                identity_basis.to_owned(),
+                transition,
+                Some(active_node.kind()),
+                Some(candidate_node.kind()),
+                active_node.durable_state_eligible(),
+                candidate_node.durable_state_eligible(),
+            )
+            .with_artifact_handles(
+                Some(active_node.handle().clone()),
+                Some(candidate_node.handle().clone()),
+            ),
+        )?;
     }
     Ok(())
 }
@@ -324,14 +330,17 @@ fn classify_dropped_identities(
         if matched_identity_bases.contains(identity_basis) {
             continue;
         }
-        accumulator.record_dropped_classification(WorthUiNodeReplacementClassification::new(
-            identity_basis.to_owned(),
-            WorthUiNodeLifecycleTransition::Drop,
-            Some(active_node.kind()),
-            None,
-            active_node.durable_state_eligible(),
-            false,
-        ))?;
+        accumulator.record_dropped_classification(
+            WorthUiNodeReplacementClassification::new(
+                identity_basis.to_owned(),
+                WorthUiNodeLifecycleTransition::Drop,
+                Some(active_node.kind()),
+                None,
+                active_node.durable_state_eligible(),
+                false,
+            )
+            .with_artifact_handles(Some(active_node.handle().clone()), None),
+        )?;
     }
     Ok(())
 }
@@ -345,14 +354,17 @@ fn classify_created_identities(
         if matched_identity_bases.contains(identity_basis) {
             continue;
         }
-        accumulator.record_created_classification(WorthUiNodeReplacementClassification::new(
-            identity_basis.to_owned(),
-            WorthUiNodeLifecycleTransition::Create,
-            None,
-            Some(candidate_node.kind()),
-            false,
-            candidate_node.durable_state_eligible(),
-        ))?;
+        accumulator.record_created_classification(
+            WorthUiNodeReplacementClassification::new(
+                identity_basis.to_owned(),
+                WorthUiNodeLifecycleTransition::Create,
+                None,
+                Some(candidate_node.kind()),
+                false,
+                candidate_node.durable_state_eligible(),
+            )
+            .with_artifact_handles(None, Some(candidate_node.handle().clone())),
+        )?;
     }
     Ok(())
 }

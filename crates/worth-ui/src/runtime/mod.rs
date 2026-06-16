@@ -4,6 +4,7 @@ mod admission;
 mod atomic_plan_swap;
 mod candidate;
 mod canvas_spatial_lane;
+mod capability_reload;
 mod diagnostics;
 mod diagnostics_projection;
 mod equivalence;
@@ -11,6 +12,7 @@ mod execution_plan_input;
 mod file_rust_replacement_parity;
 mod frame_activation_gate;
 mod handle_allocation;
+mod header_surface;
 mod host;
 mod host_atomic_plan_swap;
 mod host_canvas_spatial_lane;
@@ -21,6 +23,7 @@ mod host_identity_state_query_certification;
 mod host_lane_admission;
 mod host_lane_frame_cost_certification;
 mod host_lane_meaning_parity;
+mod host_launch;
 mod host_ordinary_lane;
 mod host_realtime_overlay_lane;
 mod host_reload_failure;
@@ -48,9 +51,11 @@ mod reload_counter_boundary;
 mod reload_failure;
 mod reload_storm_certification;
 mod replacement;
+mod runtime_instance_id;
 mod source_ingress;
 mod state_inventory;
 mod steady_frame_counter_boundary;
+mod validation_reload;
 mod virtualized_data_lane;
 
 pub use activation_staging::{
@@ -84,6 +89,11 @@ pub use canvas_spatial_lane::{
     WorthUiCanvasViewportPlan, WorthUiCanvasViewportPlanDenial,
     WorthUiCanvasViewportPlanDenialReason, WorthUiSpatialHitTestHook, WorthUiSpatialHitTestPlan,
     WorthUiSpatialToolStateHook, WorthUiSpatialViewportPoint,
+};
+pub use capability_reload::{
+    WorthUiCapabilityPreparedReload, WorthUiCapabilityReloadEvidence,
+    WorthUiCapabilityReloadRequest, WorthUiCapabilityReloadStage, WorthUiCapabilityReloadStatus,
+    WorthUiThemeTokenReloadPackage,
 };
 pub use diagnostics::{
     WorthUiDiagnosticMaterialization, WorthUiDiagnosticProjectionHook,
@@ -133,8 +143,18 @@ pub use handle_allocation::{
     WorthUiRuntimeHandleFamilyWidths, WorthUiStateSlotHandle, WorthUiTokenHandle,
     WorthUiViewBindingHandle,
 };
-pub use host::{WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
+pub use header_surface::{
+    WorthUiHeaderFrame, WorthUiHeaderFramePlan, WorthUiHeaderFramePlanDenial,
+    WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindReceipt,
+    WorthUiHeaderFrameRebindRequest, WorthUiHeaderFrameRebindStatus, WorthUiHeaderFrameReceipt,
+    WorthUiHeaderMenuCommand, WorthUiHeaderMenuGroup, WorthUiHeaderMenuPlan,
+    WorthUiHeaderMenuPlanDenial, WorthUiHeaderMenuProjectionRequest,
+    WorthUiHeaderThemeFrameReceipt, WorthUiHeaderThemePlan, WorthUiHeaderThemePlanDenial,
+    WorthUiHeaderThemeTokenRequest,
+};
+pub use host::WorthUiRuntimeHost;
 pub use host_diagnostics::{WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics};
+pub use host_launch::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
 pub use identity_state_query_certification::{
     WorthUiIdentityStateCertification, WorthUiIdentityStateQueryCertificationCounters,
     WorthUiIdentityStateQueryCertificationDenial,
@@ -281,6 +301,7 @@ pub use replacement::{
     WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters,
     WorthUiNodeReplacementPlan,
 };
+pub(crate) use runtime_instance_id::WorthUiRuntimeInstanceId;
 pub use source_ingress::{
     WorthUiCandidateOrderingReceipt, WorthUiDebouncedWatcherBatch, WorthUiReloadDebounce,
     WorthUiSourceIngressCounters, WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason,
@@ -306,6 +327,10 @@ pub use steady_frame_counter_boundary::{
     WorthUiSteadyFrameDiagnosticPolicy, WorthUiSteadyFrameFoundationalBridge,
     WorthUiSteadyFrameFoundationalEvidence, WorthUiSteadyFrameReportPlan,
     WorthUiSteadyFrameReportPlanner,
+};
+pub use validation_reload::{
+    WorthUiValidationPreparedReload, WorthUiValidationReloadEvidence,
+    WorthUiValidationReloadRequest, WorthUiValidationReloadStage, WorthUiValidationReloadStatus,
 };
 pub use virtualized_data_lane::{
     WorthUiQueryPatchPosture, WorthUiVirtualizedDataCertification, WorthUiVirtualizedDataCounters,

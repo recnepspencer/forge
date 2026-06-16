@@ -40,6 +40,15 @@ pub(crate) fn tokenize_module_source(
             continue;
         }
 
+        if slice.starts_with("->") {
+            tokens.push(WorthUiSourceToken::new(
+                WorthUiSourceTokenKind::Arrow,
+                WorthUiSourceSpan::new(module_id.clone(), position, position + 2),
+            ));
+            position += 2;
+            continue;
+        }
+
         if let Some((token, next_position)) = consume_punctuation(&module_id, position, next) {
             tokens.push(token);
             position = next_position;

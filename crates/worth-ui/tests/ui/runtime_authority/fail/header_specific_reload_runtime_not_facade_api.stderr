@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_ui::facade::WorthUiHeaderThemeRuntime`
+ --> tests/ui/runtime_authority/fail/header_specific_reload_runtime_not_facade_api.rs:1:5
+  |
+1 | use worth_ui::facade::WorthUiHeaderThemeRuntime;
+  |     ^^^^^^^^^^^^^^^^^^-------------------------
+  |     |                 |
+  |     |                 help: a similar name exists in the module: `WorthUiHeaderThemePlan`
+  |     no `WorthUiHeaderThemeRuntime` in `facade`

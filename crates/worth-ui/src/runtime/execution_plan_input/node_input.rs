@@ -161,11 +161,16 @@ impl WorthUiPlanNodeInput {
 fn family_for_classification(
     classification: &WorthUiNodeReplacementClassification,
 ) -> WorthUiPlanNodeInputFamily {
+    if classification.candidate_kind().is_none() {
+        return WorthUiPlanNodeInputFamily::DiagnosticsRef;
+    }
+
     let kind = classification
         .candidate_kind()
         .or_else(|| classification.active_kind());
     match kind {
         Some(WorthUiIdentityMatchNodeKind::Import) => WorthUiPlanNodeInputFamily::ChildRange,
+        Some(WorthUiIdentityMatchNodeKind::Page) => WorthUiPlanNodeInputFamily::LayoutRegion,
         Some(WorthUiIdentityMatchNodeKind::Component) => {
             WorthUiPlanNodeInputFamily::ComponentInvocation
         }

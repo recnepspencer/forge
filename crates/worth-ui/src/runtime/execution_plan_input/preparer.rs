@@ -164,8 +164,10 @@ fn collect_staged_replacement_node_inputs(
     node_inputs: &mut Vec<WorthUiPlanNodeInput>,
 ) {
     for classification in staged.node_plan().classifications() {
-        let topology_input = topology_index
-            .input_for_identity(classification.identity_basis())
+        let topology_input = classification
+            .candidate_handle()
+            .and_then(|handle| topology_index.input_for_handle(handle))
+            .or_else(|| topology_index.input_for_identity(classification.identity_basis()))
             .unwrap_or_default();
         node_inputs.push(WorthUiPlanNodeInput::from_replacement_classification(
             classification,

@@ -1,0 +1,13 @@
+error: cannot construct `WorthUiValidationPreparedReload` with struct literal syntax due to private fields
+ --> tests/ui/runtime_authority/fail/validation_prepared_reload_fields_not_public.rs:6:21
+  |
+6 |     let _prepared = WorthUiValidationPreparedReload {
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+7 |         evidence: evidence(),
+  |         -------------------- private field
+8 |         ready: None,
+  |         ----------- private field
+9 |         candidate_plan: None,
+  |         -------------------- private field
+  |
+  = note: ...and other private field `runtime_instance_id` that was not provided

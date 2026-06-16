@@ -40,6 +40,14 @@ pub(super) fn node_semantic_basis(node: &WorthUiArtifactNode) -> String {
             identity_seed_basis(node.identity_seed()),
             durable_state_basis(node.durable_state_eligibility())
         ),
+        WorthUiArtifactNode::Page(node) => format!(
+            "page|name:{}|params:{}|seed:{}|durable:{}|structure:{}",
+            node.name_text(),
+            template_parameters_basis(node.template_parameters()),
+            identity_seed_basis(node.identity_seed()),
+            durable_state_basis(node.durable_state_eligibility()),
+            structure_basis(node.structure())
+        ),
         WorthUiArtifactNode::Component(node) => format!(
             "component|id:{}|descriptor:{}|seed:{}|durable:{}|structure:{}",
             node.component().id().as_str(),
@@ -74,6 +82,14 @@ pub(super) fn node_semantic_basis(node: &WorthUiArtifactNode) -> String {
             theme_token_semantics_basis(node.semantics())
         ),
     }
+}
+
+fn template_parameters_basis(template_parameters: &[(String, String)]) -> String {
+    template_parameters
+        .iter()
+        .map(|(name, ty)| format!("{name}:{ty}"))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn identity_seed_basis(seed: &crate::source::WorthUiArtifactIdentitySeed) -> String {

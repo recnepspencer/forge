@@ -1,0 +1,8 @@
+# Worth UI validation header theme.
+# Edit this file while the validation app is running to exercise the hot theme path.
+validation.theme.header.panel = #1F2933
+validation.theme.header.menu = #252526
+validation.theme.header.menu.hover = #3E3E42
+validation.theme.header.menu.active = #007ACC
+validation.theme.header.text = #CCCCCC
+validation.theme.header.border = #3F3F46

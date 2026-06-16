@@ -1,4 +1,4 @@
-use crate::capability::CapabilitySnapshotDigest;
+use crate::capability::{CapabilitySnapshot, CapabilitySnapshotDigest};
 use crate::runtime::active::{
     WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeState,
 };
@@ -11,6 +11,7 @@ use crate::runtime::{
 pub(crate) struct WorthUiPriorValidPlan {
     active_artifact: WorthUiActiveArtifact,
     active_plan: WorthUiActiveExecutionPlan,
+    snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
@@ -33,6 +34,7 @@ impl WorthUiPriorValidPlan {
         Self {
             active_artifact: active.active_artifact().clone(),
             active_plan: active.active_plan(),
+            snapshot: active.capability_snapshot().clone(),
             snapshot_digest: active.snapshot_digest(),
             lifecycle: active.lifecycle(),
             status: active.status(),
@@ -46,6 +48,7 @@ impl WorthUiPriorValidPlan {
         WorthUiActiveRuntimeState::from_preserved_authority(
             self.active_artifact.clone(),
             self.active_plan,
+            self.snapshot.clone(),
             self.snapshot_digest,
             self.lifecycle,
             self.status,

@@ -1,4 +1,4 @@
-use crate::capability::CapabilitySnapshotDigest;
+use crate::capability::{CapabilitySnapshot, CapabilitySnapshotDigest};
 use crate::runtime::active::{
     WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeObservation,
 };
@@ -11,6 +11,7 @@ use crate::runtime::{
 pub(crate) struct WorthUiActiveRuntimeState {
     active_artifact: WorthUiActiveArtifact,
     active_plan: WorthUiActiveExecutionPlan,
+    snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
@@ -22,6 +23,7 @@ impl WorthUiActiveRuntimeState {
     pub(crate) fn new(
         active_artifact: WorthUiActiveArtifact,
         active_plan: WorthUiActiveExecutionPlan,
+        snapshot: CapabilitySnapshot,
         snapshot_digest: CapabilitySnapshotDigest,
         frame_epoch: WorthUiRuntimeFrameEpoch,
         diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
@@ -29,6 +31,7 @@ impl WorthUiActiveRuntimeState {
         Self {
             active_artifact,
             active_plan,
+            snapshot,
             snapshot_digest,
             lifecycle: WorthUiRuntimeLifecycle::Active,
             status: WorthUiRuntimeActivationStatus::Active,
@@ -60,6 +63,20 @@ impl WorthUiActiveRuntimeState {
         self.snapshot_digest
     }
 
+    pub(crate) fn capability_snapshot(&self) -> &CapabilitySnapshot {
+        &self.snapshot
+    }
+
+    pub(crate) fn replace_capability_snapshot(
+        &mut self,
+        snapshot: CapabilitySnapshot,
+        active_plan: WorthUiActiveExecutionPlan,
+    ) {
+        self.snapshot_digest = snapshot.digest();
+        self.snapshot = snapshot;
+        self.active_plan = active_plan;
+    }
+
     pub(crate) fn frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
         self.frame_epoch
     }
@@ -79,6 +96,7 @@ impl WorthUiActiveRuntimeState {
     pub(crate) fn from_preserved_authority(
         active_artifact: WorthUiActiveArtifact,
         active_plan: WorthUiActiveExecutionPlan,
+        snapshot: CapabilitySnapshot,
         snapshot_digest: CapabilitySnapshotDigest,
         lifecycle: WorthUiRuntimeLifecycle,
         status: WorthUiRuntimeActivationStatus,
@@ -88,6 +106,7 @@ impl WorthUiActiveRuntimeState {
         Self {
             active_artifact,
             active_plan,
+            snapshot,
             snapshot_digest,
             lifecycle,
             status,

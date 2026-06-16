@@ -33,11 +33,10 @@ pub(crate) use binding_semantics::{
     WorthUiBindingDiagnostic, WorthUiBindingDiagnosticCode, WorthUiBindingSemanticsLowerer,
     WorthUiBindingSemanticsMetrics, WorthUiBindingSemanticsReport,
 };
-pub(crate) use file_authored::WorthUiParsedSourceToArtifactInputLowerer;
 pub(crate) use file_authored::{
-    build_layout_topology_catalog, validate_layout_topology_tokens,
+    build_content_slot_catalog, build_layout_topology_catalog, validate_layout_topology_tokens,
     WorthUiAuthoringEntryDiagnostic, WorthUiAuthoringEntryDiagnosticCode,
-    WorthUiAuthoringEntryReport,
+    WorthUiAuthoringEntryReport, WorthUiParsedSourceToArtifactInputLowerer,
 };
 pub(crate) use identity_seeding::{
     WorthUiIdentityReplacementClassifier, WorthUiIdentitySeedLowerer,

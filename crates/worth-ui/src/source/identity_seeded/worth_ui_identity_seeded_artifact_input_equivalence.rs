@@ -35,6 +35,10 @@ fn nodes_are_equivalent(
             WorthUiIdentitySeededArtifactInputNode::Import(right),
         ) => left == right,
         (
+            WorthUiIdentitySeededArtifactInputNode::Page(left),
+            WorthUiIdentitySeededArtifactInputNode::Page(right),
+        ) => left == right,
+        (
             WorthUiIdentitySeededArtifactInputNode::Component(left),
             WorthUiIdentitySeededArtifactInputNode::Component(right),
         ) => left == right,

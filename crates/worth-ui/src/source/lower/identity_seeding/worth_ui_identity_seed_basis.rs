@@ -1,10 +1,10 @@
 use crate::capability::MosaicStatePersistencePolicy;
 use crate::source::{
     WorthUiArtifactIdentitySeed, WorthUiBoundArtifactInputBindingNode,
-    WorthUiBoundArtifactInputComponentNode, WorthUiBoundArtifactInputSurfaceNode,
-    WorthUiBoundArtifactInputThemeTokenNode, WorthUiDurableStateEligibility,
-    WorthUiDurableStateIneligibilityReason, WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts,
-    WorthUiSourceModuleId,
+    WorthUiBoundArtifactInputComponentNode, WorthUiBoundArtifactInputPageNode,
+    WorthUiBoundArtifactInputSurfaceNode, WorthUiBoundArtifactInputThemeTokenNode,
+    WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
+    WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts, WorthUiSourceModuleId,
 };
 
 pub(super) fn component_seed(
@@ -34,6 +34,23 @@ pub(super) fn surface_seed(
         &format!(
             "{}|{}",
             node.surface().id().as_str(),
+            structure_digest_basis(node.structure())
+        ),
+    )
+}
+
+pub(super) fn page_seed(
+    module_id: &WorthUiSourceModuleId,
+    node: &WorthUiBoundArtifactInputPageNode,
+) -> WorthUiArtifactIdentitySeed {
+    authored_or_structural_seed(
+        "page",
+        module_id,
+        node.authored_identity(),
+        &format!(
+            "{}|params:{}|{}",
+            node.name_text(),
+            template_parameters_basis(node.template_parameters()),
             structure_digest_basis(node.structure())
         ),
     )
@@ -142,6 +159,14 @@ fn count_slot(slot: Option<&crate::capability::MosaicStateSlotDescriptor>) -> us
         | Some(MosaicStatePersistencePolicy::PersistAcrossRuntimeRestart) => 1,
         _ => 0,
     }
+}
+
+fn template_parameters_basis(template_parameters: &[(String, String)]) -> String {
+    template_parameters
+        .iter()
+        .map(|(name, ty)| format!("{name}:{ty}"))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn structure_digest_basis(structure: &WorthUiMosaicStructureFacts) -> String {

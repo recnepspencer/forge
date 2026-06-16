@@ -1,19 +1,19 @@
 use crate::capability::{
-    CapabilitySnapshotFreezeInput, CapabilitySnapshotIndex, CapabilitySnapshotIndexParts,
-    CapabilitySupportCatalog, FrozenCommandCapabilities, FrozenCommandProjectionCapabilities,
-    FrozenComponentCapabilities, FrozenIconCapabilities, FrozenMosaicPlacementCapabilities,
-    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
-    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
-    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
-    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
-    FrozenViewBindingCapabilities, RegisteredCapabilitySet, SnapshotFreezeReport,
-    SnapshotReferenceValidationReport,
+    CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySnapshotIndex,
+    CapabilitySnapshotIndexParts, CapabilitySupportCatalog, FrozenCommandCapabilities,
+    FrozenCommandProjectionCapabilities, FrozenComponentCapabilities, FrozenIconCapabilities,
+    FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
+    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
+    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
+    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
+    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
+    SnapshotFreezeReport, SnapshotReferenceValidationReport,
 };
 
 use super::{CapabilitySnapshotDigest, SnapshotMetrics};
 
 /// Immutable capability snapshot consumed by later lowering phases.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CapabilitySnapshot {
     registered_capabilities: RegisteredCapabilitySet,
     commands: FrozenCommandCapabilities,
@@ -196,5 +196,32 @@ impl CapabilitySnapshot {
     /// Canonical reference validation summary for future lowering.
     pub fn validation_summary(&self) -> &SnapshotReferenceValidationReport {
         &self.reference_validation
+    }
+
+    pub(crate) fn with_theme_tokens_replaced(
+        &self,
+        theme_tokens: FrozenThemeTokenCapabilities,
+    ) -> Self {
+        CapabilitySnapshotBuilder::new(CapabilitySnapshotFreezeInput {
+            registered_capabilities: self.registered_capabilities.clone(),
+            commands: self.commands.clone(),
+            command_projections: self.command_projections.clone(),
+            components: self.components.clone(),
+            icons: self.icons.clone(),
+            surfaces: self.surfaces.clone(),
+            mosaic_regions: self.mosaic_regions.clone(),
+            mosaic_placement_policies: self.mosaic_placement_policies.clone(),
+            mosaic_sizing_contracts: self.mosaic_sizing_contracts.clone(),
+            mosaic_state_slots: self.mosaic_state_slots.clone(),
+            native_capabilities: self.native_capabilities.clone(),
+            plugin_slots: self.plugin_slots.clone(),
+            view_bindings: self.view_bindings.clone(),
+            runtime_outcome_projections: self.runtime_outcome_projections.clone(),
+            settings: self.settings.clone(),
+            task_presentations: self.task_presentations.clone(),
+            theme_tokens,
+            support_catalog: self.support_catalog.clone(),
+        })
+        .freeze()
     }
 }

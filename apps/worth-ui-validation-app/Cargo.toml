@@ -19,7 +19,3 @@ workspace = true
 eframe = { workspace = true }
 egui = { workspace = true }
 worth-ui = { workspace = true }
-worth-ui-harness = { workspace = true }
-
-[dev-dependencies]
-trybuild = { workspace = true }

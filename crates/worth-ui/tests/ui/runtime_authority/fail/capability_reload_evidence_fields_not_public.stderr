@@ -1,0 +1,31 @@
+error[E0451]: fields `runtime_instance_witness`, `status`, `denial_detail`, `active_snapshot_digest_before`, `active_snapshot_digest_after`, `candidate_snapshot_digest`, `theme_source_digest`, `touched_theme_token_count`, `theme_token_family_entry_count`, `source_parse_count`, `registry_lookup_count`, `artifact_tree_scan_count` and `active_runtime_mutations_before_activation` of struct `WorthUiCapabilityReloadEvidence` are private
+  --> tests/ui/runtime_authority/fail/capability_reload_evidence_fields_not_public.rs:7:9
+   |
+ 6 |     let _forged = WorthUiCapabilityReloadEvidence {
+   |                   ------------------------------- in this type
+ 7 |         runtime_instance_witness: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         status: WorthUiCapabilityReloadStatus::Activated,
+   |         ^^^^^^ private field
+ 9 |         denial_detail: None,
+   |         ^^^^^^^^^^^^^ private field
+10 |         active_snapshot_digest_before: 11,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         active_snapshot_digest_after: 12,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         candidate_snapshot_digest: Some(12),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         theme_source_digest: 29,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+14 |         touched_theme_token_count: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         theme_token_family_entry_count: 6,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         source_parse_count: 1,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+17 |         registry_lookup_count: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         artifact_tree_scan_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         active_runtime_mutations_before_activation: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

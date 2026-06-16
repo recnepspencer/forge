@@ -8,6 +8,6 @@ pub(crate) use worth_ui_resolved_artifact_input_equivalence::WorthUiResolvedArti
 pub(crate) use worth_ui_resolved_artifact_input_module::WorthUiResolvedArtifactInputModule;
 pub(crate) use worth_ui_resolved_artifact_input_node::{
     WorthUiResolvedArtifactInputBindingNode, WorthUiResolvedArtifactInputComponentNode,
-    WorthUiResolvedArtifactInputNode, WorthUiResolvedArtifactInputSurfaceNode,
-    WorthUiResolvedArtifactInputThemeTokenNode,
+    WorthUiResolvedArtifactInputNode, WorthUiResolvedArtifactInputPageNode,
+    WorthUiResolvedArtifactInputSurfaceNode, WorthUiResolvedArtifactInputThemeTokenNode,
 };

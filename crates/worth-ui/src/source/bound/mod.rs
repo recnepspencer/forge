@@ -9,8 +9,8 @@ pub(crate) use worth_ui_bound_artifact_input_equivalence::WorthUiBoundArtifactIn
 pub(crate) use worth_ui_bound_artifact_input_module::WorthUiBoundArtifactInputModule;
 pub(crate) use worth_ui_bound_artifact_input_node::{
     WorthUiBoundArtifactInputBindingNode, WorthUiBoundArtifactInputComponentNode,
-    WorthUiBoundArtifactInputNode, WorthUiBoundArtifactInputSurfaceNode,
-    WorthUiBoundArtifactInputThemeTokenNode,
+    WorthUiBoundArtifactInputNode, WorthUiBoundArtifactInputPageNode,
+    WorthUiBoundArtifactInputSurfaceNode, WorthUiBoundArtifactInputThemeTokenNode,
 };
 pub(crate) use worth_ui_bound_binding_semantics::{
     WorthUiBoundCommandProjectionReference, WorthUiBoundCommandReference,

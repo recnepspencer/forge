@@ -19,6 +19,6 @@ pub(crate) use worth_ui_identity_seeded_artifact_input_module::WorthUiIdentitySe
 pub(crate) use worth_ui_identity_seeded_artifact_input_node::{
     WorthUiIdentitySeededArtifactInputBindingNode, WorthUiIdentitySeededArtifactInputComponentNode,
     WorthUiIdentitySeededArtifactInputImportNode, WorthUiIdentitySeededArtifactInputNode,
-    WorthUiIdentitySeededArtifactInputSurfaceNode,
+    WorthUiIdentitySeededArtifactInputPageNode, WorthUiIdentitySeededArtifactInputSurfaceNode,
     WorthUiIdentitySeededArtifactInputThemeTokenNode,
 };

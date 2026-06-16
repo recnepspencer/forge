@@ -105,5 +105,6 @@ fn lower_token_kind_to_body_atom(
         WorthUiSourceTokenKind::Colon => WorthUiArtifactInputBodyAtom::Colon,
         WorthUiSourceTokenKind::Semicolon => WorthUiArtifactInputBodyAtom::Semicolon,
         WorthUiSourceTokenKind::Equals => WorthUiArtifactInputBodyAtom::Equals,
+        WorthUiSourceTokenKind::Arrow => WorthUiArtifactInputBodyAtom::Arrow,
     }
 }

@@ -133,6 +133,7 @@ fn artifact_handle_digest_basis(handle: &WorthUiArtifactHandle) -> String {
 fn artifact_node_kind_digest_basis(kind: WorthUiArtifactNodeKind) -> &'static str {
     match kind {
         WorthUiArtifactNodeKind::Import => "import",
+        WorthUiArtifactNodeKind::Page => "page",
         WorthUiArtifactNodeKind::Component => "component",
         WorthUiArtifactNodeKind::Surface => "surface",
         WorthUiArtifactNodeKind::Binding => "binding",

@@ -1,0 +1,42 @@
+
+app ValidationHeaderApp {
+    theme ValidationHeaderTheme
+    workspace ValidationHeaderWorkspace
+}
+
+workspace ValidationHeaderWorkspace {
+    shell {
+        topbar ValidationHeaderTopbar
+        rail ValidationHeaderRail
+        page_host ValidationHeaderPageHost
+        inspector ValidationHeaderInspector
+        status ValidationHeaderStatus
+        overlays []
+        toasts ValidationHeaderToasts
+    }
+
+    pages [HeaderProofPage]
+}
+
+page HeaderProofPage {
+    title "Header Proof"
+    runtime HeaderProofRuntime
+    layout HeaderProofLayout
+    content HeaderProofContent
+}
+
+runtime HeaderProofRuntime {}
+
+layout HeaderProofLayout {
+    column {
+        row height fill {
+            slot proof
+        }
+    }
+}
+
+content HeaderProofContent {
+    proof -> validation.surface.header.proof
+}
+
+appearance ValidationHeaderTheme {}

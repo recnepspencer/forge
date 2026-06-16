@@ -4,6 +4,7 @@ mod artifact;
 mod artifact_input;
 mod bound;
 mod canonical;
+mod content_slotting;
 mod dependency;
 mod equivalence;
 mod identity_seeded;
@@ -22,28 +23,32 @@ pub(crate) use artifact::{
     WorthUiArtifact, WorthUiArtifactBindingHandle, WorthUiArtifactBindingNode,
     WorthUiArtifactComponentHandle, WorthUiArtifactComponentNode, WorthUiArtifactEquivalentShape,
     WorthUiArtifactHandle, WorthUiArtifactImportHandle, WorthUiArtifactImportNode,
-    WorthUiArtifactModule, WorthUiArtifactNode, WorthUiArtifactNodeKind,
-    WorthUiArtifactSurfaceHandle, WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle,
-    WorthUiArtifactThemeTokenNode,
+    WorthUiArtifactModule, WorthUiArtifactNode, WorthUiArtifactNodeKind, WorthUiArtifactPageHandle,
+    WorthUiArtifactPageNode, WorthUiArtifactSurfaceHandle, WorthUiArtifactSurfaceNode,
+    WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
 };
 pub(crate) use artifact_input::{
     WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputBodyAtom,
     WorthUiArtifactInputEquivalentShape, WorthUiArtifactInputImportNode,
     WorthUiArtifactInputModule, WorthUiArtifactInputNode, WorthUiArtifactInputNodeKind,
-    WorthUiArtifactInputNormalizer, WorthUiArtifactInputProvenance, WorthUiArtifactInputReference,
-    WorthUiArtifactInputTokenNode,
+    WorthUiArtifactInputNormalizer, WorthUiArtifactInputPageNode, WorthUiArtifactInputProvenance,
+    WorthUiArtifactInputReference, WorthUiArtifactInputTokenNode,
 };
 pub(crate) use bound::{
     WorthUiBoundArtifactInput, WorthUiBoundArtifactInputBindingNode,
     WorthUiBoundArtifactInputComponentNode, WorthUiBoundArtifactInputEquivalentShape,
     WorthUiBoundArtifactInputModule, WorthUiBoundArtifactInputNode,
-    WorthUiBoundArtifactInputSurfaceNode, WorthUiBoundArtifactInputThemeTokenNode,
-    WorthUiBoundCommandProjectionReference, WorthUiBoundCommandReference,
-    WorthUiBoundCommandSemantics, WorthUiBoundIconReference, WorthUiBoundQueryViewSemantics,
-    WorthUiBoundSurfaceSemantics, WorthUiBoundThemeTokenSemantics,
+    WorthUiBoundArtifactInputPageNode, WorthUiBoundArtifactInputSurfaceNode,
+    WorthUiBoundArtifactInputThemeTokenNode, WorthUiBoundCommandProjectionReference,
+    WorthUiBoundCommandReference, WorthUiBoundCommandSemantics, WorthUiBoundIconReference,
+    WorthUiBoundQueryViewSemantics, WorthUiBoundSurfaceSemantics, WorthUiBoundThemeTokenSemantics,
     WorthUiBoundViewBindingReference,
 };
 pub(crate) use canonical::WorthUiCanonicalModuleOrder;
+pub use content_slotting::{
+    WorthUiContentSlotAssignment, WorthUiContentSlotCatalog, WorthUiContentSlotDiagnostic,
+    WorthUiContentSlotDiagnosticCode, WorthUiContentSlotReport, WorthUiPageContentSlots,
+};
 pub use dependency::WorthUiArtifactSubtreeDigest;
 #[allow(unused_imports)]
 pub(crate) use dependency::{
@@ -64,7 +69,8 @@ pub(crate) use identity_seeded::{
     WorthUiIdentitySeededArtifactInputComponentNode,
     WorthUiIdentitySeededArtifactInputEquivalentShape,
     WorthUiIdentitySeededArtifactInputImportNode, WorthUiIdentitySeededArtifactInputModule,
-    WorthUiIdentitySeededArtifactInputNode, WorthUiIdentitySeededArtifactInputSurfaceNode,
+    WorthUiIdentitySeededArtifactInputNode, WorthUiIdentitySeededArtifactInputPageNode,
+    WorthUiIdentitySeededArtifactInputSurfaceNode,
     WorthUiIdentitySeededArtifactInputThemeTokenNode,
 };
 pub(crate) use import_graph::{WorthUiSourceImport, WorthUiSourceImportGraph};
@@ -82,7 +88,7 @@ pub use layout_topology::{
 };
 #[allow(unused_imports)]
 pub(crate) use lower::{
-    build_layout_topology_catalog, validate_layout_topology_tokens,
+    build_content_slot_catalog, build_layout_topology_catalog, validate_layout_topology_tokens,
     WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyDiagnosticCode,
     WorthUiArtifactAssemblyMetrics, WorthUiArtifactAssemblyReport,
     WorthUiArtifactDependencyDeriver, WorthUiArtifactDependencyMetrics,
@@ -127,13 +133,15 @@ pub(crate) use resolved::{
     WorthUiResolvedArtifactInput, WorthUiResolvedArtifactInputBindingNode,
     WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputEquivalentShape,
     WorthUiResolvedArtifactInputModule, WorthUiResolvedArtifactInputNode,
-    WorthUiResolvedArtifactInputSurfaceNode, WorthUiResolvedArtifactInputThemeTokenNode,
+    WorthUiResolvedArtifactInputPageNode, WorthUiResolvedArtifactInputSurfaceNode,
+    WorthUiResolvedArtifactInputThemeTokenNode,
 };
 pub(crate) use structured::{
     WorthUiLegallyStructuredArtifactInput, WorthUiLegallyStructuredArtifactInputBindingNode,
     WorthUiLegallyStructuredArtifactInputComponentNode,
     WorthUiLegallyStructuredArtifactInputEquivalentShape,
     WorthUiLegallyStructuredArtifactInputModule, WorthUiLegallyStructuredArtifactInputNode,
+    WorthUiLegallyStructuredArtifactInputPageNode,
     WorthUiLegallyStructuredArtifactInputSurfaceNode,
     WorthUiLegallyStructuredArtifactInputThemeTokenNode, WorthUiMosaicMountFacts,
     WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts,

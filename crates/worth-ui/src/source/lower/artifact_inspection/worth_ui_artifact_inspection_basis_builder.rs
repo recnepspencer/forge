@@ -103,18 +103,23 @@ fn artifact_node_alignment_key(node: &crate::source::WorthUiArtifactNode) -> (u8
             node.target().authored_text().to_owned(),
             node.identity_seed().basis().to_owned(),
         ),
-        crate::source::WorthUiArtifactNode::Component(node) => (
+        crate::source::WorthUiArtifactNode::Page(node) => (
             1,
+            node.name_text().to_owned(),
+            node.identity_seed().basis().to_owned(),
+        ),
+        crate::source::WorthUiArtifactNode::Component(node) => (
+            2,
             node.component().id().as_str().to_owned(),
             node.identity_seed().basis().to_owned(),
         ),
         crate::source::WorthUiArtifactNode::Surface(node) => (
-            2,
+            3,
             node.surface().id().as_str().to_owned(),
             node.identity_seed().basis().to_owned(),
         ),
         crate::source::WorthUiArtifactNode::Binding(node) => (
-            3,
+            4,
             node.view_binding_reference()
                 .view_binding()
                 .id()
@@ -123,7 +128,7 @@ fn artifact_node_alignment_key(node: &crate::source::WorthUiArtifactNode) -> (u8
             node.identity_seed().basis().to_owned(),
         ),
         crate::source::WorthUiArtifactNode::Token(node) => (
-            4,
+            5,
             node.theme_token().id().as_str().to_owned(),
             node.identity_seed().basis().to_owned(),
         ),
@@ -133,6 +138,7 @@ fn artifact_node_alignment_key(node: &crate::source::WorthUiArtifactNode) -> (u8
 fn seeded_node_kind(node: &WorthUiIdentitySeededArtifactInputNode) -> WorthUiArtifactNodeKind {
     match node {
         WorthUiIdentitySeededArtifactInputNode::Import(_) => WorthUiArtifactNodeKind::Import,
+        WorthUiIdentitySeededArtifactInputNode::Page(_) => WorthUiArtifactNodeKind::Page,
         WorthUiIdentitySeededArtifactInputNode::Component(_) => WorthUiArtifactNodeKind::Component,
         WorthUiIdentitySeededArtifactInputNode::Surface(_) => WorthUiArtifactNodeKind::Surface,
         WorthUiIdentitySeededArtifactInputNode::Binding(_) => WorthUiArtifactNodeKind::Binding,
@@ -145,6 +151,7 @@ fn seeded_node_provenance(
 ) -> &crate::source::WorthUiArtifactInputProvenance {
     match node {
         WorthUiIdentitySeededArtifactInputNode::Import(node) => node.provenance(),
+        WorthUiIdentitySeededArtifactInputNode::Page(node) => node.provenance(),
         WorthUiIdentitySeededArtifactInputNode::Component(node) => node.provenance(),
         WorthUiIdentitySeededArtifactInputNode::Surface(node) => node.provenance(),
         WorthUiIdentitySeededArtifactInputNode::Binding(node) => node.provenance(),
