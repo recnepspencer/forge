@@ -54,9 +54,14 @@ runtime diagnostics, hot replacement, lane execution, and frame-cost
 certification are no longer future prerequisites.
 
 The next gap is therefore not another invisible primitive layer. The next gap
-is composed trust evidence: a real interactive validation app that can run, display,
-replay, and manually validate the shell and reload scenarios that are already
-mechanically supported by the runtime substrate.
+is composed trust evidence: a real interactive validation app that can run,
+display, replay, and manually validate the shell and reload scenarios that are
+already mechanically supported by the runtime substrate.
+
+Milestone 4 exposed one side-quest blocker inside that work: hot reload must
+become a platform-wide projection rebind spine rather than a set of
+surface-specific reload exceptions. Milestone 4S closes that blocker before
+the Shopify dashboard proof broadens.
 
 ## Roadmap Rules
 
@@ -356,6 +361,68 @@ runtime, Query-binding, and hot-reload substrate.
   continuity
 - receipts, counters, and diagnostics prove the dashboard consumes the existing
   substrate rather than bypassing it
+
+## Milestone 4S: Hot Reloading
+
+Detailed spec: [milestone-4-hot-reloading.md](./milestone-4-hot-reloading.md)
+
+### Goal
+
+Build the runtime-owned hot reload spine that all Worth UI projections consume,
+so source, capability, Query, action, state, theme, density, appearance, shell,
+page, and component changes flow through declared changed facts, declared
+projection dependencies, typed activation evidence, runtime-owned rebind
+planning, and counter-backed certification.
+
+### Must Ship
+
+- common runtime change evidence over source, capability, Query, and state
+  reload families
+- expanded runtime fact taxonomy for source, capability, Query, layout,
+  content, shell, page, component, appearance, action, and durable-state changes
+- common projection plan contract with declared dependencies and equivalence
+  basis
+- runtime-owned projection rebind coordinator
+- broadened runtime authoring snapshot derived from the existing source and
+  artifact pipeline
+- generalized capability reload family pipeline
+- Query-bound reload integration that consumes Query-owned posture rather than
+  rebuilding local state
+- native validation app proof slice using runtime receipts only
+- compiler enforcement and compile-fail guards against local reload authority
+- reload storm, replay, and counter certification
+
+### Must Preserve
+
+- `WorthUiRuntimeHost` ownership of active artifact, active execution plan,
+  capability snapshot, authoring snapshot, diagnostics, and activation state
+- existing source -> artifact -> runtime proof chain
+- Query ownership of live, async/result, recovery, inspection, projection
+  consumption, and support posture
+- prior-valid runtime truth on denied, stale, unreadable, or invalid reloads
+- renderer boundary as paint-only consumption of runtime receipts
+- no app-local dependency graph, hydration graph, reload state machine, shell
+  map, page map, command map, or theme state
+- no per-frame source interpretation, registry string lookup, broad artifact
+  scan, or broad projection rebuild hidden behind convenient APIs
+
+### Acceptance Evidence
+
+- header, page-host, theme, command, command-projection, and at least one
+  source-authored page/content projection rebind through one runtime change and
+  projection coordinator path
+- a running native validation app visibly hot reloads text, color, dropdown
+  mode, page slot assignment, and one broader projection without restart
+- denied, stale, equivalent, valid, and mixed reloads preserve runtime truth and
+  produce typed evidence
+- projection rebuild breadth is bounded by changed-fact and dependency
+  intersection, with counters proving the claim
+- Query-bound reload evidence preserves Query-owned posture and does not create
+  validation-app local status models
+- compile-fail guards prevent app code from minting reload evidence, projection
+  receipts, direct Query dependency, or local shell/page/menu/theme authority
+- reload storm certification proves deterministic replay and no steady-frame
+  broad scans after activation
 
 ## Milestone 5: Command Spine, Focus, Selection, and Keyboard Routing
 
