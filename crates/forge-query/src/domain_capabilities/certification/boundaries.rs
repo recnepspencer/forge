@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::compose_compile_fail_boundary_digest;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDomainCapabilityCompileFailBoundary {
@@ -193,12 +193,7 @@ pub fn forge_query_domain_capability_compile_fail_boundaries(
 }
 
 pub fn forge_query_domain_capability_compile_fail_boundary_digest() -> String {
-    hash_parts(
-        &COMPILE_FAIL_BOUNDARIES
-            .iter()
-            .map(|row| format!("{}|{}", row.label(), row.path()))
-            .collect::<Vec<_>>(),
-    )
+    compose_compile_fail_boundary_digest(forge_query_domain_capability_compile_fail_boundaries())
 }
 
 #[cfg(test)]

@@ -107,9 +107,9 @@ pub fn materialize_query_causal_inspection_artifact(
                         domain_target_kind,
                         request_identity.clone(),
                         format!(
-                            "admitted causal inspection materialization denied for `{}` with `{:?}`",
+                            "admitted causal inspection materialization denied for `{}` with `{}`",
                             domain_contribution_semantic_code,
-                            error.kind()
+                            error.kind().as_str(),
                         ),
                     ),
                 ),
@@ -136,9 +136,9 @@ pub fn materialize_query_causal_inspection_artifact(
                         domain_target_kind,
                         request_identity.clone(),
                         format!(
-                            "advisory causal inspection materialization denied for `{}` with `{:?}`",
+                            "advisory causal inspection materialization denied for `{}` with `{}`",
                             domain_contribution_semantic_code,
-                            error.kind()
+                            error.kind().as_str(),
                         ),
                     ),
                 ),
@@ -184,9 +184,10 @@ pub fn materialize_query_causal_inspection_review(
                 domain_contribution.target().kind(),
                 domain_contribution.request_identity().clone(),
                 format!(
-                    "causal inspection request denied for `{}` with `{:?}`",
+                    "causal inspection request denied for `{}` with `{}`: {}",
                     payload.semantic_code(),
-                    error.kind()
+                    error.kind().as_str(),
+                    error.message(),
                 ),
             ));
         }

@@ -1,6 +1,5 @@
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use forge_relational::facade::merge::RelationalMergeInspectionArtifact;
 use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
 
@@ -90,24 +89,14 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
         match self {
             Self::RuntimePreflight {
                 runtime_snapshot_identity,
-            } => ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "forge_query_workflow_runtime_binding_v1",
-            )
+            } => domain_capability_scope_encoder("forge_query_workflow_runtime_binding_v1")
             .field_shape(ForgeQueryEvidenceTag::new("kind"), "runtime_preflight")
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("runtime_snapshot"),
                 &runtime_snapshot_identity.evidence_identity(),
             )
             .seal(),
-            Self::RuntimePreflightBundle { preflight } => ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
+            Self::RuntimePreflightBundle { preflight } => domain_capability_scope_encoder(
                 "forge_query_workflow_runtime_binding_v1",
             )
             .field_shape(
@@ -134,13 +123,7 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
             Self::PreviewFoundation {
                 preview_session_identity,
                 evaluation_class,
-            } => ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "forge_query_workflow_runtime_binding_v1",
-            )
+            } => domain_capability_scope_encoder("forge_query_workflow_runtime_binding_v1")
             .field_shape(ForgeQueryEvidenceTag::new("kind"), "preview_foundation")
             .field_bridge_authority_identity(
                 ForgeQueryEvidenceTag::new("preview_session"),
@@ -156,7 +139,7 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
 
     pub(crate) fn semantics_for_reporting(&self) -> String {
         self.semantics_identity()
-            .terminal_projection_for_reporting()
+            .as_str()
             .to_string()
     }
 }
@@ -224,38 +207,42 @@ impl ForgeQueryWorkflowLoweringSemantics {
                 authority_binding_identity,
                 input,
             } => {
-                let input_label = match input {
+                let mut encoder = domain_capability_scope_encoder("forge_query_workflow_lowering_v1")
+                    .field_shape(ForgeQueryEvidenceTag::new("kind"), "mutation")
+                    .field_evidence_identity(
+                        ForgeQueryEvidenceTag::new("authority_binding"),
+                        authority_binding_identity,
+                    );
+                encoder = match input {
                     MutationLoweringInput::IntentReconciliation {
                         entity_id,
                         desired_aspect_fields_external_json,
-                    } => format!(
-                        "intent_reconciliation:{entity_id:?}:{}",
-                        serde_json::to_string(desired_aspect_fields_external_json)
-                            .unwrap_or_else(|_| "serialization_failed".to_string())
-                    ),
+                    } => encoder
+                        .field_shape(
+                            ForgeQueryEvidenceTag::new("input_kind"),
+                            "intent_reconciliation",
+                        )
+                        .field_usize(
+                            ForgeQueryEvidenceTag::new("partition_id"),
+                            entity_id.partition_id.0 as usize,
+                        )
+                        .field_usize(
+                            ForgeQueryEvidenceTag::new("local_slot"),
+                            entity_id.local_slot.0 as usize,
+                        )
+                        .field_usize(
+                            ForgeQueryEvidenceTag::new("generation"),
+                            entity_id.generation.0 as usize,
+                        )
+                        .field_shape(
+                            ForgeQueryEvidenceTag::new("desired_aspect_fields"),
+                            &serde_json::to_string(desired_aspect_fields_external_json)
+                                .unwrap_or_else(|_| "serialization_failed".to_string()),
+                        ),
                 };
-                ForgeQueryEvidenceIdentity::compose(
-                    ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("identity_family"),
-                    "forge_query_workflow_lowering_v1",
-                )
-                .field_shape(ForgeQueryEvidenceTag::new("kind"), "mutation")
-                .field_evidence_identity(
-                    ForgeQueryEvidenceTag::new("authority_binding"),
-                    authority_binding_identity,
-                )
-                .field_shape(ForgeQueryEvidenceTag::new("input"), &input_label)
-                .seal()
+                encoder.seal()
             }
-            Self::Merge { input } => ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "forge_query_workflow_lowering_v1",
-            )
+            Self::Merge { input } => domain_capability_scope_encoder("forge_query_workflow_lowering_v1")
             .field_shape(ForgeQueryEvidenceTag::new("kind"), "merge")
             .field_shape(
                 ForgeQueryEvidenceTag::new("intent"),
@@ -270,13 +257,7 @@ impl ForgeQueryWorkflowLoweringSemantics {
                 &input.source_branch().0,
             )
             .seal(),
-            Self::Writeback { input } => ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "forge_query_workflow_lowering_v1",
-            )
+            Self::Writeback { input } => domain_capability_scope_encoder("forge_query_workflow_lowering_v1")
             .field_shape(ForgeQueryEvidenceTag::new("kind"), "writeback")
             .field_shape(
                 ForgeQueryEvidenceTag::new("family"),
@@ -288,7 +269,7 @@ impl ForgeQueryWorkflowLoweringSemantics {
 
     pub(crate) fn semantics_for_reporting(&self) -> String {
         self.semantics_identity()
-            .terminal_projection_for_reporting()
+            .as_str()
             .to_string()
     }
 }
@@ -360,13 +341,7 @@ impl ForgeQueryWorkflowInspectionSemantics {
             Self::MergeConflict {
                 lowered_merge,
                 relational_inspection,
-            } => ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "forge_query_workflow_inspection_v1",
-            )
+            } => domain_capability_scope_encoder("forge_query_workflow_inspection_v1")
             .field_shape(ForgeQueryEvidenceTag::new("kind"), "merge_conflict")
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("lowered_merge"),
@@ -379,11 +354,7 @@ impl ForgeQueryWorkflowInspectionSemantics {
                 ),
             )
             .seal(),
-            Self::PostMergeFromMerge { lowered_merge } => ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
+            Self::PostMergeFromMerge { lowered_merge } => domain_capability_scope_encoder(
                 "forge_query_workflow_inspection_v1",
             )
             .field_shape(ForgeQueryEvidenceTag::new("kind"), "post_merge_from_merge")
@@ -393,13 +364,7 @@ impl ForgeQueryWorkflowInspectionSemantics {
             )
             .seal(),
             Self::PostMergeFromWriteback { lowered_writeback } => {
-                ForgeQueryEvidenceIdentity::compose(
-                    ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-                )
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("identity_family"),
-                    "forge_query_workflow_inspection_v1",
-                )
+                domain_capability_scope_encoder("forge_query_workflow_inspection_v1")
                 .field_shape(
                     ForgeQueryEvidenceTag::new("kind"),
                     "post_merge_from_writeback",
@@ -415,7 +380,7 @@ impl ForgeQueryWorkflowInspectionSemantics {
 
     pub(crate) fn semantics_for_reporting(&self) -> String {
         self.semantics_identity()
-            .terminal_projection_for_reporting()
+            .as_str()
             .to_string()
     }
 }
@@ -474,13 +439,7 @@ impl ForgeQueryWorkflowRuntimeSemantics {
     }
 
     pub(crate) fn semantics_identity(&self) -> ForgeQueryEvidenceIdentity {
-        ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_workflow_runtime_semantics_v1",
-        )
+        domain_capability_scope_encoder("forge_query_workflow_runtime_semantics_v1")
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("binding"),
             &self.binding.semantics_identity(),
@@ -510,7 +469,7 @@ impl ForgeQueryWorkflowRuntimeSemantics {
 
     pub(crate) fn semantics_for_reporting(&self) -> String {
         self.semantics_identity()
-            .terminal_projection_for_reporting()
+            .as_str()
             .to_string()
     }
 }
@@ -518,11 +477,7 @@ impl ForgeQueryWorkflowRuntimeSemantics {
 fn workflow_external_relational_inspection_reference_identity(
     external_artifact_digest: &str,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_workflow_external_relational_inspection_reference_v1",
-        )
+    domain_capability_scope_encoder("forge_query_workflow_external_relational_inspection_reference_v1")
         .field_shape(
             ForgeQueryEvidenceTag::new("external_artifact_digest"),
             external_artifact_digest,

@@ -14,6 +14,8 @@ use super::{
     ForgeQueryMaterializationReadyDomainCapabilityContribution,
     ForgeQueryRequestedDomainCapabilityContribution,
 };
+use crate::domain_capabilities::identity::{domain_capability_scope_encoder, seal};
+use crate::evidence_identity::ForgeQueryEvidenceTag;
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
     ForgeQueryLowerRuntimeBoundaryExecutionReceipt, ForgeQueryLowerRuntimeCapabilityEligibility,
@@ -101,8 +103,13 @@ pub(super) fn admitted_plan_target_parts(
     eligibility_digest: &str,
     decision_digest: &str,
 ) -> ForgeQueryAdmittedPlanBoundContributionTarget {
-    let fixture_label =
-        format!("{plan_label}.{request_digest}.{eligibility_digest}.{decision_digest}");
+    let fixture_label = seal(
+        domain_capability_scope_encoder("forge_query_domain_capability_admitted_plan_fixture_v1")
+            .field_shape(ForgeQueryEvidenceTag::new("plan_label"), plan_label)
+            .field_shape(ForgeQueryEvidenceTag::new("request"), request_digest)
+            .field_shape(ForgeQueryEvidenceTag::new("eligibility"), eligibility_digest)
+            .field_shape(ForgeQueryEvidenceTag::new("decision"), decision_digest),
+    );
     ForgeQueryAdmittedPlanBoundContributionTarget::for_admitted_intent_plan(&admitted_plan(
         &fixture_label,
     ))

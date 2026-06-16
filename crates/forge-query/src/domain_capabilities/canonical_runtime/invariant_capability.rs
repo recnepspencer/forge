@@ -1,10 +1,8 @@
 use forge_proof::TransitionOutcome;
 use forge_relational::facade::runtime::InvariantCatalog;
 
-use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
-    ForgeQueryEvidenceTag,
-};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 use crate::domain_capabilities::denials::{
     ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
@@ -170,11 +168,7 @@ pub fn materialize_query_invariant_catalog_registration_artifact(
         target_lane,
         target_binding_identity: domain_contribution.target().binding_identity(),
         request_identity: domain_contribution.request_identity().clone(),
-        materialization_identity: forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
+        materialization_identity: domain_capability_scope_encoder(
             "forge_query_invariant_catalog_registration_artifact_v1",
         )
         .field_shape(
@@ -199,11 +193,11 @@ pub fn materialize_query_invariant_catalog_registration_artifact(
         .field_shape(ForgeQueryEvidenceTag::new("input_contract"), input_contract)
         .field_shape(
             ForgeQueryEvidenceTag::new("source_lane"),
-            format!("{source_lane:?}"),
+            source_lane.as_str(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("target_lane"),
-            format!("{target_lane:?}"),
+            target_lane.as_str(),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("binding"),

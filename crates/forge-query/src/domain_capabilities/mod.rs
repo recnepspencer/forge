@@ -7,6 +7,7 @@ mod denials;
 mod dx;
 mod eligibility;
 mod explanation;
+mod identity;
 mod foundational_integration;
 mod materialization;
 mod payloads;

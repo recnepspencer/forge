@@ -7,8 +7,8 @@ use crate::evidence_identity::{
 use crate::identity::{CanonicalQueryDigest, PlanDigest, ValidatedQueryDigest};
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::preview::{
-    AdmittedPreviewWorkflowFoundation, PreviewEvaluationClass, PreviewWorkflowFoundationRequest,
-    PromotionParityPreviewComparisonAdmission,
+    preview_lifecycle_state_label, AdmittedPreviewWorkflowFoundation, PreviewEvaluationClass,
+    PreviewWorkflowFoundationRequest, PromotionParityPreviewComparisonAdmission,
 };
 use forge_relational::facade::history::BranchId;
 use forge_runtime_bridge::facade::BridgePreviewSessionIdentity;
@@ -486,7 +486,7 @@ fn preview_workflow_foundation_binding_identity(
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("lifecycle"),
-            format!("{:?}", artifact.lifecycle_state_kind()),
+            preview_lifecycle_state_label(artifact.lifecycle_state_kind()),
         )
         .field_bridge_authority_identity(
             ForgeQueryEvidenceTag::new("execution_record"),

@@ -105,9 +105,28 @@ fn correspondence_error_denial(
         crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
         request_identity,
         format!(
-            "continuity correspondence materialization denied for `{}` with `{:?}`",
+            "continuity correspondence materialization denied for `{}` with `{}`",
             payload.semantic_code(),
-            failure_class
+            failure_class_label(failure_class),
         ),
     )
+}
+
+fn failure_class_label(failure_class: CorrespondenceEvaluationFailureClass) -> &'static str {
+    match failure_class {
+        CorrespondenceEvaluationFailureClass::InvalidRequest => "invalid-request",
+        CorrespondenceEvaluationFailureClass::UnsupportedTopology => "unsupported-topology",
+        CorrespondenceEvaluationFailureClass::UnsupportedStructuralFamily => {
+            "unsupported-structural-family"
+        }
+        CorrespondenceEvaluationFailureClass::UnsupportedMixedEvidence => {
+            "unsupported-mixed-evidence"
+        }
+        CorrespondenceEvaluationFailureClass::BroadStructuralScanRequired => {
+            "broad-structural-scan-required"
+        }
+        CorrespondenceEvaluationFailureClass::StructuralBreadthExceeded => {
+            "structural-breadth-exceeded"
+        }
+    }
 }

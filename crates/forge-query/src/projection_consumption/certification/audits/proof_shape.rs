@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::projection_consumption::identity::{
+    compose_certification_row_digest, compose_digest_sequence, compose_phase_progression_digest,
+};
 
 use super::super::proof_artifacts::ProjectionConsumptionCompileFailProof;
 
@@ -144,17 +146,15 @@ pub fn projection_consumption_proof_shape_audit() -> ProjectionConsumptionProofS
             CertificationBundleConstructorPrivate,
         ),
     ];
-    let proof_shape_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
+    let proof_shape_digest = compose_digest_sequence(
+        "projection_consumption_proof_shape_audit_v1",
+        "row",
+        rows.iter().map(|row| row.row_digest().to_string()),
     );
-    let phase_progression_digest = hash_parts(&[
-        "projection_consumption_phase_progression_v1".to_string(),
-        proof_shape_digest.clone(),
-        "declaration>eligibility>contract>fact_set>receipt>envelope>certification".to_string(),
-    ]);
+    let phase_progression_digest = compose_phase_progression_digest(
+        &proof_shape_digest,
+        "declaration>eligibility>contract>fact_set>receipt>envelope>certification",
+    );
     ProjectionConsumptionProofShapeAudit {
         rows,
         proof_shape_digest,
@@ -176,15 +176,17 @@ fn row(
     enforcement: ProjectionConsumptionProofShapeEnforcement,
     enforcement_proof: ProjectionConsumptionCompileFailProof,
 ) -> ProjectionConsumptionProofShapeAuditRow {
-    let row_digest = hash_parts(&[
-        "projection_consumption_proof_shape_row_v1".to_string(),
-        format!("violation:{}", violation.as_str()),
-        format!("attempted:{attempted_shortcut}"),
-        format!("required:{required_prior_artifact}"),
-        format!("rejected:{rejected_artifact}"),
-        format!("enforcement:{}", enforcement.as_str()),
-        format!("proof:{}", enforcement_proof.as_str()),
-    ]);
+    let row_digest = compose_certification_row_digest(
+        "projection_consumption_proof_shape_row_v1",
+        &[
+            ("violation", violation.as_str()),
+            ("attempted", attempted_shortcut),
+            ("required", required_prior_artifact),
+            ("rejected", rejected_artifact),
+            ("enforcement", enforcement.as_str()),
+            ("proof", enforcement_proof.as_str()),
+        ],
+    );
     ProjectionConsumptionProofShapeAuditRow {
         violation,
         attempted_shortcut,

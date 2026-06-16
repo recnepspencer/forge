@@ -116,13 +116,21 @@ pub fn materialize_runtime_admission_support_traceability_row(
             "admission_local_support",
             family.as_str(),
             entrypoint.as_str(),
-            format!("{}:{}", payload.semantic_code(), payload.detail()),
-            Some(domain_contribution.target().binding_digest().to_string()),
+            support_detail_label(payload.semantic_code(), payload.detail()),
+            Some(domain_contribution.target().binding_identity().as_str().to_string()),
             Some(request_digest.to_string()),
             Some(eligibility_digest.to_string()),
             Some(decision_digest.to_string()),
         ),
     )
+}
+
+fn support_detail_label(semantic_code: &str, detail: &str) -> String {
+    let mut label = String::with_capacity(semantic_code.len().saturating_add(1).saturating_add(detail.len()));
+    label.push_str(semantic_code);
+    label.push(':');
+    label.push_str(detail);
+    label
 }
 
 fn unsupported_decision_posture_denial(

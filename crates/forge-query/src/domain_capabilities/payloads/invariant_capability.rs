@@ -1,6 +1,5 @@
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use crate::runtime::ForgeQueryGraphCompositionCapabilityClass;
 use forge_relational::facade::runtime::{InvariantCatalog, InvariantRegistration};
 
@@ -47,11 +46,7 @@ fn graph_invariant_semantics_identity(
     role: &'static str,
     digest_label: &str,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_graph_invariant_semantics_digest_v1",
-        )
+    domain_capability_scope_encoder("forge_query_graph_invariant_semantics_digest_v1")
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
         .field_shape(ForgeQueryEvidenceTag::new("digest_label"), digest_label)
         .seal()
@@ -60,11 +55,7 @@ fn graph_invariant_semantics_identity(
 fn compose_graph_capability_identity(
     graph_capability: &ForgeQueryGraphCapabilityRuntimeSemantics,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_graph_capability_runtime_semantics_v1",
-        )
+    domain_capability_scope_encoder("forge_query_graph_capability_runtime_semantics_v1")
         .field_shape(
             ForgeQueryEvidenceTag::new("capability_family"),
             graph_capability.capability_family(),
@@ -79,11 +70,7 @@ fn compose_graph_capability_identity(
 fn compose_graph_invariant_denial_identity(
     graph_invariant_denial: &ForgeQueryGraphInvariantDenialRuntimeSemantics,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_graph_invariant_denial_runtime_semantics_v1",
-        )
+    domain_capability_scope_encoder("forge_query_graph_invariant_denial_runtime_semantics_v1")
         .field_shape(
             ForgeQueryEvidenceTag::new("invariant_family"),
             graph_invariant_denial.invariant_family(),
@@ -133,13 +120,7 @@ fn compose_invariant_capability_payload_identity(
     graph_invariant_denial: Option<&ForgeQueryGraphInvariantDenialRuntimeSemantics>,
     invariant_registration: Option<&ForgeQueryInvariantRegistrationRuntimeSemantics>,
 ) -> ForgeQueryEvidenceIdentity {
-    let mut identity = ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "forge_query_domain_capability_payload_v3",
-    )
+    let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v3")
     .field_shape(
         ForgeQueryEvidenceTag::new("category"),
         ForgeQueryDomainCapabilityCategory::InvariantCapability.as_str(),
@@ -302,13 +283,7 @@ impl ForgeQueryInvariantRegistrationRuntimeSemantics {
     fn registration_identity_for_catalog(
         invariant_catalog: &InvariantCatalog,
     ) -> ForgeQueryEvidenceIdentity {
-        ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_invariant_registration_runtime_semantics_v1",
-        )
+        domain_capability_scope_encoder("forge_query_invariant_registration_runtime_semantics_v1")
         .field_shape(
             ForgeQueryEvidenceTag::new("registration_label"),
             invariant_catalog.canonical_registration_digest(),

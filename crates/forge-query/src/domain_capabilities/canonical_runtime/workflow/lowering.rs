@@ -288,7 +288,7 @@ fn workflow_lowering_posture_identity(
         .field_evidence_identity(ForgeQueryEvidenceTag::new("target"), target_identity)
         .field_shape(
             ForgeQueryEvidenceTag::new("failure"),
-            format!("{:?}", error.failure_class()),
+            error.failure_class().as_str(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("staleness"),

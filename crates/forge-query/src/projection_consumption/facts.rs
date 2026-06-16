@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::identity::hash_parts;
+use super::identity::compose_materialized_fact_posture_digest;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ProjectionFactRequest {
@@ -93,17 +93,13 @@ impl ProjectionMaterializedFactPosture {
         let lower_declaration_digest = lower_declaration_digest.into();
         let basis_digest = basis_digest.into();
         let support_evidence_digest = support_evidence_digest.into();
-        let posture_digest = hash_parts(&[
-            "projection_materialized_fact_posture_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("lower_declaration:{lower_declaration_digest}"),
-            format!("basis:{basis_digest}"),
-            format!("support:{support_evidence_digest}"),
-            format!(
-                "runtime_origin:{}",
-                runtime_origin_digest.as_deref().unwrap_or("none")
-            ),
-        ]);
+        let posture_digest = compose_materialized_fact_posture_digest(
+            kind,
+            &lower_declaration_digest,
+            &basis_digest,
+            &support_evidence_digest,
+            runtime_origin_digest.as_deref(),
+        );
         Self {
             kind,
             lower_declaration_digest,

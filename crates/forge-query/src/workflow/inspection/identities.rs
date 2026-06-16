@@ -6,6 +6,7 @@ use crate::evidence_identity::{
 pub(super) fn conflict_scope_identity(
     declaration: &QueryWorkflowDeclaration,
     merge_declaration: &LoweredMergeWorkflowDeclaration,
+    merge_class_family: &str,
     merge_class: &str,
     merge_class_admission: &str,
     row_digest: &str,
@@ -39,6 +40,10 @@ pub(super) fn conflict_scope_identity(
             merge_declaration.merge_intent().as_str(),
         )
         .field_shape(ForgeQueryEvidenceTag::new("row_digest"), row_digest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("merge_class_family"),
+            merge_class_family,
+        )
         .field_shape(ForgeQueryEvidenceTag::new("merge_class"), merge_class)
         .field_shape(
             ForgeQueryEvidenceTag::new("merge_class_admission"),

@@ -258,7 +258,7 @@ fn lower_runtime_envelope(target_digest: &str) -> ForgeQueryLowerRuntimeBoundary
             )
             .field_value(
                 crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
-                format!("retained:{target_digest}"),
+                target_digest,
             )
             .seal(),
         );

@@ -19,7 +19,7 @@ pub(super) fn preview_session_identity_record_label(
     identity.terminal_projection_for_reporting()
 }
 
-pub(super) fn preview_lifecycle_state_label(kind: BridgePreviewLifecycleStateKind) -> &'static str {
+pub(crate) fn preview_lifecycle_state_label(kind: BridgePreviewLifecycleStateKind) -> &'static str {
     match kind {
         BridgePreviewLifecycleStateKind::Declared => "declared",
         BridgePreviewLifecycleStateKind::Admitted => "admitted",

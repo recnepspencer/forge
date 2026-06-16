@@ -4,10 +4,12 @@
 >
 > **Governing spec:** [milestone-9.6.md](./milestone-9.6.md)
 >
-> **Status:** **Closed** — hostile QA 2026-06-16 re-open resolved on `query-repair`
-> (see [milestone-9.6-closeout-evidence.md](./milestone-9.6-closeout-evidence.md)).
+> **Status:** **Partial** — WS-1–WS-4 closed; Phases 8–11 (bridge-truth,
+> projection consumption, workflow, domain capabilities) remain **mandatory 9.6
+> scope**. See [milestone-9.6-attack-plan.md](./milestone-9.6-attack-plan.md).
 >
-> **Out of scope for this plan:** [milestone-9.6-bridge-truth-identity-lowering.md](./milestone-9.6-bridge-truth-identity-lowering.md) (separate Law 42 track; may land in parallel but must not substitute for this closeout).
+> **Bridge-truth:** In scope for Milestone 9.6 Phase 8 — not a substitute for
+> regular closeout and not deferrable to 9.7.
 
 ---
 
@@ -221,10 +223,15 @@ cargo test -p forge-query public_doc_coverage::tests::identity_boundary_docs --l
 
 - [x] WS-1: `cargo test -p forge-query --lib` — 0 failures (2327/0)
 - [x] WS-2: worth-kernel construction basis/stop-class folklore removed on covered paths
-- [x] WS-3: inventory expanded; exclusions documented or removed; closure posture honest
-- [x] WS-4: hostile QA `CLEARED`
-- [x] `milestone-9.6.md` closeout note updated with evidence
-- [x] Roadmap 9.6 entry consistent
+- [x] WS-3: inventory expanded (curated); exclusions documented
+- [x] WS-4: hostile QA `CLEARED` (ordinary path)
+- [x] `milestone-9.6.md` closeout note updated (ordinary path)
+- [x] Roadmap 9.6 entry consistent (ordinary path — **re-opened Partial**)
+- [x] WS-5: bridge-truth Phase 10 (P10-1/2/3/5/6 done; P10-4 spatial **postponed**)
+- [x] WS-6: `projection_consumption/` identity closure (Phase 9) — 101/101 tests; inventory scan clean
+- [ ] WS-7: `workflow/` identity closure (Phase 10)
+- [ ] WS-8: `domain_capabilities/` identity closure (Phase 11)
+- [ ] WS-9: Phase 12 re-close — milestone `Closed`, exclusions removed
 - [ ] 9.7 unblocked per roadmap sequencing notes
 
 ---

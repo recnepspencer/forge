@@ -58,6 +58,10 @@ pub enum ForgeQueryEvidenceScope {
     WriteReceiptEntityIdentity,
     AuthoredCommandEntityIdentity,
     ExistingTruthResolvedTargetIdentity,
+    ProjectionConsumptionIdentity,
+    ProjectionConsumptionCertificationIdentity,
+    DomainCapabilityIdentity,
+    DomainCapabilityCertificationIdentity,
     ProjectionConsumedContinuityAuthorityIdentity,
     RuntimeBridgeWritebackAuthority,
     MutationEvidenceAuthorityIdentity,
@@ -221,6 +225,14 @@ impl ForgeQueryEvidenceScope {
             Self::WriteReceiptEntityIdentity => "write-receipt-entity-identity",
             Self::AuthoredCommandEntityIdentity => "authored-command-entity-identity",
             Self::ExistingTruthResolvedTargetIdentity => "existing-truth-resolved-target-identity",
+            Self::ProjectionConsumptionIdentity => "projection-consumption-identity",
+            Self::ProjectionConsumptionCertificationIdentity => {
+                "projection-consumption-certification-identity"
+            }
+            Self::DomainCapabilityIdentity => "domain-capability-identity",
+            Self::DomainCapabilityCertificationIdentity => {
+                "domain-capability-certification-identity"
+            }
             Self::ProjectionConsumedContinuityAuthorityIdentity => {
                 "projection-consumed-continuity-authority-identity"
             }

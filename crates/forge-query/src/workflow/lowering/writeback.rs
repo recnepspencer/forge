@@ -1,6 +1,7 @@
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
+use crate::workflow::identity::bridge_request_kind_label;
 use crate::workflow::{
     QueryWorkflowDeclaration, WorkflowBasisFamily, WorkflowContextBinding, WorkflowFreshnessPolicy,
     WorkflowLoweringCounters,
@@ -273,7 +274,7 @@ fn writeback_causality_identity(
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("request_kind"),
-            format!("{request_kind:?}"),
+            bridge_request_kind_label(request_kind),
         )
         .seal()
 }

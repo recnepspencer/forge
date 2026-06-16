@@ -1,39 +1,22 @@
 # Milestone 9.6 Engineering Spec: Product Boundary Debt Closure For Evidence Identity, Typed Stop Classes, And Session Label Identity
 
-> **Status:** Closed
+> **Status:** Partial — ordinary-path Phases 1–7 and WS-1–WS-4 closed on
+> `query-repair`; Phases 8–11 (bridge-truth closeout, projection consumption,
+> workflow, domain capabilities) remain **mandatory 9.6 scope**, not 9.7.
 >
-> **Closeout note (2026-06-16, branch `query-repair`):** Re-open hostile QA on
-> 2026-06-16 found doc `Closed` ahead of lib certification and inventory scope.
-> WS-1–WS-4 on `query-repair` restored honest closure:
+> **Attack plan:** [milestone-9.6-attack-plan.md](./milestone-9.6-attack-plan.md)
 >
-> - **Lib certification:** `cargo test -p forge-query --lib` → **2327/0** (was
->   2277/47 before burn-down).
-> - **Consumer boundary:** `cargo test -p worth-kernel --lib construction` →
->   **172/0**; basis admission uses typed `admission_identity()`; denial tests
->   use `stop_class()` without string matching on covered paths.
-> - **Inventory scope:** `query_context/basis.rs` and crate-root `preview/mod.rs`
->   added to format-digest scan; folklore migrated to typed evidence identity.
-> - **Closure honesty:** `identity_boundary_certification_gate.rs` ties support
->   `Closed` to named 9.6 suite registration **and**
->   `MILESTONE_9_6_LIB_CERTIFICATION_GREEN`; exclusions documented in
->   `EXCLUDED_FOLKLORE_DEFERRALS`.
->
-> Evidence ledger: [milestone-9.6-closeout-evidence.md](./milestone-9.6-closeout-evidence.md)
->
-> **Verification (2026-06-16)**
->
-> ```text
-> cargo test -p forge-query session_label --lib          → 21/21
-> cargo test -p forge-query evidence_identity --lib      → 19/19
-> cargo test -p forge-query stop_class --lib             → 22/22
-> cargo test -p forge-query identity_boundary --lib      → 27/27
-> cargo test -p forge-query --lib                        → 2327/0
-> cargo test -p worth-kernel --lib construction          → 172/0
-> ```
+> **Closeout note (2026-06-16, branch `query-repair`):** WS-1–WS-4 restored
+> honest closure for the **curated ordinary runtime path**. Hostile QA then
+> found premature doc `Closed` while same-class folklore still survives in
+> `projection_consumption/`, `workflow/`, `domain_capabilities/`, and bridge-
+> truth Phase 10. Those slices are **9.6 work**, re-opened as Phases 8–11.
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
 > **Primary predecessors:** [milestone-9.5.md](./milestone-9.5.md), [milestone-9.4.md](./milestone-9.4.md)
+>
+> **Companion spec (Law 42):** [milestone-9.6-bridge-truth-identity-lowering.md](./milestone-9.6-bridge-truth-identity-lowering.md)
 >
 > **Purpose:** close the remaining product-boundary debt where Query-owned
 > identity and diagnostic contracts are still carried by string folklore:
@@ -522,11 +505,14 @@ let preview = workspace.preview_with_options(
 **Open questions**
 - None.
 
-### Phase 7: Support, Docs, And Hostile Certification Closure Boundary
+### Phase 7: Support, Docs, And Hostile Certification Closure Boundary (Ordinary Path)
 
-Close the milestone with support/profile honesty, documentation follow-
-through, and one hostile certification program proving the three boundaries
-hold together under combined drift pressure.
+Close the **ordinary-path** slice with support/profile honesty, documentation
+follow-through, and one hostile certification program proving the three
+boundaries hold on curated runtime surfaces under combined drift pressure.
+
+**This phase does not close Milestone `9.6`.** Phases 8–11 must report
+`Closed` before Phase 12 may aggregate final milestone posture.
 
 **Relevant subsystems**
 - `application` support/profile reporting
@@ -590,6 +576,113 @@ hold together under combined drift pressure.
 **Open questions**
 - None.
 
+### Phase 8: Bridge-Truth Phase 10 Zero-Deferral Closeout Boundary
+
+Close every remaining Law 42 authority-lifecycle defect in the bridge-truth
+track. This is Milestone `9.6` scope — not a separate milestone and not
+deferrable to `9.7`.
+
+**Governing docs:** [milestone-9.6-bridge-truth-identity-lowering.md](./milestone-9.6-bridge-truth-identity-lowering.md),
+[phase-10-closeout-ledger.md](./phase-10-closeout-ledger.md),
+[milestone-9.6-bridge-truth-identity-closeout.md](./milestone-9.6-bridge-truth-identity-closeout.md)
+
+**Relevant subsystems:** forge-query, forge-runtime-bridge, forge-server,
+worth-topo, worth-spatial, worth-kernel, hadwiger-research, worth-ui
+
+**Warnings**
+- Do not treat ordinary-path Phase 7 closure as bridge-truth closure.
+- Do not leave compile-fail ledger rows open with unnamed owners.
+- **worth-spatial `public_api_contract` is postponed** — separate optimization
+  agent; `worth-spatial --lib` must stay green; integration harness is Phase 12
+  blocker only, not WS-6+ blocker.
+
+**Test requirements**
+- Full bridge-truth Verification Gates green except postponed spatial integration
+  harness (see [phase-10-closeout-ledger.md](./phase-10-closeout-ledger.md)).
+- `cargo test -p worth-spatial --lib` green.
+- Compiler Failure Ledger: zero in-scope open rows for forge-query bridge-truth.
+
+**Open questions**
+- None.
+
+### Phase 9: Projection-Consumption Identity Boundary Closure
+
+Eliminate same-class digest and authority folklore across the entire
+`projection_consumption/` subtree.
+
+**Relevant Query source surfaces:** [projection_consumption/](../../crates/forge-query/src/projection_consumption/)
+
+**Warnings**
+- Do not migrate only `receipt.rs` / `source.rs` while certification oracle
+  paths retain `hash_parts` folklore.
+- Do not remove the inventory exclusion until every production file under the
+  prefix scans clean.
+
+**Test requirements**
+- Full-prefix inventory scan green; hostile equivalence under formatting drift.
+- Remove `projection_consumption/` from `EXCLUDED_FOLKLORE_PATHS` only after
+  phase-local hostile matrix passes.
+
+**Open questions**
+- None.
+
+### Phase 10: Workflow Identity Boundary Closure
+
+Eliminate same-class digest and authority folklore across `workflow/` and
+cross-boundary parity in
+[domain_capabilities/canonical_runtime/workflow/](../../crates/forge-query/src/domain_capabilities/canonical_runtime/workflow/).
+
+**Relevant Query source surfaces:** [workflow/](../../crates/forge-query/src/workflow/)
+
+**Warnings**
+- Do not fix only `lowering/writeback.rs` while foundation or inspection paths
+  retain format-string digest assembly.
+
+**Test requirements**
+- Full-prefix scan green; lowering and inspection identities compose through
+  `ForgeQueryEvidenceIdentity`.
+
+**Open questions**
+- None.
+
+### Phase 11: Domain-Capabilities Identity Boundary Closure
+
+Eliminate same-class digest and authority folklore across the entire
+`domain_capabilities/` subtree. Largest remaining slice — ships as ordered
+sub-slices in the attack plan (DC-1 through DC-6), not one pass.
+
+**Relevant Query source surfaces:** [domain_capabilities/](../../crates/forge-query/src/domain_capabilities/)
+
+**Warnings**
+- Do not close after `canonical_runtime/` alone while `certification/reports/`
+  retains scaled slope folklore.
+- Each sub-slice must gate before the next starts.
+
+**Test requirements**
+- Per-slice residue scans all green; certification report digests seal through
+  typed evidence identities.
+
+**Open questions**
+- None.
+
+### Phase 12: Milestone Re-Close And Final Hostile Certification Boundary
+
+Aggregate Phases 7–11 into honest milestone `Closed` posture. Support/profile,
+docs, roadmap, and test-requirements must agree; no same-class exclusions
+remain for forge-query integration subtrees.
+
+**Warnings**
+- Do not mark `Closed` while any Phase 8–11 gate is `Open` or `Partial`.
+- Deferring `projection_consumption/`, `workflow/`, or `domain_capabilities/`
+  to Milestone `9.7` is prohibited — they are same-class 9.6 debt.
+
+**Test requirements**
+- Re-run Phase 7 hostile matrix with expanded inventory covering Phases 9–11.
+- Support `Closed` derives only from zero residue across all phases.
+
+**Open questions**
+- None.
+
 ## Closure Gate: Honest Completion Criteria
 
 Milestone `9.6` is an all-or-nothing trust-boundary milestone. It is not
@@ -629,6 +722,12 @@ The milestone is only **Closed** when all of the following hold together:
    the milestone is not complete just because other siblings migrated.
 5. Any exclusion is defended as a genuinely different milestone-class boundary
    with a named owner; "not in the original inventory" is not a valid reason.
+   **Same-class folklore in `projection_consumption/`, `workflow/`, or
+   `domain_capabilities/` is not excludable** — deferral to `9.7` is invalid.
+6. Bridge-truth Phase 10 closeout (Phase 8) is `Closed` with zero unnamed
+   ledger deferrals.
+7. Phase 12 aggregates `Closed` posture only when Phases 8–11 each report
+   `Closed` with phase-local inventory and hostile proof.
 
 In other words: this milestone does not merely add typed APIs. It removes the
 need, excuse, and surviving opportunity for ordinary consumers or adjacent
@@ -652,7 +751,12 @@ boundaries.
   ordinary runtime artifacts, including string-carried session identity hidden
   behind apparently typed surfaces
 - support/profile, docs, and hostile certification closure for all three
-  boundaries
+  boundaries on the ordinary runtime path (Phase 7)
+- bridge-truth Phase 10 zero-deferral closeout (Phase 8)
+- projection-consumption identity boundary closure — full prefix (Phase 9)
+- workflow identity boundary closure — full prefix (Phase 10)
+- domain-capabilities identity boundary closure — six sub-slices (Phase 11)
+- final milestone re-close with expanded inventory (Phase 12)
 
 ## Must Preserve
 
@@ -694,7 +798,12 @@ This milestone is complete only when `forge-query` can prove:
   paths are canonical/typed while others still reconstruct identity or control
   flow from strings
 - docs, support profiles, and certification agree the three boundaries are
-  closed ordinary product surface
+  closed ordinary product surface **including** projection consumption,
+  workflow, and domain-capability integration feeders (Phases 9–11)
+- bridge-truth Law 42 authority graph closed with compile-fail matrix and
+  downstream certification green (Phase 8)
+- `EXCLUDED_FOLKLORE_PATHS` contains no same-class forge-query integration
+  prefixes after Phase 12
 
 ## Sequencing Notes
 
@@ -703,6 +812,9 @@ This milestone is complete only when `forge-query` can prove:
   boundaries refreeze on canonical contracts.
 - It belongs before Milestone `9.7` because concurrency receipts, journal
   identity, and published-artifact digests must be born on the canonical
-  evidence-identity scheme rather than migrated afterward.
+  evidence-identity scheme — and because `9.7` must not inherit unclean
+  projection-consumption, workflow, or domain-capability identity debt.
+- Phases 8–11 are hard gates before Phase 12 and before Milestone `9.7`
+  may start.
 - It belongs before Milestone `9.8` because the consumer product kit ships
   report scaffolding directly on the Phase 1 primitive.

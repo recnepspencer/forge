@@ -29,7 +29,7 @@ use crate::domain_capabilities::{
     evaluate_requested_domain_capability_contribution, forge_query_domain,
     ForgeQuerySupportContributionAuthoring,
 };
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::compose_canonical_runtime_materialization_digest;
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::ForgeQueryIntentAdmissionCoveredEntrypoint;
 use forge_relational::facade::runtime::InvariantCatalog;
@@ -285,7 +285,7 @@ pub fn forge_query_domain_capability_representative_report(
         domain_capability_contribution_request_digest: request_digest,
         domain_capability_contribution_eligibility_digest: eligibility_digest,
         admitted_domain_capability_contribution_digest: admitted_digest,
-        canonical_runtime_materialization_digest: hash_parts(&[
+        canonical_runtime_materialization_digest: compose_canonical_runtime_materialization_digest([
             materialize_canonical_admission_artifact(admitted_ready(admission_requested(
                 &admitted_plan,
             )))

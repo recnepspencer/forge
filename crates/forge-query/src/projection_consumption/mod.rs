@@ -8,6 +8,7 @@ mod eligibility;
 mod envelope;
 mod extraction;
 mod facts;
+mod identity;
 mod receipt;
 mod receipt_transitions;
 mod source;

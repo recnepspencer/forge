@@ -15,9 +15,9 @@ use crate::domain_capabilities::{
     ForgeQueryCanonicalContinuityArtifact, ForgeQueryDomainCapabilityTransitionOutcome,
     ForgeQueryMaterializationReadyContinuityContribution,
 };
-use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
-    ForgeQueryEvidenceTag,
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag,
 };
 use crate::runtime::{ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent};
 
@@ -73,11 +73,7 @@ fn domain_capability_continuity_binding_identity(
     target_kind: ForgeQueryDomainCapabilityTargetKind,
     binding_identity: &ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryEvidenceIdentity {
-    forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("role"),
-            "domain-capability-continuity-binding",
-        )
+    domain_capability_scope_encoder("domain_capability_continuity_binding_v1")
         .field_shape(
             ForgeQueryEvidenceTag::new("target_kind"),
             target_kind.as_str(),

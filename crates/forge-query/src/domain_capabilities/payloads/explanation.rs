@@ -1,8 +1,7 @@
 use forge_runtime_bridge::facade::BridgeCausalExplanationEnvelope;
 
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use crate::runtime::{
     CausalEvidenceFamily, CausalEvidenceReferenceSet, CausalInspectionExplanationFamily,
     CausalInspectionMaterializationPolicy, CausalInspectionRedactionPolicy,
@@ -55,16 +54,7 @@ fn compose_explanation_runtime_semantics_identity(
     redaction_policy: CausalInspectionRedactionPolicy,
     materialization_policy: CausalInspectionMaterializationPolicy,
 ) -> ForgeQueryEvidenceIdentity {
-    let families = requested_evidence_families
-        .iter()
-        .map(CausalEvidenceFamily::as_str)
-        .collect::<Vec<_>>()
-        .join("|");
-    let mut identity = ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
+    let mut identity = domain_capability_scope_encoder(
         "forge_query_domain_capability_explanation_runtime_semantics_v1",
     )
     .field_evidence_identity(
@@ -83,7 +73,10 @@ fn compose_explanation_runtime_semantics_identity(
         ForgeQueryEvidenceTag::new("richness"),
         requested_richness.as_str(),
     )
-    .field_shape(ForgeQueryEvidenceTag::new("evidence_families"), &families)
+    .field_value_sequence(
+        ForgeQueryEvidenceTag::new("evidence_families"),
+        requested_evidence_families.iter().map(CausalEvidenceFamily::as_str),
+    )
     .field_shape(
         ForgeQueryEvidenceTag::new("redaction"),
         redaction_policy.as_str(),
@@ -108,13 +101,7 @@ fn compose_explanation_payload_identity(
     detail: &str,
     runtime_semantics: Option<&ForgeQueryExplanationRuntimeSemantics>,
 ) -> ForgeQueryEvidenceIdentity {
-    let mut identity = ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "forge_query_domain_capability_payload_v2",
-    )
+    let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v2")
     .field_shape(
         ForgeQueryEvidenceTag::new("category"),
         ForgeQueryDomainCapabilityCategory::ExplanationInspection.as_str(),

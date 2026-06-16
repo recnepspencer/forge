@@ -1,6 +1,10 @@
-use crate::identity::hash_parts;
 use crate::memory_workspace::ForgeQueryEntityIdentity;
+use crate::projection_consumption::identity::{
+    compose_certification_sequence_digest, compose_json_canonical_digest,
+    compose_labeled_entry_digest, certification_scope_encoder, seal,
+};
 use crate::projection_consumption::ConsumedProjectionFactSet;
+use crate::ForgeQueryEvidenceTag;
 use serde_json::Value;
 
 use super::super::fixtures::{certification_grouped_projection, certification_row_set};
@@ -8,136 +12,194 @@ use super::value_terms::canonical_aspect_value;
 
 pub(super) fn row_set_control_expected_digest(row_count: usize) -> String {
     let row_set = certification_row_set(row_count);
-    hash_parts(
-        &row_set
-            .rows()
-            .iter()
-            .flat_map(|row| {
-                let entity_identity = row
-                    .projected_aspect_values()
-                    .iter()
-                    .find_map(|(field, value)| {
-                        (field.as_str() == "identity.id").then(|| canonical_aspect_value(value))
-                    })
-                    .expect("identity.id should exist");
-                let display_name = row
-                    .projected_aspect_values()
-                    .iter()
-                    .find_map(|(field, value)| {
-                        (field.as_str() == "profile.display_name")
-                            .then(|| canonical_aspect_value(value))
-                    })
-                    .expect("display name should exist");
-                [
-                    format!(
-                        "entity_identity:{}:{}",
-                        row.row_identity().as_str(),
-                        crate::memory_workspace::admit_authored_entity_label(entity_identity)
-                            .evidence_identity()
-                            .terminal_projection_for_reporting()
-                    ),
-                    format!(
-                        "display_field:{}:profile.display_name:{}",
-                        row.row_identity().as_str(),
-                        display_name
-                    ),
-                ]
-            })
-            .collect::<Vec<_>>(),
+    let entries = row_set
+        .rows()
+        .iter()
+        .flat_map(|row| {
+            let entity_identity = row
+                .projected_aspect_values()
+                .iter()
+                .find_map(|(field, value)| {
+                    (field.as_str() == "identity.id").then(|| canonical_aspect_value(value))
+                })
+                .expect("identity.id should exist");
+            let display_name = row
+                .projected_aspect_values()
+                .iter()
+                .find_map(|(field, value)| {
+                    (field.as_str() == "profile.display_name")
+                        .then(|| canonical_aspect_value(value))
+                })
+                .expect("display name should exist");
+            [
+                compose_oracle_entity_identity_entry(
+                    row.row_identity().as_str(),
+                    &crate::memory_workspace::admit_authored_entity_label(entity_identity),
+                ),
+                compose_oracle_display_field_entry(
+                    row.row_identity().as_str(),
+                    "profile.display_name",
+                    &display_name,
+                ),
+            ]
+        })
+        .collect::<Vec<_>>();
+    compose_certification_sequence_digest(
+        "projection_consumption_oracle_row_set_control_expected_v1",
+        "entry",
+        entries,
     )
 }
 
 pub(super) fn row_set_control_actual_digest(facts: &ConsumedProjectionFactSet) -> String {
-    hash_parts(
-        &facts
-            .entity_identities()
-            .iter()
-            .map(|fact| {
-                format!(
-                    "entity_identity:{}:{}",
-                    fact.source_row_identity(),
-                    fact.entity_identity()
-                        .evidence_identity()
-                        .terminal_projection_for_reporting()
-                )
-            })
-            .chain(facts.display_fields().iter().map(|fact| {
-                format!(
-                    "display_field:{}:{}:{}",
-                    fact.source_row_identity(),
-                    fact.field_key(),
-                    canonical_json(fact.value())
-                )
-            }))
-            .collect::<Vec<_>>(),
+    let entries = facts
+        .entity_identities()
+        .iter()
+        .map(|fact| {
+            compose_oracle_entity_identity_entry(fact.source_row_identity(), fact.entity_identity())
+        })
+        .chain(facts.display_fields().iter().map(|fact| {
+            compose_oracle_display_field_entry(
+                fact.source_row_identity(),
+                fact.field_key(),
+                &compose_json_canonical_digest(fact.value()),
+            )
+        }))
+        .collect::<Vec<_>>();
+    compose_certification_sequence_digest(
+        "projection_consumption_oracle_row_set_control_actual_v1",
+        "entry",
+        entries,
     )
 }
 
 pub(super) fn grouped_worth_expected_digest(row_count: usize) -> String {
     let grouped = certification_grouped_projection(row_count);
-    hash_parts(
-        &grouped
-            .members()
-            .iter()
-            .flat_map(|member| {
-                [
-                    format!(
-                        "membership:{}:{}:{}",
-                        member.row_identity().as_str(),
-                        grouped.contract().grouping_aspect().as_str(),
-                        canonical_aspect_value(member.grouping_value())
-                    ),
-                    format!(
-                        "relation_endpoint:{}:{}:{}",
-                        member.row_identity().as_str(),
-                        grouped.contract().grouping_aspect().as_str(),
-                        canonical_aspect_value(member.grouping_value())
-                    ),
-                    format!(
-                        "view_local_identity:{}:{}",
-                        member.row_identity().as_str(),
-                        member.row_identity().as_str()
-                    ),
-                ]
-            })
-            .collect::<Vec<_>>(),
+    let entries = grouped
+        .members()
+        .iter()
+        .flat_map(|member| {
+            [
+                compose_oracle_membership_entry(
+                    member.row_identity().as_str(),
+                    grouped.contract().grouping_aspect().as_str(),
+                    &canonical_aspect_value(member.grouping_value()),
+                ),
+                compose_oracle_relation_endpoint_entry(
+                    member.row_identity().as_str(),
+                    grouped.contract().grouping_aspect().as_str(),
+                    &canonical_aspect_value(member.grouping_value()),
+                ),
+                compose_oracle_view_local_identity_entry(
+                    member.row_identity().as_str(),
+                    member.row_identity().as_str(),
+                ),
+            ]
+        })
+        .collect::<Vec<_>>();
+    compose_certification_sequence_digest(
+        "projection_consumption_oracle_grouped_worth_expected_v1",
+        "entry",
+        entries,
     )
 }
 
 pub(super) fn grouped_worth_actual_digest(facts: &ConsumedProjectionFactSet) -> String {
-    hash_parts(
-        &facts
-            .memberships()
-            .iter()
-            .map(|fact| {
-                format!(
-                    "membership:{}:{}:{}",
-                    fact.source_row_identity(),
-                    fact.native_grouping_aspect_key().as_str(),
-                    canonical_json(fact.grouping_value())
-                )
-            })
-            .chain(facts.relation_endpoints().iter().map(|fact| {
-                format!(
-                    "relation_endpoint:{}:{}:{}",
-                    fact.source_row_identity().unwrap_or("none"),
-                    fact.native_grouping_aspect_key()
-                        .map(|key| key.as_str())
-                        .unwrap_or("none"),
-                    canonical_json(fact.grouping_value().unwrap_or(&Value::Null))
-                )
-            }))
-            .chain(facts.view_local_identities().iter().map(|fact| {
-                format!(
-                    "view_local_identity:{}:{}",
-                    fact.source_row_identity(),
-                    fact.view_local_identity()
-                )
-            }))
-            .collect::<Vec<_>>(),
+    let entries = facts
+        .memberships()
+        .iter()
+        .map(|fact| {
+            compose_oracle_membership_entry(
+                fact.source_row_identity(),
+                fact.native_grouping_aspect_key().as_str(),
+                &compose_json_canonical_digest(fact.grouping_value()),
+            )
+        })
+        .chain(facts.relation_endpoints().iter().map(|fact| {
+            compose_oracle_relation_endpoint_entry(
+                fact.source_row_identity().unwrap_or("none"),
+                fact.native_grouping_aspect_key()
+                    .map(|key| key.as_str())
+                    .unwrap_or("none"),
+                &compose_json_canonical_digest(fact.grouping_value().unwrap_or(&Value::Null)),
+            )
+        }))
+        .chain(facts.view_local_identities().iter().map(|fact| {
+            compose_oracle_view_local_identity_entry(
+                fact.source_row_identity(),
+                fact.view_local_identity(),
+            )
+        }))
+        .collect::<Vec<_>>();
+    compose_certification_sequence_digest(
+        "projection_consumption_oracle_grouped_worth_actual_v1",
+        "entry",
+        entries,
     )
 }
 
-fn canonical_json(value: &Value) -> String {
-    serde_json::to_string(value).unwrap_or_else(|_| "<invalid-json>".to_string())
+fn compose_oracle_entity_identity_entry(
+    source_row: &str,
+    entity_identity: &ForgeQueryEntityIdentity,
+) -> String {
+    let evidence_identity = entity_identity.evidence_identity();
+    seal(
+        certification_scope_encoder("projection_consumption_oracle_entity_identity_entry_v1")
+            .field_shape(ForgeQueryEvidenceTag::new("source_row"), source_row)
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("entity_identity"),
+                &evidence_identity,
+            ),
+    )
+}
+
+fn compose_oracle_display_field_entry(source_row: &str, field_key: &str, value: &str) -> String {
+    compose_labeled_entry_digest(
+        "projection_consumption_oracle_display_field_entry_v1",
+        &[
+            ("source_row", source_row),
+            ("field_key", field_key),
+            ("value", value),
+        ],
+    )
+}
+
+fn compose_oracle_membership_entry(
+    source_row: &str,
+    grouping_aspect: &str,
+    grouping_value: &str,
+) -> String {
+    compose_labeled_entry_digest(
+        "projection_consumption_oracle_membership_entry_v1",
+        &[
+            ("source_row", source_row),
+            ("grouping_aspect", grouping_aspect),
+            ("grouping_value", grouping_value),
+        ],
+    )
+}
+
+fn compose_oracle_relation_endpoint_entry(
+    source_row: &str,
+    grouping_aspect: &str,
+    grouping_value: &str,
+) -> String {
+    compose_labeled_entry_digest(
+        "projection_consumption_oracle_relation_endpoint_entry_v1",
+        &[
+            ("source_row", source_row),
+            ("grouping_aspect", grouping_aspect),
+            ("grouping_value", grouping_value),
+        ],
+    )
+}
+
+fn compose_oracle_view_local_identity_entry(source_row: &str, view_local_identity: &str) -> String {
+    compose_labeled_entry_digest(
+        "projection_consumption_oracle_view_local_identity_entry_v1",
+        &[
+            ("source_row", source_row),
+            ("view_local_identity", view_local_identity),
+        ],
+    )
 }

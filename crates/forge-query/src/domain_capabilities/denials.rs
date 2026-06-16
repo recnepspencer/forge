@@ -1,9 +1,8 @@
 use forge_proof::TransitionOutcome;
 
 use super::targets::ForgeQueryDomainCapabilityTargetKind;
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDomainCapabilityProgressionDenialKind {
@@ -12,6 +11,24 @@ pub enum ForgeQueryDomainCapabilityProgressionDenialKind {
     UnsupportedCanonicalMaterializationPosture,
     MissingCanonicalMaterializationSemantics,
     InconsistentCanonicalMaterializationSemantics,
+}
+
+impl ForgeQueryDomainCapabilityProgressionDenialKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::EmptySemanticCode => "empty-semantic-code",
+            Self::EmptyDetail => "empty-detail",
+            Self::UnsupportedCanonicalMaterializationPosture => {
+                "unsupported-canonical-materialization-posture"
+            }
+            Self::MissingCanonicalMaterializationSemantics => {
+                "missing-canonical-materialization-semantics"
+            }
+            Self::InconsistentCanonicalMaterializationSemantics => {
+                "inconsistent-canonical-materialization-semantics"
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -38,7 +55,6 @@ impl ForgeQueryDomainCapabilityProgressionDenial {
             category,
             target_kind,
             &request_identity,
-            &message,
         );
         Self {
             kind,
@@ -88,21 +104,15 @@ fn compose_progression_denial_failure_identity(
     category: &'static str,
     target_kind: ForgeQueryDomainCapabilityTargetKind,
     request_identity: &ForgeQueryEvidenceIdentity,
-    message: &str,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_capability_progression_denial_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), format!("{kind:?}"))
+    domain_capability_scope_encoder("forge_query_domain_capability_progression_denial_v1")
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
         .field_shape(ForgeQueryEvidenceTag::new("category"), category)
         .field_shape(
             ForgeQueryEvidenceTag::new("target_kind"),
             target_kind.as_str(),
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("request"), request_identity)
-        .field_value(ForgeQueryEvidenceTag::new("message"), message)
         .seal()
 }
 

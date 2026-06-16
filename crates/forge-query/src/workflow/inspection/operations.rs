@@ -7,6 +7,7 @@ use super::*;
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::workflow::inspection_projection::{
     relational_merge_class_admission, relational_merge_class_label,
+    relational_merge_class_shape,
 };
 use forge_relational::facade::merge::{
     NormalizedRelationalMergeRequest, RelationalMergeInspectionArtifact,
@@ -74,12 +75,14 @@ pub fn inspect_merge_conflicts(
         .rows()
         .iter()
         .map(|row| {
+            let merge_class_shape = relational_merge_class_shape(row);
             let merge_class = relational_merge_class_label(row);
             let merge_class_admission = relational_merge_class_admission(row);
             let conflict_scope_identity = conflict_scope_identity(
                 declaration,
                 merge_declaration,
-                &merge_class,
+                merge_class_shape.family,
+                merge_class_shape.class,
                 merge_class_admission.as_str(),
                 row.row_digest(),
             );
@@ -253,15 +256,15 @@ pub fn build_workflow_replay_bundle(
     let counters = outcome.counters().with_replay_bundle_issued();
 
     WorkflowReplayBundle {
-        bundle_digest: bundle_identity.as_str().to_string(),
-        query_digest: outcome.source_query_digest().to_string(),
-        plan_digest: outcome.source_plan_digest().to_string(),
-        basis_digest: outcome.source_basis_digest().to_string(),
-        declaration_digest: outcome.source_declaration_digest().to_string(),
+        bundle_identity: bundle_identity,
+        query_identity: outcome.source_query_identity().clone(),
+        plan_identity: outcome.source_plan_identity().clone(),
+        basis_identity: outcome.source_basis_identity().clone(),
+        declaration_identity: outcome.source_declaration_identity().clone(),
         authority_target_family: outcome.authority_target_family().clone(),
-        authority_request_digest: outcome.authority_request_digest().to_string(),
-        authoritative_outcome_digest: outcome.authoritative_outcome_digest().to_string(),
-        delivery_or_failure_digest: delivery_or_failure_identity.as_str().to_string(),
+        authority_request_identity: outcome.authority_request_identity().clone(),
+        authoritative_outcome_identity: outcome.authoritative_outcome_identity().clone(),
+        delivery_or_failure_identity,
         counters,
     }
 }

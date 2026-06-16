@@ -37,6 +37,7 @@ pub(crate) use domain_capability::{
     admit_contributed_preview_workflow_foundation,
     materialize_contributed_preview_workflow_foundation_artifact,
 };
+pub(crate) use workflow_context_identity::preview_lifecycle_state_label;
 pub use scoped::{
     admit_scoped_preview_live_session_plan, admit_scoped_preview_session_plan_binding,
     admit_scoped_preview_session_plan_binding_from_preview_binding,

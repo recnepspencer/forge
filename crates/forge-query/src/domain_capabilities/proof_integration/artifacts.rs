@@ -23,9 +23,8 @@ use crate::domain_capabilities::targets::{
     ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
     ForgeQueryDomainCapabilityTargetBinding, ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
 };
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 type DomainCapabilityBasis = FreshnessScopedBasis<CurrentValidity, AssumptionBasis<String>>;
 
@@ -151,11 +150,7 @@ where
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
     let binding_identity = target.binding_identity();
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_capability_request_v1",
-        )
+    domain_capability_scope_encoder("forge_query_domain_capability_request_v1")
         .field_shape(
             ForgeQueryEvidenceTag::new("category"),
             payload.category().as_str(),
@@ -253,11 +248,7 @@ where
     P: ForgeQueryDomainCapabilityPayload,
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_capability_phase_v1",
-        )
+    domain_capability_scope_encoder("forge_query_domain_capability_phase_v1")
         .field_shape(ForgeQueryEvidenceTag::new("phase"), phase)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("request"),
@@ -282,11 +273,7 @@ where
     P: ForgeQueryDomainCapabilityPayload,
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_capability_basis_v1",
-        )
+    domain_capability_scope_encoder("forge_query_domain_capability_basis_v1")
         .field_shape(
             ForgeQueryEvidenceTag::new("assumption"),
             contribution_basis(artifact).as_str(),
@@ -469,7 +456,7 @@ where
     T: ForgeQueryDomainCapabilityTargetBinding,
     (P, T): AllowedContributionBinding<P, T>,
 {
-    let binding_basis = target.binding_digest().to_string();
+    let binding_basis = target.binding_identity().as_str().to_string();
     ForgeQueryRequestedDomainCapabilityContribution(remint_with_phase(
         ForgeQueryDomainCapabilityContribution::new(target, payload),
         binding_basis,

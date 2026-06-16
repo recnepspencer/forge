@@ -1,6 +1,7 @@
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+use crate::domain_capabilities::identity::{
+    compose_fact_request_entry_digest, domain_capability_scope_encoder,
 };
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use crate::projection_consumption::{
     ProjectMaterializedFacts, ProjectionConsumptionBindingContext, ProjectionConsumptionSource,
 };
@@ -40,13 +41,7 @@ impl ForgeQueryAftermathContributionPosture {
 }
 
 fn aftermath_source_identity(source: &ProjectionConsumptionSource) -> ForgeQueryEvidenceIdentity {
-    let mut identity = ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "forge_query_aftermath_source_v1",
-    )
+    let mut identity = domain_capability_scope_encoder("forge_query_aftermath_source_v1")
     .field_shape(
         ForgeQueryEvidenceTag::new("source_family"),
         source.family().as_str(),
@@ -66,11 +61,7 @@ fn aftermath_source_identity(source: &ProjectionConsumptionSource) -> ForgeQuery
 fn aftermath_binding_identity(
     binding: &ProjectionConsumptionBindingContext,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_aftermath_binding_v1",
-        )
+    domain_capability_scope_encoder("forge_query_aftermath_binding_v1")
         .field_shape(
             ForgeQueryEvidenceTag::new("result_shape"),
             binding.result_shape_digest(),
@@ -108,16 +99,9 @@ fn compose_aftermath_runtime_semantics_identity(
     let requested = runtime_semantics
         .requested_facts()
         .requested()
-        .map(|request| match request.field_key() {
-            Some(field) => format!("{}:{field}", request.kind().as_str()),
-            None => request.kind().as_str().to_string(),
-        })
+        .map(compose_fact_request_entry_digest)
         .collect::<Vec<_>>();
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_capability_aftermath_runtime_semantics_v2",
-        )
+    domain_capability_scope_encoder("forge_query_domain_capability_aftermath_runtime_semantics_v2")
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("source"),
             &aftermath_source_identity(runtime_semantics.source()),
@@ -136,13 +120,7 @@ fn compose_aftermath_payload_identity(
     detail: &str,
     runtime_semantics: Option<&ForgeQueryAftermathRuntimeSemantics>,
 ) -> ForgeQueryEvidenceIdentity {
-    let mut identity = ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "forge_query_domain_capability_payload_v3",
-    )
+    let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v3")
     .field_shape(
         ForgeQueryEvidenceTag::new("category"),
         ForgeQueryDomainCapabilityCategory::ConsequenceAftermath.as_str(),

@@ -3155,13 +3155,11 @@ This milestone is complete only when `forge-query` can prove:
 
 ## Milestone 9.6: Product Boundary Debt Closure For Evidence Identity, Typed Stop Classes, And Session Label Identity
 
-> **Status:** Closed — identity-boundary inventory (including `query_context/basis.rs`
-> and crate-root `preview/mod.rs` feeders), derived residue reporting, lib
-> certification gate, hostile certification matrix, and certification suites in
-> `crates/forge-query/src/application/support/identity_boundary_inventory.rs`,
-> `identity_boundary_certification_gate.rs`, `identity_boundary_hostile_matrix.rs`,
-> and `runtime/tests/identity_boundary/`. Closeout evidence:
-> [milestone-9.6-closeout-evidence.md](./milestone-9.6-closeout-evidence.md).
+> **Status:** Partial — ordinary-path WS-1–WS-4 closed on `query-repair`;
+> Phases 8–11 (bridge-truth closeout, projection consumption, workflow, domain
+> capabilities) remain mandatory 9.6 scope. Attack plan:
+> [milestone-9.6-attack-plan.md](./milestone-9.6-attack-plan.md). Milestone 9.7
+> is blocked until Phase 12 re-close.
 
 ### Goal
 

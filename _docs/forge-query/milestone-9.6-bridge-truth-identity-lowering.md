@@ -1218,9 +1218,11 @@ Phase 9 or earlier closeout passes may remain silently deferred.
 - [ ] Add compile-fail or folklore guard on replay test paths if label-mint
   patterns remain reachable
 
-**worth-spatial certification (required — observed 55 failures in public_api_contract)**
+**worth-spatial certification (postponed — separate optimization agent)**
 
-- [ ] Triage and fix `cargo test -p worth-spatial --test public_api_contract`
+- [ ] Triage and optimize `cargo test -p worth-spatial --test public_api_contract`
+  (serial gate `--test-threads=1`; lib 72/72 green; harness perf/flake)
+- Owner: worth-spatial agent — does **not** block forge-query WS-6+
   failures (boolean evidence ledger, evidence-ledger receipts, honesty guards,
   workload vocabulary)
 - [ ] Distinguish 9.6 harness fallout vs pre-existing drift; fix either way

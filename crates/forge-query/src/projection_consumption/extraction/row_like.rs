@@ -9,6 +9,7 @@ use super::super::consumed::{
 };
 use super::super::contracts::{BoundProjectionFactFamily, MaterializedProjectionContract};
 use super::super::facts::ProjectionFactKind;
+use super::super::identity::compose_scoped_row_source_identity;
 use super::super::source::ProjectionSourceFamily;
 use super::aspect_value_projection::{
     project_aspect_value_for_consumption_json, project_validated_aspect_value_for_consumption_json,
@@ -128,7 +129,10 @@ where
             field_map.get(field_key).ok_or_else(|| {
                 ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                     source_family: contract.source_family(),
-                    source_identity: format!("{}::{row_identity}", contract.source_identity()),
+                    source_identity: compose_scoped_row_source_identity(
+                        contract.source_identity(),
+                        &row_identity,
+                    ),
                     field_key: field_key.to_string(),
                     fact_kind,
                 }
@@ -147,7 +151,10 @@ fn extract_json_rows(
         .iter()
         .map(|row| {
             (
-                row.identity().terminal_projection_for_reporting(),
+                row.identity()
+                    .evidence_identity()
+                    .reporting_projection()
+                    .to_string(),
                 Some(row.identity().clone()),
                 query_read_result_row_fields(contract, row),
             )
@@ -160,7 +167,10 @@ fn extract_json_rows(
             row_fields.get(field_key).ok_or_else(|| {
                 ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                     source_family: contract.source_family(),
-                    source_identity: format!("{}::{row_identity}", contract.source_identity()),
+                    source_identity: compose_scoped_row_source_identity(
+                        contract.source_identity(),
+                        &row_identity,
+                    ),
                     field_key: field_key.to_string(),
                     fact_kind,
                 }
@@ -271,9 +281,9 @@ where
                                 value.as_str().ok_or_else(|| {
                                     ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
                                         source_family: contract.source_family(),
-                                        source_identity: format!(
-                                            "{}::{row_identity}",
-                                            contract.source_identity()
+                                        source_identity: compose_scoped_row_source_identity(
+                                            contract.source_identity(),
+                                            row_identity.as_str(),
                                         ),
                                         field_key: "identity.id".to_string(),
                                         fact_kind: ProjectionFactKind::EntityIdentity,

@@ -18,6 +18,24 @@ pub enum WorkflowLoweringFailureClass {
     LoweringSerializationFailed,
 }
 
+impl WorkflowLoweringFailureClass {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::InvalidWorkflowDeclarationFamily => "invalid_workflow_declaration_family",
+            Self::UnsupportedMergeFamily => "unsupported_merge_family",
+            Self::UnsupportedRelationalStrategyTarget => {
+                "unsupported_relational_strategy_target"
+            }
+            Self::UnsupportedWritebackFamily => "unsupported_writeback_family",
+            Self::InvalidMergeBranchPairing => "invalid_merge_branch_pairing",
+            Self::UnsupportedWritebackCausality => "unsupported_writeback_causality",
+            Self::StaleWorkflowDenied => "stale_workflow_denied",
+            Self::ExplicitRebindRequired => "explicit_rebind_required",
+            Self::LoweringSerializationFailed => "lowering_serialization_failed",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkflowLoweringError {
     failure_class: WorkflowLoweringFailureClass,

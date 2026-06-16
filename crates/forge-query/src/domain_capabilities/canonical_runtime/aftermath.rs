@@ -15,7 +15,9 @@ use crate::projection_consumption::{
     declare_projection_consumption, discover_projection_consumption_support,
     evaluate_projection_consumption_eligibility, AdmittedProjectionConsumption,
     MaterializedProjectionContract, ProjectionConsumptionDeclaration,
-    ProjectionConsumptionEligibility, ProjectionConsumptionSupportReport,
+    ProjectionConsumptionDeclarationError, ProjectionConsumptionEligibility,
+    ProjectionConsumptionSupportReport, DeferredProjectionConsumptionReason,
+    ProjectionConsumptionDenialReason,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -128,9 +130,9 @@ pub fn materialize_projection_consumption_review(
                 domain_contribution.target().kind(),
                 domain_contribution.request_identity().clone(),
                 format!(
-                    "projection consumption declaration denied for `{}` with `{:?}`",
+                    "projection consumption declaration denied for `{}` with `{}`",
                     payload.semantic_code(),
-                    error
+                    declaration_error_label(&error),
                 ),
             ));
         }
@@ -169,9 +171,9 @@ pub fn materialize_admitted_projection_consumption(
                     review.target_kind(),
                     review.request_identity().clone(),
                     format!(
-                        "projection consumption eligibility denied for `{}` with `{:?}`",
+                        "projection consumption eligibility denied for `{}` with `{}`",
                         review.semantic_code(),
-                        denied.reason()
+                        denial_reason_label(denied.reason()),
                     ),
                 ))
             }
@@ -182,9 +184,9 @@ pub fn materialize_admitted_projection_consumption(
                     review.target_kind(),
                     review.request_identity().clone(),
                     format!(
-                        "projection consumption eligibility deferred for `{}` with `{:?}`",
+                        "projection consumption eligibility deferred for `{}` with `{}`",
                         review.semantic_code(),
-                        deferred.reason()
+                        deferred_reason_label(deferred.reason()),
                     ),
                 ))
             }
@@ -195,10 +197,10 @@ pub fn materialize_admitted_projection_consumption(
                     review.target_kind(),
                     review.request_identity().clone(),
                     format!(
-                        "projection consumption source mismatch for `{}` with `{:?}` / `{:?}`",
+                        "projection consumption source mismatch for `{}` with `{}` / `{}`",
                         review.semantic_code(),
-                        mismatch.source_family(),
-                        mismatch.requested_fact_kind()
+                        mismatch.source_family().as_str(),
+                        mismatch.requested_fact_kind().as_str(),
                     ),
                 ))
             }
@@ -241,4 +243,40 @@ fn missing_runtime_semantics_denial(
             "projection consumption materialization requires runtime aftermath semantics for `{semantic_code}`"
         ),
     )
+}
+
+fn declaration_error_label(error: &ProjectionConsumptionDeclarationError) -> &'static str {
+    match error {
+        ProjectionConsumptionDeclarationError::NoRequestedFacts => "no-requested-facts",
+        ProjectionConsumptionDeclarationError::SourceAuthorizedProjectionQueryMismatch { .. } => {
+            "source-authorized-projection-query-mismatch"
+        }
+        ProjectionConsumptionDeclarationError::BindingAuthorizedProjectionResultShapeMismatch {
+            ..
+        } => "binding-authorized-projection-result-shape-mismatch",
+        ProjectionConsumptionDeclarationError::SourceBindingResultShapeMismatch { .. } => {
+            "source-binding-result-shape-mismatch"
+        }
+    }
+}
+
+fn denial_reason_label(reason: &ProjectionConsumptionDenialReason) -> String {
+    match reason {
+        ProjectionConsumptionDenialReason::FactFamilyNotVisible { field_key } => {
+            let mut label = String::from("fact-family-not-visible:");
+            label.push_str(field_key);
+            label
+        }
+    }
+}
+
+fn deferred_reason_label(reason: &DeferredProjectionConsumptionReason) -> &'static str {
+    match reason {
+        DeferredProjectionConsumptionReason::WriteReceiptContractBindingPending => {
+            "write-receipt-contract-binding-pending"
+        }
+        DeferredProjectionConsumptionReason::SourceFamilySupportPending => {
+            "source-family-support-pending"
+        }
+    }
 }

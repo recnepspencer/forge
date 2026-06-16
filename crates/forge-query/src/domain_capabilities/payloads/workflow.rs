@@ -1,6 +1,5 @@
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 use super::common::{
     ForgeQueryDomainCapabilityCategory, ForgeQueryDomainCapabilityPayload,
@@ -53,13 +52,7 @@ fn compose_workflow_payload_identity(
     lowering_semantics: Option<&ForgeQueryWorkflowLoweringSemantics>,
     inspection_semantics: Option<&ForgeQueryWorkflowInspectionSemantics>,
 ) -> ForgeQueryEvidenceIdentity {
-    let mut identity = ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "forge_query_domain_capability_payload_v5",
-    )
+    let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v5")
     .field_shape(
         ForgeQueryEvidenceTag::new("category"),
         ForgeQueryDomainCapabilityCategory::WorkflowPreview.as_str(),

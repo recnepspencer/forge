@@ -1,4 +1,5 @@
-use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 use super::super::payloads::{
     ForgeQueryAdmissionContributionPayload, ForgeQueryAftermathContributionPayload,
@@ -45,11 +46,7 @@ where
             &semantic_code,
             &detail,
         );
-        let materialization_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
+        let materialization_identity = domain_capability_scope_encoder(
             "forge_query_domain_capability_canonical_runtime_materialization_v1",
         )
         .field_shape(
@@ -122,11 +119,7 @@ fn canonical_runtime_semantic_identity(
     semantic_code: &str,
     detail: &str,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceSourceDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_capability_semantic_identity_v1",
-        )
+    domain_capability_scope_encoder("forge_query_domain_capability_semantic_identity_v1")
         .field_shape(ForgeQueryEvidenceTag::new("category"), category.as_str())
         .field_shape(
             ForgeQueryEvidenceTag::new("posture"),

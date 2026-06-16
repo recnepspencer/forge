@@ -130,7 +130,7 @@ pub(super) fn lower_runtime_envelope(
             )
             .field_value(
                 ForgeQueryEvidenceTag::new("certification_report_target"),
-                format!("retained:{target_digest}"),
+                target_digest,
             )
             .seal(),
         );

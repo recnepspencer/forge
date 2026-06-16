@@ -1,6 +1,5 @@
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use crate::runtime::{
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityMutationOutcomeClass,
 };
@@ -42,11 +41,7 @@ impl ForgeQueryContinuityContributionPosture {
 }
 
 fn continuity_authoritative_identity(role: &str, source_label: &str) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_continuity_authoritative_source_v1",
-        )
+    domain_capability_scope_encoder("forge_query_continuity_authoritative_source_v1")
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
         .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
         .seal()
@@ -56,11 +51,7 @@ fn continuity_successor_authoritative_identity(
     index: usize,
     source_label: &str,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_continuity_authoritative_source_v1",
-        )
+    domain_capability_scope_encoder("forge_query_continuity_authoritative_source_v1")
         .field_shape(ForgeQueryEvidenceTag::new("role"), "successor")
         .field_usize(ForgeQueryEvidenceTag::new("index"), index)
         .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
@@ -70,11 +61,7 @@ fn continuity_successor_authoritative_identity(
 fn compose_continuity_runtime_semantics_identity(
     runtime_semantics: &ForgeQueryContinuityRuntimeSemantics,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_capability_continuity_runtime_semantics_v1",
-        )
+    domain_capability_scope_encoder("forge_query_domain_capability_continuity_runtime_semantics_v1")
         .field_shape(
             ForgeQueryEvidenceTag::new("family"),
             runtime_semantics.family().as_str(),
@@ -103,13 +90,7 @@ fn compose_continuity_payload_identity(
     runtime_semantics: Option<&ForgeQueryContinuityRuntimeSemantics>,
     correspondence_semantics: Option<&ForgeQueryContinuityCorrespondenceSemantics>,
 ) -> ForgeQueryEvidenceIdentity {
-    let mut identity = ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "forge_query_domain_capability_payload_v3",
-    )
+    let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v3")
     .field_shape(
         ForgeQueryEvidenceTag::new("category"),
         ForgeQueryDomainCapabilityCategory::ContinuityLineage.as_str(),

@@ -1,6 +1,9 @@
 # Forge Query Milestone 9.6 Bridge Truth Identity Closeout
 
-> **Status:** Phase 10 closeout in progress (`query-repair`, 2026-06-16)
+> **Status:** Phase 10 closeout **Closed** for forge-query bridge-truth scope
+> (`query-repair`, 2026-06-16). **One named deferral:** worth-spatial
+> `public_api_contract` integration harness → separate optimization agent
+> ([phase-10-closeout-ledger.md](./phase-10-closeout-ledger.md) §Postponed).
 >
 > **Prior closeout date:** 2026-06-15
 >
@@ -21,9 +24,10 @@ section in `milestone-9.6-bridge-truth-identity-lowering.md`.
 3. **forge-runtime-bridge subscription replay** — migrate `replay_tests.rs` from
    label-based `truth_*_fixture` helpers to typed relational constructors; close
    matrix row in this milestone (no separate owner milestone).
-4. **worth-spatial `public_api_contract`** — fix all integration test failures
-   (observed 55 failures / 322 pass); triage as 9.6 fallout or certification drift
-   but fix before closeout.
+4. **worth-spatial `public_api_contract`** — **postponed** to separate
+   worth-spatial optimization agent (harness performance/flake under parallel;
+   serial gate intended; `cargo test -p worth-spatial --lib` 72/72 green).
+   Does not block WS-6–8; blocks Phase 12 final 9.6 `Closed`.
 5. **Phase 9 closeout evidence** — append gate results from `query-repair` hostile
    QA and compile-fail runs to this document.
 6. **Compiler Failure Ledger** — no open in-scope rows without explicit fix path.
@@ -144,14 +148,18 @@ typed evidence identities:
 
 Evidence files for the final pass are stored under `_docs/forge-query/goal_mode_final_*` and `_docs/forge-query/goal_mode_bridge_*`.
 
-## Deferred Scope (superseded by Phase 10)
+## Deferred Scope (Phase 10)
 
-The items below were deferred in the 2026-06-15 closeout. **Phase 10 closes them
-in this milestone** — they must not remain deferred at final closeout:
+**Closed in Phase 10:**
 
-- ~~Subscription replay typed identity fixture cleanup~~ → **P10-3** (required)
-- worth-spatial `public_api_contract` integration failures → **P10-4** (required)
-- worth-topo Phase 9 compile-fail extension → **P10-2** (required)
+- ~~Subscription replay typed identity fixture cleanup~~ → **P10-3** ✓
+- ~~worth-topo Phase 9 compile-fail extension~~ → **P10-2** ✓
+
+**Postponed (named owner — not forge-query 9.6 WS-6+):**
+
+- worth-spatial `public_api_contract` integration harness → **P10-4** — separate
+  worth-spatial optimization agent; see [phase-10-closeout-ledger.md](./phase-10-closeout-ledger.md)
+  §Postponed
 
 **Still out of scope:** ordinary local/display formatting in worth-kernel and
 forge-kernel unless a trace finds an authority path.

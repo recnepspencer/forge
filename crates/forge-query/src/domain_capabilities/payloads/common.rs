@@ -176,13 +176,9 @@ macro_rules! define_payload_family {
             ) -> Self {
                 let semantic_code = semantic_code.into();
                 let detail = detail.into();
-                let payload_identity = $crate::ForgeQueryEvidenceIdentity::compose(
-                    $crate::ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+                let payload_identity = $crate::domain_capabilities::identity::domain_capability_scope_encoder(
+                    "forge_query_domain_capability_payload_v3",
                 )
-                    .field_shape(
-                        $crate::ForgeQueryEvidenceTag::new("identity_family"),
-                        "forge_query_domain_capability_payload_v3",
-                    )
                     .field_shape($crate::ForgeQueryEvidenceTag::new("category"), $category.as_str())
                     .field_shape($crate::ForgeQueryEvidenceTag::new("posture"), posture.as_str())
                     .field_shape($crate::ForgeQueryEvidenceTag::new("semantic_code"), &semantic_code)

@@ -116,10 +116,9 @@ pub(super) fn validated_query_digest_from_identity(
 pub(super) fn sealed_preview_declaration_bridge_identity(
     identity: &crate::ForgeQueryEvidenceIdentity,
 ) -> BridgePreviewSessionDeclarationIdentity {
-    BridgePreviewSessionDeclarationIdentity::from_stable_name(format!(
-        "domain-preview-declaration:{}",
-        identity.as_str()
-    ))
+    BridgePreviewSessionDeclarationIdentity::from_bridge_evidence(
+        &identity.bridge_external_identity_evidence(),
+    )
 }
 
 pub(super) fn preview_declaration_digest_identity(

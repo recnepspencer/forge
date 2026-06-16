@@ -4,7 +4,7 @@
 >
 > **Date:** 2026-06-16
 >
-> **Verdict:** **CLEARED**
+> **Verdict:** **PARTIAL** — ordinary path CLEARED; Phases 8–11 open
 
 ## Before / after (lib regression burn-down)
 
@@ -47,13 +47,23 @@ cargo test -p forge-query public_doc_coverage::tests::identity_boundary_docs --l
 | worth-kernel construction basis/stop-class consumer paths | Typed `admission_identity()` + `stop_class()` matching; string-matching scan clean |
 | Named exclusions | Documented in `EXCLUDED_FOLKLORE_DEFERRALS` (9.7/9.8 owners) |
 
-## Remaining named deferrals (not blocking 9.6 ordinary-path closure)
+## Remaining mandatory scope (Phases 8–11 — Milestone 9.6, not 9.7)
+
+| Prefix | Phase | Attack plan |
+|--------|-------|-------------|
+| Bridge-truth Phase 10 | 8 | WS-5 **done** — spatial P10-4 postponed |
+| `projection_consumption/` | 9 | WS-6 **done** — removed from exclusions; 50 modules in inventory scan |
+| `workflow/` | 10 | WS-7 |
+| `domain_capabilities/` | 11 | WS-8 (DC-1→DC-6) |
+
+**Invalid deferrals:** assigning forge-query integration dirs to Milestone 9.7 is
+prohibited. **worth-spatial `public_api_contract`** is the one valid postponement
+— separate agent, harness optimization, Phase 12 blocker only.
+
+## Former deferrals (still out of scope — different milestone class)
 
 | Prefix | Owner |
 |--------|-------|
-| `projection_consumption/` | Milestone 9.7 |
-| `workflow/` | Milestone 9.7 |
-| `domain_capabilities/` | Milestone 9.7 |
 | `harness/milestone_nine_five_` | Milestone 9.5 harness-only |
 | `runtime/intent/declaration.rs` | Milestone 9.8 intent declaration lowering |
 

@@ -2,9 +2,8 @@ use crate::correspondence::{
     CorrespondenceEvaluationRequest, StructuralCandidateBudget, StructuralCandidateDiscoveryPlan,
     StructuralCandidateOrderingContract,
 };
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryContinuityCorrespondenceSemantics {
@@ -120,13 +119,8 @@ impl ForgeQueryContinuityCorrespondenceSemantics {
     }
 
     pub fn semantics_identity(&self) -> ForgeQueryEvidenceIdentity {
-        let mut identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_continuity_correspondence_semantics_v1",
-        );
+        let mut identity =
+            domain_capability_scope_encoder("forge_query_continuity_correspondence_semantics_v1");
         identity = match self {
             Self::LineageOnly {
                 canonical_subject,
@@ -206,47 +200,6 @@ impl ForgeQueryContinuityCorrespondenceSemantics {
     }
 
     pub fn digest_fragment(&self) -> String {
-        match self {
-            Self::LineageOnly {
-                canonical_subject,
-                authoritative_counterpart,
-                discovery_plan,
-                budget,
-            } => format!(
-                "lineage:{}:{}:{}:{}",
-                canonical_subject,
-                authoritative_counterpart,
-                discovery_plan.as_str(),
-                budget.max_candidates()
-            ),
-            Self::StructuralOnly {
-                candidates,
-                discovery_plan,
-                budget,
-                ordering_contract,
-            } => format!(
-                "structural:{}:{}:{}:{}",
-                candidates.join("|"),
-                discovery_plan.as_str(),
-                budget.max_candidates(),
-                ordering_contract.as_str()
-            ),
-            Self::Mixed {
-                canonical_subject,
-                authoritative_counterpart,
-                candidates,
-                discovery_plan,
-                budget,
-                ordering_contract,
-            } => format!(
-                "mixed:{}:{}:{}:{}:{}:{}",
-                canonical_subject,
-                authoritative_counterpart,
-                candidates.join("|"),
-                discovery_plan.as_str(),
-                budget.max_candidates(),
-                ordering_contract.as_str()
-            ),
-        }
+        self.semantics_identity().as_str().to_string()
     }
 }

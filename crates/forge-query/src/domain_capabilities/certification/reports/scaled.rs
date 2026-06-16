@@ -5,7 +5,10 @@ use crate::domain_capabilities::certification::reports::fixtures::{
 };
 use crate::domain_capabilities::materialize_intent_admission_support_traceability_report;
 use crate::domain_capabilities::{forge_query_domain, ForgeQueryDomainCapabilityCategory};
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::{
+    compose_scaled_category_digest, compose_scaled_contribution_digest,
+    compose_scaled_support_digest, compose_scaled_trace_digest,
+};
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::ForgeQueryIntentAdmissionCoveredEntrypoint;
 
@@ -200,15 +203,10 @@ fn scaled_evidence(scale: usize) -> ForgeQueryDomainCapabilityScaledEvidence {
         trace_width,
         category_width: categories.len(),
         support_width,
-        contribution_digest: hash_parts(&contribution_digests),
-        trace_digest: hash_parts(&trace_digests),
-        category_digest: hash_parts(
-            &categories
-                .iter()
-                .map(|category| category.as_str().to_string())
-                .collect::<Vec<_>>(),
-        ),
-        support_digest: hash_parts(&support_digests),
+        contribution_digest: compose_scaled_contribution_digest(&contribution_digests),
+        trace_digest: compose_scaled_trace_digest(&trace_digests),
+        category_digest: compose_scaled_category_digest(&categories),
+        support_digest: compose_scaled_support_digest(&support_digests),
     }
 }
 

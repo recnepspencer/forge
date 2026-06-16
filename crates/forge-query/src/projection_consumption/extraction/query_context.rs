@@ -6,6 +6,9 @@ use super::super::consumed::{
 };
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::ProjectionFactKind;
+use super::super::identity::{
+    compose_query_context_row_identity, compose_scoped_row_source_identity,
+};
 use super::super::source::ProjectionSourceFamily;
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::projection_consumption::ProjectionFactExtractionError;
@@ -139,7 +142,7 @@ pub(super) fn extract_query_context_facts(
 }
 
 fn query_context_row_identity(execution: &QueryContextExecutionArtifact, index: usize) -> String {
-    format!("query-context:{}:{index}", execution.family().as_str())
+    compose_query_context_row_identity(execution.family().as_str(), index)
 }
 
 fn query_context_source_identity(execution: &QueryContextExecutionArtifact) -> String {

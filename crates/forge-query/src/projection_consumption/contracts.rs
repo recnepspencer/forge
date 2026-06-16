@@ -1,8 +1,7 @@
-use crate::identity::hash_parts;
-
 use super::eligibility::{AdmittedProjectionConsumption, ProjectionConsumptionWarningKind};
 use super::facts::ProjectionMaterializedFactPosture;
 use super::facts::{ProjectionFactKind, ProjectionFactRequest};
+use super::identity::compose_materialized_projection_contract_digest;
 use super::source::{
     ProjectionConsumptionSource, ProjectionSourceFamily, ProjectionSourceIdentity,
     ProjectionSourceReferenceIdentity,
@@ -194,13 +193,14 @@ pub(crate) fn bind_materialized_projection_contract(
             support_posture: support_posture.clone(),
         })
         .collect::<Vec<_>>();
-    let contract_digest = hash_parts(&contract_digest_parts(
+    let contract_digest = compose_materialized_projection_contract_digest(
         admitted,
         source,
         declaration.binding(),
         &fact_families,
         &support_posture,
-    ));
+        contract_source_posture(source.family()),
+    );
     MaterializedProjectionContract {
         declaration_digest: declaration.declaration_digest().to_string(),
         eligibility_digest: admitted.eligibility_digest().to_string(),
@@ -229,93 +229,6 @@ pub(crate) fn bind_materialized_projection_contract(
         fact_families,
         support_posture,
         contract_digest,
-    }
-}
-
-fn contract_digest_parts(
-    admitted: &AdmittedProjectionConsumption,
-    source: &ProjectionConsumptionSource,
-    binding: &super::declaration::ProjectionConsumptionBindingContext,
-    fact_families: &[BoundProjectionFactFamily],
-    support_posture: &ProjectionContractSupportPosture,
-) -> Vec<String> {
-    let mut parts = vec![
-        "materialized_projection_contract_v1".to_string(),
-        format!(
-            "declaration:{}",
-            admitted.declaration().declaration_digest()
-        ),
-        format!("eligibility:{}", admitted.eligibility_digest()),
-        format!("source_family:{}", source.family().as_str()),
-        format!(
-            "source_posture:{}",
-            contract_source_posture(source.family()).as_str()
-        ),
-        format!("source_identity:{}", source.source_identity()),
-        format!("result_shape:{}", binding.result_shape_digest()),
-        format!(
-            "narrowed_result_shape:{}",
-            binding.narrowed_result_shape_digest()
-        ),
-        format!(
-            "authorized_projection:{}",
-            binding.authorized_projection_identity()
-        ),
-        format!("policy:{}", binding.policy_digest()),
-        format!("tenant_schema:{}", binding.tenant_schema_basis_digest()),
-        format!("support_posture:{}", support_posture.as_str()),
-    ];
-    if let Some(query_digest) = source.query_digest() {
-        parts.push(format!("query:{query_digest}"));
-    }
-    if let Some(basis_digest) = source.basis_digest() {
-        parts.push(format!("basis:{basis_digest}"));
-    }
-    if let Some(result_digest) = source.result_digest() {
-        parts.push(format!("result:{result_digest}"));
-    }
-    if let Some(posture) = source.materialized_fact_posture() {
-        parts.push(format!(
-            "materialized_fact_posture:{}",
-            posture.posture_digest()
-        ));
-    }
-    if !support_posture.warning_kinds().is_empty() {
-        parts.push(format!(
-            "warnings:{}",
-            hash_parts(
-                &support_posture
-                    .warning_kinds()
-                    .iter()
-                    .map(|warning| warning.as_str().to_string())
-                    .collect::<Vec<_>>()
-            )
-        ));
-    }
-    parts.extend(source.source_reference_identities().iter().map(|identity| {
-        format!(
-            "source_reference:{}:{}",
-            identity.label(),
-            identity.identity()
-        )
-    }));
-    parts.extend(fact_families.iter().map(fact_family_digest_part));
-    parts
-}
-
-fn fact_family_digest_part(fact_family: &BoundProjectionFactFamily) -> String {
-    match fact_family.field_key() {
-        Some(field_key) => format!(
-            "fact:{}:{}:{}",
-            fact_family.kind().as_str(),
-            field_key,
-            fact_family.support_posture().as_str()
-        ),
-        None => format!(
-            "fact:{}:{}",
-            fact_family.kind().as_str(),
-            fact_family.support_posture().as_str()
-        ),
     }
 }
 

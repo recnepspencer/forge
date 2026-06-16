@@ -107,8 +107,8 @@ pub(super) fn lower_runtime_envelope(
                 crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
             )
             .field_value(
-                crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
-                format!("retained:{target_digest}"),
+                crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained_target"),
+                target_digest,
             )
             .seal(),
         );

@@ -1,4 +1,8 @@
-use crate::identity::hash_parts;
+use crate::projection_consumption::identity::{
+    compose_certification_row_digest, compose_certified_surface_representative_digest,
+    compose_digest_sequence, compose_support_traceability_digest,
+    compose_support_traceability_row_digest,
+};
 
 use super::super::proof_artifacts::ProjectionConsumptionCompileFailProof;
 use super::surfaces::{
@@ -136,11 +140,10 @@ pub fn projection_consumption_family_inventory() -> ProjectionConsumptionFamilyI
         .copied()
         .map(inventory_row)
         .collect::<Vec<_>>();
-    let inventory_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
+    let inventory_digest = compose_digest_sequence(
+        "projection_consumption_family_inventory_v1",
+        "row",
+        rows.iter().map(|row| row.row_digest().to_string()),
     );
     ProjectionConsumptionFamilyInventory {
         rows,
@@ -154,25 +157,20 @@ pub fn projection_consumption_support_matrix() -> ProjectionConsumptionSupportMa
         .copied()
         .flat_map(matrix_rows_for_surface)
         .collect::<Vec<_>>();
-    let matrix_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
+    let matrix_digest = compose_digest_sequence(
+        "projection_consumption_support_matrix_v1",
+        "row",
+        rows.iter().map(|row| row.row_digest().to_string()),
     );
-    let support_traceability_digest = hash_parts(
-        &rows
+    let support_traceability_digest = compose_support_traceability_digest(
+        rows
             .iter()
-            .map(|row| {
-                format!(
-                    "{}|{}|{}|{}",
-                    row.admission_rule(),
-                    row.hostile_neighbor(),
-                    row.certification_lane(),
-                    row.structural_proof().as_str()
-                )
-            })
-            .collect::<Vec<_>>(),
+            .map(|row| compose_support_traceability_row_digest(
+                row.admission_rule(),
+                row.hostile_neighbor(),
+                row.certification_lane(),
+                row.structural_proof().as_str(),
+            )),
     );
     ProjectionConsumptionSupportMatrix {
         rows,
@@ -185,18 +183,19 @@ fn inventory_row(
     surface: ProjectionConsumptionCertifiedSourceSurface,
 ) -> ProjectionConsumptionFamilyInventoryRow {
     let source = representative_source(surface);
-    let representative_digest = hash_parts(&[
-        "projection_consumption_certified_surface_v1".to_string(),
-        format!("surface:{}", surface.as_str()),
-        format!("family:{}", source.family().as_str()),
-        format!("identity:{}", source.source_identity()),
-    ]);
-    let row_digest = hash_parts(&[
-        "projection_consumption_family_inventory_row_v1".to_string(),
-        format!("surface:{}", surface.as_str()),
-        format!("family:{}", source.family().as_str()),
-        format!("representative:{representative_digest}"),
-    ]);
+    let representative_digest = compose_certified_surface_representative_digest(
+        surface.as_str(),
+        source.family(),
+        source.source_identity(),
+    );
+    let row_digest = compose_certification_row_digest(
+        "projection_consumption_family_inventory_row_v1",
+        &[
+            ("surface", surface.as_str()),
+            ("family", source.family().as_str()),
+            ("representative", representative_digest.as_str()),
+        ],
+    );
     ProjectionConsumptionFamilyInventoryRow {
         certified_surface: surface,
         source_family: source.family(),
@@ -223,18 +222,20 @@ fn matrix_row(
 ) -> ProjectionConsumptionSupportMatrixRow {
     let support = executable_support_row(source, fact_kind);
     let traceability = traceability_for(surface, fact_kind);
-    let row_digest = hash_parts(&[
-        "projection_consumption_support_matrix_row_v1".to_string(),
-        format!("surface:{}", surface.as_str()),
-        format!("family:{}", source.family().as_str()),
-        format!("fact:{}", fact_kind.as_str()),
-        format!("posture:{}", support.posture().as_str()),
-        format!("support:{}", support.support_digest()),
-        format!("rule:{}", traceability.0),
-        format!("hostile:{}", traceability.1),
-        format!("lane:{}", traceability.2),
-        format!("proof:{}", traceability.3.as_str()),
-    ]);
+    let row_digest = compose_certification_row_digest(
+        "projection_consumption_support_matrix_row_v1",
+        &[
+            ("surface", surface.as_str()),
+            ("family", source.family().as_str()),
+            ("fact", fact_kind.as_str()),
+            ("posture", support.posture().as_str()),
+            ("support", support.support_digest()),
+            ("rule", traceability.0),
+            ("hostile", traceability.1),
+            ("lane", traceability.2),
+            ("proof", traceability.3.as_str()),
+        ],
+    );
     ProjectionConsumptionSupportMatrixRow {
         certified_surface: surface,
         source_family: source.family(),
