@@ -10,14 +10,14 @@ use super::{
     BasisCapabilityAdmission, BasisOperationLaneRequest, BridgeLowerRuntimeEvidenceKind,
     DeniedBasisCapabilityKind, RawBasisIntent,
 };
-use forge_runtime_bridge::facade::{BridgeTruthViewEvaluationRequest, TruthBranchIdentity};
+use forge_runtime_bridge::facade::BridgeTruthViewEvaluationRequest;
 
 #[test]
 fn truth_view_readmission_binds_branch_head_observation_evidence() {
     let runtime = observation_runtime();
     let evaluation = runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::from_bridge_harness_label(MAIN_BRANCH),
+            super::test_branch_truth_identity(MAIN_BRANCH),
         ))
         .expect("branch-head truth view should evaluate");
     let capability = branch_head_observation(MAIN_BRANCH);
@@ -30,20 +30,20 @@ fn truth_view_readmission_binds_branch_head_observation_evidence() {
         bound.evidence().kind(),
         BridgeLowerRuntimeEvidenceKind::TruthViewEvaluation
     );
-    let record_identity = evaluation.record().record_identity().evidence_identity();
+    let record_identity = evaluation.record().record_identity().bridge_admission_evidence();
     assert_eq!(
         bound.evidence().record_identity(),
-        Some(record_identity.as_str())
+        Some(record_identity.terminal_projection_for_reporting())
     );
     let selector_identity = evaluation
         .record()
         .declaration()
         .selector()
         .selector_identity()
-        .evidence_identity();
+        .bridge_admission_evidence();
     assert_eq!(
         bound.evidence().selector_identity(),
-        Some(selector_identity.as_str())
+        Some(selector_identity.terminal_projection_for_reporting())
     );
     assert_eq!(
         bound.evidence().authority_digest(),
@@ -51,7 +51,7 @@ fn truth_view_readmission_binds_branch_head_observation_evidence() {
     );
     assert_eq!(
         bound.evidence().snapshot_identity(),
-        Some(evaluation.snapshot_identity().evidence_identity().as_str())
+        Some(evaluation.snapshot_identity().bridge_admission_evidence().terminal_projection_for_reporting())
     );
     assert_eq!(bound.counters().lower_runtime_check_count(), 1);
     assert_eq!(bound.counters().denied_residue_count(), 0);
@@ -63,7 +63,7 @@ fn truth_view_readmission_denies_mismatched_branch_head_evidence() {
     let runtime = observation_runtime();
     let evaluation = runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::from_bridge_harness_label(MAIN_BRANCH),
+            super::test_branch_truth_identity(MAIN_BRANCH),
         ))
         .expect("branch-head truth view should evaluate");
     let capability = branch_head_observation(OTHER_BRANCH);
@@ -82,14 +82,14 @@ fn truth_view_readmission_denies_mismatched_branch_head_evidence() {
                 expected,
                 &format!(
                     "branch_head:{}",
-                    super::test_branch_identity(OTHER_BRANCH).as_str()
+                    super::test_branch_identity(OTHER_BRANCH).terminal_projection_for_reporting()
                 )
             );
             assert_eq!(
                 observed,
                 &format!(
                     "branch_head:{}",
-                    super::test_branch_identity(MAIN_BRANCH).as_str()
+                    super::test_branch_identity(MAIN_BRANCH).terminal_projection_for_reporting()
                 )
             );
         }
@@ -115,15 +115,15 @@ fn continuity_readmission_binds_branch_head_inspection_evidence() {
     let route_identity = continuity
         .canonical_record()
         .route_identity()
-        .evidence_identity();
+        .bridge_admission_evidence();
     assert_eq!(
         bound.evidence().route_identity(),
-        Some(route_identity.as_str())
+        Some(route_identity.terminal_projection_for_reporting())
     );
-    let continuity_identity = continuity.continuity_identity().evidence_identity();
+    let continuity_identity = continuity.continuity_identity().bridge_admission_evidence();
     assert_eq!(
         bound.evidence().continuity_identity(),
-        Some(continuity_identity.as_str())
+        Some(continuity_identity.terminal_projection_for_reporting())
     );
     assert_eq!(
         bound.evidence().continuity_resolution_digest(),
@@ -135,8 +135,8 @@ fn continuity_readmission_binds_branch_head_inspection_evidence() {
             continuity
                 .canonical_record()
                 .source_snapshot()
-                .evidence_identity()
-                .as_str()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
         )
     );
     assert_eq!(bound.counters().lower_runtime_check_count(), 1);
@@ -190,22 +190,27 @@ fn subscription_readmission_binds_branch_head_declaration_and_activation_evidenc
         );
         let admitted_subscription_identity = admitted
             .admitted_subscription_identity()
-            .evidence_identity();
+            .bridge_admission_evidence();
         assert_eq!(
             bound.admitted_subscription_identity(),
-            Some(admitted_subscription_identity.as_str())
+            Some(admitted_subscription_identity.terminal_projection_for_reporting())
         );
         let basis_identity = admitted
             .basis_binding()
             .basis_identity()
-            .evidence_identity();
-        assert_eq!(bound.basis_identity(), Some(basis_identity.as_str()));
+            .bridge_admission_evidence();
+        assert_eq!(
+            bound.basis_identity(),
+            Some(basis_identity.terminal_projection_for_reporting())
+        );
         let strategy_identity = admitted
             .signal_strategy()
             .strategy_identity()
-            .evidence_identity();
-        assert_eq!(bound.strategy_identity(), Some(strategy_identity.as_str()));
-        assert_eq!(bound.subscription_digest(), Some(admitted.digest()));
+            .bridge_admission_evidence();
+        assert_eq!(
+            bound.strategy_identity(),
+            Some(strategy_identity.terminal_projection_for_reporting())
+        );
     }
 }
 

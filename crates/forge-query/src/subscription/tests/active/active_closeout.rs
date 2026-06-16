@@ -78,10 +78,11 @@ fn final_consumer_closeout_carries_support_and_performance_receipt() {
     );
     let expected_future = attachment
         .future_selection()
-        .projection_digest()
+        .future_selection_projection()
+        .label()
         .to_string();
-    let expected_basis = attachment.basis_binding_for_reporting().to_string();
-    let expected_checkpoint = attachment.checkpoint_for_reporting().to_string();
+    let expected_basis = attachment.basis_binding_projection().label().to_string();
+    let expected_checkpoint = attachment.checkpoint_projection().label().to_string();
 
     let closeout = close_subscription_lifecycle(
         &mut runtime,
@@ -108,14 +109,14 @@ fn final_consumer_closeout_carries_support_and_performance_receipt() {
         &QuerySubscriptionDurableSupport::ExplicitDebt
     );
     assert_eq!(
-        closeout.future_selection().projection_digest(),
-        expected_future
+        closeout.future_selection().future_selection_projection().label().as_str(),
+        expected_future.as_str()
     );
-    assert_eq!(closeout.basis_binding_for_reporting(), expected_basis);
-    assert_eq!(closeout.checkpoint_for_reporting(), expected_checkpoint);
+    assert_eq!(closeout.basis_binding_projection().label().as_str(), expected_basis.as_str());
+    assert_eq!(closeout.checkpoint_projection().label().as_str(), expected_checkpoint.as_str());
     assert_eq!(closeout.performance_receipt().consumed_width(), 2);
     assert_eq!(closeout.performance_receipt().remaining_width(), 0);
-    assert!(!closeout.closeout_for_reporting().is_empty());
+    assert!(!closeout.closeout_projection().label().is_empty());
     assert_eq!(runtime.lane_count(), 0);
 }
 
@@ -194,12 +195,12 @@ fn preview_discard_closeout_can_close_the_runtime_lane() {
         &SubscriptionLifecycleCloseoutKind::PreviewDiscarded
     );
     assert_eq!(
-        closeout.future_selection().projection_digest(),
-        attachment.future_selection().projection_digest()
+        closeout.future_selection().future_selection_projection().label(),
+        attachment.future_selection().future_selection_projection().label()
     );
     assert_eq!(
-        closeout.checkpoint_for_reporting(),
-        attachment.checkpoint_for_reporting()
+        closeout.checkpoint_projection().label(),
+        attachment.checkpoint_projection().label()
     );
     assert_eq!(closeout.counters().active_lane_close_count(), 1);
     assert_eq!(closeout.counters().consumer_attachment_close_count(), 1);

@@ -1,7 +1,9 @@
 mod builders;
 mod closeout;
 mod tests;
+mod transcript_maintainer;
 mod transcript_runtime;
+mod transcript_session_proofs;
 mod transcripts;
 
 use crate::harness::certification::{digest_parts, CertificationMatrix};

@@ -110,15 +110,15 @@ impl ForgeQueryLowerRuntimeCloseoutRow {
                 ForgeQueryEvidenceTag::new("route_kind"),
                 self.route_kind.as_str(),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("closeout_target"),
                 self.closeout_target,
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("required_closeout"),
                 self.required_closeout,
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("certification_row"),
                 self.certification_row,
             )
@@ -165,7 +165,7 @@ impl ForgeQueryLowerRuntimeCloseoutRegistry {
                 ForgeQueryEvidenceIdentity::compose(
                     ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("required_closeout"),
                     row.required_closeout(),
                 )

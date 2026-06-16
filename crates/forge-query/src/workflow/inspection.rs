@@ -1,6 +1,7 @@
 use super::*;
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
+mod identities;
 mod operations;
 pub use operations::{
     build_workflow_replay_bundle, inspect_merge_conflicts, inspect_post_merge_outcome,

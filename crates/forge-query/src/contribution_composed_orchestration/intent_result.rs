@@ -168,7 +168,9 @@ impl ForgeQueryContributionComposedIntentStageResult {
     }
 
     pub fn stage_for_reporting(&self) -> Option<&str> {
-        self.stage_identity.as_ref().map(|identity| identity.as_str())
+        self.stage_identity
+            .as_ref()
+            .map(|identity| identity.as_str())
     }
 
     pub fn digest(&self) -> Option<&str> {

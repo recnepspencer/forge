@@ -58,7 +58,7 @@ fn plan_bulk_workload_internal(
         .collect::<Result<Vec<_>, _>>()?;
     planned_routes.sort_by(|left, right| left.route_identity().cmp(right.route_identity()));
 
-    let workload_identity = BridgeWorkloadIdentity::new(digest_string(
+    let workload_identity = BridgeWorkloadIdentity::admit_bridge_owned(digest_string(
         "bulk-workload",
         &bulk_workload_digest_basis(&planned_routes),
     ));
@@ -68,14 +68,16 @@ fn plan_bulk_workload_internal(
         &planned_routes,
     );
     let normalized_summary = normalized_workload_summary(&canonical_request, &planned_routes);
-    let canonical_planning_identity = BridgeCanonicalPlanningIdentity::new(digest_string(
-        "bulk-planning-identity",
-        &canonical_planning_digest_basis(runtime, &workload_identity, &planned_routes),
-    ));
-    let admission_profile_identity = BridgeAdmissionProfileIdentity::new(digest_string(
-        "bulk-admission-profile",
-        &admission_profile_digest_basis(runtime),
-    ));
+    let canonical_planning_identity =
+        BridgeCanonicalPlanningIdentity::admit_bridge_owned(digest_string(
+            "bulk-planning-identity",
+            &canonical_planning_digest_basis(runtime, &workload_identity, &planned_routes),
+        ));
+    let admission_profile_identity =
+        BridgeAdmissionProfileIdentity::admit_bridge_owned(digest_string(
+            "bulk-admission-profile",
+            &admission_profile_digest_basis(runtime),
+        ));
     let summary = BridgeBulkPlanningSummary::new(
         workload_identity.clone(),
         planned_routes.len(),
@@ -193,7 +195,7 @@ fn canonical_workload_request(
 fn bulk_workload_segment_identity(
     segment: &BridgeBulkWorkloadSegment,
 ) -> BulkWorkloadSegmentIdentity {
-    BulkWorkloadSegmentIdentity::new(digest_string(
+    BulkWorkloadSegmentIdentity::admit_bridge_owned(digest_string(
         "bulk-workload-segment",
         &format!(
             "bulk-workload-segment|commit={}|mapping-context={}",

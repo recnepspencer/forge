@@ -205,7 +205,7 @@ mod tests {
 
     fn binding() -> ForgeQueryDerivedArtifactBinding {
         let snapshot_identity =
-            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test");
+            crate::memory_workspace::admit_external_snapshot_label("snapshot:test");
         let materialization = ForgeQueryDerivedMaterializationResult::new(
             vec![json!({
                 "authority_snapshot_id": 7,

@@ -52,7 +52,10 @@ pub struct QuerySubscriptionDeliveryCause {
 
 impl QuerySubscriptionDeliveryCause {
     pub fn relational_patch(evidence_identity: &ForgeQueryEvidenceIdentity) -> Self {
-        Self::new(QuerySubscriptionDeliveryCauseKind::RelationalPatch, evidence_identity)
+        Self::new(
+            QuerySubscriptionDeliveryCauseKind::RelationalPatch,
+            evidence_identity,
+        )
     }
 
     pub fn time_only(
@@ -98,16 +101,8 @@ impl QuerySubscriptionDeliveryCause {
         &self.evidence_identity
     }
 
-    pub fn evidence_for_reporting(&self) -> &str {
-        self.evidence_identity.as_str()
-    }
-
     pub fn delivery_cause_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.delivery_cause_identity
-    }
-
-    pub fn delivery_cause_for_reporting(&self) -> &str {
-        self.delivery_cause_identity.as_str()
     }
 
     pub fn has_relational_patch(&self) -> bool {
@@ -115,8 +110,6 @@ impl QuerySubscriptionDeliveryCause {
     }
 }
 
-pub(crate) fn delivery_cause_evidence_label_identity(
-    label: &str,
-) -> ForgeQueryEvidenceIdentity {
+pub(crate) fn delivery_cause_evidence_label_identity(label: &str) -> ForgeQueryEvidenceIdentity {
     super::evidence_identities::delivery_cause_evidence_label_identity(label)
 }

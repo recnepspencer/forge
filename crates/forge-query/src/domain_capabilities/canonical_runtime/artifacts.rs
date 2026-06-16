@@ -1,6 +1,4 @@
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::super::payloads::{
     ForgeQueryAdmissionContributionPayload, ForgeQueryAftermathContributionPayload,
@@ -54,8 +52,14 @@ where
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_domain_capability_canonical_runtime_materialization_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), canonical_family_for(category))
-        .field_shape(ForgeQueryEvidenceTag::new("target_kind"), target_kind.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            canonical_family_for(category),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("target_kind"),
+            target_kind.as_str(),
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("target"), &target_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("request"), &request_identity)
@@ -124,7 +128,10 @@ fn canonical_runtime_semantic_identity(
             "forge_query_domain_capability_semantic_identity_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("category"), category.as_str())
-        .field_shape(ForgeQueryEvidenceTag::new("posture"), semantic_posture.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("posture"),
+            semantic_posture.as_str(),
+        )
         .field_shape(ForgeQueryEvidenceTag::new("code"), semantic_code)
         .field_shape(ForgeQueryEvidenceTag::new("detail"), detail)
         .seal()

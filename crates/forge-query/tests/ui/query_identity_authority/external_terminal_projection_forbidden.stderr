@@ -1,0 +1,10 @@
+error[E0624]: method `terminal_projection_for_reporting` is private
+ --> tests/ui/query_identity_authority/external_terminal_projection_forbidden.rs:8:38
+  |
+8 |     let _label = evidence_identity().terminal_projection_for_reporting();
+  |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/evidence_identity/artifact.rs
+  |
+  |     pub(crate) fn terminal_projection_for_reporting(&self) -> &str {
+  |     -------------------------------------------------------------- private method defined here

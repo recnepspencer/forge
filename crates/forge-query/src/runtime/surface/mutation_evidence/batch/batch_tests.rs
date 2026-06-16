@@ -9,6 +9,7 @@ use crate::runtime::{
     ForgeQueryMutationFamily, ForgeQueryNamingMutationEvidence,
     ForgeQuerySymbolicTargetReferenceEvidence,
 };
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 use forge_runtime_bridge::facade::{
     BridgeContinuityAuthoritativeIdentity, BridgeContinuityMutationBundle,
     BridgeContinuityOutcomeClass, BridgeContinuityResolvedTargetIdentity,
@@ -73,7 +74,7 @@ fn existing_truth_binding_evidence_rejects_non_relational_target_identity() {
                 .expect("existing-truth authority label"),
         )
         .expect("existing-truth authority identity"),
-        ForgeQueryEntityIdentity::authored_command("Task:legacy"),
+        crate::memory_workspace::admit_authored_entity_label("Task:legacy"),
     )
     .expect("binding constructor should still expose the boundary failure to evidence");
 
@@ -82,7 +83,7 @@ fn existing_truth_binding_evidence_rejects_non_relational_target_identity() {
 
 #[test]
 fn symbolic_target_batch_digest_changes_with_symbol_identity() {
-    let resolved_identity = ForgeQueryEntityIdentity::authored_command("entity:task");
+    let resolved_identity = crate::memory_workspace::admit_authored_entity_label("entity:task");
     let left = ForgeQuerySymbolicTargetReferenceEvidence::test_only(
         "draft:left",
         resolved_identity.clone(),
@@ -174,7 +175,9 @@ fn split_successor_batch_digest_changes_with_resolved_target_identity() {
                 continuity_identity("authority:task-1:a"),
                 continuity_identity("authority:task-1:b"),
             ],
-            Some(resolved_target("entity:task-1:left")),
+            Some(resolved_target(
+                &RelationalBridgeRecordIdentityParts::entity(1, 1, 0).bridge_entity_identity(),
+            )),
             Some(target_collection("Task")),
         )
         .expect("left split continuity should build"),
@@ -187,7 +190,9 @@ fn split_successor_batch_digest_changes_with_resolved_target_identity() {
                 continuity_identity("authority:task-1:a"),
                 continuity_identity("authority:task-1:b"),
             ],
-            Some(resolved_target("entity:task-1:right")),
+            Some(resolved_target(
+                &RelationalBridgeRecordIdentityParts::entity(2, 1, 0).bridge_entity_identity(),
+            )),
             Some(target_collection("Task")),
         )
         .expect("right split continuity should build"),
@@ -240,7 +245,10 @@ fn target_collection(value: &str) -> BridgeContinuityTargetCollection {
 }
 
 fn bridge_existing_truth_authority(value: &str) -> BridgeExistingTruthBindingAuthoritativeIdentity {
-    BridgeExistingTruthBindingAuthoritativeIdentity::from_external_authority_evidence(value)
+    BridgeExistingTruthBindingAuthoritativeIdentity::from_bridge_evidence(&bridge_test_evidence(
+        "existing-truth-authority",
+        value,
+    ))
 }
 
 fn bridge_existing_truth_target(
@@ -254,7 +262,21 @@ fn bridge_existing_truth_collection(value: &str) -> BridgeExistingTruthBindingTa
 }
 
 fn bridge_naming_attachment(value: &str) -> BridgeNamingAttachmentIdentity {
-    BridgeNamingAttachmentIdentity::from_external_authority_evidence(value)
+    BridgeNamingAttachmentIdentity::from_bridge_evidence(&bridge_test_evidence(
+        "naming-attachment",
+        value,
+    ))
+}
+
+fn bridge_test_evidence(
+    role: &'static str,
+    value: &str,
+) -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+        .field_value(ForgeQueryEvidenceTag::new("value"), value)
+        .seal()
+        .bridge_external_identity_evidence()
 }
 
 fn bridge_naming_target(
@@ -310,7 +332,7 @@ fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
                 serde_json::json!("Seed title"),
             )
             .expect("aspect should build")],
-            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test"),
+            crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),
         )
         .expect("verified assertion should build"),
     );
@@ -345,7 +367,7 @@ fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
                 serde_json::json!("Seed title"),
             )
             .expect("aspect should build")],
-            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test"),
+            crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),
         )
         .expect("verified assertion should build"),
     );

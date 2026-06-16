@@ -35,7 +35,7 @@ impl BridgeAsyncCompletionEnvelope {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             raw,
-            envelope_identity: BridgeAsyncCompletionEnvelopeIdentity::new(format!(
+            envelope_identity: BridgeAsyncCompletionEnvelopeIdentity::admit_bridge_owned(format!(
                 "bridge-async-completion-envelope-id:sha256:{digest:x}"
             )),
             canonical_basis,

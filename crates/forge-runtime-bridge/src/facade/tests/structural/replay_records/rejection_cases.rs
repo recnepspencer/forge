@@ -17,10 +17,10 @@ fn runtime_rejects_structural_declaration_with_different_semantics_version() {
         .expect("registered structural declaration should be admitted");
 
     let mismatched = StructuralIdentityDeclaration::advisory_remap(
-        StructuralIdentityDeclarationIdentity::new("structural:analysis-snapshot"),
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-snapshot"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::TopologyFingerprint,
             "geometry-topology-v2",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -61,7 +61,7 @@ fn runtime_replay_rejects_truncated_structural_remap_basis() {
         .plan_structural_match_packet_set(
             &contract,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:geometry-a"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:geometry-a"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             )],
         )
@@ -88,10 +88,10 @@ fn runtime_replay_rejects_truncated_structural_remap_basis() {
 #[test]
 fn runtime_replay_rejects_truncated_structural_branch_basis() {
     let declaration = StructuralIdentityDeclaration::branch_comparison(
-        StructuralIdentityDeclarationIdentity::new("structural:branch-compare"),
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:branch-compare"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::BranchComparisonFingerprint,
             "geometry-branch-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -129,7 +129,7 @@ fn runtime_replay_rejects_truncated_structural_branch_basis() {
         ))
         .register_structural(declaration.clone())
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping"),
+            BridgeMappingId::admit_bridge_owned("mapping"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("entity-1"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -142,7 +142,7 @@ fn runtime_replay_rejects_truncated_structural_branch_basis() {
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal:profile"),
+            SignalInvalidationScope::admit_bridge_owned("signal:profile"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -155,7 +155,7 @@ fn runtime_replay_rejects_truncated_structural_branch_basis() {
         .plan_structural_match_packet_set(
             &contract,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("diff:one"),
+                StructuralCandidateIdentity::admit_bridge_owned("diff:one"),
                 StructuralMatchCandidateKind::BranchDiff,
             )],
         )

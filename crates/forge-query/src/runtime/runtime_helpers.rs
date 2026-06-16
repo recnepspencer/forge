@@ -77,7 +77,7 @@ pub(super) fn synthetic_existing_assertion_receipt(
     let assertion_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
         crate::evidence_identity::ForgeQueryEvidenceScope::WriteReceiptCommitIdentity,
     )
-    .field_identity(
+    .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("binding"),
         binding.binding_digest(),
     )
@@ -208,11 +208,15 @@ pub(super) fn combined_batch_mutation_receipt(
         crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
             crate::evidence_identity::ForgeQueryEvidenceScope::BatchWriteReceipt,
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("component_commit_identity"),
-            receipts
-                .iter()
-                .map(|receipt| receipt.commit_identity.evidence_identity()),
+            receipts.iter().map(|receipt| {
+                receipt
+                    .commit_identity
+                    .evidence_identity()
+                    .reporting_projection()
+                    .to_string()
+            }),
         )
         .seal(),
     );
@@ -368,7 +372,7 @@ pub(super) fn runtime_consumer_attachment_budget_policy(
 }
 
 #[cfg(test)]
-pub(super) fn runtime_subscription_budget_digest() -> String {
+pub(super) fn runtime_subscription_budget_digest() -> crate::ForgeQueryEvidenceIdentity {
     crate::ForgeQueryEvidenceIdentity::compose(
         crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
     )
@@ -389,6 +393,4 @@ pub(super) fn runtime_subscription_budget_digest() -> String {
         runtime_consumer_attachment_budget_policy().evidence_identity(),
     )
     .seal()
-    .as_str()
-    .to_string()
 }

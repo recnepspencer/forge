@@ -7,13 +7,13 @@ use crate::preview::{
     PreviewWorkflowFoundationFailureClass, PreviewWorkflowFoundationRequest,
 };
 use crate::workflow::{
-    foundation::{
-        workflow_context_basis_identity, workflow_context_query_identity,
-    },
-    admit_query_workflow_declaration, bind_workflow_context, WorkflowAdmissionFailureClass,
-    WorkflowAuthorityTargetFamily, WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass,
-    WorkflowDeclarationFamily, WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
-    WorkflowPredictionDriftOutcome, WorkflowPreviewEvaluationClass, WorkflowBasisFamily,
+    admit_query_workflow_declaration, bind_workflow_context,
+    foundation::{workflow_context_basis_identity, workflow_context_query_identity},
+    workflow_canonical_query_digest_evidence, workflow_validated_query_digest_evidence,
+    WorkflowAdmissionFailureClass, WorkflowAuthorityTargetFamily, WorkflowBasisFamily,
+    WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass, WorkflowDeclarationFamily,
+    WorkflowDeclarationRequest, WorkflowFreshnessPolicy, WorkflowPredictionDriftOutcome,
+    WorkflowPreviewEvaluationClass,
 };
 #[test]
 fn runtime_preflight_binding_preserves_query_and_basis_digests() {
@@ -24,7 +24,9 @@ fn runtime_preflight_binding_preserves_query_and_basis_digests() {
     assert_eq!(
         binding.query_for_reporting(),
         workflow_context_query_identity(
-            &preflight.plan().query().canonical_query_digest().evidence_identity(),
+            &workflow_canonical_query_digest_evidence(
+                preflight.plan().query().canonical_query_digest(),
+            ),
         )
         .as_str()
     );
@@ -35,7 +37,8 @@ fn runtime_preflight_binding_preserves_query_and_basis_digests() {
             preflight.basis().proof().identity(),
         )
         .as_str()
-    );    assert_eq!(binding.counters().workflow_basis_binding_count(), 1);
+    );
+    assert_eq!(binding.counters().workflow_basis_binding_count(), 1);
     assert_eq!(binding.counters().workflow_executor_rediscovery_count(), 0);
 }
 
@@ -65,9 +68,12 @@ fn preview_workflow_foundation_binding_preserves_preview_identity() {
     );
     assert_eq!(
         workflow_binding.query_for_reporting(),
-        workflow_context_query_identity(&foundation.validated_query_digest().evidence_identity())
-        .as_str()
-    );    assert_eq!(
+        workflow_context_query_identity(&workflow_validated_query_digest_evidence(
+            foundation.validated_query_digest(),
+        ))
+            .as_str()
+    );
+    assert_eq!(
         workflow_binding.preview_evaluation_class(),
         Some(&WorkflowPreviewEvaluationClass::PromotionEligible)
     );
@@ -112,8 +118,10 @@ fn preview_promotion_comparison_basis_can_author_inspection_and_merge_when_permi
 
     assert_eq!(
         workflow_binding.query_for_reporting(),
-        workflow_context_query_identity(&comparison.validated_query_digest().evidence_identity())
-        .as_str()
+        workflow_context_query_identity(&workflow_validated_query_digest_evidence(
+            comparison.validated_query_digest(),
+        ))
+            .as_str()
     );
     let inspection = admit_query_workflow_declaration(
         &workflow_binding,

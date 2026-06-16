@@ -34,7 +34,7 @@ fn probe_identity(
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose_with_scheme(scope, scheme)
         .field_shape(ForgeQueryEvidenceTag::new("probe_shape"), "intent-receipt")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("probe_identity"),
             "identity|with:delimiter",
         )

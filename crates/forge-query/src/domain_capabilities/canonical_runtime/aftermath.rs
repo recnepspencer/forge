@@ -10,13 +10,13 @@ use crate::domain_capabilities::{
     ForgeQueryCanonicalAftermathArtifact, ForgeQueryDomainCapabilityTransitionOutcome,
     ForgeQueryMaterializationReadyAftermathContribution,
 };
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::projection_consumption::{
     declare_projection_consumption, discover_projection_consumption_support,
     evaluate_projection_consumption_eligibility, AdmittedProjectionConsumption,
     MaterializedProjectionContract, ProjectionConsumptionDeclaration,
     ProjectionConsumptionEligibility, ProjectionConsumptionSupportReport,
 };
-use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryAftermathProjectionConsumptionReview {

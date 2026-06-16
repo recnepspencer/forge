@@ -26,10 +26,13 @@ fn equivalent_construction_sources_declare_identical_subscription_digest() {
     for declaration in declarations {
         assert_eq!(first.family(), declaration.family());
         assert_eq!(
-            first.declaration_digest().as_str(),
-            declaration.declaration_digest().as_str()
+            first.declaration_projection().label(),
+            declaration.declaration_projection().label()
         );
-        assert_eq!(first.equivalence_for_reporting(), declaration.equivalence_for_reporting());
+        assert_eq!(
+            first.equivalence_projection().label(),
+            declaration.equivalence_projection().label()
+        );
     }
 }
 
@@ -80,16 +83,16 @@ fn declaration_digest_changes_for_policy_tenant_or_relationship_proof_context() 
     let changed_proof = declare(changed_proof);
 
     assert_ne!(
-        baseline.declaration_digest().as_str(),
-        changed_policy.declaration_digest().as_str()
+        baseline.declaration_projection().label(),
+        changed_policy.declaration_projection().label()
     );
     assert_ne!(
-        baseline.declaration_digest().as_str(),
-        changed_tenant.declaration_digest().as_str()
+        baseline.declaration_projection().label(),
+        changed_tenant.declaration_projection().label()
     );
     assert_ne!(
-        baseline.declaration_digest().as_str(),
-        changed_proof.declaration_digest().as_str()
+        baseline.declaration_projection().label(),
+        changed_proof.declaration_projection().label()
     );
 }
 
@@ -171,16 +174,16 @@ fn temporal_basis_and_async_request_identity_change_declaration_meaning_explicit
     ));
 
     assert_ne!(
-        temporal_current.declaration_digest().as_str(),
-        temporal_branch.declaration_digest().as_str()
+        temporal_current.declaration_projection().label(),
+        temporal_branch.declaration_projection().label()
     );
     assert_ne!(
-        async_edge_42.declaration_digest().as_str(),
-        async_edge_77.declaration_digest().as_str()
+        async_edge_42.declaration_projection().label(),
+        async_edge_77.declaration_projection().label()
     );
     assert_eq!(
-        async_edge_42.declaration_digest().as_str(),
-        async_edge_42_reordered.declaration_digest().as_str()
+        async_edge_42.declaration_projection().label(),
+        async_edge_42_reordered.declaration_projection().label()
     );
     assert_eq!(
         async_edge_42

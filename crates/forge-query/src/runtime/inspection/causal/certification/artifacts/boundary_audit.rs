@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::super::super::materialization::QueryCausalInspectionArtifact;
 
@@ -12,13 +12,29 @@ pub struct CausalInspectionBoundaryAudit {
 
 impl CausalInspectionBoundaryAudit {
     pub fn from_query_artifact_public_surface(artifact: &QueryCausalInspectionArtifact) -> Self {
-        let audited_artifact_digest = artifact.artifact_for_reporting().to_string();
-        let audit_digest = hash_parts(&[
-            "causal_inspection_boundary_audit_v1".to_string(),
-            "ordinary-path:query-artifact".to_string(),
-            "direct-lower-runtime-stitching:false".to_string(),
-            format!("artifact:{audited_artifact_digest}"),
-        ]);
+        let audited_artifact_digest = artifact.artifact_identity().as_str().to_string();
+        let audit_digest = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "causal_inspection_boundary_audit_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("ordinary_path"),
+            "query-artifact",
+        )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("direct_lower_runtime_stitching"),
+            false,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("artifact"),
+            artifact.artifact_identity().evidence_identity(),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
             ordinary_path_uses_query_artifact: true,
             direct_lower_runtime_stitching_absent: true,

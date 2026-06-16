@@ -55,13 +55,14 @@ impl ForgeQueryLiveArtifactBundle {
                     ForgeQueryEvidenceTag::new("snapshot_identity"),
                     &snapshot_evidence_identity,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("read_result"),
                     reads.iter().map(|(view_name, result)| {
                         format!("{view_name}:{}", result.receipt().result_digest())
                     }),
                 )
                 .seal()
+                .terminal_projection_for_reporting()
                 .to_string();
         Self {
             snapshot_identity,

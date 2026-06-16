@@ -111,7 +111,7 @@ fn analysis_structural_registration() -> crate::structural::StructuralIdentityDe
 
 fn native_profile_mapping_registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("mapping"),
+        BridgeMappingId::admit_bridge_owned("mapping"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("entity-1"),
             AspectKey::new("profile").expect("valid native aspect key"),
@@ -121,7 +121,7 @@ fn native_profile_mapping_registration() -> BridgeMappingRegistration {
             AspectKey::new("profile").expect("valid native aspect key"),
             ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal:profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal:profile"),
         CoarseRoutingMode::Direct,
     )
 }

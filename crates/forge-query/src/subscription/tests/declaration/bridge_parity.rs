@@ -42,12 +42,35 @@ fn manual_bridge_witness_and_parity_explanation_bind_canonical_bridge_artifacts(
         "exact_detail_signals"
     );
     assert_eq!(
-        explanation.comparison().query_declaration_digest(),
-        artifacts.declaration.declaration_digest().as_str()
+        explanation.comparison().query_declaration_projection().label(),
+        artifacts.declaration.declaration_projection().label()
     );
     assert_eq!(
-        explanation.comparison().bridge_declaration_digest(),
-        artifacts.lowering.bridge_declaration_for_reporting()
+        explanation.comparison().bridge_declaration_projection().label(),
+        artifacts.lowering.bridge_declaration_projection().label()
+    );
+    assert_eq!(
+        witness.query_declaration_identity(),
+        artifacts.declaration.declaration_identity()
+    );
+    assert_eq!(
+        witness.bridge_declaration_identity(),
+        artifacts.lowering.bridge_declaration_identity()
+    );
+    assert_eq!(
+        witness.basis_binding_identity(),
+        artifacts.lowering.basis_request().evidence_identity()
+    );
+    assert_eq!(
+        witness.signal_strategy_identity(),
+        artifacts
+            .lowering
+            .signal_strategy_request()
+            .evidence_identity()
+    );
+    assert_eq!(
+        witness.activation_identity(),
+        artifacts.activation.evidence_identity()
     );
     assert_eq!(
         explanation
@@ -67,7 +90,7 @@ fn manual_bridge_witness_and_parity_explanation_bind_canonical_bridge_artifacts(
             .subscription_bridge_parity_denial_count(),
         0
     );
-    assert!(!explanation.explanation_digest().is_empty());
+    assert!(!explanation.explanation_projection().label().is_empty());
 }
 
 #[test]

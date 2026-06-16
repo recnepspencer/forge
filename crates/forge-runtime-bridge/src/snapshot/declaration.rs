@@ -119,8 +119,9 @@ impl BridgeTruthViewSelector {
                 .unwrap_or("-"),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let selector_identity =
-            BridgeTruthViewSelectorIdentity::new(format!("truth-view-selector:sha256:{digest:x}"));
+        let selector_identity = BridgeTruthViewSelectorIdentity::admit_bridge_owned(format!(
+            "truth-view-selector:sha256:{digest:x}"
+        ));
         Self {
             selector_identity,
             view_kind,
@@ -225,9 +226,9 @@ impl HistoricalEvaluationDeclaration {
             validated_selector_set.canonical_basis(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let declaration_identity = HistoricalEvaluationDeclarationIdentity::new(format!(
-            "historical-evaluation-declaration:sha256:{digest:x}"
-        ));
+        let declaration_identity = HistoricalEvaluationDeclarationIdentity::admit_bridge_owned(
+            format!("historical-evaluation-declaration:sha256:{digest:x}"),
+        );
         Self {
             declaration_identity,
             validated_selector_set,

@@ -1,5 +1,4 @@
 use forge_proof::TransitionOutcome;
-use forge_runtime_bridge::facade::BridgePreviewSessionDeclarationIdentity;
 
 use crate::domain_capabilities::denials::{
     ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
@@ -15,7 +14,6 @@ use crate::domain_capabilities::targets::{
 use crate::domain_capabilities::{
     ForgeQueryDomainCapabilityTransitionOutcome, ForgeQueryMaterializationReadyWorkflowContribution,
 };
-use crate::identity::{CanonicalQueryDigest, ValidatedQueryDigest};
 use crate::preview::{
     admit_contributed_preview_workflow_foundation,
     materialize_contributed_preview_workflow_foundation_artifact,
@@ -23,6 +21,12 @@ use crate::preview::{
     PreviewWorkflowFoundationRequest,
 };
 
+use super::preview_identity::{
+    canonical_query_digest_from_identity, preview_canonical_query_identity,
+    preview_declaration_digest_identity, preview_declaration_identity,
+    preview_validated_query_identity, sealed_preview_declaration_bridge_identity,
+    validated_query_digest_from_identity,
+};
 use super::semantics::{
     inconsistent_workflow_runtime_semantics_denial, missing_workflow_runtime_semantics_denial,
     workflow_runtime_semantics_match_posture, workflow_source_label,
@@ -185,12 +189,9 @@ where
         &evaluation_class,
         request_family_label,
     );
-    let validated_query_identity =
-        preview_validated_query_identity(&canonical_query_identity);
-    let canonical_query_digest =
-        canonical_query_digest_from_identity(&canonical_query_identity);
-    let validated_query_digest =
-        validated_query_digest_from_identity(&validated_query_identity);
+    let validated_query_identity = preview_validated_query_identity(&canonical_query_identity);
+    let canonical_query_digest = canonical_query_digest_from_identity(&canonical_query_identity);
+    let validated_query_digest = validated_query_digest_from_identity(&validated_query_identity);
     let preview_declaration_identity = preview_declaration_identity(
         payload,
         &binding_identity,
@@ -270,141 +271,4 @@ fn unsupported_preview_binding_denial(
             payload.posture().as_str()
         ),
     )
-}
-
-fn preview_canonical_query_identity(
-    source_label: &str,
-    binding_identity: &crate::ForgeQueryEvidenceIdentity,
-    request_identity: &crate::ForgeQueryEvidenceIdentity,
-    preview_session_identity: &forge_runtime_bridge::facade::BridgePreviewSessionIdentity,
-    evaluation_class: &crate::workflow::WorkflowPreviewEvaluationClass,
-    request_family_label: &str,
-) -> crate::ForgeQueryEvidenceIdentity {
-    crate::ForgeQueryEvidenceIdentity::compose(crate::ForgeQueryEvidenceScope::WorkflowContextBinding)
-        .field_shape(
-            crate::ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_preview_query_v1",
-        )
-        .field_shape(crate::ForgeQueryEvidenceTag::new("source"), source_label)
-        .field_evidence_identity(
-            crate::ForgeQueryEvidenceTag::new("binding"),
-            binding_identity,
-        )
-        .field_evidence_identity(
-            crate::ForgeQueryEvidenceTag::new("request"),
-            request_identity,
-        )
-        .field_bridge_identity(
-            crate::ForgeQueryEvidenceTag::new("preview_session"),
-            &preview_session_identity.evidence_identity(),
-        )
-        .field_shape(
-            crate::ForgeQueryEvidenceTag::new("evaluation"),
-            evaluation_class.as_str(),
-        )
-        .field_shape(
-            crate::ForgeQueryEvidenceTag::new("request_family"),
-            request_family_label,
-        )
-        .seal()
-}
-
-fn preview_validated_query_identity(
-    canonical_query_identity: &crate::ForgeQueryEvidenceIdentity,
-) -> crate::ForgeQueryEvidenceIdentity {
-    crate::ForgeQueryEvidenceIdentity::compose(crate::ForgeQueryEvidenceScope::WorkflowContextBinding)
-        .field_shape(
-            crate::ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_preview_validated_query_v1",
-        )
-        .field_evidence_identity(
-            crate::ForgeQueryEvidenceTag::new("canonical"),
-            canonical_query_identity,
-        )
-        .seal()
-}
-
-fn preview_declaration_identity(
-    payload: &ForgeQueryWorkflowContributionPayload,
-    binding_identity: &crate::ForgeQueryEvidenceIdentity,
-    request_identity: &crate::ForgeQueryEvidenceIdentity,
-    preview_session_identity: &forge_runtime_bridge::facade::BridgePreviewSessionIdentity,
-    evaluation_class: &crate::workflow::WorkflowPreviewEvaluationClass,
-    request_family_label: &str,
-) -> crate::ForgeQueryEvidenceIdentity {
-    crate::ForgeQueryEvidenceIdentity::compose(crate::ForgeQueryEvidenceScope::WorkflowContextBinding)
-        .field_shape(
-            crate::ForgeQueryEvidenceTag::new("identity_family"),
-            "domain_preview_declaration_v1",
-        )
-        .field_shape(
-            crate::ForgeQueryEvidenceTag::new("semantic_code"),
-            payload.semantic_code(),
-        )
-        .field_evidence_identity(
-            crate::ForgeQueryEvidenceTag::new("binding"),
-            binding_identity,
-        )
-        .field_evidence_identity(
-            crate::ForgeQueryEvidenceTag::new("request"),
-            request_identity,
-        )
-        .field_bridge_identity(
-            crate::ForgeQueryEvidenceTag::new("preview_session"),
-            &preview_session_identity.evidence_identity(),
-        )
-        .field_shape(
-            crate::ForgeQueryEvidenceTag::new("evaluation"),
-            evaluation_class.as_str(),
-        )
-        .field_shape(
-            crate::ForgeQueryEvidenceTag::new("request_family"),
-            request_family_label,
-        )
-        .seal()
-}
-
-fn canonical_query_digest_from_identity(
-    identity: &crate::ForgeQueryEvidenceIdentity,
-) -> CanonicalQueryDigest {
-    CanonicalQueryDigest::from_evidence_identity(identity)
-}
-
-fn validated_query_digest_from_identity(
-    identity: &crate::ForgeQueryEvidenceIdentity,
-) -> ValidatedQueryDigest {
-    ValidatedQueryDigest::from_evidence_identity(identity)
-}
-
-fn sealed_preview_declaration_bridge_identity(
-    identity: &crate::ForgeQueryEvidenceIdentity,
-) -> BridgePreviewSessionDeclarationIdentity {
-    BridgePreviewSessionDeclarationIdentity::from_bridge_evidence(
-        &identity.bridge_evidence_identity(),
-    )
-}
-
-fn preview_declaration_digest_identity(
-    preview_declaration_identity: &crate::ForgeQueryEvidenceIdentity,
-    canonical_query_digest: &CanonicalQueryDigest,
-    validated_query_digest: &ValidatedQueryDigest,
-) -> crate::ForgeQueryEvidenceIdentity {
-    crate::ForgeQueryEvidenceIdentity::compose(crate::ForgeQueryEvidenceScope::WorkflowContextBinding)
-        .field_shape(
-            crate::ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_domain_preview_declaration_v1",
-        )
-        .field_evidence_identity(
-            crate::ForgeQueryEvidenceTag::new("declaration"),
-            preview_declaration_identity,
-        )
-        .field_evidence_identity(
-            crate::ForgeQueryEvidenceTag::new("canonical"),
-            &canonical_query_digest.evidence_identity(),
-        )
-        .field_evidence_identity(
-            crate::ForgeQueryEvidenceTag::new("validated"),
-            &validated_query_digest.evidence_identity(),
-        )
-        .seal()
 }

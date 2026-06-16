@@ -2,7 +2,9 @@ use super::acknowledgement::QueryDeliveryBatchReceipt;
 use super::active_budget::ActiveSubscriptionAllocationPosture;
 use super::active_counters::ActiveSubscriptionCounters;
 use super::active_dimensions::ActiveAllocationScopeWidth;
-use super::active_error::ActiveSubscriptionLifecycleError;
+use super::active_error::{
+    ActiveSubscriptionLifecycleDenialKind, ActiveSubscriptionLifecycleError,
+};
 use super::active_handle::ActiveSubscriptionLaneHandle;
 use super::active_lane::ActiveSubscriptionLaneAdmission;
 use super::active_posture::ActiveSubscriptionLifecyclePosture;
@@ -97,7 +99,7 @@ pub fn attach_subscription_consumer(
         SubscriptionConsumerAttachmentError::new(
             SubscriptionConsumerAttachmentDenialKind::LaneHandleMismatch,
             error.message(),
-            error.source_digest(),
+            error.source_identity().clone(),
             error.counters().clone(),
         )
     })?;
@@ -111,12 +113,12 @@ pub fn attach_subscription_consumer(
     )?;
     runtime
         .registry
-        .register_attachment(handle, attachment.attachment_digest().as_str())
+        .register_attachment(handle, attachment.attachment_digest())
         .map_err(|error| {
             SubscriptionConsumerAttachmentError::new(
                 SubscriptionConsumerAttachmentDenialKind::LaneHandleMismatch,
                 error.message(),
-                error.source_digest(),
+                error.source_identity().clone(),
                 error.counters().clone(),
             )
         })?;
@@ -240,7 +242,7 @@ pub fn close_subscription_lifecycle(
         SubscriptionLifecycleCloseError::new(
             SubscriptionLifecycleCloseDenialKind::LaneHandleMismatch,
             error.message(),
-            error.source_digest(),
+            error.source_identity().clone(),
             counters,
         )
     })?;
@@ -250,29 +252,36 @@ pub fn close_subscription_lifecycle(
         return Err(SubscriptionLifecycleCloseError::new(
             SubscriptionLifecycleCloseDenialKind::AttachmentLaneMismatch,
             "subscription lifecycle closeout request must match the selected active lane handle",
-            request.attachment_digest().as_str(),
+            request.attachment_digest().evidence_identity().clone(),
             counters,
         ));
     }
     let lane_terminal = runtime
         .registry
-        .close_attachment(handle, request.attachment_digest().as_str())
+        .close_attachment(handle, request.attachment_digest())
         .map_err(|error| {
-            let denial_kind = if error.source_digest() == request.attachment_digest().as_str() {
-                SubscriptionLifecycleCloseDenialKind::AttachmentNotActive
-            } else {
-                SubscriptionLifecycleCloseDenialKind::LaneHandleMismatch
-            };
+            let denial_kind = closeout_denial_kind_from_lifecycle(error.denial_kind());
             let mut counters = error.counters().clone();
             counters.subscription_lifecycle_closeout_denial_count = 1;
             SubscriptionLifecycleCloseError::new(
                 denial_kind,
                 error.message(),
-                error.source_digest(),
+                error.source_identity().clone(),
                 counters,
             )
         })?;
     let closeout = SubscriptionLifecycleCloseout::new(request, lane_terminal);
     runtime.counters = closeout.counters().clone();
     Ok(closeout)
+}
+
+fn closeout_denial_kind_from_lifecycle(
+    denial_kind: &ActiveSubscriptionLifecycleDenialKind,
+) -> SubscriptionLifecycleCloseDenialKind {
+    match denial_kind {
+        ActiveSubscriptionLifecycleDenialKind::AttachmentNotActive => {
+            SubscriptionLifecycleCloseDenialKind::AttachmentNotActive
+        }
+        _ => SubscriptionLifecycleCloseDenialKind::LaneHandleMismatch,
+    }
 }

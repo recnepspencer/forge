@@ -58,7 +58,7 @@ impl ForgeQueryBindingTarget {
                 "forge_query_binding_target_target_v1",
             )
             .field_shape(ForgeQueryEvidenceTag::new("kind"), self.kind.as_str())
-            .field_identity(ForgeQueryEvidenceTag::new("target"), &self.target_digest)
+            .field_value(ForgeQueryEvidenceTag::new("target"), &self.target_digest)
             .seal()
     }
 
@@ -73,7 +73,7 @@ impl ForgeQueryBindingTarget {
                 ForgeQueryEvidenceTag::new("target"),
                 &self.target_identity(),
             )
-            .field_identity(ForgeQueryEvidenceTag::new("binding"), &self.binding_digest)
+            .field_value(ForgeQueryEvidenceTag::new("binding"), &self.binding_digest)
             .seal()
     }
 

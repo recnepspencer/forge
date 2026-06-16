@@ -10,6 +10,9 @@ use crate::preview::{
     PreviewExecutionCounters, PreviewWorkflowFoundationArtifact, PreviewWorkflowFoundationError,
     PreviewWorkflowFoundationRequest,
 };
+use crate::workflow::{
+    workflow_canonical_query_digest_evidence, workflow_validated_query_digest_evidence,
+};
 use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 pub(crate) fn materialize_contributed_preview_workflow_foundation_artifact(
@@ -33,23 +36,23 @@ pub(crate) fn materialize_contributed_preview_workflow_foundation_artifact(
             .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("canonical"),
-                &canonical_query_digest.evidence_identity(),
+                &workflow_canonical_query_digest_evidence(&canonical_query_digest),
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("validated"),
-                &validated_query_digest.evidence_identity(),
+                &workflow_validated_query_digest_evidence(&validated_query_digest),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("request"),
                 request_family.as_str(),
             )
-            .field_bridge_identity(
+            .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("preview_session"),
-                &preview_session_identity.evidence_identity(),
+                &preview_session_identity.bridge_admission_evidence(),
             )
-            .field_bridge_identity(
+            .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("declaration"),
-                &declaration_identity.evidence_identity(),
+                &declaration_identity.bridge_admission_evidence(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("evaluation"),
@@ -70,13 +73,13 @@ pub(crate) fn materialize_contributed_preview_workflow_foundation_artifact(
                 ForgeQueryEvidenceTag::new("request"),
                 request_family.as_str(),
             )
-            .field_bridge_identity(
+            .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("preview_session"),
-                &preview_session_identity.evidence_identity(),
+                &preview_session_identity.bridge_admission_evidence(),
             )
-            .field_bridge_identity(
+            .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("declaration_identity"),
-                &declaration_identity.evidence_identity(),
+                &declaration_identity.bridge_admission_evidence(),
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("declaration_digest"),
@@ -86,9 +89,9 @@ pub(crate) fn materialize_contributed_preview_workflow_foundation_artifact(
                 ForgeQueryEvidenceTag::new("lifecycle"),
                 format!("{lifecycle_state_kind:?}"),
             )
-            .field_bridge_identity(
+            .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("execution_record"),
-                &execution_record_identity.evidence_identity(),
+                &execution_record_identity.bridge_admission_evidence(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("evaluation_class"),

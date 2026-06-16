@@ -232,23 +232,25 @@ fn lowering_error_outcome<S>(
     let posture_identity = workflow_lowering_posture_identity(&target_identity, &error);
     match error.staleness_class() {
         WorkflowStalenessClass::StaleDenied => TransitionOutcome::Stale(
-            ForgeQueryDomainCapabilityStale::new(
+            ForgeQueryDomainCapabilityStale::new(category, target_identity, posture_identity),
+        ),
+        WorkflowStalenessClass::ExplicitRebindRequired => {
+            TransitionOutcome::RebindRequired(ForgeQueryDomainCapabilityRebindRequired::new(
                 category,
                 target_identity,
                 posture_identity,
-            ),
-        ),
-        WorkflowStalenessClass::ExplicitRebindRequired => TransitionOutcome::RebindRequired(
-            ForgeQueryDomainCapabilityRebindRequired::new(
-                category,
-                target_identity,
-                posture_identity,
-            ),
-        ),
+            ))
+        }
         WorkflowStalenessClass::ExactBasisPreserved
-        | WorkflowStalenessClass::AuthorityValidationRequired => TransitionOutcome::Denied(
-            lowering_error_denial(category, request_identity, target_kind, &target_identity, error),
-        ),
+        | WorkflowStalenessClass::AuthorityValidationRequired => {
+            TransitionOutcome::Denied(lowering_error_denial(
+                category,
+                request_identity,
+                target_kind,
+                &target_identity,
+                error,
+            ))
+        }
     }
 }
 

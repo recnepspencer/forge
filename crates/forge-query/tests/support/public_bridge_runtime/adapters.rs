@@ -2,8 +2,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use forge_query::facade::{
-    DeclarativeLiveQueryRequest, ForgeQueryAspectValue, ForgeQueryBasisAdmissionEvidenceRow,
-    ForgeQueryEffectPolicy, ForgeQueryEntity, ForgeQueryExistingTruthAssertionDenial,
+    runtime_subscription_support_evidence_identity, DeclarativeLiveQueryRequest,
+    ForgeQueryAspectValue, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy,
+    ForgeQueryEntity, ForgeQueryEvidenceIdentity, ForgeQueryExistingTruthAssertionDenial,
     ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryExistingTruthProbeDenial,
     ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
@@ -77,10 +78,7 @@ impl ForgeQueryRuntimeSourceAdapter for PublicSourceAdapter {
         };
         rows.iter()
             .map(|(identity, external_row)| {
-                ForgeQueryEntity::from_external_projection(
-                    ForgeQueryEntityIdentity::authored_command(identity),
-                    external_row.clone(),
-                )
+                ForgeQueryEntity::from_external_projection(identity.clone(), external_row.clone())
             })
             .collect()
     }
@@ -136,10 +134,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for PublicWriteAuthorityAdapter {
             })
             .or_else(|| {
                 command.declared_entity_identity_ref().and_then(|identity| {
-                    state
-                        .collection_by_identity
-                        .get(&identity.to_string())
-                        .cloned()
+                    state.collection_by_identity.get(identity).cloned()
                 })
             })
             .ok_or_else(|| {
@@ -148,10 +143,14 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for PublicWriteAuthorityAdapter {
         let entity_identity = match command.mutation_family() {
             forge_query::facade::ForgeQueryMutationFamily::Insert => {
                 state.next_entity_identity += 1;
-                ForgeQueryEntityIdentity::authored_command(format!(
-                    "public-bridge-entity-{}",
-                    state.next_entity_identity
-                ))
+                ForgeQueryEntityIdentity::admit_authored_entity_token(
+                    forge_query::facade::QueryExternalIdentityToken::new(
+                        std::sync::Arc::from(format!(
+                            "public-bridge-entity-{}",
+                            state.next_entity_identity
+                        )),
+                    ),
+                )
             }
             _ => command
                 .declared_entity_identity_ref()
@@ -207,7 +206,7 @@ fn apply_command(
     collection: &str,
     entity_identity: &ForgeQueryEntityIdentity,
 ) -> Result<ForgeQueryMutationKind, ForgeQueryWorkspaceError> {
-    let entity_identity_key = entity_identity.to_string();
+    let entity_identity_key = entity_identity.clone();
     match command.mutation_family() {
         forge_query::facade::ForgeQueryMutationFamily::Insert => {
             let external_row = external_row_from_aspects(command.aspect_values())?;
@@ -235,7 +234,7 @@ fn apply_command(
                 .get_mut(&entity_identity_key)
                 .ok_or_else(|| {
                     ForgeQueryWorkspaceError::new(format!(
-                        "public bridge update could not find `{entity_identity_key}` in `{collection}`"
+                        "public bridge update could not find `{entity_identity_key:?}` in `{collection}`"
                     ))
                 })?;
             apply_aspects_to_external_row(row, command.aspect_values())?;
@@ -323,8 +322,10 @@ impl forge_query::facade::ForgeQueryRuntimeExistingTruthVerificationAdapter
         ForgeQueryVerifiedExistingTruthAssertion::from_snapshot_identity(
             binding,
             aspects,
-            &ForgeQuerySnapshotIdentity::from_external_authority_label(
-                "public-bridge-existing-truth-snapshot",
+            &ForgeQuerySnapshotIdentity::admit_external_token(
+                forge_query::facade::QueryExternalIdentityToken::new(
+                    std::sync::Arc::from("public-bridge-existing-truth-snapshot"),
+                ),
             ),
         )
         .map_err(|error| {
@@ -387,8 +388,8 @@ impl ForgeQueryRuntimeSignalSinkAdapter for PublicSignalSinkAdapter {
 pub(super) struct PublicSubscriptionActivationAdapter;
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for PublicSubscriptionActivationAdapter {
-    fn support_evidence(&self) -> String {
-        "public-graph-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("public-graph-subscription-activation")
     }
 
     fn admit_activation(

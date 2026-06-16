@@ -47,7 +47,8 @@ impl TruthDeltaRoutingPacket {
             invalidation_target_count,
             packet_index,
         );
-        let packet_identity = RoutingPacketIdentity::new(digest_string("routing-packet", &basis));
+        let packet_identity =
+            RoutingPacketIdentity::admit_bridge_owned(digest_string("routing-packet", &basis));
         Self {
             packet_identity,
             workload_identity,
@@ -139,7 +140,7 @@ impl InvalidationReductionPacket {
             packet_index,
         );
         let packet_identity =
-            ReductionPacketIdentity::new(digest_string("reduction-packet", &basis));
+            ReductionPacketIdentity::admit_bridge_owned(digest_string("reduction-packet", &basis));
         Self {
             packet_identity,
             workload_identity,

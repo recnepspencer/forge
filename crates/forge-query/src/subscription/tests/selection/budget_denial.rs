@@ -43,8 +43,8 @@ fn exhausted_lookup_budget_denies_without_claiming_a_registry_lookup() {
     assert_eq!(error.counters().family_denial_count(), 1);
     assert_eq!(error.counters().work_budget_denial_count(), 1);
     assert_eq!(
-        error.diagnostic().counter_digest(),
-        error.counters().digest()
+        error.diagnostic().counter_projection().label().as_str(),
+        error.counters().counter_projection().label()
     );
 }
 

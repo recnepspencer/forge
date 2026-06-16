@@ -44,7 +44,7 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
                 materialization.replace_rows([published_title_row(title)]);
                 ForgeQueryDerivedPatch::whole_refresh_materialized(
                     view.name(),
-                    ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                    crate::memory_workspace::admit_external_commit_label(format!(
                         "shared-read-refresh-{next}"
                     )),
                     ["title.value".to_string()],
@@ -56,7 +56,7 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
                 materialization.replace_rows(std::iter::empty());
                 ForgeQueryDerivedPatch::whole_refresh_materialized(
                     view.name(),
-                    ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                    crate::memory_workspace::admit_external_commit_label(format!(
                         "shared-read-empty-{next}"
                     )),
                     ["title.value".to_string()],
@@ -72,7 +72,7 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
                 materialization.replace_rows([published_title_row(title)]);
                 ForgeQueryDerivedPatch::whole_refresh_materialized(
                     view.name(),
-                    ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                    crate::memory_workspace::admit_external_commit_label(format!(
                         "shared-read-sequenced-{next}"
                     )),
                     ["title.value".to_string()],
@@ -84,10 +84,10 @@ impl ForgeQueryDerivedViewMaintainer for SharedReadPublishingMaintainer {
                 materialization.replace_rows([published_title_row(title)]);
                 ForgeQueryDerivedPatch::incremental(
                     view.name(),
-                    ForgeQueryCommitIdentity::from_external_authority_label(format!(
+                    crate::memory_workspace::admit_external_commit_label(format!(
                         "shared-read-stale-{next}"
                     )),
-                    ForgeQueryEntityIdentity::authored_command(format!("entity-{next}")),
+                    crate::memory_workspace::admit_authored_entity_label(format!("entity-{next}")),
                     ["title.value".to_string()],
                     json!({"published": true, "title": title}),
                 )
@@ -164,7 +164,7 @@ fn shared_read_unpublished_artifact_fails_closed_with_typed_pending_state() {
             assert_eq!(state.kind(), ForgeQueryRuntimeAsyncResultStateKind::Pending);
             assert_eq!(
                 state.basis_for_reporting(),
-                unpublished.snapshot_identity().evidence_identity().as_str()
+                unpublished.snapshot_identity().bridge_admission_evidence().terminal_projection_for_reporting()
             );
         }
         other => panic!("expected pending async posture, got {other:?}"),

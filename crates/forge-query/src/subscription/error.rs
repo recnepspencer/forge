@@ -1,5 +1,6 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
 use super::counters::QuerySubscriptionDeclarationCounters;
-use super::evidence_identities::diagnostic_source_projection_identity;
 use super::diagnostic::{QuerySubscriptionDiagnosticEvidence, QuerySubscriptionDiagnosticStage};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -52,12 +53,10 @@ impl QuerySubscriptionFamilySelectionError {
         failure_class: QuerySubscriptionFamilySelectionFailureClass,
         message: impl Into<String>,
         diagnostic_stage: QuerySubscriptionDiagnosticStage,
-        source_digest: impl Into<String>,
+        source_identity: &ForgeQueryEvidenceIdentity,
         counters: QuerySubscriptionDeclarationCounters,
     ) -> Self {
         let message = message.into();
-        let source_label = source_digest.into();
-        let source_identity = diagnostic_source_projection_identity(&source_label);
         let diagnostic = QuerySubscriptionDiagnosticEvidence::denied(
             diagnostic_stage,
             message.clone(),

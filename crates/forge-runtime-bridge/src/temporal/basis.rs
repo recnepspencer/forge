@@ -116,8 +116,9 @@ impl AdmittedBridgeTemporalBasis {
             canonical_ready,
             "temporal bridge basis digest admission denied",
         );
-        let identity =
-            BridgeTemporalBasisIdentity::new(hex_bytes(canonical_digest.value().bytes()));
+        let identity = BridgeTemporalBasisIdentity::admit_bridge_owned(hex_bytes(
+            canonical_digest.value().bytes(),
+        ));
 
         TransitionOutcome::success(Self {
             identity,

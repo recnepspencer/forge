@@ -4,6 +4,9 @@ use forge_runtime_bridge::facade::{
 };
 
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{
+    admit_query_feeder_authority_identity, QueryFeederAuthorityIdentity, QueryFeederIdentityKind,
+};
 
 use super::binding_evidence::binding_identity;
 use super::{
@@ -17,11 +20,14 @@ use super::{
 
 const BRIDGE_AUTHORITY: &str = "forge_runtime_bridge";
 
+type LowerRuntimeBindingAuthority =
+    QueryFeederAuthorityIdentity<ForgeQueryEvidenceIdentity, QueryFeederIdentityKind>;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LowerRuntimeBoundObservationBasis {
     capability: ObservationBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_identity: ForgeQueryEvidenceIdentity,
+    binding_authority: LowerRuntimeBindingAuthority,
     counters: BasisEligibilityCounters,
 }
 
@@ -29,7 +35,7 @@ pub struct LowerRuntimeBoundObservationBasis {
 pub struct LowerRuntimeBoundInspectionBasis {
     capability: InspectionBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_identity: ForgeQueryEvidenceIdentity,
+    binding_authority: LowerRuntimeBindingAuthority,
     counters: BasisEligibilityCounters,
 }
 
@@ -37,7 +43,7 @@ pub struct LowerRuntimeBoundInspectionBasis {
 pub struct LowerRuntimeBoundSubscriptionDeclarationBasis {
     capability: SubscriptionDeclarationBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_identity: ForgeQueryEvidenceIdentity,
+    binding_authority: LowerRuntimeBindingAuthority,
     counters: BasisEligibilityCounters,
 }
 
@@ -45,7 +51,7 @@ pub struct LowerRuntimeBoundSubscriptionDeclarationBasis {
 pub struct LowerRuntimeBoundSubscriptionActivationBasis {
     capability: SubscriptionActivationBasisCapability,
     evidence: BridgeLowerRuntimeEvidenceReference,
-    binding_identity: ForgeQueryEvidenceIdentity,
+    binding_authority: LowerRuntimeBindingAuthority,
     counters: BasisEligibilityCounters,
 }
 
@@ -65,11 +71,15 @@ macro_rules! impl_bound_accessors {
             }
 
             pub fn binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
-                &self.binding_identity
+                self.binding_authority.value()
+            }
+
+            pub fn binding_authority(&self) -> &LowerRuntimeBindingAuthority {
+                &self.binding_authority
             }
 
             pub fn binding_for_reporting(&self) -> &str {
-                self.binding_identity.as_str()
+                self.binding_authority.value().as_str()
             }
 
             pub fn counters(&self) -> &BasisEligibilityCounters {
@@ -100,18 +110,21 @@ pub fn readmit_bridge_truth_view_evidence(
 
     let counters = admitted.counters().clone().with_lower_runtime_check(0);
     let evidence = BridgeLowerRuntimeEvidenceReference::truth_view(
-        evaluation.record().record_identity().evidence_identity(),
-        selector.selector_identity().evidence_identity(),
+        evaluation.record().record_identity().bridge_admission_evidence(),
+        selector.selector_identity().bridge_admission_evidence(),
         evaluation
             .record()
             .decision_log()
             .authority_digest()
             .to_string(),
-        evaluation.snapshot_identity().evidence_identity(),
+        evaluation.snapshot_identity().bridge_admission_evidence(),
     );
     Ok(LowerRuntimeBoundObservationBasis {
         capability,
-        binding_identity: binding_identity(admitted.capability_digest(), &evidence),
+        binding_authority: admit_query_feeder_authority_identity(binding_identity(
+            admitted.capability_digest(),
+            &evidence,
+        )),
         evidence,
         counters,
     })
@@ -132,14 +145,17 @@ pub fn readmit_bridge_continuity_evidence(
 
     let counters = admitted.counters().clone().with_lower_runtime_check(0);
     let evidence = BridgeLowerRuntimeEvidenceReference::continuity(
-        record.route_identity().evidence_identity(),
-        continuity.continuity_identity().evidence_identity(),
+        record.route_identity().bridge_admission_evidence(),
+        continuity.continuity_identity().bridge_admission_evidence(),
         record.continuity_resolution_digest().to_string(),
-        record.source_snapshot().evidence_identity(),
+        record.source_snapshot().bridge_admission_evidence(),
     );
     Ok(LowerRuntimeBoundInspectionBasis {
         capability,
-        binding_identity: binding_identity(admitted.capability_digest(), &evidence),
+        binding_authority: admit_query_feeder_authority_identity(binding_identity(
+            admitted.capability_digest(),
+            &evidence,
+        )),
         evidence,
         counters,
     })
@@ -156,7 +172,10 @@ pub fn readmit_bridge_subscription_declaration_evidence(
     let evidence = subscription_evidence(admitted_subscription);
     Ok(LowerRuntimeBoundSubscriptionDeclarationBasis {
         capability,
-        binding_identity: binding_identity(admitted.capability_digest(), &evidence),
+        binding_authority: admit_query_feeder_authority_identity(binding_identity(
+            admitted.capability_digest(),
+            &evidence,
+        )),
         evidence,
         counters,
     })
@@ -173,7 +192,10 @@ pub fn readmit_bridge_subscription_activation_evidence(
     let evidence = subscription_evidence(admitted_subscription);
     Ok(LowerRuntimeBoundSubscriptionActivationBasis {
         capability,
-        binding_identity: binding_identity(admitted.capability_digest(), &evidence),
+        binding_authority: admit_query_feeder_authority_identity(binding_identity(
+            admitted.capability_digest(),
+            &evidence,
+        )),
         evidence,
         counters,
     })
@@ -362,27 +384,27 @@ fn subscription_evidence(
     BridgeLowerRuntimeEvidenceReference::subscription(
         admitted_subscription
             .admitted_subscription_identity()
-            .evidence_identity(),
+            .bridge_admission_evidence(),
         admitted_subscription
             .basis_binding()
             .basis_identity()
-            .evidence_identity(),
+            .bridge_admission_evidence(),
         admitted_subscription
             .signal_strategy()
             .strategy_identity()
-            .evidence_identity(),
+            .bridge_admission_evidence(),
         admitted_subscription.digest().to_string(),
     )
 }
 
 fn truth_branch_label(identity: &TruthBranchIdentity) -> String {
-    identity.evidence_identity().as_str().to_string()
+    identity.bridge_admission_evidence().terminal_projection_for_reporting().to_string()
 }
 
 fn truth_commit_label(identity: &TruthCommitIdentity) -> String {
-    identity.evidence_identity().as_str().to_string()
+    identity.bridge_admission_evidence().terminal_projection_for_reporting().to_string()
 }
 
 fn truth_snapshot_label(identity: &TruthSnapshotIdentity) -> String {
-    identity.evidence_identity().as_str().to_string()
+    identity.bridge_admission_evidence().terminal_projection_for_reporting().to_string()
 }

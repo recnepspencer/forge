@@ -1,5 +1,3 @@
-use forge_runtime_bridge::facade::TruthCommitIdentity;
-
 use super::super::super::super::*;
 use super::artifact_support::{
     admitted_artifact, advisory_artifacts, denied_artifact_and_missing_evidence,
@@ -8,10 +6,10 @@ use super::matrix_support::representative_matrix;
 
 #[test]
 fn causal_inspection_proof_shape_binds_runtime_path_inputs() {
-    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let changed = admitted_artifact(super::super::causal_truth_commit_identity(
         "commit-query-proof-shape-changed",
     ));
-    let (_, redacted) = advisory_artifacts(TruthCommitIdentity::from_bridge_harness_label(
+    let (_, redacted) = advisory_artifacts(super::super::causal_truth_commit_identity(
         "commit-query-proof-shape-redacted",
     ));
     let (denied, _) = denied_artifact_and_missing_evidence();
@@ -42,10 +40,9 @@ fn causal_inspection_proof_shape_binds_runtime_path_inputs() {
         boundary_audit.audit_digest()
     );
 
-    let (_, alternate_redacted) =
-        advisory_artifacts(TruthCommitIdentity::from_bridge_harness_label(
-            "commit-query-proof-shape-alternate-redacted",
-        ));
+    let (_, alternate_redacted) = advisory_artifacts(super::super::causal_truth_commit_identity(
+        "commit-query-proof-shape-alternate-redacted",
+    ));
     let alternate_representatives = representative_matrix(&changed, &alternate_redacted, &denied);
     let alternate_matrix_proof = CausalInspectionProofShapeCertification::from_runtime_path(
         &changed,
@@ -69,7 +66,7 @@ fn causal_inspection_proof_shape_binds_runtime_path_inputs() {
         alternate_matrix_proof.proof_shape_digest()
     );
 
-    let alternate_changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let alternate_changed = admitted_artifact(super::super::causal_truth_commit_identity(
         "commit-query-proof-shape-alternate-changed",
     ));
     let alternate_boundary =
@@ -95,10 +92,10 @@ fn causal_inspection_proof_shape_binds_runtime_path_inputs() {
 
 #[test]
 fn causal_inspection_certification_rejects_forged_proof_shape() {
-    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let changed = admitted_artifact(super::super::causal_truth_commit_identity(
         "commit-query-proof-shape-forged-changed",
     ));
-    let (full, redacted) = advisory_artifacts(TruthCommitIdentity::from_bridge_harness_label(
+    let (full, redacted) = advisory_artifacts(super::super::causal_truth_commit_identity(
         "commit-query-proof-shape-forged-redacted",
     ));
     let (denied, missing_evidence_digest) = denied_artifact_and_missing_evidence();
@@ -146,10 +143,10 @@ fn causal_inspection_certification_rejects_forged_proof_shape() {
 
 #[test]
 fn causal_inspection_certification_rejects_stale_proof_shape_digest() {
-    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let changed = admitted_artifact(super::super::causal_truth_commit_identity(
         "commit-query-proof-shape-stale-changed",
     ));
-    let (full, redacted) = advisory_artifacts(TruthCommitIdentity::from_bridge_harness_label(
+    let (full, redacted) = advisory_artifacts(super::super::causal_truth_commit_identity(
         "commit-query-proof-shape-stale-redacted",
     ));
     let (denied, missing_evidence_digest) = denied_artifact_and_missing_evidence();

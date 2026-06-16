@@ -28,7 +28,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_writeback_bundle
             "causality:pricing-authority",
             "truth-trigger:pricing-steel-main",
         ),
-        BridgeWritebackEffectIdentity::new("effect:pricing-authority"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:pricing-authority"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "pricing-authority",
@@ -38,7 +38,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_writeback_bundle
         &effect,
         &lowered_policy,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:pricing-authority"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:pricing-authority"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -88,7 +88,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_writeback_bundle
             "causality:pricing-rejection",
             "truth-trigger:pricing-rubber-shock",
         ),
-        BridgeWritebackEffectIdentity::new("effect:pricing-rejection"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:pricing-rejection"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "pricing-rejection",
@@ -98,7 +98,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_writeback_bundle
         &rejecting_effect,
         &rejecting_lowered_policy,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&rejecting_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:pricing-rejection"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:pricing-rejection"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let rejection_error = rejecting_runtime
@@ -285,7 +285,7 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_historical_source_declar
     declaration_id: &str,
 ) -> SourceDeclaration {
     SourceDeclaration::new(
-        SourceDeclarationIdentity::new(declaration_id),
+        SourceDeclarationIdentity::admit_bridge_owned(declaration_id),
         BridgeTruthViewSelector::historical_commit(
             crate::truth_identity_fixtures::truth_branch_fixture("main"),
             crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"),
@@ -307,9 +307,18 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_harness_fixture(
     ScenarioPlan::new(
         name,
         BridgeHarnessFixture::new(vec![
-            pricing_mapping("steel", SignalInvalidationScope::new("price:bicycle")),
-            pricing_mapping("steel", SignalInvalidationScope::new("price:wheelbarrow")),
-            pricing_mapping("rubber", SignalInvalidationScope::new("price:scooter")),
+            pricing_mapping(
+                "steel",
+                SignalInvalidationScope::admit_bridge_owned("price:bicycle"),
+            ),
+            pricing_mapping(
+                "steel",
+                SignalInvalidationScope::admit_bridge_owned("price:wheelbarrow"),
+            ),
+            pricing_mapping(
+                "rubber",
+                SignalInvalidationScope::admit_bridge_owned("price:scooter"),
+            ),
         ])
         .with_policy(policy)
         .with_source_declaration(pricing_historical_source_declaration(

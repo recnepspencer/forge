@@ -695,8 +695,8 @@ fn bind_preview_context(
         preview_provenance_identity_source: Some(
             foundation
                 .preview_session_identity()
-                .evidence_identity()
-                .as_str()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
                 .to_string(),
         ),
         prediction_report: Some(QueryContextPredictionReport::for_preview_binding()),

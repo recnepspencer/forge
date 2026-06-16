@@ -95,37 +95,45 @@ impl AuthorityScopedEffectPlan {
         let counters = EffectLifecycleCounters::authority_scoped_plan(
             admitted.normalized().counters().effect_support_row_count(),
         );
-        let plan_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "authority_scoped_effect_plan_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("admitted"),
-            admitted.admitted_identity(),
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("scope"), invariant_scope.as_str())
-        .field_shape(ForgeQueryEvidenceTag::new("preview"), preview_posture.as_str())
-        .field_shape(ForgeQueryEvidenceTag::new("policy"), policy_posture.as_str())
-        .field_shape(
-            ForgeQueryEvidenceTag::new("lowering"),
-            permitted_lowering_family.as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("artifact"),
-            artifact_policy.as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("footprint"),
-            conflict_footprint.as_str(),
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("counters"),
-            &counters.evidence_identity(),
-        )
-        .seal();
+        let plan_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "authority_scoped_effect_plan_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("admitted"),
+                    admitted.admitted_identity(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("scope"),
+                    invariant_scope.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("preview"),
+                    preview_posture.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("policy"),
+                    policy_posture.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("lowering"),
+                    permitted_lowering_family.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("artifact"),
+                    artifact_policy.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("footprint"),
+                    conflict_footprint.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("counters"),
+                    &counters.evidence_identity(),
+                )
+                .seal();
         Self {
             admitted,
             invariant_scope,

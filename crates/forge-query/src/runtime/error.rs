@@ -187,7 +187,7 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
             Self::SharedReadStaleBasis { snapshot_identity } => write!(
                 f,
                 "shared read basis `{}` is stale and can no longer serve published artifacts",
-                snapshot_identity.evidence_identity().as_str()
+                snapshot_identity.terminal_projection_for_reporting()
             ),
             Self::MissingEffect(effect) => write!(f, "unknown effect `{effect}`"),
             Self::MissingPendingWriteIntent(effect) => {

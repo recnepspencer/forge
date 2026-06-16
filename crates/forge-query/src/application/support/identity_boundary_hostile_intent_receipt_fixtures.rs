@@ -10,21 +10,21 @@ pub(super) fn authoritative_intent_receipt_identity_fixture(
     forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeIntentReceipt)
         .field_shape(ForgeQueryEvidenceTag::new("intent_name"), intent_name)
         .field_shape(ForgeQueryEvidenceTag::new("execution_kind"), "mutating")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_identity"),
             strategy_identity,
         )
         .field_shape(ForgeQueryEvidenceTag::new("strategy_version"), "1.0")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_descriptor_digest"),
             "strategy-descriptor",
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             "canonical-input",
         )
-        .field_identity(ForgeQueryEvidenceTag::new("outcome_digest"), "outcome")
-        .field_identity_sequence(
+        .field_value(ForgeQueryEvidenceTag::new("outcome_digest"), "outcome")
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("invariant_evidence"),
             ["invariant|one", "invariant:two"],
         )
@@ -85,15 +85,15 @@ pub(super) fn authoritative_intent_receipt_identity_fixture(
             ForgeQueryEvidenceTag::new("execution_seam"),
             "intent-authority",
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("admission_decision_digest"),
             "decision",
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_handoff_digest"),
             "handoff",
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_binding_digest"),
             "binding",
         )
@@ -104,7 +104,7 @@ pub(super) fn authoritative_intent_receipt_identity_fixture(
                 "provenance|chain",
             ),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("decision_trace_digest"),
             "decision-trace",
         )
@@ -143,7 +143,7 @@ pub(super) fn preview_intent_admission_identity_fixture(
         .field_shape(ForgeQueryEvidenceTag::new("intent_name"), intent_name)
         .field_shape(ForgeQueryEvidenceTag::new("strategy_identity"), "strategy")
         .field_shape(ForgeQueryEvidenceTag::new("strategy_version"), "1.0")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             "canonical-input",
         )
@@ -191,9 +191,9 @@ pub(super) fn preview_intent_receipt_inspection_identity_fixture(
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewIntentReceiptInspection)
         .field_shape(ForgeQueryEvidenceTag::new("intent_name"), intent_name)
-        .field_identity(ForgeQueryEvidenceTag::new("strategy_identity"), "strategy")
+        .field_value(ForgeQueryEvidenceTag::new("strategy_identity"), "strategy")
         .field_shape(ForgeQueryEvidenceTag::new("strategy_version"), "1.0")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             "canonical-input",
         )

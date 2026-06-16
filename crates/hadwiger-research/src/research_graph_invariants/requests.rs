@@ -109,7 +109,10 @@ impl ResearchGraphInvariantBoundarySource {
         Self {
             envelope: source.lower_runtime_boundary_envelope().clone(),
             source_kind: source.lower_runtime_boundary_source_kind(),
-            source_digest: source.lower_runtime_boundary_source_digest().to_string(),
+            source_digest: source
+                .lower_runtime_boundary_source_identity()
+                .as_str()
+                .to_string(),
         }
     }
 
@@ -126,6 +129,6 @@ impl ResearchGraphInvariantBoundarySource {
     }
 
     pub(crate) fn envelope_digest(&self) -> &str {
-        self.envelope.envelope_digest()
+        self.envelope.envelope_identity().as_str()
     }
 }

@@ -82,7 +82,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter for TestExistingTruthVeri
         ForgeQueryVerifiedExistingTruthAssertion::new(
             binding,
             aspects,
-            ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "test-existing-truth-verification-snapshot",
             ),
         )
@@ -133,7 +133,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
         ForgeQueryVerifiedExistingTruthAssertion::new(
             binding,
             aspects,
-            ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "permissive-existing-truth-verification-snapshot",
             ),
         )

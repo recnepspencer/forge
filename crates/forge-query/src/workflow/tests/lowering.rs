@@ -298,7 +298,10 @@ fn runtime_writeback_lowering_emits_bridge_declaration_and_causality() {
         lowered.bridge_declaration().request_mode(),
         BridgeWritebackRequestMode::WritebackCapable
     );
-    assert!(!lowered.causality_binding().causality_for_reporting().is_empty());
+    assert!(!lowered
+        .causality_binding()
+        .causality_for_reporting()
+        .is_empty());
     assert_eq!(lowered.counters().workflow_staleness_check_count(), 1);
     assert_eq!(lowered.counters().workflow_writeback_declaration_count(), 1);
     assert_eq!(

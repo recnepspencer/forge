@@ -26,7 +26,7 @@ fn effect_triggered_async_completion_receipt_preserves_write_adjacent_trigger_cl
 
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+            entity_identity: crate::memory_workspace::admit_authored_entity_label(
                 "task-1",
             ),
             aspect_path: "title.value".to_string(),
@@ -96,7 +96,7 @@ fn consumed_pending_write_intent_cannot_admit_a_second_authority_path() {
 
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+            entity_identity: crate::memory_workspace::admit_authored_entity_label(
                 "task-1",
             ),
             aspect_path: "title.value".to_string(),

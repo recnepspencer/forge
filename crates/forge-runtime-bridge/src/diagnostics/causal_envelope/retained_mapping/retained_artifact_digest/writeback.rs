@@ -20,7 +20,7 @@ pub(crate) fn writeback_admission_record_digest(
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .writeback_admission_record_for_identity(
-            &BridgeWritebackFamilyAdmissionRecordIdentity::from_reference_evidence(
+            &BridgeWritebackFamilyAdmissionRecordIdentity::from_retained_evidence_reference(
                 reference_identity,
             ),
         )
@@ -49,9 +49,11 @@ pub(crate) fn writeback_mapper_envelope_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .writeback_mapper_envelope_for_identity(&BridgeWritebackMapperEnvelopeIdentity::from_reference_evidence(
-            reference_identity,
-        ))
+        .writeback_mapper_envelope_for_identity(
+            &BridgeWritebackMapperEnvelopeIdentity::from_retained_evidence_reference(
+                reference_identity,
+            ),
+        )
         .map(|envelope| writeback_mapper_envelope_artifact_digest(&envelope))
 }
 
@@ -74,9 +76,11 @@ pub(crate) fn writeback_mapped_family_input_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .writeback_mapped_family_input_for_identity(&BridgeMappedWritebackFamilyInputIdentity::from_reference_evidence(
-            reference_identity,
-        ))
+        .writeback_mapped_family_input_for_identity(
+            &BridgeMappedWritebackFamilyInputIdentity::from_retained_evidence_reference(
+                reference_identity,
+            ),
+        )
         .map(|mapped_input| writeback_mapped_family_input_artifact_digest(&mapped_input))
 }
 
@@ -101,9 +105,11 @@ pub(crate) fn writeback_mapper_record_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .writeback_mapper_record_for_identity(&BridgeWritebackMapperRecordIdentity::from_reference_evidence(
-            reference_identity,
-        ))
+        .writeback_mapper_record_for_identity(
+            &BridgeWritebackMapperRecordIdentity::from_retained_evidence_reference(
+                reference_identity,
+            ),
+        )
         .map(|record| writeback_mapper_record_artifact_digest(&record))
 }
 
@@ -126,9 +132,11 @@ pub(crate) fn writeback_execution_record_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .writeback_execution_record_for_identity(&BridgeWritebackExecutionRecordIdentity::from_reference_evidence(
-            reference_identity,
-        ))
+        .writeback_execution_record_for_identity(
+            &BridgeWritebackExecutionRecordIdentity::from_retained_evidence_reference(
+                reference_identity,
+            ),
+        )
         .map(|record| writeback_execution_artifact_digest(&record))
 }
 
@@ -162,9 +170,11 @@ pub(crate) fn writeback_replay_record_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .writeback_replay_record_for_identity(&BridgeWritebackReplayRecordIdentity::from_reference_evidence(
-            reference_identity,
-        ))
+        .writeback_replay_record_for_identity(
+            &BridgeWritebackReplayRecordIdentity::from_retained_evidence_reference(
+                reference_identity,
+            ),
+        )
         .map(|record| writeback_replay_artifact_digest(&record))
 }
 

@@ -6,12 +6,13 @@ use crate::view_shape_live::LiveViewShapeFamily;
 #[test]
 fn active_lane_admission_preserves_activation_digests_and_phase_one_posture() {
     let activation = activation_for(LiveQueryFamily::Detail, None);
-    let activation_digest = activation.activation_for_reporting().to_string();
-    let admission_digest = activation.admission_for_reporting().to_string();
-    let query_declaration_digest = activation.query_declaration_for_reporting().to_string();
-    let bridge_declaration_digest = activation.bridge_declaration_for_reporting().to_string();
-    let basis_binding_digest = activation.basis_binding_for_reporting().to_string();
-    let signal_strategy_digest = activation.signal_strategy_for_reporting().to_string();
+    let activation_digest = activation.activation_projection().label().to_string();
+    let admission_digest = activation.admission_projection().label().to_string();
+    let query_declaration_digest = activation.query_declaration_projection().label().to_string();
+    let bridge_declaration_digest = activation.bridge_declaration_projection().label().to_string();
+    let basis_binding_digest = activation.basis_binding_projection().label().to_string();
+    let signal_strategy_digest = activation.signal_strategy_projection().label().to_string();
+    let signal_strategy_identity = activation.signal_strategy_identity().clone();
 
     let admission = admit_active_subscription_lane(
         activation,
@@ -19,18 +20,28 @@ fn active_lane_admission_preserves_activation_digests_and_phase_one_posture() {
     )
     .unwrap();
 
-    assert_eq!(admission.activation_digest(), activation_digest);
-    assert_eq!(admission.admission_digest(), admission_digest);
+    assert_eq!(admission.activation_projection().label().as_str(), activation_digest.as_str());
+    assert_eq!(admission.admission_projection().label().as_str(), admission_digest.as_str());
     assert_eq!(
-        admission.query_declaration_digest(),
-        query_declaration_digest
+        admission.query_declaration_projection().label().as_str(),
+        query_declaration_digest.as_str()
     );
     assert_eq!(
-        admission.bridge_declaration_digest(),
-        bridge_declaration_digest
+        admission.bridge_declaration_projection().label().as_str(),
+        bridge_declaration_digest.as_str()
     );
-    assert_eq!(admission.basis_binding_for_reporting(), basis_binding_digest);
-    assert_eq!(admission.signal_strategy_digest(), signal_strategy_digest);
+    assert_eq!(
+        admission.basis_binding_projection().label().as_str(),
+        basis_binding_digest.as_str()
+    );
+    assert_eq!(
+        admission.signal_strategy_identity(),
+        &signal_strategy_identity
+    );
+    assert_eq!(
+        admission.signal_strategy_projection().label().as_str(),
+        signal_strategy_digest.as_str()
+    );
     assert_eq!(
         admission.lifecycle_posture(),
         &ActiveSubscriptionLifecyclePosture::SingleConsumer
@@ -319,8 +330,11 @@ fn lifecycle_heap_allocation_debt_is_explicit_and_digest_bound() {
     assert_eq!(debt.counters().heap_allocation_debt_count(), 1);
     assert_ne!(normal.lane_digest(), debt.lane_digest());
     assert_ne!(
-        normal.performance_receipt().performance_receipt_for_reporting(),
-        debt.performance_receipt().performance_receipt_for_reporting()
+        normal
+            .performance_receipt()
+            .performance_receipt_projection().label(),
+        debt.performance_receipt()
+            .performance_receipt_projection().label()
     );
     assert_eq!(
         debt.allocation_posture(),

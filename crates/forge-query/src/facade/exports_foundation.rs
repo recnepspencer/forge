@@ -306,7 +306,9 @@ pub use crate::live_performance::{
     PatchWidthUnit, PerformanceStatus, PerformanceStatusMarker, RefreshAdmissionStatus,
     RefreshCostClass, VerifiedPerformance,
 };
+pub use crate::identity_authority::QueryExternalIdentityToken;
 pub use crate::memory_workspace::{
+    admit_authored_entity_token, admit_external_commit_token, admit_external_snapshot_token,
     ForgeQueryAspect, ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
     ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMemoryWorkspace,
     ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,

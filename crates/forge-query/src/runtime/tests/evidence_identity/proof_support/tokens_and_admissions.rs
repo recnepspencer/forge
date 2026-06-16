@@ -36,7 +36,7 @@ pub(in super::super) fn compose_basis_admission_identity(
 ) -> crate::ForgeQueryEvidenceIdentity {
     let evidence_rows = ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(evidence);
     crate::ForgeQueryEvidenceIdentity::compose(scope)
-        .field_identity(
+        .field_value(
             crate::ForgeQueryEvidenceTag::new("session_label_identity"),
             label.identity_digest().as_str(),
         )
@@ -48,7 +48,7 @@ pub(in super::super) fn compose_basis_admission_identity(
             crate::ForgeQueryEvidenceTag::new("authority_lane"),
             authority_lane.as_str(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             crate::ForgeQueryEvidenceTag::new("basis_evidence"),
             evidence_rows.iter().map(|row| row.row_digest().as_str()),
         )
@@ -102,7 +102,7 @@ pub(in super::super) fn compose_denial_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("returned_strategy_descriptor_digest"),
             evidence.returned_strategy_descriptor_digest(),
         )
-        .field_identity(
+        .field_value(
             crate::ForgeQueryEvidenceTag::new("canonical_input_digest"),
             evidence.canonical_input_digest(),
         )
@@ -124,7 +124,7 @@ pub(in super::super) fn compose_denial_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("attempt_digest"),
             evidence.attempt_digest(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             crate::ForgeQueryEvidenceTag::new("invariant_evidence"),
             evidence.invariant_evidence().iter().map(String::as_str),
         )

@@ -1,5 +1,5 @@
 use forge_runtime_bridge::facade::{
-    RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts,
+    BridgeIdentityEvidence, RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts,
     RelationalBridgeSnapshotIdentityParts, TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
@@ -30,14 +30,13 @@ impl ForgeQueryCommitIdentity {
         Self::Preview { evidence_identity }
     }
 
-    pub fn from_external_authority_label(label: impl AsRef<str>) -> Self {
-        Self::Preview {
-            evidence_identity: ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::WriteReceiptCommitIdentity,
-            )
-            .field_identity(ForgeQueryEvidenceTag::new("external_commit_label"), label)
-            .seal(),
-        }
+    pub fn admit_external_token(
+        token: crate::identity_authority::QueryExternalIdentityToken<
+            std::sync::Arc<str>,
+            crate::identity_authority::QueryCommitIdentityKind,
+        >,
+    ) -> Self {
+        super::truth_identity_admission::admit_external_commit_token(token)
     }
 
     pub fn absent() -> Self {
@@ -79,11 +78,22 @@ impl ForgeQueryCommitIdentity {
             Self::Preview { evidence_identity } => evidence_identity.clone(),
         }
     }
-}
 
-impl std::fmt::Display for ForgeQueryCommitIdentity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.evidence_identity().as_str())
+    pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
+        match self {
+            Self::RelationalBridge { bridge_identity } => {
+                bridge_identity.bridge_admission_evidence()
+            }
+            Self::Absent | Self::Preview { .. } => {
+                self.evidence_identity().bridge_evidence_identity()
+            }
+        }
+    }
+
+    pub(crate) fn terminal_projection_for_reporting(&self) -> String {
+        self.evidence_identity()
+            .terminal_projection_for_reporting()
+            .to_string()
     }
 }
 
@@ -115,14 +125,13 @@ impl ForgeQuerySnapshotIdentity {
         Self::Preview { evidence_identity }
     }
 
-    pub fn from_external_authority_label(label: impl AsRef<str>) -> Self {
-        Self::Preview {
-            evidence_identity: ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity,
-            )
-            .field_identity(ForgeQueryEvidenceTag::new("external_snapshot_label"), label)
-            .seal(),
-        }
+    pub fn admit_external_token(
+        token: crate::identity_authority::QueryExternalIdentityToken<
+            std::sync::Arc<str>,
+            crate::identity_authority::QuerySnapshotIdentityKind,
+        >,
+    ) -> Self {
+        super::truth_identity_admission::admit_external_snapshot_token(token)
     }
 
     pub fn bridge_identity(&self) -> Option<&TruthSnapshotIdentity> {
@@ -168,11 +177,22 @@ impl ForgeQuerySnapshotIdentity {
             Self::Preview { evidence_identity } => evidence_identity.clone(),
         }
     }
-}
 
-impl std::fmt::Display for ForgeQuerySnapshotIdentity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.evidence_identity().as_str())
+    pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
+        match self {
+            Self::RelationalBridge { bridge_identity, .. } => {
+                bridge_identity.bridge_admission_evidence()
+            }
+            Self::EmptyRelationalState | Self::Preview { .. } => {
+                self.evidence_identity().bridge_evidence_identity()
+            }
+        }
+    }
+
+    pub(crate) fn terminal_projection_for_reporting(&self) -> String {
+        self.evidence_identity()
+            .terminal_projection_for_reporting()
+            .to_string()
     }
 }
 
@@ -195,17 +215,13 @@ impl ForgeQueryEntityIdentity {
         Self::Preview { evidence_identity }
     }
 
-    pub fn authored_command(identity: impl AsRef<str>) -> Self {
-        Self::Preview {
-            evidence_identity: ForgeQueryEvidenceIdentity::compose(
-                ForgeQueryEvidenceScope::AuthoredCommandEntityIdentity,
-            )
-            .field_identity(
-                ForgeQueryEvidenceTag::new("authored_entity_identity"),
-                identity,
-            )
-            .seal(),
-        }
+    pub fn admit_authored_entity_token(
+        token: crate::identity_authority::QueryExternalIdentityToken<
+            std::sync::Arc<str>,
+            crate::identity_authority::QueryEntityIdentityKind,
+        >,
+    ) -> Self {
+        super::truth_identity_admission::admit_authored_entity_token(token)
     }
 
     pub fn relational_record_parts(&self) -> Option<RelationalBridgeRecordIdentityParts> {
@@ -243,11 +259,11 @@ impl ForgeQueryEntityIdentity {
             Self::Preview { evidence_identity } => evidence_identity.clone(),
         }
     }
-}
 
-impl std::fmt::Display for ForgeQueryEntityIdentity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.evidence_identity().as_str())
+    pub(crate) fn terminal_projection_for_reporting(&self) -> String {
+        self.evidence_identity()
+            .terminal_projection_for_reporting()
+            .to_string()
     }
 }
 
@@ -259,14 +275,13 @@ impl PartialOrd for ForgeQueryEntityIdentity {
 
 impl Ord for ForgeQueryEntityIdentity {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.evidence_identity()
-            .as_str()
-            .cmp(other.evidence_identity().as_str())
+        self.terminal_projection_for_reporting()
+            .cmp(&other.terminal_projection_for_reporting())
     }
 }
 
 impl Hash for ForgeQueryEntityIdentity {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.evidence_identity().as_str().hash(state);
+        self.terminal_projection_for_reporting().hash(state);
     }
 }

@@ -255,7 +255,7 @@ fn witness_digest<'a>(
     forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact)
         .field_shape(ForgeQueryEvidenceTag::new("row_name"), row_name)
         .field_bool(ForgeQueryEvidenceTag::new("certified"), certified)
-        .field_identity_sequence(ForgeQueryEvidenceTag::new("evidence"), evidence)
+        .field_value_sequence(ForgeQueryEvidenceTag::new("evidence"), evidence)
         .seal()
         .as_str()
         .to_string()

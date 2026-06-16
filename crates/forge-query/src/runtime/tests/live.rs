@@ -201,55 +201,55 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
         inspection.authority_lane(),
         ForgeQueryAuthorityLane::AuthoritativeTruth
     );
-    assert_eq!(inspection.query_for_reporting(), installation.query_for_reporting());
+    assert_eq!(inspection.query_projection().label().as_str(), installation.query_projection().label().as_str());
     assert_eq!(
-        inspection.view_shape_for_reporting(),
-        installation.view_shape_for_reporting()
+        inspection.view_shape_projection().label().as_str(),
+        installation.view_shape_projection().label().as_str()
     );
     assert_eq!(
         inspection.subscription_family(),
         installation.subscription_family()
     );
     assert_eq!(
-        inspection.subscription_family_for_reporting(),
-        installation.subscription_family_for_reporting()
+        inspection.subscription_family_projection().label().as_str(),
+        installation.subscription_family_projection().label().as_str()
     );
     assert_eq!(
-        inspection.subscription_declaration_for_reporting(),
-        installation.subscription_declaration_for_reporting()
+        inspection.subscription_declaration_projection().label().as_str(),
+        installation.subscription_declaration_projection().label().as_str()
     );
     assert_eq!(
-        inspection.bridge_declaration_for_reporting(),
-        installation.bridge_declaration_for_reporting()
+        inspection.bridge_declaration_projection().label().as_str(),
+        installation.bridge_declaration_projection().label().as_str()
     );
     assert_eq!(
-        inspection.admission_for_reporting(),
-        installation.admission_for_reporting()
+        inspection.admission_projection().label().as_str(),
+        installation.admission_projection().label().as_str()
     );
     assert_eq!(
-        inspection.activation_for_reporting(),
-        installation.activation_for_reporting()
+        inspection.activation_projection().label().as_str(),
+        installation.activation_projection().label().as_str()
     );
     assert_eq!(
-        inspection.basis_binding_for_reporting(),
-        installation.basis_binding_for_reporting()
+        inspection.basis_binding_projection().label().as_str(),
+        installation.basis_binding_projection().label().as_str()
     );
     assert_eq!(
-        inspection.signal_strategy_for_reporting(),
-        installation.signal_strategy_for_reporting()
+        inspection.signal_strategy_projection().label().as_str(),
+        installation.signal_strategy_projection().label().as_str()
     );
     assert_eq!(
-        inspection.active_lane_for_reporting(),
-        installation.active_lane_for_reporting()
+        inspection.active_lane_projection().label().as_str(),
+        installation.active_lane_projection().label().as_str()
     );
     assert_eq!(
-        inspection.consumer_attachment_for_reporting(),
-        installation.consumer_attachment_for_reporting()
+        inspection.consumer_attachment_projection().label().as_str(),
+        installation.consumer_attachment_projection().label().as_str()
     );
-    assert_eq!(inspection.consumer_for_reporting(), installation.consumer_for_reporting());
+    assert_eq!(inspection.consumer_projection().label().as_str(), installation.consumer_projection().label().as_str());
     assert_eq!(
-        inspection.delivery_cursor_for_reporting(),
-        installation.delivery_cursor_for_reporting()
+        inspection.delivery_cursor_projection().label().as_str(),
+        installation.delivery_cursor_projection().label().as_str()
     );
     assert_eq!(
         inspection.subscription_budget_policy(),
@@ -264,31 +264,31 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
         installation.consumer_attachment_budget_policy()
     );
     assert_eq!(
-        inspection.runtime_budget_for_reporting(),
-        installation.runtime_budget_for_reporting()
+        inspection.runtime_budget_projection().label().as_str(),
+        installation.runtime_budget_projection().label().as_str()
     );
     assert_eq!(
-        inspection.support_for_reporting(),
-        installation.support_for_reporting()
+        inspection.support_projection().label().as_str(),
+        installation.support_projection().label().as_str()
     );
     assert_eq!(
-        inspection.installation_for_reporting(),
-        installation.installation_for_reporting()
+        inspection.installation_projection().label().as_str(),
+        installation.installation_projection().label().as_str()
     );
-    assert!(!inspection.inspection_for_reporting().is_empty());
+    assert!(!inspection.inspection_projection().label().as_str().is_empty());
 
     let counters = inspection.counters();
     assert_eq!(
         counters.declaration_counter_for_reporting(),
-        installation.counters().digest()
+        installation.counters().counter_projection().label()
     );
     assert_eq!(
         counters.active_lane_counter_for_reporting(),
-        installation.active_lane_counters().digest()
+        installation.active_lane_counters().counter_projection().label()
     );
     assert_eq!(
         counters.consumer_attachment_counter_for_reporting(),
-        installation.consumer_attachment_counters().digest()
+        installation.consumer_attachment_counters().counter_projection().label()
     );
     assert_eq!(counters.family_selection_count(), 1);
     assert_eq!(counters.declaration_count(), 1);
@@ -340,23 +340,29 @@ fn grouped_live_view_inspection_preserves_grouped_family_and_baseline_support() 
         "grouped_collection_membership"
     );
     assert_eq!(
-        inspection.subscription_family_for_reporting(),
+        inspection.subscription_family_projection().label().as_str(),
         grouped
             .subscription_installation()
-            .subscription_family_for_reporting()
+            .subscription_family_projection()
+            .label()
+            .as_str()
     );
     assert_eq!(
-        inspection.support_for_reporting(),
-        grouped.subscription_installation().support_for_reporting()
+        inspection.support_projection().label().as_str(),
+        grouped
+            .subscription_installation()
+            .support_projection()
+            .label()
+            .as_str()
     );
-    assert!(!inspection.support_for_reporting().is_empty());
+    assert!(!inspection.support_projection().label().as_str().is_empty());
     assert_eq!(inspection.counters().family_selection_count(), 1);
     assert_eq!(inspection.counters().declaration_count(), 1);
     assert_eq!(inspection.counters().bridge_lowering_count(), 1);
     assert_eq!(inspection.counters().admission_count(), 1);
     assert_eq!(inspection.counters().active_lane_creation_count(), 1);
     assert_eq!(inspection.counters().consumer_attachment_count(), 1);
-    assert!(!inspection.inspection_for_reporting().is_empty());
+    assert!(!inspection.inspection_projection().label().as_str().is_empty());
 }
 
 #[test]

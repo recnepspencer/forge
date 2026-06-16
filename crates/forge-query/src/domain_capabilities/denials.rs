@@ -97,7 +97,10 @@ fn compose_progression_denial_failure_identity(
         )
         .field_shape(ForgeQueryEvidenceTag::new("kind"), format!("{kind:?}"))
         .field_shape(ForgeQueryEvidenceTag::new("category"), category)
-        .field_shape(ForgeQueryEvidenceTag::new("target_kind"), target_kind.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("target_kind"),
+            target_kind.as_str(),
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("request"), request_identity)
         .field_value(ForgeQueryEvidenceTag::new("message"), message)
         .seal()

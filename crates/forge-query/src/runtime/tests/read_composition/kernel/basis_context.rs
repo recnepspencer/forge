@@ -314,8 +314,9 @@ fn preview_derived_context_for_family(
         QueryBasisContextRequest::preview_derived_historical(
             foundation
                 .preview_session_identity()
-                .evidence_identity()
-                .as_str(),
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
+                .to_string(),
         ),
         QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
     )
@@ -333,7 +334,7 @@ fn runtime_preflight_for_family(
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        ForgeQuerySnapshotIdentity::from_external_authority_label(snapshot_token)
+        crate::memory_workspace::admit_external_snapshot_label(snapshot_token)
             .evidence_identity(),
         family.read_graph().schema_basis().clone(),
         lineage_class,

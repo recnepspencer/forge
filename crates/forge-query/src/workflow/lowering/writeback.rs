@@ -6,9 +6,9 @@ use crate::workflow::{
     WorkflowLoweringCounters,
 };
 use forge_runtime_bridge::facade::{
-    BridgeIdentityEvidence, BridgeRequestKind, BridgeWritebackDeclaration,
-    BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackFamilyKind,
-    BridgeWritebackIdempotenceClass, BridgeWritebackStrategyClass,
+    BridgeRequestKind, BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity,
+    BridgeWritebackEffectClass, BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
+    BridgeWritebackStrategyClass,
 };
 
 use super::counters::{
@@ -225,7 +225,7 @@ fn writeback_bridge_declaration(
             .seal();
     BridgeWritebackDeclaration::writeback_capable(
         BridgeWritebackDeclarationIdentity::from_bridge_evidence(
-            &BridgeIdentityEvidence::from_external_authority(bridge_declaration_identity),
+            &bridge_declaration_identity.bridge_external_identity_evidence(),
         ),
         request_kind,
         family_kind,
@@ -308,9 +308,11 @@ fn writeback_lowering_identity(
             ForgeQueryEvidenceTag::new("writeback_family"),
             family.as_str(),
         )
-        .field_bridge_identity(
+        .field_bridge_authority_identity(
             ForgeQueryEvidenceTag::new("bridge_declaration"),
-            &bridge_declaration.declaration_identity().evidence_identity(),
+            &bridge_declaration
+                .declaration_identity()
+                .bridge_trust_boundary(),
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("causality"), causality_identity)
         .seal()

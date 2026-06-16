@@ -14,7 +14,7 @@ use crate::truth_identity_fixtures::truth_branch;
 
 pub(super) fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-name"),
+        BridgeMappingId::admit_bridge_owned("profile-name"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -25,14 +25,14 @@ pub(super) fn registration() -> BridgeMappingRegistration {
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile"),
         CoarseRoutingMode::Direct,
     )
 }
 
 pub(super) fn surface_widening_registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-surface-widening"),
+        BridgeMappingId::admit_bridge_owned("profile-surface-widening"),
         TruthPatchScope::for_target(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -42,7 +42,7 @@ pub(super) fn surface_widening_registration() -> BridgeMappingRegistration {
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.profile.widening"),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile.widening"),
         CoarseRoutingMode::Direct,
     )
 }
@@ -325,7 +325,7 @@ impl SnapshotReaderPool for CountingSnapshotReaderPool {
 
 pub(super) fn field_aspect_registration() -> BridgeAspectRegistration {
     BridgeAspectRegistration::new(
-        BridgeAspectRegistrationId::new("profile-name-field"),
+        BridgeAspectRegistrationId::admit_bridge_owned("profile-name-field"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -348,7 +348,7 @@ pub(super) fn field_aspect_registration_with_kind(
     slice_kind: SubscriptionSliceKind,
 ) -> BridgeAspectRegistration {
     BridgeAspectRegistration::new(
-        BridgeAspectRegistrationId::new(registration_id),
+        BridgeAspectRegistrationId::admit_bridge_owned(registration_id),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),

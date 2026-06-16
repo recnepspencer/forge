@@ -49,7 +49,9 @@ impl RetainedCausalMappingDigestArtifact {
     pub(crate) fn digest_domain(self) -> &'static str {
         match self {
             Self::BulkPlanningCounters => "bridge-bulk-planning-counters",
-            Self::BulkPlanningFailureRecord => "bridge-causal-retained-bulk-planning-failure-record",
+            Self::BulkPlanningFailureRecord => {
+                "bridge-causal-retained-bulk-planning-failure-record"
+            }
             Self::BulkPlanningFailures => "bridge-bulk-planning-failures",
             Self::BulkPlanningRecord => "bridge-causal-retained-bulk-planning-record",
             Self::ContinuityRecord => "bridge-causal-retained-continuity-record",
@@ -199,7 +201,7 @@ pub(crate) fn retained_mapping_evidence_part(
 pub(crate) fn retained_mapping_bridge_identity_part<T>(
     identity: &BridgeIdentity<T>,
 ) -> RetainedCausalMappingIdentityPart {
-    retained_mapping_evidence_part(identity.evidence_identity())
+    retained_mapping_evidence_part(identity.bridge_admission_evidence())
 }
 
 pub(crate) fn retained_mapping_counter_part(value: usize) -> RetainedCausalMappingIdentityPart {

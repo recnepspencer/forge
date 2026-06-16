@@ -1,4 +1,5 @@
 use super::*;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 fn roomy_budget() -> QuerySubscriptionWorkBudget {
     QuerySubscriptionWorkBudget::scratch_buffer_only(8, 8, 8, 32, 1)
@@ -10,6 +11,16 @@ fn roomy_slice_budget() -> QuerySubscriptionSliceBudget {
 
 fn roomy_lowering_budget() -> QuerySubscriptionBridgeLoweringBudget {
     QuerySubscriptionBridgeLoweringBudget::admitted(1, 8, 8, 1, 1)
+}
+
+fn continuation_test_identity(label: &str) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_continuation_test_identity_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("label"), label)
+        .seal()
 }
 
 mod active;

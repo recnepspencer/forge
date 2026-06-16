@@ -12,7 +12,7 @@ fn runtime_projects_route_planning_policy_and_stamps_planned_route() {
     let (contract, lowered, provenance, replay_bundle) = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:route-planning"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:route-planning"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Standard,
@@ -53,7 +53,7 @@ fn runtime_rejects_divergent_route_planning_policy_from_more_permissive_runtime(
     let (_, lowered, _, _) = admitted_bundle(
         &permissive,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:replay-required-for-route"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:replay-required-for-route"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -75,7 +75,7 @@ fn bulk_route_planning_policy_is_carried_by_every_planned_route() {
     let (_, lowered, _, _) = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:bulk-route-planning"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:bulk-route-planning"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Minimal,
@@ -114,7 +114,7 @@ fn policy_scoped_route_round_trips_through_canonical_replay() {
     let (_, lowered, _, _) = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:route-replay-scope"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:route-replay-scope"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Standard,
@@ -173,7 +173,7 @@ fn policy_scoped_route_without_route_artifacts_does_not_retain_canonical_record(
     let (_, lowered, _, _) = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:route-no-retention"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:route-no-retention"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Standard,

@@ -1,7 +1,7 @@
 use sha2::{Digest, Sha256};
 
 const EXPECTED_BRIDGE_DIGEST: &str =
-    "9a5244063ba41ec734e5a928349b84462ed7a364544159bdde7fd9d99140fafb";
+    "8370fa72b67cbb6c44ed8d8e40b6448a1fe10fa71b86b973e6cd9fc72d88bf24";
 const EXPECTED_QUERY_RECEIPT_DIGEST: &str =
     "bfdf28c66b2916e00d1db7900db80ef7feb4110fce6e4209c535bbe1b5156d7b";
 const EXPECTED_ADAPTER_DIGEST: &str =
@@ -9,13 +9,27 @@ const EXPECTED_ADAPTER_DIGEST: &str =
 const EXPECTED_WORKSPACE_RED_EXPOSURE_DIGEST: &str =
     "0b5396e93bc743a90ad78d1c0253a9ec5d5fca3b1aa85f28b59c5b9237e7b48d";
 const EXPECTED_COLLAPSE_MATRIX_DIGEST: &str =
-    "5847a89fbc88198625d5cddd0856b692016cb1ee6a8286ad00f85400b1df0d6f";
+    "3fcec17b4b308dd60ba9584a3e091e1b47b488220853627cffc67499fcb3c071";
 
 #[test]
 fn bridge_truth_identity_compile_fail_boundary_digest_is_stable() {
     let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let files = [
         "tests/phase_boundaries_bridge_truth_identity_compile_fail.rs",
+        "tests/ui/bridge_truth_identity/projection_cannot_satisfy_truth_authority.rs",
+        "tests/ui/bridge_truth_identity/projection_cannot_satisfy_truth_authority.stderr",
+        "tests/ui/bridge_truth_identity/digest_cannot_satisfy_truth_authority.rs",
+        "tests/ui/bridge_truth_identity/digest_cannot_satisfy_truth_authority.stderr",
+        "tests/ui/bridge_truth_identity/external_token_cannot_satisfy_truth_authority.rs",
+        "tests/ui/bridge_truth_identity/external_token_cannot_satisfy_truth_authority.stderr",
+        "tests/ui/bridge_truth_identity/bridged_cannot_satisfy_current_truth_authority.rs",
+        "tests/ui/bridge_truth_identity/bridged_cannot_satisfy_current_truth_authority.stderr",
+        "tests/ui/bridge_truth_identity/wrong_kind_cannot_satisfy_truth_family.rs",
+        "tests/ui/bridge_truth_identity/wrong_kind_cannot_satisfy_truth_family.stderr",
+        "tests/ui/bridge_truth_identity/raw_text_cannot_satisfy_truth_authority.rs",
+        "tests/ui/bridge_truth_identity/raw_text_cannot_satisfy_truth_authority.stderr",
+        "tests/ui/bridge_truth_identity/retained_evidence_cannot_rebuild_from_text.rs",
+        "tests/ui/bridge_truth_identity/retained_evidence_cannot_rebuild_from_text.stderr",
         "tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs",
         "tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.stderr",
     ];

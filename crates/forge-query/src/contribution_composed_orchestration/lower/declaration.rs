@@ -73,29 +73,28 @@ pub(crate) fn compose_lowering_declaration_identity<
 >(
     progressed: &ForgeQueryAdmittedDeclarationProgression<D, I>,
 ) -> ForgeQueryEvidenceIdentity {
-    let declaration_identity = forge_query_evidence_identity(
-        ForgeQueryEvidenceScope::DeclarationBridgeLoweringIdentity,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "forge_query_contribution_composed_lowering_declaration_v1",
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("declaration_family"),
-        progressed.declaration_family_key(),
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("handle_identity"),
-        progressed.canonical_declaration().handle_identity_digest(),
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("declaration"),
-        &format!(
-            "{:?}",
-            progressed.canonical_declaration().declaration_digest()
-        ),
-    )
-    .seal();
+    let declaration_identity =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::DeclarationBridgeLoweringIdentity)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_contribution_composed_lowering_declaration_v1",
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("declaration_family"),
+                progressed.declaration_family_key(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("handle_identity"),
+                progressed.canonical_declaration().handle_identity_digest(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("declaration"),
+                &format!(
+                    "{:?}",
+                    progressed.canonical_declaration().declaration_digest()
+                ),
+            )
+            .seal();
     forge_query_evidence_identity(ForgeQueryEvidenceScope::DeclarationBridgeLoweringIdentity)
         .field_shape(
             ForgeQueryEvidenceTag::new("identity_family"),

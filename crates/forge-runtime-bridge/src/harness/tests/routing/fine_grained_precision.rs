@@ -63,7 +63,7 @@ fn field_surface_invalidates_only_registered_field_slice() {
 }
 
 fn region_mapping_registration() -> BridgeMappingRegistration {
-    region_mapping_registration_with_signal_scope(SignalInvalidationScope::new(
+    region_mapping_registration_with_signal_scope(SignalInvalidationScope::admit_bridge_owned(
         "signal.profile.region",
     ))
 }
@@ -72,7 +72,7 @@ fn region_mapping_registration_with_signal_scope(
     signal_scope: SignalInvalidationScope,
 ) -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-region"),
+        BridgeMappingId::admit_bridge_owned("profile-region"),
         TruthPatchScope::for_target(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -100,7 +100,7 @@ fn region_surface_invalidates_only_registered_region_slice() {
         RecordingSignalBridgeSink::default(),
         vec![region_mapping_registration()],
         vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("profile-name-region"),
+            BridgeAspectRegistrationId::admit_bridge_owned("profile-name-region"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -176,10 +176,10 @@ fn invalidation_target_identity_changes_with_surface_proof_even_for_shared_signa
         region_source,
         RecordingSignalBridgeSink::default(),
         vec![region_mapping_registration_with_signal_scope(
-            SignalInvalidationScope::new("signal.profile"),
+            SignalInvalidationScope::admit_bridge_owned("signal.profile"),
         )],
         vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("profile-name-region-shared-signal"),
+            BridgeAspectRegistrationId::admit_bridge_owned("profile-name-region-shared-signal"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")

@@ -93,7 +93,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                 command.declared_entity_identity_ref().and_then(|identity| {
                     state
                         .collection_by_identity
-                        .get(&identity.to_string())
+                        .get(&identity.terminal_projection_for_reporting())
                         .cloned()
                 })
             })
@@ -110,7 +110,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                         0,
                     ),
                 );
-                let identity_text = identity.to_string();
+                let identity_text = identity.terminal_projection_for_reporting();
                 (identity, identity_text)
             }
             _ => {
@@ -136,7 +136,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                     .symbolic_target_reference()
                     .and_then(|reference| state.identity_text_by_symbol.get(reference.symbol()))
                     .cloned()
-                    .unwrap_or_else(|| identity.to_string());
+                    .unwrap_or_else(|| identity.terminal_projection_for_reporting());
                 (identity, identity_text)
             }
         };
@@ -203,7 +203,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                 ));
             }
         }
-        let resolved_target_identity = binding.resolved_target_identity().to_string();
+        let resolved_target_identity = binding.resolved_target_identity().terminal_projection_for_reporting();
         let Some(actual_collection) = state.collection_by_identity.get(&resolved_target_identity)
         else {
             return Err(ForgeQueryExistingTruthBindingDenial::new(
@@ -270,7 +270,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                         .identity_by_storage_key
                         .get(identity)
                         .cloned()
-                        .unwrap_or_else(|| ForgeQueryEntityIdentity::authored_command(identity)),
+                        .unwrap_or_else(|| crate::memory_workspace::admit_authored_entity_label(identity)),
                     external_row.clone(),
                 )
             })

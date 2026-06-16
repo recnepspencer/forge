@@ -30,7 +30,10 @@ pub fn adapt_branch_admission_to_lifecycle(
     admission: &ForgeQueryBranchBasisAdmission,
 ) -> Result<BasisLifecycleAdapterProof, BasisLifecycleAdapterError> {
     let raw = RawBasisIntent::BranchHead {
-        branch_identity: admission.label_identity().to_string(),
+        branch_identity: admission
+            .label_identity()
+            .terminal_projection_for_reporting()
+            .to_string(),
         accessible: true,
     };
     let normalized = normalize_raw_basis_intent(raw, "mutation_preparation")?;
@@ -54,7 +57,10 @@ pub fn adapt_preview_admission_to_lifecycle(
     admission: &ForgeQueryPreviewBasisAdmission,
 ) -> Result<BasisLifecycleAdapterProof, BasisLifecycleAdapterError> {
     let raw = RawBasisIntent::Preview {
-        preview_identity: admission.label_identity().to_string(),
+        preview_identity: admission
+            .label_identity()
+            .terminal_projection_for_reporting()
+            .to_string(),
         stale: false,
     };
     let normalized = normalize_raw_basis_intent(raw, "preview_closeout")?;

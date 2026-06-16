@@ -240,7 +240,7 @@ impl BridgeIdentity<TruthSnapshotTag> {
 
 impl BridgeIdentity<HistoricalResolvedLineageIdentityTag> {
     pub fn from_relational_lineage_id(lineage_id: u64) -> Self {
-        Self::new(format!("{RELATIONAL_LINEAGE_PREFIX}{lineage_id}"))
+        Self::admit_bridge_owned(format!("{RELATIONAL_LINEAGE_PREFIX}{lineage_id}"))
     }
 
     pub fn from_bridge_harness_label(label: impl Into<String>) -> Self {
@@ -250,7 +250,7 @@ impl BridgeIdentity<HistoricalResolvedLineageIdentityTag> {
 
 impl BridgeIdentity<HistoricalResolvedRecordIdentityTag> {
     pub fn from_relational_record(parts: RelationalBridgeRecordIdentityParts) -> Self {
-        Self::new(parts.bridge_entity_identity())
+        Self::admit_bridge_owned(parts.bridge_entity_identity())
     }
 
     pub fn from_bridge_harness_label(label: impl Into<String>) -> Self {

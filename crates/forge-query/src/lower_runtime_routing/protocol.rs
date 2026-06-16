@@ -30,7 +30,8 @@ impl ForgeQueryLowerRuntimeSubjectIdentity {
     }
 
     pub fn as_str(&self) -> &str {
-        self.evidence_identity.as_ref()
+        let composed = &self.evidence_identity;
+        composed.reporting_projection()
     }
 }
 
@@ -51,7 +52,15 @@ impl ForgeQueryLowerRuntimeSubjectIdentityEncoder {
         tag: ForgeQueryEvidenceTag,
         value: impl AsRef<str>,
     ) -> Self {
-        self.encoder = self.encoder.field_identity(tag, value);
+        self.field_value(tag, value)
+    }
+
+    pub(crate) fn field_value(
+        mut self,
+        tag: ForgeQueryEvidenceTag,
+        value: impl AsRef<str>,
+    ) -> Self {
+        self.encoder = self.encoder.field_value(tag, value);
         self
     }
 
@@ -202,7 +211,7 @@ mod tests {
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "write-authority",
             ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
-                .field_identity(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
+                .field_value(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
                 .seal(),
         );
 

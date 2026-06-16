@@ -58,7 +58,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             residue_snapshot.crossed_authoritative_residue_count;
         let promotion_rebinding_digest =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewPromotionRebinding)
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("session_label_identity"),
                     self.basis_admission.label_identity().as_str(),
                 )

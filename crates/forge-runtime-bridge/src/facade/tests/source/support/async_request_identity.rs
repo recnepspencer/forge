@@ -116,18 +116,20 @@ pub(crate) fn preview_active_subscription_with_basis(
     );
     let admitted_preview = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new(format!("preview-session:{suffix}")),
+            BridgePreviewSessionIdentity::admit_bridge_owned(format!("preview-session:{suffix}")),
             BridgePreviewSessionDeclaration::new(
-                BridgePreviewSessionDeclarationIdentity::new(format!(
+                BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(format!(
                     "preview-declaration:{suffix}"
                 )),
                 BridgeRequestKind::Preview,
                 BridgeSpeculativeBranchBinding::new(
-                    BridgeSpeculativeBranchBindingIdentity::new(format!(
+                    BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(format!(
                         "preview-binding:{suffix}"
                     )),
                     truth_branch_identity.clone(),
-                    BridgeSignalBranchIdentity::new(format!("signal-branch:{suffix}")),
+                    BridgeSignalBranchIdentity::admit_bridge_owned(format!(
+                        "signal-branch:{suffix}"
+                    )),
                 ),
                 BridgePreviewSessionBasis::new(
                     BridgeTruthViewSelector::branch_snapshot(
@@ -207,8 +209,10 @@ pub(crate) fn lowered_subscription_backed(
 
 pub(crate) fn request_response_draft(node: NodeId) -> BridgeAsyncSourceDeclarationDraft {
     BridgeAsyncSourceDeclarationDraft::request_response(
-        BridgeAsyncSourceDeclarationIdentity::new("bridge-async:request-response"),
-        BridgeAsyncSourceLegacyDeclarationIdentity::new("source:legacy-request-response"),
+        BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned("bridge-async:request-response"),
+        BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(
+            "source:legacy-request-response",
+        ),
         ResourceNodeDeclaration::new(
             ResourceNodeId::from_node(node),
             ResourcePayloadContract::new(ResourcePayloadContractId::new(41))
@@ -224,8 +228,12 @@ fn timeout_request_response_draft(
     timeout_ms: u64,
 ) -> BridgeAsyncSourceDeclarationDraft {
     BridgeAsyncSourceDeclarationDraft::request_response(
-        BridgeAsyncSourceDeclarationIdentity::new("bridge-async:request-response-timeout"),
-        BridgeAsyncSourceLegacyDeclarationIdentity::new("source:legacy-request-response-timeout"),
+        BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(
+            "bridge-async:request-response-timeout",
+        ),
+        BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(
+            "source:legacy-request-response-timeout",
+        ),
         ResourceNodeDeclaration::new(
             ResourceNodeId::from_node(node),
             ResourcePayloadContract::new(ResourcePayloadContractId::new(42))
@@ -242,8 +250,12 @@ fn timeout_request_response_draft(
 
 fn subscription_backed_draft(node: NodeId) -> BridgeAsyncSourceDeclarationDraft {
     BridgeAsyncSourceDeclarationDraft::subscription_backed(
-        BridgeAsyncSourceDeclarationIdentity::new("bridge-async:subscription-backed"),
-        BridgeAsyncSourceLegacyDeclarationIdentity::new("source:legacy-subscription-backed"),
+        BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(
+            "bridge-async:subscription-backed",
+        ),
+        BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(
+            "source:legacy-subscription-backed",
+        ),
         AsyncNodeCapabilityDeclaration::new(
             node,
             AsyncNodePayloadContract::new(AsyncNodePayloadContractId::new(73))

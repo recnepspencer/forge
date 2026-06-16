@@ -61,7 +61,9 @@ pub(crate) fn representative_effect_relational_mutation_row() -> RepresentativeA
         "Effect-backed relational mutation",
         effect_execution_evidence_identity(
             executed.effect_execution_for_reporting(),
-            executed.lowered().lowered_effect_execution_plan_for_reporting(),
+            executed
+                .lowered()
+                .lowered_effect_execution_plan_for_reporting(),
             executed.receipt().receipt_for_reporting(),
         ),
     )
@@ -107,7 +109,9 @@ pub(crate) fn representative_effect_relational_merge_row() -> RepresentativeArti
         "Effect-backed relational merge",
         effect_execution_evidence_identity(
             executed.effect_execution_for_reporting(),
-            executed.lowered().lowered_effect_execution_plan_for_reporting(),
+            executed
+                .lowered()
+                .lowered_effect_execution_plan_for_reporting(),
             executed.receipt().receipt_for_reporting(),
         ),
     )
@@ -137,7 +141,9 @@ pub(crate) fn representative_effect_bridge_writeback_row() -> RepresentativeArti
         "Effect-backed bridge writeback",
         effect_execution_evidence_identity(
             executed.effect_execution_for_reporting(),
-            executed.lowered().lowered_effect_execution_plan_for_reporting(),
+            executed
+                .lowered()
+                .lowered_effect_execution_plan_for_reporting(),
             executed.receipt().receipt_for_reporting(),
         ),
     )
@@ -174,7 +180,7 @@ fn branch_mutation_basis(
 fn runtime_workflow_binding() -> crate::workflow::WorkflowContextBinding {
     synthetic_runtime_workflow_binding_for_snapshot_identity(
         "lower-runtime-effect-phase-six",
-        crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+        crate::memory_workspace::admit_external_snapshot_label(
             "snapshot-1",
         ),
     )
@@ -218,12 +224,12 @@ fn effect_execution_evidence_identity(
     receipt_digest: &str,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_identity(ForgeQueryEvidenceTag::new("execution"), execution_digest)
-        .field_identity(
+        .field_value(ForgeQueryEvidenceTag::new("execution"), execution_digest)
+        .field_value(
             ForgeQueryEvidenceTag::new("lowered_plan"),
             lowered_plan_digest,
         )
-        .field_identity(ForgeQueryEvidenceTag::new("receipt"), receipt_digest)
+        .field_value(ForgeQueryEvidenceTag::new("receipt"), receipt_digest)
         .seal()
 }
 

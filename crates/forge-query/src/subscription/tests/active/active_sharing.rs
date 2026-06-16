@@ -48,8 +48,8 @@ fn equivalent_consumers_share_one_lane_but_keep_distinct_attachment_state() {
         second_attachment.attachment_digest()
     );
     assert_ne!(
-        first_attachment.delivery_cursor_digest(),
-        second_attachment.delivery_cursor_digest()
+        first_attachment.delivery_cursor_projection().label(),
+        second_attachment.delivery_cursor_projection().label()
     );
     assert_eq!(second_attachment.fanout_report().shared_lane_count(), 1);
     assert_eq!(second_attachment.fanout_report().fanout_width(), 2);
@@ -219,16 +219,19 @@ fn slow_consumer_gap_policy_changes_only_that_consumer_delivery_digest() {
 
     assert_eq!(normal.lane_digest(), slow.lane_digest());
     assert_ne!(
-        normal.delivery_cursor_digest(),
-        slow.delivery_cursor_digest()
+        normal.delivery_cursor_projection().label(),
+        slow.delivery_cursor_projection().label()
     );
     assert_eq!(
         slow.backpressure_policy(),
         &DeliveryBackpressurePolicy::DropWithGapNotice
     );
     assert_ne!(
-        normal.performance_receipt().performance_receipt_for_reporting(),
-        slow.performance_receipt().performance_receipt_for_reporting()
+        normal
+            .performance_receipt()
+            .performance_receipt_projection().label(),
+        slow.performance_receipt()
+            .performance_receipt_projection().label()
     );
     assert_eq!(runtime.counters().delivery_gap_notice_count(), 1);
 }

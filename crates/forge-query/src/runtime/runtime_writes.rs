@@ -279,7 +279,11 @@ impl ForgeQueryRuntime {
         receipt: &ForgeQueryMutationReceipt,
     ) -> Option<ForgeQueryIntentExecutionProvenance> {
         shared_admission.map(|record| {
-            let commit_evidence_identity = receipt.commit_identity.evidence_identity();
+            let commit_label = receipt
+                .commit_identity
+                .evidence_identity()
+                .reporting_projection()
+                .to_string();
             let snapshot_evidence_identity = receipt.snapshot_identity.evidence_identity();
             ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
                 record.family,
@@ -288,7 +292,7 @@ impl ForgeQueryRuntime {
                 &record.decision_digest,
                 &record.handoff_digest,
                 &record.binding_digest,
-                commit_evidence_identity.as_ref(),
+                &commit_label,
                 &snapshot_evidence_identity,
             )
         })
@@ -301,7 +305,11 @@ impl ForgeQueryRuntime {
         receipt: &ForgeQueryMutationReceipt,
     ) -> Option<ForgeQueryIntentDecisionTraceEnvelope> {
         shared_admission.map(|record| {
-            let commit_evidence_identity = receipt.commit_identity.evidence_identity();
+            let commit_label = receipt
+                .commit_identity
+                .evidence_identity()
+                .reporting_projection()
+                .to_string();
             ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
                 record.family,
                 record.entrypoint,
@@ -312,7 +320,7 @@ impl ForgeQueryRuntime {
                 &record.handoff_digest,
                 record.execution_seam,
                 mutation_family.as_str(),
-                commit_evidence_identity.as_ref(),
+                &commit_label,
                 "mutation-write",
             )
         })

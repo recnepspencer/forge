@@ -1,8 +1,6 @@
 use forge_proof::TransitionOutcome;
 
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use crate::domain_capabilities::payloads::ForgeQuerySupportContributionPosture;
 use crate::domain_capabilities::targets::{
@@ -213,17 +211,29 @@ pub fn materialize_intent_declaration_support_traceability_artifact(
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_intent_declaration_support_traceability_artifact_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("lane"), support_lane(payload.posture()))
+        .field_shape(
+            ForgeQueryEvidenceTag::new("lane"),
+            support_lane(payload.posture()),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("detail"),
             support_detail(payload.semantic_code(), payload.detail()),
         )
         .field_shape(ForgeQueryEvidenceTag::new("intent"), name)
         .field_shape(ForgeQueryEvidenceTag::new("strategy"), strategy_name)
-        .field_shape(ForgeQueryEvidenceTag::new("strategy_version"), strategy_version)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("strategy_version"),
+            strategy_version,
+        )
         .field_shape(ForgeQueryEvidenceTag::new("input_contract"), input_contract)
-        .field_shape(ForgeQueryEvidenceTag::new("source_lane"), format!("{source_lane:?}"))
-        .field_shape(ForgeQueryEvidenceTag::new("target_lane"), format!("{target_lane:?}"))
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source_lane"),
+            format!("{source_lane:?}"),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("target_lane"),
+            format!("{target_lane:?}"),
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("binding"),
             &domain_contribution.target().binding_identity(),
@@ -267,26 +277,32 @@ pub fn materialize_lower_runtime_support_traceability_artifact(
         ForgeQueryEvidenceTag::new("identity_family"),
         "forge_query_lower_runtime_support_traceability_artifact_v1",
     )
-    .field_shape(ForgeQueryEvidenceTag::new("lane"), support_lane(payload.posture()))
+    .field_shape(
+        ForgeQueryEvidenceTag::new("lane"),
+        support_lane(payload.posture()),
+    )
     .field_shape(
         ForgeQueryEvidenceTag::new("detail"),
         support_detail(payload.semantic_code(), payload.detail()),
     )
-    .field_shape(ForgeQueryEvidenceTag::new("seam_key"), format!("{seam_key:?}"))
+    .field_shape(
+        ForgeQueryEvidenceTag::new("seam_key"),
+        format!("{seam_key:?}"),
+    )
     .field_shape(ForgeQueryEvidenceTag::new("capability"), capability_label)
     .field_shape(
         ForgeQueryEvidenceTag::new("crossing"),
         format!("{crossing_classification:?}"),
     )
-    .field_shape(ForgeQueryEvidenceTag::new("route"), format!("{route_kind:?}"))
+    .field_shape(
+        ForgeQueryEvidenceTag::new("route"),
+        format!("{route_kind:?}"),
+    )
     .field_shape(
         ForgeQueryEvidenceTag::new("support_posture"),
         format!("{support_posture:?}"),
     )
-    .field_evidence_identity(
-        ForgeQueryEvidenceTag::new("envelope"),
-        &envelope_identity,
-    )
+    .field_evidence_identity(ForgeQueryEvidenceTag::new("envelope"), &envelope_identity)
     .field_evidence_identity(
         ForgeQueryEvidenceTag::new("binding"),
         &domain_contribution.target().binding_identity(),

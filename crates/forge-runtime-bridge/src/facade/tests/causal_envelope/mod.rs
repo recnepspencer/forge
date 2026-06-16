@@ -53,7 +53,7 @@ fn missing_bridge_reference(
     bridge_reference(
         BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
             family,
-            crate::facade::BridgeIdentityEvidence::from_external_authority(identity),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(identity),
         )
         .expect("bridge reference identity should be valid"),
     )
@@ -120,16 +120,18 @@ fn causal_envelope_denies_missing_retained_bridge_record_without_unindexed_scan(
     let runtime = runtime(BridgeRuntimePolicy::default());
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:missing",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority("causal-anchor:missing"),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "causal-anchor:missing",
+            ),
         )
         .expect("query admission summary should be valid"),
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:missing-route",
                     ),
                 )
@@ -168,10 +170,10 @@ fn causal_envelope_missing_historical_record_preserves_prior_lookup_counters() {
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:missing-history",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:missing-history",
             ),
         )
@@ -179,7 +181,7 @@ fn causal_envelope_missing_historical_record_preserves_prior_lookup_counters() {
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:missing-history",
                     ),
                 )
@@ -219,10 +221,10 @@ fn causal_envelope_denies_external_authority_without_bridge_route_evidence() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:external-only",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:external-only",
             ),
         )
@@ -231,7 +233,7 @@ fn causal_envelope_denies_external_authority_without_bridge_route_evidence() {
             external_reference(
                 BridgeCausalEvidenceOwner::Query,
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:external-only",
                     ),
                 )
@@ -241,7 +243,7 @@ fn causal_envelope_denies_external_authority_without_bridge_route_evidence() {
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalInvalidation,
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "signal-invalidation:external-only",
                     ),
                 )
@@ -271,10 +273,10 @@ fn causal_envelope_denies_external_authority_without_bridge_route_evidence() {
 fn causal_envelope_request_denies_missing_query_observation_anchor() {
     let denial = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:missing-query-anchor",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:missing-query-anchor",
             ),
         )
@@ -303,10 +305,10 @@ fn causal_envelope_request_denies_missing_query_observation_anchor() {
 fn causal_envelope_request_denies_multiple_query_observation_anchors() {
     let denial = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:query-anchor-overclaim",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:query-anchor-overclaim",
             ),
         )
@@ -314,7 +316,7 @@ fn causal_envelope_request_denies_multiple_query_observation_anchors() {
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:primary",
                     ),
                 )
@@ -322,7 +324,7 @@ fn causal_envelope_request_denies_multiple_query_observation_anchors() {
             ),
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:overclaim",
                     ),
                 )
@@ -365,7 +367,9 @@ fn causal_reference_denies_owner_mismatch_before_envelope_assembly() {
         BridgeCausalEvidenceFamily::BridgeRoute,
         BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
             BridgeCausalEvidenceFamily::BridgeRoute,
-            crate::facade::BridgeIdentityEvidence::from_external_authority("route-owned-by-bridge"),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "route-owned-by-bridge",
+            ),
         )
         .expect("bridge reference identity should be valid"),
     )
@@ -400,10 +404,10 @@ fn causal_envelope_lookup_cost_ignores_unrelated_retained_routes() {
             .expect("target route should succeed");
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                     "query-admission:scale",
                 ),
-                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                     "causal-anchor:scale",
                 ),
             )
@@ -411,7 +415,7 @@ fn causal_envelope_lookup_cost_ignores_unrelated_retained_routes() {
             vec![
                 query_observation_reference(
                     BridgeCausalEvidenceReferenceIdentity::query_observation(
-                        crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                             "query-observation:scale",
                         ),
                     )

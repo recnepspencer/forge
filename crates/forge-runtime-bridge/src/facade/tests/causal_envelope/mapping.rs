@@ -39,12 +39,16 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
         .expect("route should succeed");
     let discard_admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:causal-discard"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:causal-discard"),
             preview_declaration(
-                BridgePreviewSessionDeclarationIdentity::new("preview:causal-discard"),
-                BridgeSpeculativeBranchBindingIdentity::new("binding:causal-discard"),
+                BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
+                    "preview:causal-discard",
+                ),
+                BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(
+                    "binding:causal-discard",
+                ),
                 crate::truth_identity_fixtures::truth_branch_fixture("truth:causal-discard"),
-                BridgeSignalBranchIdentity::new("signal:causal-discard"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal:causal-discard"),
                 crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:causal-discard"),
             ),
         )
@@ -63,12 +67,16 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
         .expect("discard should close with zero authoritative residue");
     let promotion_admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:causal-promotion"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:causal-promotion"),
             preview_declaration(
-                BridgePreviewSessionDeclarationIdentity::new("preview:causal-promotion"),
-                BridgeSpeculativeBranchBindingIdentity::new("binding:causal-promotion"),
+                BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
+                    "preview:causal-promotion",
+                ),
+                BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(
+                    "binding:causal-promotion",
+                ),
                 crate::truth_identity_fixtures::truth_branch_fixture("truth:causal-promotion"),
-                BridgeSignalBranchIdentity::new("signal:causal-promotion"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal:causal-promotion"),
                 crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:causal-promotion"),
             ),
         )
@@ -82,10 +90,10 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
 
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:preview-mapping",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:preview-mapping",
             ),
         )
@@ -93,7 +101,7 @@ fn causal_envelope_maps_retained_preview_records_into_bridge_owned_bindings() {
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:preview-mapping",
                     ),
                 )
@@ -190,10 +198,10 @@ fn causal_envelope_denies_missing_preview_mapping_after_required_route_evidence(
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:missing-preview",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:missing-preview",
             ),
         )
@@ -201,7 +209,7 @@ fn causal_envelope_denies_missing_preview_mapping_after_required_route_evidence(
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:missing-preview",
                     ),
                 )
@@ -240,7 +248,7 @@ fn causal_envelope_request_denies_duplicate_preview_references_before_mapping() 
     let duplicate_reference = bridge_reference(
         BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
             BridgeCausalEvidenceFamily::BridgePreviewExecution,
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "preview-execution:duplicate-reference",
             ),
         )
@@ -249,10 +257,10 @@ fn causal_envelope_request_denies_duplicate_preview_references_before_mapping() 
 
     let denial = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:duplicate-preview",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:duplicate-preview",
             ),
         )
@@ -260,7 +268,7 @@ fn causal_envelope_request_denies_duplicate_preview_references_before_mapping() 
         vec![
             query_observation_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:duplicate-preview",
                     ),
                 )

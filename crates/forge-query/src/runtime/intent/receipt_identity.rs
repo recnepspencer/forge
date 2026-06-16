@@ -27,7 +27,7 @@ pub(super) fn authoritative_intent_receipt_identity(
                 ForgeQueryEvidenceTag::new("role"),
                 "authoritative-receipt-effect-trigger",
             )
-            .field_identity(ForgeQueryEvidenceTag::new("digest"), trigger.digest())
+            .field_value(ForgeQueryEvidenceTag::new("digest"), trigger.digest())
             .seal()
     });
     let affected_live_view_identities = receipt_value_identities(
@@ -48,7 +48,7 @@ pub(super) fn authoritative_intent_receipt_identity(
             ForgeQueryEvidenceTag::new("execution_kind"),
             execution.execution_kind().as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_identity"),
             execution.strategy_identity(),
         )
@@ -56,15 +56,15 @@ pub(super) fn authoritative_intent_receipt_identity(
             ForgeQueryEvidenceTag::new("strategy_version"),
             execution.strategy_version(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_descriptor_digest"),
             execution.strategy_descriptor_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             execution.canonical_input_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("outcome_digest"),
             execution.outcome_digest(),
         )
@@ -144,15 +144,15 @@ pub(super) fn authoritative_intent_receipt_identity(
             ForgeQueryEvidenceTag::new("execution_seam"),
             execution_provenance.execution_seam().as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("admission_decision_digest"),
             execution_provenance.admission_decision_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_handoff_digest"),
             execution_provenance.execution_handoff_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_binding_digest"),
             execution_provenance.execution_binding_digest(),
         )
@@ -160,7 +160,7 @@ pub(super) fn authoritative_intent_receipt_identity(
             ForgeQueryEvidenceTag::new("execution_provenance_chain_identity"),
             execution_provenance.execution_provenance_chain_identity(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("decision_trace_digest"),
             decision_trace_envelope.trace_digest(),
         )

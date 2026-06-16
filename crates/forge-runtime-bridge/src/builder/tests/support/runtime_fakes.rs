@@ -109,8 +109,12 @@ impl ContinuityLineageSource for TestLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![BridgeHistoricalResolvedLineageIdentity::new("lineage:test")],
-            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:test")],
+            vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
+                "lineage:test",
+            )],
+            vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
+                "entity:test",
+            )],
             vec![],
         )
     }

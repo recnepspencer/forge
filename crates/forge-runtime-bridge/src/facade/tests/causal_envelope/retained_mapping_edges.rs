@@ -47,10 +47,10 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
 
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:source-failure",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:source-failure",
             ),
         )
@@ -58,7 +58,7 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
         vec![
             query_observation_reference(
                 crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:source-failure",
                     ),
                 )
@@ -100,10 +100,10 @@ fn causal_envelope_denies_missing_retained_expansion_record_without_unindexed_sc
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:missing-retained-expansion",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:missing-retained-expansion",
             ),
         )
@@ -111,7 +111,7 @@ fn causal_envelope_denies_missing_retained_expansion_record_without_unindexed_sc
         vec![
             query_observation_reference(
                 crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:missing-retained-expansion",
                     ),
                 )
@@ -196,10 +196,10 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
             .expect("target source should canonicalize");
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                     "query-admission:source-scale",
                 ),
-                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                     "causal-anchor:source-scale",
                 ),
             )
@@ -207,7 +207,7 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
             vec![
                 query_observation_reference(
                     crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                        crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                             "query-observation:source-scale",
                         ),
                     )
@@ -231,7 +231,12 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
         assert_eq!(envelope.counters().bridge_retained_lookup_count(), 2);
         assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
         assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
-        envelope_identities.push(envelope.identity().envelope_identity_for_reporting().to_string());
+        envelope_identities.push(
+            envelope
+                .identity()
+                .envelope_identity_for_reporting()
+                .to_string(),
+        );
     }
 
     assert_eq!(envelope_identities[0], envelope_identities[1]);

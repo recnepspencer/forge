@@ -83,7 +83,7 @@ fn replayed_policy_scoped_route_preserves_route_policy_digest_in_route_record() 
         vec![field_aspect_registration()],
     );
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:route-record-visible"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:route-record-visible"),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Standard,

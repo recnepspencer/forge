@@ -18,18 +18,22 @@ fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {
         for index in 0..unrelated_previews {
             let admitted = runtime
                 .admit_preview_session(
-                    BridgePreviewSessionIdentity::new(format!("preview-session:noise-{index}")),
+                    BridgePreviewSessionIdentity::admit_bridge_owned(format!(
+                        "preview-session:noise-{index}"
+                    )),
                     preview_declaration(
-                        BridgePreviewSessionDeclarationIdentity::new(format!(
+                        BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(format!(
                             "preview:noise-{index}"
                         )),
-                        BridgeSpeculativeBranchBindingIdentity::new(format!(
+                        BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(format!(
                             "binding:noise-{index}"
                         )),
                         crate::truth_identity_fixtures::truth_branch_fixture(format!(
                             "truth:noise-{index}"
                         )),
-                        BridgeSignalBranchIdentity::new(format!("signal:noise-{index}")),
+                        BridgeSignalBranchIdentity::admit_bridge_owned(format!(
+                            "signal:noise-{index}"
+                        )),
                         crate::truth_identity_fixtures::truth_snapshot_fixture(format!(
                             "snapshot:noise-{index}"
                         )),
@@ -45,12 +49,16 @@ fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {
             .expect("route should succeed");
         let admitted = runtime
             .admit_preview_session(
-                BridgePreviewSessionIdentity::new("preview-session:causal-scale"),
+                BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:causal-scale"),
                 preview_declaration(
-                    BridgePreviewSessionDeclarationIdentity::new("preview:causal-scale"),
-                    BridgeSpeculativeBranchBindingIdentity::new("binding:causal-scale"),
+                    BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
+                        "preview:causal-scale",
+                    ),
+                    BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(
+                        "binding:causal-scale",
+                    ),
                     crate::truth_identity_fixtures::truth_branch_fixture("truth:causal-scale"),
-                    BridgeSignalBranchIdentity::new("signal:causal-scale"),
+                    BridgeSignalBranchIdentity::admit_bridge_owned("signal:causal-scale"),
                     crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:causal-scale"),
                 ),
             )
@@ -58,10 +66,10 @@ fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {
         let (_, execution_record) = runtime.activate_preview_session(admitted, 2, 1, 1);
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                     "query-admission:preview-scale",
                 ),
-                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                     "causal-anchor:preview-scale",
                 ),
             )
@@ -69,7 +77,7 @@ fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {
             vec![
                 query_observation_reference(
                     BridgeCausalEvidenceReferenceIdentity::query_observation(
-                        crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                             "query-observation:preview-scale",
                         ),
                     )
@@ -94,7 +102,12 @@ fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {
         assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
         assert_eq!(envelope.counters().external_authority_reference_count(), 1);
         assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
-        envelope_identities.push(envelope.identity().envelope_identity_for_reporting().to_string());
+        envelope_identities.push(
+            envelope
+                .identity()
+                .envelope_identity_for_reporting()
+                .to_string(),
+        );
     }
 
     assert_eq!(envelope_identities[0], envelope_identities[1]);

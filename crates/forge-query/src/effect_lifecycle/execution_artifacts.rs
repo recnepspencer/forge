@@ -6,9 +6,7 @@ use forge_runtime_bridge::facade::{
     RuntimeBridge, TruthWritebackReceipt,
 };
 
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::counters::EffectLifecycleCounters;
 use super::lowering::LoweredEffectExecutionPlan;
@@ -123,20 +121,19 @@ impl EffectExecutionDenial {
         let message = message.into();
         let lowered_effect_execution_plan_identity =
             lowered.lowered_effect_execution_plan_identity().clone();
-        let denial_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_execution_denial_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("plan"),
-            &lowered_effect_execution_plan_identity,
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), denial_kind.as_str())
-        .field_shape(ForgeQueryEvidenceTag::new("message"), message.as_str())
-        .seal();
+        let denial_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_execution_denial_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("plan"),
+                    &lowered_effect_execution_plan_identity,
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), denial_kind.as_str())
+                .field_shape(ForgeQueryEvidenceTag::new("message"), message.as_str())
+                .seal();
         Self {
             denial_kind,
             message,
@@ -202,22 +199,21 @@ impl ExecutedEffectPlan {
         artifact: ExecutedEffectAuthorityArtifact,
         effect_execution_width: usize,
     ) -> Self {
-        let effect_execution_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "executed_effect_plan_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("plan"),
-            lowered.lowered_effect_execution_plan_identity(),
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("artifact"),
-            &executed_authority_artifact_identity(&artifact),
-        )
-        .seal();
+        let effect_execution_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "executed_effect_plan_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("plan"),
+                    lowered.lowered_effect_execution_plan_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("artifact"),
+                    &executed_authority_artifact_identity(&artifact),
+                )
+                .seal();
         let counters = EffectLifecycleCounters::executed(
             lowered.counters().effect_support_row_count(),
             lowered.counters().effect_lowering_width(),
@@ -416,9 +412,7 @@ pub(crate) fn writeback_bridge_receipt_evidence_identity(
         )
         .optional_shape(
             ForgeQueryEvidenceTag::new("failure_class"),
-            receipt
-                .failure_class()
-                .map(writeback_failure_class_label),
+            receipt.failure_class().map(writeback_failure_class_label),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("request_digest"),
@@ -471,7 +465,10 @@ pub(crate) fn writeback_bridge_execution_receipt_evidence_identity(
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("authority_receipt"),
-            &writeback_bridge_receipt_evidence_identity("authority_receipt", receipt.authority_receipt()),
+            &writeback_bridge_receipt_evidence_identity(
+                "authority_receipt",
+                receipt.authority_receipt(),
+            ),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("replay_bundle_digest"),

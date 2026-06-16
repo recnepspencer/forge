@@ -51,9 +51,10 @@ impl BridgeSubscriptionFanoutConsumerBinding {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            fanout_consumer_binding_identity: BridgeSubscriptionFanoutConsumerBindingIdentity::new(
-                format!("bridge-subscription-fanout-consumer-binding-id:sha256:{digest:x}"),
-            ),
+            fanout_consumer_binding_identity:
+                BridgeSubscriptionFanoutConsumerBindingIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-fanout-consumer-binding-id:sha256:{digest:x}"
+                )),
             slot_index,
             frontier_slot_index,
             consumer_contract_identity,
@@ -135,9 +136,9 @@ impl BridgeSubscriptionFanoutLayout {
             consumer_basis,
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let fanout_layout_identity = BridgeSubscriptionFanoutLayoutIdentity::new(format!(
-            "bridge-subscription-fanout-layout-id:sha256:{digest:x}"
-        ));
+        let fanout_layout_identity = BridgeSubscriptionFanoutLayoutIdentity::admit_bridge_owned(
+            format!("bridge-subscription-fanout-layout-id:sha256:{digest:x}"),
+        );
         let sharing_eligibility_digest =
             Arc::<str>::from(plan.sharing_eligibility_digest().to_owned());
         let consumer_bindings = plan

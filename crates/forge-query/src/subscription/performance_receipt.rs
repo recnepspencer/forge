@@ -86,8 +86,4 @@ impl SubscriptionPerformanceReceipt {
     pub fn performance_receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.performance_receipt_identity
     }
-
-    pub fn performance_receipt_for_reporting(&self) -> &str {
-        self.performance_receipt_identity.as_str()
-    }
 }

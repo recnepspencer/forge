@@ -10,9 +10,9 @@ use crate::domain_capabilities::denials::{
     ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
 };
 use crate::domain_capabilities::payloads::{
-    ForgeQueryGraphInvariantDenialRuntimeSemantics,
+    compose_invariant_registration_identity, ForgeQueryGraphInvariantDenialRuntimeSemantics,
     ForgeQueryInvariantCapabilityContributionPayload,
-    ForgeQueryInvariantCapabilityContributionPosture, compose_invariant_registration_identity,
+    ForgeQueryInvariantCapabilityContributionPosture,
 };
 use crate::domain_capabilities::targets::{
     ForgeQueryDeclarationBoundContributionTarget, ForgeQueryDomainCapabilityTargetBinding,
@@ -181,7 +181,10 @@ pub fn materialize_query_invariant_catalog_registration_artifact(
             ForgeQueryEvidenceTag::new("lane"),
             "query_invariant_catalog_registration",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), payload.semantic_code())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("semantic_code"),
+            payload.semantic_code(),
+        )
         .field_shape(ForgeQueryEvidenceTag::new("detail"), payload.detail())
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("catalog"),
@@ -189,10 +192,19 @@ pub fn materialize_query_invariant_catalog_registration_artifact(
         )
         .field_shape(ForgeQueryEvidenceTag::new("intent"), name)
         .field_shape(ForgeQueryEvidenceTag::new("strategy"), strategy_name)
-        .field_shape(ForgeQueryEvidenceTag::new("strategy_version"), strategy_version)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("strategy_version"),
+            strategy_version,
+        )
         .field_shape(ForgeQueryEvidenceTag::new("input_contract"), input_contract)
-        .field_shape(ForgeQueryEvidenceTag::new("source_lane"), format!("{source_lane:?}"))
-        .field_shape(ForgeQueryEvidenceTag::new("target_lane"), format!("{target_lane:?}"))
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source_lane"),
+            format!("{source_lane:?}"),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("target_lane"),
+            format!("{target_lane:?}"),
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("binding"),
             &domain_contribution.target().binding_identity(),

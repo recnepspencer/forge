@@ -277,7 +277,7 @@ impl ForgeQueryLowerRuntimeCrossingRow {
                 ForgeQueryEvidenceTag::new("capability"),
                 self.capability_label,
             )
-            .field_identity(ForgeQueryEvidenceTag::new("seam_path"), self.concrete_seam)
+            .field_value(ForgeQueryEvidenceTag::new("seam_path"), self.concrete_seam)
             .field_shape(
                 ForgeQueryEvidenceTag::new("classification"),
                 self.classification.as_str(),

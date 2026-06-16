@@ -148,22 +148,24 @@ pub(super) fn bridge_continuity_mutation_bundle(
 fn bridge_continuity_authoritative_identity(
     identity: &crate::runtime::ForgeQueryMutationAuthorityIdentity,
 ) -> BridgeContinuityAuthoritativeIdentity {
-    BridgeContinuityAuthoritativeIdentity::from_external_authority_evidence(
-        identity.evidence_identity(),
+    BridgeContinuityAuthoritativeIdentity::from_bridge_evidence(
+        &identity.evidence_identity().bridge_evidence_identity(),
     )
 }
 
 fn bridge_naming_attachment_identity(
     identity: &crate::runtime::ForgeQueryMutationAuthorityIdentity,
 ) -> BridgeNamingAttachmentIdentity {
-    BridgeNamingAttachmentIdentity::from_external_authority_evidence(identity.evidence_identity())
+    BridgeNamingAttachmentIdentity::from_bridge_evidence(
+        &identity.evidence_identity().bridge_evidence_identity(),
+    )
 }
 
 fn bridge_naming_authoritative_identity(
     identity: &crate::runtime::ForgeQueryMutationAuthorityIdentity,
 ) -> BridgeNamingAuthoritativeIdentity {
-    BridgeNamingAuthoritativeIdentity::from_external_authority_evidence(
-        identity.evidence_identity(),
+    BridgeNamingAuthoritativeIdentity::from_bridge_evidence(
+        &identity.evidence_identity().bridge_evidence_identity(),
     )
 }
 
@@ -233,23 +235,19 @@ mod tests {
             intent.prior_authoritative_identity().as_str(),
             "authority:task-1",
         );
-        assert!(
-            bridge_evidence
-                .prior_authoritative_identity()
-                .as_str()
-                .starts_with("bridge-continuity-authoritative:"),
-        );
+        assert!(bridge_evidence
+            .prior_authoritative_identity()
+            .as_str()
+            .starts_with("bridge-continuity-authoritative:"),);
         assert_eq!(
             intent.successor_authoritative_identity().as_str(),
             "authority:task-1-successor",
         );
-        assert!(
-            bridge_evidence
-                .successor_authoritative_identity()
-                .expect("successor authoritative identity")
-                .as_str()
-                .starts_with("bridge-continuity-authoritative:"),
-        );
+        assert!(bridge_evidence
+            .successor_authoritative_identity()
+            .expect("successor authoritative identity")
+            .as_str()
+            .starts_with("bridge-continuity-authoritative:"),);
         assert_eq!(
             bridge_evidence.resolved_target_entity_identity(),
             Some(&entity_identity)
@@ -285,7 +283,7 @@ mod tests {
             )
             .expect("naming attachment identity"),
         );
-        let authored_identity = ForgeQueryEntityIdentity::authored_command("entity:task-1");
+        let authored_identity = crate::memory_workspace::admit_authored_entity_label("entity:task-1");
 
         assert!(
             bridge_naming_mutation_bundle(&intent, Some(&authored_identity), Some("Task"))

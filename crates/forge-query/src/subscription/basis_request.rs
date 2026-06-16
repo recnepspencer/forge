@@ -28,7 +28,6 @@ impl QuerySubscriptionBasisBindingRequestKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionBasisBindingRequest {
     request_kind: QuerySubscriptionBasisBindingRequestKind,
-    source_declaration_for_reporting: String,
     source_declaration_identity: ForgeQueryEvidenceIdentity,
     evidence_identity: ForgeQueryEvidenceIdentity,
 }
@@ -53,7 +52,6 @@ impl QuerySubscriptionBasisBindingRequest {
             }
         };
         let source_declaration_identity = declaration.declaration_identity().clone();
-        let source_declaration_for_reporting = source_declaration_identity.as_str().to_string();
         let evidence_identity = basis_binding_request_identity(
             &request_kind,
             &source_declaration_identity,
@@ -61,7 +59,6 @@ impl QuerySubscriptionBasisBindingRequest {
         );
         Self {
             request_kind,
-            source_declaration_for_reporting,
             source_declaration_identity,
             evidence_identity,
         }
@@ -73,14 +70,6 @@ impl QuerySubscriptionBasisBindingRequest {
 
     pub fn source_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.source_declaration_identity
-    }
-
-    pub fn source_declaration_digest(&self) -> &str {
-        &self.source_declaration_for_reporting
-    }
-
-    pub fn digest(&self) -> &str {
-        self.evidence_identity.as_str()
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {

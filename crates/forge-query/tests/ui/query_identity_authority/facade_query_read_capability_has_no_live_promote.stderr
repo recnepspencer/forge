@@ -1,0 +1,22 @@
+warning: unreachable statement
+ --> tests/ui/facade_query_read_capability_has_no_live_promote.rs:8:5
+  |
+6 |     let preflight: forge_query::facade::ExecutionPreflightBundle = todo!();
+  |                                                                    ------- any code following this expression is unreachable
+7 |
+8 |     let _ = query_reads.capability().promote_preflight(&preflight);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `promote_preflight` found for reference `&QueryReadCapability` in the current scope
+ --> tests/ui/facade_query_read_capability_has_no_live_promote.rs:8:38
+  |
+8 |     let _ = query_reads.capability().promote_preflight(&preflight);
+  |                                      ^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `execute_preflight` with a similar name
+  |
+8 -     let _ = query_reads.capability().promote_preflight(&preflight);
+8 +     let _ = query_reads.capability().execute_preflight(&preflight);
+  |

@@ -23,7 +23,7 @@ pub type BridgeAsyncSourceLegacyDeclarationIdentity = BridgeIdentity<SourceDecla
 
 impl BridgeAsyncSourceDeclarationIdentity {
     pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
-        Self::new(value)
+        Self::admit_bridge_owned(value)
     }
 }
 

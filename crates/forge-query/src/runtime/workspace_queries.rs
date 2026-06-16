@@ -243,7 +243,7 @@ impl ForgeQueryWorkspace {
         Ok(self
             .runtime
             .inspect_live_view_name_installation(view_name)?
-            .basis_binding_for_reporting()
+            .basis_binding_projection().label()
             .to_string())
     }
 }
@@ -262,7 +262,12 @@ fn live_bundle_snapshot_identity(
         .collect::<Vec<_>>();
     let distinct_snapshot_identities = snapshot_identities
         .iter()
-        .map(|(_, snapshot_identity)| snapshot_identity.evidence_identity().to_string())
+        .map(|(_, snapshot_identity)| {
+            snapshot_identity
+                .evidence_identity()
+                .terminal_projection_for_reporting()
+                .to_string()
+        })
         .collect::<BTreeSet<_>>();
     match snapshot_identities.as_slice() {
         [] => Ok(ForgeQuerySnapshotIdentity::empty_relational_state()),
@@ -278,7 +283,12 @@ fn live_bundle_snapshot_identity(
                     snapshot_identities
                         .iter()
                         .map(|(view_name, snapshot_identity)| {
-                            format!("{view_name}:{}", snapshot_identity.evidence_identity())
+                            format!(
+                                "{view_name}:{}",
+                                snapshot_identity
+                                    .evidence_identity()
+                                    .terminal_projection_for_reporting()
+                            )
                         })
                         .collect::<Vec<_>>()
                         .join(", ")

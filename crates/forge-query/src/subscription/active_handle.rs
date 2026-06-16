@@ -1,6 +1,8 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::active_digest::ActiveSubscriptionLaneDigest;
+use super::evidence_projection::subscription_evidence_projection;
 use super::future_selection::QuerySubscriptionFutureSelection;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -32,7 +34,7 @@ impl ActiveSubscriptionLaneHandle {
         }
     }
 
-    pub fn lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.lane_digest
     }
 
@@ -40,20 +42,24 @@ impl ActiveSubscriptionLaneHandle {
         &self.future_selection
     }
 
+    pub fn basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.basis_binding_identity)
+    }
+
     pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.basis_binding_identity
     }
 
-    pub fn basis_binding_for_reporting(&self) -> &str {
-        self.basis_binding_identity.as_str()
+    pub fn checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.checkpoint_identity)
     }
 
     pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.checkpoint_identity
-    }
-
-    pub fn checkpoint_for_reporting(&self) -> &str {
-        self.checkpoint_identity.as_str()
     }
 
     pub fn lane_index(&self) -> u64 {

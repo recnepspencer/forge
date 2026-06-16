@@ -1,14 +1,14 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct QuerySubscriptionDeclarationDigest(String);
+pub(crate) struct QuerySubscriptionDeclarationDigest(String);
 
 impl QuerySubscriptionDeclarationDigest {
     pub(super) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self(identity.as_str().to_string())
     }
 
-    pub fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
 }

@@ -22,8 +22,12 @@ macro_rules! causal_identity_type {
                 &self.0
             }
 
+            pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
+                self.0.bridge_evidence_identity()
+            }
+
             pub fn as_str(&self) -> &str {
-                self.0.as_str()
+                self.0.reporting_projection()
             }
         }
 
@@ -135,9 +139,10 @@ impl From<CausalEvidenceReferenceDigest> for CausalEvidenceReferenceInput {
 impl From<BridgeIdentityEvidence> for CausalEvidenceReferenceInput {
     fn from(value: BridgeIdentityEvidence) -> Self {
         let bridge_authority = value.clone();
-        let identity = ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
-            .field_bridge_identity(ForgeQueryEvidenceTag::new("bridge_evidence"), &value)
-            .seal();
+        let identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
+                .field_bridge_retained_evidence_identity(ForgeQueryEvidenceTag::new("bridge_evidence"), &value)
+                .seal();
         Self::Typed(CausalEvidenceReferenceDigest {
             identity,
             bridge_authority: Some(bridge_authority),

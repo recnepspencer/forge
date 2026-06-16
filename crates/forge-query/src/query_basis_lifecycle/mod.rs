@@ -6,6 +6,7 @@ mod common_paths;
 mod compatibility;
 mod compatibility_debt;
 mod eligibility;
+mod identity;
 mod intent;
 mod normalization;
 mod normalization_taxonomy;

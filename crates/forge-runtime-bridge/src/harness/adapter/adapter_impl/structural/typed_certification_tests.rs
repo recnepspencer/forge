@@ -33,9 +33,10 @@ fn execute(target: StructuralHarnessTarget) -> StructuralHarnessExecution {
 #[test]
 fn structural_remap_certification_is_typed_before_terminal_export() {
     let execution = execute(StructuralHarnessTarget::RemapExact {
-        declaration_identity: crate::structural::StructuralIdentityDeclarationIdentity::new(
-            "structural:analysis-remap",
-        ),
+        declaration_identity:
+            crate::structural::StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+                "structural:analysis-remap",
+            ),
     });
     let summary = execution.summary();
     let bundle = execution.certification_bundle();
@@ -99,7 +100,7 @@ fn structural_fixture() -> forge_harness::facade::ScenarioFixture<BridgeHarnessF
 
 fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-name"),
+        BridgeMappingId::admit_bridge_owned("profile-name"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -110,7 +111,7 @@ fn registration() -> BridgeMappingRegistration {
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile"),
         CoarseRoutingMode::Direct,
     )
 }
@@ -189,8 +190,8 @@ fn structural_snapshot_record(
 
 fn remap_declaration() -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::advisory_remap(
-        StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         fingerprint_contract(StructuralFingerprintFamily::TopologyFingerprint),
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
             crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
@@ -201,8 +202,10 @@ fn remap_declaration() -> StructuralIdentityDeclaration {
 
 fn branch_declaration() -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::branch_comparison(
-        StructuralIdentityDeclarationIdentity::new("structural:analysis-branch-compare"),
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+            "structural:analysis-branch-compare",
+        ),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         fingerprint_contract(StructuralFingerprintFamily::BranchComparisonFingerprint),
         StructuralTruthViewBasis::explicit_branch_pair(
             BridgeTruthViewSelector::branch_snapshot(
@@ -221,7 +224,7 @@ fn fingerprint_contract(
     family: StructuralFingerprintFamily,
 ) -> StructuralFingerprintEquivalenceContract {
     StructuralFingerprintEquivalenceContract::new(
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         family,
         "geometry-typed-certification-v1",
         StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -233,9 +236,10 @@ fn fingerprint_contract(
 #[test]
 fn structural_ambiguity_certification_retains_typed_rejection_evidence() {
     let execution = execute(StructuralHarnessTarget::RemapAmbiguous {
-        declaration_identity: crate::structural::StructuralIdentityDeclarationIdentity::new(
-            "structural:analysis-remap",
-        ),
+        declaration_identity:
+            crate::structural::StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+                "structural:analysis-remap",
+            ),
     });
     let summary = execution.summary();
     let bundle = execution.certification_bundle();
@@ -273,9 +277,10 @@ fn structural_ambiguity_certification_retains_typed_rejection_evidence() {
 #[test]
 fn structural_branch_certification_retains_typed_diff_and_replay_evidence() {
     let execution = execute(StructuralHarnessTarget::BranchReplay {
-        declaration_identity: crate::structural::StructuralIdentityDeclarationIdentity::new(
-            "structural:analysis-branch-compare",
-        ),
+        declaration_identity:
+            crate::structural::StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+                "structural:analysis-branch-compare",
+            ),
     });
     let summary = execution.summary();
     let bundle = execution.certification_bundle();

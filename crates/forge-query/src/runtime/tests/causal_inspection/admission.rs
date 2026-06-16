@@ -76,7 +76,7 @@ fn causal_inspection_admission_success_carries_reference_permissions_and_trace()
         CausalInspectionRichness::ReferenceOnly,
         CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation,
     );
-    let request_digest = request.request_digest().to_string();
+    let request_digest = request.request_for_reporting().to_string();
     let flow = admit_causal_inspection(request);
 
     let CausalInspectionProofFlow::Admitted(admitted) = flow else {
@@ -220,7 +220,7 @@ fn causal_inspection_request_denies_target_and_unresolved_family_mismatches() {
         target_mismatch.kind(),
         CausalInspectionRequestErrorKind::TargetObservationMismatch
     );
-    assert!(!target_mismatch.failure_digest().is_empty());
+    assert!(!target_mismatch.failure_for_reporting().is_empty());
 
     let missing_family = request_causal_inspection(
         reference_set.clone(),

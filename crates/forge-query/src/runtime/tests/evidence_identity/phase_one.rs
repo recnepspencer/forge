@@ -30,15 +30,23 @@ fn support_matrix_and_state_snapshot_emit_canonical_evidence_tokens() {
         ForgeQueryWorkspace::new("evidence-identity-support", runtime).expect("workspace builds");
     let matrix = workspace.public_support_matrix();
     let snapshot = ForgeQueryRuntimeStateSnapshot::ready(
-        runtime_state_snapshot_basis_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("basis|digest")),
-        runtime_state_snapshot_result_shape_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("result:shape")),
+        runtime_state_snapshot_basis_label_identity(
+            &crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity(
+                "basis|digest",
+            ),
+        ),
+        runtime_state_snapshot_result_shape_label_identity(
+            &crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity(
+                "result:shape",
+            ),
+        ),
         ForgeQueryAuthorityLane::PreviewTruth,
         "state explanation with | and : punctuation",
     );
 
-    assert_canonical_evidence_identity_token(matrix.matrix_digest());
+    assert_canonical_evidence_identity_token(matrix.matrix_digest().terminal_projection_for_reporting());
     for row in matrix.rows() {
-        assert_canonical_evidence_identity_token(row.row_digest());
+        assert_canonical_evidence_identity_token(row.row_digest().terminal_projection_for_reporting());
         assert_eq!(
             row.row_digest().as_str(),
             compose_public_support_matrix_row_identity(row).as_str()
@@ -48,7 +56,7 @@ fn support_matrix_and_state_snapshot_emit_canonical_evidence_tokens() {
         matrix.matrix_digest().as_str(),
         compose_public_support_matrix_identity(&matrix).as_str()
     );
-    assert_canonical_evidence_identity_token(snapshot.state_digest());
+    assert_canonical_evidence_identity_token(snapshot.state_digest().terminal_projection_for_reporting());
     assert_eq!(
         snapshot.state_digest().as_str(),
         compose_state_snapshot_identity(&snapshot).as_str()
@@ -87,12 +95,28 @@ fn state_snapshot_with_optional_postures_recomposes_exactly() {
     );
     let remask_posture = ForgeQueryRuntimeRemaskPosture::from_activation_projection(
         &remask_projection,
-        &runtime_state_snapshot_basis_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("support|evidence|digest")),
-        &runtime_state_snapshot_basis_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("basis|digest")),
+        &runtime_state_snapshot_basis_label_identity(
+            &crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity(
+                "support|evidence|digest",
+            ),
+        ),
+        &runtime_state_snapshot_basis_label_identity(
+            &crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity(
+                "basis|digest",
+            ),
+        ),
     );
     let snapshot = ForgeQueryRuntimeStateSnapshot::ready(
-        runtime_state_snapshot_basis_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("basis|digest")),
-        runtime_state_snapshot_result_shape_label_identity(&crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity("result:shape")),
+        runtime_state_snapshot_basis_label_identity(
+            &crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity(
+                "basis|digest",
+            ),
+        ),
+        runtime_state_snapshot_result_shape_label_identity(
+            &crate::runtime::evidence_identities::runtime_state_snapshot_test_subject_identity(
+                "result:shape",
+            ),
+        ),
         ForgeQueryAuthorityLane::BridgeExternalState,
         "state explanation with optional posture pressure",
     )
@@ -100,7 +124,7 @@ fn state_snapshot_with_optional_postures_recomposes_exactly() {
     .with_async_result_state(async_result_state)
     .with_remask_posture(remask_posture);
 
-    assert_canonical_evidence_identity_token(snapshot.state_digest());
+    assert_canonical_evidence_identity_token(snapshot.state_digest().terminal_projection_for_reporting());
     assert_eq!(
         snapshot.state_digest().as_str(),
         compose_state_snapshot_identity(&snapshot).as_str()
@@ -129,8 +153,8 @@ fn basis_admissions_emit_canonical_evidence_tokens() {
         ]),
     );
 
-    assert_canonical_evidence_identity_token(preview.admission_identity());
-    assert_canonical_evidence_identity_token(branch.admission_identity());
+    assert_canonical_evidence_identity_token(preview.admission_identity().terminal_projection_for_reporting());
+    assert_canonical_evidence_identity_token(branch.admission_identity().terminal_projection_for_reporting());
 
     let manual_preview_identity = compose_basis_admission_identity(
         crate::ForgeQueryEvidenceScope::PreviewBasisAdmission,
@@ -180,7 +204,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
         ))
         .expect("sandboxed preview intent should be admitted");
 
-    assert_canonical_evidence_identity_token(admitted_receipt.admission_identity());
+    assert_canonical_evidence_identity_token(admitted_receipt.admission_identity().terminal_projection_for_reporting());
     assert_canonical_evidence_identity_token(admitted_receipt.receipt_digest());
 
     let manual_preview_admission = crate::ForgeQueryEvidenceIdentity::compose(
@@ -198,7 +222,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
         crate::ForgeQueryEvidenceTag::new("strategy_version"),
         admitted_receipt.strategy_version(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("canonical_input_digest"),
         admitted_receipt.canonical_input_digest(),
     )
@@ -265,7 +289,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
         ))
         .expect("branch intent should be admitted");
 
-    assert_canonical_evidence_identity_token(branch_receipt.admission_identity());
+    assert_canonical_evidence_identity_token(branch_receipt.admission_identity().terminal_projection_for_reporting());
     assert_canonical_evidence_identity_token(branch_receipt.receipt_digest());
     let manual_branch_admission = crate::ForgeQueryEvidenceIdentity::compose(
         crate::ForgeQueryEvidenceScope::BranchIntentAdmission,
@@ -282,7 +306,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
         crate::ForgeQueryEvidenceTag::new("strategy_version"),
         branch_receipt.strategy_version(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("canonical_input_digest"),
         branch_receipt.canonical_input_digest(),
     )
@@ -346,7 +370,7 @@ fn preview_and_branch_receipts_compose_from_basis_admissions() {
 
     match denied {
         ForgeQueryRuntimeError::IntentCommitDenied { evidence, .. } => {
-            assert_canonical_evidence_identity_token(evidence.denial_digest());
+            assert_canonical_evidence_identity_token(evidence.denial_digest().terminal_projection_for_reporting());
             assert_eq!(
                 evidence.denial_digest().as_str(),
                 compose_denial_evidence_identity(&evidence).as_str()

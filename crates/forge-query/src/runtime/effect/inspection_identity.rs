@@ -86,7 +86,7 @@ fn trigger_inspection_identity(effect: &ForgeQueryEffectRuntime) -> ForgeQueryEv
             ForgeQueryEvidenceTag::new("source_kind"),
             effect.declaration.trigger().source_kind().as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("source"),
             effect.declaration.trigger().source_name(),
         )
@@ -165,7 +165,7 @@ fn declaration_inspection_identity(
             ForgeQueryEvidenceTag::new("target_lane"),
             effect.declaration.target_lane().as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("target"),
             effect.declaration.target(),
         )
@@ -180,7 +180,9 @@ fn declaration_inspection_identity(
         .seal()
 }
 
-fn pending_delivery_row_identity(delivery: &ForgeQueryEffectDelivery) -> ForgeQueryEvidenceIdentity {
+fn pending_delivery_row_identity(
+    delivery: &ForgeQueryEffectDelivery,
+) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::EffectIntentReceiptPhase)
         .field_shape(
             ForgeQueryEvidenceTag::new("effect_name"),

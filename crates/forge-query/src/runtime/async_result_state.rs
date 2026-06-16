@@ -148,9 +148,9 @@ impl ForgeQueryRuntimeAsyncResultProjection {
     pub(crate) fn from_completion_receipt(receipt: &BridgeAsyncCompletionReceipt) -> Self {
         Self::CompletionState {
             state: receipt.state(),
-            causality_identity: runtime_async_causality_identity(&bridge_async_causality_source_identity(
-                receipt.completion_identity(),
-            )),
+            causality_identity: runtime_async_causality_identity(
+                &bridge_async_causality_source_identity(receipt.completion_identity()),
+            ),
         }
     }
 
@@ -160,9 +160,9 @@ impl ForgeQueryRuntimeAsyncResultProjection {
     ) -> Self {
         Self::CompletionState {
             state: receipt.state(),
-            causality_identity: runtime_async_causality_identity(&bridge_async_causality_source_identity(
-                receipt.denial_identity(),
-            )),
+            causality_identity: runtime_async_causality_identity(
+                &bridge_async_causality_source_identity(receipt.denial_identity()),
+            ),
         }
     }
 
@@ -172,9 +172,9 @@ impl ForgeQueryRuntimeAsyncResultProjection {
     ) -> Self {
         Self::ForwardCausality {
             class: receipt.class(),
-            causality_identity: runtime_async_causality_identity(&bridge_async_causality_source_identity(
-                receipt.causality_identity(),
-            )),
+            causality_identity: runtime_async_causality_identity(
+                &bridge_async_causality_source_identity(receipt.causality_identity()),
+            ),
         }
     }
 
@@ -183,9 +183,9 @@ impl ForgeQueryRuntimeAsyncResultProjection {
         receipt: &BridgeAsyncCompletionSupersessionReceipt,
     ) -> Self {
         Self::Supersession {
-            causality_identity: runtime_async_causality_identity(&bridge_async_causality_source_identity(
-                receipt.supersession_identity(),
-            )),
+            causality_identity: runtime_async_causality_identity(
+                &bridge_async_causality_source_identity(receipt.supersession_identity()),
+            ),
         }
     }
 
@@ -304,9 +304,7 @@ impl ForgeQueryRuntimeAsyncResultState {
     }
 }
 
-fn bridge_async_causality_source_identity(
-    bridge_identity: &str,
-) -> ForgeQueryEvidenceIdentity {
+fn bridge_async_causality_source_identity(bridge_identity: &str) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(
             ForgeQueryEvidenceTag::new("identity_family"),
@@ -355,7 +353,10 @@ fn runtime_async_result_state_identity(
         .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
         .field_evidence_identity(ForgeQueryEvidenceTag::new("causality"), causality_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("checkpoint"), checkpoint_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("checkpoint"),
+            checkpoint_identity,
+        )
         .seal()
 }
 

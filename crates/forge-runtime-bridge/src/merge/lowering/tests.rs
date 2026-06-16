@@ -7,7 +7,7 @@ use crate::merge::{
 
 fn contract(structural: BridgeMergeStructuralAdvisoryDisposition) -> AdmittedMergeHistoryContract {
     let declaration = MergeHistoryDeclaration::new(
-        MergeHistoryDeclarationIdentity::new("merge:test"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:test"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
         BridgeMergeAuthorityBasis::new(

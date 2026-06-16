@@ -1,3 +1,9 @@
+use crate::identity_authority::{
+    admit_query_causal_inspection_authority_identity, QueryCausalInspectionAuthorityIdentity,
+    QueryCausalInspectionIdentityKind,
+};
+use crate::ForgeQueryEvidenceIdentity;
+
 use super::performance::CausalInspectionPerformanceCertificationBundle;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -200,7 +206,10 @@ pub(in crate::runtime::inspection::causal::certification) struct CausalInspectio
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalInspectionCertificationBundle {
-    certification_bundle_digest: String,
+    certification_bundle_authority: QueryCausalInspectionAuthorityIdentity<
+        ForgeQueryEvidenceIdentity,
+        QueryCausalInspectionIdentityKind,
+    >,
     certification_scope_digest: String,
     performance_certification_digest: String,
     bridge_readmission_proof_digest: String,
@@ -225,7 +234,7 @@ pub struct CausalInspectionCertificationBundle {
 impl CausalInspectionCertificationBundle {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::runtime::inspection::causal::certification) fn from_parts(
-        certification_bundle_digest: String,
+        certification_bundle_identity: ForgeQueryEvidenceIdentity,
         certification_scope_digest: String,
         performance_certification_digest: String,
         bridge_readmission_proof_digest: String,
@@ -247,7 +256,9 @@ impl CausalInspectionCertificationBundle {
         scale_fixture_row_count: usize,
     ) -> Self {
         Self {
-            certification_bundle_digest,
+            certification_bundle_authority: admit_query_causal_inspection_authority_identity(
+                certification_bundle_identity,
+            ),
             certification_scope_digest,
             performance_certification_digest,
             bridge_readmission_proof_digest,
@@ -271,7 +282,20 @@ impl CausalInspectionCertificationBundle {
     }
 
     pub fn certification_bundle_digest(&self) -> &str {
-        &self.certification_bundle_digest
+        self.certification_bundle_authority.value().as_str()
+    }
+
+    pub fn certification_bundle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        self.certification_bundle_authority.value()
+    }
+
+    pub fn certification_bundle_authority(
+        &self,
+    ) -> &QueryCausalInspectionAuthorityIdentity<
+        ForgeQueryEvidenceIdentity,
+        QueryCausalInspectionIdentityKind,
+    > {
+        &self.certification_bundle_authority
     }
 
     pub fn certification_scope_digest(&self) -> &str {

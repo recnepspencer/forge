@@ -5,7 +5,7 @@ fn pricing_shock_certification_matrix_distinguishes_control_replay_and_hostile_l
     let scenario = generated_pricing_scenario();
     let control = capture_pricing_certification_matrix(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-certification-control"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-certification-control"),
     );
 
     let hostile_source = InMemoryRelationalBridgeSource::default();
@@ -100,7 +100,7 @@ fn pricing_shock_aspect_lane_preserves_fine_grained_truth_and_history() {
     );
     assert_eq!(
         aspect.aspect_registration_id,
-        BridgeAspectRegistrationId::new("pricing-steel-usd-field")
+        BridgeAspectRegistrationId::admit_bridge_owned("pricing-steel-usd-field")
     );
     assert_eq!(
         aspect.subscription_slice_kind,
@@ -117,11 +117,11 @@ fn pricing_shock_aspect_lane_preserves_fine_grained_truth_and_history() {
 fn pricing_shock_workload_certification_bundle_is_profile_invariant_for_semantic_truth() {
     let baseline = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-workload-baseline"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-workload-baseline"),
     );
     let forensic = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::forensic(),
-        BridgePreviewSessionIdentity::new("pricing:preview-workload-forensic"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-workload-forensic"),
     );
 
     assert_eq!(baseline.matrix, forensic.matrix);
@@ -163,7 +163,7 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     let scenario = generated_pricing_scenario();
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-workload-edges"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-workload-edges"),
     );
     let suite_25 = bundle.suite_25_digest_evidence();
     let suite_26 = bundle.suite_26_digest_evidence();
@@ -202,7 +202,7 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     );
     assert_eq!(
         bundle.aspect.aspect_registration_id,
-        BridgeAspectRegistrationId::new("pricing-steel-usd-field")
+        BridgeAspectRegistrationId::admit_bridge_owned("pricing-steel-usd-field")
     );
     assert_eq!(
         bundle.matrix.replay.source_snapshot,
@@ -278,7 +278,7 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     );
     assert_eq!(
         bundle.merge.merged_aspect_registration_id,
-        BridgeAspectRegistrationId::new("pricing-rubber-usd-field")
+        BridgeAspectRegistrationId::admit_bridge_owned("pricing-rubber-usd-field")
     );
     assert_eq!(
         bundle.provenance.main_commit,

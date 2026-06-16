@@ -217,8 +217,7 @@ mod effect;
 mod error;
 mod evidence_identities;
 pub(crate) use evidence_identities::{
-    runtime_state_snapshot_basis_label_identity,
-    runtime_state_snapshot_result_shape_label_identity,
+    runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
 };
 #[cfg(test)]
 mod fallback_seam_counters;
@@ -226,6 +225,7 @@ mod handle_contract;
 mod inspection;
 mod intent;
 mod live_subscription;
+mod live_subscription_accessors;
 mod materialized_fact_posture;
 mod mixed_cause_delivery;
 mod mixed_cause_emission;
@@ -270,6 +270,7 @@ mod runtime_intents;
 mod runtime_probe_routing_intents;
 mod runtime_read_intents;
 mod runtime_reads_programs;
+mod runtime_session_lowering;
 mod runtime_sessions;
 mod runtime_unified_inspection_intents;
 mod runtime_write_intents;
@@ -324,8 +325,8 @@ pub use authority::{
 };
 pub(crate) use backend::build_bridge_authority_bundle;
 pub use backend::{
-    ForgeQueryBridgeBackedRuntimeBackend, ForgeQueryIntentAuthorityAdapter,
-    ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendParts,
+    runtime_subscription_support_evidence_identity, ForgeQueryBridgeBackedRuntimeBackend,
+    ForgeQueryIntentAuthorityAdapter, ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendParts,
     ForgeQueryRuntimeDeclarationInitializationAdapter,
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimeIntentAuthorityAdapter, ForgeQueryRuntimePreviewBasisAdapter,

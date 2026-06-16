@@ -246,9 +246,10 @@ impl BridgeSubscriptionPreviewLifecyclePromotion {
         );
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            promotion_identity: BridgeSubscriptionPreviewLifecyclePromotionIdentity::new(format!(
-                "bridge-subscription-preview-lifecycle-promotion-id:sha256:{digest:x}"
-            )),
+            promotion_identity:
+                BridgeSubscriptionPreviewLifecyclePromotionIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-preview-lifecycle-promotion-id:sha256:{digest:x}"
+                )),
             preview_active_subscription_identity: preview_active
                 .preview_active_subscription_identity()
                 .clone(),

@@ -83,7 +83,11 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
                     .symbolic_entity_identity("edge.source_identity", &draft)
                     .existing_entity_identity(
                         "edge.target_identity",
-                        ForgeQueryEntityIdentity::authored_command("task-existing"),
+                        ForgeQueryEntityIdentity::admit_authored_entity_token(
+                            forge_query::facade::QueryExternalIdentityToken::new(
+                                std::sync::Arc::from("task-existing"),
+                            ),
+                        ),
                     )
             })?;
             graph.update_entity(&draft, |task| task.aspect("title.value", "Published task"))?;
@@ -165,7 +169,11 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
     let harness = PublicBridgeRuntimeHarness::new();
     let binding = ForgeQueryExistingRelationTarget::new(
         existing_authority("authority:loop-next-rel"),
-        ForgeQueryEntityIdentity::authored_command("HalfEdgeNextRelation:1"),
+        ForgeQueryEntityIdentity::admit_authored_entity_token(
+            forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
+                "HalfEdgeNextRelation:1",
+            )),
+        ),
     )
     .expect("existing relation target should build")
     .in_target_collection("HalfEdgeNextRelation")

@@ -6,8 +6,6 @@ mod row_digest;
 mod slot_support;
 mod writeback_support;
 
-use forge_runtime_bridge::facade::TruthCommitIdentity;
-
 use super::super::super::*;
 use artifact_support::{
     admitted_artifact, advisory_artifacts, denied_artifact_and_missing_evidence,
@@ -17,10 +15,10 @@ use matrix_support::representative_matrix;
 
 #[test]
 fn causal_inspection_certification_bundle_closes_runtime_backed_rows() {
-    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let changed = admitted_artifact(super::causal_truth_commit_identity(
         "commit-query-cert-changed",
     ));
-    let (full, redacted) = advisory_artifacts(TruthCommitIdentity::from_bridge_harness_label(
+    let (full, redacted) = advisory_artifacts(super::causal_truth_commit_identity(
         "commit-query-cert-redacted",
     ));
     let (denied, missing_evidence_digest) = denied_artifact_and_missing_evidence();
@@ -138,10 +136,10 @@ fn causal_inspection_certification_bundle_closes_runtime_backed_rows() {
 
 #[test]
 fn causal_inspection_certification_rejects_bridge_envelope_slope_drift() {
-    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let changed = admitted_artifact(super::causal_truth_commit_identity(
         "commit-query-cert-bridge-slope-changed",
     ));
-    let (full, redacted) = advisory_artifacts(TruthCommitIdentity::from_bridge_harness_label(
+    let (full, redacted) = advisory_artifacts(super::causal_truth_commit_identity(
         "commit-query-cert-bridge-slope-redacted",
     ));
     let (denied, missing_evidence_digest) = denied_artifact_and_missing_evidence();
@@ -190,13 +188,13 @@ fn causal_inspection_certification_rejects_bridge_envelope_slope_drift() {
 
 #[test]
 fn causal_inspection_certification_rejects_redaction_identity_drift() {
-    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let changed = admitted_artifact(super::causal_truth_commit_identity(
         "commit-query-cert-drift-changed",
     ));
-    let unrelated_full = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let unrelated_full = admitted_artifact(super::causal_truth_commit_identity(
         "commit-query-cert-drift-unrelated",
     ));
-    let (_, redacted) = advisory_artifacts(TruthCommitIdentity::from_bridge_harness_label(
+    let (_, redacted) = advisory_artifacts(super::causal_truth_commit_identity(
         "commit-query-cert-drift-redacted",
     ));
     let (denied, missing_evidence_digest) = denied_artifact_and_missing_evidence();
@@ -244,7 +242,7 @@ fn causal_inspection_certification_rejects_redaction_identity_drift() {
 
 #[test]
 fn causal_inspection_certification_rejects_incomplete_representative_matrix() {
-    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let changed = admitted_artifact(super::causal_truth_commit_identity(
         "commit-query-cert-matrix-changed",
     ));
     let rows = [CausalInspectionRepresentativeEvidence::from_query_artifact(
@@ -351,7 +349,7 @@ fn causal_inspection_certification_failure_evidence_names_forbidden_and_debt_pos
 
 #[test]
 fn causal_inspection_certification_rejects_rich_slot_row_without_named_slots() {
-    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let changed = admitted_artifact(super::causal_truth_commit_identity(
         "commit-query-cert-thin-rich-row",
     ));
     for kind in [

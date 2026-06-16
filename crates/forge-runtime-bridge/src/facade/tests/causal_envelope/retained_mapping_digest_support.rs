@@ -83,7 +83,9 @@ fn expected_part_kind(
 }
 
 fn expected_bridge_identity_part(part: &str) -> RetainedCausalMappingIdentityPart {
-    retained_mapping_evidence_part(BridgeIdentityEvidence::from_external_authority(part))
+    retained_mapping_evidence_part(
+        BridgeIdentityEvidence::from_bridge_owner_external_authority(part),
+    )
 }
 
 fn expected_bridge_identity_index(

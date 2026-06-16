@@ -38,7 +38,7 @@
 //!         .with_truth_branch_head_source(branch_heads)
 //!         .with_compute_sink(compute_sink)
 //!         .register_mapping(BridgeMappingRegistration::new(
-//!             BridgeMappingId::new("pricing:steel"),
+//!             BridgeMappingId::admit_bridge_owned("pricing:steel"),
 //!             TruthPatchScope::for_entity_field(
 //!                 MappingSelector::exact("component:steel"),
 //!                 AspectKey::new("cost").expect("valid aspect key"),
@@ -48,7 +48,7 @@
 //!                 AspectKey::new("cost").expect("valid aspect key"),
 //!                 ScalarAspectType::String,
 //!             ),
-//!             SignalInvalidationScope::new("price:bicycle"),
+//!             SignalInvalidationScope::admit_bridge_owned("price:bicycle"),
 //!             CoarseRoutingMode::Direct,
 //!         ))
 //!         .build()?;
@@ -76,6 +76,7 @@ mod error;
 pub mod facade;
 mod historical;
 mod identity;
+mod identity_authority;
 mod input;
 mod mapping;
 mod merge;

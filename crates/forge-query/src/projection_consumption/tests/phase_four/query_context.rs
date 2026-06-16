@@ -33,7 +33,7 @@ fn current_query_context_extracts_identity_and_row_bound_field_facts() {
 
     assert_eq!(
         consumed.entity_identities()[0].entity_identity(),
-        &ForgeQueryEntityIdentity::authored_command("query-context:runtime_current:0")
+        &crate::memory_workspace::admit_authored_entity_label("query-context:runtime_current:0")
     );
     assert_eq!(
         consumed.view_local_identities()[1].view_local_identity(),

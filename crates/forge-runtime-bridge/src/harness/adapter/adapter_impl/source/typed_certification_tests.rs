@@ -20,7 +20,7 @@ fn source_fixture(name: &str) -> forge_harness::facade::ScenarioFixture<BridgeHa
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_source_declaration(historical_source_declaration(
-                SourceDeclarationIdentity::new("source:analysis-history"),
+                SourceDeclarationIdentity::admit_bridge_owned("source:analysis-history"),
             ))
             .with_source_adapter_capabilities(BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -46,7 +46,7 @@ fn source_fixture(name: &str) -> forge_harness::facade::ScenarioFixture<BridgeHa
 
 fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-name"),
+        BridgeMappingId::admit_bridge_owned("profile-name"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -57,7 +57,7 @@ fn registration() -> BridgeMappingRegistration {
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile"),
         CoarseRoutingMode::Direct,
     )
 }
@@ -159,13 +159,17 @@ fn materialize_and_replay_retain_typed_source_certification_truth() {
     let materialized = execute_typed_source(
         ExecutionProfile::development("typed-materialize"),
         SourceHarnessTarget::Materialize {
-            declaration_identity: SourceDeclarationIdentity::new("source:analysis-history"),
+            declaration_identity: SourceDeclarationIdentity::admit_bridge_owned(
+                "source:analysis-history",
+            ),
         },
     );
     let replayed = execute_typed_source(
         ExecutionProfile::development("typed-replay"),
         SourceHarnessTarget::Replay {
-            declaration_identity: SourceDeclarationIdentity::new("source:analysis-history"),
+            declaration_identity: SourceDeclarationIdentity::admit_bridge_owned(
+                "source:analysis-history",
+            ),
         },
     );
 
@@ -230,7 +234,9 @@ fn batch_materialization_retains_typed_packet_set_counter_evidence() {
     let execution = execute_typed_source(
         ExecutionProfile::development("typed-batch"),
         SourceHarnessTarget::MaterializeBatch {
-            declaration_identity: SourceDeclarationIdentity::new("source:analysis-history"),
+            declaration_identity: SourceDeclarationIdentity::admit_bridge_owned(
+                "source:analysis-history",
+            ),
         },
     );
 
@@ -254,7 +260,9 @@ fn unregistered_source_rejection_retains_typed_failure_evidence() {
     let execution = execute_typed_source(
         ExecutionProfile::development("typed-unregistered"),
         SourceHarnessTarget::RejectUnregistered {
-            declaration_identity: SourceDeclarationIdentity::new("source:hostile-missing"),
+            declaration_identity: SourceDeclarationIdentity::admit_bridge_owned(
+                "source:hostile-missing",
+            ),
         },
     );
 
@@ -286,14 +294,18 @@ fn adapter_snapshot_failures_retain_typed_failure_kind_and_zero_success_residue(
         ExecutionProfile::development("typed-open-rejection")
             .with_metadata("source_adapter_behavior", "reject_open_snapshot"),
         SourceHarnessTarget::RejectOpenSnapshot {
-            declaration_identity: SourceDeclarationIdentity::new("source:analysis-history"),
+            declaration_identity: SourceDeclarationIdentity::admit_bridge_owned(
+                "source:analysis-history",
+            ),
         },
     );
     let drift_failure = execute_typed_source(
         ExecutionProfile::development("typed-drift-rejection")
             .with_metadata("source_adapter_behavior", "drift_snapshot_identity"),
         SourceHarnessTarget::RejectSnapshotDrift {
-            declaration_identity: SourceDeclarationIdentity::new("source:analysis-history"),
+            declaration_identity: SourceDeclarationIdentity::admit_bridge_owned(
+                "source:analysis-history",
+            ),
         },
     );
 

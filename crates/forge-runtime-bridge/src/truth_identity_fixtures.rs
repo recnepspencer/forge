@@ -65,7 +65,7 @@ pub(crate) fn truth_branch_fixture(label: impl Into<String>) -> TruthBranchIdent
 }
 
 pub(crate) fn malformed_empty_truth_branch_for_validation() -> TruthBranchIdentity {
-    TruthBranchIdentity::new("")
+    TruthBranchIdentity::admit_bridge_owned("")
 }
 
 pub(crate) fn truth_commit_fixture_matches(identity: &TruthCommitIdentity, label: &str) -> bool {

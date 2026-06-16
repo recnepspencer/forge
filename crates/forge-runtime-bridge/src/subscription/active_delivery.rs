@@ -97,9 +97,9 @@ impl BridgeActiveSubscription {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            active_subscription_identity: BridgeActiveSubscriptionIdentity::new(format!(
-                "bridge-active-subscription-id:sha256:{digest:x}"
-            )),
+            active_subscription_identity: BridgeActiveSubscriptionIdentity::admit_bridge_owned(
+                format!("bridge-active-subscription-id:sha256:{digest:x}"),
+            ),
             activation_ready,
             cost_profile,
             consumer_contract,
@@ -165,9 +165,10 @@ impl BridgeSubscriptionDeliveryWindowOpen {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            delivery_window_open_identity: BridgeSubscriptionDeliveryWindowOpenIdentity::new(
-                format!("bridge-subscription-delivery-window-open-id:sha256:{digest:x}"),
-            ),
+            delivery_window_open_identity:
+                BridgeSubscriptionDeliveryWindowOpenIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-delivery-window-open-id:sha256:{digest:x}"
+                )),
             active_subscription: active_subscription.clone(),
             delivery_family,
             delivery_window_sequence,
@@ -258,9 +259,10 @@ impl BridgeSubscriptionDeliveryWindowSealed {
         ));
         let delivery_window_identity_digest =
             Sha256::digest(delivery_window_identity_basis.as_bytes());
-        let delivery_window_identity = BridgeSubscriptionDeliveryWindowIdentity::new(format!(
-            "bridge-subscription-delivery-window-id:sha256:{delivery_window_identity_digest:x}"
-        ));
+        let delivery_window_identity =
+            BridgeSubscriptionDeliveryWindowIdentity::admit_bridge_owned(format!(
+                "bridge-subscription-delivery-window-id:sha256:{delivery_window_identity_digest:x}"
+            ));
         let records = members
             .into_iter()
             .enumerate()

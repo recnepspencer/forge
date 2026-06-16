@@ -63,7 +63,7 @@ impl ForgeQuerySupportSectionPosture {
         .field_shape(ForgeQueryEvidenceTag::new("section"), section.as_str())
         .field_shape(ForgeQueryEvidenceTag::new("owner"), owner.as_str())
         .field_bool(ForgeQueryEvidenceTag::new("enabled"), enabled)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("config_digest"),
             config_digest.clone(),
         )
@@ -197,11 +197,11 @@ impl ForgeQuerySupportReport {
         let counters = ForgeQuerySupportReportCounters::generated_once();
         let report_identity =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::ApplicationSupportReport)
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("support_matrix_digest"),
                     support_matrix.support_matrix_digest(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("validated_config_digest"),
                     validated_config_digest.clone(),
                 )
@@ -217,25 +217,25 @@ impl ForgeQuerySupportReport {
                     ForgeQueryEvidenceTag::new("unsupported_capability_count"),
                     unsupported_capability_count,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("admitted_capability_family"),
                     admitted_capability_families
                         .iter()
                         .map(ForgeQueryCapabilityFamily::as_str),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("deferred_capability_family"),
                     deferred_capability_families
                         .iter()
                         .map(ForgeQueryCapabilityFamily::as_str),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("unsupported_capability_family"),
                     unsupported_capability_families
                         .iter()
                         .map(ForgeQueryCapabilityFamily::as_str),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("section_posture_digest"),
                     section_postures
                         .iter()
@@ -259,7 +259,7 @@ impl ForgeQuerySupportReport {
                         .as_ref()
                         .map(ForgeQueryIdentityEvolutionSupportProfile::profile_digest),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("identity_boundary_closure_digest"),
                     identity_boundary_closure.closure_digest(),
                 )

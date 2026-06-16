@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionRuntimeCertificationErrorKind {
@@ -42,33 +42,37 @@ pub struct QuerySubscriptionRuntimeCertificationCounters {
 }
 
 impl QuerySubscriptionRuntimeCertificationCounters {
-    pub fn digest(&self) -> String {
-        hash_parts(&[
-            format!(
-                "subscription_certification_scope_emission_count:{}",
-                self.certification_scope_emission_count
-            ),
-            format!(
-                "subscription_certified_family_count:{}",
-                self.certified_family_count
-            ),
-            format!(
-                "subscription_hostile_row_coverage_count:{}",
-                self.hostile_row_coverage_count
-            ),
-            format!(
-                "subscription_uncovered_family_denial_count:{}",
-                self.uncovered_family_denial_count
-            ),
-            format!(
-                "subscription_family_coverage_index_lookup_count:{}",
-                self.family_coverage_index_lookup_count
-            ),
-            format!(
-                "subscription_family_coverage_matrix_scan_debt_count:{}",
-                self.family_coverage_matrix_scan_debt_count
-            ),
-        ])
+    pub fn counter_identity(&self) -> ForgeQueryEvidenceIdentity {
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "query_subscription_runtime_certification_counters_v1",
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("scope_emission"),
+                self.certification_scope_emission_count.to_string(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("certified_family"),
+                self.certified_family_count.to_string(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("hostile_row_coverage"),
+                self.hostile_row_coverage_count.to_string(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("uncovered_family_denial"),
+                self.uncovered_family_denial_count.to_string(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("family_coverage_index_lookup"),
+                self.family_coverage_index_lookup_count.to_string(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("family_coverage_matrix_scan_debt"),
+                self.family_coverage_matrix_scan_debt_count.to_string(),
+            )
+            .seal()
     }
 
     pub fn certification_scope_emission_count(&self) -> u64 {
@@ -135,7 +139,7 @@ impl QuerySubscriptionRuntimeCertificationCounters {
 pub struct QuerySubscriptionRuntimeCertificationError {
     error_kind: QuerySubscriptionRuntimeCertificationErrorKind,
     message: &'static str,
-    failure_digest: String,
+    pub(in crate::subscription) failure_identity: ForgeQueryEvidenceIdentity,
     counters: QuerySubscriptionRuntimeCertificationCounters,
 }
 
@@ -143,19 +147,27 @@ impl QuerySubscriptionRuntimeCertificationError {
     pub(crate) fn new(
         error_kind: QuerySubscriptionRuntimeCertificationErrorKind,
         message: &'static str,
-        evidence_parts: &[String],
+        evidence: &[ForgeQueryEvidenceIdentity],
         counters: QuerySubscriptionRuntimeCertificationCounters,
     ) -> Self {
-        let mut parts = vec![
-            "query_subscription_runtime_certification_error_v1".to_string(),
-            error_kind.as_str().to_string(),
-            message.to_string(),
-        ];
-        parts.extend(evidence_parts.iter().cloned());
+        let failure_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "query_subscription_runtime_certification_error_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), error_kind.as_str())
+        .field_value(ForgeQueryEvidenceTag::new("message"), message)
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("evidence"),
+            evidence.iter(),
+        )
+        .seal();
         Self {
             error_kind,
             message,
-            failure_digest: hash_parts(&parts),
+            failure_identity,
             counters,
         }
     }
@@ -166,10 +178,6 @@ impl QuerySubscriptionRuntimeCertificationError {
 
     pub fn message(&self) -> &str {
         self.message
-    }
-
-    pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
     }
 
     pub fn counters(&self) -> &QuerySubscriptionRuntimeCertificationCounters {

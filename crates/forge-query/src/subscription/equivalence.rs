@@ -16,14 +16,14 @@ const EQUIVALENCE_IDENTITY_SCOPE: ForgeQueryEvidenceScope =
     ForgeQueryEvidenceScope::SubscriptionActivationReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct QuerySubscriptionMeaningDigest(String);
+pub(crate) struct QuerySubscriptionMeaningDigest(String);
 
 impl QuerySubscriptionMeaningDigest {
     fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self(identity.as_str().to_string())
     }
 
-    pub fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
 }
@@ -68,7 +68,7 @@ impl QuerySubscriptionEquivalenceBasis {
         &self.equivalence_identity
     }
 
-    pub fn digest(&self) -> &QuerySubscriptionMeaningDigest {
+    pub(crate) fn digest(&self) -> &QuerySubscriptionMeaningDigest {
         &self.digest
     }
 
@@ -105,60 +105,14 @@ impl QuerySubscriptionEquivalenceBasis {
     }
 }
 
+/// Must stay aligned with the field cardinality of `compose_equivalence_identity`.
+const EQUIVALENCE_DIGEST_PART_COUNT: usize = 22;
+
 fn equivalence_digest_part_count(
-    input: &LiveQueryAdmissionArtifact,
-    classification: &FamilyClassification,
+    _input: &LiveQueryAdmissionArtifact,
+    _classification: &FamilyClassification,
 ) -> usize {
-    let mut parts = vec![
-        "query_subscription_equivalence_v1".to_string(),
-        format!("family:{}", classification.family.as_str()),
-        format!("live_family:{}", input.live_family.as_str()),
-        format!(
-            "view_family:{}",
-            input
-                .view_family
-                .map(|family| family.as_str())
-                .unwrap_or("none")
-        ),
-        format!(
-            "future_selection:{}",
-            input.future_selection.projection_digest()
-        ),
-        format!("basis:{}", input.basis_posture.as_str()),
-        format!("cost:{}", classification.cost_posture.as_str()),
-        format!("bridge:{}", classification.bridge_posture.as_str()),
-        format!("query:{}", input.query_digest),
-        format!("plan:{}", input.plan_digest),
-        format!(
-            "collection:{}",
-            input.collection_digest.as_deref().unwrap_or("none")
-        ),
-        format!(
-            "policy:{}",
-            input.policy_digest.as_deref().unwrap_or("none")
-        ),
-        format!(
-            "tenant:{}",
-            input.tenant_digest.as_deref().unwrap_or("none")
-        ),
-        format!(
-            "relationship_proof:{}",
-            input.relationship_proof_digest.as_deref().unwrap_or("none")
-        ),
-        format!(
-            "relationship_proof_posture:{}",
-            input.relationship_proof_posture.as_str()
-        ),
-        format!("relevance:{}", input.relevance_for_reporting()),
-        format!("delivery_intent:{}", input.delivery_intent_for_reporting()),
-        format!("authorized_width:{}", input.authorized_projection_width),
-        format!("ordering_width:{}", input.ordering_width),
-        format!("grouping_width:{}", input.grouping_width),
-        format!("relation_scope_width:{}", input.relation_scope_width),
-        format!("view_metadata_width:{}", input.view_shape_metadata_width),
-    ];
-    parts.sort();
-    parts.len()
+    EQUIVALENCE_DIGEST_PART_COUNT
 }
 
 fn compose_equivalence_identity(
@@ -201,26 +155,23 @@ fn compose_equivalence_identity(
             ForgeQueryEvidenceTag::new("bridge"),
             classification.bridge_posture.as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("query"), &input.query_digest)
-        .field_shape(ForgeQueryEvidenceTag::new("plan"), &input.plan_digest)
-        .field_shape(
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("query"), input.query_identity())
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("plan"), input.plan_identity())
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("collection"),
-            input.collection_digest.as_deref().unwrap_or("none"),
+            input.collection_identity(),
         )
-        .field_shape(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("policy"),
-            input.policy_digest.as_deref().unwrap_or("none"),
+            input.policy_context_identity(),
         )
-        .field_shape(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("tenant"),
-            input.tenant_digest.as_deref().unwrap_or("none"),
+            input.tenant_context_identity(),
         )
-        .field_shape(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("relationship_proof"),
-            input
-                .relationship_proof_digest
-                .as_deref()
-                .unwrap_or("none"),
+            input.relationship_proof_context_identity(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("relationship_proof_posture"),

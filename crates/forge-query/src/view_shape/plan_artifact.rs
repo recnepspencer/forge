@@ -31,7 +31,7 @@ impl ViewShapePlanDigest {
 
     pub(crate) fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
         forge_query_evidence_identity(ForgeQueryEvidenceScope::ViewShapePlanDigest)
-            .field_identity(ForgeQueryEvidenceTag::new("plan_digest"), self.as_str())
+            .field_value(ForgeQueryEvidenceTag::new("plan_digest"), self.as_str())
             .seal()
     }
 }

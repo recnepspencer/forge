@@ -1,7 +1,3 @@
-use forge_runtime_bridge::facade::{
-    BridgeDeniedMixedCause, BridgeMixedCauseDeliveryWindowPlan, BridgeMixedCauseOrdering,
-    BridgeOrderedMixedCause, BridgeSuppressedMixedCause,
-};
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
@@ -11,42 +7,50 @@ use crate::lower_runtime_routing::{
 };
 use crate::ordinary_outcome::ForgeQueryOrdinaryRuntimePosture;
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
+use forge_runtime_bridge::facade::{
+    BridgeDeniedMixedCause, BridgeMixedCauseDeliveryWindowPlan, BridgeMixedCauseOrdering,
+    BridgeOrderedMixedCause, BridgeSuppressedMixedCause,
+};
 
 use super::{
     ForgeQueryAuthorityLane, ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeAsyncResultState,
-    ForgeQueryRuntimeDownstreamDeliveryClass, ForgeQueryRuntimeDownstreamResumePostureKind,
-    ForgeQueryRuntimeDownstreamSupportPosture, ForgeQueryRuntimeBackendPosture,
-    ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimeMixedCauseDelivery, ForgeQueryRuntimeRemaskDispositionKind,
-    ForgeQueryRuntimeRemaskPosture, ForgeQueryRuntimeRemaskReasonKind, ForgeQueryWriteReceipt,
+    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeDownstreamDeliveryClass,
+    ForgeQueryRuntimeDownstreamResumePostureKind, ForgeQueryRuntimeDownstreamSupportPosture,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeMixedCauseDelivery,
+    ForgeQueryRuntimeRemaskDispositionKind, ForgeQueryRuntimeRemaskPosture,
+    ForgeQueryRuntimeRemaskReasonKind, ForgeQueryWriteReceipt,
 };
 
 pub(in crate::runtime) fn lower_runtime_support_row_identity(
     row: &ForgeQueryLowerRuntimeSupportRow,
 ) -> ForgeQueryEvidenceIdentity {
-    let mut identity = forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "lower_runtime_support_row_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("seam"), row.seam_key().as_str())
-        .field_shape(
-            ForgeQueryEvidenceTag::new("capability"),
-            row.capability_label(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("owner"),
-            row.authority_owner().as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("route_kind"),
-            row.route_kind().as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("artifact"),
-            row.artifact_strength().as_str(),
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("posture"), row.posture().as_str());
+    let mut identity =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "lower_runtime_support_row_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("seam"), row.seam_key().as_str())
+            .field_shape(
+                ForgeQueryEvidenceTag::new("capability"),
+                row.capability_label(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("owner"),
+                row.authority_owner().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("route_kind"),
+                row.route_kind().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("artifact"),
+                row.artifact_strength().as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("posture"),
+                row.posture().as_str(),
+            );
     match row.detail() {
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSupportDetail::Crossing => {
             identity = identity.field_shape(ForgeQueryEvidenceTag::new("detail"), "crossing");
@@ -58,7 +62,10 @@ pub(in crate::runtime) fn lower_runtime_support_row_identity(
         } => {
             identity = identity
                 .field_shape(ForgeQueryEvidenceTag::new("detail"), "closeout")
-                .field_shape(ForgeQueryEvidenceTag::new("closeout_target"), closeout_target)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("closeout_target"),
+                    closeout_target,
+                )
                 .field_shape(
                     ForgeQueryEvidenceTag::new("required_closeout"),
                     required_closeout,
@@ -100,7 +107,10 @@ pub(in crate::runtime) fn runtime_downstream_delivery_contract_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_runtime_downstream_delivery_contract_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("posture"), backend_posture.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("posture"),
+            backend_posture.as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("runtime_resume"),
             runtime_resume_support_status.as_str(),
@@ -146,7 +156,10 @@ pub(in crate::runtime) fn runtime_downstream_delivery_identity(
             "forge_query_runtime_downstream_delivery_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("view"), parts.view_name)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("batch"), parts.delivery_batch_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("batch"),
+            parts.delivery_batch_identity,
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("class"),
             parts.delivery_class.as_str(),
@@ -159,13 +172,19 @@ pub(in crate::runtime) fn runtime_downstream_delivery_identity(
             ForgeQueryEvidenceTag::new("cause_digest"),
             parts.delivery_cause_identity,
         )
-        .field_usize(ForgeQueryEvidenceTag::new("sequence"), parts.sequence as usize)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("sequence"),
+            parts.sequence as usize,
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), parts.basis_identity)
         .field_shape(
             ForgeQueryEvidenceTag::new("support_posture"),
             parts.support_posture.as_str(),
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("support"), parts.support_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("support"),
+            parts.support_identity,
+        )
         .optional_evidence_identity(
             ForgeQueryEvidenceTag::new("mixed_cause"),
             parts.mixed_cause_identity,
@@ -209,9 +228,9 @@ pub(in crate::runtime) fn runtime_mixed_cause_ordering_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_runtime_mixed_cause_ordering_v1",
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("ordering"),
-            &ordering.ordering_identity().evidence_identity(),
+            &ordering.ordering_identity().bridge_admission_evidence(),
         )
         .seal()
 }
@@ -225,13 +244,15 @@ pub(in crate::runtime) fn runtime_mixed_cause_delivery_window_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_runtime_mixed_cause_delivery_window_v1",
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("ordering"),
-            &ordering.ordering_identity().evidence_identity(),
+            &ordering.ordering_identity().bridge_admission_evidence(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("delivery_window"),
-            &delivery_window.delivery_window_identity().evidence_identity(),
+            &delivery_window
+                .delivery_window_identity()
+                .bridge_admission_evidence(),
         )
         .seal()
 }
@@ -244,9 +265,9 @@ pub(in crate::runtime) fn runtime_mixed_cause_ordered_cause_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_runtime_mixed_cause_ordered_cause_v1",
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("ordered_cause"),
-            &cause.ordered_cause_identity().evidence_identity(),
+            &cause.ordered_cause_identity().bridge_admission_evidence(),
         )
         .seal()
 }
@@ -259,9 +280,9 @@ pub(in crate::runtime) fn runtime_mixed_cause_suppressed_cause_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_runtime_mixed_cause_suppressed_cause_v1",
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("suppressed_cause"),
-            &cause.suppressed_cause_identity().evidence_identity(),
+            &cause.suppressed_cause_identity().bridge_admission_evidence(),
         )
         .seal()
 }
@@ -274,9 +295,9 @@ pub(in crate::runtime) fn runtime_mixed_cause_denied_cause_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_runtime_mixed_cause_denied_cause_v1",
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("denied_cause"),
-            &cause.denied_cause_identity().evidence_identity(),
+            &cause.denied_cause_identity().bridge_admission_evidence(),
         )
         .seal()
 }
@@ -350,13 +371,22 @@ pub(in crate::runtime) fn runtime_remask_posture_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_runtime_remask_posture_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("disposition"), disposition_kind.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("disposition"),
+            disposition_kind.as_str(),
+        )
         .field_shape(ForgeQueryEvidenceTag::new("reason"), reason_kind.as_str())
         .field_evidence_identity(ForgeQueryEvidenceTag::new("support"), support_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("policy"), policy_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("tenant_truth"), tenant_truth_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("tenant_schema"), tenant_schema_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("tenant_truth"),
+            tenant_truth_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("tenant_schema"),
+            tenant_schema_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("relationship_proof"),
             relationship_proof_identity,
@@ -459,7 +489,10 @@ pub(in crate::runtime) fn runtime_live_view_inspection_identity(
             ForgeQueryEvidenceTag::new("bridge_declaration"),
             parts.bridge_declaration_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("admission"), parts.admission_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("admission"),
+            parts.admission_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("activation"),
             parts.activation_identity,
@@ -480,7 +513,10 @@ pub(in crate::runtime) fn runtime_live_view_inspection_identity(
             ForgeQueryEvidenceTag::new("consumer_attachment"),
             parts.consumer_attachment_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("consumer"), parts.consumer_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("consumer"),
+            parts.consumer_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("delivery_cursor"),
             parts.delivery_cursor_identity,
@@ -501,7 +537,10 @@ pub(in crate::runtime) fn runtime_live_view_inspection_identity(
             ForgeQueryEvidenceTag::new("runtime_budget"),
             parts.runtime_budget_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("support"), parts.support_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("support"),
+            parts.support_identity,
+        )
         .optional_shape(
             ForgeQueryEvidenceTag::new("last_delivery_cause"),
             parts
@@ -542,7 +581,10 @@ pub(in crate::runtime) fn runtime_live_view_inspection_identity(
             ForgeQueryEvidenceTag::new("installation"),
             parts.installation_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("counters"), parts.counter_inspection_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("counters"),
+            parts.counter_inspection_identity,
+        )
         .seal()
 }
 
@@ -591,7 +633,10 @@ pub(in crate::runtime) fn runtime_live_subscription_counter_inspection_identity(
             ForgeQueryEvidenceTag::new("bridge_lowering"),
             bridge_lowering_count as usize,
         )
-        .field_usize(ForgeQueryEvidenceTag::new("admission"), admission_count as usize)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("admission"),
+            admission_count as usize,
+        )
         .field_usize(
             ForgeQueryEvidenceTag::new("activation_input"),
             activation_input_count as usize,
@@ -658,7 +703,10 @@ pub(in crate::runtime) fn runtime_state_snapshot_result_shape_facade_family_iden
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_runtime_state_snapshot_result_shape_facade_family_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("facade_family"), facade_family.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("facade_family"),
+            facade_family.as_str(),
+        )
         .seal()
 }
 
@@ -700,7 +748,10 @@ pub(in crate::runtime) fn runtime_state_snapshot_result_shape_batch_write_receip
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_runtime_state_snapshot_result_shape_batch_write_receipt_v1",
         )
-        .field_usize(ForgeQueryEvidenceTag::new("write_count"), receipt.write_count())
+        .field_usize(
+            ForgeQueryEvidenceTag::new("write_count"),
+            receipt.write_count(),
+        )
         .seal()
 }
 

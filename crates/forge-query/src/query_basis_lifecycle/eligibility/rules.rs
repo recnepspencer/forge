@@ -1,5 +1,4 @@
-use crate::identity::hash_parts;
-
+use super::super::identity::basis_lifecycle_digest;
 use super::{
     BasisEligibility, BasisEligibilityCounters, BasisEligibilityDisposition, BasisEligibilityTrace,
     BasisOperationLaneRequest, DeniedBasisCapability, DeniedBasisCapabilityKind,
@@ -28,18 +27,26 @@ pub fn evaluate_basis_eligibility(
                 explanation,
             },
             counters: BasisEligibilityCounters::for_intent(&intent, 0),
-            eligibility_digest: hash_parts(&[
-                format!(
-                    "normalized_basis_intent_digest:{}",
-                    intent.canonical_digest()
-                ),
-                format!("family:{}", intent.family().as_str()),
-                format!("operation_lane:{}", intent.operation_lane().as_str()),
-                format!(
-                    "disposition:{}",
-                    classify_eligibility(&intent).disposition_label()
-                ),
-            ]),
+            eligibility_digest: basis_lifecycle_digest(
+                "basis_eligibility_admitted_v1",
+                [
+                    (
+                        "normalized_basis_intent_digest",
+                        intent.canonical_digest().to_string(),
+                    ),
+                    ("family", intent.family().as_str().to_string()),
+                    (
+                        "operation_lane",
+                        intent.operation_lane().as_str().to_string(),
+                    ),
+                    (
+                        "disposition",
+                        classify_eligibility(&intent)
+                            .disposition_label()
+                            .to_string(),
+                    ),
+                ],
+            ),
         }),
         EligibilityEvaluation::Denied {
             kind,
@@ -55,18 +62,26 @@ pub fn evaluate_basis_eligibility(
                 explanation,
             },
             counters: BasisEligibilityCounters::for_intent(&intent, 1),
-            failure_digest: hash_parts(&[
-                format!(
-                    "normalized_basis_intent_digest:{}",
-                    intent.canonical_digest()
-                ),
-                format!("family:{}", intent.family().as_str()),
-                format!("operation_lane:{}", intent.operation_lane().as_str()),
-                format!(
-                    "failure:{}",
-                    classify_eligibility(&intent).disposition_label()
-                ),
-            ]),
+            failure_digest: basis_lifecycle_digest(
+                "basis_eligibility_denied_v1",
+                [
+                    (
+                        "normalized_basis_intent_digest",
+                        intent.canonical_digest().to_string(),
+                    ),
+                    ("family", intent.family().as_str().to_string()),
+                    (
+                        "operation_lane",
+                        intent.operation_lane().as_str().to_string(),
+                    ),
+                    (
+                        "failure",
+                        classify_eligibility(&intent)
+                            .disposition_label()
+                            .to_string(),
+                    ),
+                ],
+            ),
         }),
     }
 }

@@ -28,7 +28,7 @@ pub(crate) fn bulk_planning_record_digest(
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .bulk_record_for_workload_identity(&BridgeWorkloadIdentity::from_reference_evidence(
-            reference_identity,
+            reference_identity.revalidate_bridge_retained_reference(),
         ))
         .map(|record| bulk_planning_digest(&record))
 }
@@ -38,9 +38,11 @@ pub(crate) fn historical_evaluation_failure_record_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .historical_failure_for_identity(&BridgeHistoricalEvaluationFailureIdentity::from_reference_evidence(
-            reference_identity,
-        ))
+        .historical_failure_for_identity(
+            &BridgeHistoricalEvaluationFailureIdentity::from_reference_evidence(
+                reference_identity.revalidate_bridge_retained_reference(),
+            ),
+        )
         .map(|record| historical_evaluation_failure_digest(&record))
 }
 
@@ -49,9 +51,9 @@ pub(crate) fn stream_checkpoint_record_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .stream_checkpoint_for_identity(
-            StreamCheckpointTokenIdentity::from_reference_evidence(reference_identity).as_str(),
-        )
+        .stream_checkpoint_for_identity(&StreamCheckpointTokenIdentity::from_reference_evidence(
+            reference_identity.revalidate_bridge_retained_reference(),
+        ))
         .map(|record| stream_checkpoint_digest(&record))
 }
 
@@ -139,9 +141,7 @@ pub(crate) fn stream_checkpoint_digest(record: &ConsumerCheckpointToken) -> Brid
     compose_retained_causal_mapping_evidence_identity(
         RetainedCausalMappingDigestArtifact::StreamCheckpointRecord,
         &[
-            retained_mapping_bridge_identity_part(&StreamCheckpointTokenIdentity::new(
-                record.checkpoint_token_identity(),
-            )),
+            retained_mapping_bridge_identity_part(record.checkpoint_token_identity()),
             retained_mapping_bridge_identity_part(record.consumer_contract_identity()),
             retained_mapping_bridge_identity_part(record.stream_protocol_identity()),
             retained_mapping_shape_part(checkpoint_frontier_kind_label(

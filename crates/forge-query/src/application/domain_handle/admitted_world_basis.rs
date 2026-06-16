@@ -109,7 +109,10 @@ pub(crate) fn compose_admitted_configured_domain_handle_identity_parts(
             ForgeQueryEvidenceTag::new("required_capabilities"),
             &required_capabilities,
         )
-        .field_shape(ForgeQueryEvidenceTag::new("required_sections"), &required_sections)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("required_sections"),
+            &required_sections,
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("operating_requirements"),
             &operating_requirements,

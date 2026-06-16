@@ -1,5 +1,5 @@
-use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 use super::super::support::*;
+use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 
 fn bridge_projection_for(
     kind: ForgeQueryRuntimeAsyncResultStateKind,
@@ -108,7 +108,12 @@ fn runtime_state_and_inspection_project_async_result_state_parity() {
     for (kind, expected_state_kind) in cases {
         let projection = bridge_projection_for(kind);
         let projected = runtime
-            .project_async_result_state(view.name(), &projection, &basis_identity, &checkpoint_identity)
+            .project_async_result_state(
+                view.name(),
+                &projection,
+                &basis_identity,
+                &checkpoint_identity,
+            )
             .expect("async result state should project");
         let state =
             <&ForgeQueryLiveView<Value> as ForgeQueryRuntimeStateTarget>::into_state_snapshot(

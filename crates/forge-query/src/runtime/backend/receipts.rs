@@ -1,4 +1,4 @@
-use crate::declarative_live::DeclarativeLiveQueryRequest;
+use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
@@ -15,7 +15,7 @@ pub use signal_routing_receipt::SignalInvalidationRoutingReceipt;
 pub struct LiveViewDeclarationAdmissionReceipt {
     view_name: String,
     target_collection: String,
-    view_shape: String,
+    view_shape: DeclarativeLiveViewShape,
     query_projection_count: usize,
     result_field_count: usize,
     predicate_filter_count: usize,
@@ -31,7 +31,7 @@ impl LiveViewDeclarationAdmissionReceipt {
     ) -> Self {
         let view_name = view_name.into();
         let target_collection = request.target().to_string();
-        let view_shape = request.view_shape().as_str().to_string();
+        let view_shape = request.view_shape().clone();
         let query_projection_count = request.query_projection().len();
         let result_field_count = request.result_fields().len();
         let predicate_filter_count = request.predicate_filters().len();
@@ -46,7 +46,7 @@ impl LiveViewDeclarationAdmissionReceipt {
         )
         .field_value(ForgeQueryEvidenceTag::new("view"), &view_name)
         .field_value(ForgeQueryEvidenceTag::new("target"), &target_collection)
-        .field_shape(ForgeQueryEvidenceTag::new("shape"), &view_shape)
+        .field_shape(ForgeQueryEvidenceTag::new("shape"), view_shape.as_str())
         .field_usize(
             ForgeQueryEvidenceTag::new("query_projection_count"),
             query_projection_count,
@@ -83,12 +83,16 @@ impl LiveViewDeclarationAdmissionReceipt {
         &self.view_name
     }
 
-    pub fn target_collection(&self) -> &str {
+    pub fn target_collection_for_reporting(&self) -> &str {
         &self.target_collection
     }
 
-    pub fn view_shape(&self) -> &str {
+    pub fn view_shape(&self) -> &DeclarativeLiveViewShape {
         &self.view_shape
+    }
+
+    pub fn view_shape_for_reporting(&self) -> &str {
+        self.view_shape.as_str()
     }
 
     pub fn query_projection_count(&self) -> usize {
@@ -130,14 +134,14 @@ impl LiveViewDeclarationAdmissionReceipt {
                 self.view_name()
             ));
         }
-        if self.target_collection() != request.target() {
+        if self.target_collection != request.target() {
             return Some(format!(
                 "live-view admission receipt target drifted: expected `{}`, found `{}`",
                 request.target(),
-                self.target_collection()
+                self.target_collection
             ));
         }
-        if self.view_shape() != request.view_shape().as_str()
+        if self.view_shape() != request.view_shape()
             || self.query_projection_count() != request.query_projection().len()
             || self.result_field_count() != request.result_fields().len()
             || self.predicate_filter_count() != request.predicate_filters().len()
@@ -169,20 +173,17 @@ impl SubscriptionActivationReceipt {
     pub(crate) fn from_activation(
         view_name: impl Into<String>,
         activation: &SubscriptionActivationInput,
-        support_evidence: impl Into<String>,
+        support_evidence_identity: ForgeQueryEvidenceIdentity,
         remask_projection: Option<ForgeQueryRuntimeRemaskProjection>,
     ) -> Self {
         let view_name = view_name.into();
-        let support_evidence = support_evidence.into();
         let activation_identity = activation.evidence_identity().clone();
         let query_declaration_identity = activation.query_declaration_identity().clone();
         let bridge_declaration_identity = activation.bridge_declaration_identity().clone();
         let basis_binding_identity = activation.basis_binding_identity().clone();
         let signal_strategy_identity = activation.signal_strategy_identity().clone();
-        let support_source_identity =
-            subscription_activation_support_source_identity(&support_evidence);
         let support_identity =
-            subscription_activation_receipt_source_identity("support", &support_source_identity);
+            subscription_activation_receipt_source_identity("support", &support_evidence_identity);
         let remask_posture = remask_projection.map(|projection| {
             ForgeQueryRuntimeRemaskPosture::from_activation_projection(
                 &projection,
@@ -337,7 +338,9 @@ impl SubscriptionActivationReceipt {
                 activation.signal_strategy_identity(),
             )
         {
-            return Some("subscription activation receipt drifted from activation input".to_string());
+            return Some(
+                "subscription activation receipt drifted from activation input".to_string(),
+            );
         }
         None
     }
@@ -348,18 +351,6 @@ fn typed_identity_drift(
     right: &ForgeQueryEvidenceIdentity,
 ) -> bool {
     !matches!(left.eq_same_scheme(right), Ok(true))
-}
-
-fn subscription_activation_support_source_identity(
-    source_label: &str,
-) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "subscription_activation_support_source_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label)
-        .seal()
 }
 
 fn subscription_activation_receipt_source_identity(

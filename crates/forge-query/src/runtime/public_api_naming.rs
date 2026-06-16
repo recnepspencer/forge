@@ -36,7 +36,7 @@ impl ForgeQueryRuntimePublicApiNamingRow {
                     ForgeQueryEvidenceTag::new("boundary_crossing"),
                     boundary_crossing,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("alternate_name"),
                     alternate_names.iter().map(String::as_str),
                 )
@@ -212,7 +212,7 @@ impl ForgeQueryRuntimePublicApiNamingContract {
                     ForgeQueryEvidenceTag::new("boundary_crossing_name_count"),
                     boundary_crossing_name_count,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("row_digest"),
                     rows.iter()
                         .map(ForgeQueryRuntimePublicApiNamingRow::naming_digest),
@@ -273,7 +273,7 @@ pub(crate) fn compose_public_api_naming_row_identity(
             ForgeQueryEvidenceTag::new("boundary_crossing"),
             row.boundary_crossing(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("alternate_name"),
             row.alternate_names().iter().map(String::as_str),
         )
@@ -297,7 +297,7 @@ pub(crate) fn compose_public_api_naming_contract_identity(
             ForgeQueryEvidenceTag::new("boundary_crossing_name_count"),
             contract.boundary_crossing_name_count(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("row_digest"),
             contract
                 .rows()

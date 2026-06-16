@@ -69,7 +69,7 @@ impl BridgeBackedRuntimeBootstrap {
         let intent_authority = parts.intent_authority;
         let support_profile = parts.support_profile.unwrap_or_else(|| {
             ForgeQueryRuntimeSupportProfile::bridge_backed(
-                subscription_activation.support_evidence(),
+                subscription_activation.support_evidence_for_reporting(),
                 "preview-basis-admission",
                 "inspector-evidence-adapter",
             )

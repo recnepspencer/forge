@@ -54,7 +54,7 @@ fn fixture_with_policy(policy: BridgeRuntimePolicy) -> BridgeHarnessFixture {
 
 fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-name"),
+        BridgeMappingId::admit_bridge_owned("profile-name"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -65,7 +65,7 @@ fn registration() -> BridgeMappingRegistration {
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile"),
         CoarseRoutingMode::Direct,
     )
 }
@@ -149,7 +149,7 @@ fn provenance_certification_retains_typed_policy_route_and_counter_evidence() {
         &policy_matrix.rows()[0],
         PolicyCertificationRow::Admitted(row)
             if row.declaration_identity()
-                == &crate::facade::BridgePolicyDeclarationIdentity::new(
+                == &crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
                     "policy-cert:deterministic-authoritative",
                 )
     ));
@@ -157,7 +157,7 @@ fn provenance_certification_retains_typed_policy_route_and_counter_evidence() {
         &policy_matrix.rows()[1],
         PolicyCertificationRow::Admitted(row)
             if row.declaration_identity()
-                == &crate::facade::BridgePolicyDeclarationIdentity::new(
+                == &crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
                     "policy-cert:optimized-preview",
                 )
     ));
@@ -216,7 +216,7 @@ fn rejection_certification_retains_typed_rejection_rows_and_zero_authority_escap
             if row.failure_kind() == BridgePolicyRejectionKind::UnsupportedExecutionMode
                 && row.stage() == BridgePolicyRejectionStage::Validation
                 && row.declaration_identity()
-                    == &crate::facade::BridgePolicyDeclarationIdentity::new(
+                    == &crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
                         "policy-cert:rejection-optimized-authoritative",
                     )
     ));
@@ -226,7 +226,7 @@ fn rejection_certification_retains_typed_rejection_rows_and_zero_authority_escap
             if row.failure_kind() == BridgePolicyRejectionKind::ReplayPolicyConflict
                 && row.stage() == BridgePolicyRejectionStage::Admission
                 && row.declaration_identity()
-                    == &crate::facade::BridgePolicyDeclarationIdentity::new(
+                    == &crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
                         "policy-cert:rejection-replay-conflict",
                     )
     ));

@@ -29,7 +29,7 @@ fn compose_authoritative_intent_receipt_identity_with_effect_trigger(
             ForgeQueryEvidenceTag::new("execution_kind"),
             receipt.execution_kind().as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_identity"),
             receipt.strategy_identity(),
         )
@@ -37,19 +37,19 @@ fn compose_authoritative_intent_receipt_identity_with_effect_trigger(
             ForgeQueryEvidenceTag::new("strategy_version"),
             receipt.strategy_version(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_descriptor_digest"),
             receipt.strategy_descriptor_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             receipt.canonical_input_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("outcome_digest"),
             receipt.outcome_digest(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("invariant_evidence"),
             receipt.invariant_evidence().iter().map(String::as_str),
         )
@@ -128,15 +128,15 @@ fn compose_authoritative_intent_receipt_identity_with_effect_trigger(
             ForgeQueryEvidenceTag::new("execution_seam"),
             receipt.execution_seam_label(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("admission_decision_digest"),
             receipt.admission_decision_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_handoff_digest"),
             receipt.execution_handoff_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_binding_digest"),
             receipt.execution_binding_digest(),
         )
@@ -146,7 +146,7 @@ fn compose_authoritative_intent_receipt_identity_with_effect_trigger(
                 .execution_provenance()
                 .execution_provenance_chain_identity(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("decision_trace_digest"),
             receipt.decision_trace_envelope().trace_digest(),
         )
@@ -170,19 +170,19 @@ pub(super) fn compose_intent_execution_provenance_chain_identity(
             ForgeQueryEvidenceTag::new("seam"),
             provenance.execution_seam().as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("admission_decision_digest"),
             provenance.admission_decision_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_handoff_digest"),
             provenance.execution_handoff_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_binding_digest"),
             provenance.execution_binding_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_outcome_digest"),
             receipt.outcome_digest(),
         )
@@ -209,7 +209,7 @@ pub(super) fn compose_effect_intent_receipt_identity(
             ForgeQueryEvidenceTag::new("trigger_source_kind"),
             receipt.trigger_source_kind().as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("write_adjacent_trigger_digest"),
             receipt.write_adjacent_trigger().digest(),
         )
@@ -264,7 +264,7 @@ pub(super) fn compose_authoritative_intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("execution_kind"),
             inspection.execution_kind().as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_identity"),
             inspection.strategy_identity(),
         )
@@ -272,15 +272,15 @@ pub(super) fn compose_authoritative_intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("strategy_version"),
             inspection.strategy_version(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_descriptor_digest"),
             inspection.strategy_descriptor_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             inspection.canonical_input_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("outcome_digest"),
             inspection.outcome_digest(),
         )
@@ -288,7 +288,7 @@ pub(super) fn compose_authoritative_intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("produced_mutation_digest"),
             inspection.produced_mutation_digest(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("invariant_evidence"),
             inspection.invariant_evidence().iter().map(String::as_str),
         )

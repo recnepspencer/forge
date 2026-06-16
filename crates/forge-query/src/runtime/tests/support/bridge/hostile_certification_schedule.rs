@@ -29,7 +29,7 @@ impl ForgeQueryDerivedViewMaintainer for HostileCertificationMaintainer {
         materialization.replace_rows([json!({ "title": { "value": title } })]);
         ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label(format!(
+            crate::memory_workspace::admit_external_commit_label(format!(
                 "hostile-certification-refresh-{}",
                 next + 1
             )),

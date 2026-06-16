@@ -1,13 +1,17 @@
-use super::{compose_admitted_configured_domain_handle_identity, ForgeQueryAdmittedWorldBasis, ForgeQueryDomainOperatingContext};
+use super::{
+    compose_admitted_configured_domain_handle_identity, ForgeQueryAdmittedWorldBasis,
+    ForgeQueryDomainOperatingContext,
+};
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfig,
     ForgeQueryConfigSectionFamily, ForgeQueryDomainEntryMarker, ForgeQuerySignalConfig,
 };
-use crate::runtime::{
-    runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
-    ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateTarget,
-};
 use crate::runtime::tests::support::stateful_bridge_task_runtime;
+use crate::runtime::{
+    runtime_state_snapshot_basis_label_identity,
+    runtime_state_snapshot_result_shape_label_identity, ForgeQueryRuntimeStateKind,
+    ForgeQueryRuntimeStateTarget,
+};
 
 const ENTRY_CAPABILITIES: &[ForgeQueryCapabilityFamily] =
     &[ForgeQueryCapabilityFamily::QueryComposition];
@@ -93,7 +97,10 @@ fn retained_world_basis_matches_admitted_handle_identity_and_support() {
         basis.support_snapshot_digest(),
         handle.support_snapshot().snapshot_digest()
     );
-    assert_eq!(basis.basis_lifecycle_support_identity(), &support.report_identity());
+    assert_eq!(
+        basis.basis_lifecycle_support_identity(),
+        &support.report_identity()
+    );
 }
 
 #[test]
@@ -115,7 +122,10 @@ fn changing_operating_context_changes_world_identity_digests() {
         collaborative.operating_context_identity_digest(),
         restricted.operating_context_identity_digest()
     );
-    assert_ne!(collaborative.handle_identity(), restricted.handle_identity());
+    assert_ne!(
+        collaborative.handle_identity(),
+        restricted.handle_identity()
+    );
 }
 
 #[test]
@@ -140,7 +150,10 @@ fn changing_support_snapshot_changes_support_snapshot_digest_without_rebinding_w
         default_basis.basis_lifecycle_support_identity(),
         signal_disabled_basis.basis_lifecycle_support_identity()
     );
-    assert_ne!(default_basis.handle_identity(), signal_disabled_basis.handle_identity());
+    assert_ne!(
+        default_basis.handle_identity(),
+        signal_disabled_basis.handle_identity()
+    );
 }
 
 #[test]

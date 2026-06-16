@@ -317,7 +317,7 @@ fn runtime_retains_source_materialization_record_in_diagnostics() {
     assert_eq!(
         runtime
             .diagnostics()
-            .source_materialization_record_for_identity(record.record_identity().as_str())
+            .source_materialization_record_for_identity(record.record_identity())
             .expect("record should be queryable by identity"),
         record
     );

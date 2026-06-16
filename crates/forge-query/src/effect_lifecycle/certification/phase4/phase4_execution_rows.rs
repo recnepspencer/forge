@@ -1,13 +1,12 @@
 use forge_relational::facade::history::BranchId;
 
 use crate::effect_lifecycle::{
-    admit_effect_intent, discover_effect_lifecycle_support, effect_batch,
-    evaluate_effect_eligibility, normalize_raw_effect_intent, scope_admitted_effect_plan,
-    bridge_observation_execution_record_subject_identity,
+    admit_effect_intent, bridge_observation_execution_record_subject_identity,
     bridge_observation_outcome_subject_identity, bridge_observation_receipt_subject_identity,
-    bridge_observation_request_subject_identity, BridgeExecutionOracle, EffectAuthoringBasis,
-    EffectEligibilityOutcome, EffectExecutionAuthority, EffectFamily, RawEffectIntent,
-    RelationalExecutionOracle,
+    bridge_observation_request_subject_identity, discover_effect_lifecycle_support, effect_batch,
+    evaluate_effect_eligibility, normalize_raw_effect_intent, scope_admitted_effect_plan,
+    BridgeExecutionOracle, EffectAuthoringBasis, EffectEligibilityOutcome,
+    EffectExecutionAuthority, EffectFamily, RawEffectIntent, RelationalExecutionOracle,
 };
 use crate::workflow::{
     MergeLoweringInput, WorkflowAuthorityTargetFamily, WorkflowDeclarationFamily,
@@ -66,7 +65,9 @@ pub(super) fn branch_mutation_execution_row() -> EffectLifecyclePhase4Certificat
         format!(
             "support:{};plan:{}",
             support.discovery_for_reporting(),
-            executed.lowered().lowered_effect_execution_plan_for_reporting()
+            executed
+                .lowered()
+                .lowered_effect_execution_plan_for_reporting()
         ),
         executed.counters().clone(),
     )
@@ -119,7 +120,9 @@ pub(super) fn relational_merge_execution_row() -> EffectLifecyclePhase4Certifica
         format!(
             "support:{};plan:{}",
             support.discovery_for_reporting(),
-            executed.lowered().lowered_effect_execution_plan_for_reporting()
+            executed
+                .lowered()
+                .lowered_effect_execution_plan_for_reporting()
         ),
         executed.counters().clone(),
     )
@@ -156,7 +159,9 @@ pub(super) fn bridge_writeback_execution_row() -> EffectLifecyclePhase4Certifica
         format!(
             "support:{};plan:{}",
             support.discovery_for_reporting(),
-            executed.lowered().lowered_effect_execution_plan_for_reporting()
+            executed
+                .lowered()
+                .lowered_effect_execution_plan_for_reporting()
         ),
         executed.counters().clone(),
     )

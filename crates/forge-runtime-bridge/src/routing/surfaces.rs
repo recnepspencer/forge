@@ -117,7 +117,7 @@ fn truth_delta_surface_identity(
         target_mask_identity.as_str(),
     );
     let digest = Sha256::digest(basis.as_bytes());
-    TruthDeltaSurfaceIdentity::new(format!("truth-delta-surface:sha256:{digest:x}"))
+    TruthDeltaSurfaceIdentity::admit_bridge_owned(format!("truth-delta-surface:sha256:{digest:x}"))
 }
 
 fn truth_delta_surface_target_mask_identity(
@@ -128,7 +128,7 @@ fn truth_delta_surface_target_mask_identity(
         target.canonical_basis()
     );
     let digest = Sha256::digest(basis.as_bytes());
-    TruthDeltaSurfaceTargetMaskIdentity::new(format!(
+    TruthDeltaSurfaceTargetMaskIdentity::admit_bridge_owned(format!(
         "truth-delta-surface-target-mask:sha256:{digest:x}"
     ))
 }

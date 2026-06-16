@@ -337,7 +337,12 @@ pub(crate) fn project_downstream_delivery(
         delivery_class,
         ForgeQueryRuntimeDownstreamDeliveryClass::MixedCause
     )
-    .then(|| delivery.mixed_cause_delivery().mixed_cause_identity().clone());
+    .then(|| {
+        delivery
+            .mixed_cause_delivery()
+            .mixed_cause_identity()
+            .clone()
+    });
     let async_result_state_identity = state
         .async_result_state
         .as_ref()
@@ -352,22 +357,23 @@ pub(crate) fn project_downstream_delivery(
     let support_identity = state.installation.support_identity().clone();
     let delivery_batch_identity = delivery.delivery_batch_identity().clone();
     let delivery_cause_identity = delivery.delivery_cause_identity().clone();
-    let delivery_identity = runtime_downstream_delivery_identity(RuntimeDownstreamDeliveryIdentityParts {
-        view_name: state.installation.view_name(),
-        delivery_batch_identity: &delivery_batch_identity,
-        delivery_class,
-        delivery_cause_kind: delivery.delivery_cause_kind(),
-        delivery_cause_identity: &delivery_cause_identity,
-        sequence: delivery.sequence(),
-        basis_identity: &basis_identity,
-        support_posture,
-        support_identity: &support_identity,
-        mixed_cause_identity: mixed_cause_identity.as_ref(),
-        async_result_state_identity: async_result_state_identity.as_ref(),
-        remask_identity: remask_identity.as_ref(),
-        runtime_resume_support_identity: contract.runtime_resume_support_identity(),
-        durable_resume_support_identity: contract.durable_resume_support_identity(),
-    });
+    let delivery_identity =
+        runtime_downstream_delivery_identity(RuntimeDownstreamDeliveryIdentityParts {
+            view_name: state.installation.view_name(),
+            delivery_batch_identity: &delivery_batch_identity,
+            delivery_class,
+            delivery_cause_kind: delivery.delivery_cause_kind(),
+            delivery_cause_identity: &delivery_cause_identity,
+            sequence: delivery.sequence(),
+            basis_identity: &basis_identity,
+            support_posture,
+            support_identity: &support_identity,
+            mixed_cause_identity: mixed_cause_identity.as_ref(),
+            async_result_state_identity: async_result_state_identity.as_ref(),
+            remask_identity: remask_identity.as_ref(),
+            runtime_resume_support_identity: contract.runtime_resume_support_identity(),
+            durable_resume_support_identity: contract.durable_resume_support_identity(),
+        });
     Some(ForgeQueryRuntimeDownstreamDelivery {
         view_name: state.installation.view_name().to_string(),
         delivery_batch_identity,

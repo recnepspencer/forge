@@ -19,6 +19,7 @@ use super::merge::{BridgeCanonicalMergeRecord, BridgeMergeRecordIdentity};
 use super::records::{BridgeFailureRecord, BridgeRouteRecord};
 use super::structural::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
+    BridgeStructuralBranchComparisonRecordIdentity, BridgeStructuralRemapRecordIdentity,
 };
 use crate::speculation::{
     BridgePreviewDiscardRecord, BridgePreviewDiscardRecordIdentity, BridgePreviewExecutionRecord,

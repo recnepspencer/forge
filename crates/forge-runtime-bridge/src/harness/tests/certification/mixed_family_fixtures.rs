@@ -69,9 +69,9 @@ pub(crate) fn mixed_source_fixture(
         name,
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
-            .with_source_declaration(mixed_source_declaration(SourceDeclarationIdentity::new(
-                "source:analysis-history",
-            )))
+            .with_source_declaration(mixed_source_declaration(
+                SourceDeclarationIdentity::admit_bridge_owned("source:analysis-history"),
+            ))
             .with_source_adapter_capabilities(BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::HistoricalRead,
@@ -130,9 +130,9 @@ fn mixed_structural_remap_declaration(
 ) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::advisory_remap(
         declaration_identity,
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::TopologyFingerprint,
             "geometry-topology-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -154,7 +154,9 @@ pub(crate) fn mixed_structural_fixture(
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_structural_declaration(mixed_structural_remap_declaration(
-                StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+                StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+                    "structural:analysis-remap",
+                ),
             ))
             .with_committed_patch(committed_patch_on_branch(
                 crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
@@ -194,7 +196,7 @@ pub(crate) fn mixed_merge_fixture(
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_merge_declaration(merge_declaration(
-                MergeHistoryDeclarationIdentity::new("merge:m13-mixed"),
+                MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:m13-mixed"),
                 crate::facade::BridgeMergeConsumptionClass::AspectReconciliationMerge,
                 [
                     crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
@@ -202,7 +204,7 @@ pub(crate) fn mixed_merge_fixture(
                 ],
             ))
             .with_merge_declaration(merge_declaration(
-                MergeHistoryDeclarationIdentity::new("merge:m13-topology-denial"),
+                MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:m13-topology-denial"),
                 crate::facade::BridgeMergeConsumptionClass::TopologyRewireMerge,
                 [
                     crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),

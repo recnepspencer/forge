@@ -1,26 +1,24 @@
 use super::bridge::certification_bridge;
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::facade::{
-    DeclarativeProjectionField, ForgeQueryAuthorityLane, ForgeQueryBasisAdmissionEvidenceRow,
-    ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
-    ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryExistingTruthProbeDenial,
-    ForgeQueryExistingTruthProbeDenialKind, ForgeQueryIntentAuthorityAdapter,
-    ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLiveViewHandle,
-    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
-    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
-    ForgeQueryRuntimeSnapshotIdentityAdapter, ForgeQueryRuntimeSourceAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeSupportProfile,
-    ForgeQuerySessionLabel, ForgeQueryWorkspaceError, ForgeQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
-    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationInput,
+    runtime_subscription_support_evidence_identity, DeclarativeProjectionField,
+    ForgeQueryAuthorityLane, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy,
+    ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthAssertionDenialKind,
+    ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthProbeDenialKind,
+    ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
+    ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
+    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeExistingTruthVerificationAdapter,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
+    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel, ForgeQueryWorkspaceError,
+    ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
+    SchemaFieldKind, SchemaFieldView, SignalInvalidationBoundaryReceipt,
+    SubscriptionActivationBoundaryReceipt, SubscriptionActivationInput,
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
@@ -33,7 +31,8 @@ use std::collections::BTreeMap;
 
 use super::write_authority::CertificationWriteAuthority;
 use super::{
-    certification_commit_identity, certification_entity_identity, certification_snapshot_identity,
+    certification_commit_identity_for, certification_entity_identity,
+    certification_snapshot_identity, certification_snapshot_identity_for,
 };
 
 pub(crate) fn certification_runtime() -> ForgeQueryRuntime {
@@ -78,18 +77,7 @@ struct CertificationSnapshotIdentity;
 
 impl ForgeQueryRuntimeSnapshotIdentityAdapter for CertificationSnapshotIdentity {
     fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
-        ForgeQuerySnapshotIdentity::preview(
-            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
-                .field_shape(
-                    ForgeQueryEvidenceTag::new("certification_snapshot_authority"),
-                    "intent-admission",
-                )
-                .field_usize(
-                    ForgeQueryEvidenceTag::new("certification_snapshot_sequence"),
-                    1,
-                )
-                .seal(),
-        )
+        certification_snapshot_identity("certification-runtime-current-snapshot")
     }
 }
 
@@ -204,9 +192,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter for CertificationExisting
         ForgeQueryVerifiedExistingTruthAssertion::new(
             binding,
             aspects,
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
-                "certification-existing-truth-verification-snapshot",
-            ),
+            certification_snapshot_identity("certification-existing-truth-verification-snapshot"),
         )
         .map_err(|error| {
             ForgeQueryExistingTruthAssertionDenial::new(
@@ -259,9 +245,9 @@ impl ForgeQueryIntentAuthorityAdapter for CertificationIntentAuthority {
             .unwrap_or("Task")
             .to_string();
         let commit_identity =
-            certification_commit_identity(format!("certification-intent-commit:{collection}"));
+            certification_commit_identity_for("certification-intent-commit", &collection);
         let snapshot_identity =
-            certification_snapshot_identity(format!("certification-intent-snapshot:{collection}"));
+            certification_snapshot_identity_for("certification-intent-snapshot", &collection);
         let mutation_receipt = ForgeQueryMutationReceipt {
             commit_identity,
             snapshot_identity,
@@ -315,8 +301,8 @@ impl ForgeQueryRuntimeSignalSinkAdapter for CertificationSignalSink {
 struct CertificationSubscriptionActivation;
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for CertificationSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "certification-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("certification-subscription-activation")
     }
 
     fn admit_activation(
@@ -386,9 +372,7 @@ impl ForgeQueryIntentAuthorityAdapter for InvariantViolationCertificationIntentA
                 "certification-invariant:violated",
                 "certification-invariant:authority-lane",
             ],
-            ForgeQuerySnapshotIdentity::from_external_authority_label(
-                "certification-invariant-snapshot",
-            ),
+            certification_snapshot_identity("certification-invariant-snapshot"),
         ))
     }
 }

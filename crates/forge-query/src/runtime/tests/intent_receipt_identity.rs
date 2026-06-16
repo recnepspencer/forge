@@ -110,7 +110,7 @@ fn effect_triggered_intent_receipt_identity_keeps_nested_receipts_typed() {
 
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+            entity_identity: crate::memory_workspace::admit_authored_entity_label(
                 "task|identity",
             ),
             aspect_path: "title.value".to_string(),
@@ -188,7 +188,7 @@ fn effect_triggered_intent_receipt_identity_changes_with_nested_authoritative_re
     );
     left_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+            entity_identity: crate::memory_workspace::admit_authored_entity_label(
                 "task|identity",
             ),
             aspect_path: "title.value".to_string(),
@@ -207,7 +207,7 @@ fn effect_triggered_intent_receipt_identity_changes_with_nested_authoritative_re
     );
     right_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+            entity_identity: crate::memory_workspace::admit_authored_entity_label(
                 "identity|task",
             ),
             aspect_path: "title.value".to_string(),

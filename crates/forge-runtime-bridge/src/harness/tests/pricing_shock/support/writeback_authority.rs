@@ -8,14 +8,14 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_writeback_declaration(
 ) -> BridgeWritebackDeclaration {
     match request_mode {
         BridgeWritebackRequestMode::ReadOnly => BridgeWritebackDeclaration::read_only(
-            BridgeWritebackDeclarationIdentity::new(declaration_identity),
+            BridgeWritebackDeclarationIdentity::admit_bridge_owned(declaration_identity),
             request_kind,
             BridgeWritebackEffectClass::ProjectedStateDiff,
             BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
         ),
         BridgeWritebackRequestMode::WritebackCapable => {
             BridgeWritebackDeclaration::writeback_capable(
-                BridgeWritebackDeclarationIdentity::new(declaration_identity),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(declaration_identity),
                 request_kind,
                 BridgeWritebackFamilyKind::ProjectedStateDiff,
                 BridgeWritebackEffectClass::ProjectedStateDiff,
@@ -31,7 +31,7 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_lowered_policy(
 ) -> crate::facade::LoweredBridgeExecutionPolicy {
     let policy_contract = runtime
         .admit_policy_declaration(BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:pricing-writeback"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:pricing-writeback"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -47,9 +47,9 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_writeback_causality_basi
     truth_trigger_evidence_text: &str,
 ) -> crate::facade::BridgeWritebackNativeCausalityInputs {
     crate::facade::BridgeWritebackNativeCausalityInputs::new(
-        BridgeWritebackCausalityIdentity::new(identity),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(identity),
         crate::truth_identity_fixtures::truth_commit_fixture(truth_trigger_evidence_text),
-        crate::facade::BridgeRouteIdentity::new(identity),
+        crate::facade::BridgeRouteIdentity::admit_bridge_owned(identity),
         crate::truth_identity_fixtures::truth_snapshot_fixture(identity),
         crate::truth_identity_fixtures::truth_snapshot_fixture(identity),
     )

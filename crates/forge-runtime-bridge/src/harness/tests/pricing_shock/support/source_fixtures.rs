@@ -4,7 +4,7 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_field_aspect_registratio
     component: &str,
 ) -> BridgeAspectRegistration {
     BridgeAspectRegistration::new(
-        BridgeAspectRegistrationId::new(format!("pricing-{component}-usd-field")),
+        BridgeAspectRegistrationId::admit_bridge_owned(format!("pricing-{component}-usd-field")),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact(format!("component:{component}")),
             forge_foundational::facade::AspectKey::new("cost").expect("valid native aspect key"),

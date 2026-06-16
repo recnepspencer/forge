@@ -4,11 +4,11 @@ use super::support::*;
 fn pricing_shock_reference_matrix_preserves_semantic_truth_across_diagnostics_profiles() {
     let baseline = capture_pricing_certification_matrix(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-baseline"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-baseline"),
     );
     let forensic = capture_pricing_certification_matrix(
         BridgeRuntimePolicy::forensic(),
-        BridgePreviewSessionIdentity::new("pricing:preview-forensic"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-forensic"),
     );
 
     assert_eq!(baseline.reference, forensic.reference);
@@ -19,7 +19,7 @@ fn pricing_shock_reference_matrix_preserves_semantic_truth_across_diagnostics_pr
 fn pricing_shock_route_replay_preserves_canonical_main_branch_truth() {
     let replay = capture_pricing_certification_matrix(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-replay-control"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-replay-control"),
     )
     .replay;
 

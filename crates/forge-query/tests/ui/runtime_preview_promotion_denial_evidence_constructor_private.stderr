@@ -1,98 +1,31 @@
-error: cannot construct `ForgeQueryPreviewPromotionDenialEvidence` with struct literal syntax due to private fields
-  --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:7:19
+error[E0560]: struct `ForgeQueryPreviewPromotionDenialEvidence` has no field named `label`
+ --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:8:9
+  |
+8 |         label: "preview".to_string(),
+  |         ^^^^^ `ForgeQueryPreviewPromotionDenialEvidence` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryPreviewPromotionDenialEvidence` has no field named `basis_snapshot_token`
+  --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:12:9
    |
- 7 |     let _forged = ForgeQueryPreviewPromotionDenialEvidence {
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 8 |         label: "preview".to_string(),
-   |         ---------------------------- private field
- 9 |         kind: ForgeQueryPreviewPromotionDenialKind::StaleBasis,
-   |         ------------------------------------------------------ private field
-10 |         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-   |         ------------------------------------------------- private field
-11 |         basis_evidence: Vec::new(),
-   |         -------------------------- private field
 12 |         basis_snapshot_token: "a".to_string(),
-   |         ------------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^ `ForgeQueryPreviewPromotionDenialEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryPreviewPromotionDenialEvidence` has no field named `promotion_snapshot_token`
+  --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:13:9
+   |
 13 |         promotion_snapshot_token: "b".to_string(),
-   |         ----------------------------------------- private field
-14 |         staged_preview_write_count: 1,
-   |         ----------------------------- private field
-15 |         promoted_write_count: 0,
-   |         ----------------------- private field
-16 |         failed_write_sequence: None,
-   |         --------------------------- private field
-17 |         preview_binding_count: 0,
-   |         ------------------------ private field
-18 |         reason: "forged".to_string(),
-   |         ---------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryPreviewPromotionDenialEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryPreviewPromotionDenialEvidence` has no field named `denial_digest`
+  --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:19:9
+   |
 19 |         denial_digest: String::new(),
-   |         ---------------------------- private field
+   |         ^^^^^^^^^^^^^ `ForgeQueryPreviewPromotionDenialEvidence` does not have this field
    |
-   = note: ...and other private fields `crossed_authoritative_residue_count`, `recovery_posture` and `rebinding_digest` that were not provided
-help: you might have meant to use an associated function to build this type
-   |
- 7 -     let _forged = ForgeQueryPreviewPromotionDenialEvidence {
- 8 -         label: "preview".to_string(),
- 9 -         kind: ForgeQueryPreviewPromotionDenialKind::StaleBasis,
-10 -         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-11 -         basis_evidence: Vec::new(),
-12 -         basis_snapshot_token: "a".to_string(),
-13 -         promotion_snapshot_token: "b".to_string(),
-14 -         staged_preview_write_count: 1,
-15 -         promoted_write_count: 0,
-16 -         failed_write_sequence: None,
-17 -         preview_binding_count: 0,
-18 -         reason: "forged".to_string(),
-19 -         denial_digest: String::new(),
-20 -     };
- 7 +     let _forged = ForgeQueryPreviewPromotionDenialEvidence::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _);
-   |
- 7 -     let _forged = ForgeQueryPreviewPromotionDenialEvidence {
- 8 -         label: "preview".to_string(),
- 9 -         kind: ForgeQueryPreviewPromotionDenialKind::StaleBasis,
-10 -         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-11 -         basis_evidence: Vec::new(),
-12 -         basis_snapshot_token: "a".to_string(),
-13 -         promotion_snapshot_token: "b".to_string(),
-14 -         staged_preview_write_count: 1,
-15 -         promoted_write_count: 0,
-16 -         failed_write_sequence: None,
-17 -         preview_binding_count: 0,
-18 -         reason: "forged".to_string(),
-19 -         denial_digest: String::new(),
-20 -     };
- 7 +     let _forged = ForgeQueryPreviewPromotionDenialEvidence::stale_basis(_, _, _, _, _, _, _);
-   |
- 7 -     let _forged = ForgeQueryPreviewPromotionDenialEvidence {
- 8 -         label: "preview".to_string(),
- 9 -         kind: ForgeQueryPreviewPromotionDenialKind::StaleBasis,
-10 -         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-11 -         basis_evidence: Vec::new(),
-12 -         basis_snapshot_token: "a".to_string(),
-13 -         promotion_snapshot_token: "b".to_string(),
-14 -         staged_preview_write_count: 1,
-15 -         promoted_write_count: 0,
-16 -         failed_write_sequence: None,
-17 -         preview_binding_count: 0,
-18 -         reason: "forged".to_string(),
-19 -         denial_digest: String::new(),
-20 -     };
- 7 +     let _forged = ForgeQueryPreviewPromotionDenialEvidence::write_failed(_, _, _, _, _, _, _, _, _, _);
-   |
- 7 -     let _forged = ForgeQueryPreviewPromotionDenialEvidence {
- 8 -         label: "preview".to_string(),
- 9 -         kind: ForgeQueryPreviewPromotionDenialKind::StaleBasis,
-10 -         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
-11 -         basis_evidence: Vec::new(),
-12 -         basis_snapshot_token: "a".to_string(),
-13 -         promotion_snapshot_token: "b".to_string(),
-14 -         staged_preview_write_count: 1,
-15 -         promoted_write_count: 0,
-16 -         failed_write_sequence: None,
-17 -         preview_binding_count: 0,
-18 -         reason: "forged".to_string(),
-19 -         denial_digest: String::new(),
-20 -     };
- 7 +     let _forged = ForgeQueryPreviewPromotionDenialEvidence::atomic_batch_unsupported(_, _, _, _, _, _, _);
-   |
-   = and 1 other candidate
+   = note: all struct fields are already assigned

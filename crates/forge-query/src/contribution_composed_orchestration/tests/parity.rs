@@ -175,5 +175,8 @@ fn equivalent_intent_orderings_share_the_same_composition_digest() {
         )
         .unwrap_or_else(|_| panic!("expected right composition"));
 
-    assert_eq!(left.composition_for_reporting(), right.composition_for_reporting());
+    assert_eq!(
+        left.composition_for_reporting(),
+        right.composition_for_reporting()
+    );
 }

@@ -50,7 +50,7 @@ fn runtime_with_merge(declaration: MergeHistoryDeclaration) -> RuntimeBridge {
         ))
         .register_merge(declaration)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping"),
+            BridgeMappingId::admit_bridge_owned("mapping"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("entity-1"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -63,7 +63,7 @@ fn runtime_with_merge(declaration: MergeHistoryDeclaration) -> RuntimeBridge {
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal:profile"),
+            SignalInvalidationScope::admit_bridge_owned("signal:profile"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -73,7 +73,7 @@ fn runtime_with_merge(declaration: MergeHistoryDeclaration) -> RuntimeBridge {
 #[test]
 fn runtime_admits_registered_merge_declaration() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:analysis"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:analysis"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     );
     let runtime = runtime_with_merge(declaration.clone());
@@ -93,7 +93,7 @@ fn runtime_admits_registered_merge_declaration() {
 #[test]
 fn runtime_lowers_and_reduces_merge_continuity_candidate() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:analysis"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:analysis"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     );
     let runtime = runtime_with_merge(declaration.clone());
@@ -119,7 +119,7 @@ fn runtime_lowers_and_reduces_merge_continuity_candidate() {
 #[test]
 fn runtime_denies_deletion_merge_at_deletion_topology_stage() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:deletion"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:deletion"),
         BridgeMergeConsumptionClass::DeletionMerge,
     );
     let runtime = runtime_with_merge(declaration.clone());
@@ -147,7 +147,7 @@ fn runtime_denies_deletion_merge_at_deletion_topology_stage() {
 #[test]
 fn runtime_denies_causal_truncation_at_causal_stage() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:causal-truncated"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:causal-truncated"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     )
     .with_authoritative_lineage(BridgeMergeAuthoritativeLineageDisposition::CanonicalSuccessor)
@@ -172,7 +172,7 @@ fn runtime_denies_causal_truncation_at_causal_stage() {
 #[test]
 fn runtime_localizes_structural_contradiction_without_reopening_continuity() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:structural-contradiction"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:structural-contradiction"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryContradiction);
@@ -200,7 +200,7 @@ fn runtime_localizes_structural_contradiction_without_reopening_continuity() {
 #[test]
 fn runtime_publishes_merge_continuity_and_explanation_bundle() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:publish"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:publish"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     );
     let runtime = runtime_with_merge(declaration.clone());
@@ -230,7 +230,7 @@ fn runtime_publishes_merge_continuity_and_explanation_bundle() {
 #[test]
 fn runtime_publishes_merge_remap_only_when_structural_advisory_is_consistent() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:publish-remap"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:publish-remap"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -264,7 +264,7 @@ fn runtime_publishes_merge_remap_only_when_structural_advisory_is_consistent() {
 #[test]
 fn runtime_rejects_merge_publication_with_typed_denial_kind() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:typed-denial"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:typed-denial"),
         BridgeMergeConsumptionClass::DeletionMerge,
     );
     let runtime = runtime_with_merge(declaration.clone());
@@ -291,7 +291,7 @@ fn runtime_rejects_merge_publication_with_typed_denial_kind() {
 #[test]
 fn runtime_replay_merge_history_certifies_full_bundle() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:replay-bundle"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:replay-bundle"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -330,7 +330,7 @@ fn runtime_replay_merge_history_certifies_full_bundle() {
 #[test]
 fn runtime_canonicalizes_and_explains_merge_record() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:diagnostics"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:diagnostics"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
@@ -367,7 +367,7 @@ fn runtime_canonicalizes_and_explains_merge_record() {
 #[test]
 fn runtime_replays_canonical_merge_record() {
     let declaration = registered_merge(
-        MergeHistoryDeclarationIdentity::new("merge:canonical-replay"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:canonical-replay"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);

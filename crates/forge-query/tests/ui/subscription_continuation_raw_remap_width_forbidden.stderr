@@ -1,20 +1,20 @@
 warning: unreachable expression
- --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:8:9
-  |
-7 |         todo!(),
-  |         ------- any code following this expression is unreachable
-8 |         SubscriptionContinuationClass::IdentityRemap,
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
-  |
-  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:19:9
+   |
+18 |         todo!(),
+   |         ------- any code following this expression is unreachable
+19 |         SubscriptionContinuationClass::IdentityRemap,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
 error[E0308]: mismatched types
-  --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:13:9
+  --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:24:9
    |
- 6 |     let _evidence = admit_subscription_continuation_evidence(
+17 |     let _evidence = admit_subscription_continuation_evidence(
    |                     ---------------------------------------- arguments to this function are incorrect
 ...
-13 |         1,
+24 |         1,
    |         ^ expected `ContinuationRemapWidth`, found integer
    |
 note: function defined here

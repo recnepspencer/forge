@@ -10,7 +10,7 @@ use crate::runtime::{
     runtime_state_snapshot_basis_label_identity, ForgeQueryAuthorityLane,
     ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateTarget,
 };
-use forge_runtime_bridge::facade::{BridgeTruthViewEvaluationRequest, TruthBranchIdentity};
+use forge_runtime_bridge::facade::BridgeTruthViewEvaluationRequest;
 
 #[test]
 fn family_specific_basis_capabilities_project_into_their_public_authority_lanes() {
@@ -214,7 +214,7 @@ fn lower_runtime_bound_and_cross_branch_denied_basis_states_preserve_typed_postu
     let bridge_runtime = observation_runtime();
     let evaluation = bridge_runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::from_bridge_harness_label(MAIN_BRANCH),
+            super::test_branch_truth_identity(MAIN_BRANCH),
         ))
         .expect("branch-head truth view should evaluate");
     let matching = branch_head_observation(MAIN_BRANCH);
@@ -258,14 +258,14 @@ fn lower_runtime_bound_and_cross_branch_denied_basis_states_preserve_typed_postu
                 expected,
                 &format!(
                     "branch_head:{}",
-                    super::test_branch_identity(OTHER_BRANCH).as_str()
+                    super::test_branch_identity(OTHER_BRANCH).terminal_projection_for_reporting()
                 )
             );
             assert_eq!(
                 observed,
                 &format!(
                     "branch_head:{}",
-                    super::test_branch_identity(MAIN_BRANCH).as_str()
+                    super::test_branch_identity(MAIN_BRANCH).terminal_projection_for_reporting()
                 )
             );
         }
@@ -279,7 +279,7 @@ fn historical_basis_denials_preserve_historical_authority_lane() {
     let bridge_runtime = observation_runtime();
     let evaluation = bridge_runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::from_bridge_harness_label(MAIN_BRANCH),
+            super::test_branch_truth_identity(MAIN_BRANCH),
         ))
         .expect("branch-head truth view should evaluate");
     let historical = admit_observation_basis(

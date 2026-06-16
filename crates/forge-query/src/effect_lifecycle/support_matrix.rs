@@ -1,7 +1,5 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::counters::EffectLifecycleCounters;
 use super::inventory::{EffectLoweredArtifactKind, EffectReceiptArtifactKind};
@@ -226,9 +224,7 @@ impl EffectLifecycleSupportDiscovery {
             matched_row,
             rows_consulted,
         } = decision;
-        let matched_row_identity = matched_row
-            .as_ref()
-            .map(|row| row.row_identity().clone());
+        let matched_row_identity = matched_row.as_ref().map(|row| row.row_identity().clone());
         let counters = EffectLifecycleCounters::support_lookup(rows_consulted);
         let mut discovery = ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
             .field_shape(
@@ -254,9 +250,8 @@ impl EffectLifecycleSupportDiscovery {
                 &counters.evidence_identity(),
             );
         discovery = match matched_row_identity.as_ref() {
-            Some(row_identity) => {
-                discovery.field_evidence_identity(ForgeQueryEvidenceTag::new("matched_row"), row_identity)
-            }
+            Some(row_identity) => discovery
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("matched_row"), row_identity),
             None => discovery.field_shape(ForgeQueryEvidenceTag::new("matched_row"), "unsupported"),
         };
         let discovery_identity = discovery.seal();

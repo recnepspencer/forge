@@ -73,8 +73,14 @@ impl NormalizedEffectIntent {
                     ForgeQueryEvidenceTag::new("basis_lifecycle"),
                     authoring_basis.lifecycle().as_str(),
                 )
-                .field_evidence_identity(ForgeQueryEvidenceTag::new("capability"), &capability_identity)
-                .field_evidence_identity(ForgeQueryEvidenceTag::new("scoped_basis"), &scoped_basis_identity)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("capability"),
+                    &capability_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("scoped_basis"),
+                    &scoped_basis_identity,
+                )
                 .field_evidence_identity(
                     ForgeQueryEvidenceTag::new("workflow_binding"),
                     workflow_binding.binding_identity(),
@@ -88,7 +94,9 @@ impl NormalizedEffectIntent {
                     workflow_request.authority_target_family().as_str(),
                 )
                 .field_shape(ForgeQueryEvidenceTag::new("source_path"), source_path);
-        if let Some(lower_runtime_binding_identity) = expected_lower_runtime_binding_identity.as_ref() {
+        if let Some(lower_runtime_binding_identity) =
+            expected_lower_runtime_binding_identity.as_ref()
+        {
             normalized_identity = normalized_identity.field_evidence_identity(
                 ForgeQueryEvidenceTag::new("lower_runtime_binding"),
                 lower_runtime_binding_identity,

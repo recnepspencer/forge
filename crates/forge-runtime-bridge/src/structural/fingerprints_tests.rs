@@ -12,10 +12,10 @@ use super::StructuralFingerprint;
 #[test]
 fn fingerprint_is_canonical_for_same_contract_and_read_packet() {
     let declaration = StructuralIdentityDeclaration::advisory_remap(
-        StructuralIdentityDeclarationIdentity::new("structural:geometry"),
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:geometry"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::TopologyFingerprint,
             "topology-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,

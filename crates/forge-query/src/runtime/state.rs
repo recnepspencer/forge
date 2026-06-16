@@ -198,7 +198,8 @@ impl ForgeQueryRuntimeStateTarget for ForgeQueryRuntimeFacadeFamily {
                 "runtime-backed facade family is unsupported by this runtime"
             }
         });
-        let result_shape_identity = runtime_state_snapshot_result_shape_facade_family_identity(self);
+        let result_shape_identity =
+            runtime_state_snapshot_result_shape_facade_family_identity(self);
         match row.status() {
             ForgeQueryRuntimeFamilySupportStatus::Supported => {
                 Ok(ForgeQueryRuntimeStateSnapshot::ready(
@@ -238,7 +239,8 @@ impl ForgeQueryRuntimeStateTarget for &ForgeQueryWriteReceipt {
         self,
         _runtime: &ForgeQueryRuntime,
     ) -> Result<ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
-        let result_shape_identity = runtime_state_snapshot_result_shape_write_receipt_identity(self);
+        let result_shape_identity =
+            runtime_state_snapshot_result_shape_write_receipt_identity(self);
         let commit_evidence_identity = self.commit_evidence_identity().clone();
         Ok(ForgeQueryRuntimeStateSnapshot::ready(
             commit_evidence_identity,

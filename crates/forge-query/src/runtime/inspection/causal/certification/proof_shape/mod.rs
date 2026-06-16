@@ -29,7 +29,7 @@ impl CausalInspectionProofShapeCertification {
         representative_matrix: &CausalInspectionRepresentativeMatrix,
         boundary_audit: &CausalInspectionBoundaryAudit,
     ) -> Self {
-        let inspected_artifact_digest = changed_artifact.artifact_for_reporting().to_string();
+        let inspected_artifact_digest = changed_artifact.artifact_identity().as_str().to_string();
         let representative_matrix_digest = representative_matrix.matrix_digest().to_string();
         let boundary_audit_digest = boundary_audit.audit_digest().to_string();
         let phase_progression_digest = derive_phase_progression_digest(

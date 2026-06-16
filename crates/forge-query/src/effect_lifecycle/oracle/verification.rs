@@ -1,6 +1,4 @@
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::{BridgeExecutionOracle, RelationalExecutionOracle};
 
@@ -40,24 +38,29 @@ impl EffectExecutionOracleVerification {
         oracle: &RelationalExecutionOracle,
         component_count: usize,
     ) -> Self {
-        let verification_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_execution_oracle_verification_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), verification_kind.as_str())
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("execution_subject"),
-            execution_subject_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("relational_oracle"),
-            oracle.relational_oracle_identity(),
-        )
-        .field_usize(ForgeQueryEvidenceTag::new("component_count"), component_count)
-        .seal();
+        let verification_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_execution_oracle_verification_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("kind"),
+                    verification_kind.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("execution_subject"),
+                    execution_subject_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("relational_oracle"),
+                    oracle.relational_oracle_identity(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("component_count"),
+                    component_count,
+                )
+                .seal();
         Self {
             verification_kind,
             execution_subject_identity: execution_subject_identity.clone(),
@@ -72,27 +75,26 @@ impl EffectExecutionOracleVerification {
         execution_subject_identity: &ForgeQueryEvidenceIdentity,
         oracle: &BridgeExecutionOracle,
     ) -> Self {
-        let verification_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_execution_oracle_verification_v1",
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("kind"),
-            EffectExecutionOracleVerificationKind::Writeback.as_str(),
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("execution_subject"),
-            execution_subject_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("bridge_oracle"),
-            oracle.bridge_oracle_identity(),
-        )
-        .field_usize(ForgeQueryEvidenceTag::new("component_count"), 1)
-        .seal();
+        let verification_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_execution_oracle_verification_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("kind"),
+                    EffectExecutionOracleVerificationKind::Writeback.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("execution_subject"),
+                    execution_subject_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("bridge_oracle"),
+                    oracle.bridge_oracle_identity(),
+                )
+                .field_usize(ForgeQueryEvidenceTag::new("component_count"), 1)
+                .seal();
         Self {
             verification_kind: EffectExecutionOracleVerificationKind::Writeback,
             execution_subject_identity: execution_subject_identity.clone(),

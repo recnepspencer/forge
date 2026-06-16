@@ -13,7 +13,7 @@ fn compose_certification_sequence_digest(
     crate::ForgeQueryEvidenceIdentity::compose(
         crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
     )
-    .field_identity_sequence(crate::ForgeQueryEvidenceTag::new(tag), values)
+    .field_value_sequence(crate::ForgeQueryEvidenceTag::new(tag), values)
     .seal()
     .as_str()
     .to_string()
@@ -270,11 +270,11 @@ fn digest_message_drift_probe(
     crate::ForgeQueryEvidenceIdentity::compose(
         crate::ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("typed_first_route"),
         consumer_stop_route_key(&route_consumer_stop_class(first_error)),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("typed_second_route"),
         consumer_stop_route_key(&route_consumer_stop_class(second_error)),
     )

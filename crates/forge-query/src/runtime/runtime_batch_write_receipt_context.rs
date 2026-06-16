@@ -6,7 +6,11 @@ pub(super) fn batch_execution_provenance(
     combined_receipt: &ForgeQueryMutationReceipt,
 ) -> Option<ForgeQueryIntentExecutionProvenance> {
     shared_admission.map(|record| {
-        let commit_evidence_identity = combined_receipt.commit_identity.evidence_identity();
+        let commit_label = combined_receipt
+            .commit_identity
+            .evidence_identity()
+            .reporting_projection()
+            .to_string();
         let snapshot_evidence_identity = combined_receipt.snapshot_identity.evidence_identity();
         ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
             record.family,
@@ -15,7 +19,7 @@ pub(super) fn batch_execution_provenance(
             &record.decision_digest,
             &record.handoff_digest,
             &record.binding_digest,
-            commit_evidence_identity.as_str(),
+            &commit_label,
             &snapshot_evidence_identity,
         )
     })
@@ -27,7 +31,11 @@ pub(super) fn batch_decision_trace_envelope(
     batch_request_detail: &str,
 ) -> Option<ForgeQueryIntentDecisionTraceEnvelope> {
     shared_admission.map(|record| {
-        let commit_evidence_identity = combined_receipt.commit_identity.evidence_identity();
+        let commit_label = combined_receipt
+            .commit_identity
+            .evidence_identity()
+            .reporting_projection()
+            .to_string();
         ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
             record.family,
             record.entrypoint,
@@ -38,7 +46,7 @@ pub(super) fn batch_decision_trace_envelope(
             &record.handoff_digest,
             record.execution_seam,
             batch_request_detail,
-            commit_evidence_identity.as_str(),
+            &commit_label,
             "mutation-batch-write",
         )
     })

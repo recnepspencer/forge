@@ -327,7 +327,7 @@ mod tests {
 
     fn mapping_registry(target_selector: TruthPatchTargetSelector) -> FrozenMappingRegistry {
         FrozenMappingRegistry::freeze(vec![BridgeMappingRegistration::new(
-            BridgeMappingId::new("native-target-route"),
+            BridgeMappingId::admit_bridge_owned("native-target-route"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("entity-1"),
                 aspect_key("profile"),
@@ -337,7 +337,7 @@ mod tests {
                 aspect_key("profile"),
                 ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal.native-target"),
+            SignalInvalidationScope::admit_bridge_owned("signal.native-target"),
             CoarseRoutingMode::Direct,
         )])
         .expect("mapping registry should freeze")
@@ -349,7 +349,7 @@ mod tests {
         slice_kind: SubscriptionSliceKind,
     ) -> FrozenAspectMappingRegistry {
         FrozenAspectMappingRegistry::freeze(vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("native-target-aspect"),
+            BridgeAspectRegistrationId::admit_bridge_owned("native-target-aspect"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("entity-1"),
                 aspect_key("profile"),

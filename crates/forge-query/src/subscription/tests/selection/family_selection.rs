@@ -74,8 +74,8 @@ fn grouped_and_plain_collection_are_distinct_query_subscription_meanings() {
     );
     assert_eq!(grouped_selection.required_slice_count(), 6);
     assert_ne!(
-        collection_selection.equivalence_basis().digest().as_str(),
-        grouped_selection.equivalence_basis().digest().as_str()
+        collection_selection.equivalence_basis().equivalence_projection().label(),
+        grouped_selection.equivalence_basis().equivalence_projection().label()
     );
 }
 
@@ -104,8 +104,8 @@ fn inspector_detail_is_distinct_from_plain_detail() {
         &QuerySubscriptionFamily::InspectorDetailExact
     );
     assert_ne!(
-        detail_selection.equivalence_basis().digest().as_str(),
-        inspector_selection.equivalence_basis().digest().as_str()
+        detail_selection.equivalence_basis().equivalence_projection().label(),
+        inspector_selection.equivalence_basis().equivalence_projection().label()
     );
 }
 

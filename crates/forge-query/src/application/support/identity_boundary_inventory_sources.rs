@@ -256,6 +256,122 @@ pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
         "runtime/runtime_batch_write_bridge_refs.rs" => Some(include_str!(
             "../../runtime/runtime_batch_write_bridge_refs.rs"
         )),
+        "runtime/runtime_batch_write_receipt_context.rs" => Some(include_str!(
+            "../../runtime/runtime_batch_write_receipt_context.rs"
+        )),
+        "runtime/read_composition_runtime.rs" => {
+            Some(include_str!("../../runtime/read_composition_runtime.rs"))
+        }
+        "runtime/delivery.rs" => Some(include_str!("../../runtime/delivery.rs")),
+        "runtime/runtime_intents.rs" => Some(include_str!("../../runtime/runtime_intents.rs")),
+        "runtime/runtime_write_intents.rs" => {
+            Some(include_str!("../../runtime/runtime_write_intents.rs"))
+        }
+        "runtime/computed/surface.rs" => Some(include_str!("../../runtime/computed/surface.rs")),
+        "runtime/inspection/causal/reference_index.rs" => Some(include_str!(
+            "../../runtime/inspection/causal/reference_index.rs"
+        )),
+        "subscription/maintenance_delta.rs" => {
+            Some(include_str!("../../subscription/maintenance_delta.rs"))
+        }
+        "subscription/diagnostic/stage.rs" => {
+            Some(include_str!("../../subscription/diagnostic/stage.rs"))
+        }
+        "subscription/diagnostic/trace.rs" => {
+            Some(include_str!("../../subscription/diagnostic/trace.rs"))
+        }
+        "subscription/diagnostic/bundle.rs" => {
+            Some(include_str!("../../subscription/diagnostic/bundle.rs"))
+        }
+        "subscription/diagnostic/context.rs" => {
+            Some(include_str!("../../subscription/diagnostic/context.rs"))
+        }
+        "subscription/support/profile.rs" => {
+            Some(include_str!("../../subscription/support/profile.rs"))
+        }
+        "subscription/input.rs" => Some(include_str!("../../subscription/input.rs")),
+        "subscription/runtime_certification/error.rs" => Some(include_str!(
+            "../../subscription/runtime_certification/error.rs"
+        )),
+        "subscription/runtime_certification/bundle.rs" => Some(include_str!(
+            "../../subscription/runtime_certification/bundle.rs"
+        )),
+        "subscription/runtime_certification/coverage/row.rs" => Some(include_str!(
+            "../../subscription/runtime_certification/coverage/row.rs"
+        )),
+        "subscription/certification.rs" => Some(include_str!("../../subscription/certification.rs")),
+        "subscription/declaration.rs" => Some(include_str!("../../subscription/declaration.rs")),
+        "subscription/delivery_window.rs" => {
+            Some(include_str!("../../subscription/delivery_window.rs"))
+        }
+        "subscription/delivery_work_packet.rs" => {
+            Some(include_str!("../../subscription/delivery_work_packet.rs"))
+        }
+        "subscription/bridge_parity/support.rs" => {
+            Some(include_str!("../../subscription/bridge_parity/support.rs"))
+        }
+        "subscription/closeout.rs" => Some(include_str!("../../subscription/closeout.rs")),
+        "subscription/active_error.rs" => Some(include_str!("../../subscription/active_error.rs")),
+        "subscription/delivery_error.rs" => {
+            Some(include_str!("../../subscription/delivery_error.rs"))
+        }
+        "subscription/attachment_error.rs" => {
+            Some(include_str!("../../subscription/attachment_error.rs"))
+        }
+        "subscription/continuation_error.rs" => {
+            Some(include_str!("../../subscription/continuation_error.rs"))
+        }
+        "subscription/preview_isolation_error.rs" => Some(include_str!(
+            "../../subscription/preview_isolation_error.rs"
+        )),
+        "subscription/basis_request.rs" => Some(include_str!("../../subscription/basis_request.rs")),
+        "subscription/counters.rs" => Some(include_str!("../../subscription/counters.rs")),
+        "subscription/active_counters.rs" => {
+            Some(include_str!("../../subscription/active_counters.rs"))
+        }
+        "subscription/admission_diagnostics.rs" => Some(include_str!(
+            "../../subscription/admission_diagnostics.rs"
+        )),
+        "subscription/signal_strategy.rs" => {
+            Some(include_str!("../../subscription/signal_strategy.rs"))
+        }
+        "subscription/bridge_parity/validation.rs" => Some(include_str!(
+            "../../subscription/bridge_parity/validation.rs"
+        )),
+        "subscription/bridge_parity/witness.rs" => {
+            Some(include_str!("../../subscription/bridge_parity/witness.rs"))
+        }
+        "subscription/attachment.rs" => Some(include_str!("../../subscription/attachment.rs")),
+        "subscription/active_lane.rs" => Some(include_str!("../../subscription/active_lane.rs")),
+        "subscription/active_handle.rs" => Some(include_str!("../../subscription/active_handle.rs")),
+        "subscription/equivalence.rs" => Some(include_str!("../../subscription/equivalence.rs")),
+        "subscription/declaration_digest.rs" => {
+            Some(include_str!("../../subscription/declaration_digest.rs"))
+        }
+        "subscription/active_digest.rs" => Some(include_str!("../../subscription/active_digest.rs")),
+        "subscription/attachment_digest.rs" => {
+            Some(include_str!("../../subscription/attachment_digest.rs"))
+        }
+        "subscription/patch_group.rs" => Some(include_str!("../../subscription/patch_group.rs")),
+        "subscription/acknowledgement.rs" => {
+            Some(include_str!("../../subscription/acknowledgement.rs"))
+        }
+        "subscription/fanout.rs" => Some(include_str!("../../subscription/fanout.rs")),
+        "subscription/lane_attachment_accessors.rs" => Some(include_str!(
+            "../../subscription/lane_attachment_accessors.rs"
+        )),
+        "subscription/runtime_certification/coverage/matrix.rs" => Some(include_str!(
+            "../../subscription/runtime_certification/coverage/matrix.rs"
+        )),
+        "subscription/runtime_certification/coverage/variations.rs" => Some(include_str!(
+            "../../subscription/runtime_certification/coverage/variations.rs"
+        )),
+        "subscription/runtime_certification/scope.rs" => Some(include_str!(
+            "../../subscription/runtime_certification/scope.rs"
+        )),
+        "subscription/future_selection.rs" => {
+            Some(include_str!("../../subscription/future_selection.rs"))
+        }
         "domain_capabilities/canonical_runtime/continuity.rs" => Some(include_str!(
             "../../domain_capabilities/canonical_runtime/continuity.rs"
         )),

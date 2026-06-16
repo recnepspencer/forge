@@ -173,6 +173,7 @@ impl private::Sealed for ForgeQueryAdmittedPlanBoundContributionTarget {}
 mod inspection;
 mod lowering;
 mod preview;
+mod preview_identity;
 mod semantics;
 
 pub use inspection::*;

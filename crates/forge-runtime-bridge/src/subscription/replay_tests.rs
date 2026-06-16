@@ -137,7 +137,7 @@ fn runtime(policy: BridgeRuntimePolicy) -> crate::facade::RuntimeBridge {
         .with_truth_branch_head_source(StaticSource)
         .with_signal_sink(StaticSink)
         .register_mapping(crate::mapping::BridgeMappingRegistration::new(
-            crate::mapping::BridgeMappingId::new("mapping"),
+            crate::mapping::BridgeMappingId::admit_bridge_owned("mapping"),
             crate::mapping::TruthPatchScope::for_entity_field(
                 crate::mapping::MappingSelector::exact("entity-1"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -150,7 +150,7 @@ fn runtime(policy: BridgeRuntimePolicy) -> crate::facade::RuntimeBridge {
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            crate::mapping::SignalInvalidationScope::new("signal:profile"),
+            crate::mapping::SignalInvalidationScope::admit_bridge_owned("signal:profile"),
             crate::mapping::CoarseRoutingMode::Direct,
         ))
         .build()

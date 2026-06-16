@@ -28,7 +28,7 @@ impl SubscriptionFanoutPlan {
         }
     }
 
-    pub fn lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.lane_digest
     }
 
@@ -38,10 +38,6 @@ impl SubscriptionFanoutPlan {
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.fanout_plan_identity
-    }
-
-    pub fn fanout_plan_for_reporting(&self) -> &str {
-        self.fanout_plan_identity.as_str()
     }
 }
 
@@ -83,9 +79,5 @@ impl SubscriptionFanoutReport {
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.report_identity
-    }
-
-    pub fn report_for_reporting(&self) -> &str {
-        self.report_identity.as_str()
     }
 }

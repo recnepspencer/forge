@@ -12,8 +12,8 @@ use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 
 pub use bridge_oracle::{
-    bridge_observation_execution_record_subject_identity,
     bridge_observation_execution_receipt_subject_identity,
+    bridge_observation_execution_record_subject_identity,
     bridge_observation_outcome_subject_identity, bridge_observation_receipt_subject_identity,
     bridge_observation_request_subject_identity, BridgeExecutionOracle,
 };

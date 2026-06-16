@@ -138,7 +138,7 @@ impl BridgeWritebackFamilyBasis {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Ok(Self {
-            family_identity: BridgeWritebackFamilyIdentity::new(format!(
+            family_identity: BridgeWritebackFamilyIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-family:sha256:{digest:x}"
             )),
             declaration_digest,

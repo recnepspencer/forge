@@ -37,7 +37,7 @@ fn bridge_m13_mixed_offline_certification_exports_every_family_without_json_proo
         mixed_source_fixture("bridge-m13-mixed-source"),
         baseline.clone(),
         "mixed-source-control",
-        BridgeHarnessTargetId::source_materialize(SourceDeclarationIdentity::new(
+        BridgeHarnessTargetId::source_materialize(SourceDeclarationIdentity::admit_bridge_owned(
             "source:analysis-history",
         )),
     );
@@ -45,7 +45,7 @@ fn bridge_m13_mixed_offline_certification_exports_every_family_without_json_proo
         mixed_source_fixture("bridge-m13-mixed-source"),
         baseline.clone(),
         "mixed-source-replay",
-        BridgeHarnessTargetId::source_replay(SourceDeclarationIdentity::new(
+        BridgeHarnessTargetId::source_replay(SourceDeclarationIdentity::admit_bridge_owned(
             "source:analysis-history",
         )),
     );
@@ -53,39 +53,39 @@ fn bridge_m13_mixed_offline_certification_exports_every_family_without_json_proo
         mixed_source_fixture("bridge-m13-mixed-source"),
         baseline.clone(),
         "mixed-source-hostile",
-        BridgeHarnessTargetId::source_reject_unregistered(SourceDeclarationIdentity::new(
-            "source:hostile-missing",
-        )),
+        BridgeHarnessTargetId::source_reject_unregistered(
+            SourceDeclarationIdentity::admit_bridge_owned("source:hostile-missing"),
+        ),
     );
     let structural_control = execute_harness_run(
         mixed_structural_fixture("bridge-m13-mixed-structural"),
         baseline.clone(),
         "mixed-structural-control",
-        BridgeHarnessTargetId::structural_remap_exact(StructuralIdentityDeclarationIdentity::new(
-            "structural:analysis-remap",
-        )),
+        BridgeHarnessTargetId::structural_remap_exact(
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
+        ),
     );
     let structural_replay = execute_harness_run(
         mixed_structural_fixture("bridge-m13-mixed-structural"),
         baseline.clone(),
         "mixed-structural-replay",
-        BridgeHarnessTargetId::structural_remap_replay(StructuralIdentityDeclarationIdentity::new(
-            "structural:analysis-remap",
-        )),
+        BridgeHarnessTargetId::structural_remap_replay(
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
+        ),
     );
     let structural_hostile = execute_harness_run(
         mixed_structural_fixture("bridge-m13-mixed-structural"),
         baseline.clone(),
         "mixed-structural-hostile",
         BridgeHarnessTargetId::structural_remap_ambiguous(
-            StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
         ),
     );
     let merge_control = execute_harness_run(
         mixed_merge_fixture("bridge-m13-mixed-merge"),
         baseline.clone(),
         "mixed-merge-control",
-        BridgeHarnessTargetId::merge_execute(MergeHistoryDeclarationIdentity::new(
+        BridgeHarnessTargetId::merge_execute(MergeHistoryDeclarationIdentity::admit_bridge_owned(
             "merge:m13-mixed",
         )),
     );
@@ -93,7 +93,7 @@ fn bridge_m13_mixed_offline_certification_exports_every_family_without_json_proo
         mixed_merge_fixture("bridge-m13-mixed-merge"),
         baseline.clone(),
         "mixed-merge-replay",
-        BridgeHarnessTargetId::merge_replay(MergeHistoryDeclarationIdentity::new(
+        BridgeHarnessTargetId::merge_replay(MergeHistoryDeclarationIdentity::admit_bridge_owned(
             "merge:m13-mixed",
         )),
     );
@@ -101,7 +101,7 @@ fn bridge_m13_mixed_offline_certification_exports_every_family_without_json_proo
         mixed_merge_fixture("bridge-m13-mixed-merge"),
         baseline.clone(),
         "mixed-merge-hostile",
-        BridgeHarnessTargetId::merge_execute(MergeHistoryDeclarationIdentity::new(
+        BridgeHarnessTargetId::merge_execute(MergeHistoryDeclarationIdentity::admit_bridge_owned(
             "merge:m13-topology-denial",
         )),
     );

@@ -40,9 +40,10 @@ fn temporal_async_and_mixed_live_meaning_become_real_active_lanes() {
         );
         let future_digest = activation
             .future_selection()
-            .projection_digest()
+            .future_selection_projection()
+            .label()
             .to_string();
-        let checkpoint_digest = activation.checkpoint_for_reporting().to_string();
+        let checkpoint_digest = activation.checkpoint_projection().label().to_string();
         let admission = admit_active_subscription_lane(
             activation,
             active_budget(1, 2, ActiveSubscriptionAllocationPolicy::LifecycleArena),
@@ -53,12 +54,12 @@ fn temporal_async_and_mixed_live_meaning_become_real_active_lanes() {
 
         assert_eq!(admission.future_selection().class(), expected_class);
         assert_eq!(
-            admission.future_selection().projection_digest(),
-            future_digest
+            admission.future_selection().future_selection_projection().label().as_str(),
+            future_digest.as_str()
         );
-        assert_eq!(admission.checkpoint_for_reporting(), checkpoint_digest);
+        assert_eq!(admission.checkpoint_projection().label().as_str(), checkpoint_digest.as_str());
         assert_eq!(handle.future_selection().class(), expected_class);
-        assert_eq!(handle.checkpoint_for_reporting(), checkpoint_digest);
+        assert_eq!(handle.checkpoint_projection().label().as_str(), checkpoint_digest.as_str());
         assert_eq!(runtime.lane_count(), 1);
     }
 }
@@ -86,7 +87,7 @@ fn future_equivalent_consumers_share_one_lane_and_retain_lane_owned_future_ident
         active_budget(1, 2, ActiveSubscriptionAllocationPolicy::LifecycleArena),
     )
     .unwrap();
-    let expected_checkpoint = first.checkpoint_for_reporting().to_string();
+    let expected_checkpoint = first.checkpoint_projection().label().to_string();
     let mut runtime = ActiveSubscriptionRuntime::new();
     let first_handle = open_active_subscription_lane(&mut runtime, first).unwrap();
     let second_handle = open_active_subscription_lane(&mut runtime, duplicate).unwrap();
@@ -110,17 +111,14 @@ fn future_equivalent_consumers_share_one_lane_and_retain_lane_owned_future_ident
         first_handle.future_selection(),
         second_handle.future_selection()
     );
-    assert_eq!(
-        first_handle.checkpoint_for_reporting(),
-        expected_checkpoint
-    );
+    assert_eq!(first_handle.checkpoint_projection().label().as_str(), expected_checkpoint.as_str());
     assert_eq!(
         first_attachment.future_selection(),
         second_attachment.future_selection()
     );
     assert_eq!(
-        first_attachment.checkpoint_for_reporting(),
-        second_attachment.checkpoint_for_reporting()
+        first_attachment.checkpoint_projection().label(),
+        second_attachment.checkpoint_projection().label()
     );
 }
 

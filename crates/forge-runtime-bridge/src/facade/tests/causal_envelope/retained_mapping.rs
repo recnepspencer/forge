@@ -23,11 +23,13 @@ use crate::facade::{
 
 #[test]
 fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_records() {
-    let merge_declaration = registered_causal_merge(MergeHistoryDeclarationIdentity::new(
-        "merge:causal-retained",
-    ));
+    let merge_declaration = registered_causal_merge(
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:causal-retained"),
+    );
     let branch_declaration = branch_comparison_declaration(
-        crate::facade::StructuralIdentityDeclarationIdentity::new("structural:branch-causal"),
+        crate::facade::StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+            "structural:branch-causal",
+        ),
     );
     let runtime = retained_runtime(merge_declaration.clone(), branch_declaration.clone());
     let planned_route = runtime
@@ -131,7 +133,7 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         .plan_structural_match_packet_set(
             &branch_contract,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("diff:causal"),
+                StructuralCandidateIdentity::admit_bridge_owned("diff:causal"),
                 StructuralMatchCandidateKind::BranchDiff,
             )],
         )
@@ -196,10 +198,10 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
 
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "query-admission:retained-expansion",
             ),
-            crate::facade::BridgeIdentityEvidence::from_external_authority(
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                 "causal-anchor:retained-expansion",
             ),
         )
@@ -207,7 +209,7 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         vec![
             query_observation_reference(
                 crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    crate::facade::BridgeIdentityEvidence::from_external_authority(
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                         "query-observation:retained-expansion",
                     ),
                 )

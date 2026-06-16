@@ -37,7 +37,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
         let expected_commit_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::PreviewWriteReceiptIdentity,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
             draft_label.identity_digest().as_str(),
         )

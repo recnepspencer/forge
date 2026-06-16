@@ -20,6 +20,7 @@ use crate::runtime::{
     ForgeQueryLiveArtifactBundle, ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadReceipt,
     ForgeQueryLiveReadResult,
 };
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use serde_json::json;
 
 pub(super) struct SharedTestResultShape {
@@ -50,7 +51,9 @@ pub(super) fn test_result_shape_identity(label: &str) -> ForgeQueryEvidenceIdent
     test_result_shape_artifact(label).result_shape_identity()
 }
 
-pub(super) fn test_result_shape_artifact(label: &str) -> crate::canonicalization::CanonicalResultShapeArtifact {
+pub(super) fn test_result_shape_artifact(
+    label: &str,
+) -> crate::canonicalization::CanonicalResultShapeArtifact {
     use crate::authoring::ResultShapeFamily;
     use crate::canonicalization::CanonicalResultShapeArtifact;
     use crate::identity::CanonicalResultShapeDigest;
@@ -95,8 +98,7 @@ pub(super) fn authorized_projection(
 }
 
 pub(super) fn retained_binding() -> crate::runtime::ForgeQueryDerivedArtifactBinding {
-    let retained_snapshot =
-        ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-retained");
+    let retained_snapshot = retained_live_snapshot_identity("snapshot-retained");
     let first = ForgeQueryDerivedMaterializationTarget::new("derived.first");
     let second = ForgeQueryDerivedMaterializationTarget::new("derived.second");
     let bundle = ForgeQueryDerivedMaterializationBundle::test_only(
@@ -136,7 +138,7 @@ pub(super) fn retained_binding() -> crate::runtime::ForgeQueryDerivedArtifactBin
 }
 
 pub(super) fn live_binding() -> crate::runtime::ForgeQueryLiveArtifactBinding {
-    let live_snapshot = ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-live");
+    let live_snapshot = retained_live_snapshot_identity("snapshot-live");
     let first = ForgeQueryLiveArtifactTarget::new("live.first");
     let second = ForgeQueryLiveArtifactTarget::new("live.second");
     let bundle = ForgeQueryLiveArtifactBundle::test_only(
@@ -147,11 +149,11 @@ pub(super) fn live_binding() -> crate::runtime::ForgeQueryLiveArtifactBinding {
                 ForgeQueryLiveReadResult::test_only(
                     vec![
                         ForgeQueryEntity::from_external_projection(
-                            ForgeQueryEntityIdentity::authored_command("entity-1"),
+                            crate::memory_workspace::admit_authored_entity_label("entity-1"),
                             json!({"profile": {"display_name": "First"}}),
                         ),
                         ForgeQueryEntity::from_external_projection(
-                            ForgeQueryEntityIdentity::authored_command("entity-2"),
+                            crate::memory_workspace::admit_authored_entity_label("entity-2"),
                             json!({"profile": {"display_name": "Second"}}),
                         ),
                     ],
@@ -159,7 +161,7 @@ pub(super) fn live_binding() -> crate::runtime::ForgeQueryLiveArtifactBinding {
                         first.view_name(),
                         "installation:first",
                         "query:test",
-                        "shape:first",
+                        test_result_shape_artifact("shape:first").digest().clone(),
                         "subscription:first",
                         "result:first",
                         live_snapshot.clone(),
@@ -171,14 +173,14 @@ pub(super) fn live_binding() -> crate::runtime::ForgeQueryLiveArtifactBinding {
                 second.view_name().to_string(),
                 ForgeQueryLiveReadResult::test_only(
                     vec![ForgeQueryEntity::from_external_projection(
-                        ForgeQueryEntityIdentity::authored_command("entity-3"),
+                        crate::memory_workspace::admit_authored_entity_label("entity-3"),
                         json!({"profile": {"display_name": "Third"}}),
                     )],
                     ForgeQueryLiveReadReceipt::test_only(
                         second.view_name(),
                         "installation:second",
                         "query:test",
-                        "shape:second",
+                        test_result_shape_artifact("shape:second").digest().clone(),
                         "subscription:second",
                         "result:second",
                         live_snapshot.clone(),
@@ -192,6 +194,24 @@ pub(super) fn live_binding() -> crate::runtime::ForgeQueryLiveArtifactBinding {
     bundle
         .bind_live_artifact("live.binding", [first.clone(), second.clone()])
         .expect("live binding should succeed")
+}
+
+fn retained_live_snapshot_identity(label: &str) -> ForgeQuerySnapshotIdentity {
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(
+            retained_live_fixture_position("snapshot", label),
+            retained_live_fixture_position("snapshot-version", label),
+        ),
+    )
+}
+
+fn retained_live_fixture_position(namespace: &str, evidence: &str) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in namespace.bytes().chain(evidence.bytes()) {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211_u64);
+    }
+    acc
 }
 
 pub(super) fn request_for_kind(kind: ProjectionFactKind) -> ProjectMaterializedFacts {

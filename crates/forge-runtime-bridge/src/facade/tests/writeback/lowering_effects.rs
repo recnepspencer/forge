@@ -5,7 +5,7 @@ fn runtime_lowers_writeback_effect_with_canonical_causality_and_strategy_basis()
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:effect"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:effect"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "canonical",
@@ -14,13 +14,13 @@ fn runtime_lowers_writeback_effect_with_canonical_causality_and_strategy_basis()
         .admit_writeback_declaration(declaration.clone(), &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:effect"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:effect"),
         "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:canonical"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:canonical"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "update-profile",
@@ -53,7 +53,7 @@ fn runtime_maps_writeback_family_input_before_effect_lowering() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:mapped-family-input"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:mapped-family-input"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "mapped-family-input",
@@ -62,7 +62,7 @@ fn runtime_maps_writeback_family_input_before_effect_lowering() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:mapped-family-input"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:mapped-family-input"),
         "mapped-family-input",
     );
     let mapper_envelope = runtime.lower_writeback_mapper_envelope(
@@ -84,7 +84,7 @@ fn runtime_maps_writeback_family_input_before_effect_lowering() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:mapped-family-input"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:mapped-family-input"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "mapped-family-input",
@@ -214,7 +214,7 @@ fn derived_writeback_effect_digest_is_bound_to_typed_effect_intent_basis() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:effect-intent-proof"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:effect-intent-proof"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "effect-intent-proof",
@@ -223,19 +223,19 @@ fn derived_writeback_effect_digest_is_bound_to_typed_effect_intent_basis() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:effect-intent-proof"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:effect-intent-proof"),
         "commit-a",
     );
     let baseline_effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:intent-proof"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:intent-proof"),
         writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, "baseline"),
     );
     let changed_effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:intent-proof"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:intent-proof"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "changed-native-value",

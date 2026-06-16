@@ -130,7 +130,7 @@ pub(crate) fn continuation_readmission_basis_identity(
             ForgeQueryEvidenceTag::new("basis_kind"),
             basis_kind.as_str(),
         )
-        .field_identity(ForgeQueryEvidenceTag::new("basis_identity"), identity)
+        .field_value(ForgeQueryEvidenceTag::new("basis_identity"), identity)
         .seal()
 }
 
@@ -140,7 +140,7 @@ pub(crate) fn continuation_readmission_lower_runtime_binding_identity(
     forge_query_evidence_identity(
         ForgeQueryEvidenceScope::ContinuationReadmissionLowerRuntimeBinding,
     )
-    .field_identity(
+    .field_value(
         ForgeQueryEvidenceTag::new("lower_runtime_binding"),
         identity,
     )
@@ -151,7 +151,7 @@ pub(crate) fn continuation_readmission_source_basis_identity(
     identity: impl AsRef<str>,
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::ContinuationReadmissionSourceBasis)
-        .field_identity(ForgeQueryEvidenceTag::new("source_basis"), identity)
+        .field_value(ForgeQueryEvidenceTag::new("source_basis"), identity)
         .seal()
 }
 

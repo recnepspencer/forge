@@ -33,9 +33,6 @@ pub(crate) use runtime::{
     certification_task_live_request, certification_task_schema,
 };
 
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
 use crate::facade::runtime::{
     admit_runtime_intent_request, ForgeQueryEffectDeclaration, ForgeQueryEffectTrigger,
     ForgeQueryIntentAdmissionDecision, ForgeQueryIntentAdvisoryDecision,
@@ -45,27 +42,46 @@ use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
 use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
 };
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
-pub(super) fn certification_commit_identity(label: impl AsRef<str>) -> ForgeQueryCommitIdentity {
-    ForgeQueryCommitIdentity::preview(
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WriteReceiptCommitIdentity)
-            .field_identity(ForgeQueryEvidenceTag::new("certification_commit"), label)
-            .seal(),
-    )
+pub(super) fn certification_commit_identity_for(
+    namespace: impl AsRef<str>,
+    evidence: impl AsRef<str>,
+) -> ForgeQueryCommitIdentity {
+    ForgeQueryCommitIdentity::from_relational_commit_id(stable_certification_position(
+        namespace, evidence,
+    ))
 }
 
 pub(super) fn certification_snapshot_identity(
     label: impl AsRef<str>,
 ) -> ForgeQuerySnapshotIdentity {
-    ForgeQuerySnapshotIdentity::preview(
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity)
-            .field_identity(ForgeQueryEvidenceTag::new("certification_snapshot"), label)
-            .seal(),
+    certification_snapshot_identity_for("certification-snapshot", label)
+}
+
+pub(super) fn certification_snapshot_identity_for(
+    namespace: impl AsRef<str>,
+    evidence: impl AsRef<str>,
+) -> ForgeQuerySnapshotIdentity {
+    let snapshot_id = stable_certification_position(namespace.as_ref(), evidence.as_ref());
+    let version_id =
+        stable_certification_position(format!("{}:version", namespace.as_ref()), evidence.as_ref());
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(snapshot_id, version_id),
     )
 }
 
 pub(super) fn certification_entity_identity(label: impl AsRef<str>) -> ForgeQueryEntityIdentity {
-    ForgeQueryEntityIdentity::authored_command(label)
+    crate::memory_workspace::admit_authored_entity_label(label)
+}
+
+fn stable_certification_position(namespace: impl AsRef<str>, evidence: impl AsRef<str>) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in namespace.as_ref().bytes().chain(evidence.as_ref().bytes()) {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211_u64);
+    }
+    acc
 }
 
 #[derive(Clone)]
@@ -224,7 +240,10 @@ pub(super) fn certified_failure_intent_fixture() -> CertifiedFailureIntentFixtur
                 .clone();
             CertifiedFailureIntentFixture {
                 request,
-                failure_digest: evidence.denial_digest().to_string(),
+                failure_digest: evidence
+                    .denial_digest()
+                    .terminal_projection_for_reporting()
+                    .to_string(),
                 execution_provenance_chain_digest: evidence
                     .execution_provenance()
                     .expect("execution-time denial should retain provenance")

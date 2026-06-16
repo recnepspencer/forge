@@ -9,26 +9,10 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: cannot construct `forge_query::facade::LoweredMutationIntentDeclaration` with struct literal syntax due to private fields
-  --> tests/ui/lowered_mutation_intent_declaration_constructor_private.rs:4:13
+error[E0560]: struct `forge_query::facade::LoweredMutationIntentDeclaration` has no field named `lowering_digest`
+  --> tests/ui/lowered_mutation_intent_declaration_constructor_private.rs:11:9
    |
- 4 |     let _ = LoweredMutationIntentDeclaration {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 5 |         declaration: todo!(),
-   |         -------------------- private field
- 6 |         mutation_family: todo!(),
-   |         ------------------------ private field
- 7 |         strategy_target: todo!(),
-   |         ------------------------ private field
- 8 |         strategy_request: todo!(),
-   |         ------------------------- private field
- 9 |         freshness_binding: todo!(),
-   |         -------------------------- private field
-10 |         staleness_class: todo!(),
-   |         ------------------------ private field
 11 |         lowering_digest: todo!(),
-   |         ------------------------ private field
-12 |         counters: todo!(),
-   |         ----------------- private field
+   |         ^^^^^^^^^^^^^^^ `forge_query::facade::LoweredMutationIntentDeclaration` does not have this field
    |
-   = note: ...and other private field `authority_binding` that was not provided
+   = note: all struct fields are already assigned

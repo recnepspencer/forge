@@ -36,7 +36,7 @@ fn basis_identity(
     evidence_rows: &[crate::runtime::ForgeQueryBasisAdmissionEvidenceRow],
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(scope)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
             label.identity_digest().as_str(),
         )
@@ -48,7 +48,7 @@ fn basis_identity(
             ForgeQueryEvidenceTag::new("authority_lane"),
             authority_lane.as_str(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("evidence_row"),
             evidence_rows.iter().map(|row| row.row_digest().as_str()),
         )

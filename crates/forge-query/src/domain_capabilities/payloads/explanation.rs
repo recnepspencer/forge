@@ -83,10 +83,7 @@ fn compose_explanation_runtime_semantics_identity(
         ForgeQueryEvidenceTag::new("richness"),
         requested_richness.as_str(),
     )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("evidence_families"),
-        &families,
-    )
+    .field_shape(ForgeQueryEvidenceTag::new("evidence_families"), &families)
     .field_shape(
         ForgeQueryEvidenceTag::new("redaction"),
         redaction_policy.as_str(),
@@ -96,7 +93,7 @@ fn compose_explanation_runtime_semantics_identity(
         materialization_policy.as_str(),
     );
     identity = match bridge_envelope {
-        Some(envelope) => identity.field_bridge_identity(
+        Some(envelope) => identity.field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("bridge_envelope"),
             envelope.envelope_evidence_identity(),
         ),

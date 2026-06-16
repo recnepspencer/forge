@@ -176,7 +176,7 @@ impl LoweredBridgeAsyncSourceDeclaration {
             declaration_identity: validated.declaration_identity().clone(),
             family_kind: validated.family_kind(),
             lowering_family_kind: BridgeAsyncSignalLoweringFamilyKind::ResourceDescriptor,
-            lowering_identity: BridgeAsyncSourceLoweringIdentity::new(format!(
+            lowering_identity: BridgeAsyncSourceLoweringIdentity::admit_bridge_owned(format!(
                 "bridge-async-lowering:sha256:{digest:x}"
             )),
             canonical_basis,
@@ -207,7 +207,7 @@ impl LoweredBridgeAsyncSourceDeclaration {
             declaration_identity: validated.declaration_identity().clone(),
             family_kind: validated.family_kind(),
             lowering_family_kind: BridgeAsyncSignalLoweringFamilyKind::AsyncNodeCapability,
-            lowering_identity: BridgeAsyncSourceLoweringIdentity::new(format!(
+            lowering_identity: BridgeAsyncSourceLoweringIdentity::admit_bridge_owned(format!(
                 "bridge-async-lowering:sha256:{digest:x}"
             )),
             canonical_basis,

@@ -10,7 +10,7 @@ fn route_plan_drift_rejects_foreign_boundary_receipt() {
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
             "test-subject",
         )
-        .field_identity(
+        .field_value(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("test_subject"),
             "subject-a",
         )
@@ -19,7 +19,7 @@ fn route_plan_drift_rejects_foreign_boundary_receipt() {
     let detail_a = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
         crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
     )
-    .field_identity(
+    .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
         "detail-a",
     )
@@ -40,7 +40,7 @@ fn route_plan_drift_rejects_foreign_boundary_receipt() {
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
             "test-subject",
         )
-        .field_identity(
+        .field_value(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("test_subject"),
             "subject-b",
         )
@@ -49,7 +49,7 @@ fn route_plan_drift_rejects_foreign_boundary_receipt() {
     let detail_b = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
         crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
     )
-    .field_identity(
+    .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
         "detail-b",
     )
@@ -69,7 +69,7 @@ fn route_plan_drift_rejects_foreign_boundary_receipt() {
             &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
                 crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
             )
-            .field_identity(
+            .field_value(
                 crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
                 "detail-a",
             )
@@ -81,7 +81,7 @@ fn route_plan_drift_rejects_foreign_boundary_receipt() {
             &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
                 crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
             )
-            .field_identity(
+            .field_value(
                 crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
                 "detail-b",
             )
@@ -100,17 +100,17 @@ fn route_plan_drift_rejects_foreign_boundary_receipt() {
 #[test]
 fn write_authority_boundary_receipt_carries_boundary_envelope() {
     let command = ForgeQueryWriteCommand::Delete {
-        entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+        entity_identity: crate::memory_workspace::admit_authored_entity_label(
             "task-1",
         ),
     };
     let mutation_receipt = ForgeQueryMutationReceipt {
         commit_identity:
-            crate::memory_workspace::ForgeQueryCommitIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_commit_label(
                 "commit-1",
             ),
         snapshot_identity:
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "snapshot-1",
             ),
         deltas: Vec::new(),

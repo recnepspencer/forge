@@ -10,12 +10,12 @@ use crate::domain_capabilities::{
     ForgeQueryCanonicalExplanationArtifact, ForgeQueryDomainCapabilityTransitionOutcome,
     ForgeQueryMaterializationReadyExplanationContribution,
 };
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::runtime::{
     materialize_admitted_causal_inspection, materialize_advisory_causal_inspection,
     materialize_denied_causal_inspection, request_causal_inspection, CausalInspectionPlan,
     CausalInspectionProofFlow, QueryCausalInspectionArtifact,
 };
-use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryExplanationInspectionReview {

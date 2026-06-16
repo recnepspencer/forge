@@ -225,7 +225,7 @@ fn lower_runtime_envelope(target_digest: &str) -> ForgeQueryLowerRuntimeBoundary
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
             "domain-capabilities-dx-target",
         )
-        .field_identity(
+        .field_value(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("test_target"),
             target_digest,
         )
@@ -234,7 +234,7 @@ fn lower_runtime_envelope(target_digest: &str) -> ForgeQueryLowerRuntimeBoundary
     let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
         crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
     )
-    .field_identity(
+    .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
         "detail",
     )
@@ -256,7 +256,7 @@ fn lower_runtime_envelope(target_digest: &str) -> ForgeQueryLowerRuntimeBoundary
             &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
                 crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
             )
-            .field_identity(
+            .field_value(
                 crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
                 format!("retained:{target_digest}"),
             )
@@ -279,7 +279,7 @@ fn write_authority_boundary_source(
     use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
     let command = ForgeQueryWriteCommand::Delete {
-        entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+        entity_identity: crate::memory_workspace::admit_authored_entity_label(
             target_digest,
         ),
     };
@@ -288,7 +288,7 @@ fn write_authority_boundary_source(
             crate::ForgeQueryEvidenceIdentity::compose(
                 crate::ForgeQueryEvidenceScope::WriteReceiptCommitIdentity,
             )
-            .field_identity(crate::ForgeQueryEvidenceTag::new("target"), target_digest)
+            .field_value(crate::ForgeQueryEvidenceTag::new("target"), target_digest)
             .seal(),
         ),
         snapshot_identity:

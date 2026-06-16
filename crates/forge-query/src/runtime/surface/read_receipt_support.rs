@@ -16,7 +16,7 @@ pub(super) fn materialized_result_digest(
                 [
                     format!(
                         "row_identity:{}",
-                        row.identity().evidence_identity().as_str()
+                        row.identity().terminal_projection_for_reporting()
                     ),
                     format!("external_row:{external_row}"),
                 ]

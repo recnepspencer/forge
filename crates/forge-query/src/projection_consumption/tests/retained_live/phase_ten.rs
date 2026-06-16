@@ -65,7 +65,7 @@ fn retained_binding_declaration_preserves_binding_identity_and_target_refs() {
     assert_eq!(declaration.source().query_digest(), None);
     assert_eq!(
         declaration.source().basis_digest(),
-        Some(binding.snapshot_identity().evidence_identity().as_str())
+        Some(binding.snapshot_identity().bridge_admission_evidence().terminal_projection_for_reporting())
     );
     assert_eq!(
         declaration.source().source_identity(),
@@ -92,7 +92,11 @@ fn live_binding_eligibility_admits_honest_fact_families() {
     let declaration = binding
         .declare_projection_fact_consumption(
             &result_shape.identity,
-            &authorized_projection("query:test", &result_shape.digest, &["profile.display_name"]),
+            &authorized_projection(
+                "query:test",
+                &result_shape.digest,
+                &["profile.display_name"],
+            ),
             ProjectMaterializedFacts::declare()
                 .entity_identities()
                 .display_field("profile.display_name")

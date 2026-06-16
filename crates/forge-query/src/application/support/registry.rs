@@ -258,7 +258,7 @@ impl ForgeQueryCapabilityRegistry {
         let registry_digest =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::ApplicationSupportReport)
                 .field_shape(ForgeQueryEvidenceTag::new("role"), "capability-registry")
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("descriptors"),
                     descriptor_identities.iter().map(String::as_str),
                 )
@@ -316,7 +316,7 @@ impl ForgeQuerySupportMatrix {
         let support_matrix_digest =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::ApplicationSupportReport)
                 .field_shape(ForgeQueryEvidenceTag::new("role"), "support-matrix")
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("registry"),
                     registry.registry_digest(),
                 )

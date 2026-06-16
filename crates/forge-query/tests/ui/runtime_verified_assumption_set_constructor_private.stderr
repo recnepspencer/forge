@@ -1,35 +1,31 @@
-error[E0451]: fields `target_binding_count`, `asserted_aspect_count`, `distinct_asserted_aspect_path_count`, `cleared_assertion_count` and `counter_snapshot` of struct `ForgeQueryVerificationReadSetBreadth` are private
-  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:7:9
+error[E0308]: mismatched types
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:14:25
    |
- 6 |     let read_set = ForgeQueryVerificationReadSetBreadth {
-   |                    ------------------------------------ in this type
- 7 |         target_binding_count: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
- 8 |         asserted_aspect_count: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         distinct_asserted_aspect_path_count: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         cleared_assertion_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         counter_snapshot: String::new(),
-   |         ^^^^^^^^^^^^^^^^ private field
-
-error[E0451]: fields `binding_digest`, `asserted_aspect_paths`, `assumption_snapshot_token`, `assumption_snapshot_digest`, `verified_precondition_digest`, `verification_read_set_breadth` and `verified_assumption_digest` of struct `ForgeQueryVerifiedAssumptionSet` are private
-  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:14:9
-   |
-13 |     let _ = ForgeQueryVerifiedAssumptionSet {
-   |             ------------------------------- in this type
 14 |         binding_digest: String::new(),
-   |         ^^^^^^^^^^^^^^ private field
-15 |         asserted_aspect_paths: vec![String::from("status.value")],
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+   |                         ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0560]: struct `ForgeQueryVerifiedAssumptionSet` has no field named `assumption_snapshot_token`
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:16:9
+   |
 16 |         assumption_snapshot_token: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryVerifiedAssumptionSet` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:17:37
+   |
 17 |         assumption_snapshot_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |                                     ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:18:39
+   |
 18 |         verified_precondition_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-19 |         verification_read_set_breadth: read_set,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |                                       ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:20:37
+   |
 20 |         verified_assumption_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |                                     ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`

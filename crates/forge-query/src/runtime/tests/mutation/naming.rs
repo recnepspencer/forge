@@ -337,7 +337,7 @@ fn naming_remove_denies_non_delete_family_typed_and_early() {
         .expect("task runtime should open a named workspace");
 
     let command = ForgeQueryWriteCommand::UpdateAspects {
-        entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+        entity_identity: crate::memory_workspace::admit_authored_entity_label(
             "entity:0:1:0",
         ),
         aspects: Vec::new(),

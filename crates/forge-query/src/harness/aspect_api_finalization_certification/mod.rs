@@ -1,5 +1,6 @@
 mod digests;
 mod fixture;
+mod rejections;
 mod rows;
 mod tests;
 

@@ -19,14 +19,14 @@ pub type BridgePreviewSessionDeclarationIdentity =
 
 impl BridgePreviewSessionDeclarationIdentity {
     pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
-        Self::new(format!(
+        Self::admit_bridge_owned(format!(
             "bridge-preview-session-declaration:external-authority-evidence:{}",
             evidence_identity.as_str()
         ))
     }
 
     pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
-        Self::new(value)
+        Self::admit_bridge_owned(value)
     }
 }
 
@@ -201,22 +201,22 @@ mod tests {
     #[test]
     fn declaration_digest_is_stable_for_same_inputs() {
         let left = BridgePreviewSessionDeclaration::new(
-            BridgePreviewSessionDeclarationIdentity::new("preview-declaration"),
+            BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("preview-declaration"),
             BridgeRequestKind::Preview,
             BridgeSpeculativeBranchBinding::new(
-                BridgeSpeculativeBranchBindingIdentity::new("binding"),
+                BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("binding"),
                 crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
-                BridgeSignalBranchIdentity::new("signal-branch"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch"),
             ),
             preview_session_basis(),
         );
         let right = BridgePreviewSessionDeclaration::new(
-            BridgePreviewSessionDeclarationIdentity::new("preview-declaration"),
+            BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("preview-declaration"),
             BridgeRequestKind::Preview,
             BridgeSpeculativeBranchBinding::new(
-                BridgeSpeculativeBranchBindingIdentity::new("binding"),
+                BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("binding"),
                 crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
-                BridgeSignalBranchIdentity::new("signal-branch"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch"),
             ),
             preview_session_basis(),
         );

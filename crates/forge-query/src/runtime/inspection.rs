@@ -9,6 +9,7 @@ mod intent_denial;
 mod intent_identity;
 mod live;
 mod live_counters;
+mod live_view_accessors;
 mod preview;
 mod unified;
 

@@ -77,7 +77,9 @@ impl forge_runtime_bridge::facade::SnapshotReadSource for StaticSource {
         } else {
             Err(RelationalBridgeSourceError::new(format!(
                 "unknown snapshot `{}`",
-                identity.evidence_identity().as_str()
+                identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting()
             )))
         }
     }
@@ -209,7 +211,7 @@ fn request_patch_identity(request: &RelationalCommittedPatchRequest) -> TruthPat
             .unwrap_or_else(|| {
                 stable_fixture_position(
                     "preview-request-patch",
-                    request.commit_identity().evidence_identity().as_str(),
+                    request.commit_identity().bridge_admission_evidence().terminal_projection_for_reporting(),
                 )
             }),
     )
@@ -218,14 +220,18 @@ fn request_patch_identity(request: &RelationalCommittedPatchRequest) -> TruthPat
 fn branch_head_commit_identity(branch_identity: &TruthBranchIdentity) -> TruthCommitIdentity {
     TruthCommitIdentity::from_relational_commit_id(stable_fixture_position(
         "preview-branch-head",
-        branch_identity.evidence_identity().as_str(),
+        branch_identity
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
     ))
 }
 
 fn branch_head_patch_identity(branch_identity: &TruthBranchIdentity) -> TruthPatchIdentity {
     TruthPatchIdentity::from_relational_patch_position(stable_fixture_position(
         "preview-branch-patch",
-        branch_identity.evidence_identity().as_str(),
+        branch_identity
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
     ))
 }
 

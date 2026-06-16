@@ -1,5 +1,6 @@
 use super::*;
 use crate::live::LiveQueryFamily;
+use crate::subscription::evidence_identities::lifecycle_absent_preview_isolation_identity;
 use crate::view_shape_live::LiveViewShapeFamily;
 
 fn roomy_admission_budget() -> QuerySubscriptionAdmissionBudget {
@@ -68,7 +69,6 @@ struct LifecycleCertificationArtifacts {
     active_admission: ActiveSubscriptionLaneAdmission,
     handle: ActiveSubscriptionLaneHandle,
     attachment: SubscriptionConsumerAttachment,
-    delivery_window_digest: String,
     delta: QuerySubscriptionMaintenanceDelta,
     lowering_report: QueryMaintenanceDeltaLoweringReport,
     work_packet: ActiveDeliveryWorkPacket,
@@ -167,22 +167,20 @@ fn active_lifecycle_certification_for(
         ),
     )
     .unwrap();
-    let delivery_window_digest = window.delivery_window_digest().to_string();
     let (delta, continuation_report) = if continuation_width > 0 {
         let evidence = admit_subscription_continuation_evidence(
             attachment.lane_digest().clone(),
             SubscriptionContinuationClass::IdentityRemap,
-            "employee:old",
-            "employee:new",
-            "basis:current",
-            "identity-authority",
+            continuation_test_identity("employee:old"),
+            continuation_test_identity("employee:new"),
+            continuation_test_identity("basis:current"),
+            continuation_test_identity("identity-authority"),
             ContinuationRemapWidth::measured(continuation_width),
         )
         .unwrap();
         let (continued_window, report) =
             apply_active_subscription_continuation(&mut runtime, window, evidence).unwrap();
         let (delta, _) = lower_subscription_continuation_report(&report);
-        let delivery_window_digest = continued_window.delivery_window_digest().to_string();
         let (delta, lowering_report, _) =
             lower_query_subscription_maintenance_delta(delta).unwrap();
         let work_packet = build_active_delivery_work_packet(
@@ -222,7 +220,6 @@ fn active_lifecycle_certification_for(
             active_admission,
             handle,
             attachment,
-            delivery_window_digest,
             delta,
             lowering_report,
             work_packet,
@@ -234,7 +231,7 @@ fn active_lifecycle_certification_for(
         };
     } else {
         (
-            QuerySubscriptionMaintenanceDelta::admitted(
+            QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
                 delta_kind,
                 attachment.lane_digest().clone(),
                 "affected-scope",
@@ -282,7 +279,6 @@ fn active_lifecycle_certification_for(
         active_admission,
         handle,
         attachment,
-        delivery_window_digest,
         delta,
         lowering_report,
         work_packet,
@@ -362,8 +358,7 @@ fn preview_discard_certification_artifacts() -> LifecycleCertificationArtifacts 
         ),
     )
     .unwrap();
-    let delivery_window_digest = window.delivery_window_digest().to_string();
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "preview-field",
@@ -424,7 +419,6 @@ fn preview_discard_certification_artifacts() -> LifecycleCertificationArtifacts 
         active_admission,
         handle,
         attachment,
-        delivery_window_digest,
         delta,
         lowering_report,
         work_packet,
@@ -508,8 +502,7 @@ fn preview_promotion_certification_artifacts() -> LifecycleCertificationArtifact
         ),
     )
     .unwrap();
-    let delivery_window_digest = window.delivery_window_digest().to_string();
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "preview-field",
@@ -591,7 +584,6 @@ fn preview_promotion_certification_artifacts() -> LifecycleCertificationArtifact
         active_admission: preview_admission,
         handle,
         attachment,
-        delivery_window_digest,
         delta,
         lowering_report,
         work_packet,
@@ -641,22 +633,22 @@ fn admitted_activation_emits_query_subscription_certification_bundle() {
         LiveQueryFamily::OrderedCollection,
         Some(LiveViewShapeFamily::Table),
     );
-    let admission_digest = admission.admission_for_reporting().to_string();
-    let activation_digest = activation.activation_for_reporting().to_string();
-    let scale_slope_digest = scale_report.digest().to_string();
+    let admission_digest = admission.admission_projection().label().to_string();
+    let activation_digest = activation.activation_projection().label().to_string();
+    let scale_slope_digest = scale_report.report_projection().label().to_string();
     let bundle =
         certify_query_subscription_activation(admission, activation, scale_report).unwrap();
 
-    assert!(!bundle.certification_bundle_for_reporting().is_empty());
-    assert_eq!(bundle.admission_for_reporting(), admission_digest);
-    assert_eq!(bundle.activation_for_reporting(), activation_digest);
-    assert_eq!(bundle.scale_slope_for_reporting(), scale_slope_digest);
-    assert_eq!(bundle.scale_activation_for_reporting(), activation_digest);
-    assert_eq!(bundle.scale_admission_for_reporting(), admission_digest);
-    assert!(!bundle.support_profile_for_reporting().is_empty());
-    assert!(!bundle.diagnostics_for_reporting().is_empty());
-    assert!(!bundle.admission_counter_for_reporting().is_empty());
-    assert!(!bundle.activation_counter_for_reporting().is_empty());
+    assert!(!bundle.certification_bundle_projection().label().is_empty());
+    assert_eq!(bundle.admission_projection().label(), admission_digest.as_str());
+    assert_eq!(bundle.activation_projection().label(), activation_digest.as_str());
+    assert_eq!(bundle.scale_slope_projection().label(), scale_slope_digest.as_str());
+    assert_eq!(bundle.scale_activation_projection().label(), activation_digest.as_str());
+    assert_eq!(bundle.scale_admission_projection().label(), admission_digest.as_str());
+    assert!(!bundle.support_profile_projection().label().is_empty());
+    assert!(!bundle.diagnostics_projection().label().is_empty());
+    assert!(!bundle.admission_counter_projection().label().is_empty());
+    assert!(!bundle.activation_counter_projection().label().is_empty());
 }
 
 #[test]
@@ -674,7 +666,7 @@ fn certification_denies_activation_from_different_admission() {
         error.denial_kind(),
         &QuerySubscriptionCertificationDenialKind::ActivationAdmissionMismatch
     );
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -692,7 +684,7 @@ fn certification_denies_scale_report_from_different_activation() {
         error.denial_kind(),
         &QuerySubscriptionCertificationDenialKind::ScaleSlopeSourceMismatch
     );
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -717,12 +709,18 @@ fn scale_slope_certification_admits_row_count_only_variation() {
     )
     .unwrap();
 
-    assert_eq!(report.activation_digest(), activation.activation_for_reporting());
-    assert_eq!(report.admission_digest(), activation.admission_for_reporting());
+    assert_eq!(
+        report.activation_projection().label(),
+        activation.activation_projection().label().as_str()
+    );
+    assert_eq!(
+        report.admission_projection().label(),
+        activation.admission_projection().label().as_str()
+    );
     assert_eq!(report.small_row_count(), 1);
     assert_eq!(report.medium_row_count(), 10);
     assert_eq!(report.large_row_count(), 100);
-    assert!(!report.structural_counter_digest().is_empty());
+    assert!(!report.structural_counter_projection().label().is_empty());
 }
 
 #[test]
@@ -756,7 +754,7 @@ fn scale_slope_certification_denies_mixed_activation_sources() {
         error.denial_kind(),
         &QuerySubscriptionCertificationDenialKind::ScaleSlopeDrift
     );
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -786,7 +784,7 @@ fn scale_slope_certification_denies_zero_row_baseline() {
         error.denial_kind(),
         &QuerySubscriptionCertificationDenialKind::ScaleSlopeDrift
     );
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -815,7 +813,7 @@ fn scale_slope_certification_denies_structural_counter_drift() {
         error.denial_kind(),
         &QuerySubscriptionCertificationDenialKind::ScaleSlopeDrift
     );
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -836,7 +834,7 @@ fn lifecycle_certification_emits_runtime_backed_bundle() {
         &artifacts.active_admission,
         &artifacts.handle,
         &artifacts.attachment,
-        artifacts.delivery_window_digest,
+        artifacts.delivery_batch.delivery_window_identity(),
         &artifacts.delta,
         &artifacts.lowering_report,
         &artifacts.work_packet,
@@ -848,26 +846,29 @@ fn lifecycle_certification_emits_runtime_backed_bundle() {
     )
     .unwrap();
 
-    assert!(!bundle.certification_bundle_for_reporting().is_empty());
+    assert!(!bundle.certification_bundle_projection().label().is_empty());
     assert_eq!(
-        bundle.active_lane_for_reporting(),
-        artifacts.handle.lane_digest().as_str()
+        bundle.active_lane_projection().label(),
+        artifacts.handle.lane_projection().label()
     );
     assert_eq!(
-        bundle.delivery_receipt_for_reporting(),
-        artifacts.delivery_batch.receipt().receipt_digest()
+        bundle.delivery_receipt_projection().label(),
+        artifacts.delivery_batch.receipt().receipt_projection().label()
     );
     assert_eq!(
-        bundle.acknowledgement_frontier_for_reporting(),
+        bundle.acknowledgement_frontier_projection().label(),
         artifacts
             .acknowledged_attachment
             .acknowledgement_frontier()
-            .frontier_for_reporting()
+            .frontier_projection().label()
     );
     assert!(artifacts.continuation_report.is_none());
-    assert_eq!(bundle.preview_isolation_for_reporting(), "none");
-    assert!(!bundle.support_matrix_for_reporting().is_empty());
-    assert!(!bundle.counter_snapshot_for_reporting().is_empty());
+    assert_eq!(
+        bundle.preview_isolation_projection().label(),
+        lifecycle_absent_preview_isolation_identity().as_str()
+    );
+    assert!(!bundle.support_matrix_projection().label().is_empty());
+    assert!(!bundle.counter_snapshot_projection().label().is_empty());
     assert!(
         !bundle.counter_sequence_identity().as_str().is_empty(),
         "lifecycle certification should bind typed counter sequence identity"
@@ -896,7 +897,7 @@ fn lifecycle_certification_binds_continuation_receipt_and_digest() {
         &artifacts.active_admission,
         &artifacts.handle,
         &artifacts.attachment,
-        artifacts.delivery_window_digest,
+        artifacts.delivery_batch.delivery_window_identity(),
         &artifacts.delta,
         &artifacts.lowering_report,
         &artifacts.work_packet,
@@ -909,8 +910,11 @@ fn lifecycle_certification_binds_continuation_receipt_and_digest() {
     .unwrap();
 
     assert!(artifacts.continuation_report.is_some());
-    assert_ne!(bundle.continuation_for_reporting(), "none");
-    assert!(!bundle.subscription_performance_receipt_for_reporting().is_empty());
+    assert_ne!(bundle.continuation_projection().label(), "none");
+    assert!(!bundle
+        .subscription_performance_receipt_projection()
+        .label()
+        .is_empty());
 }
 
 #[test]
@@ -938,7 +942,7 @@ fn lifecycle_certification_denies_attachment_from_foreign_lane() {
         &control.active_admission,
         &control.handle,
         &foreign.attachment,
-        control.delivery_window_digest,
+        control.delivery_batch.delivery_window_identity(),
         &control.delta,
         &control.lowering_report,
         &control.work_packet,
@@ -954,7 +958,7 @@ fn lifecycle_certification_denies_attachment_from_foreign_lane() {
         error.denial_kind(),
         &SubscriptionLifecycleCertificationDenialKind::AttachmentSourceMismatch
     );
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -969,7 +973,7 @@ fn lifecycle_certification_emits_preview_discard_and_support_evidence() {
         &artifacts.active_admission,
         &artifacts.handle,
         &artifacts.attachment,
-        artifacts.delivery_window_digest,
+        artifacts.delivery_batch.delivery_window_identity(),
         &artifacts.delta,
         &artifacts.lowering_report,
         &artifacts.work_packet,
@@ -981,13 +985,13 @@ fn lifecycle_certification_emits_preview_discard_and_support_evidence() {
     )
     .unwrap();
 
-    assert_ne!(bundle.preview_isolation_for_reporting(), "none");
-    assert_ne!(bundle.preview_residue_for_reporting(), "none");
+    assert_ne!(bundle.preview_isolation_projection().label(), "none");
+    assert_ne!(bundle.preview_residue_projection().label(), "none");
     assert!(
         !bundle.counter_sequence_identity().as_str().is_empty(),
         "preview discard certification should include typed counter sequence identity"
     );
-    assert!(!bundle.support_matrix_for_reporting().is_empty());
+    assert!(!bundle.support_matrix_projection().label().is_empty());
 }
 
 #[test]
@@ -1002,7 +1006,7 @@ fn lifecycle_certification_emits_preview_promotion_boundary_evidence() {
         &artifacts.active_admission,
         &artifacts.handle,
         &artifacts.attachment,
-        artifacts.delivery_window_digest,
+        artifacts.delivery_batch.delivery_window_identity(),
         &artifacts.delta,
         &artifacts.lowering_report,
         &artifacts.work_packet,
@@ -1014,8 +1018,8 @@ fn lifecycle_certification_emits_preview_promotion_boundary_evidence() {
     )
     .unwrap();
 
-    assert_ne!(bundle.preview_isolation_for_reporting(), "none");
-    assert_ne!(bundle.preview_residue_for_reporting(), "none");
+    assert_ne!(bundle.preview_isolation_projection().label(), "none");
+    assert_ne!(bundle.preview_residue_projection().label(), "none");
     assert!(
         !bundle.counter_sequence_identity().as_str().is_empty(),
         "preview promotion certification should include typed counter sequence identity"
@@ -1075,7 +1079,7 @@ fn lifecycle_certification_denies_preview_promotion_with_foreign_handoff_source(
         &artifacts.active_admission,
         &artifacts.handle,
         &artifacts.attachment,
-        artifacts.delivery_window_digest,
+        artifacts.delivery_batch.delivery_window_identity(),
         &artifacts.delta,
         &artifacts.lowering_report,
         &artifacts.work_packet,

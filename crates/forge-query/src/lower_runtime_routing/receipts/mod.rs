@@ -42,7 +42,8 @@ impl ForgeQueryLowerRuntimeRetainedEvidenceIdentity {
     }
 
     pub fn as_str(&self) -> &str {
-        self.evidence_identity.as_ref()
+        let composed = &self.evidence_identity;
+        composed.reporting_projection()
     }
 }
 
@@ -301,13 +302,13 @@ mod tests {
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "write-authority",
             ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
-                .field_identity(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
+                .field_value(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
                 .seal(),
         );
         let detail_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
         )
-        .field_identity(ForgeQueryEvidenceTag::new("test_detail"), "detail-1")
+        .field_value(ForgeQueryEvidenceTag::new("test_detail"), "detail-1")
         .seal();
         let eligibility =
             ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
@@ -326,7 +327,7 @@ mod tests {
             &ForgeQueryEvidenceIdentity::compose(
                 ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
             )
-            .field_identity(ForgeQueryEvidenceTag::new("test_retained"), "receipt-1")
+            .field_value(ForgeQueryEvidenceTag::new("test_retained"), "receipt-1")
             .seal(),
         );
         let boundary = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(

@@ -1,0 +1,15 @@
+warning: unreachable statement
+ --> tests/ui/facade_workflow_capability_cannot_bind_preview_session.rs:7:5
+  |
+6 |     let preflight: forge_query::facade::ExecutionPreflightBundle = todo!();
+  |                                                                    ------- any code following this expression is unreachable
+7 |     let context: PreviewSessionQueryContext = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `bind_preflight` found for reference `&WorkflowOrchestrationCapability` in the current scope
+ --> tests/ui/facade_workflow_capability_cannot_bind_preview_session.rs:9:35
+  |
+9 |     let _ = workflow.capability().bind_preflight(preflight, context);
+  |                                   ^^^^^^^^^^^^^^ method not found in `&WorkflowOrchestrationCapability`

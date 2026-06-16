@@ -4,9 +4,11 @@ use super::super::support::*;
 use crate::continuation_pipeline::runtime_backed_continuation_closure_summary;
 use crate::harness::MilestoneFivePointTwoPreviewCertificationAdapter;
 use crate::recovery_boundary::{ForgeQueryRecoveryAction, ForgeQueryRecoveryStopKind};
+use crate::runtime::runtime_subscription_support_evidence_identity;
 use crate::subscription::runtime_backed_subscription_certification_summary;
 use crate::subscription::CoverageResolutionPosture;
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
+use crate::ForgeQueryEvidenceIdentity;
 use forge_runtime_bridge::facade::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionState, BridgeAsyncRequestTruthViewBasis,
     BridgeMixedCauseOrderingInput, BridgeMixedCauseOrderingLaneKind,
@@ -18,8 +20,8 @@ struct RemaskingSubscriptionActivation {
 }
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for RemaskingSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "test-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("test-subscription-activation")
     }
 
     fn remask_projection(
@@ -195,7 +197,7 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         .expect("follow-on effect should declare");
     follow_on_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+            entity_identity: crate::memory_workspace::admit_authored_entity_label(
                 "task-1",
             ),
             aspect_path: "title.value".to_string(),

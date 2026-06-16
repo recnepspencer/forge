@@ -52,7 +52,7 @@ fn runtime_retains_stream_checkpoint_and_replay_records() {
     assert_eq!(
         runtime
             .diagnostics()
-            .stream_replay_record_for_identity(replay.replay_record_identity().as_str())
+            .stream_replay_record_for_identity(replay.replay_record_identity())
             .expect("replay record should be retained")
             .replay_record_identity(),
         replay.replay_record_identity()
@@ -113,7 +113,9 @@ fn runtime_explains_last_stream_checkpoint_and_replay_record() {
 
     assert_eq!(
         checkpoint_explanation.checkpoint_token_identity(),
-        result.checkpoint().checkpoint_token_identity()
+        result
+            .checkpoint()
+            .checkpoint_token_identity_for_reporting()
     );
     assert_eq!(
         replay_explanation.replay_record_identity(),
@@ -121,6 +123,8 @@ fn runtime_explains_last_stream_checkpoint_and_replay_record() {
     );
     assert_eq!(
         replay_explanation.checkpoint_token_identity(),
-        result.checkpoint().checkpoint_token_identity()
+        result
+            .checkpoint()
+            .checkpoint_token_identity_for_reporting()
     );
 }

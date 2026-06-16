@@ -58,7 +58,7 @@ pub(in crate::runtime::tests) fn test_session_label(
 pub(in crate::runtime::tests) fn test_entity_identity(
     identity: impl AsRef<str>,
 ) -> ForgeQueryEntityIdentity {
-    ForgeQueryEntityIdentity::authored_command(identity)
+    crate::memory_workspace::admit_authored_entity_label(identity)
 }
 
 pub(in crate::runtime::tests) fn test_write_adjacent_origin_identity(

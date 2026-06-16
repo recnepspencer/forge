@@ -1,4 +1,7 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{
+    project_query_subscription_evidence, QueryProjectionIdentity, QuerySubscriptionIdentityKind,
+};
 
 use super::admission_budget::QuerySubscriptionAdmissionBudget;
 use super::admission_diagnostics::{
@@ -18,7 +21,6 @@ use super::support::QuerySubscriptionSupportProfile;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionAdmissionArtifact {
     admission_identity: ForgeQueryEvidenceIdentity,
-    query_declaration_for_reporting: String,
     query_declaration_identity: ForgeQueryEvidenceIdentity,
     bridge_declaration_identity: ForgeQueryEvidenceIdentity,
     future_selection: QuerySubscriptionFutureSelection,
@@ -31,24 +33,30 @@ pub struct QuerySubscriptionAdmissionArtifact {
 }
 
 impl QuerySubscriptionAdmissionArtifact {
-    pub fn admission_for_reporting(&self) -> &str {
-        self.admission_identity.as_str()
+    pub fn admission_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.admission_identity)
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.admission_identity
     }
 
-    pub fn query_declaration_for_reporting(&self) -> &str {
-        &self.query_declaration_for_reporting
+    pub fn query_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.query_declaration_identity)
     }
 
     pub fn query_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.query_declaration_identity
     }
 
-    pub fn bridge_declaration_for_reporting(&self) -> &str {
-        self.bridge_declaration_identity.as_str()
+    pub fn bridge_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.bridge_declaration_identity)
     }
 
     pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -59,16 +67,20 @@ impl QuerySubscriptionAdmissionArtifact {
         &self.future_selection
     }
 
-    pub fn basis_binding_for_reporting(&self) -> &str {
-        self.basis_binding_identity.as_str()
+    pub fn basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.basis_binding_identity)
     }
 
     pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.basis_binding_identity
     }
 
-    pub fn signal_strategy_for_reporting(&self) -> &str {
-        self.signal_strategy_identity.as_str()
+    pub fn signal_strategy_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.signal_strategy_identity)
     }
 
     pub fn signal_strategy_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -117,7 +129,7 @@ pub fn admit_query_subscription(
     admission_budget: QuerySubscriptionAdmissionBudget,
 ) -> Result<QuerySubscriptionAdmissionArtifact, QuerySubscriptionAdmissionError> {
     let mut counters = lowering.counters().clone();
-    let source_digest = lowering.bridge_declaration_for_reporting();
+    let source_identity = lowering.bridge_declaration_identity();
 
     if exceeds_admission_budget(&admission_budget) {
         counters.admission_denial_count = 1;
@@ -126,7 +138,7 @@ pub fn admit_query_subscription(
             QuerySubscriptionAdmissionDenialKind::AdmissionBudgetExceeded,
             "subscription admission exceeds its explicit admission budget",
             QuerySubscriptionAdmissionDiagnosticStage::AdmissionBudget,
-            source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -139,7 +151,7 @@ pub fn admit_query_subscription(
             QuerySubscriptionAdmissionDenialKind::DurableReloadOverclaim,
             "durable subscription reload remains later-milestone debt",
             QuerySubscriptionAdmissionDiagnosticStage::DurableReloadOverclaim,
-            source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -151,7 +163,7 @@ pub fn admit_query_subscription(
             QuerySubscriptionAdmissionDenialKind::ActiveLifecycleAllocationForbidden,
             "Milestone 9.1 admission may not allocate active subscription lifecycle state",
             QuerySubscriptionAdmissionDiagnosticStage::ActiveLifecycleAllocation,
-            source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -161,9 +173,10 @@ pub fn admit_query_subscription(
         QuerySubscriptionAdmissionDiagnosticStage::RuntimeBackedAdmission,
         QuerySubscriptionAdmissionDiagnosticOutcome::Admitted,
         "runtime-backed query subscription declaration admitted for activation handoff",
-        source_digest,
+        source_identity,
     );
-    let support_profile = QuerySubscriptionSupportProfile::admitted(source_digest);
+    let support_profile =
+        QuerySubscriptionSupportProfile::admitted(lowering.bridge_declaration_identity());
     let admission_identity = admission_artifact_identity(
         lowering.query_declaration_identity(),
         lowering.bridge_declaration_identity(),
@@ -181,12 +194,14 @@ pub fn admit_query_subscription(
 
     Ok(QuerySubscriptionAdmissionArtifact {
         admission_identity,
-        query_declaration_for_reporting: lowering.query_declaration_for_reporting().to_string(),
         query_declaration_identity: lowering.query_declaration_identity().clone(),
         bridge_declaration_identity: lowering.bridge_declaration_identity().clone(),
         future_selection: lowering.future_selection().clone(),
         basis_binding_identity: lowering.basis_request().evidence_identity().clone(),
-        signal_strategy_identity: lowering.signal_strategy_request().evidence_identity().clone(),
+        signal_strategy_identity: lowering
+            .signal_strategy_request()
+            .evidence_identity()
+            .clone(),
         admission_budget,
         diagnostics,
         support_profile,
@@ -198,23 +213,22 @@ fn admission_error(
     denial_kind: QuerySubscriptionAdmissionDenialKind,
     message: &'static str,
     stage: QuerySubscriptionAdmissionDiagnosticStage,
-    source_digest: &str,
+    source_identity: &ForgeQueryEvidenceIdentity,
     counters: QuerySubscriptionDeclarationCounters,
 ) -> QuerySubscriptionAdmissionError {
     let diagnostics = QuerySubscriptionAdmissionDiagnostics::new(
         stage,
         QuerySubscriptionAdmissionDiagnosticOutcome::Denied,
         message,
-        source_digest,
+        source_identity,
     );
-    let source_identity = super::evidence_identities::diagnostic_source_projection_identity(source_digest);
     let pipeline_diagnostic = QuerySubscriptionDiagnosticEvidence::denied(
         admission_pipeline_stage(stage),
         message,
-        &source_identity,
+        source_identity,
         &counters.evidence_identity(),
     );
-    let support_profile = QuerySubscriptionSupportProfile::denied(source_identity.as_str());
+    let support_profile = QuerySubscriptionSupportProfile::denied(source_identity);
     QuerySubscriptionAdmissionError::new(
         denial_kind,
         message,
@@ -254,4 +268,3 @@ fn exceeds_admission_budget(budget: &QuerySubscriptionAdmissionBudget) -> bool {
         || budget.signal_strategy_width_limit() < 1
         || budget.activation_input_width_limit() < 1
 }
-

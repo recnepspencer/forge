@@ -321,22 +321,32 @@ fn basis_shape_identity(admission: &BasisCapabilityAdmission) -> ForgeQueryEvide
     }
 }
 
-fn scoped_result_shape_identity(admission: &BasisCapabilityAdmission) -> ForgeQueryEvidenceIdentity {
+fn scoped_result_shape_identity(
+    admission: &BasisCapabilityAdmission,
+) -> ForgeQueryEvidenceIdentity {
     basis_shape_identity(admission)
 }
 
-fn denied_basis_snapshot_basis_identity(denied: &DeniedBasisCapability) -> ForgeQueryEvidenceIdentity {
+fn denied_basis_snapshot_basis_identity(
+    denied: &DeniedBasisCapability,
+) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
         .field_shape(
             ForgeQueryEvidenceTag::new("identity_family"),
             "basis_denial_snapshot_basis_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), denied.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            denied.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("operation_lane"),
             denied.operation_lane().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), denied_basis_kind_label(denied.kind()))
+        .field_shape(
+            ForgeQueryEvidenceTag::new("kind"),
+            denied_basis_kind_label(denied.kind()),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("rule"),
             denied.trace().rule_label(),
@@ -352,12 +362,18 @@ fn denied_basis_snapshot_result_shape_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "basis_denial_snapshot_result_shape_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), denied.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            denied.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("operation_lane"),
             denied.operation_lane().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), denied_basis_kind_label(denied.kind()))
+        .field_shape(
+            ForgeQueryEvidenceTag::new("kind"),
+            denied_basis_kind_label(denied.kind()),
+        )
         .seal()
 }
 
@@ -373,7 +389,10 @@ fn basis_intent_denial_snapshot_basis_identity(
             ForgeQueryEvidenceTag::new("operation_lane"),
             denial.operation_lane().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), basis_intent_denial_kind_label(denial.kind()))
+        .field_shape(
+            ForgeQueryEvidenceTag::new("kind"),
+            basis_intent_denial_kind_label(denial.kind()),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("source_path"),
             denial.source_path().as_str(),
@@ -393,7 +412,10 @@ fn basis_intent_denial_snapshot_result_shape_identity(
             ForgeQueryEvidenceTag::new("operation_lane"),
             denial.operation_lane().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), basis_intent_denial_kind_label(denial.kind()))
+        .field_shape(
+            ForgeQueryEvidenceTag::new("kind"),
+            basis_intent_denial_kind_label(denial.kind()),
+        )
         .seal()
 }
 

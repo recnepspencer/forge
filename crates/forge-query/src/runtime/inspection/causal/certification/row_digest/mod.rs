@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 mod artifact;
 mod hash;
@@ -56,16 +56,16 @@ impl CausalInspectionRepresentativeRowDigestSet {
         kind: CausalInspectionRepresentativeKind,
         artifact: &QueryCausalInspectionArtifact,
     ) -> Self {
-        let query_observation_receipt_digest = artifact.query_observation_for_reporting().to_string();
+        let query_observation_receipt_digest =
+            artifact.query_observation_identity().as_str().to_string();
         let causal_observation_anchor_digest =
             RepresentativeCausalObservationAnchorDigest::from_digest(
-                artifact.causal_identity_for_reporting(),
+                artifact.causal_identity().as_str(),
             );
-        let query_digest = hash_parts(&[
-            "causal_inspection_representative_query_digest_v1".to_string(),
-            format!("observation:{query_observation_receipt_digest}"),
-            format!("anchor:{}", causal_observation_anchor_digest.as_str()),
-        ]);
+        let query_digest = representative_query_digest(
+            &query_observation_receipt_digest,
+            causal_observation_anchor_digest.as_str(),
+        );
         let inspection_digest = inspection_digest(artifact).to_string();
         let evidence_reference_collection_digest =
             evidence_reference_collection_digest(artifact, kind);
@@ -82,7 +82,7 @@ impl CausalInspectionRepresentativeRowDigestSet {
             query_observation_receipt_digest: &query_observation_receipt_digest,
             causal_observation_anchor_digest: causal_observation_anchor_digest.as_str(),
             inspection_digest: Some(&inspection_digest),
-            artifact_digest: Some(artifact.artifact_for_reporting()),
+            artifact_digest: Some(artifact.artifact_identity().as_str()),
             causal_envelope_digest: artifact.bridge_envelope_for_reporting(),
             evidence_reference_collection_digest: Some(&evidence_reference_collection_digest),
             relational_authority_digest: slots.relational_authority_digest.as_deref(),
@@ -117,7 +117,7 @@ impl CausalInspectionRepresentativeRowDigestSet {
             query_observation_receipt_digest,
             causal_observation_anchor_digest,
             inspection_digest: Some(inspection_digest),
-            artifact_digest: Some(artifact.artifact_for_reporting().to_string()),
+            artifact_digest: Some(artifact.artifact_identity().as_str().to_string()),
             causal_envelope_digest: artifact.bridge_envelope_for_reporting().map(str::to_string),
             evidence_reference_collection_digest: Some(evidence_reference_collection_digest),
             relational_authority_digest: slots.relational_authority_digest,
@@ -160,25 +160,40 @@ impl CausalInspectionRepresentativeRowDigestSet {
     ) -> Self {
         let query_observation_receipt_digest = "denied-before-materialization".to_string();
         let causal_observation_anchor_digest =
-            RepresentativeCausalObservationAnchorDigest::from_digest(hash_parts(&[
-                "causal_inspection_failure_anchor_v1".to_string(),
-                format!("kind:{}", kind.as_str()),
-                format!("failure-class:{failure_class}"),
-                format!("failure:{failure_digest}"),
-            ]));
-        let query_digest = hash_parts(&[
-            "causal_inspection_representative_query_digest_v1".to_string(),
-            format!("observation:{query_observation_receipt_digest}"),
-            format!("anchor:{}", causal_observation_anchor_digest.as_str()),
-        ]);
-        let counter_snapshot_digest = hash_parts(&[
-            "causal_inspection_failure_counter_snapshot_v1".to_string(),
-            format!("failure-class:{failure_class}"),
-            "anchor:1".to_string(),
-            "reference-resolution:1".to_string(),
-            "admission:0".to_string(),
-            "materialization:0".to_string(),
-        ]);
+            RepresentativeCausalObservationAnchorDigest::from_digest(
+                ForgeQueryEvidenceIdentity::compose(
+                    ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "causal_inspection_failure_anchor_v1",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_shape(ForgeQueryEvidenceTag::new("failure_class"), failure_class)
+                .field_value(ForgeQueryEvidenceTag::new("failure"), failure_digest)
+                .seal()
+                .as_str()
+                .to_string(),
+            );
+        let query_digest = representative_query_digest(
+            &query_observation_receipt_digest,
+            causal_observation_anchor_digest.as_str(),
+        );
+        let counter_snapshot_digest = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "causal_inspection_failure_counter_snapshot_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("failure_class"), failure_class)
+        .field_usize(ForgeQueryEvidenceTag::new("anchor"), 1)
+        .field_usize(ForgeQueryEvidenceTag::new("reference_resolution"), 1)
+        .field_usize(ForgeQueryEvidenceTag::new("admission"), 0)
+        .field_usize(ForgeQueryEvidenceTag::new("materialization"), 0)
+        .seal()
+        .as_str()
+        .to_string();
         let row_digest = row_digest(RowDigestParts {
             kind,
             query_digest: &query_digest,
@@ -387,4 +402,28 @@ impl CausalInspectionRepresentativeRowDigestSet {
     pub fn counter_snapshot_digest(&self) -> Option<&str> {
         self.counter_snapshot_digest.as_deref()
     }
+}
+
+fn representative_query_digest(
+    query_observation_receipt_digest: &str,
+    causal_observation_anchor_digest: &str,
+) -> String {
+    ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("identity_family"),
+        "causal_inspection_representative_query_digest_v1",
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("observation"),
+        query_observation_receipt_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("anchor"),
+        causal_observation_anchor_digest,
+    )
+    .seal()
+    .as_str()
+    .to_string()
 }

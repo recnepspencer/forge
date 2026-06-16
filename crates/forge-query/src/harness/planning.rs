@@ -121,7 +121,7 @@ fn runtime_resolved_identity(
     ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         Some("workspace-main".to_string()),
-        ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-1").evidence_identity(),
+        crate::memory_workspace::admit_external_snapshot_label("snapshot-1").evidence_identity(),
         schema_basis,
         SnapshotLineageClass::CurrentHead,
     )
@@ -514,7 +514,7 @@ fn resolve_snapshot_basis_rejects_identity_mismatch() {
         ResolvedSnapshotIdentity::new(
             BasisAuthorityFamily::Store,
             Some("workspace-main".to_string()),
-            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-2")
+            crate::memory_workspace::admit_external_snapshot_label("snapshot-2")
                 .evidence_identity(),
             bundle.query().schema_basis().clone(),
             SnapshotLineageClass::CurrentHead,

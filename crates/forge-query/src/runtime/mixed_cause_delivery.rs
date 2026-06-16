@@ -110,7 +110,9 @@ pub struct ForgeQueryRuntimeMixedCauseDelivery {
 }
 
 impl ForgeQueryRuntimeMixedCauseDelivery {
-    pub(crate) fn atomic_relational_patch(delivery_cause_identity: &ForgeQueryEvidenceIdentity) -> Self {
+    pub(crate) fn atomic_relational_patch(
+        delivery_cause_identity: &ForgeQueryEvidenceIdentity,
+    ) -> Self {
         Self::atomic(
             ForgeQueryRuntimeMixedCauseMemberKind::TruthPatch,
             delivery_cause_identity,

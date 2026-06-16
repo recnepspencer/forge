@@ -340,7 +340,7 @@ fn intent_execution_binding_identity(
 ) -> String {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::EffectIntentReceipt)
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_identity(ForgeQueryEvidenceTag::new("handoff"), handoff_digest)
+        .field_value(ForgeQueryEvidenceTag::new("handoff"), handoff_digest)
         .optional_value(
             ForgeQueryEvidenceTag::new("pending_delivery"),
             pending_delivery_digest,
@@ -356,7 +356,7 @@ pub(super) fn handoff_execution_binding_identity(
 ) -> String {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::EffectIntentReceipt)
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_identity(ForgeQueryEvidenceTag::new("handoff"), handoff_digest)
+        .field_value(ForgeQueryEvidenceTag::new("handoff"), handoff_digest)
         .seal()
         .as_str()
         .to_string()

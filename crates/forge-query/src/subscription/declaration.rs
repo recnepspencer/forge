@@ -5,9 +5,7 @@ use super::declaration_error::{
 };
 use super::delivery::QuerySubscriptionDeliveryIntent;
 use super::diagnostic::QuerySubscriptionDiagnosticStage;
-use super::evidence_identities::{
-    query_subscription_declaration_identity,
-};
+use super::evidence_identities::query_subscription_declaration_identity;
 use super::family::QuerySubscriptionFamily;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::posture::{
@@ -27,7 +25,6 @@ pub struct QuerySubscriptionDeclarationArtifact {
     cost_posture: QuerySubscriptionCostPosture,
     basis_posture: QuerySubscriptionBasisPosture,
     bridge_posture: QuerySubscriptionBridgePosture,
-    equivalence_for_reporting: String,
     equivalence_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     slice_intent: QuerySubscriptionSliceIntent,
     delivery_intent: QuerySubscriptionDeliveryIntent,
@@ -58,10 +55,6 @@ impl QuerySubscriptionDeclarationArtifact {
         &self.bridge_posture
     }
 
-    pub fn equivalence_for_reporting(&self) -> &str {
-        &self.equivalence_for_reporting
-    }
-
     pub fn equivalence_identity(&self) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
         &self.equivalence_identity
     }
@@ -74,15 +67,11 @@ impl QuerySubscriptionDeclarationArtifact {
         &self.delivery_intent
     }
 
-    pub fn declaration_for_reporting(&self) -> &str {
-        self.declaration_identity.as_str()
-    }
-
     pub fn declaration_identity(&self) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
         &self.declaration_identity
     }
 
-    pub fn declaration_digest(&self) -> &QuerySubscriptionDeclarationDigest {
+    pub(crate) fn declaration_digest(&self) -> &QuerySubscriptionDeclarationDigest {
         &self.declaration_digest
     }
 
@@ -109,11 +98,7 @@ pub fn declare_query_subscription(
     slice_budget: QuerySubscriptionSliceBudget,
 ) -> Result<QuerySubscriptionDeclarationArtifact, QuerySubscriptionDeclarationDenial> {
     let mut counters = selection.counters().clone();
-    let source_digest = selection
-        .equivalence_basis()
-        .evidence_identity()
-        .as_str()
-        .to_string();
+    let source_identity = selection.equivalence_basis().evidence_identity();
     let raw_parts = raw_slice_parts(&selection);
     let input_count = raw_parts.len();
     let sort_comparison_count = input_count.saturating_sub(1);
@@ -125,7 +110,7 @@ pub fn declare_query_subscription(
             QuerySubscriptionDeclarationDenialKind::UnsupportedMaskedSlice,
             "masked subscription slices require purpose-specific non-disclosing evidence",
             QuerySubscriptionDiagnosticStage::Declaration,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -138,7 +123,7 @@ pub fn declare_query_subscription(
             QuerySubscriptionDeclarationDenialKind::UnsupportedGroupingSlice,
             "grouped subscription declaration requires admitted grouping slice support",
             QuerySubscriptionDiagnosticStage::Declaration,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -151,7 +136,7 @@ pub fn declare_query_subscription(
             QuerySubscriptionDeclarationDenialKind::UnsupportedBoundedMaterializationSlice,
             "bounded materialization declaration requires admitted relation-scope slice support",
             QuerySubscriptionDiagnosticStage::Declaration,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -163,7 +148,7 @@ pub fn declare_query_subscription(
             QuerySubscriptionDeclarationDenialKind::DeliveryIntentUnsupported,
             "subscription declaration requires admitted delivery intent support",
             QuerySubscriptionDiagnosticStage::DeliveryIntent,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -176,7 +161,7 @@ pub fn declare_query_subscription(
             QuerySubscriptionDeclarationDenialKind::AllocationBudgetExceeded,
             "subscription declaration requires scratch sorting and deduplication",
             QuerySubscriptionDiagnosticStage::Declaration,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -193,7 +178,7 @@ pub fn declare_query_subscription(
             QuerySubscriptionDeclarationDenialKind::SliceBudgetExceeded,
             "subscription declaration slice intent exceeds its explicit slice budget",
             QuerySubscriptionDiagnosticStage::Declaration,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -233,7 +218,6 @@ pub fn declare_query_subscription(
         cost_posture: selection.cost_posture().clone(),
         basis_posture: selection.basis_posture().clone(),
         bridge_posture: selection.bridge_posture().clone(),
-        equivalence_for_reporting: selection.equivalence_basis().digest().as_str().to_string(),
         equivalence_identity,
         slice_intent,
         delivery_intent,

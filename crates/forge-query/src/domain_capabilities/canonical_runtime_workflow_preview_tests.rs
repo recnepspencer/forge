@@ -56,8 +56,8 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
     assert_eq!(
         read_only
             .preview_session_identity()
-            .evidence_identity()
-            .as_str(),
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
         "preview-session:42"
     );
     assert_eq!(
@@ -67,8 +67,8 @@ fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
     assert_eq!(
         promotion
             .preview_session_identity()
-            .evidence_identity()
-            .as_str(),
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
         "preview-session:77"
     );
     assert_eq!(
@@ -199,9 +199,9 @@ fn preview_workflow_artifact_separates_request_family_in_identity_basis() {
     assert_ne!(
         promotion
             .declaration_identity()
-            .evidence_identity()
-            .as_str(),
-        discard.declaration_identity().evidence_identity().as_str()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
+        discard.declaration_identity().bridge_admission_evidence().terminal_projection_for_reporting()
     );
     assert_ne!(
         promotion.declaration_digest_for_reporting(),
@@ -219,7 +219,7 @@ fn preview_workflow_artifact_materializer_denies_runtime_only_workflow_postures(
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection(
             "spatial.confirmation.runtime",
             "authoritative confirmation requires runtime preflight context",
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "runtime-snapshot:77",
             ),
         ),

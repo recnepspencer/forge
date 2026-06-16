@@ -54,7 +54,7 @@ fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_executi
         .expect("write-intent effect should declare");
     delegated_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+            entity_identity: crate::memory_workspace::admit_authored_entity_label(
                 "task-1",
             ),
             aspect_path: "title.value".to_string(),
@@ -79,7 +79,7 @@ fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_executi
         .expect("write-intent effect should declare");
     canonical_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+            entity_identity: crate::memory_workspace::admit_authored_entity_label(
                 "task-1",
             ),
             aspect_path: "title.value".to_string(),
@@ -135,7 +135,7 @@ fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_executi
 fn scalar_write_delegates_to_canonical_admission_and_execution_handoff() {
     let mut delegated_runtime = intent_runtime_with_authority(TestIntentAuthority);
     let command = ForgeQueryWriteCommand::UpdateAspect {
-        entity_identity: crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+        entity_identity: crate::memory_workspace::admit_authored_entity_label(
             "task-1",
         ),
         aspect_path: "title.value".to_string(),

@@ -88,7 +88,7 @@ impl CausalInspectionPlanError {
         match self {
             Self::Anchor(error) => error.failure_digest(),
             Self::MissingEvidence(denial) => denial.failure_digest(),
-            Self::Request(error) => error.failure_digest(),
+            Self::Request(error) => error.failure_for_reporting(),
         }
     }
 }
@@ -345,8 +345,8 @@ impl CausalInspectionPlan {
         self.reference_set.reference_set_digest().as_str()
     }
 
-    pub fn request_digest(&self) -> &str {
-        self.request.request_digest()
+    pub fn request_for_reporting(&self) -> &str {
+        self.request.request_for_reporting()
     }
 
     pub fn admission_digest(&self) -> &str {

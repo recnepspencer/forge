@@ -63,8 +63,8 @@ impl BridgeCausalInspectionAdmissionSummary {
         causal_observation_anchor_identity: BridgeIdentityEvidence,
     ) -> Result<Self, BridgeCausalEnvelopeDenial> {
         validate_admission_summary_inputs(
-            query_admission_identity.as_ref(),
-            causal_observation_anchor_identity.as_ref(),
+            query_admission_identity.as_str(),
+            causal_observation_anchor_identity.as_str(),
         )?;
         let summary_identity = compose_bridge_causal_envelope_evidence_identity(
             BridgeCausalEnvelopeDigestArtifact::AdmissionSummary,
@@ -87,11 +87,11 @@ impl BridgeCausalInspectionAdmissionSummary {
     }
 
     pub fn query_admission_for_reporting(&self) -> &str {
-        self.query_admission_identity.as_ref()
+        self.query_admission_identity.as_str()
     }
 
     pub fn causal_observation_anchor_for_reporting(&self) -> &str {
-        self.causal_observation_anchor_identity.as_ref()
+        self.causal_observation_anchor_identity.as_str()
     }
 
     pub fn query_admission_identity(&self) -> &BridgeIdentityEvidence {
@@ -152,7 +152,8 @@ impl BridgeCausalEnvelopeAssemblyRequest {
     }
 
     pub fn causal_observation_anchor_for_reporting(&self) -> &str {
-        self.admission_summary.causal_observation_anchor_for_reporting()
+        self.admission_summary
+            .causal_observation_anchor_for_reporting()
     }
 
     pub fn references(&self) -> &[BridgeCausalEvidenceReference] {

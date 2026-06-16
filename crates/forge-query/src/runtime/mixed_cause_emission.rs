@@ -6,11 +6,10 @@ use forge_runtime_bridge::facade::{BridgeMixedCauseDeliveryWindowPlan, BridgeMix
 
 use crate::subscription::{
     advance_subscription_acknowledgement, emit_query_mixed_cause_delivery_batch,
-    open_query_delivery_window,
-    ActiveAllocationScopeWidth, ActiveSubscriptionAllocationPosture, ActiveSubscriptionRuntime,
-    DeliveryBackpressurePolicy, DeliveryWindowWidth, MaintenanceDeltaWidth, PatchGroupWidth,
-    QueryDeliveryWindowBudget, QueryPatchGroup, QueryPatchGroupKind,
-    QuerySubscriptionDeliveryCause,
+    open_query_delivery_window, ActiveAllocationScopeWidth, ActiveSubscriptionAllocationPosture,
+    ActiveSubscriptionRuntime, DeliveryBackpressurePolicy, DeliveryWindowWidth,
+    MaintenanceDeltaWidth, PatchGroupWidth, QueryDeliveryWindowBudget, QueryPatchGroup,
+    QueryPatchGroupKind, QuerySubscriptionDeliveryCause,
 };
 
 use super::delivery::{

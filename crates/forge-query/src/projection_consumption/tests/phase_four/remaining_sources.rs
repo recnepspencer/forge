@@ -41,7 +41,7 @@ fn read_result_extracts_identity_and_payload_fields_without_reopening_authority(
     );
     assert_eq!(
         consumed.view_local_identities()[0].view_local_identity(),
-        test_entity_identity("task-1").to_string()
+        test_entity_identity("task-1").terminal_projection_for_reporting()
     );
     assert_eq!(
         consumed.display_fields()[0].field_key(),

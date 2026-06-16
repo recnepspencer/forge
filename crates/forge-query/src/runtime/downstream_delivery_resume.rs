@@ -132,10 +132,10 @@ fn support_posture_rank(posture: ForgeQueryLowerRuntimeSupportPosture) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::evidence_identities::lower_runtime_support_row_identity;
     use crate::lower_runtime_routing::{
         forge_query_lower_runtime_support_matrix, ForgeQueryLowerRuntimeSeamKey,
     };
+    use crate::runtime::evidence_identities::lower_runtime_support_row_identity;
 
     #[test]
     fn aggregate_support_posture_uses_strictest_row() {

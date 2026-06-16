@@ -85,14 +85,17 @@ fn runtime_state_and_inspection_retain_last_time_only_delivery_after_drain() {
     assert!(state.explanation().contains("relational_patch=false"));
     assert_eq!(
         state.result_shape_for_reporting(),
-        view.subscription_installation().view_shape_for_reporting()
+        view.subscription_installation().view_shape_projection().label()
     );
     assert_eq!(
         inspection.last_delivery_cause_kind(),
         Some(QuerySubscriptionDeliveryCauseKind::WindowEntry)
     );
     assert_eq!(
-        inspection.last_delivery_cause_for_reporting(),
+        inspection
+            .last_delivery_cause_projection()
+            .as_ref()
+            .map(|projection| projection.label().as_str()),
         Some(emitted.delivery_cause_for_reporting())
     );
     assert!(!inspection.last_delivery_had_relational_patch());

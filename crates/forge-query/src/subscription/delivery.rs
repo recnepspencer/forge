@@ -52,8 +52,4 @@ impl QuerySubscriptionDeliveryIntent {
             .field_shape(ForgeQueryEvidenceTag::new("intent"), self.as_str())
             .seal()
     }
-
-    pub fn delivery_intent_for_reporting(&self) -> &str {
-        self.as_str()
-    }
 }

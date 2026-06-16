@@ -207,9 +207,9 @@ fn basis_admission_identity(
     evidence_rows: &[ForgeQueryBasisAdmissionEvidenceRow],
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(scope)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
-            label.identity_digest(),
+            label.identity_digest().reporting_projection(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("effect_policy"),
@@ -219,9 +219,11 @@ fn basis_admission_identity(
             ForgeQueryEvidenceTag::new("authority_lane"),
             authority_lane.as_str(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("basis_evidence"),
-            evidence_rows.iter().map(|row| row.row_digest()),
+            evidence_rows
+                .iter()
+                .map(|row| row.row_digest().reporting_projection()),
         )
         .seal()
 }

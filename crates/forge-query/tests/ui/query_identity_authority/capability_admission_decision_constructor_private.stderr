@@ -1,0 +1,30 @@
+error[E0451]: fields `descriptor`, `validated_config_digest`, `counters` and `decision_digest` of struct `CapabilityAdmissionDecision` are private
+  --> tests/ui/capability_admission_decision_constructor_private.rs:8:9
+   |
+ 7 |     let _ = CapabilityAdmissionDecision {
+   |             --------------------------- in this type
+ 8 |         descriptor: forge_query::facade::ForgeQueryCapabilityDescriptor {
+   |         ^^^^^^^^^^ private field
+...
+15 |         validated_config_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         counters: ForgeQueryFacadeCounters::default(),
+   |         ^^^^^^^^ private field
+17 |         decision_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `family`, `status`, `owner`, `config_section` and `reason` of struct `ForgeQueryCapabilityDescriptor` are private
+  --> tests/ui/capability_admission_decision_constructor_private.rs:9:13
+   |
+ 8 |         descriptor: forge_query::facade::ForgeQueryCapabilityDescriptor {
+   |                     --------------------------------------------------- in this type
+ 9 |             family: ForgeQueryCapabilityFamily::QueryRead,
+   |             ^^^^^^ private field
+10 |             status: ForgeQueryCapabilityStatus::Admitted,
+   |             ^^^^^^ private field
+11 |             owner: ForgeQuerySubsystemOwner::Query,
+   |             ^^^^^ private field
+12 |             config_section: ForgeQueryConfigSectionFamily::Query,
+   |             ^^^^^^^^^^^^^^ private field
+13 |             reason: "forbidden",
+   |             ^^^^^^ private field

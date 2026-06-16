@@ -22,10 +22,12 @@ impl ContinuityLineageSource for ExplanationContinuityLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![BridgeHistoricalResolvedLineageIdentity::new(
+            vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
                 "lineage:explanation-successor",
             )],
-            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
+                "entity:0:4:2",
+            )],
             vec![7],
         )
     }

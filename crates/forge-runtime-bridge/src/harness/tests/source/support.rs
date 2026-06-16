@@ -16,7 +16,7 @@ pub(super) fn source_fixture(
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_source_declaration(historical_source_declaration(
-                SourceDeclarationIdentity::new("source:analysis-history"),
+                SourceDeclarationIdentity::admit_bridge_owned("source:analysis-history"),
             ))
             .with_source_adapter_capabilities(BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -61,37 +61,39 @@ pub(super) fn historical_source_declaration(
 }
 
 pub(super) fn materialize_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::source_materialize(SourceDeclarationIdentity::new(
+    BridgeHarnessTargetId::source_materialize(SourceDeclarationIdentity::admit_bridge_owned(
         "source:analysis-history",
     ))
 }
 
 pub(super) fn replay_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::source_replay(SourceDeclarationIdentity::new("source:analysis-history"))
+    BridgeHarnessTargetId::source_replay(SourceDeclarationIdentity::admit_bridge_owned(
+        "source:analysis-history",
+    ))
 }
 
 pub(super) fn materialize_batch_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::source_materialize_batch(SourceDeclarationIdentity::new(
+    BridgeHarnessTargetId::source_materialize_batch(SourceDeclarationIdentity::admit_bridge_owned(
         "source:analysis-history",
     ))
 }
 
 pub(super) fn hostile_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::source_reject_unregistered(SourceDeclarationIdentity::new(
-        "source:hostile-missing",
-    ))
+    BridgeHarnessTargetId::source_reject_unregistered(
+        SourceDeclarationIdentity::admit_bridge_owned("source:hostile-missing"),
+    )
 }
 
 pub(super) fn reject_open_snapshot_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::source_reject_open_snapshot(SourceDeclarationIdentity::new(
-        "source:analysis-history",
-    ))
+    BridgeHarnessTargetId::source_reject_open_snapshot(
+        SourceDeclarationIdentity::admit_bridge_owned("source:analysis-history"),
+    )
 }
 
 pub(super) fn reject_snapshot_drift_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::source_reject_snapshot_drift(SourceDeclarationIdentity::new(
-        "source:analysis-history",
-    ))
+    BridgeHarnessTargetId::source_reject_snapshot_drift(
+        SourceDeclarationIdentity::admit_bridge_owned("source:analysis-history"),
+    )
 }
 
 pub(super) fn direct_host_profile(name: &str) -> ExecutionProfile {

@@ -105,7 +105,9 @@ mod tests {
             } else {
                 Err(RelationalBridgeSourceError::new(format!(
                     "unknown snapshot `{}`",
-                    identity.evidence_identity().as_str()
+                    identity
+                        .bridge_admission_evidence()
+                        .terminal_projection_for_reporting()
                 )))
             }
         }
@@ -159,12 +161,18 @@ mod tests {
             &self,
             identity: &TruthSnapshotIdentity,
         ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-            if identity.evidence_identity().as_str() == "snapshot-a" {
+            if identity
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
+                == "snapshot-a"
+            {
                 Ok(Box::new(StaticSnapshotReader))
             } else {
                 Err(RelationalBridgeSourceError::new(format!(
                     "unknown snapshot `{}`",
-                    identity.evidence_identity().as_str()
+                    identity
+                        .bridge_admission_evidence()
+                        .terminal_projection_for_reporting()
                 )))
             }
         }
@@ -274,8 +282,8 @@ mod tests {
         let request = HistoricalEvaluationRequest::retained_snapshot(
             declaration
                 .declaration_identity()
-                .evidence_identity()
-                .as_str(),
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
             1,
             1,
             HistoricalPathReuseDescriptor::retained_reuse(),
@@ -366,8 +374,8 @@ mod tests {
         let request = HistoricalEvaluationRequest::delta_replay(
             declaration
                 .declaration_identity()
-                .evidence_identity()
-                .as_str(),
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
             4,
             8,
             HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
@@ -429,8 +437,8 @@ mod tests {
         let request = HistoricalEvaluationRequest::full_reconstruction(
             declaration
                 .declaration_identity()
-                .evidence_identity()
-                .as_str(),
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
             3,
             10,
             HistoricalPathReuseDescriptor::no_reuse(),
@@ -471,8 +479,8 @@ mod tests {
         let request = HistoricalEvaluationRequest::delta_replay(
             declaration
                 .declaration_identity()
-                .evidence_identity()
-                .as_str(),
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
             2,
             2,
             HistoricalPathReuseDescriptor::no_reuse(),
@@ -536,8 +544,8 @@ mod tests {
         let request = HistoricalEvaluationRequest::delta_replay(
             declaration
                 .declaration_identity()
-                .evidence_identity()
-                .as_str(),
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
             4,
             8,
             HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
@@ -555,8 +563,8 @@ mod tests {
         let wrong_path = HistoricalMaterializationDescriptor::new(
             declaration
                 .declaration_identity()
-                .evidence_identity()
-                .as_str(),
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
             ResolvedHistoricalPathClass::ResolvedFullReconstructionPath,
         );
 

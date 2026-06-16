@@ -152,12 +152,12 @@ mod tests {
     #[test]
     fn validation_rejects_authoritative_request_kind_for_preview_session() {
         let declaration = BridgePreviewSessionDeclaration::new(
-            BridgePreviewSessionDeclarationIdentity::new("preview-declaration"),
+            BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("preview-declaration"),
             BridgeRequestKind::Authoritative,
             BridgeSpeculativeBranchBinding::new(
-                BridgeSpeculativeBranchBindingIdentity::new("binding"),
+                BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("binding"),
                 crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
-                BridgeSignalBranchIdentity::new("signal-branch"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch"),
             ),
             preview_session_basis(),
         );

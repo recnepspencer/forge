@@ -13,7 +13,7 @@ impl ConsumedContinuityAuthorityIdentity {
         let evidence_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::ProjectionConsumedContinuityAuthorityIdentity,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("authority_identity"),
             label.as_str(),
         )

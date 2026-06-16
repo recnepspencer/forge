@@ -9,12 +9,14 @@ use forge_runtime_bridge::facade::{
     StreamCheckpointFrontierKind, StreamCheckpointPublicationMode, StreamCoalescingFamily,
     StreamCoalescingIntent, StreamConsumerShape, StreamDeliveryIntent,
     StreamDiagnosticsPolicyClass, StreamReplayMode, StreamResumeMode, StructuralFingerprintFamily,
-    StructuralTruthViewBasis, TruthBranchIdentity, TruthCommitIdentity, TruthSnapshotIdentity,
+    StructuralTruthViewBasis, TruthCommitIdentity,
 };
 
 use super::super::super::super::*;
 use super::super::materialization::{
-    bridge_runtime, changed_reference_set, registered_source, registered_structural, request_for,
+    bridge_runtime, causal_materialization_branch_identity, causal_materialization_commit_identity,
+    causal_materialization_snapshot_identity, causal_truth_analysis_branch_identity,
+    changed_reference_set, registered_source, registered_structural, request_for,
 };
 use super::writeback_support::retain_writeback_record_identities;
 use lower_runtime_slot_references::bridge_request_with_lower_runtime_slot_references;
@@ -75,9 +77,8 @@ fn retain_lower_runtime_slot_evidence(
     commit_identity: &TruthCommitIdentity,
 ) -> RetainedLowerRuntimeSlotEvidence {
     let (preview_execution_record_identity, preview_discard_record_identity) =
-        retain_preview_record_identities(runtime, commit_identity.evidence_identity().as_str());
-    let writeback =
-        retain_writeback_record_identities(runtime, commit_identity.evidence_identity().as_str());
+        retain_preview_record_identities(runtime, commit_identity);
+    let writeback = retain_writeback_record_identities(runtime, commit_identity);
     RetainedLowerRuntimeSlotEvidence {
         historical_evaluation_record_identity: retain_historical_evaluation_record_identity(
             runtime,
@@ -104,21 +105,25 @@ fn retain_lower_runtime_slot_evidence(
 fn retain_historical_evaluation_record_identity(runtime: &RuntimeBridge) -> String {
     runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::from_bridge_harness_label("analysis"),
+            causal_materialization_branch_identity(),
         ))
         .expect("historical evaluation should retain evidence")
         .record()
         .record_identity()
-        .evidence_identity()
-        .as_str()
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
         .to_string()
 }
 
-fn retain_preview_record_identities(runtime: &RuntimeBridge, suffix: &str) -> (String, String) {
+fn retain_preview_record_identities(
+    runtime: &RuntimeBridge,
+    commit_identity: &TruthCommitIdentity,
+) -> (String, String) {
+    let suffix = lower_runtime_slot_suffix(commit_identity);
     let preview_admitted = runtime
         .admit_preview_session(
             BridgePreviewSessionIdentity::from_stable_name(format!("preview-session:{suffix}")),
-            preview_declaration(suffix),
+            preview_declaration(&suffix),
         )
         .expect("preview declaration should admit");
     let (preview_active, preview_execution) =
@@ -137,13 +142,13 @@ fn retain_preview_record_identities(runtime: &RuntimeBridge, suffix: &str) -> (S
     (
         preview_execution
             .record_identity()
-            .evidence_identity()
-            .as_str()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
             .to_string(),
         preview_discard
             .record_identity()
-            .evidence_identity()
-            .as_str()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
             .to_string(),
     )
 }
@@ -153,8 +158,8 @@ fn retain_source_materialization_record_identity(runtime: &RuntimeBridge) -> Str
         .admit_source(registered_source(
             "source:causal-materialization-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::from_bridge_harness_label("analysis"),
-                TruthCommitIdentity::from_bridge_harness_label("commit-a"),
+                causal_materialization_branch_identity(),
+                causal_materialization_commit_identity(),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -171,8 +176,8 @@ fn retain_source_materialization_record_identity(runtime: &RuntimeBridge) -> Str
         .canonicalize_source_materialization_record(&source_contract, &source_observation)
         .expect("source materialization should retain evidence")
         .record_identity()
-        .evidence_identity()
-        .as_str()
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
         .to_string()
 }
 
@@ -182,8 +187,8 @@ fn retain_structural_remap_record_identity(runtime: &RuntimeBridge) -> String {
             "structural:causal-materialization-snapshot",
             StructuralFingerprintFamily::TopologyFingerprint,
             StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::from_bridge_harness_label("analysis"),
-                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-causal-materialization"),
+                causal_materialization_branch_identity(),
+                causal_materialization_snapshot_identity(),
             )),
         ))
         .expect("structural declaration should admit");
@@ -216,8 +221,8 @@ fn retain_structural_remap_record_identity(runtime: &RuntimeBridge) -> String {
             &structural_artifact,
         )
         .record_identity()
-        .evidence_identity()
-        .as_str()
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
         .to_string()
 }
 
@@ -241,10 +246,7 @@ fn retain_stream_replay_record_identity(
         .expect("stream contract should resolve");
     let stream_envelope = runtime
         .ingest_committed_patch(BridgeRouteRequest::for_commit(
-            TruthCommitIdentity::from_bridge_harness_label(format!(
-                "commit-stream-{}",
-                commit_identity.evidence_identity()
-            )),
+            stream_replay_commit_identity(commit_identity),
         ))
         .expect("stream commit should ingest");
     let stream_window = runtime
@@ -259,9 +261,16 @@ fn retain_stream_replay_record_identity(
         .canonicalize_stream_replay_record(&stream_contract, &stream_window, &stream_checkpoint)
         .expect("stream replay should retain evidence")
         .replay_record_identity()
-        .evidence_identity()
-        .as_str()
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
         .to_string()
+}
+
+fn stream_replay_commit_identity(commit_identity: &TruthCommitIdentity) -> TruthCommitIdentity {
+    let commit_id = commit_identity
+        .relational_commit_id()
+        .expect("causal stream replay fixture must carry relational commit authority");
+    TruthCommitIdentity::from_relational_commit_id(commit_id + 10_000)
 }
 
 fn preview_declaration(suffix: &str) -> BridgePreviewSessionDeclaration {
@@ -272,16 +281,23 @@ fn preview_declaration(suffix: &str) -> BridgePreviewSessionDeclaration {
             BridgeSpeculativeBranchBindingIdentity::from_stable_name(format!(
                 "binding:slot:{suffix}"
             )),
-            TruthBranchIdentity::from_bridge_harness_label("truth:analysis"),
+            causal_truth_analysis_branch_identity(),
             BridgeSignalBranchIdentity::from_stable_name("signal:analysis"),
         ),
         BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::from_bridge_harness_label("truth:analysis"),
-                TruthSnapshotIdentity::from_bridge_harness_label("snapshot-causal-materialization"),
+                causal_truth_analysis_branch_identity(),
+                causal_materialization_snapshot_identity(),
             ),
             BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
             BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
         ),
     )
+}
+
+fn lower_runtime_slot_suffix(commit_identity: &TruthCommitIdentity) -> String {
+    let commit_id = commit_identity
+        .relational_commit_id()
+        .expect("causal lower-runtime slot fixture must carry relational commit authority");
+    format!("commit-{commit_id}")
 }

@@ -28,10 +28,10 @@ pub(crate) fn admitted_async_request_identity(
     node: u64,
 ) -> AdmittedBridgeAsyncRequestIdentity {
     let declaration = BridgeAsyncSourceDeclarationDraft::request_response(
-        crate::facade::BridgeAsyncSourceDeclarationIdentity::new(format!(
+        crate::facade::BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(format!(
             "bridge-async:resume-basis:{node}"
         )),
-        crate::facade::BridgeAsyncSourceLegacyDeclarationIdentity::new(format!(
+        crate::facade::BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(format!(
             "bridge-async-legacy:resume-basis:{node}"
         )),
         ResourceNodeDeclaration::new(

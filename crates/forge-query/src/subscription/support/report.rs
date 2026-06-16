@@ -1,9 +1,11 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::super::evidence_identities::{
     support_counters_identity, support_lookup_receipt_identity, support_report_identity,
     typed_identity_drift,
 };
+use super::super::evidence_projection::subscription_evidence_projection;
 use super::super::family::QuerySubscriptionFamily;
 use super::matrix::QuerySubscriptionSupportMatrix;
 use super::subject::{
@@ -37,8 +39,11 @@ impl QuerySubscriptionSupportCounters {
         )
     }
 
-    pub fn digest(&self) -> String {
-        self.evidence_identity().as_str().to_string()
+    pub fn counter_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        let identity = self.evidence_identity();
+        subscription_evidence_projection(&identity)
     }
 
     pub fn support_report_request_count(&self) -> u64 {
@@ -101,7 +106,6 @@ pub struct SupportLookupReceipt {
     consumed_lookup_width: usize,
     remaining_lookup_width: usize,
     lookup_receipt_identity: ForgeQueryEvidenceIdentity,
-    lookup_receipt_for_reporting: String,
 }
 
 impl SupportLookupReceipt {
@@ -125,7 +129,6 @@ impl SupportLookupReceipt {
             resolution_posture,
             consumed_lookup_width,
             remaining_lookup_width,
-            lookup_receipt_for_reporting: lookup_receipt_identity.as_str().to_string(),
             lookup_receipt_identity,
         }
     }
@@ -150,16 +153,14 @@ impl SupportLookupReceipt {
         self.remaining_lookup_width
     }
 
+    pub fn lookup_receipt_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.lookup_receipt_identity)
+    }
+
     pub fn lookup_receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.lookup_receipt_identity
-    }
-
-    pub fn digest(&self) -> &str {
-        self.lookup_receipt_for_reporting()
-    }
-
-    pub fn lookup_receipt_for_reporting(&self) -> &str {
-        &self.lookup_receipt_for_reporting
     }
 }
 
@@ -187,7 +188,6 @@ pub struct QuerySubscriptionSupportReportError {
     denial_kind: QuerySubscriptionSupportReportDenialKind,
     message: &'static str,
     failure_identity: ForgeQueryEvidenceIdentity,
-    failure_for_reporting: String,
 }
 
 impl QuerySubscriptionSupportReportError {
@@ -207,7 +207,10 @@ impl QuerySubscriptionSupportReportError {
             crate::evidence_identity::ForgeQueryEvidenceTag::new("denial_kind"),
             denial_kind.as_str(),
         )
-        .field_shape(crate::evidence_identity::ForgeQueryEvidenceTag::new("message"), message)
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("message"),
+            message,
+        )
         .field_value_sequence(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("evidence"),
             evidence_parts.iter().map(String::as_str),
@@ -216,7 +219,6 @@ impl QuerySubscriptionSupportReportError {
         Self {
             denial_kind,
             message,
-            failure_for_reporting: failure_identity.as_str().to_string(),
             failure_identity,
         }
     }
@@ -229,8 +231,10 @@ impl QuerySubscriptionSupportReportError {
         &self.message
     }
 
-    pub fn failure_digest(&self) -> &str {
-        &self.failure_for_reporting
+    pub fn failure_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.failure_identity)
     }
 
     pub fn failure_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -243,11 +247,10 @@ pub struct QuerySubscriptionSupportReport {
     support_subject: QuerySubscriptionSupportSubject,
     support_posture: QuerySubscriptionSupportPosture,
     support_matrix: QuerySubscriptionSupportMatrix,
-    source_for_reporting: String,
-    counter_snapshot: String,
-    lookup_receipt_for_reporting: String,
+    source_identity: ForgeQueryEvidenceIdentity,
+    counter_snapshot_identity: ForgeQueryEvidenceIdentity,
+    lookup_receipt_identity: ForgeQueryEvidenceIdentity,
     report_identity: ForgeQueryEvidenceIdentity,
-    report_for_reporting: String,
     counters: QuerySubscriptionSupportCounters,
 }
 
@@ -264,28 +267,44 @@ impl QuerySubscriptionSupportReport {
         &self.support_matrix
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_for_reporting
+    pub fn source_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.source_identity)
     }
 
-    pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
     }
 
-    pub fn lookup_receipt_digest(&self) -> &str {
-        &self.lookup_receipt_for_reporting
+    pub fn counter_snapshot_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.counter_snapshot_identity)
     }
 
-    pub fn report_digest(&self) -> &str {
-        self.report_for_reporting()
+    pub fn counter_snapshot_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.counter_snapshot_identity
+    }
+
+    pub fn lookup_receipt_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.lookup_receipt_identity)
+    }
+
+    pub fn lookup_receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lookup_receipt_identity
+    }
+
+    pub fn report_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.report_identity)
     }
 
     pub fn report_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.report_identity
-    }
-
-    pub fn report_for_reporting(&self) -> &str {
-        &self.report_for_reporting
     }
 
     pub fn counters(&self) -> &QuerySubscriptionSupportCounters {
@@ -319,13 +338,13 @@ pub fn report_query_subscription_support(
         1,
         support_matrix.rows().len().saturating_sub(1),
     );
-    let counter_snapshot = counters.digest();
+    let counter_snapshot_identity = counters.evidence_identity();
     let report_identity = support_report_identity(
         subject.subject_identity(),
         support_row.posture().as_str(),
         support_matrix.matrix_identity(),
         lookup_receipt.lookup_receipt_identity(),
-        &counters.evidence_identity(),
+        &counter_snapshot_identity,
     );
 
     Ok((
@@ -333,10 +352,9 @@ pub fn report_query_subscription_support(
             support_subject: subject.clone(),
             support_posture: *support_row.posture(),
             support_matrix,
-            source_for_reporting: subject.source_digest().to_string(),
-            counter_snapshot,
-            lookup_receipt_for_reporting: lookup_receipt.lookup_receipt_for_reporting().to_string(),
-            report_for_reporting: report_identity.as_str().to_string(),
+            source_identity: subject.source_identity().clone(),
+            counter_snapshot_identity,
+            lookup_receipt_identity: lookup_receipt.lookup_receipt_identity().clone(),
             report_identity,
             counters,
         },
@@ -358,11 +376,11 @@ fn validate_subject_matches_evidence(
             &[
                 format!(
                     "subject_declaration:{}",
-                    subject.declaration_digest()
+                    subject.declaration_projection().label()
                 ),
                 format!(
                     "evidence_declaration:{}",
-                    evidence.declaration_digest()
+                    subscription_evidence_projection(evidence.declaration_identity()).label()
                 ),
             ],
         ));
@@ -405,7 +423,7 @@ fn validate_subject_matches_evidence(
                 &[
                     format!("subject_support_class:{}", subject.support_class().as_str()),
                     format!("subject_admission:{}", subject_admission_identity.as_str()),
-                    format!("evidence_source:{}", evidence.source_digest()),
+                    format!("evidence_source:{}", evidence.source_projection().label()),
                 ],
             ));
         }
@@ -415,7 +433,7 @@ fn validate_subject_matches_evidence(
                 "subscription support reporting requires admission-bound subjects for activation, lifecycle, continuation, and preview support",
                 &[
                     format!("subject_support_class:{}", subject.support_class().as_str()),
-                    format!("evidence_source:{}", evidence.source_digest()),
+                    format!("evidence_source:{}", evidence.source_projection().label()),
                 ],
             ));
         }

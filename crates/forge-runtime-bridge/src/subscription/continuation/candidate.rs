@@ -42,9 +42,10 @@ impl BridgeSubscriptionContinuationCandidate {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            continuation_candidate_identity: BridgeSubscriptionContinuationCandidateIdentity::new(
-                format!("bridge-subscription-continuation-candidate-id:sha256:{digest:x}"),
-            ),
+            continuation_candidate_identity:
+                BridgeSubscriptionContinuationCandidateIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-continuation-candidate-id:sha256:{digest:x}"
+                )),
             candidate_slot,
             continuation_kind: input.continuation_kind(),
             authority_digest: Arc::from(input.authority_digest().to_owned()),

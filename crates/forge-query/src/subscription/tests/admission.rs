@@ -29,20 +29,20 @@ fn bridge_lowering_admits_to_runtime_backed_subscription_artifact() {
     let admission = admit_query_subscription(lowering.clone(), roomy_admission_budget()).unwrap();
 
     assert_eq!(
-        admission.query_declaration_for_reporting(),
-        lowering.query_declaration_for_reporting()
+        admission.query_declaration_projection().label(),
+        lowering.query_declaration_projection().label()
     );
     assert_eq!(
-        admission.bridge_declaration_for_reporting(),
-        lowering.bridge_declaration_for_reporting()
+        admission.bridge_declaration_projection().label(),
+        lowering.bridge_declaration_projection().label()
     );
     assert_eq!(
-        admission.basis_binding_for_reporting(),
-        lowering.basis_request().digest()
+        admission.basis_binding_projection().label(),
+        lowering.basis_request().basis_binding_projection().label()
     );
     assert_eq!(
-        admission.signal_strategy_for_reporting(),
-        lowering.signal_strategy_request().digest()
+        admission.signal_strategy_projection().label(),
+        lowering.signal_strategy_request().signal_strategy_projection().label()
     );
     assert_eq!(admission.counters().admission_count(), 1);
     assert_eq!(admission.counters().admission_denial_count(), 0);
@@ -98,20 +98,20 @@ fn admission_digest_binds_exact_counter_evidence() {
     let counters = admission.counters();
 
     assert_eq!(
-        admission.evidence_identity().as_str(),
+        admission.admission_projection().label(),
         admission
             .recomputed_evidence_identity(&counters.evidence_identity())
-            .as_str()
+            .terminal_projection_for_reporting()
     );
 
     let mut altered_counters = counters.clone();
     altered_counters.forbidden_heap_allocation_denial_count =
         counters.forbidden_heap_allocation_denial_count() + 1;
     assert_ne!(
-        admission.evidence_identity().as_str(),
+        admission.admission_projection().label(),
         admission
             .recomputed_evidence_identity(&altered_counters.evidence_identity())
-            .as_str()
+            .terminal_projection_for_reporting()
     );
 }
 
@@ -119,25 +119,31 @@ fn admission_digest_binds_exact_counter_evidence() {
 fn activation_input_is_prepared_only_from_admitted_subscription_artifact() {
     let lowering = lowering_for(LiveQueryFamily::Detail, None);
     let admission = admit_query_subscription(lowering, roomy_admission_budget()).unwrap();
-    let admission_digest = admission.admission_for_reporting().to_string();
-    let query_declaration_digest = admission.query_declaration_for_reporting().to_string();
-    let bridge_declaration_digest = admission.bridge_declaration_for_reporting().to_string();
-    let basis_binding_digest = admission.basis_binding_for_reporting().to_string();
-    let signal_strategy_digest = admission.signal_strategy_for_reporting().to_string();
+    let admission_digest = admission.admission_projection().label().to_string();
+    let query_declaration_digest = admission.query_declaration_projection().label().to_string();
+    let bridge_declaration_digest = admission.bridge_declaration_projection().label().to_string();
+    let basis_binding_digest = admission.basis_binding_projection().label().to_string();
+    let signal_strategy_digest = admission.signal_strategy_projection().label().to_string();
 
     let activation = prepare_subscription_activation(admission);
 
-    assert_eq!(activation.admission_for_reporting(), admission_digest);
+    assert_eq!(activation.admission_projection().label().as_str(), admission_digest.as_str());
     assert_eq!(
-        activation.query_declaration_for_reporting(),
-        query_declaration_digest
+        activation.query_declaration_projection().label().as_str(),
+        query_declaration_digest.as_str()
     );
     assert_eq!(
-        activation.bridge_declaration_for_reporting(),
-        bridge_declaration_digest
+        activation.bridge_declaration_projection().label().as_str(),
+        bridge_declaration_digest.as_str()
     );
-    assert_eq!(activation.basis_binding_for_reporting(), basis_binding_digest);
-    assert_eq!(activation.signal_strategy_for_reporting(), signal_strategy_digest);
+    assert_eq!(
+        activation.basis_binding_projection().label().as_str(),
+        basis_binding_digest.as_str()
+    );
+    assert_eq!(
+        activation.signal_strategy_projection().label().as_str(),
+        signal_strategy_digest.as_str()
+    );
     assert_eq!(activation.counters().admission_count(), 1);
     assert_eq!(activation.counters().activation_input_count(), 1);
     assert_eq!(

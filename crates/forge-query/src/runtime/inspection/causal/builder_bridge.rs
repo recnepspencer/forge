@@ -178,9 +178,9 @@ fn bridge_reference_identity(
 ) -> Result<BridgeCausalEvidenceReferenceIdentity, CausalInspectionMaterializationError> {
     let identity = match owner {
         BridgeCausalEvidenceOwner::Query => {
-            BridgeCausalEvidenceReferenceIdentity::query_observation(bridge_query_evidence_identity(
-                reference_digest.evidence_identity(),
-            ))
+            BridgeCausalEvidenceReferenceIdentity::query_observation(
+                bridge_query_evidence_identity(reference_digest.evidence_identity()),
+            )
         }
         BridgeCausalEvidenceOwner::RuntimeBridge => {
             BridgeCausalEvidenceReferenceIdentity::runtime_bridge(

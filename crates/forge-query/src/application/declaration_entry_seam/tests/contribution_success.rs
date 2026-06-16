@@ -155,9 +155,11 @@ fn declaration_workflow_evidence_composes_when_admitted_plan_scope_is_present() 
             .with_admitted_plan_scope(plan.clone())
             .with_contribution_evidence(
                 ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
-                    ForgeQueryDeclarationEntryContributionEvidence::from(
-                        admitted_plan_workflow(&plan, "workflow", "preview-only"),
-                    ),
+                    ForgeQueryDeclarationEntryContributionEvidence::from(admitted_plan_workflow(
+                        &plan,
+                        "workflow",
+                        "preview-only",
+                    )),
                 ]),
             ),
         )

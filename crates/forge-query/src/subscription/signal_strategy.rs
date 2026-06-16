@@ -45,10 +45,6 @@ impl QuerySubscriptionSignalStrategyRequest {
         &self.request_kind
     }
 
-    pub fn digest(&self) -> &str {
-        self.evidence_identity.as_str()
-    }
-
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.evidence_identity
     }

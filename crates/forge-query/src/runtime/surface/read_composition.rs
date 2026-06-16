@@ -184,7 +184,7 @@ impl ForgeQueryReadGraph {
         let digest = forge_query_evidence_identity(ForgeQueryEvidenceScope::ReadGraphDigest)
             .field_shape(ForgeQueryEvidenceTag::new("family"), family_label)
             .field_shape(ForgeQueryEvidenceTag::new("scope"), scope_class.as_str())
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("plan"),
                 execution_plan.query().plan_digest().as_str(),
             )
@@ -397,7 +397,7 @@ impl ForgeQueryReadReceipt {
             query_digest: query_digest.into(),
             basis_digest: basis_digest.into(),
             result_digest: result_digest.into(),
-            snapshot_identity: ForgeQuerySnapshotIdentity::from_external_authority_label(
+            snapshot_identity: crate::memory_workspace::admit_external_snapshot_label(
                 "snapshot:test",
             ),
             scope_class: ForgeQueryReadScopeClass::ExplicitBroadSearch,

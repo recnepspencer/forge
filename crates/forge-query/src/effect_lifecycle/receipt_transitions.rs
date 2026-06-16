@@ -1,6 +1,4 @@
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::inventory::EffectReceiptArtifactKind;
 use super::support_contract::EffectDeferredNeighborFamily;
@@ -71,10 +69,9 @@ impl EffectReceiptTransitionRule {
             .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
             .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
         rule = match deferred_neighbor {
-            Some(neighbor) => rule.field_shape(
-                ForgeQueryEvidenceTag::new("neighbor"),
-                neighbor.as_str(),
-            ),
+            Some(neighbor) => {
+                rule.field_shape(ForgeQueryEvidenceTag::new("neighbor"), neighbor.as_str())
+            }
             None => rule.field_shape(ForgeQueryEvidenceTag::new("neighbor"), "none"),
         };
         let rule_identity = rule.seal();

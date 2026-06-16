@@ -1,6 +1,4 @@
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::inventory::EffectReceiptArtifactKind;
 use super::planning::EffectAuthorityOwner;
@@ -50,24 +48,23 @@ impl EffectEnvelopeSourceRefs {
             .integrity_markers()
             .counter_snapshot_identity()
             .clone();
-        let sources_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_envelope_source_refs_v1",
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), &receipt_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("lowered"), &lowered_identity)
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("authority_artifact"),
-            &authority_artifact_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("counters"),
-            &counter_snapshot_identity,
-        )
-        .seal();
+        let sources_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_envelope_source_refs_v1",
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), &receipt_identity)
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("lowered"), &lowered_identity)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("authority_artifact"),
+                    &authority_artifact_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("counters"),
+                    &counter_snapshot_identity,
+                )
+                .seal();
         Self {
             receipt_identity,
             lowered_identity,
@@ -159,70 +156,82 @@ impl SelfDescribingEffectEnvelope {
         let integrity_identity = receipt.integrity_markers().integrity_identity().clone();
         let sources = EffectEnvelopeSourceRefs::from_receipt(receipt);
         let transition_rules = receipt.transition_rules();
-        let performance_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_envelope_performance_v1",
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), receipt.receipt_identity())
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("counters"),
-            &receipt.delivery_counters().evidence_identity(),
-        )
-        .seal();
-        let boundary_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_envelope_boundary_v1",
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("authority_lane"),
-            receipt.authority_lane().as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("basis_lane"),
-            receipt.basis_lane().as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("family"),
-            receipt.declared_effect_family().as_str(),
-        )
-        .seal();
+        let performance_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_envelope_performance_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("receipt"),
+                    receipt.receipt_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("counters"),
+                    &receipt.delivery_counters().evidence_identity(),
+                )
+                .seal();
+        let boundary_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_envelope_boundary_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authority_lane"),
+                    receipt.authority_lane().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("basis_lane"),
+                    receipt.basis_lane().as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("family"),
+                    receipt.declared_effect_family().as_str(),
+                )
+                .seal();
         let deferred_neighbors = transition_rules
             .rules()
             .iter()
             .filter_map(|rule| rule.deferred_neighbor())
             .collect::<Vec<_>>();
         let transition_rules_identity = transition_rules.rules_identity().clone();
-        let envelope_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "self_describing_effect_envelope_v1",
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), receipt.receipt_identity())
-        .field_shape(
-            ForgeQueryEvidenceTag::new("primary"),
-            primary_result.as_str(),
-        )
-        .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("delta"),
-            structural_delta_identities.iter(),
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("integrity"), &integrity_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("performance"), &performance_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("boundary"), &boundary_identity)
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("transitions"),
-            &transition_rules_identity,
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("sources"), &sources.sources_identity)
-        .seal();
+        let envelope_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "self_describing_effect_envelope_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("receipt"),
+                    receipt.receipt_identity(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("primary"),
+                    primary_result.as_str(),
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("delta"),
+                    structural_delta_identities.iter(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("integrity"),
+                    &integrity_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("performance"),
+                    &performance_identity,
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("boundary"), &boundary_identity)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("transitions"),
+                    &transition_rules_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("sources"),
+                    &sources.sources_identity,
+                )
+                .seal();
         Self {
             declared_effect_family: receipt.declared_effect_family(),
             authority_lane: receipt.authority_lane(),
@@ -332,73 +341,98 @@ impl SelfDescribingEffectEnvelope {
     }
 }
 
-fn structural_delta_identities(receipt: &EffectExecutionReceipt) -> Vec<ForgeQueryEvidenceIdentity> {
+fn structural_delta_identities(
+    receipt: &EffectExecutionReceipt,
+) -> Vec<ForgeQueryEvidenceIdentity> {
     match receipt.target_evidence() {
         EffectReceiptTargetEvidence::MutationCommit {
             commit_id,
             version_id,
-        } => vec![ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_envelope_structural_delta_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), "mutation_commit")
-        .field_usize(ForgeQueryEvidenceTag::new("commit_id"), commit_id as usize)
-        .field_usize(ForgeQueryEvidenceTag::new("version_id"), version_id as usize)
-        .seal()],
+        } => {
+            vec![
+                ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("identity_family"),
+                        "effect_envelope_structural_delta_v1",
+                    )
+                    .field_shape(ForgeQueryEvidenceTag::new("kind"), "mutation_commit")
+                    .field_usize(ForgeQueryEvidenceTag::new("commit_id"), commit_id as usize)
+                    .field_usize(
+                        ForgeQueryEvidenceTag::new("version_id"),
+                        version_id as usize,
+                    )
+                    .seal(),
+            ]
+        }
         EffectReceiptTargetEvidence::MergeCommit {
             commit_id,
             version_id,
-        } => vec![ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_envelope_structural_delta_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), "merge_commit")
-        .field_usize(ForgeQueryEvidenceTag::new("commit_id"), commit_id as usize)
-        .field_usize(ForgeQueryEvidenceTag::new("version_id"), version_id as usize)
-        .seal()],
+        } => {
+            vec![
+                ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("identity_family"),
+                        "effect_envelope_structural_delta_v1",
+                    )
+                    .field_shape(ForgeQueryEvidenceTag::new("kind"), "merge_commit")
+                    .field_usize(ForgeQueryEvidenceTag::new("commit_id"), commit_id as usize)
+                    .field_usize(
+                        ForgeQueryEvidenceTag::new("version_id"),
+                        version_id as usize,
+                    )
+                    .seal(),
+            ]
+        }
         EffectReceiptTargetEvidence::Writeback {
             outcome_identity,
             authority_receipt_identity,
             execution_receipt_identity,
-        } => vec![ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_envelope_structural_delta_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), "writeback")
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("outcome"), &outcome_identity)
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("authority_receipt"),
-            &authority_receipt_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("execution_receipt"),
-            &execution_receipt_identity,
-        )
-        .seal()],
+        } => {
+            vec![
+                ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("identity_family"),
+                        "effect_envelope_structural_delta_v1",
+                    )
+                    .field_shape(ForgeQueryEvidenceTag::new("kind"), "writeback")
+                    .field_evidence_identity(
+                        ForgeQueryEvidenceTag::new("outcome"),
+                        &outcome_identity,
+                    )
+                    .field_evidence_identity(
+                        ForgeQueryEvidenceTag::new("authority_receipt"),
+                        &authority_receipt_identity,
+                    )
+                    .field_evidence_identity(
+                        ForgeQueryEvidenceTag::new("execution_receipt"),
+                        &execution_receipt_identity,
+                    )
+                    .seal(),
+            ]
+        }
         EffectReceiptTargetEvidence::BatchMutation {
             commit_id,
             version_id,
             component_count,
-        } => vec![ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_envelope_structural_delta_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), "batch_commit")
-        .field_usize(ForgeQueryEvidenceTag::new("commit_id"), commit_id as usize)
-        .field_usize(ForgeQueryEvidenceTag::new("version_id"), version_id as usize)
-        .field_usize(ForgeQueryEvidenceTag::new("component_count"), component_count)
-        .seal()],
+        } => {
+            vec![
+                ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                    .field_shape(
+                        ForgeQueryEvidenceTag::new("identity_family"),
+                        "effect_envelope_structural_delta_v1",
+                    )
+                    .field_shape(ForgeQueryEvidenceTag::new("kind"), "batch_commit")
+                    .field_usize(ForgeQueryEvidenceTag::new("commit_id"), commit_id as usize)
+                    .field_usize(
+                        ForgeQueryEvidenceTag::new("version_id"),
+                        version_id as usize,
+                    )
+                    .field_usize(
+                        ForgeQueryEvidenceTag::new("component_count"),
+                        component_count,
+                    )
+                    .seal(),
+            ]
+        }
     }
 }

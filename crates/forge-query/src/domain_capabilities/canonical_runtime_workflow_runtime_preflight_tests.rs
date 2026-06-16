@@ -50,7 +50,11 @@ fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_ba
     assert_eq!(
         declaration.binding().query_for_reporting(),
         workflow_context_query_identity(
-            &preflight.plan().query().canonical_query_digest().evidence_identity(),
+            &preflight
+                .plan()
+                .query()
+                .canonical_query_digest()
+                .evidence_identity(),
         )
         .as_str()
     );
@@ -117,7 +121,7 @@ fn workflow_runtime_preflight_lowering_from_bundle_preserves_real_runtime_author
         crate::ForgeQueryEvidenceTag::new("test_authority_binding"),
         "runtime-preflight",
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("binding"),
         "authority-binding:preflight",
     )

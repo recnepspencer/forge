@@ -112,7 +112,9 @@ mod tests {
             } else {
                 Err(RelationalBridgeSourceError::new(format!(
                     "unknown snapshot `{}`",
-                    identity.evidence_identity().as_str()
+                    identity
+                        .bridge_admission_evidence()
+                        .terminal_projection_for_reporting()
                 )))
             }
         }
@@ -166,12 +168,18 @@ mod tests {
             &self,
             identity: &TruthSnapshotIdentity,
         ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-            if identity.evidence_identity().as_str() == "snapshot-a" {
+            if identity
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
+                == "snapshot-a"
+            {
                 Ok(Box::new(StaticSnapshotReader))
             } else {
                 Err(RelationalBridgeSourceError::new(format!(
                     "unknown snapshot `{}`",
-                    identity.evidence_identity().as_str()
+                    identity
+                        .bridge_admission_evidence()
+                        .terminal_projection_for_reporting()
                 )))
             }
         }

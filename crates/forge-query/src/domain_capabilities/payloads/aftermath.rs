@@ -91,7 +91,10 @@ fn aftermath_binding_identity(
             ForgeQueryEvidenceTag::new("narrowed_result_shape"),
             binding.narrowed_result_shape_digest(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("policy"), binding.policy_digest())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("policy"),
+            binding.policy_digest(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("tenant_schema_basis"),
             binding.tenant_schema_basis_digest(),
@@ -150,7 +153,8 @@ fn compose_aftermath_payload_identity(
     identity = match runtime_semantics {
         Some(runtime) => {
             let runtime_identity = runtime.semantics_identity();
-            identity.field_evidence_identity(ForgeQueryEvidenceTag::new("runtime"), &runtime_identity)
+            identity
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("runtime"), &runtime_identity)
         }
         None => identity.field_shape(ForgeQueryEvidenceTag::new("runtime"), "none"),
     };

@@ -302,16 +302,18 @@ impl ForgeQueryInvariantRegistrationRuntimeSemantics {
     fn registration_identity_for_catalog(
         invariant_catalog: &InvariantCatalog,
     ) -> ForgeQueryEvidenceIdentity {
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "forge_query_invariant_registration_runtime_semantics_v1",
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("registration_label"),
-                invariant_catalog.canonical_registration_digest(),
-            )
-            .seal()
+        ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_invariant_registration_runtime_semantics_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("registration_label"),
+            invariant_catalog.canonical_registration_digest(),
+        )
+        .seal()
     }
 
     pub fn invariant_catalog(&self) -> &InvariantCatalog {

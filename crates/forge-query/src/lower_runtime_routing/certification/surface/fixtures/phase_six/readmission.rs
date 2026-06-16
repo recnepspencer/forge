@@ -42,21 +42,21 @@ pub(crate) fn representative_subscription_continuity_row() -> RepresentativeArti
         .expect("subscription continuity fixture should readmit bridge continuity evidence");
     let continuity_evidence =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("route_identity"),
                 bound
                     .evidence()
                     .route_identity()
                     .expect("continuity route identity should exist"),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("continuity_identity"),
                 bound
                     .evidence()
                     .continuity_identity()
                     .expect("continuity identity should exist"),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("continuity_resolution"),
                 bound
                     .evidence()
@@ -138,21 +138,21 @@ pub(crate) fn representative_basis_truth_view_readmission_row() -> Representativ
         .expect("truth-view readmission fixture should bind bridge evidence");
     let truth_view_evidence =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("record_identity"),
                 bound
                     .evidence()
                     .record_identity()
                     .expect("truth-view record identity should exist"),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("selector_identity"),
                 bound
                     .evidence()
                     .selector_identity()
                     .expect("truth-view selector identity should exist"),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("authority"),
                 bound
                     .evidence()
@@ -209,28 +209,28 @@ pub(crate) fn representative_basis_subscription_readmission_row() -> Representat
         .expect("subscription activation readmission should bind bridge evidence");
     let subscription_evidence =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("declaration_subscription"),
                 declaration_bound
                     .evidence()
                     .admitted_subscription_identity()
                     .expect("admitted subscription identity should exist"),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("declaration_strategy"),
                 declaration_bound
                     .evidence()
                     .strategy_identity()
                     .expect("subscription strategy identity should exist"),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("activation_subscription"),
                 activation_bound
                     .evidence()
                     .admitted_subscription_identity()
                     .expect("admitted subscription identity should exist"),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("activation_strategy"),
                 activation_bound
                     .evidence()
@@ -256,7 +256,7 @@ pub(crate) fn representative_basis_subscription_readmission_row() -> Representat
 }
 
 fn phase_six_branch_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
-    TruthBranchIdentity::from_relational_branch_id(PHASE_SIX_MAIN_BRANCH).evidence_identity()
+    TruthBranchIdentity::from_relational_branch_id(PHASE_SIX_MAIN_BRANCH).bridge_admission_evidence()
 }
 
 fn readmission_row(

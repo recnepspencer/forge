@@ -72,21 +72,19 @@ impl ForgeQueryDerivedArtifactBinding {
             });
         }
 
-        let binding_identity = forge_query_evidence_identity(ForgeQueryEvidenceScope::SharedReadGeneration)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "forge_query_derived_artifact_binding_v1",
-            )
-            .field_shape(ForgeQueryEvidenceTag::new("artifact"), &artifact_name)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("bundle"),
-                bundle.bundle_digest(),
-            )
-            .field_value_sequence(
-                ForgeQueryEvidenceTag::new("target"),
-                target_view_names.iter().map(String::as_str),
-            )
-            .seal();
+        let binding_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::SharedReadGeneration)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "forge_query_derived_artifact_binding_v1",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("artifact"), &artifact_name)
+                .field_shape(ForgeQueryEvidenceTag::new("bundle"), bundle.bundle_digest())
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("target"),
+                    target_view_names.iter().map(String::as_str),
+                )
+                .seal();
 
         Ok(Self {
             artifact_name,
@@ -208,7 +206,7 @@ mod tests {
             vec![value],
             ForgeQueryDerivedMaterializationReceipt::test_only(
                 view_name,
-                ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-test"),
+                crate::memory_workspace::admit_external_snapshot_label("snapshot-test"),
                 &format!("{view_name}-digest"),
             ),
         )
@@ -224,7 +222,7 @@ mod tests {
         let second = ForgeQueryDerivedViewHandle::new("derived.second");
         let third = ForgeQueryDerivedViewHandle::new("derived.third");
         let bundle = ForgeQueryDerivedMaterializationBundle::new(
-            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-test"),
+            crate::memory_workspace::admit_external_snapshot_label("snapshot-test"),
             BTreeMap::from([
                 (
                     first.name().to_string(),

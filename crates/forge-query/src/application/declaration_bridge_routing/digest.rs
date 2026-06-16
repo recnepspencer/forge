@@ -40,11 +40,11 @@ pub(crate) fn derive_bridge_routing_digest<
     let envelope_digest = canonical_digest_token(envelope.envelope_digest());
 
     forge_query_evidence_identity(ForgeQueryEvidenceScope::DeclarationBridgeRoutingDigest)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("handle"),
             envelope.handle_identity_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("operating_context"),
             envelope.operating_context_identity_digest(),
         )
@@ -52,7 +52,7 @@ pub(crate) fn derive_bridge_routing_digest<
             ForgeQueryEvidenceTag::new("family"),
             envelope.declaration_family_key(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("declaration"),
             envelope.declaration_digest(),
         )
@@ -64,8 +64,8 @@ pub(crate) fn derive_bridge_routing_digest<
             ForgeQueryEvidenceTag::new("route_plan"),
             envelope.route_plan_digest(),
         )
-        .field_identity(ForgeQueryEvidenceTag::new("receipt"), &receipt_digest)
-        .field_identity(ForgeQueryEvidenceTag::new("envelope"), &envelope_digest)
+        .field_value(ForgeQueryEvidenceTag::new("receipt"), &receipt_digest)
+        .field_value(ForgeQueryEvidenceTag::new("envelope"), &envelope_digest)
         .field_shape(ForgeQueryEvidenceTag::new("class"), class.as_str())
         .field_shape(
             ForgeQueryEvidenceTag::new("mode"),
@@ -139,11 +139,11 @@ pub(crate) fn derive_bridge_routing_digest<
             ForgeQueryEvidenceTag::new("mapping_fit"),
             mapping_fit.as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("future_projection"),
             future_projection.projection_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("basis_lifecycle_support"),
             basis_lifecycle_support_digest,
         )

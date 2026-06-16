@@ -74,7 +74,7 @@ pub(crate) fn representative_execute_read_family_in_basis_context_row() -> Repre
     let family = certification_read_family(&mut workspace, "lower-runtime-basis-family");
     let snapshot_identity = workspace.snapshot_identity();
     let snapshot_evidence_identity = snapshot_identity.evidence_identity();
-    let context = branch_context_for_family(&family, snapshot_evidence_identity.as_ref());
+    let context = branch_context_for_family(&family, snapshot_evidence_identity.terminal_projection_for_reporting());
     let result = workspace
         .execute_read_family_in_basis_context(&family, &context)
         .expect("execute-read-family-in-basis-context fixture should execute");
@@ -105,7 +105,7 @@ pub(crate) fn representative_runtime_basis_context_read_graph_row() -> Represent
     let family = certification_read_family(&mut workspace, "lower-runtime-runtime-basis-family");
     let snapshot_identity = workspace.snapshot_identity();
     let snapshot_evidence_identity = snapshot_identity.evidence_identity();
-    let context = branch_context_for_family(&family, snapshot_evidence_identity.as_ref());
+    let context = branch_context_for_family(&family, snapshot_evidence_identity.terminal_projection_for_reporting());
     let result = workspace
         .execute_read_family_in_basis_context(&family, &context)
         .expect("runtime basis-context read fixture should execute");
@@ -180,9 +180,9 @@ fn read_result_evidence_identity(result: &ForgeQueryReadResult) -> ForgeQueryEvi
                 ForgeQueryEvidenceTag::new("engine"),
                 receipt.execution_engine().as_str(),
             )
-            .field_identity(ForgeQueryEvidenceTag::new("query"), receipt.query_digest())
-            .field_identity(ForgeQueryEvidenceTag::new("basis"), receipt.basis_digest())
-            .field_identity(
+            .field_value(ForgeQueryEvidenceTag::new("query"), receipt.query_digest())
+            .field_value(ForgeQueryEvidenceTag::new("basis"), receipt.basis_digest())
+            .field_value(
                 ForgeQueryEvidenceTag::new("result"),
                 receipt.result_digest(),
             )
@@ -191,7 +191,7 @@ fn read_result_evidence_identity(result: &ForgeQueryReadResult) -> ForgeQueryEvi
                 &snapshot_evidence_identity,
             );
     if let Some(provenance) = receipt.execution_provenance_chain_digest() {
-        builder = builder.field_identity(ForgeQueryEvidenceTag::new("provenance"), provenance);
+        builder = builder.field_value(ForgeQueryEvidenceTag::new("provenance"), provenance);
     }
     builder.seal()
 }
@@ -272,7 +272,7 @@ fn runtime_preflight_for_family(
         crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
             crate::evidence_identity::ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity,
         )
-        .field_identity(
+        .field_value(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture_snapshot"),
             snapshot_token,
         )

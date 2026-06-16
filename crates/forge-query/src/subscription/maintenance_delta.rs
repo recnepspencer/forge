@@ -3,7 +3,10 @@ use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use super::active_digest::ActiveSubscriptionLaneDigest;
 use super::active_posture::ActiveSubscriptionDeliveryPosture;
 use super::delivery_dimensions::MaintenanceDeltaWidth;
-use super::evidence_identities::lifecycle_maintenance_delta_identity;
+use super::evidence_identities::{
+    lifecycle_maintenance_delta_identity, lifecycle_maintenance_delta_identity_typed,
+    lifecycle_maintenance_delta_scope_identity,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionMaintenanceDeltaKind {
@@ -36,34 +39,69 @@ impl QuerySubscriptionMaintenanceDeltaKind {
 pub struct QuerySubscriptionMaintenanceDelta {
     kind: QuerySubscriptionMaintenanceDeltaKind,
     active_lane_digest: ActiveSubscriptionLaneDigest,
-    affected_scope: String,
+    scope_identity: ForgeQueryEvidenceIdentity,
     width: MaintenanceDeltaWidth,
     maintenance_delta_identity: ForgeQueryEvidenceIdentity,
-    maintenance_delta_digest: String,
 }
 
 impl QuerySubscriptionMaintenanceDelta {
     pub fn admitted(
         kind: QuerySubscriptionMaintenanceDeltaKind,
         active_lane_digest: ActiveSubscriptionLaneDigest,
-        affected_scope: impl Into<String>,
+        scope_identity: &ForgeQueryEvidenceIdentity,
         width: MaintenanceDeltaWidth,
     ) -> Self {
-        let affected_scope = affected_scope.into();
         let maintenance_delta_identity = lifecycle_maintenance_delta_identity(
             kind,
             active_lane_digest.evidence_identity(),
-            &affected_scope,
+            scope_identity,
             width.get(),
         );
-        let maintenance_delta_digest = maintenance_delta_identity.as_str().to_string();
         Self {
             kind,
             active_lane_digest,
-            affected_scope,
+            scope_identity: scope_identity.clone(),
             width,
             maintenance_delta_identity,
-            maintenance_delta_digest,
+        }
+    }
+
+    pub fn admitted_with_scope_label(
+        kind: QuerySubscriptionMaintenanceDeltaKind,
+        active_lane_digest: ActiveSubscriptionLaneDigest,
+        scope_label: &str,
+        width: MaintenanceDeltaWidth,
+    ) -> Self {
+        Self::admitted(
+            kind,
+            active_lane_digest,
+            &lifecycle_maintenance_delta_scope_identity(scope_label),
+            width,
+        )
+    }
+
+    pub fn admitted_with_typed_scope(
+        kind: QuerySubscriptionMaintenanceDeltaKind,
+        active_lane_digest: ActiveSubscriptionLaneDigest,
+        commit_identity: &ForgeQueryEvidenceIdentity,
+        collection_identity: &ForgeQueryEvidenceIdentity,
+        entity_identity: &ForgeQueryEvidenceIdentity,
+        width: MaintenanceDeltaWidth,
+    ) -> Self {
+        let maintenance_delta_identity = lifecycle_maintenance_delta_identity_typed(
+            kind,
+            active_lane_digest.evidence_identity(),
+            commit_identity,
+            collection_identity,
+            entity_identity,
+            width.get(),
+        );
+        Self {
+            kind,
+            active_lane_digest,
+            scope_identity: collection_identity.clone(),
+            width,
+            maintenance_delta_identity,
         }
     }
 
@@ -71,12 +109,12 @@ impl QuerySubscriptionMaintenanceDelta {
         self.kind
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
-    pub fn affected_scope_digest(&self) -> &str {
-        self.affected_scope.as_str()
+    pub(super) fn scope_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.scope_identity
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -85,10 +123,6 @@ impl QuerySubscriptionMaintenanceDelta {
 
     pub fn width(&self) -> u64 {
         self.width.get()
-    }
-
-    pub fn maintenance_delta_digest(&self) -> &str {
-        &self.maintenance_delta_digest
     }
 
     pub(super) fn delivery_posture(&self) -> ActiveSubscriptionDeliveryPosture {
@@ -109,9 +143,8 @@ impl QuerySubscriptionMaintenanceDelta {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryMaintenanceDeltaLoweringReport {
-    maintenance_delta_digest: String,
+    maintenance_delta_identity: ForgeQueryEvidenceIdentity,
     lowering_report_identity: ForgeQueryEvidenceIdentity,
-    lowering_report_digest: String,
 }
 
 impl QueryMaintenanceDeltaLoweringReport {
@@ -136,20 +169,14 @@ impl QueryMaintenanceDeltaLoweringReport {
             delta.width() as usize,
         )
         .seal();
-        let lowering_report_digest = lowering_report_identity.as_str().to_string();
         Self {
-            maintenance_delta_digest: delta.maintenance_delta_digest().to_string(),
+            maintenance_delta_identity: delta.evidence_identity().clone(),
             lowering_report_identity,
-            lowering_report_digest,
         }
     }
 
-    pub fn maintenance_delta_digest(&self) -> &str {
-        &self.maintenance_delta_digest
-    }
-
-    pub fn lowering_report_digest(&self) -> &str {
-        &self.lowering_report_digest
+    pub fn maintenance_delta_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.maintenance_delta_identity
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {

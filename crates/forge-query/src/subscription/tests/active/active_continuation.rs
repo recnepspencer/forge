@@ -2,6 +2,17 @@ use super::runtime_harness::{attached_consumer, attached_future_consumer, delive
 use super::*;
 use crate::live::LiveQueryFamily;
 use crate::view_shape_live::LiveViewShapeFamily;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
+
+fn continuation_test_identity(label: &str) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_continuation_test_identity_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("label"), label)
+        .seal()
+}
 
 #[test]
 fn identity_remap_continuation_is_patch_visible_and_changes_window_digest() {
@@ -17,21 +28,21 @@ fn identity_remap_continuation_is_patch_visible_and_changes_window_digest() {
     );
     let window =
         open_query_delivery_window(&mut runtime, &attachment, delivery_budget(2, 2)).unwrap();
-    let original_window_digest = window.delivery_window_digest().to_string();
+    let original_window_digest = window.delivery_window_projection().label().to_string();
     let evidence = admit_subscription_continuation_evidence(
         attachment.lane_digest().clone(),
         SubscriptionContinuationClass::IdentityRemap,
-        "employee:old",
-        "employee:new",
-        "basis:current",
-        "identity-evolution-authority",
+        continuation_test_identity("employee:old"),
+        continuation_test_identity("employee:new"),
+        continuation_test_identity("basis:current"),
+        continuation_test_identity("identity-evolution-authority"),
         ContinuationRemapWidth::measured(1),
     )
     .unwrap();
 
     let (window, report) =
         apply_active_subscription_continuation(&mut runtime, window, evidence).unwrap();
-    let continued_window_digest = window.delivery_window_digest().to_string();
+    let continued_window_digest = window.delivery_window_projection().label().to_string();
     let (delta, continuation_counters) = lower_subscription_continuation_report(&report);
     let (delta, lowering_report, _) = lower_query_subscription_maintenance_delta(delta).unwrap();
     let packet = build_active_delivery_work_packet(
@@ -80,20 +91,20 @@ fn advisory_and_identity_break_continuations_are_distinct_counters() {
     let advisory = admit_subscription_continuation_evidence(
         attachment.lane_digest().clone(),
         SubscriptionContinuationClass::CorrespondenceAdvisory,
-        "employee:maybe-old",
-        "employee:maybe-new",
-        "basis:current",
-        "correspondence-authority",
+        continuation_test_identity("employee:maybe-old"),
+        continuation_test_identity("employee:maybe-new"),
+        continuation_test_identity("basis:current"),
+        continuation_test_identity("correspondence-authority"),
         ContinuationRemapWidth::measured(1),
     )
     .unwrap();
     let identity_break = admit_subscription_continuation_evidence(
         attachment.lane_digest().clone(),
         SubscriptionContinuationClass::IdentityBreak,
-        "employee:old",
-        "identity-break-terminal",
-        "basis:current",
-        "identity-evolution-authority",
+        continuation_test_identity("employee:old"),
+        continuation_test_identity("identity-break-terminal"),
+        continuation_test_identity("basis:current"),
+        continuation_test_identity("identity-evolution-authority"),
         ContinuationRemapWidth::measured(1),
     )
     .unwrap();
@@ -116,10 +127,10 @@ fn advisory_and_identity_break_continuations_are_distinct_counters() {
     assert_ne!(
         advisory_report
             .performance_receipt()
-            .performance_receipt_for_reporting(),
+            .performance_receipt_projection().label(),
         break_report
             .performance_receipt()
-            .performance_receipt_for_reporting()
+            .performance_receipt_projection().label()
     );
     assert_eq!(break_counters.continuation_identity_break_count(), 1);
     assert_eq!(break_counters.continuation_advisory_count(), 0);
@@ -150,10 +161,10 @@ fn unsupported_continuation_and_foreign_lane_evidence_deny_typed_and_early() {
     let unsupported = admit_subscription_continuation_evidence(
         detail.lane_digest().clone(),
         SubscriptionContinuationClass::UnsupportedContinuation,
-        "employee:old",
-        "employee:new",
-        "basis:current",
-        "identity-evolution-authority",
+        continuation_test_identity("employee:old"),
+        continuation_test_identity("employee:new"),
+        continuation_test_identity("basis:current"),
+        continuation_test_identity("identity-evolution-authority"),
         ContinuationRemapWidth::measured(1),
     )
     .unwrap_err();
@@ -166,10 +177,10 @@ fn unsupported_continuation_and_foreign_lane_evidence_deny_typed_and_early() {
     let preview_promotion = admit_subscription_continuation_evidence(
         detail.lane_digest().clone(),
         SubscriptionContinuationClass::PreviewPromotionRemap,
-        "preview:employee:old",
-        "authoritative:employee:new",
-        "basis:preview",
-        "preview-promotion-authority",
+        continuation_test_identity("preview:employee:old"),
+        continuation_test_identity("authoritative:employee:new"),
+        continuation_test_identity("basis:preview"),
+        continuation_test_identity("preview-promotion-authority"),
         ContinuationRemapWidth::measured(1),
     )
     .unwrap_err();
@@ -187,10 +198,10 @@ fn unsupported_continuation_and_foreign_lane_evidence_deny_typed_and_early() {
     let foreign = admit_subscription_continuation_evidence(
         collection.lane_digest().clone(),
         SubscriptionContinuationClass::CollectionMembershipRemap,
-        "employee:old",
-        "employee:new",
-        "basis:current",
-        "identity-evolution-authority",
+        continuation_test_identity("employee:old"),
+        continuation_test_identity("employee:new"),
+        continuation_test_identity("basis:current"),
+        continuation_test_identity("identity-evolution-authority"),
         ContinuationRemapWidth::measured(1),
     )
     .unwrap();
@@ -226,12 +237,12 @@ fn future_bearing_continuation_retains_checkpoint_and_future_identity() {
     let evidence = admit_subscription_continuation_evidence_with_active_identity(
         attachment.lane_digest().clone(),
         SubscriptionContinuationClass::IdentityRemap,
-        "employee:old",
-        "employee:new",
+        continuation_test_identity("employee:old"),
+        continuation_test_identity("employee:new"),
         attachment.future_selection().clone(),
-        attachment.basis_binding_for_reporting(),
-        attachment.checkpoint_for_reporting(),
-        "identity-evolution-authority",
+        attachment.basis_binding_identity().clone(),
+        attachment.checkpoint_identity().clone(),
+        continuation_test_identity("identity-evolution-authority"),
         ContinuationRemapWidth::measured(1),
     )
     .unwrap();
@@ -242,12 +253,12 @@ fn future_bearing_continuation_retains_checkpoint_and_future_identity() {
         apply_active_subscription_continuation(&mut runtime, window, evidence).unwrap();
 
     assert_eq!(
-        report.future_selection().projection_digest(),
-        attachment.future_selection().projection_digest()
+        report.future_selection().future_selection_projection().label(),
+        attachment.future_selection().future_selection_projection().label()
     );
     assert_eq!(
-        report.checkpoint_identity_digest(),
-        attachment.checkpoint_for_reporting()
+        report.checkpoint_identity(),
+        attachment.checkpoint_identity()
     );
     assert_eq!(window.active_lane_digest(), attachment.lane_digest());
 }

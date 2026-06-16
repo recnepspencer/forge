@@ -103,11 +103,11 @@ pub(crate) fn current_readmission_evidence_from_handle<
         forge_query_evidence_identity(
             ForgeQueryEvidenceScope::ContinuationExecutionReadmissionEvidence,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("handle"),
             handle.handle_identity_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("support_snapshot"),
             handle.support_snapshot().snapshot_digest(),
         )

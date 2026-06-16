@@ -1,5 +1,3 @@
-use forge_runtime_bridge::facade::TruthCommitIdentity;
-
 use super::super::super::super::*;
 use super::artifact_support::{
     admitted_artifact, advisory_artifacts, denied_artifact_and_missing_evidence,
@@ -9,10 +7,10 @@ use super::slot_support::artifact_with_lower_runtime_slot_evidence;
 
 #[test]
 fn causal_inspection_representative_rows_expose_digest_inventory() {
-    let changed = admitted_artifact(TruthCommitIdentity::from_bridge_harness_label(
+    let changed = admitted_artifact(super::super::causal_truth_commit_identity(
         "commit-query-cert-row-digest-changed",
     ));
-    let (_, redacted) = advisory_artifacts(TruthCommitIdentity::from_bridge_harness_label(
+    let (_, redacted) = advisory_artifacts(super::super::causal_truth_commit_identity(
         "commit-query-cert-row-digest-redacted",
     ));
     let (denied, _) = denied_artifact_and_missing_evidence();
@@ -47,7 +45,7 @@ fn causal_inspection_representative_rows_expose_digest_inventory() {
     assert!(digest_set.failure_digest().is_none());
 
     let slot_artifact = artifact_with_lower_runtime_slot_evidence(
-        TruthCommitIdentity::from_bridge_harness_label("commit-query-cert-row-digest-slots"),
+        super::super::causal_truth_commit_identity("commit-query-cert-row-digest-slots"),
     );
     let slot_row = CausalInspectionRepresentativeEvidence::from_query_artifact(
         CausalInspectionRepresentativeKind::ChangedResult,

@@ -25,21 +25,20 @@ impl EffectEligibilityDecisionTrace {
         message: &'static str,
         cause: &'static str,
     ) -> Self {
-        let trace_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_eligibility_decision_trace_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("normalized"),
-            normalized.normalized_identity(),
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("outcome"), outcome)
-        .field_shape(ForgeQueryEvidenceTag::new("message"), message)
-        .field_shape(ForgeQueryEvidenceTag::new("cause"), cause)
-        .seal();
+        let trace_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_eligibility_decision_trace_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("normalized"),
+                    normalized.normalized_identity(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("outcome"), outcome)
+                .field_shape(ForgeQueryEvidenceTag::new("message"), message)
+                .field_shape(ForgeQueryEvidenceTag::new("cause"), cause)
+                .seal();
         Self {
             normalized_identity: normalized.normalized_identity().clone(),
             outcome,

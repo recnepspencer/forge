@@ -116,11 +116,11 @@ impl ForgeQueryEvidenceIdentityBoundaryClosure {
         )
         .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
         .field_shape(ForgeQueryEvidenceTag::new("scheme"), scheme.as_str())
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("support_matrix_digest"),
             support_matrix_digest,
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("covered_surface"),
             EVIDENCE_IDENTITY_COVERED_SURFACES.iter().copied(),
         )
@@ -177,7 +177,7 @@ impl ForgeQueryStopClassBoundaryClosure {
         )
         .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
         .field_shape(ForgeQueryEvidenceTag::new("accessor"), accessor)
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("covered_contract"),
             STOP_CLASS_COVERED_CONTRACTS.iter().copied(),
         )
@@ -243,7 +243,7 @@ impl ForgeQuerySessionLabelBoundaryClosure {
             ForgeQueryEvidenceTag::new("collision_stop_class"),
             collision_stop_class,
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("ordinary_entrypoint"),
             SESSION_LABEL_ORDINARY_ENTRYPOINTS.iter().copied(),
         )
@@ -339,15 +339,15 @@ impl ForgeQueryIdentityBoundaryClosure {
             ForgeQueryEvidenceScope::ApplicationIdentityBoundaryClosure,
         )
         .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("evidence_identity_closure_digest"),
             evidence_identity.closure_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("stop_class_closure_digest"),
             stop_class.closure_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_closure_digest"),
             session_label.closure_digest(),
         )
@@ -359,30 +359,30 @@ impl ForgeQueryIdentityBoundaryClosure {
             ForgeQueryEvidenceTag::new("hostile_matrix_certified"),
             hostile_matrix_certified,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("hostile_matrix_digest"),
             hostile_matrix_digest,
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("exact_zero_format_digest_path"),
             EXACT_ZERO_FORMAT_DIGEST_PATHS.iter().copied(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("exact_zero_string_matching_path"),
             EXACT_ZERO_STRING_MATCHING_PATHS.iter().copied(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("exact_zero_raw_session_admission_path"),
             EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS.iter().copied(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("exact_zero_string_carried_session_identity_path"),
             EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS
                 .iter()
                 .copied(),
         );
         if let ForgeQueryFolkloreResidueStatus::FolkloreResidueRemaining(paths) = &residue_status {
-            closure_builder = closure_builder.field_identity_sequence(
+            closure_builder = closure_builder.field_value_sequence(
                 ForgeQueryEvidenceTag::new("folklore_residue_path"),
                 paths.iter().map(String::as_str),
             );

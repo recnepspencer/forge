@@ -22,21 +22,17 @@ pub struct BridgeExistingTruthBindingAuthoritativeIdentity {
 }
 
 impl BridgeExistingTruthBindingAuthoritativeIdentity {
-    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
         Self {
             value: Arc::from(format!(
                 "bridge-existing-truth-authority:{}",
-                evidence_identity.as_ref()
+                evidence_identity.as_str()
             )),
         }
     }
 
     pub fn as_str(&self) -> &str {
         self.value.as_ref()
-    }
-
-    pub fn evidence_identity(&self) -> BridgeIdentityEvidence {
-        BridgeIdentityEvidence::from_arc(&self.value)
     }
 }
 

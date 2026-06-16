@@ -112,7 +112,12 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
         let mut parts = vec![
             "forge_query_authoritative_mutation_evidence_closeout_v1".to_string(),
             format!("posture:{}", backend_posture.as_str()),
-            format!("matrix:{}", support_matrix.matrix_digest()),
+            format!(
+                "matrix:{}",
+                support_matrix
+                    .matrix_digest()
+                    .terminal_projection_for_reporting()
+            ),
             format!("mutation:{}", mutation_surface.report_digest()),
             format!("naming:{}", naming_contract.contract_digest()),
             format!("query-support:{}", query_support.support_digest()),
@@ -138,7 +143,10 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
         let closeout_digest = hash_parts(&parts);
         Self {
             backend_posture,
-            support_matrix_digest: support_matrix.matrix_digest().to_string(),
+            support_matrix_digest: support_matrix
+                .matrix_digest()
+                .terminal_projection_for_reporting()
+                .to_string(),
             mutation_surface_digest: mutation_surface.report_digest().to_string(),
             naming_contract_digest: naming_contract.contract_digest().to_string(),
             query_support_digest: query_support.support_digest().to_string(),

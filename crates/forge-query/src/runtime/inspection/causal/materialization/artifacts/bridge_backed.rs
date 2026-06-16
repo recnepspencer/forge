@@ -63,7 +63,7 @@ impl QueryCausalEvidenceReferenceArtifact {
             ForgeQueryEvidenceTag::new("family"),
             binding.family().as_str(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("reference"),
             &bridge_reference_identity,
         )
@@ -80,7 +80,7 @@ impl QueryCausalEvidenceReferenceArtifact {
             bridge_causal_evidence_binding_class_label(binding.binding_class()),
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("reference"), &reference_identity)
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("binding"),
             &bridge_binding_identity,
         )
@@ -100,7 +100,7 @@ impl QueryCausalEvidenceReferenceArtifact {
             )
             .field_evidence_identity(ForgeQueryEvidenceTag::new("reference"), &reference_identity)
             .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
-            .field_bridge_identity(ForgeQueryEvidenceTag::new("retained"), retained_record)
+            .field_bridge_retained_evidence_identity(ForgeQueryEvidenceTag::new("retained"), retained_record)
             .seal()
         });
         let reference_receipt_identity = ForgeQueryEvidenceIdentity::compose(
@@ -282,6 +282,12 @@ impl AdmittedQueryCausalInspectionArtifact {
         self.query_observation_identity.as_str()
     }
 
+    pub(in crate::runtime) fn query_observation_identity(
+        &self,
+    ) -> &CausalObservationReceiptIdentity {
+        &self.query_observation_identity
+    }
+
     pub fn result_shape_context_for_reporting(&self) -> &str {
         self.result_shape_context_identity.as_str()
     }
@@ -327,6 +333,12 @@ impl AdvisoryQueryCausalInspectionArtifact {
 
     pub fn query_observation_for_reporting(&self) -> &str {
         self.query_observation_identity.as_str()
+    }
+
+    pub(in crate::runtime) fn query_observation_identity(
+        &self,
+    ) -> &CausalObservationReceiptIdentity {
+        &self.query_observation_identity
     }
 
     pub fn result_shape_context_for_reporting(&self) -> &str {
@@ -466,6 +478,16 @@ impl QueryCausalInspectionArtifact {
             Self::Admitted(artifact) => artifact.query_observation_for_reporting(),
             Self::Advisory(artifact) => artifact.query_observation_for_reporting(),
             Self::Denied(artifact) => artifact.query_observation_for_reporting(),
+        }
+    }
+
+    pub(in crate::runtime) fn query_observation_identity(
+        &self,
+    ) -> &CausalObservationReceiptIdentity {
+        match self {
+            Self::Admitted(artifact) => artifact.query_observation_identity(),
+            Self::Advisory(artifact) => artifact.query_observation_identity(),
+            Self::Denied(artifact) => artifact.query_observation_identity(),
         }
     }
 

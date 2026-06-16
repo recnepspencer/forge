@@ -1,3 +1,11 @@
+error[E0560]: struct `forge_query::facade::ForgeQueryEffectIntentReceipt` has no field named `trigger_commit_identity`
+ --> tests/ui/runtime_effect_intent_receipt_constructor_private.rs:8:9
+  |
+8 |         trigger_commit_identity: "commit".to_string(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ `forge_query::facade::ForgeQueryEffectIntentReceipt` does not have this field
+  |
+  = note: all struct fields are already assigned
+
 warning: unreachable expression
   --> tests/ui/runtime_effect_intent_receipt_constructor_private.rs:13:25
    |
@@ -9,40 +17,10 @@ warning: unreachable expression
    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
    = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: cannot construct `forge_query::facade::ForgeQueryEffectIntentReceipt` with struct literal syntax due to private fields
-  --> tests/ui/runtime_effect_intent_receipt_constructor_private.rs:6:19
+error[E0560]: struct `forge_query::facade::ForgeQueryEffectIntentReceipt` has no field named `receipt_digest`
+  --> tests/ui/runtime_effect_intent_receipt_constructor_private.rs:14:9
    |
- 6 |     let _forged = ForgeQueryEffectIntentReceipt {
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 7 |         effect_name: "effect".to_string(),
-   |         --------------------------------- private field
- 8 |         trigger_commit_identity: "commit".to_string(),
-   |         --------------------------------------------- private field
- 9 |         pending_intent_target: "strategy".to_string(),
-   |         --------------------------------------------- private field
-10 |         source_lane: ForgeQueryIntentSourceLane::EffectTriggered,
-   |         -------------------------------------------------------- private field
-11 |         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         -------------------------------------------------------- private field
-12 |         phase_evidence: todo!(),
-   |         ----------------------- private field
-13 |         intent_receipt: todo!(),
-   |         ----------------------- private field
 14 |         receipt_digest: String::new(),
-   |         ----------------------------- private field
+   |         ^^^^^^^^^^^^^^ `forge_query::facade::ForgeQueryEffectIntentReceipt` does not have this field
    |
-   = note: ...and other private fields `trigger_source_kind`, `write_adjacent_trigger` and `effect_policy` that were not provided
-help: you might have meant to use the `new` associated function
-   |
- 6 -     let _forged = ForgeQueryEffectIntentReceipt {
- 7 -         effect_name: "effect".to_string(),
- 8 -         trigger_commit_identity: "commit".to_string(),
- 9 -         pending_intent_target: "strategy".to_string(),
-10 -         source_lane: ForgeQueryIntentSourceLane::EffectTriggered,
-11 -         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-12 -         phase_evidence: todo!(),
-13 -         intent_receipt: todo!(),
-14 -         receipt_digest: String::new(),
-15 -     };
- 6 +     let _forged = ForgeQueryEffectIntentReceipt::new(_, _);
-   |
+   = note: all struct fields are already assigned

@@ -50,7 +50,9 @@ fn runtime_downstream_delivery_projects_time_only_contract_with_explicit_resume_
         .downstream_delivery(&view)
         .expect("downstream delivery should project")
         .expect("retained time-only delivery should exist");
-    let basis_digest = view.subscription_installation().basis_binding_for_reporting();
+    let basis_digest = view
+        .subscription_installation()
+        .basis_binding_projection().label().to_string();
 
     assert_eq!(
         delivery.delivery_class(),
@@ -211,11 +213,9 @@ fn runtime_downstream_delivery_fails_closed_for_stale_basis_and_preserves_remask
     assert!(delivery.remask_for_reporting().is_some());
     assert_eq!(
         delivery
-            .negotiate_runtime_resume(Some(
-                &runtime_state_snapshot_basis_label_identity(
-                    &runtime_state_snapshot_test_subject_identity("basis:drifted"),
-                )
-            ))
+            .negotiate_runtime_resume(Some(&runtime_state_snapshot_basis_label_identity(
+                &runtime_state_snapshot_test_subject_identity("basis:drifted"),
+            )))
             .kind(),
         ForgeQueryRuntimeDownstreamResumePostureKind::StaleBasisDenied
     );

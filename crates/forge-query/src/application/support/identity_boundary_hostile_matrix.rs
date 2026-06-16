@@ -135,25 +135,25 @@ pub fn identity_boundary_hostile_matrix_artifact() -> ForgeQueryIdentityBoundary
                 MILESTONE_NINE_SIX_SUITE_NAME,
             )
             .field_bool(ForgeQueryEvidenceTag::new("certified"), certified)
-            .field_identity_sequence(
+            .field_value_sequence(
                 ForgeQueryEvidenceTag::new("canonical_row"),
                 canonical_rows
                     .iter()
                     .map(ForgeQueryIdentityBoundaryHostileMatrixRow::name),
             )
-            .field_identity_sequence(
+            .field_value_sequence(
                 ForgeQueryEvidenceTag::new("canonical_row_witness"),
                 canonical_rows
                     .iter()
                     .map(ForgeQueryIdentityBoundaryHostileMatrixRow::witness_digest),
             )
-            .field_identity_sequence(
+            .field_value_sequence(
                 ForgeQueryEvidenceTag::new("rejection_row"),
                 rejection_rows
                     .iter()
                     .map(ForgeQueryIdentityBoundaryHostileMatrixRow::name),
             )
-            .field_identity_sequence(
+            .field_value_sequence(
                 ForgeQueryEvidenceTag::new("rejection_row_witness"),
                 rejection_rows
                     .iter()

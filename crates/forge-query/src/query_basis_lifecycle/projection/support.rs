@@ -6,7 +6,8 @@ use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
-use crate::identity::hash_parts;
+
+use super::super::identity::basis_lifecycle_digest;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BasisLaneSupportStatus {
@@ -106,12 +107,19 @@ pub fn query_basis_lifecycle_support_report() -> QueryBasisLifecycleSupportRepor
             rows.push(support_row_for(family.clone(), *lane));
         }
     }
-    let mut parts = vec![
-        "forge_query_query_basis_lifecycle_support_report_v1".to_string(),
-        format!("row_count:{}", rows.len()),
-    ];
-    parts.extend(rows.iter().map(|row| row.support_digest().to_string()));
-    let report_digest = hash_parts(&parts);
+    let report_digest = forge_query_evidence_identity(ForgeQueryEvidenceScope::BasisDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "query_basis_lifecycle_support_report_v1",
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("row_count"), rows.len())
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("support_row"),
+            rows.iter().map(|row| row.support_digest()),
+        )
+        .seal()
+        .as_str()
+        .to_string();
     QueryBasisLifecycleSupportReport {
         rows,
         report_digest,
@@ -137,12 +145,15 @@ fn support_row_for(
                 status,
                 trace_label: fact.trace_label(),
                 denial_label: None,
-                support_digest: hash_parts(&[
-                    format!("family:{family_label}"),
-                    format!("lane:{lane_label}"),
-                    format!("status:{}", status.as_str()),
-                    format!("trace:{}", fact.trace_label()),
-                ]),
+                support_digest: basis_lifecycle_digest(
+                    "query_basis_lifecycle_support_row_v1",
+                    [
+                        ("family", family_label),
+                        ("lane", lane_label),
+                        ("status", status.as_str().to_string()),
+                        ("trace", fact.trace_label().to_string()),
+                    ],
+                ),
             }
         }
         Err(BasisScopedAdmissionDenial::Eligibility(denial)) => BasisLaneSupportRow {
@@ -151,13 +162,16 @@ fn support_row_for(
             status: BasisLaneSupportStatus::Denied,
             trace_label: denial.trace().rule_label(),
             denial_label: Some(denial_label(denial.kind())),
-            support_digest: hash_parts(&[
-                format!("family:{}", denial.family().as_str()),
-                format!("lane:{}", denial.operation_lane().as_str()),
-                "status:denied".to_string(),
-                format!("trace:{}", denial.trace().rule_label()),
-                format!("denial:{}", denial_label(denial.kind())),
-            ]),
+            support_digest: basis_lifecycle_digest(
+                "query_basis_lifecycle_support_denied_row_v1",
+                [
+                    ("family", denial.family().as_str().to_string()),
+                    ("lane", denial.operation_lane().as_str().to_string()),
+                    ("status", "denied".to_string()),
+                    ("trace", denial.trace().rule_label().to_string()),
+                    ("denial", denial_label(denial.kind()).to_string()),
+                ],
+            ),
         },
         Err(BasisScopedAdmissionDenial::Intent(denial)) => BasisLaneSupportRow {
             family: family.clone(),
@@ -165,13 +179,16 @@ fn support_row_for(
             status: BasisLaneSupportStatus::Denied,
             trace_label: "normalization_denied",
             denial_label: Some("basis_intent_denial"),
-            support_digest: hash_parts(&[
-                format!("family:{}", family.as_str()),
-                format!("lane:{}", lane.as_str()),
-                "status:denied".to_string(),
-                "trace:normalization_denied".to_string(),
-                format!("failure:{}", denial.failure_digest()),
-            ]),
+            support_digest: basis_lifecycle_digest(
+                "query_basis_lifecycle_support_intent_denied_row_v1",
+                [
+                    ("family", family.as_str().to_string()),
+                    ("lane", lane.as_str().to_string()),
+                    ("status", "denied".to_string()),
+                    ("trace", "normalization_denied".to_string()),
+                    ("failure", denial.failure_digest().to_string()),
+                ],
+            ),
         },
     }
 }
@@ -230,25 +247,41 @@ fn raw_intent_for(
 }
 
 fn branch_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
-    forge_runtime_bridge::facade::TruthBranchIdentity::from_bridge_harness_label("branch:main")
-        .evidence_identity()
+    forge_runtime_bridge::facade::TruthBranchIdentity::from_relational_branch_id("branch:main")
+        .bridge_admission_evidence()
 }
 
 fn snapshot_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
-    forge_runtime_bridge::facade::TruthSnapshotIdentity::from_bridge_harness_label("snapshot:1")
-        .evidence_identity()
+    forge_runtime_bridge::facade::TruthSnapshotIdentity::from_relational_snapshot(
+        forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts::new(
+            support_fixture_position("snapshot", "snapshot:1"),
+            support_fixture_position("snapshot-version", "snapshot:1"),
+        ),
+    )
+    .bridge_admission_evidence()
 }
 
 fn commit_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
-    forge_runtime_bridge::facade::TruthCommitIdentity::from_bridge_harness_label("commit:1")
-        .evidence_identity()
+    forge_runtime_bridge::facade::TruthCommitIdentity::from_relational_commit_id(
+        support_fixture_position("commit", "commit:1"),
+    )
+    .bridge_admission_evidence()
 }
 
 fn preview_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
     forge_runtime_bridge::facade::BridgePreviewSessionIdentity::from_stable_name(
         "preview:session-1",
     )
-    .evidence_identity()
+    .bridge_admission_evidence()
+}
+
+fn support_fixture_position(namespace: &str, evidence: &str) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in namespace.bytes().chain(evidence.bytes()) {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211_u64);
+    }
+    acc
 }
 
 fn compose_support_row_identity(row: &BasisLaneSupportRow) -> ForgeQueryEvidenceIdentity {
@@ -257,10 +290,7 @@ fn compose_support_row_identity(row: &BasisLaneSupportRow) -> ForgeQueryEvidence
             ForgeQueryEvidenceTag::new("identity_family"),
             "forge_query_query_basis_lifecycle_support_row_v1",
         )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("family"),
-            row.family().as_str(),
-        )
+        .field_shape(ForgeQueryEvidenceTag::new("family"), row.family().as_str())
         .field_shape(
             ForgeQueryEvidenceTag::new("operation_lane"),
             row.operation_lane().as_str(),

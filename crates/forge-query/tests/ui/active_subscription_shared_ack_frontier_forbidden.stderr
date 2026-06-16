@@ -18,5 +18,5 @@ error[E0451]: fields `attachment_digest`, `acknowledged_sequence` and `frontier_
   |         ^^^^^^^^^^^^^^^^^ private field
 6 |         acknowledged_sequence: todo!(),
   |         ^^^^^^^^^^^^^^^^^^^^^ private field
-7 |         frontier_identity: "shared-frontier".to_string(),
-  |         ^^^^^^^^^^^^^^^ private field
+7 |         frontier_identity: todo!(),
+  |         ^^^^^^^^^^^^^^^^^ private field

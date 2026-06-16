@@ -178,15 +178,15 @@ impl ForgeQueryLowerRuntimeSupportRow {
             } => {
                 identity = identity
                     .field_shape(ForgeQueryEvidenceTag::new("detail"), "closeout")
-                    .field_identity(
+                    .field_value(
                         ForgeQueryEvidenceTag::new("closeout_target"),
                         closeout_target,
                     )
-                    .field_identity(
+                    .field_value(
                         ForgeQueryEvidenceTag::new("required_closeout"),
                         required_closeout,
                     )
-                    .field_identity(
+                    .field_value(
                         ForgeQueryEvidenceTag::new("certification_row"),
                         certification_row,
                     );
@@ -225,7 +225,7 @@ impl ForgeQueryLowerRuntimeSupportMatrix {
                 ForgeQueryEvidenceIdentity::compose(
                     ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
                 )
-                .field_identity(ForgeQueryEvidenceTag::new("support_row"), row.row_digest())
+                .field_value(ForgeQueryEvidenceTag::new("support_row"), row.row_digest())
                 .seal()
             })
             .collect::<Vec<_>>();

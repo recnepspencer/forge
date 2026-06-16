@@ -93,16 +93,20 @@ fn runtime_equivalent_live_declarations_share_active_lane_with_distinct_consumer
         .expect("equivalent live view should join active lane");
 
     assert_eq!(
-        first.subscription_installation().active_lane_for_reporting(),
-        second.subscription_installation().active_lane_for_reporting()
+        first
+            .subscription_installation()
+            .active_lane_projection().label(),
+        second
+            .subscription_installation()
+            .active_lane_projection().label()
     );
     assert_ne!(
         first
             .subscription_installation()
-            .consumer_attachment_for_reporting(),
+            .consumer_attachment_projection().label(),
         second
             .subscription_installation()
-            .consumer_attachment_for_reporting()
+            .consumer_attachment_projection().label()
     );
     assert_eq!(
         second

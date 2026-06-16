@@ -114,7 +114,9 @@ fn snapshot_read_target_identity(
         contract.canonical_basis()
     );
     let digest = Sha256::digest(basis.as_bytes());
-    SnapshotReadTargetIdentity::new(format!("snapshot-read-target:sha256:{digest:x}"))
+    SnapshotReadTargetIdentity::admit_bridge_owned(format!(
+        "snapshot-read-target:sha256:{digest:x}"
+    ))
 }
 
 fn projection_contract_for_native_target(

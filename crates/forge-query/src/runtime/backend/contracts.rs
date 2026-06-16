@@ -33,6 +33,18 @@ use crate::runtime::{
     ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
 
+pub fn runtime_subscription_support_evidence_identity(
+    support_label: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "runtime_subscription_activation_support_evidence_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("support_label"), support_label)
+        .seal()
+}
+
 pub trait ForgeQueryRuntimeBackend {
     fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile;
 
@@ -303,7 +315,11 @@ pub trait ForgeQueryRuntimeSignalSinkAdapter {
 }
 
 pub trait ForgeQueryRuntimeSubscriptionActivationAdapter {
-    fn support_evidence(&self) -> String;
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity;
+
+    fn support_evidence_for_reporting(&self) -> String {
+        self.support_evidence_identity().as_str().to_string()
+    }
 
     fn remask_projection(
         &self,
@@ -321,7 +337,7 @@ pub trait ForgeQueryRuntimeSubscriptionActivationAdapter {
         SubscriptionActivationReceipt::from_activation(
             view_name,
             activation,
-            self.support_evidence(),
+            self.support_evidence_identity(),
             self.remask_projection(view_name, activation),
         )
     }

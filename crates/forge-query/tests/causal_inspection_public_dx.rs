@@ -44,7 +44,7 @@ fn plan_inspection_compiles(receipt: QueryObservationReceipt) {
     let _ = plan.explanation_family();
     let _ = plan.anchor_for_reporting();
     let _ = plan.reference_set_digest();
-    let _ = plan.request_digest();
+    let _ = plan.request_for_reporting();
     let _ = plan.admission_digest();
 }
 
@@ -73,7 +73,9 @@ fn artifact_exploration_compiles(artifact: QueryCausalInspectionArtifact) {
     let _ = artifact.evidence();
     let _ = artifact.integrity().artifact_for_reporting();
     let _ = artifact.integrity().causal_identity_for_reporting();
-    let _ = artifact.integrity().bridge_readmission_proof_for_reporting();
+    let _ = artifact
+        .integrity()
+        .bridge_readmission_proof_for_reporting();
     let _ = artifact.performance_envelope();
     let _ = artifact.receipt();
     let _ = artifact.denial_reason();

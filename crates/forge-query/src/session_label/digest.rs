@@ -10,7 +10,7 @@ pub(crate) fn derive_session_label_identity(
     name_segments: &[ForgeQuerySessionLabelSegment],
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::SessionLabelIdentity)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_namespace"),
             namespace.as_str(),
         )
@@ -18,7 +18,7 @@ pub(crate) fn derive_session_label_identity(
             ForgeQueryEvidenceTag::new("session_label_name_segment_count"),
             name_segments.len(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("session_label_name_segments"),
             name_segments
                 .iter()

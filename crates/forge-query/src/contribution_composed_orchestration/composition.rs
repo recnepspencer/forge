@@ -57,8 +57,7 @@ impl ForgeQueryContributionComposedComposition {
             .filter(|value| !value.is_admitted())
             .map(ForgeQueryContributionComposedIntentResult::category_family)
             .collect::<Vec<_>>();
-        let composition_identity =
-            compose_composition_identity(classification, intent_results);
+        let composition_identity = compose_composition_identity(classification, intent_results);
         Self {
             classification,
             admitted_category_families,

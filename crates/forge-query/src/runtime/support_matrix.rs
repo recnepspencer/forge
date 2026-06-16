@@ -274,7 +274,7 @@ impl ForgeQueryRuntimePublicSupportMatrix {
                     ForgeQueryEvidenceTag::new("parallel_api_forbidden_row_count"),
                     parallel_api_forbidden_row_count,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("row_digest"),
                     rows.iter().map(|row| row.row_digest().as_str()),
                 )

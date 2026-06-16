@@ -203,7 +203,7 @@ impl BridgeDiagnosticsState {
     ) {
         let record = Arc::new(record);
         self.latest_stream_checkpoint_by_identity.insert(
-            record.checkpoint_token_identity().to_string(),
+            record.checkpoint_token_identity_for_reporting().to_string(),
             Arc::clone(&record),
         );
         self.stream_checkpoints.push_back(record);
@@ -225,7 +225,7 @@ impl BridgeDiagnosticsState {
             Arc::clone(&record),
         );
         self.latest_stream_replay_by_checkpoint_identity.insert(
-            record.checkpoint_token_identity().to_string(),
+            record.checkpoint_token_identity().as_str().to_string(),
             Arc::clone(&record),
         );
         self.stream_replay_records.push_back(record);

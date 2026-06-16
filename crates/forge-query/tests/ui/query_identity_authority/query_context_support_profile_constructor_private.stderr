@@ -1,0 +1,13 @@
+error[E0451]: fields `admitted_basis_families`, `admitted_comparison_families`, `deferred_scope_markers` and `profile_digest` of struct `forge_query::query_context::support::QueryContextSupportProfile` are private
+ --> tests/ui/query_context_support_profile_constructor_private.rs:5:9
+  |
+4 |     let _ = ForgeQueryQueryContextSupportProfile {
+  |             ------------------------------------ in this type
+5 |         admitted_basis_families: Vec::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+6 |         admitted_comparison_families: Vec::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+7 |         deferred_scope_markers: Vec::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+8 |         profile_digest: String::new(),
+  |         ^^^^^^^^^^^^^^ private field

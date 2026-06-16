@@ -40,11 +40,11 @@ pub(crate) fn representative_causal_bridge_materialization_row() -> Representati
         .expect("causal bridge fixture should materialize inspection");
     let evidence =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("artifact"),
                 artifact.artifact_for_reporting(),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("bridge_envelope"),
                 artifact.bridge_envelope_for_reporting().unwrap_or("none"),
             )
@@ -128,11 +128,11 @@ pub(crate) fn representative_frontier_evidence_row() -> RepresentativeArtifacts 
     let executed = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(&summary);
     let evidence =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("planned"),
                 planned.surface_digest().as_str(),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("executed"),
                 executed.surface_digest().as_str(),
             )

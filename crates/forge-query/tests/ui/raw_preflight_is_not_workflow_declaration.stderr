@@ -22,7 +22,7 @@ error[E0308]: mismatched types
 10 |         &preflight,
    |         ^^^^^^^^^^ expected `&WorkflowContextBinding`, found `&ExecutionPreflightBundle`
    |
-   = note: expected reference `&WorkflowContextBinding`
+   = note: expected reference `&forge_query::facade::WorkflowContextBinding`
               found reference `&ExecutionPreflightBundle`
 note: function defined here
   --> src/workflow/foundation.rs

@@ -93,8 +93,4 @@ impl QueryPatchGroup {
     pub fn patch_group_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.patch_group_identity
     }
-
-    pub fn patch_group_for_reporting(&self) -> &str {
-        self.patch_group_identity.as_str()
-    }
 }

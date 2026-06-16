@@ -8,7 +8,7 @@ fn writeback_batch_mutation_authority_bundle_counts_naming_components() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new(
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "writeback:batch-mutation-authority-naming",
                 ),
                 BridgeRequestKind::Authoritative,
@@ -23,11 +23,17 @@ fn writeback_batch_mutation_authority_bundle_counts_naming_components() {
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new("causality:batch-mutation-authority-naming:a"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
+            "causality:batch-mutation-authority-naming:a",
+        ),
         "batch-mutation-authority-naming:a",
-        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-naming:a"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "effect:batch-mutation-authority-naming:a",
+        ),
         "batch-mutation-authority-naming:a",
-        BridgeWritebackIdempotenceIdentity::new("idempotence:batch-mutation-authority-naming:a"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:batch-mutation-authority-naming:a",
+        ),
     )
     .with_naming_mutation(
         crate::facade::BridgeNamingMutationBundle::attach_new_target(
@@ -42,11 +48,17 @@ fn writeback_batch_mutation_authority_bundle_counts_naming_components() {
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new("causality:batch-mutation-authority-naming:b"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
+            "causality:batch-mutation-authority-naming:b",
+        ),
         "batch-mutation-authority-naming:b",
-        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-naming:b"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "effect:batch-mutation-authority-naming:b",
+        ),
         "batch-mutation-authority-naming:b",
-        BridgeWritebackIdempotenceIdentity::new("idempotence:batch-mutation-authority-naming:b"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:batch-mutation-authority-naming:b",
+        ),
     );
 
     let aggregate = crate::facade::BridgeBatchMutationAuthorityBundle::from_components(&[
@@ -60,7 +72,9 @@ fn writeback_batch_mutation_authority_bundle_counts_naming_components() {
 }
 
 fn bridge_naming_attachment(value: &str) -> crate::facade::BridgeNamingAttachmentIdentity {
-    crate::facade::BridgeNamingAttachmentIdentity::from_external_authority_evidence(value)
+    crate::facade::BridgeNamingAttachmentIdentity::from_bridge_evidence(
+        &crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(value),
+    )
 }
 
 fn bridge_naming_target(
@@ -80,7 +94,7 @@ fn writeback_batch_mutation_authority_bundle_counts_existing_and_symbolic_compon
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new(
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "writeback:batch-mutation-authority-existing-symbolic",
                 ),
                 BridgeRequestKind::Authoritative,
@@ -95,20 +109,24 @@ fn writeback_batch_mutation_authority_bundle_counts_existing_and_symbolic_compon
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new(
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
             "causality:batch-mutation-authority-existing-symbolic:a",
         ),
         "batch-mutation-authority-existing-symbolic:a",
-        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-existing-symbolic:a"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "effect:batch-mutation-authority-existing-symbolic:a",
+        ),
         "batch-mutation-authority-existing-symbolic:a",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-existing-symbolic:a",
         ),
     )
     .with_existing_truth_binding(
         crate::facade::BridgeExistingTruthBindingBundle::direct_entity(
-            crate::facade::BridgeExistingTruthBindingAuthoritativeIdentity::from_external_authority_evidence(
-                "authority:task-existing",
+            crate::facade::BridgeExistingTruthBindingAuthoritativeIdentity::from_bridge_evidence(
+                &crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                    "authority:task-existing",
+                ),
             ),
             crate::facade::BridgeExistingTruthBindingResolvedTargetIdentity::from_relational_record(
                 crate::facade::RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
@@ -120,13 +138,15 @@ fn writeback_batch_mutation_authority_bundle_counts_existing_and_symbolic_compon
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new(
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
             "causality:batch-mutation-authority-existing-symbolic:b",
         ),
         "batch-mutation-authority-existing-symbolic:b",
-        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-existing-symbolic:b"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "effect:batch-mutation-authority-existing-symbolic:b",
+        ),
         "batch-mutation-authority-existing-symbolic:b",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-existing-symbolic:b",
         ),
     )

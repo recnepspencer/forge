@@ -125,7 +125,7 @@ mod tests {
 
     fn contract(schema: &str) -> StructuralFingerprintEquivalenceContract {
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new(schema),
+            StructuralSchemaIdentity::admit_bridge_owned(schema),
             StructuralFingerprintFamily::TopologyFingerprint,
             "topology-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -137,8 +137,8 @@ mod tests {
     #[test]
     fn validation_rejects_branch_pair_basis_for_advisory_remap() {
         let declaration = StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new("structural:bad-remap"),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:bad-remap"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             contract("schema:geometry"),
             StructuralTruthViewBasis::explicit_branch_pair(
                 BridgeTruthViewSelector::branch_head(
@@ -161,8 +161,8 @@ mod tests {
     #[test]
     fn validation_accepts_branch_comparison_with_branch_pair_basis() {
         let declaration = StructuralIdentityDeclaration::branch_comparison(
-            StructuralIdentityDeclarationIdentity::new("structural:branch-compare"),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:branch-compare"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             contract("schema:geometry"),
             StructuralTruthViewBasis::explicit_branch_pair(
                 BridgeTruthViewSelector::branch_snapshot(

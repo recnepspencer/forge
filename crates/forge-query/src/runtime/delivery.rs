@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::memory_workspace::{ForgeQueryMutationKind, ForgeQueryMutationReceipt};
@@ -264,15 +265,18 @@ pub(super) fn route_live_subscription_delivery(
                 continue;
             };
             let patch_width = delta.aspect_paths.len().max(1) as u64;
-            let maintenance_delta = QuerySubscriptionMaintenanceDelta::admitted(
+            let commit_evidence = receipt.commit_identity.evidence_identity();
+            let entity_evidence = delta.entity_identity.evidence_identity();
+            let collection_identity = ForgeQueryMutationTargetCollectionIdentity::new(
+                "live-subscription-maintenance-delta",
+                &delta.collection,
+            );
+            let maintenance_delta = QuerySubscriptionMaintenanceDelta::admitted_with_typed_scope(
                 delta_kind,
                 state.active_lane_handle.lane_digest().clone(),
-                format!(
-                    "{}:{}:{}",
-                    receipt.commit_identity.evidence_identity(),
-                    delta.collection,
-                    delta.entity_identity.evidence_identity()
-                ),
+                &commit_evidence,
+                collection_identity.evidence_identity(),
+                &entity_evidence,
                 MaintenanceDeltaWidth::measured(patch_width),
             );
             let (maintenance_delta, lowering_report, _) =
@@ -280,7 +284,7 @@ pub(super) fn route_live_subscription_delivery(
                     ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                         view_name: view_name.clone(),
                         stage: "delivery-delta-lowering",
-                        message: format!("{error:?}"),
+                        message: error.message().to_string(),
                     }
                 })?;
             let window = open_query_delivery_window(
@@ -292,7 +296,7 @@ pub(super) fn route_live_subscription_delivery(
                 |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                     view_name: view_name.clone(),
                     stage: "delivery-window",
-                    message: format!("{error:?}"),
+                    message: error.message().to_string(),
                 },
             )?;
             let work_packet = build_active_delivery_work_packet(
@@ -313,7 +317,7 @@ pub(super) fn route_live_subscription_delivery(
                 |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                     view_name: view_name.clone(),
                     stage: "delivery-work-packet",
-                    message: format!("{error:?}"),
+                    message: error.message().to_string(),
                 },
             )?;
             let batch = emit_query_delivery_batch(active_subscriptions, window, work_packet)
@@ -321,7 +325,7 @@ pub(super) fn route_live_subscription_delivery(
                     |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                         view_name: view_name.clone(),
                         stage: "delivery-batch",
-                        message: format!("{error:?}"),
+                        message: error.message().to_string(),
                     },
                 )?;
             let delivery_receipt = batch.receipt().clone();
@@ -340,7 +344,7 @@ pub(super) fn route_live_subscription_delivery(
                 |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                     view_name: view_name.clone(),
                     stage: "delivery-acknowledgement",
-                    message: format!("{error:?}"),
+                    message: error.message().to_string(),
                 },
             )?;
             affected.push(view_name.clone());

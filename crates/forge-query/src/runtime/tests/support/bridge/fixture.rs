@@ -1,4 +1,5 @@
 use crate::runtime::tests::support::*;
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 #[derive(Clone, Debug)]
 pub(in crate::runtime::tests) struct TestBridgeSource;
@@ -10,8 +11,6 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for TestBridgeSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_patch_envelope(
             request.commit_identity().clone(),
-            "external-snapshot",
-            "main",
             "entity",
             "aspect",
             "field",
@@ -134,22 +133,21 @@ pub(crate) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
 
 fn native_patch_envelope(
     commit_identity: TruthCommitIdentity,
-    snapshot_identity: &str,
-    branch_identity: &str,
     entity_identity: &str,
     aspect: &str,
     field: &str,
 ) -> BridgeCommittedPatchEnvelope {
-    let patch_identity = TruthPatchIdentity::from_bridge_harness_label(format!(
-        "patch:{}",
-        commit_identity.evidence_identity().as_str()
-    ));
+    let commit_id = commit_identity
+        .relational_commit_id()
+        .expect("runtime bridge fixture commit identity must retain relational commit payload");
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
             commit_identity,
-            patch_identity,
-            TruthSnapshotIdentity::from_bridge_harness_label(snapshot_identity),
-            TruthBranchIdentity::from_bridge_harness_label(branch_identity),
+            TruthPatchIdentity::from_relational_patch_position(commit_id),
+            TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(1, commit_id),
+            ),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             entity_identity,

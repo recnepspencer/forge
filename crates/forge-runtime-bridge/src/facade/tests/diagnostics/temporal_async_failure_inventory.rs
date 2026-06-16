@@ -292,7 +292,7 @@ fn duplicate_completion_noop_localizes_as_writeback_idempotent_noop() {
 fn policy_rejection_localizes_as_policy_remask_failure() {
     let runtime = runtime(BridgeRuntimePolicy::operational().with_replay_artifacts(false));
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:phase15-replay-required"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:phase15-replay-required"),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Minimal,

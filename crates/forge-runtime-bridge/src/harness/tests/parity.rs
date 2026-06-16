@@ -22,10 +22,12 @@ fn continuity_authority(
 ) -> BridgeHistoricalLineageAuthority {
     BridgeHistoricalLineageAuthority::try_new(
         BridgeContinuityAuthorityBasis::new(branch_identity, snapshot_identity),
-        vec![BridgeHistoricalResolvedLineageIdentity::new(
+        vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
             "lineage:test-successor",
         )],
-        vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
+        vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
+            "entity:0:4:2",
+        )],
         vec![7],
     )
     .expect("continuity authority should be canonical")

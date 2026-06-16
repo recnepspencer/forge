@@ -67,11 +67,11 @@ impl ForgeQueryRuntimePublicApiFamilyContract {
                     ForgeQueryEvidenceTag::new("admission_fail_closed"),
                     admission_fail_closed,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("authority_lanes"),
                     authority_lanes.iter().map(|lane| lane.as_str()),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("evidence"),
                     evidence.iter().map(String::as_str),
                 )
@@ -179,7 +179,7 @@ impl ForgeQueryRuntimePublicApiContract {
                     ForgeQueryEvidenceTag::new("backend_posture"),
                     profile.posture().as_str(),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("family_contract_digest"),
                     families
                         .iter()

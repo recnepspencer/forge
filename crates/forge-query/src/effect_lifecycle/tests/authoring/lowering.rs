@@ -1,9 +1,11 @@
-use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectAuthorityLane, EffectAuthorityOwner, EffectConflictFootprint,
     EffectFamily, EffectInvariantScope, EffectLoweringDenialKind, EffectPermittedLoweringFamily,
     EffectPolicyPosture, EffectPreviewPosture, EffectStrategyIdentityTarget,
     LoweredEffectExecutionArtifact,
+};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 use crate::workflow::WorkflowStalenessClass;
 
@@ -57,7 +59,9 @@ fn admitted_mutation_plan_lowers_into_one_executable_effect_artifact() {
         EffectStrategyIdentityTarget::NativeStrategyCommitRequest
     );
     assert_eq!(lowered.counters().lowered_effect_count(), 1);
-    assert!(!lowered.lowered_effect_execution_plan_for_reporting().is_empty());
+    assert!(!lowered
+        .lowered_effect_execution_plan_for_reporting()
+        .is_empty());
 
     let mutation = lowered
         .as_mutation()

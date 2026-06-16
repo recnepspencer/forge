@@ -63,7 +63,7 @@ impl PlannedChangeStreamWindow {
             contract.admitted_coalescing_family() != StreamCoalescingFamily::None,
         );
         Self {
-            stream_window_identity: StreamWindowIdentity::new(digest.clone()),
+            stream_window_identity: StreamWindowIdentity::admit_bridge_owned(digest.clone()),
             consumer_contract_identity: contract.consumer_contract_identity().clone(),
             first_stream_position,
             last_stream_position,

@@ -93,13 +93,31 @@ error[E0308]: mismatched types
 error[E0624]: associated function `new` is private
   --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:26:48
    |
-26 |     let commit_identity = TruthCommitIdentity::new("commit-1");
-   |                                                ^^^ private associated function
+26 |       let commit_identity = TruthCommitIdentity::new("commit-1");
+   |                                                  ^^^ private associated function
    |
   ::: src/identity.rs
    |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:26:52
+   |
+26 |     let commit_identity = TruthCommitIdentity::new("commit-1");
+   |                           ------------------------ ^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |                           |
+   |                           arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
 
 error[E0624]: method `as_str` is private
   --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:27:33
@@ -115,13 +133,31 @@ error[E0624]: method `as_str` is private
 error[E0624]: associated function `new` is private
   --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:30:52
    |
-30 |     let snapshot_identity = TruthSnapshotIdentity::new("snapshot-1");
-   |                                                    ^^^ private associated function
+30 |       let snapshot_identity = TruthSnapshotIdentity::new("snapshot-1");
+   |                                                      ^^^ private associated function
    |
   ::: src/identity.rs
    |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:30:56
+   |
+30 |     let snapshot_identity = TruthSnapshotIdentity::new("snapshot-1");
+   |                             -------------------------- ^^^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |                             |
+   |                             arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
 
 error[E0624]: method `as_str` is private
   --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:31:35
@@ -137,13 +173,31 @@ error[E0624]: method `as_str` is private
 error[E0624]: associated function `new` is private
   --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:34:46
    |
-34 |     let patch_identity = TruthPatchIdentity::new("patch-1");
-   |                                              ^^^ private associated function
+34 |       let patch_identity = TruthPatchIdentity::new("patch-1");
+   |                                                ^^^ private associated function
    |
   ::: src/identity.rs
    |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:34:50
+   |
+34 |     let patch_identity = TruthPatchIdentity::new("patch-1");
+   |                          ----------------------- ^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |                          |
+   |                          arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
 
 error[E0624]: method `as_str` is private
   --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:35:32
@@ -159,13 +213,31 @@ error[E0624]: method `as_str` is private
 error[E0624]: associated function `new` is private
   --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:38:48
    |
-38 |     let branch_identity = TruthBranchIdentity::new("branch-main");
-   |                                                ^^^ private associated function
+38 |       let branch_identity = TruthBranchIdentity::new("branch-main");
+   |                                                  ^^^ private associated function
    |
   ::: src/identity.rs
    |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:38:52
+   |
+38 |     let branch_identity = TruthBranchIdentity::new("branch-main");
+   |                           ------------------------ ^^^^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |                           |
+   |                           arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
 
 error[E0624]: method `as_str` is private
   --> tests/ui/bridge_truth_identity/truth_commit_identity_string_facade_private.rs:39:33

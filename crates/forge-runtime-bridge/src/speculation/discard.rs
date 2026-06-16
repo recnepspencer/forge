@@ -146,7 +146,7 @@ impl BridgePreviewDiscardRecord {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            record_identity: BridgePreviewDiscardRecordIdentity::new(format!(
+            record_identity: BridgePreviewDiscardRecordIdentity::admit_bridge_owned(format!(
                 "preview-discard-record:sha256:{digest:x}"
             )),
             preview_session_identity: Arc::from(session.session_identity().as_str()),

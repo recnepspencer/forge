@@ -1,6 +1,3 @@
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
 use crate::workflow::{
     lower_merge_workflow_declaration, lower_mutation_intent_declaration,
     lower_query_writeback_declaration, LoweredMergeWorkflowDeclaration,
@@ -8,6 +5,7 @@ use crate::workflow::{
     WorkflowLoweringCounters, WorkflowLoweringError, WorkflowLoweringFailureClass,
     WorkflowStalenessClass,
 };
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::counters::EffectLifecycleCounters;
 use super::eligibility::AdmittedEffectIntent;
@@ -74,24 +72,23 @@ impl EffectLoweringDenial {
         error: WorkflowLoweringError,
     ) -> Self {
         let denial_kind = lowering_denial_kind(error.failure_class());
-        let denial_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_lowering_denial_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("plan"),
-            execution_subject_identity,
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), denial_kind.as_str())
-        .field_shape(
-            ForgeQueryEvidenceTag::new("staleness"),
-            error.staleness_class().as_str(),
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("message"), error.message())
-        .seal();
+        let denial_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_lowering_denial_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("plan"),
+                    execution_subject_identity,
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), denial_kind.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("staleness"),
+                    error.staleness_class().as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("message"), error.message())
+                .seal();
         Self {
             denial_kind,
             message: error.message(),
@@ -158,22 +155,21 @@ impl LoweredEffectExecutionPlan {
         authority_scoped_plan: AuthorityScopedEffectPlan,
         artifact: LoweredEffectExecutionArtifact,
     ) -> Self {
-        let lowered_effect_execution_plan_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "lowered_effect_execution_plan_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("plan"),
-            authority_scoped_plan.plan_identity(),
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("artifact"),
-            artifact_identity(&artifact),
-        )
-        .seal();
+        let lowered_effect_execution_plan_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "lowered_effect_execution_plan_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("plan"),
+                    authority_scoped_plan.plan_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("artifact"),
+                    artifact_identity(&artifact),
+                )
+                .seal();
         let counters = EffectLifecycleCounters::lowered(
             authority_scoped_plan.counters().effect_support_row_count(),
             artifact_counters(&artifact).workflow_lowering_width(),

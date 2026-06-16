@@ -61,35 +61,35 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             ForgeQueryEvidenceTag::new("transcript_family"),
             transcript_family.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("support_contract_digest"),
             support_contract_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("state_digest"),
             state_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("live_surface_digest"),
             live_surface_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("computed_surface_digest"),
             computed_surface_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("effect_surface_digest"),
             effect_surface_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("intent_receipt_digest"),
             intent_receipt_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("inspection_digest"),
             inspection_digest.clone(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("support_gated_neighbor_denial_digest"),
             support_gated_neighbor_denial_digests
                 .iter()
@@ -99,7 +99,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             ForgeQueryEvidenceTag::new("delivery_residue_count"),
             delivery_residue_count,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("authority_lane_digest"),
             authority_lane_digest.clone(),
         )

@@ -108,9 +108,9 @@ impl BridgeAsyncInFlightRequestIdentity {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            in_flight_identity: BridgeAsyncInFlightRequestIdentityHandle::new(format!(
-                "bridge-async-in-flight-request-id:sha256:{digest:x}"
-            )),
+            in_flight_identity: BridgeAsyncInFlightRequestIdentityHandle::admit_bridge_owned(
+                format!("bridge-async-in-flight-request-id:sha256:{digest:x}"),
+            ),
             request_identity: request_identity.clone(),
             in_flight,
             counters,

@@ -102,7 +102,7 @@ mod tests {
 
     fn admitted_contract() -> AdmittedSourceContract {
         let declaration = SourceDeclaration::new(
-            SourceDeclarationIdentity::new("source:analysis-history"),
+            SourceDeclarationIdentity::admit_bridge_owned("source:analysis-history"),
             BridgeTruthViewSelector::historical_commit(
                 crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
                 crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),

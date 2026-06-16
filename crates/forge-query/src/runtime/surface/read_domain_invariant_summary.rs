@@ -47,8 +47,8 @@ impl ForgeQueryReadDomainInvariantSummary {
                 )
                 .field_shape(ForgeQueryEvidenceTag::new("family"), graph_family_label)
                 .field_shape(ForgeQueryEvidenceTag::new("scope"), &scope_class)
-                .field_identity(ForgeQueryEvidenceTag::new("schema"), &schema_basis_digest)
-                .field_identity(ForgeQueryEvidenceTag::new("query"), &query_digest)
+                .field_value(ForgeQueryEvidenceTag::new("schema"), &schema_basis_digest)
+                .field_value(ForgeQueryEvidenceTag::new("query"), &query_digest)
                 .field_usize(
                     ForgeQueryEvidenceTag::new("declared_traversal_count"),
                     declared_traversal_clause_count,

@@ -1,0 +1,11 @@
+error[E0603]: module `authoring` is private
+ --> tests/ui/private_authoring_module.rs:1:18
+  |
+1 | use forge_query::authoring::RawAuthoredQuery;
+  |                  ^^^^^^^^^ private module
+  |
+note: the module `authoring` is defined here
+ --> src/lib.rs
+  |
+  | mod authoring;
+  | ^^^^^^^^^^^^^

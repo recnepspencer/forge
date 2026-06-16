@@ -57,7 +57,7 @@ impl SourceFailureRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            failure_identity: SourceFailureRecordIdentity::new(format!(
+            failure_identity: SourceFailureRecordIdentity::admit_bridge_owned(format!(
                 "source-failure-record:sha256:{digest:x}"
             )),
             declaration_identity,

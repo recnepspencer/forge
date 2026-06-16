@@ -114,7 +114,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
             ForgeQueryWriteCommand::Delete { .. } => ("TranscriptEntity".to_string(), Vec::new()),
         };
         let entity_identity_text = "transcript-entity-1";
-        let entity_identity = crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+        let entity_identity = crate::memory_workspace::admit_authored_entity_label(
             entity_identity_text,
         );
         let snapshot_identity = ForgeQuerySnapshotIdentity::from_relational_snapshot(

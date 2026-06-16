@@ -32,7 +32,7 @@ pub fn classify_advisory_candidates(
             };
 
             Some(StructuralMatchCandidate::with_fingerprint(
-                super::StructuralCandidateIdentity::new(format!(
+                super::StructuralCandidateIdentity::admit_bridge_owned(format!(
                     "derived:{}:{}",
                     fingerprint.fingerprint_identity().as_str(),
                     stable_candidate_kind_label(kind)
@@ -53,7 +53,7 @@ pub fn classify_branch_comparison(
     }
 
     vec![StructuralMatchCandidate::with_fingerprint(
-        super::StructuralCandidateIdentity::new(format!(
+        super::StructuralCandidateIdentity::admit_bridge_owned(format!(
             "branch-diff:{}:{}",
             left.fingerprint_identity().as_str(),
             right.fingerprint_identity().as_str()
@@ -79,10 +79,10 @@ mod tests {
 
     fn contract() -> crate::structural::AdmittedStructuralComparisonContract {
         let declaration = StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new("structural:geometry"),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintEquivalenceContract::new(
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintFamily::TopologyFingerprint,
                 "topology-v1",
                 StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,

@@ -46,7 +46,7 @@ pub(super) fn compose_preview_intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("intent_name"),
             receipt.intent_name(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_identity"),
             receipt.strategy_identity(),
         )
@@ -54,7 +54,7 @@ pub(super) fn compose_preview_intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("strategy_version"),
             receipt.strategy_version(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             receipt.canonical_input_digest(),
         )
@@ -90,7 +90,7 @@ pub(super) fn compose_preview_intent_receipt_inspection_identity_for_inspection(
             ForgeQueryEvidenceTag::new("intent_name"),
             inspection.intent_name(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_identity"),
             inspection.strategy_identity(),
         )
@@ -98,7 +98,7 @@ pub(super) fn compose_preview_intent_receipt_inspection_identity_for_inspection(
             ForgeQueryEvidenceTag::new("strategy_version"),
             inspection.strategy_version(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             inspection.canonical_input_digest(),
         )

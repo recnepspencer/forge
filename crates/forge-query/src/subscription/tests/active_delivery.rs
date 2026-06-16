@@ -77,7 +77,7 @@ fn emit_for_delta(
     density: ActiveDeliveryDensityPosture,
 ) -> QueryDeliveryBatch {
     let window = open_query_delivery_window(runtime, attachment, delivery_budget()).unwrap();
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         kind,
         attachment.lane_digest().clone(),
         scope,
@@ -174,8 +174,8 @@ fn collection_and_grouped_deliveries_have_distinct_patch_digests() {
         QueryPatchGroupKind::GroupedMembershipPatchGroup
     );
     assert_ne!(
-        collection_batch.patch_group().patch_group_for_reporting(),
-        grouped_batch.patch_group().patch_group_for_reporting()
+        collection_batch.patch_group().patch_group_projection().label(),
+        grouped_batch.patch_group().patch_group_projection().label()
     );
     assert_eq!(grouped_batch.counters().grouped_membership_patch_width(), 1);
 }
@@ -239,7 +239,7 @@ fn delivery_batch_denies_work_packet_that_exceeds_opened_window_budget() {
         ),
     )
     .unwrap();
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "employee.name",
@@ -284,7 +284,7 @@ fn work_packet_denies_delta_from_another_active_lane() {
         LiveQueryFamily::OrderedCollection,
         Some(LiveViewShapeFamily::Table),
     );
-    let foreign_delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let foreign_delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::CollectionMembershipDelta,
         collection_attachment.lane_digest().clone(),
         "employee.active",
@@ -320,7 +320,7 @@ fn work_packet_denies_delta_from_another_active_lane() {
 fn dense_refresh_denial_blocks_work_packet_before_batch_exists() {
     let mut runtime = ActiveSubscriptionRuntime::new();
     let attachment = attached_consumer(&mut runtime, LiveQueryFamily::Detail, None);
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "employee.name",
@@ -430,7 +430,7 @@ fn delivery_window_heap_allocation_debt_is_explicit() {
 fn work_packet_rejects_wrong_phase_allocation_posture() {
     let mut runtime = ActiveSubscriptionRuntime::new();
     let attachment = attached_consumer(&mut runtime, LiveQueryFamily::Detail, None);
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "employee.name",
@@ -466,7 +466,7 @@ fn performance_receipt_digest_binds_allocation_posture() {
     let mut runtime = ActiveSubscriptionRuntime::new();
     let attachment = attached_consumer(&mut runtime, LiveQueryFamily::Detail, None);
 
-    let patch_delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let patch_delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "employee.name",
@@ -490,7 +490,7 @@ fn performance_receipt_digest_binds_allocation_posture() {
     )
     .unwrap();
 
-    let debt_delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let debt_delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "employee.name",
@@ -522,13 +522,13 @@ fn performance_receipt_digest_binds_allocation_posture() {
     assert_ne!(
         patch_packet
             .performance_receipt()
-            .performance_receipt_for_reporting(),
+            .performance_receipt_projection().label(),
         debt_packet
             .performance_receipt()
-            .performance_receipt_for_reporting()
+            .performance_receipt_projection().label()
     );
     assert_ne!(
-        patch_packet.work_packet_digest(),
-        debt_packet.work_packet_digest()
+        patch_packet.work_packet_projection().label(),
+        debt_packet.work_packet_projection().label()
     );
 }

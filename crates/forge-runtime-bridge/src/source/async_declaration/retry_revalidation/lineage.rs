@@ -40,7 +40,7 @@ impl BridgeAsyncRetryLineage {
         canonical_basis: Arc<str>,
     ) -> Self {
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let causality_identity = BridgeAsyncForwardCausalityIdentity::new(format!(
+        let causality_identity = BridgeAsyncForwardCausalityIdentity::admit_bridge_owned(format!(
             "bridge-async-forward-causality-id:sha256:{digest:x}"
         ));
         let receipt = BridgeAsyncForwardCausalityReceipt::new(
@@ -102,7 +102,7 @@ impl BridgeAsyncRevalidationLineage {
         canonical_basis: Arc<str>,
     ) -> Self {
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let causality_identity = BridgeAsyncForwardCausalityIdentity::new(format!(
+        let causality_identity = BridgeAsyncForwardCausalityIdentity::admit_bridge_owned(format!(
             "bridge-async-forward-causality-id:sha256:{digest:x}"
         ));
         let receipt = BridgeAsyncForwardCausalityReceipt::new(

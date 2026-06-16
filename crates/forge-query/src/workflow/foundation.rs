@@ -2,9 +2,10 @@ use super::WorkflowCounters;
 use crate::basis::{BasisAuthorityFamily, ExecutionPreflightBundle};
 use crate::correspondence_history::CorrespondenceHistoricalEnvelope;
 use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityEncoder, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
+use crate::identity::{CanonicalQueryDigest, PlanDigest, ValidatedQueryDigest};
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::preview::{
     AdmittedPreviewWorkflowFoundation, PreviewEvaluationClass, PreviewWorkflowFoundationRequest,
@@ -387,9 +388,9 @@ fn workflow_scope_from_label(label: &str) -> WorkflowBindingScopeField<'_> {
 }
 
 fn apply_binding_scope_field(
-    identity: ForgeQueryEvidenceIdentityEncoder,
+    identity: crate::evidence_identity::ForgeQueryEvidenceIdentityEncoder,
     scope: &WorkflowBindingScopeField<'_>,
-) -> ForgeQueryEvidenceIdentityEncoder {
+) -> crate::evidence_identity::ForgeQueryEvidenceIdentityEncoder {
     match scope {
         WorkflowBindingScopeField::Unscoped => {
             identity.field_shape(ForgeQueryEvidenceTag::new("scope"), "unscoped")
@@ -397,8 +398,9 @@ fn apply_binding_scope_field(
         WorkflowBindingScopeField::Shape(label) => {
             identity.field_shape(ForgeQueryEvidenceTag::new("scope"), *label)
         }
-        WorkflowBindingScopeField::Identity(scope_identity) => identity
-            .field_evidence_identity(ForgeQueryEvidenceTag::new("scope"), scope_identity),
+        WorkflowBindingScopeField::Identity(scope_identity) => {
+            identity.field_evidence_identity(ForgeQueryEvidenceTag::new("scope"), scope_identity)
+        }
     }
 }
 
@@ -465,29 +467,33 @@ fn preview_workflow_foundation_binding_identity(
             ForgeQueryEvidenceTag::new("request"),
             foundation.request_family().as_str(),
         )
-        .field_bridge_identity(
+        .field_bridge_authority_identity(
             ForgeQueryEvidenceTag::new("preview_session"),
-            &foundation.preview_session_identity().evidence_identity(),
+            &foundation
+                .preview_session_identity()
+                .bridge_trust_boundary(),
         )
-        .field_bridge_identity(
+        .field_bridge_authority_identity(
             ForgeQueryEvidenceTag::new("declaration"),
-            &foundation.declaration_identity().evidence_identity(),
+            &foundation.declaration_identity().bridge_trust_boundary(),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("validated_query"),
-            &foundation.validated_query_digest().evidence_identity(),
+            &workflow_validated_query_digest_evidence(foundation.validated_query_digest()),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("canonical_query"),
-            &foundation.canonical_query_digest().evidence_identity(),
+            &workflow_canonical_query_digest_evidence(foundation.canonical_query_digest()),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("lifecycle"),
             format!("{:?}", artifact.lifecycle_state_kind()),
         )
-        .field_bridge_identity(
+        .field_bridge_authority_identity(
             ForgeQueryEvidenceTag::new("execution_record"),
-            &foundation.execution_record_identity().evidence_identity(),
+            &foundation
+                .execution_record_identity()
+                .bridge_trust_boundary(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("evaluation_class"),
@@ -525,11 +531,13 @@ fn preview_workflow_foundation_basis_inner_identity(
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("validated_query"),
-            &foundation.validated_query_digest().evidence_identity(),
+            &workflow_validated_query_digest_evidence(foundation.validated_query_digest()),
         )
-        .field_bridge_identity(
+        .field_bridge_authority_identity(
             ForgeQueryEvidenceTag::new("preview_session"),
-            &foundation.preview_session_identity().evidence_identity(),
+            &foundation
+                .preview_session_identity()
+                .bridge_trust_boundary(),
         )
         .seal()
 }
@@ -544,11 +552,11 @@ fn preview_promotion_comparison_binding_identity(
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("validated_query"),
-            &comparison.validated_query_digest().evidence_identity(),
+            &workflow_validated_query_digest_evidence(comparison.validated_query_digest()),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("canonical_query"),
-            &comparison.canonical_query_digest().evidence_identity(),
+            &workflow_canonical_query_digest_evidence(comparison.canonical_query_digest()),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("candidate_result"),
@@ -569,6 +577,46 @@ fn preview_candidate_result_identity(
             ForgeQueryEvidenceTag::new("result_label"),
             result_digest.as_str(),
         )
+        .seal()
+}
+
+pub(crate) fn workflow_canonical_query_digest_evidence(
+    digest: &CanonicalQueryDigest,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_canonical_query_digest_evidence_v1",
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("canonical_query_digest"),
+            digest.as_str(),
+        )
+        .seal()
+}
+
+pub(crate) fn workflow_validated_query_digest_evidence(
+    digest: &ValidatedQueryDigest,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_validated_query_digest_evidence_v1",
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("validated_query_digest"),
+            digest.as_str(),
+        )
+        .seal()
+}
+
+fn workflow_plan_digest_evidence(digest: &PlanDigest) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "workflow_plan_digest_evidence_v1",
+        )
+        .field_value(ForgeQueryEvidenceTag::new("plan_digest"), digest.as_str())
         .seal()
 }
 
@@ -601,7 +649,7 @@ fn preview_promotion_comparison_basis_inner_identity(
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("validated_query"),
-            &comparison.validated_query_digest().evidence_identity(),
+            &workflow_validated_query_digest_evidence(comparison.validated_query_digest()),
         )
         .seal()
 }
@@ -687,9 +735,9 @@ fn synthetic_preview_workflow_query_identity(
             .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label),
         binding_scope,
     )
-    .field_bridge_identity(
+    .field_bridge_authority_identity(
         ForgeQueryEvidenceTag::new("preview_session"),
-        &preview_session_identity.evidence_identity(),
+        &preview_session_identity.bridge_trust_boundary(),
     )
     .seal()
 }
@@ -713,9 +761,9 @@ fn synthetic_preview_workflow_source_identity(
             ),
         binding_scope,
     )
-    .field_bridge_identity(
+    .field_bridge_authority_identity(
         ForgeQueryEvidenceTag::new("preview_session"),
-        &preview_session_identity.evidence_identity(),
+        &preview_session_identity.bridge_trust_boundary(),
     )
     .seal()
 }
@@ -738,9 +786,9 @@ fn synthetic_preview_workflow_basis_identity(
             .field_shape(ForgeQueryEvidenceTag::new("source_label"), source_label),
         binding_scope,
     )
-    .field_bridge_identity(
+    .field_bridge_authority_identity(
         ForgeQueryEvidenceTag::new("preview_session"),
-        &preview_session_identity.evidence_identity(),
+        &preview_session_identity.bridge_trust_boundary(),
     )
     .seal()
 }
@@ -763,7 +811,10 @@ fn workflow_declaration_identity(
             ForgeQueryEvidenceTag::new("authority_target_family"),
             request.authority_target_family().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("cost_class"), request.cost_class().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("cost_class"),
+            request.cost_class().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("budget_class"),
             request.budget_class().as_str(),
@@ -1159,9 +1210,10 @@ fn bind_runtime_preflight(
     }
 
     let plan_query = preflight.plan().query();
-    let source_identity = workflow_context_source_identity(&plan_query.plan_digest().evidence_identity());
+    let source_identity =
+        workflow_context_source_identity(&workflow_plan_digest_evidence(plan_query.plan_digest()));
     let query_identity = workflow_context_query_identity(
-        &plan_query.canonical_query_digest().evidence_identity(),
+        &workflow_canonical_query_digest_evidence(plan_query.canonical_query_digest()),
     );
     let basis_identity = workflow_context_basis_identity(
         &WorkflowBasisFamily::RuntimePreflight,
@@ -1208,11 +1260,10 @@ fn bind_preview_foundation(
             WorkflowPreviewEvaluationClass::PromotionEligible
         }
     };
-    let source_identity = workflow_context_source_identity(
-        &preview_workflow_foundation_source_identity(foundation),
-    );
+    let source_identity =
+        workflow_context_source_identity(&preview_workflow_foundation_source_identity(foundation));
     let query_identity = workflow_context_query_identity(
-        &foundation.validated_query_digest().evidence_identity(),
+        &workflow_validated_query_digest_evidence(foundation.validated_query_digest()),
     );
     let basis_identity = workflow_context_basis_identity(
         &WorkflowBasisFamily::PreviewFoundation,
@@ -1250,11 +1301,10 @@ fn bind_preview_foundation(
 fn bind_preview_promotion_comparison(
     comparison: &PromotionParityPreviewComparisonAdmission,
 ) -> Result<WorkflowContextBinding, WorkflowAdmissionError> {
-    let source_identity = workflow_context_source_identity(
-        &preview_promotion_comparison_source_identity(comparison),
-    );
+    let source_identity =
+        workflow_context_source_identity(&preview_promotion_comparison_source_identity(comparison));
     let query_identity = workflow_context_query_identity(
-        &comparison.validated_query_digest().evidence_identity(),
+        &workflow_validated_query_digest_evidence(comparison.validated_query_digest()),
     );
     let basis_identity = workflow_context_basis_identity(
         &WorkflowBasisFamily::PreviewPromotionComparison,

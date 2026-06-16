@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::super::materialization::QueryCausalInspectionArtifact;
 use super::artifacts::{
@@ -43,16 +43,48 @@ impl CausalInspectionHostileRow {
         lane: CausalInspectionCertificationLane,
         artifact: &QueryCausalInspectionArtifact,
     ) -> Self {
-        Self::new(lane, artifact.artifact_for_reporting())
+        Self::new(lane, artifact.artifact_identity().evidence_identity())
     }
 
-    fn new(lane: CausalInspectionCertificationLane, evidence_digest: &str) -> Self {
-        let row_digest = hash_parts(&[
-            "causal_inspection_hostile_row_v1".to_string(),
-            format!("lane:{}", lane.as_str()),
-            format!("evidence:{evidence_digest}"),
-        ]);
-        Self { row_digest }
+    fn new(
+        lane: CausalInspectionCertificationLane,
+        evidence_identity: &ForgeQueryEvidenceIdentity,
+    ) -> Self {
+        let row_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "causal_inspection_hostile_row_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("lane"), lane.as_str())
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("evidence"), evidence_identity)
+        .seal();
+        Self {
+            row_digest: row_identity.as_str().to_string(),
+        }
+    }
+
+    fn from_terminal_digest(
+        lane: CausalInspectionCertificationLane,
+        evidence_digest: &str,
+    ) -> Self {
+        let row_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "causal_inspection_hostile_terminal_digest_row_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("lane"), lane.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("terminal_evidence_digest"),
+            evidence_digest,
+        )
+        .seal();
+        Self {
+            row_digest: row_identity.as_str().to_string(),
+        }
     }
 }
 
@@ -191,31 +223,31 @@ fn build_certification_hostile_rows(
         CausalInspectionCertificationLane::DeniedResult,
         denied_artifact,
     );
-    let missing_evidence_row = CausalInspectionHostileRow::new(
+    let missing_evidence_row = CausalInspectionHostileRow::from_terminal_digest(
         CausalInspectionCertificationLane::MissingEvidence,
         missing_evidence_failure_digest,
     );
-    let public_boundary_row = CausalInspectionHostileRow::new(
+    let public_boundary_row = CausalInspectionHostileRow::from_terminal_digest(
         CausalInspectionCertificationLane::PublicBoundary,
         boundary_audit.audit_digest(),
     );
-    let representative_matrix_row = CausalInspectionHostileRow::new(
+    let representative_matrix_row = CausalInspectionHostileRow::from_terminal_digest(
         CausalInspectionCertificationLane::RepresentativeMatrix,
         representative_matrix.matrix_digest(),
     );
-    let scale_row = CausalInspectionHostileRow::new(
+    let scale_row = CausalInspectionHostileRow::from_terminal_digest(
         CausalInspectionCertificationLane::ScaleMaterialization,
         performance_certification.performance_certification_digest(),
     );
-    let proof_shape_row = CausalInspectionHostileRow::new(
+    let proof_shape_row = CausalInspectionHostileRow::from_terminal_digest(
         CausalInspectionCertificationLane::ProofShape,
         proof_shape.proof_shape_digest(),
     );
-    let bridge_readmission_row = CausalInspectionHostileRow::new(
+    let bridge_readmission_row = CausalInspectionHostileRow::from_terminal_digest(
         CausalInspectionCertificationLane::BridgeReadmission,
         performance_certification.bridge_readmission_proof_digest(),
     );
-    let artifact_serialization_row = CausalInspectionHostileRow::new(
+    let artifact_serialization_row = CausalInspectionHostileRow::from_terminal_digest(
         CausalInspectionCertificationLane::ArtifactSerialization,
         performance_certification.artifact_serialization_slope_digest(),
     );
@@ -250,71 +282,114 @@ fn build_certification_scope_digest(
     proof_shape: &CausalInspectionProofShapeCertification,
     row_counts: &CausalInspectionCertificationRowCounts,
 ) -> String {
-    hash_parts(&[
-        "causal_inspection_certification_scope_v1".to_string(),
-        format!("changed:{}", hostile_rows.changed_row.row_digest),
-        format!("redaction:{}", hostile_rows.redaction_row.row_digest),
-        format!("denied:{}", hostile_rows.denied_row.row_digest),
-        format!("missing:{}", hostile_rows.missing_evidence_row.row_digest),
-        format!("boundary:{}", hostile_rows.public_boundary_row.row_digest),
-        format!(
-            "representatives:{}",
-            hostile_rows.representative_matrix_row.row_digest
-        ),
-        format!("scale:{}", hostile_rows.scale_row.row_digest),
-        format!("proof-shape:{}", hostile_rows.proof_shape_row.row_digest),
-        format!(
-            "bridge-readmission:{}",
-            hostile_rows.bridge_readmission_row.row_digest
-        ),
-        format!(
-            "artifact-serialization:{}",
-            hostile_rows.artifact_serialization_row.row_digest
-        ),
-        format!("matrix:{}", representative_matrix.matrix_digest()),
-        format!(
-            "scale-slope:{}",
-            performance_certification.scale_slope_digest()
-        ),
-        format!(
-            "anchor-slope:{}",
-            performance_certification.anchor_derivation_slope_digest()
-        ),
-        format!(
-            "reference-slope:{}",
-            performance_certification.reference_resolution_slope_digest()
-        ),
-        format!(
-            "admission-slope:{}",
-            performance_certification.admission_slope_digest()
-        ),
-        format!(
-            "bridge-envelope-slope:{}",
-            performance_certification.bridge_envelope_slope_digest()
-        ),
-        format!(
-            "materialization-slope:{}",
-            performance_certification.materialization_slope_digest()
-        ),
-        format!(
-            "serialization-slope:{}",
-            performance_certification.artifact_serialization_slope_digest()
-        ),
-        format!("proof-shape-digest:{}", proof_shape.proof_shape_digest()),
-        format!(
-            "phase-progression:{}",
-            proof_shape.phase_progression_digest()
-        ),
-        format!(
-            "witness-authority:{}",
-            proof_shape.witness_authority_digest()
-        ),
-        format!("row-count:{}", row_counts.certification_row_count),
-        format!("hostile-count:{}", row_counts.hostile_row_count),
-        format!(
-            "representative-count:{}",
-            representative_matrix.representative_count()
-        ),
-        format!("scale-count:{}", row_counts.scale_fixture_row_count),
-    ])
+    ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("identity_family"),
+        "causal_inspection_certification_scope_v1",
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("changed"),
+        &hostile_rows.changed_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("redaction"),
+        &hostile_rows.redaction_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("denied"),
+        &hostile_rows.denied_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("missing"),
+        &hostile_rows.missing_evidence_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("boundary"),
+        &hostile_rows.public_boundary_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("representatives"),
+        &hostile_rows.representative_matrix_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("scale"),
+        &hostile_rows.scale_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("proof_shape"),
+        &hostile_rows.proof_shape_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("bridge_readmission"),
+        &hostile_rows.bridge_readmission_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("artifact_serialization"),
+        &hostile_rows.artifact_serialization_row.row_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("matrix"),
+        representative_matrix.matrix_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("scale_slope"),
+        performance_certification.scale_slope_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("anchor_slope"),
+        performance_certification.anchor_derivation_slope_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("reference_slope"),
+        performance_certification.reference_resolution_slope_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("admission_slope"),
+        performance_certification.admission_slope_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("bridge_envelope_slope"),
+        performance_certification.bridge_envelope_slope_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("materialization_slope"),
+        performance_certification.materialization_slope_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("serialization_slope"),
+        performance_certification.artifact_serialization_slope_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("proof_shape_digest"),
+        proof_shape.proof_shape_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("phase_progression"),
+        proof_shape.phase_progression_digest(),
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("witness_authority"),
+        proof_shape.witness_authority_digest(),
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("row_count"),
+        row_counts.certification_row_count,
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("hostile_count"),
+        row_counts.hostile_row_count,
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("representative_count"),
+        representative_matrix.representative_count(),
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("scale_count"),
+        row_counts.scale_fixture_row_count,
+    )
+    .seal()
+    .as_str()
+    .to_string()
 }

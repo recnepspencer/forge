@@ -118,7 +118,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         entity_identity: impl Into<String>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         self.write(ForgeQueryWriteCommand::Delete {
-            entity_identity: ForgeQueryEntityIdentity::authored_command(entity_identity.into()),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label(entity_identity.into()),
         })
     }
 

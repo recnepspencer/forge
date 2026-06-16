@@ -21,7 +21,7 @@ fn registered_partition_widening_routes_deterministically() {
         RecordingSignalBridgeSink::default(),
         vec![surface_widening_registration()],
         vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("partition-widening"),
+            BridgeAspectRegistrationId::admit_bridge_owned("partition-widening"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -50,7 +50,7 @@ fn registered_partition_widening_routes_deterministically() {
         RecordingSignalBridgeSink::default(),
         vec![surface_widening_registration()],
         vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("partition-widening"),
+            BridgeAspectRegistrationId::admit_bridge_owned("partition-widening"),
             TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")

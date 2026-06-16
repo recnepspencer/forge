@@ -284,7 +284,9 @@ fn bridge_harness_subscription_suite_30_lifecycle_replay_parity_is_canonical() {
     );
 
     let mismatch = crate::facade::BridgeSubscriptionReplaySummary::replay(
-        &crate::facade::BridgeSubscriptionFamilyRegistryIdentity::new("registry-drift"),
+        &crate::facade::BridgeSubscriptionFamilyRegistryIdentity::admit_bridge_owned(
+            "registry-drift",
+        ),
         forensic_ready.retained_bundle(),
     )
     .expect_err("registry drift should reject");

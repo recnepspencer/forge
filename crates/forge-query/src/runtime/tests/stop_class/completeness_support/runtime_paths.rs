@@ -1,7 +1,7 @@
 use super::super::super::support::*;
-use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
 use crate::facade::TraversalSelector;
+use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 use crate::schema_view::{QuerySchemaView, SchemaRelationView};
 
 pub(in super::super) fn read_domain_invariant_denied_error() -> ForgeQueryRuntimeError {

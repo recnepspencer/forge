@@ -56,7 +56,7 @@ fn pricing_shock_repricing_signal_is_delta_driven_not_always_on() {
 fn pricing_shock_suites_25_through_27_emit_canonical_machine_checkable_artifacts() {
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-workload-suites"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-workload-suites"),
     );
     let suite_25 = bundle.suite_25_digest_evidence();
     let suite_26 = bundle.suite_26_digest_evidence();
@@ -110,7 +110,7 @@ fn pricing_shock_can_emit_ml_pipeline_export_file_when_requested() {
     };
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-ml-export-file"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-ml-export-file"),
     );
     std::fs::write(&path, bundle.ml_pipeline_export_pretty_json())
         .expect("ml pipeline export file should write");
@@ -121,7 +121,7 @@ fn pricing_shock_restart_replay_preserves_canonical_truth_across_rebuild() {
     let restart = capture_pricing_restart_replay_bundle(BridgeRuntimePolicy::development());
     let replay = capture_pricing_certification_matrix(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-restart-parity"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-restart-parity"),
     )
     .replay;
 

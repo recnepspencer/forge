@@ -1,3 +1,4 @@
+use crate::identity::CanonicalResultShapeDigest;
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
@@ -13,7 +14,8 @@ pub struct ForgeQueryLiveReadReceipt {
     view_name: String,
     installation_digest: String,
     query_digest: String,
-    view_shape_digest: String,
+    canonical_result_shape_digest: CanonicalResultShapeDigest,
+    canonical_result_shape_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     subscription_family_digest: String,
     result_digest: String,
     snapshot_identity: ForgeQuerySnapshotIdentity,
@@ -34,13 +36,16 @@ impl ForgeQueryLiveReadReceipt {
         let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         Self {
             view_name: installation.view_name().to_string(),
-            installation_digest: installation.installation_for_reporting().to_string(),
-            query_digest: installation.query_for_reporting().to_string(),
-            view_shape_digest: installation.view_shape_for_reporting().to_string(),
-            subscription_family_digest: installation.subscription_family_for_reporting().to_string(),
+            installation_digest: installation.installation_projection().label().to_string(),
+            query_digest: installation.query_projection().label().to_string(),
+            canonical_result_shape_digest: installation.canonical_result_shape_digest().clone(),
+            canonical_result_shape_identity: installation.canonical_result_shape_identity().clone(),
+            subscription_family_digest: installation
+                .subscription_family_projection().label()
+                .to_string(),
             result_digest: materialized_result_digest(
-                installation.query_for_reporting(),
-                installation.basis_binding_for_reporting(),
+                installation.query_projection().label(),
+                installation.basis_binding_projection().label(),
                 rows,
             )
             .as_str()
@@ -67,7 +72,17 @@ impl ForgeQueryLiveReadReceipt {
     }
 
     pub fn view_shape_digest(&self) -> &str {
-        &self.view_shape_digest
+        self.canonical_result_shape_digest.as_str()
+    }
+
+    pub fn canonical_result_shape_digest(&self) -> &CanonicalResultShapeDigest {
+        &self.canonical_result_shape_digest
+    }
+
+    pub fn canonical_result_shape_identity(
+        &self,
+    ) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        &self.canonical_result_shape_identity
     }
 
     pub fn subscription_family_digest(&self) -> &str {
@@ -121,7 +136,7 @@ impl ForgeQueryLiveReadReceipt {
         view_name: impl Into<String>,
         installation_digest: impl Into<String>,
         query_digest: impl Into<String>,
-        view_shape_digest: impl Into<String>,
+        canonical_result_shape_digest: CanonicalResultShapeDigest,
         subscription_family_digest: impl Into<String>,
         result_digest: impl Into<String>,
         snapshot_identity: ForgeQuerySnapshotIdentity,
@@ -132,7 +147,8 @@ impl ForgeQueryLiveReadReceipt {
             view_name: view_name.into(),
             installation_digest: installation_digest.into(),
             query_digest: query_digest.into(),
-            view_shape_digest: view_shape_digest.into(),
+            canonical_result_shape_identity: canonical_result_shape_digest.evidence_identity(),
+            canonical_result_shape_digest,
             subscription_family_digest: subscription_family_digest.into(),
             result_digest: result_digest.into(),
             snapshot_identity,

@@ -7,12 +7,14 @@ use super::active_error::{
 use super::active_handle::ActiveSubscriptionLaneHandle;
 use super::active_lane::{ActiveSubscriptionLane, ActiveSubscriptionLaneAdmission};
 use super::active_posture::ActiveSubscriptionLifecyclePosture;
+use super::attachment_digest::SubscriptionConsumerAttachmentDigest;
+use super::ActiveSubscriptionLaneDigest;
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ActiveSubscriptionLaneRegistry {
     lanes: Vec<Option<ActiveSubscriptionLane>>,
-    lane_index_by_digest: BTreeMap<String, usize>,
-    attachment_lane_by_digest: BTreeMap<String, usize>,
+    lane_index_by_digest: BTreeMap<ActiveSubscriptionLaneDigest, usize>,
+    attachment_lane_by_digest: BTreeMap<SubscriptionConsumerAttachmentDigest, usize>,
     generation: u64,
 }
 
@@ -29,11 +31,11 @@ impl ActiveSubscriptionLaneRegistry {
 
         if self
             .lane_index_by_digest
-            .contains_key(admission.lane_digest.as_str())
+            .contains_key(&admission.lane_digest)
         {
             let lane_index = *self
                 .lane_index_by_digest
-                .get(admission.lane_digest.as_str())
+                .get(&admission.lane_digest)
                 .expect("lane index exists after contains check");
             self.generation += 1;
             counters.active_lane_join_count = 1;
@@ -67,17 +69,17 @@ impl ActiveSubscriptionLaneRegistry {
             self.generation,
         );
         self.lane_index_by_digest
-            .insert(admission.lane_digest.as_str().to_string(), lane_index);
+            .insert(admission.lane_digest.clone(), lane_index);
         self.lanes.push(Some(ActiveSubscriptionLane {
             lane_digest: admission.lane_digest,
-            activation_digest: admission.activation_digest,
-            admission_digest: admission.admission_digest,
-            query_declaration_digest: admission.query_declaration_digest,
-            bridge_declaration_digest: admission.bridge_declaration_digest,
+            activation_identity: admission.activation_identity,
+            admission_identity: admission.admission_identity,
+            query_declaration_identity: admission.query_declaration_identity,
+            bridge_declaration_identity: admission.bridge_declaration_identity,
             future_selection: admission.future_selection,
             basis_binding_identity: admission.basis_binding_identity,
             checkpoint_identity: admission.checkpoint_identity,
-            signal_strategy_digest: admission.signal_strategy_digest,
+            signal_strategy_identity: admission.signal_strategy_identity,
             lifecycle_posture: admission.lifecycle_posture,
             delivery_posture: admission.delivery_posture,
             lookup_class: admission.lookup_class,
@@ -104,7 +106,7 @@ impl ActiveSubscriptionLaneRegistry {
             return Err(ActiveSubscriptionLifecycleError::new(
                 ActiveSubscriptionLifecycleDenialKind::RegistryEquivalenceMismatch,
                 "active lane join requires matching subscription equivalence evidence",
-                admission.lane_digest.as_str(),
+                admission.lane_digest.evidence_identity().clone(),
                 counters,
             ));
         }
@@ -122,7 +124,7 @@ impl ActiveSubscriptionLaneRegistry {
     ) -> Option<&ActiveSubscriptionLifecyclePosture> {
         let index = self
             .lane_index_by_digest
-            .get(handle.lane_digest().as_str())
+            .get(handle.lane_digest())
             .copied()?;
         if index as u64 != handle.lane_index() {
             return None;
@@ -139,15 +141,11 @@ impl ActiveSubscriptionLaneRegistry {
     ) -> Result<(), ActiveSubscriptionLifecycleError> {
         let mut counters = ActiveSubscriptionCounters::default();
         counters.consumer_attachment_denial_count = 1;
-        let Some(index) = self
-            .lane_index_by_digest
-            .get(handle.lane_digest().as_str())
-            .copied()
-        else {
+        let Some(index) = self.lane_index_by_digest.get(handle.lane_digest()).copied() else {
             return Err(ActiveSubscriptionLifecycleError::new(
                 ActiveSubscriptionLifecycleDenialKind::RegistryEquivalenceMismatch,
                 "active lane handle does not belong to this registry",
-                handle.lane_digest().as_str(),
+                handle.lane_digest().evidence_identity().clone(),
                 counters,
             ));
         };
@@ -155,7 +153,7 @@ impl ActiveSubscriptionLaneRegistry {
             return Err(ActiveSubscriptionLifecycleError::new(
                 ActiveSubscriptionLifecycleDenialKind::RegistryEquivalenceMismatch,
                 "active lane handle index does not match registry lane digest",
-                handle.lane_digest().as_str(),
+                handle.lane_digest().evidence_identity().clone(),
                 counters,
             ));
         }
@@ -168,7 +166,7 @@ impl ActiveSubscriptionLaneRegistry {
             return Err(ActiveSubscriptionLifecycleError::new(
                 ActiveSubscriptionLifecycleDenialKind::RegistryEquivalenceMismatch,
                 "active lane handle references a closed lifecycle lane",
-                handle.lane_digest().as_str(),
+                handle.lane_digest().evidence_identity().clone(),
                 counters,
             ));
         }
@@ -178,44 +176,44 @@ impl ActiveSubscriptionLaneRegistry {
     pub(super) fn register_attachment(
         &mut self,
         handle: &ActiveSubscriptionLaneHandle,
-        attachment_digest: &str,
+        attachment_digest: &SubscriptionConsumerAttachmentDigest,
     ) -> Result<(), ActiveSubscriptionLifecycleError> {
         self.validate_handle(handle)?;
         let index = *self
             .lane_index_by_digest
-            .get(handle.lane_digest().as_str())
+            .get(handle.lane_digest())
             .expect("validated handle must resolve lane index");
         let lane = self.lanes[index]
             .as_mut()
             .expect("validated handle must reference live lane");
         lane.attachment_count += 1;
         self.attachment_lane_by_digest
-            .insert(attachment_digest.to_string(), index);
+            .insert(attachment_digest.clone(), index);
         Ok(())
     }
 
     pub(super) fn close_attachment(
         &mut self,
         handle: &ActiveSubscriptionLaneHandle,
-        attachment_digest: &str,
+        attachment_digest: &SubscriptionConsumerAttachmentDigest,
     ) -> Result<bool, ActiveSubscriptionLifecycleError> {
         self.validate_handle(handle)?;
         let mut counters = ActiveSubscriptionCounters::default();
         let Some(index) = self.attachment_lane_by_digest.remove(attachment_digest) else {
             counters.subscription_lifecycle_closeout_denial_count = 1;
             return Err(ActiveSubscriptionLifecycleError::new(
-                ActiveSubscriptionLifecycleDenialKind::RegistryEquivalenceMismatch,
+                ActiveSubscriptionLifecycleDenialKind::AttachmentNotActive,
                 "subscription lifecycle closeout requires an active registered consumer attachment",
-                attachment_digest,
+                attachment_digest.evidence_identity().clone(),
                 counters,
             ));
         };
         if index as u64 != handle.lane_index() {
             counters.subscription_lifecycle_closeout_denial_count = 1;
             return Err(ActiveSubscriptionLifecycleError::new(
-                ActiveSubscriptionLifecycleDenialKind::RegistryEquivalenceMismatch,
+                ActiveSubscriptionLifecycleDenialKind::AttachmentLaneMismatch,
                 "subscription lifecycle closeout attachment does not belong to the requested lane handle",
-                attachment_digest,
+                attachment_digest.evidence_identity().clone(),
                 counters,
             ));
         }
@@ -225,8 +223,7 @@ impl ActiveSubscriptionLaneRegistry {
             .expect("validated handle must reference live lane");
         lane.attachment_count = lane.attachment_count.saturating_sub(1);
         if lane.attachment_count == 0 {
-            self.lane_index_by_digest
-                .remove(handle.lane_digest().as_str());
+            self.lane_index_by_digest.remove(handle.lane_digest());
             self.lanes[index] = None;
             return Ok(true);
         }

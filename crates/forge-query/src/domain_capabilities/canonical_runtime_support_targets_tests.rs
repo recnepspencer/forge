@@ -24,7 +24,10 @@ fn declaration_support_traceability_materializer_builds_real_declaration_artifac
         "intent.scope.traceability:support stays attached to the authored declaration"
     );
     assert_eq!(artifact.intent_name(), "domain-capability.intent-support");
-    assert_eq!(artifact.strategy_name(), "forge.domain_capability.intent-support");
+    assert_eq!(
+        artifact.strategy_name(),
+        "forge.domain_capability.intent-support"
+    );
     assert_eq!(artifact.strategy_version(), "1");
     assert_eq!(artifact.input_contract(), "forge.domain-capability.fixture");
     assert_eq!(

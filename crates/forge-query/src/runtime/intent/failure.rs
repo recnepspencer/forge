@@ -57,7 +57,7 @@ impl ForgeQueryIntentExecutionFailureEvidence {
                     ForgeQueryEvidenceTag::new("strategy_version"),
                     declaration.strategy_version(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("returned_strategy_identity"),
                     execution.strategy_identity(),
                 )
@@ -65,11 +65,11 @@ impl ForgeQueryIntentExecutionFailureEvidence {
                     ForgeQueryEvidenceTag::new("returned_strategy_version"),
                     execution.strategy_version(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("returned_strategy_descriptor_digest"),
                     execution.strategy_descriptor_digest(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("canonical_input_digest"),
                     declaration.input_digest(),
                 )
@@ -85,11 +85,11 @@ impl ForgeQueryIntentExecutionFailureEvidence {
                     ForgeQueryEvidenceTag::new("execution_kind"),
                     execution.execution_kind().as_str(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("attempt_digest"),
                     execution.outcome_digest(),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("invariant_evidence"),
                     invariant_evidence.iter().map(String::as_str),
                 )
@@ -101,7 +101,7 @@ impl ForgeQueryIntentExecutionFailureEvidence {
                     ForgeQueryEvidenceTag::new("execution_provenance"),
                     execution_provenance.execution_provenance_chain_identity(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("decision_trace_digest"),
                     decision_trace_envelope.trace_digest(),
                 )

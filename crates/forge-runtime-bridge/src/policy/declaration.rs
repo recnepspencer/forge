@@ -11,15 +11,9 @@ pub type BridgePolicyDeclarationIdentity = BridgeIdentity<PolicyDeclarationIdent
 
 impl BridgePolicyDeclarationIdentity {
     pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
-        Self::new(format!(
+        Self::admit_bridge_owned(format!(
             "bridge-policy-declaration:external-authority-evidence:{}",
             evidence_identity.as_str()
-        ))
-    }
-
-    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
-        Self::from_bridge_evidence(&BridgeIdentityEvidence::from_external_authority(
-            evidence_identity,
         ))
     }
 }
@@ -110,7 +104,7 @@ mod tests {
     #[test]
     fn policy_declaration_is_canonical_for_same_inputs() {
         let left = BridgePolicyDeclaration::new(
-            super::BridgePolicyDeclarationIdentity::new("policy:request-a"),
+            super::BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:request-a"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -118,7 +112,7 @@ mod tests {
             true,
         );
         let right = BridgePolicyDeclaration::new(
-            super::BridgePolicyDeclarationIdentity::new("policy:request-a"),
+            super::BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:request-a"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,

@@ -11,7 +11,7 @@ pub type SourceDeclarationIdentity = BridgeIdentity<SourceDeclarationIdentityTag
 
 impl SourceDeclarationIdentity {
     pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
-        Self::new(value)
+        Self::admit_bridge_owned(value)
     }
 }
 
@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn source_declaration_is_canonical_for_same_inputs() {
         let left = SourceDeclaration::new(
-            SourceDeclarationIdentity::new("source:profile"),
+            SourceDeclarationIdentity::admit_bridge_owned("source:profile"),
             BridgeTruthViewSelector::committed_snapshot(
                 crate::truth_identity_fixtures::truth_branch_fixture("main"),
                 crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
@@ -86,7 +86,7 @@ mod tests {
             BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
         );
         let right = SourceDeclaration::new(
-            SourceDeclarationIdentity::new("source:profile"),
+            SourceDeclarationIdentity::admit_bridge_owned("source:profile"),
             BridgeTruthViewSelector::committed_snapshot(
                 crate::truth_identity_fixtures::truth_branch_fixture("main"),
                 crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),

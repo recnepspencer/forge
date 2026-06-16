@@ -26,8 +26,9 @@ impl AdmittedStructuralComparisonContract {
             validated_declaration.digest()
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let contract_identity =
-            StructuralContractIdentity::new(format!("structural-contract:sha256:{digest:x}"));
+        let contract_identity = StructuralContractIdentity::admit_bridge_owned(format!(
+            "structural-contract:sha256:{digest:x}"
+        ));
         Self {
             validated_declaration,
             contract_identity,
@@ -169,10 +170,10 @@ mod tests {
 
     fn declaration(id: &str) -> StructuralIdentityDeclaration {
         StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new(id),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned(id),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintEquivalenceContract::new(
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintFamily::TopologyFingerprint,
                 "topology-v1",
                 StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,

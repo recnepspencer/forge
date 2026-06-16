@@ -288,7 +288,7 @@ impl ForgeQueryWriteReceipt {
                 ForgeQuerySymbolicTargetReferenceEvidence::test_only(
                     symbol,
                     target_entity_identity.clone().unwrap_or_else(|| {
-                        ForgeQueryEntityIdentity::authored_command("resolved-target:test")
+                        crate::memory_workspace::admit_authored_entity_label("resolved-target:test")
                     }),
                     target_collection,
                 )

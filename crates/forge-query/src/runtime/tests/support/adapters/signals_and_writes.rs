@@ -24,7 +24,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         let aspect_paths = command.declared_aspect_paths();
         let collection = command_collection(&command);
-        let entity_identity = crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+        let entity_identity = crate::memory_workspace::admit_authored_entity_label(
             "external-entity-1",
         );
         let snapshot_identity =
@@ -82,17 +82,17 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AuthorityLessWriteAuthority {
         let collection = command_collection(&command);
         let receipt = ForgeQueryMutationReceipt {
             commit_identity:
-                crate::memory_workspace::ForgeQueryCommitIdentity::from_external_authority_label(
+                crate::memory_workspace::admit_external_commit_label(
                     "authority-less-commit",
                 ),
             snapshot_identity:
-                crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+                crate::memory_workspace::admit_external_snapshot_label(
                     "authority-less-snapshot",
                 ),
             deltas: vec![crate::memory_workspace::ForgeQueryMutationDelta {
                 collection,
                 entity_identity:
-                    crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                    crate::memory_workspace::admit_authored_entity_label(
                         "authority-less-entity",
                     ),
                 kind: ForgeQueryMutationKind::Created,
@@ -154,7 +154,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
             let collection = command_collection(&command);
             let entity_identity_text = format!("external-entity-{}", index + 1);
             let entity_identity =
-                crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                crate::memory_workspace::admit_authored_entity_label(
                     &entity_identity_text,
                 );
             let snapshot_identity =
@@ -225,7 +225,7 @@ impl ForgeQueryRuntimeSignalSinkAdapter for DriftingSignalSink {
     ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
         let mut drifted = receipt.clone();
         drifted.commit_identity =
-            crate::memory_workspace::ForgeQueryCommitIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_commit_label(
                 "drifted-signal-routing-commit",
             );
         let routed = self.build_signal_invalidation_routing_receipt(&drifted)?;

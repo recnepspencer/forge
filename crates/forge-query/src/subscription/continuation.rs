@@ -1,4 +1,5 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::active_counters::ActiveSubscriptionCounters;
 use super::active_digest::ActiveSubscriptionLaneDigest;
@@ -10,7 +11,9 @@ use super::delivery_dimensions::{ContinuationRemapWidth, MaintenanceDeltaWidth};
 use super::delivery_window::QueryDeliveryWindow;
 use super::evidence_identities::{
     lifecycle_continuation_endpoint_identity, lifecycle_continuation_identity,
+    lifecycle_continuation_ordinary_checkpoint_identity,
 };
+use super::evidence_projection::subscription_evidence_projection;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::maintenance_delta::{
     QuerySubscriptionMaintenanceDelta, QuerySubscriptionMaintenanceDeltaKind,
@@ -50,14 +53,10 @@ pub struct SubscriptionContinuationEvidence {
     target_identity: ForgeQueryEvidenceIdentity,
     future_selection: QuerySubscriptionFutureSelection,
     basis_identity: ForgeQueryEvidenceIdentity,
-    basis_for_reporting: String,
     checkpoint_identity: ForgeQueryEvidenceIdentity,
-    checkpoint_for_reporting: String,
     authority_identity: ForgeQueryEvidenceIdentity,
-    authority_for_reporting: String,
     remap_width: ContinuationRemapWidth,
     continuation_identity: ForgeQueryEvidenceIdentity,
-    continuation_digest: String,
 }
 
 impl SubscriptionContinuationEvidence {
@@ -65,25 +64,21 @@ impl SubscriptionContinuationEvidence {
     pub(super) fn new(
         active_lane_digest: ActiveSubscriptionLaneDigest,
         continuation_class: SubscriptionContinuationClass,
-        source_identity: impl Into<String>,
-        target_identity: impl Into<String>,
+        source_identity: ForgeQueryEvidenceIdentity,
+        target_identity: ForgeQueryEvidenceIdentity,
         future_selection: QuerySubscriptionFutureSelection,
-        basis_digest: impl Into<String>,
-        checkpoint_identity_digest: impl Into<String>,
-        authority_digest: impl Into<String>,
+        basis_identity: ForgeQueryEvidenceIdentity,
+        checkpoint_identity: ForgeQueryEvidenceIdentity,
+        authority_identity: ForgeQueryEvidenceIdentity,
         remap_width: ContinuationRemapWidth,
     ) -> Self {
-        let basis_label = basis_digest.into();
-        let checkpoint_label = checkpoint_identity_digest.into();
-        let authority_label = authority_digest.into();
-        let source_identity = lifecycle_continuation_endpoint_identity("source", &source_identity.into());
-        let target_identity = lifecycle_continuation_endpoint_identity("target", &target_identity.into());
-        let basis_identity =
-            lifecycle_continuation_endpoint_identity("basis", &basis_label);
-        let checkpoint_identity =
-            lifecycle_continuation_endpoint_identity("checkpoint", &checkpoint_label);
+        let source_identity = lifecycle_continuation_endpoint_identity("source", &source_identity);
+        let target_identity = lifecycle_continuation_endpoint_identity("target", &target_identity);
+        let basis_identity = lifecycle_continuation_endpoint_identity("basis", &basis_identity);
+        let checkpoint_endpoint_identity =
+            lifecycle_continuation_endpoint_identity("checkpoint", &checkpoint_identity);
         let authority_identity =
-            lifecycle_continuation_endpoint_identity("authority", &authority_label);
+            lifecycle_continuation_endpoint_identity("authority", &authority_identity);
         let continuation_identity = lifecycle_continuation_identity(
             active_lane_digest.evidence_identity(),
             continuation_class.as_str(),
@@ -91,11 +86,10 @@ impl SubscriptionContinuationEvidence {
             &target_identity,
             future_selection.projection_identity(),
             &basis_identity,
-            &checkpoint_identity,
+            &checkpoint_endpoint_identity,
             &authority_identity,
             remap_width.get(),
         );
-        let continuation_digest = continuation_identity.as_str().to_string();
         Self {
             active_lane_digest,
             continuation_class,
@@ -103,18 +97,14 @@ impl SubscriptionContinuationEvidence {
             target_identity,
             future_selection,
             basis_identity,
-            basis_for_reporting: basis_label,
             checkpoint_identity,
-            checkpoint_for_reporting: checkpoint_label,
             authority_identity,
-            authority_for_reporting: authority_label,
             remap_width,
             continuation_identity,
-            continuation_digest,
         }
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
@@ -122,44 +112,68 @@ impl SubscriptionContinuationEvidence {
         self.continuation_class
     }
 
+    pub fn source_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.source_identity)
+    }
+
     pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.source_identity
     }
 
-    pub fn source_for_reporting(&self) -> &str {
-        self.source_identity.as_str()
+    pub fn target_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.target_identity)
     }
 
     pub fn target_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.target_identity
     }
 
-    pub fn target_for_reporting(&self) -> &str {
-        self.target_identity.as_str()
-    }
-
     pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
         &self.future_selection
     }
 
-    pub fn basis_digest(&self) -> &str {
-        &self.basis_for_reporting
+    pub fn basis_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.basis_identity)
     }
 
-    pub fn checkpoint_identity_digest(&self) -> &str {
-        &self.checkpoint_for_reporting
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
     }
 
-    pub fn authority_digest(&self) -> &str {
-        &self.authority_for_reporting
+    pub fn checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.checkpoint_identity)
+    }
+
+    pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.checkpoint_identity
+    }
+
+    pub fn authority_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.authority_identity)
+    }
+
+    pub fn authority_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authority_identity
     }
 
     pub fn remap_width(&self) -> u64 {
         self.remap_width.get()
     }
 
-    pub fn continuation_digest(&self) -> &str {
-        &self.continuation_digest
+    pub fn continuation_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.continuation_identity)
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -171,13 +185,12 @@ impl SubscriptionContinuationEvidence {
 pub struct SubscriptionContinuationReport {
     active_lane_digest: ActiveSubscriptionLaneDigest,
     continuation_class: SubscriptionContinuationClass,
-    continuation_digest: String,
+    continuation_identity: ForgeQueryEvidenceIdentity,
     future_selection: QuerySubscriptionFutureSelection,
-    checkpoint_identity_digest: String,
+    checkpoint_identity: ForgeQueryEvidenceIdentity,
     remap_width: u64,
     performance_receipt: SubscriptionPerformanceReceipt,
     report_identity: ForgeQueryEvidenceIdentity,
-    report_digest: String,
 }
 
 impl SubscriptionContinuationReport {
@@ -209,21 +222,19 @@ impl SubscriptionContinuationReport {
             performance_receipt.performance_receipt_identity(),
         )
         .seal();
-        let report_digest = report_identity.as_str().to_string();
         Self {
             active_lane_digest: evidence.active_lane_digest().clone(),
             continuation_class: evidence.continuation_class(),
-            continuation_digest: evidence.continuation_digest().to_string(),
+            continuation_identity: evidence.evidence_identity().clone(),
             future_selection: evidence.future_selection().clone(),
-            checkpoint_identity_digest: evidence.checkpoint_identity_digest().to_string(),
+            checkpoint_identity: evidence.checkpoint_identity().clone(),
             remap_width: evidence.remap_width(),
             performance_receipt,
             report_identity,
-            report_digest,
         }
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
@@ -231,16 +242,24 @@ impl SubscriptionContinuationReport {
         self.continuation_class
     }
 
-    pub fn continuation_digest(&self) -> &str {
-        &self.continuation_digest
+    pub fn continuation_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.continuation_identity)
     }
 
     pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
         &self.future_selection
     }
 
-    pub fn checkpoint_identity_digest(&self) -> &str {
-        &self.checkpoint_identity_digest
+    pub fn checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.checkpoint_identity)
+    }
+
+    pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.checkpoint_identity
     }
 
     pub fn remap_width(&self) -> u64 {
@@ -251,8 +270,10 @@ impl SubscriptionContinuationReport {
         &self.performance_receipt
     }
 
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
+    pub fn report_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.report_identity)
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -264,21 +285,23 @@ impl SubscriptionContinuationReport {
 pub fn admit_subscription_continuation_evidence(
     active_lane_digest: ActiveSubscriptionLaneDigest,
     continuation_class: SubscriptionContinuationClass,
-    source_identity: impl Into<String>,
-    target_identity: impl Into<String>,
-    basis_digest: impl Into<String>,
-    authority_digest: impl Into<String>,
+    source_identity: ForgeQueryEvidenceIdentity,
+    target_identity: ForgeQueryEvidenceIdentity,
+    basis_identity: ForgeQueryEvidenceIdentity,
+    authority_identity: ForgeQueryEvidenceIdentity,
     remap_width: ContinuationRemapWidth,
 ) -> Result<SubscriptionContinuationEvidence, SubscriptionContinuationError> {
+    let checkpoint_identity =
+        lifecycle_continuation_ordinary_checkpoint_identity(active_lane_digest.evidence_identity());
     admit_subscription_continuation_evidence_with_active_identity(
         active_lane_digest,
         continuation_class,
         source_identity,
         target_identity,
         QuerySubscriptionFutureSelection::ordinary(),
-        basis_digest,
-        "active-checkpoint-ordinary",
-        authority_digest,
+        basis_identity,
+        checkpoint_identity,
+        authority_identity,
         remap_width,
     )
 }
@@ -287,12 +310,12 @@ pub fn admit_subscription_continuation_evidence(
 pub fn admit_subscription_continuation_evidence_with_active_identity(
     active_lane_digest: ActiveSubscriptionLaneDigest,
     continuation_class: SubscriptionContinuationClass,
-    source_identity: impl Into<String>,
-    target_identity: impl Into<String>,
+    source_identity: ForgeQueryEvidenceIdentity,
+    target_identity: ForgeQueryEvidenceIdentity,
     future_selection: QuerySubscriptionFutureSelection,
-    basis_digest: impl Into<String>,
-    checkpoint_identity_digest: impl Into<String>,
-    authority_digest: impl Into<String>,
+    basis_identity: ForgeQueryEvidenceIdentity,
+    checkpoint_identity: ForgeQueryEvidenceIdentity,
+    authority_identity: ForgeQueryEvidenceIdentity,
     remap_width: ContinuationRemapWidth,
 ) -> Result<SubscriptionContinuationEvidence, SubscriptionContinuationError> {
     let mut counters = ActiveSubscriptionCounters::default();
@@ -305,7 +328,7 @@ pub fn admit_subscription_continuation_evidence_with_active_identity(
         return Err(SubscriptionContinuationError::new(
             SubscriptionContinuationDenialKind::UnsupportedContinuationClass,
             "unsupported or later-phase continuation class cannot produce active subscription evidence",
-            active_lane_digest.as_str(),
+            active_lane_digest.evidence_identity().clone(),
             counters,
         ));
     }
@@ -314,7 +337,7 @@ pub fn admit_subscription_continuation_evidence_with_active_identity(
         return Err(SubscriptionContinuationError::new(
             SubscriptionContinuationDenialKind::ContinuationRemapBudgetExceeded,
             "continuation remap evidence requires an explicit nonzero remap width",
-            active_lane_digest.as_str(),
+            active_lane_digest.evidence_identity().clone(),
             counters,
         ));
     }
@@ -325,9 +348,9 @@ pub fn admit_subscription_continuation_evidence_with_active_identity(
         source_identity,
         target_identity,
         future_selection,
-        basis_digest,
-        checkpoint_identity_digest,
-        authority_digest,
+        basis_identity,
+        checkpoint_identity,
+        authority_identity,
         remap_width,
     ))
 }
@@ -342,7 +365,7 @@ pub fn apply_subscription_continuation(
         return Err(SubscriptionContinuationError::new(
             SubscriptionContinuationDenialKind::ContinuationEvidenceMismatch,
             "continuation evidence must target the delivery window lane",
-            evidence.continuation_digest(),
+            evidence.evidence_identity().clone(),
             counters,
         ));
     }
@@ -379,7 +402,7 @@ pub fn lower_subscription_continuation_report(
     let delta = QuerySubscriptionMaintenanceDelta::admitted(
         QuerySubscriptionMaintenanceDeltaKind::ContinuationDelta,
         report.active_lane_digest().clone(),
-        report.report_digest(),
+        report.evidence_identity(),
         MaintenanceDeltaWidth::measured(report.remap_width()),
     );
     (delta, counters)

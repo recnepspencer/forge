@@ -152,7 +152,7 @@ mod tests {
             FineGrainedMatchStatus::Matched,
         );
         let prior_slice = PriorSubscriptionSlice::new(
-            BridgeSubscriptionSliceIdentity::new("slice-set:a"),
+            BridgeSubscriptionSliceIdentity::admit_bridge_owned("slice-set:a"),
             &slice,
         );
 

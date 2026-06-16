@@ -24,7 +24,7 @@ impl ForgeQueryUnifiedInspectionReceipt {
         let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         Self {
             target_label,
-            result_digest: inspection_result_digest(inspection).to_string(),
+            result_digest: inspection_result_digest(inspection),
             snapshot_identity,
             snapshot_evidence_identity,
             decision_trace_envelope: None,
@@ -73,20 +73,44 @@ impl ForgeQueryUnifiedInspectionReceipt {
     }
 }
 
-pub(super) fn inspection_result_digest(inspection: &ForgeQueryInspection) -> &str {
+pub(super) fn inspection_result_digest(inspection: &ForgeQueryInspection) -> String {
     match inspection {
-        ForgeQueryInspection::LiveView(inspection) => inspection.inspection_for_reporting(),
-        ForgeQueryInspection::DerivedView(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::Effect(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::WriteReceipt(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::IntentReceipt(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::IntentDenial(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::EffectIntentReceipt(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::PreviewBinding(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::PreviewOutcome(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::PreviewIntentReceipt(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::BranchIntentReceipt(inspection) => inspection.inspection_digest(),
-        ForgeQueryInspection::BasisLifecycle(inspection) => inspection.inspection_digest(),
+        ForgeQueryInspection::LiveView(inspection) => {
+            inspection.inspection_projection().label().clone()
+        }
+        ForgeQueryInspection::DerivedView(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::Effect(inspection) => inspection.inspection_digest().to_string(),
+        ForgeQueryInspection::WriteReceipt(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::BatchWriteReceipt(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::IntentReceipt(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::IntentDenial(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::EffectIntentReceipt(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::PreviewBinding(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::PreviewOutcome(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::PreviewIntentReceipt(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::BranchIntentReceipt(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
+        ForgeQueryInspection::BasisLifecycle(inspection) => {
+            inspection.inspection_digest().to_string()
+        }
     }
 }

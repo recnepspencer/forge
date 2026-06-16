@@ -13,7 +13,7 @@ pub type StructuralCandidateIdentity = BridgeIdentity<StructuralCandidateIdentit
 
 impl StructuralCandidateIdentity {
     pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
-        Self::new(value)
+        Self::admit_bridge_owned(value)
     }
 }
 
@@ -222,10 +222,10 @@ mod tests {
 
     fn admitted_contract() -> crate::structural::AdmittedStructuralComparisonContract {
         let declaration = StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new("structural:geometry"),
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintEquivalenceContract::new(
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintFamily::TopologyFingerprint,
                 "topology-v1",
                 StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -254,7 +254,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:a"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:a"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             )],
         );
@@ -264,7 +264,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:a"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:a"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             )],
         );

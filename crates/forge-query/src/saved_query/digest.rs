@@ -4,7 +4,7 @@ use crate::identity::hash_parts;
 pub struct SavedQueryArtifactDigest(String);
 
 impl SavedQueryArtifactDigest {
-    pub fn from_parts(parts: &[String]) -> Self {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(hash_parts(parts))
     }
 

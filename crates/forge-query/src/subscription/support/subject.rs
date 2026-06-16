@@ -78,24 +78,17 @@ impl QuerySubscriptionSupportPosture {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubscriptionFamilyCapabilityDigest {
     capability_identity: ForgeQueryEvidenceIdentity,
-    capability_for_reporting: String,
 }
 
 impl SubscriptionFamilyCapabilityDigest {
     pub(crate) fn for_family(family: &QuerySubscriptionFamily) -> Self {
-        let capability_identity = subscription_family_capability_identity(family);
         Self {
-            capability_for_reporting: capability_identity.as_str().to_string(),
-            capability_identity,
+            capability_identity: subscription_family_capability_identity(family),
         }
     }
 
     pub fn capability_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.capability_identity
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.capability_for_reporting
     }
 }
 
@@ -105,13 +98,9 @@ pub struct QuerySubscriptionSupportSubject {
     family: QuerySubscriptionFamily,
     future_selection: QuerySubscriptionFutureSelection,
     declaration_identity: ForgeQueryEvidenceIdentity,
-    declaration_for_reporting: String,
     admission_identity: Option<ForgeQueryEvidenceIdentity>,
-    admission_for_reporting: Option<String>,
     source_identity: ForgeQueryEvidenceIdentity,
-    source_for_reporting: String,
     subject_identity: ForgeQueryEvidenceIdentity,
-    subject_for_reporting: String,
 }
 
 impl QuerySubscriptionSupportSubject {
@@ -227,13 +216,9 @@ impl QuerySubscriptionSupportSubject {
             support_class,
             family,
             future_selection,
-            declaration_for_reporting: declaration_identity.as_str().to_string(),
             declaration_identity: declaration_identity.clone(),
-            admission_for_reporting: admission_identity.map(|identity| identity.as_str().to_string()),
             admission_identity: admission_identity.cloned(),
-            source_for_reporting: source_identity.as_str().to_string(),
             source_identity: source_identity.clone(),
-            subject_for_reporting: subject_identity.as_str().to_string(),
             subject_identity,
         }
     }
@@ -250,10 +235,6 @@ impl QuerySubscriptionSupportSubject {
         &self.declaration_identity
     }
 
-    pub fn declaration_digest(&self) -> &str {
-        &self.declaration_for_reporting
-    }
-
     pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
         &self.future_selection
     }
@@ -262,28 +243,12 @@ impl QuerySubscriptionSupportSubject {
         self.admission_identity.as_ref()
     }
 
-    pub fn admission_digest(&self) -> Option<&str> {
-        self.admission_for_reporting.as_deref()
-    }
-
     pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.source_identity
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_for_reporting
-    }
-
     pub fn subject_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.subject_identity
-    }
-
-    pub fn digest(&self) -> &str {
-        self.subject_for_reporting()
-    }
-
-    pub fn subject_for_reporting(&self) -> &str {
-        &self.subject_for_reporting
     }
 }
 
@@ -295,8 +260,7 @@ pub struct QuerySubscriptionSupportEvidence {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionSupportEvidenceError {
     message: &'static str,
-    failure_identity: ForgeQueryEvidenceIdentity,
-    failure_for_reporting: String,
+    pub(in crate::subscription::support) failure_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionSupportEvidenceError {
@@ -312,7 +276,10 @@ impl QuerySubscriptionSupportEvidenceError {
             crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
             "query_subscription_support_evidence_error_v1",
         )
-        .field_shape(crate::evidence_identity::ForgeQueryEvidenceTag::new("message"), message)
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("message"),
+            message,
+        )
         .field_evidence_identity(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("declaration"),
             declaration_identity,
@@ -324,17 +291,12 @@ impl QuerySubscriptionSupportEvidenceError {
         .seal();
         Self {
             message,
-            failure_for_reporting: failure_identity.as_str().to_string(),
             failure_identity,
         }
     }
 
     pub fn message(&self) -> &str {
         self.message
-    }
-
-    pub fn failure_digest(&self) -> &str {
-        &self.failure_for_reporting
     }
 
     pub fn failure_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -398,16 +360,14 @@ impl QuerySubscriptionSupportEvidence {
     pub(crate) fn declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
         match &self.kind {
             QuerySubscriptionSupportEvidenceKind::Declaration {
-                declaration_identity, ..
+                declaration_identity,
+                ..
             }
             | QuerySubscriptionSupportEvidenceKind::Admission {
-                declaration_identity, ..
+                declaration_identity,
+                ..
             } => declaration_identity,
         }
-    }
-
-    pub(crate) fn declaration_digest(&self) -> &str {
-        self.declaration_identity().as_str()
     }
 
     pub(crate) fn family(&self) -> &QuerySubscriptionFamily {
@@ -426,10 +386,6 @@ impl QuerySubscriptionSupportEvidence {
         }
     }
 
-    pub(crate) fn admission_digest(&self) -> Option<&str> {
-        self.admission_identity().map(|identity| identity.as_str())
-    }
-
     pub(crate) fn support_profile(
         &self,
     ) -> Option<&super::profile::QuerySubscriptionSupportProfile> {
@@ -443,14 +399,12 @@ impl QuerySubscriptionSupportEvidence {
 
     pub(crate) fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
         match &self.kind {
-            QuerySubscriptionSupportEvidenceKind::Declaration { source_identity, .. }
-            | QuerySubscriptionSupportEvidenceKind::Admission { source_identity, .. } => {
-                source_identity
+            QuerySubscriptionSupportEvidenceKind::Declaration {
+                source_identity, ..
             }
+            | QuerySubscriptionSupportEvidenceKind::Admission {
+                source_identity, ..
+            } => source_identity,
         }
-    }
-
-    pub(crate) fn source_digest(&self) -> &str {
-        self.source_identity().as_str()
     }
 }

@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::super::materialization::QueryCausalInspectionArtifact;
 use super::artifacts::{
@@ -11,39 +11,92 @@ pub fn certify_causal_inspection_runtime_path(
     scope: CausalInspectionCertificationScope,
 ) -> CausalInspectionCertificationBundle {
     let parts = scope.into_bundle_parts();
-    let certification_bundle_digest = hash_parts(&[
-        "causal_inspection_certification_bundle_v1".to_string(),
-        format!("scope:{}", parts.certification_scope_digest),
-        format!("performance:{}", parts.performance_certification_digest),
-        format!("readmission:{}", parts.bridge_readmission_proof_digest),
-        format!("scale-slope:{}", parts.scale_slope_digest),
-        format!("anchor-slope:{}", parts.anchor_derivation_slope_digest),
-        format!(
-            "reference-slope:{}",
-            parts.reference_resolution_slope_digest
-        ),
-        format!("admission-slope:{}", parts.admission_slope_digest),
-        format!("bridge-slope:{}", parts.bridge_envelope_slope_digest),
-        format!(
-            "materialization-slope:{}",
-            parts.materialization_slope_digest
-        ),
-        format!(
-            "serialization:{}",
-            parts.artifact_serialization_slope_digest
-        ),
-        format!("boundary:{}", parts.boundary_audit_digest),
-        format!("representatives:{}", parts.representative_matrix_digest),
-        format!("proof-shape:{}", parts.proof_shape_digest),
-        format!("phase-progression:{}", parts.phase_progression_digest),
-        format!("witness-authority:{}", parts.witness_authority_digest),
-        format!("row-count:{}", parts.certification_row_count),
-        format!("hostile-count:{}", parts.hostile_row_count),
-        format!("representative-count:{}", parts.representative_row_count),
-        format!("scale-count:{}", parts.scale_fixture_row_count),
-    ]);
+    let certification_bundle_identity = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("identity_family"),
+        "causal_inspection_certification_bundle_v1",
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("scope"),
+        &parts.certification_scope_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("performance"),
+        &parts.performance_certification_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("readmission"),
+        &parts.bridge_readmission_proof_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("scale_slope"),
+        &parts.scale_slope_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("anchor_slope"),
+        &parts.anchor_derivation_slope_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("reference_slope"),
+        &parts.reference_resolution_slope_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("admission_slope"),
+        &parts.admission_slope_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("bridge_slope"),
+        &parts.bridge_envelope_slope_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("materialization_slope"),
+        &parts.materialization_slope_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("serialization"),
+        &parts.artifact_serialization_slope_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("boundary"),
+        &parts.boundary_audit_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("representatives"),
+        &parts.representative_matrix_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("proof_shape"),
+        &parts.proof_shape_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("phase_progression"),
+        &parts.phase_progression_digest,
+    )
+    .field_value(
+        ForgeQueryEvidenceTag::new("witness_authority"),
+        &parts.witness_authority_digest,
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("row_count"),
+        parts.certification_row_count,
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("hostile_count"),
+        parts.hostile_row_count,
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("representative_count"),
+        parts.representative_row_count,
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("scale_count"),
+        parts.scale_fixture_row_count,
+    )
+    .seal();
     CausalInspectionCertificationBundle::from_parts(
-        certification_bundle_digest,
+        certification_bundle_identity,
         parts.certification_scope_digest,
         parts.performance_certification_digest,
         parts.bridge_readmission_proof_digest,
@@ -87,10 +140,8 @@ pub(super) fn validate_redaction_identity(
     full_artifact: &QueryCausalInspectionArtifact,
     redacted_artifact: &QueryCausalInspectionArtifact,
 ) -> Result<(), CausalInspectionCertificationError> {
-    let same_identity = full_artifact.causal_identity_for_reporting()
-        == redacted_artifact.causal_identity_for_reporting();
-    let changed_detail =
-        full_artifact.artifact_for_reporting() != redacted_artifact.artifact_for_reporting();
+    let same_identity = full_artifact.causal_identity() == redacted_artifact.causal_identity();
+    let changed_detail = full_artifact.artifact_identity() != redacted_artifact.artifact_identity();
     if !same_identity || !changed_detail {
         return Err(CausalInspectionCertificationError::new(
             CausalInspectionCertificationErrorKind::RedactionIdentityDrift,

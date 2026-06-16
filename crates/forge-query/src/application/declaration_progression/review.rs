@@ -113,7 +113,10 @@ impl ForgeQueryDeclarationProgressionBasis {
         payload: &ForgeQueryDeclarationProgressionPayload<D, I>,
     ) -> Self {
         Self {
-            handle_identity_digest: payload.world_basis().handle_identity_for_reporting().to_string(),
+            handle_identity_digest: payload
+                .world_basis()
+                .handle_identity_for_reporting()
+                .to_string(),
             declaration_digest: payload.declaration_digest().to_string(),
             support_digest: payload.support_digest().to_string(),
             legality_digest: payload.legality_digest().to_string(),

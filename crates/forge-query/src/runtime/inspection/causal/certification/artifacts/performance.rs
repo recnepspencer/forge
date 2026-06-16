@@ -249,7 +249,9 @@ impl CausalInspectionPerformanceCertificationBundle {
                 .as_str()
                 .to_string(),
             scale_slope_digest_part_count,
-            performance_certification_digest: performance_certification_identity.as_str().to_string(),
+            performance_certification_digest: performance_certification_identity
+                .as_str()
+                .to_string(),
         })
     }
 
@@ -320,7 +322,9 @@ struct SnapshotDigestParts<'a> {
     bridge_readmission_proof_identity: Option<&'a ForgeQueryEvidenceIdentity>,
 }
 
-fn snapshot_identity(parts: SnapshotDigestParts<'_>) -> CausalInspectionPerformanceSnapshotIdentity {
+fn snapshot_identity(
+    parts: SnapshotDigestParts<'_>,
+) -> CausalInspectionPerformanceSnapshotIdentity {
     compose_causal_performance_snapshot_identity(
         parts.fixture_size,
         parts.artifact_identity,

@@ -51,7 +51,7 @@ impl QuerySubscriptionAdmissionDiagnostics {
         stage: QuerySubscriptionAdmissionDiagnosticStage,
         outcome: QuerySubscriptionAdmissionDiagnosticOutcome,
         reason: impl Into<String>,
-        source_for_reporting: &str,
+        source_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         let reason = reason.into();
         let diagnostics_identity = ForgeQueryEvidenceIdentity::compose(
@@ -64,7 +64,7 @@ impl QuerySubscriptionAdmissionDiagnostics {
         .field_shape(ForgeQueryEvidenceTag::new("stage"), stage.as_str())
         .field_shape(ForgeQueryEvidenceTag::new("outcome"), outcome.as_str())
         .field_shape(ForgeQueryEvidenceTag::new("reason"), &reason)
-        .field_shape(ForgeQueryEvidenceTag::new("source"), source_for_reporting)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
         .seal();
         Self {
             stage,
@@ -88,9 +88,5 @@ impl QuerySubscriptionAdmissionDiagnostics {
 
     pub fn diagnostics_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.diagnostics_identity
-    }
-
-    pub fn digest(&self) -> &str {
-        self.diagnostics_identity.as_str()
     }
 }

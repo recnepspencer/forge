@@ -114,7 +114,7 @@ impl BridgeSharedConsumerDeliveryProjection {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
             shared_delivery_projection_identity:
-                BridgeSubscriptionSharedDeliveryProjectionIdentity::new(format!(
+                BridgeSubscriptionSharedDeliveryProjectionIdentity::admit_bridge_owned(format!(
                     "bridge-shared-consumer-delivery-projection-id:sha256:{digest:x}"
                 )),
             bundle_identity: Arc::from(

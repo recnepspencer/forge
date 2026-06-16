@@ -1,84 +1,10 @@
-error: cannot construct `ForgeQueryIntentDenialEvidence` with struct literal syntax due to private fields
-  --> tests/ui/runtime_intent_denial_evidence_constructor_private.rs:7:19
+error[E0560]: struct `ForgeQueryIntentDenialEvidence` has no field named `snapshot_token`
+  --> tests/ui/runtime_intent_denial_evidence_constructor_private.rs:22:9
    |
- 7 |     let _forged = ForgeQueryIntentDenialEvidence {
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 8 |         intent_name: "intent".to_string(),
-   |         --------------------------------- private field
- 9 |         stage: "invariant-admission",
-   |         ---------------------------- private field
-10 |         message: "denied".to_string(),
-   |         ----------------------------- private field
-11 |         strategy_identity: "strategy".to_string(),
-   |         ----------------------------------------- private field
-12 |         strategy_version: "1.0".to_string(),
-   |         ----------------------------------- private field
-13 |         returned_strategy_identity: Some("returned".to_string()),
-   |         -------------------------------------------------------- private field
-14 |         returned_strategy_version: Some("1.0".to_string()),
-   |         -------------------------------------------------- private field
-15 |         returned_strategy_descriptor_digest: Some("descriptor".to_string()),
-   |         ------------------------------------------------------------------- private field
-16 |         canonical_input_digest: String::new(),
-   |         ------------------------------------- private field
-17 |         source_lane: ForgeQueryIntentSourceLane::UserAuthored,
-   |         ----------------------------------------------------- private field
-18 |         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         -------------------------------------------------------- private field
-19 |         execution_kind: Some(ForgeQueryIntentExecutionKind::InvariantViolation),
-   |         ----------------------------------------------------------------------- private field
-20 |         attempt_digest: Some(String::new()),
-   |         ----------------------------------- private field
-21 |         invariant_evidence: Vec::new(),
-   |         ------------------------------ private field
 22 |         snapshot_token: Some(String::new()),
-   |         ----------------------------------- private field
-23 |         denial_digest: String::new(),
-   |         ---------------------------- private field
+   |         ^^^^^^^^^^^^^^ `ForgeQueryIntentDenialEvidence` does not have this field
    |
-   = note: ...and other private fields `execution_provenance` and `decision_trace_envelope` that were not provided
-help: you might have meant to use an associated function to build this type
-   |
- 7 -     let _forged = ForgeQueryIntentDenialEvidence {
- 8 -         intent_name: "intent".to_string(),
- 9 -         stage: "invariant-admission",
-10 -         message: "denied".to_string(),
-11 -         strategy_identity: "strategy".to_string(),
-12 -         strategy_version: "1.0".to_string(),
-13 -         returned_strategy_identity: Some("returned".to_string()),
-14 -         returned_strategy_version: Some("1.0".to_string()),
-15 -         returned_strategy_descriptor_digest: Some("descriptor".to_string()),
-16 -         canonical_input_digest: String::new(),
-17 -         source_lane: ForgeQueryIntentSourceLane::UserAuthored,
-18 -         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-19 -         execution_kind: Some(ForgeQueryIntentExecutionKind::InvariantViolation),
-20 -         attempt_digest: Some(String::new()),
-21 -         invariant_evidence: Vec::new(),
-22 -         snapshot_token: Some(String::new()),
-23 -         denial_digest: String::new(),
-24 -     };
- 7 +     let _forged = ForgeQueryIntentDenialEvidence::new(_, _, _);
-   |
- 7 -     let _forged = ForgeQueryIntentDenialEvidence {
- 8 -         intent_name: "intent".to_string(),
- 9 -         stage: "invariant-admission",
-10 -         message: "denied".to_string(),
-11 -         strategy_identity: "strategy".to_string(),
-12 -         strategy_version: "1.0".to_string(),
-13 -         returned_strategy_identity: Some("returned".to_string()),
-14 -         returned_strategy_version: Some("1.0".to_string()),
-15 -         returned_strategy_descriptor_digest: Some("descriptor".to_string()),
-16 -         canonical_input_digest: String::new(),
-17 -         source_lane: ForgeQueryIntentSourceLane::UserAuthored,
-18 -         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-19 -         execution_kind: Some(ForgeQueryIntentExecutionKind::InvariantViolation),
-20 -         attempt_digest: Some(String::new()),
-21 -         invariant_evidence: Vec::new(),
-22 -         snapshot_token: Some(String::new()),
-23 -         denial_digest: String::new(),
-24 -     };
- 7 +     let _forged = ForgeQueryIntentDenialEvidence::new_with_trace(_, _, _, _, _);
-   |
+   = note: all struct fields are already assigned
 
 error[E0308]: mismatched types
   --> tests/ui/runtime_intent_denial_evidence_constructor_private.rs:23:24

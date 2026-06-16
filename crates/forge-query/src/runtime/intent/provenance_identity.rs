@@ -16,19 +16,19 @@ pub(super) fn intent_execution_provenance_chain_identity(
             ForgeQueryEvidenceTag::new("seam"),
             provenance.execution_seam,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("admission_decision_digest"),
             provenance.admission_decision_digest,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_handoff_digest"),
             provenance.execution_handoff_digest,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_binding_digest"),
             provenance.execution_binding_digest,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("execution_outcome_digest"),
             provenance.execution_outcome_digest,
         )

@@ -1,3 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_graph_composition_domain_invariant_summary_constructor_private.rs:7:25
+  |
+7 |         program_digest: "digest".to_string(),
+  |                         ^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+ --> tests/ui/runtime_graph_composition_domain_invariant_summary_constructor_private.rs:8:25
+  |
+8 |         breadth_digest: "breadth".to_string(),
+  |                         ^^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
 error: cannot construct `ForgeQueryGraphCompositionDomainInvariantSummary` with struct literal syntax due to private fields
   --> tests/ui/runtime_graph_composition_domain_invariant_summary_constructor_private.rs:4:13
    |
@@ -39,3 +51,9 @@ help: you might have meant to use an associated function to build this type
 11 -     };
  4 +     let _ = ForgeQueryGraphCompositionDomainInvariantSummary::from_parts(_, _, _, _, _, _, _);
    |
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_graph_composition_domain_invariant_summary_constructor_private.rs:10:25
+   |
+10 |         summary_digest: "summary".to_string(),
+   |                         ^^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`

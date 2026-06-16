@@ -12,7 +12,8 @@ pub use crate::lower_runtime_routing::{
 };
 pub use bridge_backed::ForgeQueryBridgeBackedRuntimeBackend;
 pub use contracts::{
-    ForgeQueryRuntimeBackend, ForgeQueryRuntimeDeclarationInitializationAdapter,
+    runtime_subscription_support_evidence_identity, ForgeQueryRuntimeBackend,
+    ForgeQueryRuntimeDeclarationInitializationAdapter,
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
     ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,

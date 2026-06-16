@@ -188,9 +188,9 @@ impl BridgeSubscriptionDeliveryMemberRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            delivery_member_identity: BridgeSubscriptionDeliveryMemberIdentity::new(format!(
-                "bridge-subscription-delivery-member-id:sha256:{digest:x}"
-            )),
+            delivery_member_identity: BridgeSubscriptionDeliveryMemberIdentity::admit_bridge_owned(
+                format!("bridge-subscription-delivery-member-id:sha256:{digest:x}"),
+            ),
             admitted_subscription_identity,
             delivery_family_identity,
             delivery_window_identity,
@@ -290,7 +290,7 @@ impl BridgeSubscriptionDeliveryDiagnosticsReference {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             diagnostics_reference_identity:
-                BridgeSubscriptionDeliveryDiagnosticsReferenceIdentity::new(format!(
+                BridgeSubscriptionDeliveryDiagnosticsReferenceIdentity::admit_bridge_owned(format!(
                     "bridge-subscription-delivery-diagnostics-reference-id:sha256:{digest:x}"
                 )),
             delivery_window_identity,

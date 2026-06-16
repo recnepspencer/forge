@@ -197,7 +197,11 @@ fn canonical_session_label_intake_phase_six_outputs_are_non_empty_and_stable() {
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview should admit typed label");
-    let preview_session_basis_digest = preview.basis_admission().admission_identity().to_string();
+    let preview_session_basis_digest = preview
+        .basis_admission()
+        .admission_identity()
+        .terminal_projection_for_reporting()
+        .to_string();
     drop(preview);
 
     let branch = runtime
@@ -206,7 +210,11 @@ fn canonical_session_label_intake_phase_six_outputs_are_non_empty_and_stable() {
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .expect("branch should admit typed label");
-    let branch_session_basis_digest = branch.basis_admission().admission_identity().to_string();
+    let branch_session_basis_digest = branch
+        .basis_admission()
+        .admission_identity()
+        .terminal_projection_for_reporting()
+        .to_string();
     drop(branch);
 
     runtime
@@ -243,7 +251,7 @@ fn canonical_session_label_intake_phase_six_outputs_are_non_empty_and_stable() {
     let raw_string_entrypoint_audit = crate::ForgeQueryEvidenceIdentity::compose(
         crate::ForgeQueryEvidenceScope::ApplicationSessionLabelBoundaryClosure,
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("entrypoint_audit_violation"),
         ordinary_session_entrypoint_audit_violations(&runtime_sessions, &workspace),
     )

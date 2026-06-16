@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::super::inventory::CausalEvidenceFamily;
 use super::super::materialization::QueryCausalInspectionArtifact;
@@ -26,18 +26,34 @@ impl CausalInspectionRepresentativeEvidence {
         kind: CausalInspectionRepresentativeKind,
         artifact: &QueryCausalInspectionArtifact,
     ) -> Result<Self, CausalInspectionCertificationError> {
-        let artifact_digest = artifact.artifact_for_reporting().to_string();
+        let artifact_digest = artifact.artifact_identity().as_str().to_string();
         let row_digest_set =
             CausalInspectionRepresentativeRowDigestSet::from_query_artifact(kind, artifact);
         validate_kind_matches_artifact(kind, artifact, &row_digest_set)?;
-        let representative_digest = hash_parts(&[
-            "causal_inspection_representative_evidence_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("artifact:{artifact_digest}"),
-            "failure:none".to_string(),
-            format!("reference-count:{}", artifact.evidence_reference_count()),
-            format!("row-digest-set:{}", row_digest_set.row_digest()),
-        ]);
+        let representative_digest = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "causal_inspection_representative_evidence_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("artifact"),
+            artifact.artifact_identity().evidence_identity(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("failure"), "none")
+        .field_usize(
+            ForgeQueryEvidenceTag::new("reference_count"),
+            artifact.evidence_reference_count(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("row_digest_set"),
+            row_digest_set.row_digest(),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Ok(Self {
             kind,
             artifact_digest: Some(artifact_digest),
@@ -124,18 +140,28 @@ impl CausalInspectionRepresentativeEvidence {
         failure_digest: &str,
         row_digest_set: CausalInspectionRepresentativeRowDigestSet,
     ) -> Self {
-        let representative_digest = hash_parts(&[
-            "causal_inspection_representative_evidence_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            "artifact:none".to_string(),
-            format!("failure:{failure_digest}"),
-            format!(
-                "missing-evidence-family:{}",
-                family.map_or("none", |family| family.as_str())
-            ),
-            "reference-count:0".to_string(),
-            format!("row-digest-set:{}", row_digest_set.row_digest()),
-        ]);
+        let representative_digest = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "causal_inspection_representative_evidence_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("artifact"), "none")
+        .field_shape(ForgeQueryEvidenceTag::new("failure"), failure_digest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("missing_evidence_family"),
+            family.map_or("none", |family| family.as_str()),
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("reference_count"), 0)
+        .field_value(
+            ForgeQueryEvidenceTag::new("row_digest_set"),
+            row_digest_set.row_digest(),
+        )
+        .seal()
+        .as_str()
+        .to_string();
         Self {
             kind,
             artifact_digest: None,
@@ -266,25 +292,43 @@ fn matrix_digest(
     missing_evidence_row_count: usize,
     query_only_consumer_row_count: usize,
 ) -> String {
-    let row_part = rows
-        .iter()
-        .map(|row| format!("{}:{}", row.kind().as_str(), row.representative_digest()))
-        .collect::<Vec<_>>()
-        .join("|");
-    let missing_family_part = missing_evidence_families
-        .iter()
-        .map(CausalEvidenceFamily::as_str)
-        .collect::<Vec<_>>()
-        .join("|");
-    hash_parts(&[
-        "causal_inspection_representative_matrix_v1".to_string(),
-        format!("rows:{row_part}"),
-        format!("row-digest-sets:{}", row_digest_set_digests.join("|")),
-        format!("missing-evidence-families:{missing_family_part}"),
-        format!("representative-count:{representative_count}"),
-        format!("missing-evidence-count:{missing_evidence_row_count}"),
-        format!("query-only-count:{query_only_consumer_row_count}"),
-    ])
+    ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("identity_family"),
+        "causal_inspection_representative_matrix_v1",
+    )
+    .field_value_sequence(
+        ForgeQueryEvidenceTag::new("representative"),
+        rows.iter()
+            .map(CausalInspectionRepresentativeEvidence::representative_digest),
+    )
+    .field_value_sequence(
+        ForgeQueryEvidenceTag::new("row_digest_set"),
+        row_digest_set_digests.iter(),
+    )
+    .field_value_sequence(
+        ForgeQueryEvidenceTag::new("missing_evidence_family"),
+        missing_evidence_families
+            .iter()
+            .map(CausalEvidenceFamily::as_str),
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("representative_count"),
+        representative_count,
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("missing_evidence_count"),
+        missing_evidence_row_count,
+    )
+    .field_usize(
+        ForgeQueryEvidenceTag::new("query_only_count"),
+        query_only_consumer_row_count,
+    )
+    .seal()
+    .as_str()
+    .to_string()
 }
 
 fn validate_non_empty_failure(

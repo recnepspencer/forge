@@ -33,7 +33,7 @@ pub(in crate::runtime) fn materialize_query_context_rows(
         .enumerate()
         .map(|(index, row)| {
             ForgeQueryEntity::from_external_projection(
-                ForgeQueryEntityIdentity::authored_command(format!(
+                crate::memory_workspace::admit_authored_entity_label(format!(
                     "query-context:{}:{}",
                     context_execution.family().as_str(),
                     index
@@ -142,11 +142,11 @@ fn materialize_rows_from_request(
             .built_in_operators()
             .contains(&ForgeQueryReadBuiltInOperator::SharedAttachment)
     {
-        collect_shared_neighborhood_rows(&anchor_row, rows, request)
+        collect_shared_neighborhood_rows(&anchor_row, rows, request)?
     } else if request.traversal().is_empty() {
         vec![anchor_row]
     } else {
-        collect_traversal_rows(&anchor_row, &row_index, request)
+        collect_traversal_rows(&anchor_row, &row_index, request)?
     };
     Some(order_rows(selected, request))
 }
@@ -155,32 +155,36 @@ fn collect_shared_neighborhood_rows(
     anchor_row: &ForgeQueryEntity,
     rows: &[ForgeQueryEntity],
     request: &DeclarativeLiveQueryRequest,
-) -> Vec<ForgeQueryEntity> {
+) -> Option<Vec<ForgeQueryEntity>> {
+    let anchor_identity = row_identity_label(anchor_row)?;
     let anchor_targets = request
         .traversal()
         .iter()
         .filter_map(|selector| relation_target(anchor_row, selector.relation()))
         .collect::<BTreeSet<_>>();
-    rows.iter()
-        .filter(|row| {
-            row.identity() == anchor_row.identity()
-                || request.traversal().iter().any(|selector| {
-                    relation_target(row, selector.relation())
-                        .is_some_and(|target| anchor_targets.contains(target))
-                })
-        })
-        .cloned()
-        .collect()
+    Some(
+        rows.iter()
+            .filter(|row| {
+                row_identity_label(row).as_deref() == Some(anchor_identity.as_str())
+                    || request.traversal().iter().any(|selector| {
+                        relation_target(row, selector.relation())
+                            .is_some_and(|target| anchor_targets.contains(target))
+                    })
+            })
+            .cloned()
+            .collect(),
+    )
 }
 
 fn collect_traversal_rows(
     anchor_row: &ForgeQueryEntity,
     row_index: &BTreeMap<String, ForgeQueryEntity>,
     request: &DeclarativeLiveQueryRequest,
-) -> Vec<ForgeQueryEntity> {
-    let mut selected = BTreeMap::from([(anchor_row.identity().to_string(), anchor_row.clone())]);
+) -> Option<Vec<ForgeQueryEntity>> {
+    let anchor_identity = row_identity_label(anchor_row)?;
+    let mut selected = BTreeMap::from([(anchor_identity.clone(), anchor_row.clone())]);
     for selector in request.traversal() {
-        let mut current = anchor_row.identity().to_string();
+        let mut current = anchor_identity.clone();
         for _ in 0..usize::from(selector.depth()) {
             let Some(next_identity) = row_index
                 .get(&current)
@@ -191,11 +195,14 @@ fn collect_traversal_rows(
             let Some(next_row) = row_index.get(next_identity) else {
                 break;
             };
-            selected.insert(next_row.identity().to_string(), next_row.clone());
+            let Some(next_identity_label) = row_identity_label(next_row) else {
+                break;
+            };
+            selected.insert(next_identity_label, next_row.clone());
             current = next_identity.to_string();
         }
     }
-    selected.into_values().collect()
+    Some(selected.into_values().collect())
 }
 
 fn order_rows(
@@ -207,7 +214,7 @@ fn order_rows(
         .iter()
         .any(|ordering| ordering.aspect() == "identity" && ordering.field() == "id")
     {
-        rows.sort_by(|left, right| left.identity().cmp(right.identity()));
+        rows.sort_by_key(|row| row_identity_label(row).unwrap_or_default());
     }
     rows
 }
@@ -236,15 +243,22 @@ fn relation_target<'a>(row: &'a ForgeQueryEntity, relation: &str) -> Option<&'a 
 fn row_index(rows: &[ForgeQueryEntity]) -> BTreeMap<String, ForgeQueryEntity> {
     rows.iter()
         .cloned()
-        .map(|row| (row.identity().to_string(), row))
+        .filter_map(|row| row_identity_label(&row).map(|identity| (identity, row)))
         .collect()
+}
+
+fn row_identity_label(row: &ForgeQueryEntity) -> Option<String> {
+    row.external_row_path("identity.id")
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_string)
 }
 
 fn synthetic_rows_for_request(request: &DeclarativeLiveQueryRequest) -> Vec<ForgeQueryEntity> {
     let anchor_identity = identity_anchor(request).unwrap_or("synthetic-anchor");
     vec![ForgeQueryEntity::from_external_projection(
-        ForgeQueryEntityIdentity::authored_command(anchor_identity),
+        crate::memory_workspace::admit_authored_entity_label(anchor_identity),
         serde_json::json!({
+            "identity": { "id": anchor_identity },
             "read": { "synthetic": true },
             "relations": {}
         }),

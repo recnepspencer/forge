@@ -16,8 +16,9 @@ fn live_view_declaration_receipt_captures_request_shape() {
     let receipt = LiveViewDeclarationAdmissionReceipt::from_request("tasks.table", &request);
 
     assert_eq!(receipt.view_name(), "tasks.table");
-    assert_eq!(receipt.target_collection(), "Task");
-    assert_eq!(receipt.view_shape(), "table");
+    assert_eq!(receipt.target_collection_for_reporting(), "Task");
+    assert_eq!(receipt.view_shape(), &DeclarativeLiveViewShape::table());
+    assert_eq!(receipt.view_shape_for_reporting(), "table");
     assert!(!receipt.receipt_for_reporting().is_empty());
 }
 
@@ -25,11 +26,11 @@ fn live_view_declaration_receipt_captures_request_shape() {
 fn signal_invalidation_routing_receipt_rejects_authority_less_receipt() {
     let receipt = ForgeQueryMutationReceipt {
         commit_identity:
-            crate::memory_workspace::ForgeQueryCommitIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_commit_label(
                 "commit-1",
             ),
         snapshot_identity:
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "snapshot-1",
             ),
         deltas: Vec::new(),
@@ -47,7 +48,7 @@ fn signal_invalidation_routing_receipt_rejects_authority_less_receipt() {
 #[test]
 fn signal_invalidation_routing_receipt_summarizes_delta_width() {
     let command_entity_identity =
-        crate::memory_workspace::ForgeQueryEntityIdentity::authored_command("task-1");
+        crate::memory_workspace::admit_authored_entity_label("task-1");
     let command = ForgeQueryWriteCommand::UpdateAspects {
         entity_identity: command_entity_identity.clone(),
         aspects: vec![
@@ -82,14 +83,14 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
             ForgeQueryMutationDelta {
                 collection: "Task".to_string(),
                 entity_identity:
-                    crate::memory_workspace::ForgeQueryEntityIdentity::authored_command("task-1"),
+                    crate::memory_workspace::admit_authored_entity_label("task-1"),
                 kind: ForgeQueryMutationKind::Created,
                 aspect_paths: vec!["title.value".to_string()],
             },
             ForgeQueryMutationDelta {
                 collection: "Task".to_string(),
                 entity_identity:
-                    crate::memory_workspace::ForgeQueryEntityIdentity::authored_command("task-2"),
+                    crate::memory_workspace::admit_authored_entity_label("task-2"),
                 kind: ForgeQueryMutationKind::Updated,
                 aspect_paths: vec!["status.value".to_string()],
             },

@@ -133,7 +133,7 @@ impl ResolvedSnapshotIdentity {
                 ForgeQueryEvidenceTag::new("snapshot_identity"),
                 &self.snapshot_identity,
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("schema_basis"),
                 self.schema_basis().as_str(),
             )

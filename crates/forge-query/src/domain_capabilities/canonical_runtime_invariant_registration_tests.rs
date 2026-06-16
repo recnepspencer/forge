@@ -229,7 +229,10 @@ fn invariant_registration_materializer_builds_query_registration_artifact() {
         "register merged-intent invariant at declaration scope"
     );
     assert_eq!(artifact.intent_name(), "domain-capability.intent-invariant");
-    assert_eq!(artifact.strategy_name(), "forge.domain_capability.intent-invariant");
+    assert_eq!(
+        artifact.strategy_name(),
+        "forge.domain_capability.intent-invariant"
+    );
 }
 
 #[test]

@@ -3,7 +3,6 @@ use forge_proof::TransitionOutcome;
 use super::targets::{
     ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
 };
-use crate::domain_capabilities::targets::ForgeQueryDomainCapabilityTargetBinding;
 use super::test_support::{
     admitted_plan_target, admitted_plan_target_parts, declaration_target, ready, success,
 };
@@ -15,6 +14,7 @@ use super::{
     ForgeQueryWorkflowContributionPosture, ForgeQueryWorkflowRuntimeBindingSemantics,
     ForgeQueryWorkflowRuntimeSemantics,
 };
+use crate::domain_capabilities::targets::ForgeQueryDomainCapabilityTargetBinding;
 
 #[test]
 fn support_traceability_materializer_builds_domain_scoped_report() {
@@ -132,7 +132,7 @@ fn workflow_materializer_builds_preview_and_runtime_declarations() {
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection(
             "spatial.confirmation.required",
             "authoritative confirmation is required before writeback",
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "runtime-snapshot:42",
             ),
         ),
@@ -161,7 +161,7 @@ fn workflow_materializer_builds_preview_and_runtime_declarations() {
             .runtime_snapshot_identity()
             .map(|identity| identity.evidence_identity()),
         Some(
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "runtime-snapshot:42",
             )
             .evidence_identity()
@@ -190,7 +190,7 @@ fn workflow_materializer_accepts_admitted_plan_targets() {
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection(
             "spatial.confirmation.runtime",
             "authoritative confirmation requires runtime preflight context",
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "runtime-snapshot:77",
             ),
         ),
@@ -224,7 +224,7 @@ fn workflow_materializer_accepts_admitted_plan_targets() {
             .runtime_snapshot_identity()
             .map(|identity| identity.evidence_identity()),
         Some(
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "runtime-snapshot:77",
             )
             .evidence_identity()

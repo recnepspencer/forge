@@ -3,14 +3,13 @@ use std::sync::Arc;
 
 use forge_foundational::facade::{AspectKey, AspectValue, ContractValidatedAspectValueView};
 
-use crate::identity::BridgeIdentityEvidence;
-
 use super::grouped_contract::{
     GroupedProjectionContract, GroupedProjectionMemberSource, GroupedProjectionSource,
 };
 use super::row_set::{
     BridgeMaterializedFieldValue, BridgeMaterializedRowSetArtifact, BridgeRowIdentity,
 };
+use crate::identity::BridgeIdentityEvidence;
 
 mod digest_basis;
 
@@ -73,8 +72,10 @@ impl BridgeGroupedTruthViewDigest {
         self.0.as_ref()
     }
 
-    pub fn evidence_identity(&self) -> BridgeIdentityEvidence {
-        BridgeIdentityEvidence::from_arc(&self.0)
+    pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
+        BridgeIdentityEvidence::from_external_authority(
+            crate::identity_authority::bridge_truth_external_identity_token(Arc::clone(&self.0)),
+        )
     }
 }
 

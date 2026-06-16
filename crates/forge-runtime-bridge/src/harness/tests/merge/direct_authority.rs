@@ -10,7 +10,7 @@ use super::support::{many_to_one_mapping_declaration, runtime_with_merge};
 #[test]
 fn ordered_parent_history_remains_deterministic_under_adapter_variation() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:ordered-parent-determinism"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:ordered-parent-determinism"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         [
             crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
@@ -63,9 +63,9 @@ fn ordered_parent_history_remains_deterministic_under_adapter_variation() {
 
 #[test]
 fn merge_ontology_lowering_remains_lossless_under_many_to_one_bridge_class_mapping() {
-    let declaration = many_to_one_mapping_declaration(MergeHistoryDeclarationIdentity::new(
-        "merge:many-to-one-ontology",
-    ));
+    let declaration = many_to_one_mapping_declaration(
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:many-to-one-ontology"),
+    );
     let runtime = runtime_with_merge(declaration.clone());
     let contract = runtime
         .admit_merge_history(declaration)
@@ -92,7 +92,7 @@ fn merge_ontology_lowering_remains_lossless_under_many_to_one_bridge_class_mappi
 #[test]
 fn unsupported_merge_classes_fail_without_branch_reconciliation_authority_escape() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:topology-denial"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:topology-denial"),
         BridgeMergeConsumptionClass::TopologyRewireMerge,
         [
             crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
@@ -133,7 +133,7 @@ fn unsupported_merge_classes_fail_without_branch_reconciliation_authority_escape
 #[test]
 fn topology_rewire_denial_is_typed_and_keeps_counter_scope_local() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:topology-rewire-denial"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:topology-rewire-denial"),
         BridgeMergeConsumptionClass::TopologyRewireMerge,
         [
             crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
@@ -179,7 +179,7 @@ fn topology_rewire_denial_is_typed_and_keeps_counter_scope_local() {
 #[test]
 fn merge_replay_preserves_routing_and_explanation_parity() {
     let declaration = merge_declaration(
-        MergeHistoryDeclarationIdentity::new("merge:replay-parity"),
+        MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:replay-parity"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         [
             crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),

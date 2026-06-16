@@ -4,7 +4,7 @@ use forge_relational::facade::grouped_truth::{
 };
 use forge_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, SnapshotReadContract, SnapshotReadPacket,
-    SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest, TruthSnapshotIdentity,
+    SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
 };
 
 use super::super::super::{
@@ -12,8 +12,10 @@ use super::super::super::{
     ProjectionConsumptionSource, ProjectionFactExtractionError, ProjectionFactKind,
     ProjectionSourceFamily,
 };
-use super::support::{admitted, binding, relational_row_set, test_entity_identity, write_receipt};
-use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
+use super::support::{
+    admitted, binding, phase_four_commit_identity, phase_four_snapshot_identity,
+    phase_four_truth_snapshot_identity, relational_row_set, test_entity_identity, write_receipt,
+};
 use crate::runtime::{ForgeQueryMutationTargetClass, ForgeQueryWriteReceipt};
 
 #[test]
@@ -97,8 +99,8 @@ fn write_receipt_extracts_aftermath_and_source_reference_facts() {
 fn effect_continuity_fact_digest_changes_with_typed_authority_identity() {
     let left = write_receipt();
     let right = ForgeQueryWriteReceipt::test_only(
-        ForgeQueryCommitIdentity::from_external_authority_label("commit:test"),
-        ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test"),
+        phase_four_commit_identity("commit:test"),
+        phase_four_snapshot_identity("snapshot:test"),
         ForgeQueryMutationTargetClass::Entity,
         Some("tasks"),
         Some(test_entity_identity("task-1")),
@@ -171,7 +173,7 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
     let missing_identity_row_set = materialize_relational_authoritative_row_set(
         &missing_identity_packet,
         &SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::from_bridge_harness_label("snapshot-a"),
+            phase_four_truth_snapshot_identity("snapshot-a"),
             vec![
                 SnapshotReadRecord::for_request(
                     &entity_one_display_read,
@@ -231,8 +233,8 @@ fn write_receipt_extraction_rejects_source_identity_mismatch() {
     )
     .bind_contract();
     let mismatched_receipt = ForgeQueryWriteReceipt::test_only(
-        ForgeQueryCommitIdentity::from_external_authority_label("commit:other"),
-        ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test"),
+        phase_four_commit_identity("commit:other"),
+        phase_four_snapshot_identity("snapshot:test"),
         ForgeQueryMutationTargetClass::Entity,
         Some("tasks"),
         Some(test_entity_identity("task-1")),
@@ -262,8 +264,8 @@ fn write_receipt_extraction_rejects_missing_admitted_evidence() {
     )
     .bind_contract();
     let stripped_receipt = ForgeQueryWriteReceipt::test_only(
-        ForgeQueryCommitIdentity::from_external_authority_label("commit:test"),
-        ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot:test"),
+        phase_four_commit_identity("commit:test"),
+        phase_four_snapshot_identity("snapshot:test"),
         ForgeQueryMutationTargetClass::Entity,
         None,
         None,

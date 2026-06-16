@@ -6,8 +6,9 @@ use crate::projection_consumption::{
 };
 
 use super::support::{
-    authorized_projection, live_binding, request_for_kind, retained_binding, shared_test_result_shape,
-    test_result_shape_artifact, test_result_shape_canonical_digest, visible_fields_for_kind,
+    authorized_projection, live_binding, request_for_kind, retained_binding,
+    shared_test_result_shape, test_result_shape_artifact, test_result_shape_canonical_digest,
+    visible_fields_for_kind,
 };
 
 fn assert_support_and_eligibility_sync_for_retained_binding() {
@@ -337,11 +338,7 @@ fn retained_and_live_common_path_keep_visibility_denial_on_hidden_fields() {
     let live_attempt = live_binding()
         .consume_projection_facts(
             &shared_test_result_shape().identity,
-            &authorized_projection(
-                "query:test",
-                &shared_test_result_shape().digest,
-                &[],
-            ),
+            &authorized_projection("query:test", &shared_test_result_shape().digest, &[]),
             ProjectMaterializedFacts::declare().display_field("profile.display_name"),
         )
         .expect("live declaration path should succeed");

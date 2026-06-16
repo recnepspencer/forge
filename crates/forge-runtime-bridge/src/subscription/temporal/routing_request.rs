@@ -55,9 +55,10 @@ impl BridgeTemporalWakeRoutingRequest {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            routing_request_identity: BridgeSubscriptionTemporalWakeRoutingRequestIdentity::new(
-                format!("bridge-temporal-wake-routing-request-id:sha256:{digest:x}"),
-            ),
+            routing_request_identity:
+                BridgeSubscriptionTemporalWakeRoutingRequestIdentity::admit_bridge_owned(format!(
+                    "bridge-temporal-wake-routing-request-id:sha256:{digest:x}"
+                )),
             routing_lane_kind: BridgeTemporalRoutingLaneKind::Authoritative,
             subscription_identity: Arc::from(
                 activation_ready
@@ -119,9 +120,10 @@ impl BridgeTemporalWakeRoutingRequest {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            routing_request_identity: BridgeSubscriptionTemporalWakeRoutingRequestIdentity::new(
-                format!("bridge-temporal-wake-routing-request-id:sha256:{digest:x}"),
-            ),
+            routing_request_identity:
+                BridgeSubscriptionTemporalWakeRoutingRequestIdentity::admit_bridge_owned(format!(
+                    "bridge-temporal-wake-routing-request-id:sha256:{digest:x}"
+                )),
             routing_lane_kind: BridgeTemporalRoutingLaneKind::Preview,
             subscription_identity: Arc::from(
                 activation_ready

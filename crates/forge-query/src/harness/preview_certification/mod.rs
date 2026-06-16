@@ -160,8 +160,8 @@ impl PreviewCertificationLane {
                 .basis()
                 .binding_tuple()
                 .preview_session_identity()
-                .evidence_identity()
-                .as_str()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
                 .to_string(),
             evaluation_class: match binding_tuple.evaluation_class() {
                 PreviewEvaluationClass::ReadOnly(_) => PreviewLaneEvaluationClass::ReadOnly,

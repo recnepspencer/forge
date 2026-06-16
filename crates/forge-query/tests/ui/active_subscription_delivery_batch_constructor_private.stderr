@@ -29,4 +29,4 @@ error: cannot construct `QueryDeliveryBatch` with struct literal syntax due to p
 11 |         counters: todo!(),
    |         ----------------- private field
    |
-   = note: ...and other private fields `delivery_cause` and `has_relational_patch` that were not provided
+   = note: ...and other private fields `delivery_batch_identity`, `delivery_window_identity`, `delivery_cause` and `has_relational_patch` that were not provided

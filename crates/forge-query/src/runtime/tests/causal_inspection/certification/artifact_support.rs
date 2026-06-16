@@ -37,14 +37,16 @@ pub(super) fn admitted_artifact_for(
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    admitted.subject().query_observation_bridge_evidence_identity(),
+                    admitted
+                        .subject()
+                        .query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().evidence_identity(),
+                    routed.route_identity().bridge_admission_evidence(),
                 )
                 .expect("route evidence reference identity should be valid"),
             ),
@@ -84,14 +86,16 @@ pub(super) fn advisory_artifacts(
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    advisory.subject().query_observation_bridge_evidence_identity(),
+                    advisory
+                        .subject()
+                        .query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().evidence_identity(),
+                    routed.route_identity().bridge_admission_evidence(),
                 )
                 .expect("route evidence reference identity should be valid"),
             ),
@@ -122,7 +126,7 @@ pub(super) fn advisory_artifacts(
 pub(super) fn denied_artifact_and_missing_evidence() -> (QueryCausalInspectionArtifact, String) {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::from_bridge_harness_label(
+        .route(super::super::causal_truth_commit_identity(
             "commit-query-cert-denied",
         ))
         .unwrap();
@@ -179,7 +183,7 @@ fn reference_set_for(
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::BridgeRoute,
-                    route_identity.evidence_identity(),
+                    route_identity.bridge_admission_evidence(),
                 ),
             ],
         ),

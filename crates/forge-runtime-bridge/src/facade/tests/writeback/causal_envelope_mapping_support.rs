@@ -32,7 +32,7 @@ pub(super) fn missing_bridge_reference(
     bridge_reference(
         BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
             family,
-            crate::facade::BridgeIdentityEvidence::from_external_authority(identity),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(identity),
         )
         .expect("bridge reference identity should be valid"),
     )

@@ -180,10 +180,10 @@ mod tests {
     ) -> crate::structural::AdmittedStructuralComparisonContract {
         let declaration = if mode_branch_compare {
             StructuralIdentityDeclaration::branch_comparison(
-                StructuralIdentityDeclarationIdentity::new("structural:compare"),
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:compare"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintEquivalenceContract::new(
-                    StructuralSchemaIdentity::new("schema:geometry"),
+                    StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                     StructuralFingerprintFamily::BranchComparisonFingerprint,
                     "branch-v1",
                     StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -203,10 +203,10 @@ mod tests {
             )
         } else {
             StructuralIdentityDeclaration::advisory_remap(
-                StructuralIdentityDeclarationIdentity::new("structural:remap"),
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:remap"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintEquivalenceContract::new(
-                    StructuralSchemaIdentity::new("schema:geometry"),
+                    StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                     StructuralFingerprintFamily::TopologyFingerprint,
                     "topology-v1",
                     StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -234,7 +234,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:a"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:a"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             )],
         );
@@ -255,11 +255,11 @@ mod tests {
             None,
             vec![
                 StructuralMatchCandidate::new(
-                    StructuralCandidateIdentity::new("candidate:a"),
+                    StructuralCandidateIdentity::admit_bridge_owned("candidate:a"),
                     StructuralMatchCandidateKind::ExactAdvisoryMatch,
                 ),
                 StructuralMatchCandidate::new(
-                    StructuralCandidateIdentity::new("candidate:b"),
+                    StructuralCandidateIdentity::admit_bridge_owned("candidate:b"),
                     StructuralMatchCandidateKind::AdvisoryReuseCandidate,
                 ),
             ],
@@ -280,7 +280,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:lineage-divergence"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:lineage-divergence"),
                 StructuralMatchCandidateKind::LineageStructuralDivergence,
             )],
         );
@@ -300,7 +300,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("diff:a"),
+                StructuralCandidateIdentity::admit_bridge_owned("diff:a"),
                 StructuralMatchCandidateKind::BranchDiff,
             )],
         );

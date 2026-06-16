@@ -113,9 +113,7 @@ pub(super) fn branch_snapshot_identity(
         .unwrap_or(0);
     ForgeQuerySnapshotIdentity::from_relational_snapshot(
         RelationalBridgeSnapshotIdentityParts::new(
-            crate::effect_lifecycle::stable_branch_snapshot_id(
-                &BranchId(branch.to_string()),
-            ),
+            crate::effect_lifecycle::stable_branch_snapshot_id(&BranchId(branch.to_string())),
             version_id,
         ),
     )
@@ -236,7 +234,9 @@ fn native_patch_envelope(
         commit_identity.relational_commit_id().unwrap_or_else(|| {
             stable_fixture_position(
                 "seeded-effect-patch",
-                commit_identity.evidence_identity().as_str(),
+                commit_identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
             )
         }),
     );

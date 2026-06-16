@@ -69,8 +69,8 @@ pub struct QuerySubscriptionDiagnosticEvidence {
     stage: QuerySubscriptionDiagnosticStage,
     outcome: QuerySubscriptionDiagnosticOutcome,
     reason: String,
-    source_for_reporting: String,
-    counter_for_reporting: String,
+    source_identity: ForgeQueryEvidenceIdentity,
+    counter_identity: ForgeQueryEvidenceIdentity,
     evidence_identity: ForgeQueryEvidenceIdentity,
 }
 
@@ -124,8 +124,8 @@ impl QuerySubscriptionDiagnosticEvidence {
             stage,
             outcome,
             reason,
-            source_for_reporting: source_identity.as_str().to_string(),
-            counter_for_reporting: counter_identity.as_str().to_string(),
+            source_identity: source_identity.clone(),
+            counter_identity: counter_identity.clone(),
             evidence_identity,
         }
     }
@@ -142,23 +142,15 @@ impl QuerySubscriptionDiagnosticEvidence {
         &self.reason
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_for_reporting
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
     }
 
-    pub fn counter_digest(&self) -> &str {
-        &self.counter_for_reporting
-    }
-
-    pub fn digest(&self) -> &str {
-        self.evidence_for_reporting()
+    pub fn counter_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.counter_identity
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.evidence_identity
-    }
-
-    pub fn evidence_for_reporting(&self) -> &str {
-        self.evidence_identity.as_str()
     }
 }

@@ -70,7 +70,7 @@ pub(super) fn intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("execution_kind"),
             receipt.execution_kind().as_str(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_identity"),
             receipt.strategy_identity(),
         )
@@ -78,15 +78,15 @@ pub(super) fn intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("strategy_version"),
             receipt.strategy_version(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_descriptor_digest"),
             receipt.strategy_descriptor_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             receipt.canonical_input_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("outcome_digest"),
             receipt.outcome_digest(),
         )
@@ -94,7 +94,7 @@ pub(super) fn intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("produced_mutation_digest"),
             produced_mutation_digest,
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("invariant_evidence"),
             receipt.invariant_evidence().iter().map(String::as_str),
         )
@@ -138,7 +138,7 @@ pub(super) fn branch_intent_receipt_inspection_basis_identity(
             ForgeQueryEvidenceTag::new("basis_snapshot_identity"),
             &receipt.basis_snapshot_identity().evidence_identity(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("basis_evidence"),
             basis_evidence.iter().map(String::as_str),
         )
@@ -154,7 +154,7 @@ pub(super) fn branch_intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("intent_name"),
             receipt.intent_name(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_identity"),
             receipt.strategy_identity(),
         )
@@ -162,7 +162,7 @@ pub(super) fn branch_intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("strategy_version"),
             receipt.strategy_version(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             receipt.canonical_input_digest(),
         )

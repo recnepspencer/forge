@@ -96,7 +96,7 @@ fn bridge_harness_branch_divergence_changes_terminal_continuity_export() {
                 continuity_authority_with_successor(
                     crate::truth_identity_fixtures::truth_branch_fixture("main"),
                     crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
-                    BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+                    BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
                 ),
             )
             .with_committed_patch(committed_patch(
@@ -130,7 +130,7 @@ fn bridge_harness_branch_divergence_changes_terminal_continuity_export() {
                 continuity_authority_with_successor(
                     crate::truth_identity_fixtures::truth_branch_fixture("feature"),
                     crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
-                    BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+                    BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
                 ),
             )
             .with_committed_patch(committed_patch(

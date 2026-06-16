@@ -210,7 +210,10 @@ fn runtime_mixed_cause_delivery_preserves_denied_preview_boundary_without_coales
         .mixed_cause_delivery()
         .suppressed_cause_identities()
         .is_empty());
-    assert_eq!(batch.mixed_cause_delivery().denied_cause_identities().len(), 1);
+    assert_eq!(
+        batch.mixed_cause_delivery().denied_cause_identities().len(),
+        1
+    );
     assert!(batch.has_relational_patch());
 }
 

@@ -151,8 +151,15 @@ pub use crate::domain_capabilities::{
 };
 pub use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityComparisonError,
-    ForgeQueryEvidenceIdentityEncoder, ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
+};
+#[doc(hidden)]
+pub use crate::integration_harness::public_bridge_hostile_certification::{
+    compose_public_bridge_hostile_certification_digest,
+    public_bridge_hostile_certification_evidence_label,
+    public_bridge_hostile_published_artifact_component_digest,
+    PublicBridgeHostileCertificationComposeInput,
 };
 pub use crate::intent_admission::{
     ForgeQueryIntentAdmissionSlopeLane, ForgeQueryIntentAdmissionWidthRunRow,
@@ -201,8 +208,9 @@ pub use crate::runtime::{
     inspect_lower_runtime_closeout, materialize_admitted_causal_inspection,
     materialize_advisory_causal_inspection, materialize_denied_causal_inspection,
     request_causal_inspection, resolve_causal_evidence_references,
-    resolve_indexed_causal_evidence_references, summarize_lower_runtime_boundary,
-    AdmittedCausalInspection, AdmittedQueryCausalInspectionArtifact, AdvisoryCausalInspection,
+    resolve_indexed_causal_evidence_references, runtime_subscription_support_evidence_identity,
+    summarize_lower_runtime_boundary, AdmittedCausalInspection,
+    AdmittedQueryCausalInspectionArtifact, AdvisoryCausalInspection,
     AdvisoryQueryCausalInspectionArtifact, CausalDecisionTraceIndex, CausalDecisionTraceRow,
     CausalEvidenceFamily, CausalEvidenceInventoryRow, CausalEvidenceOwner, CausalEvidenceReference,
     CausalEvidenceReferenceDigest, CausalEvidenceReferenceIndex, CausalEvidenceReferenceIndexError,
@@ -568,7 +576,7 @@ pub use crate::subscription::{
     QuerySubscriptionConstructionSource, QuerySubscriptionCostPosture,
     QuerySubscriptionDeclarationArtifact, QuerySubscriptionDeclarationCounters,
     QuerySubscriptionDeclarationDenial, QuerySubscriptionDeclarationDenialKind,
-    QuerySubscriptionDeclarationDigest, QuerySubscriptionDeliveryIntent,
+    QuerySubscriptionDeliveryIntent,
     QuerySubscriptionDeniedDiagnosticBundle, QuerySubscriptionDiagnosticBundleError,
     QuerySubscriptionDiagnosticBundleErrorKind, QuerySubscriptionDiagnosticBundleWidth,
     QuerySubscriptionDiagnosticCounters, QuerySubscriptionDiagnosticEvidence,
@@ -583,7 +591,7 @@ pub use crate::subscription::{
     QuerySubscriptionLifecycleClassVariationSet, QuerySubscriptionLifecycleCloseoutSupport,
     QuerySubscriptionLifecycleCoverageClass, QuerySubscriptionMaintenanceDelta,
     QuerySubscriptionMaintenanceDeltaKind, QuerySubscriptionManualBridgeWitness,
-    QuerySubscriptionMeaningDigest, QuerySubscriptionPolicyVariationSet,
+    QuerySubscriptionPolicyVariationSet,
     QuerySubscriptionRelationshipProofPosture, QuerySubscriptionRelationshipProofVariationSet,
     QuerySubscriptionRuntimeBackedSupport, QuerySubscriptionRuntimeCertificationBundle,
     QuerySubscriptionRuntimeCertificationCounters, QuerySubscriptionRuntimeCertificationError,
@@ -614,7 +622,11 @@ pub use crate::subscription::{
     SubscriptionLifecycleCloseError, SubscriptionLifecycleCloseRequest,
     SubscriptionLifecycleCloseout, SubscriptionLifecycleCloseoutKind,
     SubscriptionLifecyclePreviewCertification, SubscriptionPerformanceReceipt,
-    SupportLookupReceipt, SupportResolutionPosture,
+    SupportLookupReceipt, SupportResolutionPosture, TerminalProjectionLabel,
+    forge_query_subscription_phase_seven_compile_fail_targets,
+    forge_query_subscription_phase_seven_golden_paths,
+    FORGE_QUERY_SUBSCRIPTION_PHASE_SEVEN_COMPILE_FAIL_TARGET_COUNT,
+    FORGE_QUERY_SUBSCRIPTION_PHASE_SEVEN_GOLDEN_PATH_COUNT,
 };
 pub use crate::target_binding::{
     ForgeQueryAdmittedDeclarationProgressionBindingTarget,

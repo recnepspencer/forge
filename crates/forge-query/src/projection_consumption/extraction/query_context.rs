@@ -53,7 +53,7 @@ pub(super) fn extract_query_context_facts(
                 ProjectionFactKind::EntityIdentity => {
                     entity_identities.push(ConsumedEntityIdentityFact::new(
                         row_identity.clone(),
-                        ForgeQueryEntityIdentity::authored_command(row_identity.clone()),
+                        crate::memory_workspace::admit_authored_entity_label(row_identity.clone()),
                     ));
                 }
                 ProjectionFactKind::ViewLocalIdentity => {

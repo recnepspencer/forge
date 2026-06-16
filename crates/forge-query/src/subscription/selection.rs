@@ -1,3 +1,4 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::live::LiveQueryFamily;
 use crate::view_shape_live::LiveViewShapeFamily;
 
@@ -113,7 +114,7 @@ pub fn select_query_subscription_family(
     live: LiveQueryAdmissionArtifact,
     budget: QuerySubscriptionWorkBudget,
 ) -> Result<QuerySubscriptionFamilySelection, QuerySubscriptionFamilySelectionError> {
-    let source_digest = live.diagnostic_source_for_reporting().to_string();
+    let source_identity = live.diagnostic_source_identity();
     let mut counters = QuerySubscriptionDeclarationCounters::default();
 
     if !live.relationship_proof_posture.admits_subscription() {
@@ -123,7 +124,7 @@ pub fn select_query_subscription_family(
             QuerySubscriptionFamilySelectionFailureClass::RelationshipProofAdmissionDrift,
             "subscription relationship proof posture drifted after live admission",
             QuerySubscriptionDiagnosticStage::RelationshipProofDrift,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -135,7 +136,7 @@ pub fn select_query_subscription_family(
             QuerySubscriptionFamilySelectionFailureClass::WorkBudgetExceeded,
             "subscription family selection requires one bridge-family registry lookup",
             QuerySubscriptionDiagnosticStage::FamilySelection,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -143,20 +144,17 @@ pub fn select_query_subscription_family(
     counters.family_registry_lookup_count = 1;
     counters.view_family_registry_lookup_count = u64::from(live.view_family.is_some());
 
-    let classification = classify_subscription_family(&live, &source_digest, &mut counters)?;
-    validate_future_selection(&live, &classification.family, &source_digest, &mut counters)?;
-    validate_admission_dimensions(&live, &classification.family, &source_digest, &mut counters)?;
+    let classification =
+        classify_subscription_family(&live, source_identity, &mut counters)?;
+    validate_future_selection(&live, &classification.family, source_identity, &mut counters)?;
+    validate_admission_dimensions(
+        &live,
+        &classification.family,
+        source_identity,
+        &mut counters,
+    )?;
     let required_slice_count = required_slice_count(&live, &classification.family);
-    let required_policy_width = live
-        .policy_digest
-        .iter()
-        .map(|value| value.len())
-        .sum::<usize>()
-        + live
-            .tenant_digest
-            .iter()
-            .map(|value| value.len())
-            .sum::<usize>();
+    let required_policy_width = live.policy_context_width() + live.tenant_context_width();
 
     if live.authorized_projection_width > budget.authorized_projection_width_limit
         || live.view_shape_metadata_width > budget.view_shape_metadata_width_limit
@@ -172,7 +170,7 @@ pub fn select_query_subscription_family(
                 classification.family, required_slice_count
             ),
             QuerySubscriptionDiagnosticStage::FamilySelection,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -185,7 +183,7 @@ pub fn select_query_subscription_family(
             QuerySubscriptionFamilySelectionFailureClass::AllocationBudgetExceeded,
             "subscription family selection currently requires a scratch buffer for meaning digest construction",
             QuerySubscriptionDiagnosticStage::FamilySelection,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -217,7 +215,7 @@ pub fn select_query_subscription_family(
 
 fn classify_subscription_family(
     live: &LiveQueryAdmissionArtifact,
-    source_digest: &str,
+    source_identity: &ForgeQueryEvidenceIdentity,
     counters: &mut QuerySubscriptionDeclarationCounters,
 ) -> Result<FamilyClassification, QuerySubscriptionFamilySelectionError> {
     let family = match live.view_family {
@@ -234,7 +232,7 @@ fn classify_subscription_family(
                         live.live_family.as_str()
                     ),
                     QuerySubscriptionDiagnosticStage::ViewMismatch,
-                    source_digest,
+                    source_identity,
                     counters.clone(),
                 ));
             }
@@ -282,7 +280,7 @@ fn classify_subscription_family(
 fn validate_admission_dimensions(
     live: &LiveQueryAdmissionArtifact,
     family: &QuerySubscriptionFamily,
-    source_digest: &str,
+    source_identity: &ForgeQueryEvidenceIdentity,
     counters: &mut QuerySubscriptionDeclarationCounters,
 ) -> Result<(), QuerySubscriptionFamilySelectionError> {
     let valid = match family {
@@ -335,7 +333,7 @@ fn validate_admission_dimensions(
             family
         ),
         QuerySubscriptionDiagnosticStage::FamilySelection,
-        source_digest,
+        source_identity,
         counters.clone(),
     ))
 }

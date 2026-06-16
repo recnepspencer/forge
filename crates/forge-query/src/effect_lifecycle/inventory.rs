@@ -1,7 +1,5 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::inventory_rows::{effect_lifecycle_family_rows, effect_lifecycle_public_surface_rows};
 use super::planning::EffectAuthorityOwner;
@@ -370,10 +368,8 @@ pub fn effect_lifecycle_family_inventory() -> EffectLifecycleFamilyInventory {
         .iter()
         .map(|row| row.row_identity().clone())
         .collect::<Vec<_>>();
-    let inventory_identity = compose_inventory_identity(
-        "effect_lifecycle_family_inventory_v1",
-        &row_identities,
-    );
+    let inventory_identity =
+        compose_inventory_identity("effect_lifecycle_family_inventory_v1", &row_identities);
     EffectLifecycleFamilyInventory {
         rows,
         inventory_identity,

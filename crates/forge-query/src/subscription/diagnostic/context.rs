@@ -12,16 +12,13 @@ enum QuerySubscriptionDiagnosticSelectionContextKind {
     Selected {
         selection: QuerySubscriptionFamilySelection,
         context_identity: ForgeQueryEvidenceIdentity,
-        context_for_reporting: String,
     },
     Denied {
         source_identity: ForgeQueryEvidenceIdentity,
-        source_for_reporting: String,
         query_family_label: String,
         declaration_family_label: String,
         basis_posture_label: String,
         context_identity: ForgeQueryEvidenceIdentity,
-        context_for_reporting: String,
     },
 }
 
@@ -35,12 +32,10 @@ impl QuerySubscriptionDiagnosticSelectionContext {
         let context_identity = diagnostic_selection_context_selected_identity(
             selection.equivalence_basis().evidence_identity(),
         );
-        let context_for_reporting = context_identity.as_str().to_string();
         Self {
             kind: QuerySubscriptionDiagnosticSelectionContextKind::Selected {
                 selection: selection.clone(),
                 context_identity,
-                context_for_reporting,
             },
         }
     }
@@ -58,27 +53,20 @@ impl QuerySubscriptionDiagnosticSelectionContext {
             None => format!("selection_unresolved:{}:none", live.live_family().as_str()),
         };
         let declaration_family_label = format!("not_declared:{query_family_label}");
-        let source_for_reporting = error.diagnostic().source_digest().to_string();
-        let source_identity =
-            super::super::evidence_identities::diagnostic_source_projection_identity(
-                &source_for_reporting,
-            );
+        let source_identity = error.diagnostic().source_identity().clone();
         let context_identity = diagnostic_selection_context_denied_identity(
             &source_identity,
             &query_family_label,
             &declaration_family_label,
             live.basis_posture().as_str(),
         );
-        let context_for_reporting = context_identity.as_str().to_string();
         Self {
             kind: QuerySubscriptionDiagnosticSelectionContextKind::Denied {
                 source_identity,
-                source_for_reporting,
                 query_family_label,
                 declaration_family_label,
                 basis_posture_label: live.basis_posture().as_str().to_string(),
                 context_identity,
-                context_for_reporting,
             },
         }
     }
@@ -118,10 +106,6 @@ impl QuerySubscriptionDiagnosticSelectionContext {
         }
     }
 
-    pub fn digest(&self) -> &str {
-        self.context_for_reporting()
-    }
-
     pub fn context_identity(&self) -> &ForgeQueryEvidenceIdentity {
         match &self.kind {
             QuerySubscriptionDiagnosticSelectionContextKind::Selected {
@@ -130,17 +114,6 @@ impl QuerySubscriptionDiagnosticSelectionContext {
             | QuerySubscriptionDiagnosticSelectionContextKind::Denied {
                 context_identity, ..
             } => context_identity,
-        }
-    }
-
-    pub fn context_for_reporting(&self) -> &str {
-        match &self.kind {
-            QuerySubscriptionDiagnosticSelectionContextKind::Selected {
-                context_for_reporting, ..
-            }
-            | QuerySubscriptionDiagnosticSelectionContextKind::Denied {
-                context_for_reporting, ..
-            } => context_for_reporting,
         }
     }
 
@@ -161,17 +134,6 @@ impl QuerySubscriptionDiagnosticSelectionContext {
             QuerySubscriptionDiagnosticSelectionContextKind::Denied {
                 source_identity, ..
             } => source_identity.clone(),
-        }
-    }
-
-    pub(crate) fn source_digest(&self) -> &str {
-        match &self.kind {
-            QuerySubscriptionDiagnosticSelectionContextKind::Selected { selection, .. } => {
-                selection.equivalence_basis().digest().as_str()
-            }
-            QuerySubscriptionDiagnosticSelectionContextKind::Denied {
-                source_for_reporting, ..
-            } => source_for_reporting,
         }
     }
 

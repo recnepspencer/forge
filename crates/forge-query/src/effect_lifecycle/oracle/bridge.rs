@@ -2,8 +2,8 @@ use forge_runtime_bridge::facade::RuntimeBridge;
 
 use super::{
     bridge_oracle::{
-        bridge_observation_execution_record_subject_identity,
         bridge_observation_execution_receipt_subject_identity,
+        bridge_observation_execution_record_subject_identity,
         bridge_observation_outcome_subject_identity, bridge_observation_receipt_subject_identity,
         bridge_observation_request_subject_identity, BridgeExecutionOracle,
     },
@@ -161,7 +161,9 @@ fn matching_bridge_oracle_for_plan(
                 record.digest()
             ),
             executed.effect_execution_identity(),
-            Some(&bridge_observation_execution_record_subject_identity(record.digest())),
+            Some(&bridge_observation_execution_record_subject_identity(
+                record.digest(),
+            )),
         )
     })?;
     let outcome_class = record.outcome_class().ok_or_else(|| {
@@ -172,7 +174,9 @@ fn matching_bridge_oracle_for_plan(
                 record.digest()
             ),
             executed.effect_execution_identity(),
-            Some(&bridge_observation_execution_record_subject_identity(record.digest())),
+            Some(&bridge_observation_execution_record_subject_identity(
+                record.digest(),
+            )),
         )
     })?;
     let request_digest = record.request_digest().ok_or_else(|| {
@@ -183,7 +187,9 @@ fn matching_bridge_oracle_for_plan(
                 record.digest()
             ),
             executed.effect_execution_identity(),
-            Some(&bridge_observation_execution_record_subject_identity(record.digest())),
+            Some(&bridge_observation_execution_record_subject_identity(
+                record.digest(),
+            )),
         )
     })?;
     let receipt_digest = record.receipt_digest().ok_or_else(|| {
@@ -194,7 +200,9 @@ fn matching_bridge_oracle_for_plan(
                 record.digest()
             ),
             executed.effect_execution_identity(),
-            Some(&bridge_observation_execution_record_subject_identity(record.digest())),
+            Some(&bridge_observation_execution_record_subject_identity(
+                record.digest(),
+            )),
         )
     })?;
     let oracle = BridgeExecutionOracle::new(

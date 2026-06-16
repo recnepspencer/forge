@@ -281,7 +281,9 @@ impl SnapshotReadSource for StaticSource {
         } else {
             Err(RelationalBridgeSourceError::new(format!(
                 "unknown snapshot `{}`",
-                identity.evidence_identity().as_str()
+                identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting()
             )))
         }
     }
@@ -325,7 +327,9 @@ impl BridgeSourceAdapter for StaticSourceAdapter {
         } else {
             Err(RelationalBridgeSourceError::new(format!(
                 "unknown snapshot `{}`",
-                identity.evidence_identity().as_str()
+                identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting()
             )))
         }
     }
@@ -969,9 +973,9 @@ fn bridge_grouped_truth_view_evidence_identity_for_test(
     crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
         crate::evidence_identity::ForgeQueryEvidenceScope::BridgeGroupedTruthViewDigest,
     )
-    .field_identity(
+    .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("bridge_grouped_truth"),
-        truth_view.digest().evidence_identity().as_str(),
+        truth_view.digest().bridge_admission_evidence().terminal_projection_for_reporting(),
     )
     .seal()
 }
@@ -1039,7 +1043,7 @@ fn grouped_execution_rejects_truth_view_with_mismatched_snapshot_identity() {
         ResolvedSnapshotIdentity::new(
             BasisAuthorityFamily::Runtime,
             None,
-            ForgeQuerySnapshotIdentity::from_external_authority_label("snapshot-b")
+            crate::memory_workspace::admit_external_snapshot_label("snapshot-b")
                 .evidence_identity(),
             planned.validated().query().schema_basis().clone(),
             SnapshotLineageClass::CurrentHead,

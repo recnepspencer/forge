@@ -3,6 +3,16 @@ use forge_proof::{
     ProofSetAuthorizedBy,
 };
 
+use super::phases::{
+    ContributionAdmittedPhase, ContributionEligiblePhase, ContributionMaterializationReadyPhase,
+    ContributionRequestedPhase,
+};
+use super::proofs::{
+    admitted_contribution_proof, eligible_contribution_proof,
+    materialization_ready_contribution_proof, requested_contribution_proof,
+    AdmittedContributionProof, DomainCapabilityContributionAuthority, EligibleContributionProof,
+    MaterializationReadyContributionProof, RequestedContributionProof,
+};
 use crate::domain_capabilities::payloads::{
     ForgeQueryAdmissionContributionPayload, ForgeQueryAftermathContributionPayload,
     ForgeQueryContinuityContributionPayload, ForgeQueryDomainCapabilityPayload,
@@ -15,16 +25,6 @@ use crate::domain_capabilities::targets::{
 };
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
-use super::phases::{
-    ContributionAdmittedPhase, ContributionEligiblePhase, ContributionMaterializationReadyPhase,
-    ContributionRequestedPhase,
-};
-use super::proofs::{
-    admitted_contribution_proof, eligible_contribution_proof,
-    materialization_ready_contribution_proof, requested_contribution_proof,
-    AdmittedContributionProof, DomainCapabilityContributionAuthority, EligibleContributionProof,
-    MaterializationReadyContributionProof, RequestedContributionProof,
 };
 
 type DomainCapabilityBasis = FreshnessScopedBasis<CurrentValidity, AssumptionBasis<String>>;

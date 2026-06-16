@@ -67,7 +67,7 @@ pub fn summarize_lower_runtime_boundary(
             envelope.route_kind().as_str(),
             envelope.support_posture().as_str(),
         ),
-        envelope.envelope_identity().as_ref(),
+        envelope.envelope_identity().terminal_projection_for_reporting(),
     )
 }
 
@@ -82,11 +82,11 @@ pub fn inspect_lower_runtime_boundary(
             "cost={} failure={} retained={} route={} evidence={}",
             envelope.route_cost_posture().as_str(),
             envelope.route_failure_topology().as_str(),
-            envelope.retained_evidence_identity().as_ref(),
-            envelope.route_authority_identity().as_ref(),
-            envelope.route_evidence_identity().as_ref(),
+            envelope.retained_evidence_identity().as_str(),
+            envelope.route_authority_identity().terminal_projection_for_reporting(),
+            envelope.route_evidence_identity().terminal_projection_for_reporting(),
         ),
-        envelope.envelope_identity().as_ref(),
+        envelope.envelope_identity().terminal_projection_for_reporting(),
     )
 }
 
@@ -131,7 +131,7 @@ mod tests {
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "live-view-schema-admission",
             ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
-                .field_identity(
+                .field_value(
                     crate::evidence_identity::ForgeQueryEvidenceTag::new("test_subject"),
                     "subject-3",
                 )
@@ -140,7 +140,7 @@ mod tests {
         let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
             crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
         )
-        .field_identity(
+        .field_value(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
             "detail-3",
         )
@@ -156,7 +156,7 @@ mod tests {
                 &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
                     crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
                 )
-                .field_identity(
+                .field_value(
                     crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
                     "evidence-3",
                 )
@@ -175,7 +175,7 @@ mod tests {
 
         assert_eq!(
             summary.summary_digest(),
-            envelope.envelope_identity().as_ref()
+            envelope.envelope_identity().terminal_projection_for_reporting()
         );
         assert_eq!(
             summary.headline(),
@@ -191,7 +191,7 @@ mod tests {
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "signal-invalidation-routing",
             ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
-                .field_identity(
+                .field_value(
                     crate::evidence_identity::ForgeQueryEvidenceTag::new("test_subject"),
                     "subject-4",
                 )
@@ -200,7 +200,7 @@ mod tests {
         let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
             crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
         )
-        .field_identity(
+        .field_value(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
             "detail-4",
         )
@@ -223,7 +223,7 @@ mod tests {
                 &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
                     crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
                 )
-                .field_identity(
+                .field_value(
                     crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
                     "evidence-4",
                 )
@@ -244,7 +244,7 @@ mod tests {
 
         assert_eq!(
             inspection.inspection_digest(),
-            envelope.envelope_identity().as_ref()
+            envelope.envelope_identity().terminal_projection_for_reporting()
         );
         assert_eq!(
             inspection.headline(),
@@ -256,9 +256,9 @@ mod tests {
                 "cost={} failure={} retained={} route={} evidence={}",
                 envelope.route_cost_posture().as_str(),
                 envelope.route_failure_topology().as_str(),
-                envelope.retained_evidence_identity().as_ref(),
-                envelope.route_authority_identity().as_ref(),
-                envelope.route_evidence_identity().as_ref(),
+                envelope.retained_evidence_identity().as_str(),
+                envelope.route_authority_identity().terminal_projection_for_reporting(),
+                envelope.route_evidence_identity().terminal_projection_for_reporting(),
             )
         );
     }

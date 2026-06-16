@@ -49,7 +49,7 @@ impl BridgeLowerRuntimeEvidenceReference {
         match &self.detail {
             BridgeLowerRuntimeEvidenceDetail::TruthViewEvaluation {
                 record_identity, ..
-            } => Some(record_identity.as_str()),
+            } => Some(record_identity.terminal_projection_for_reporting()),
             _ => None,
         }
     }
@@ -58,7 +58,7 @@ impl BridgeLowerRuntimeEvidenceReference {
         match &self.detail {
             BridgeLowerRuntimeEvidenceDetail::TruthViewEvaluation {
                 selector_identity, ..
-            } => Some(selector_identity.as_str()),
+            } => Some(selector_identity.terminal_projection_for_reporting()),
             _ => None,
         }
     }
@@ -76,7 +76,7 @@ impl BridgeLowerRuntimeEvidenceReference {
         match &self.detail {
             BridgeLowerRuntimeEvidenceDetail::TruthViewEvaluation {
                 snapshot_identity, ..
-            } => Some(snapshot_identity.as_str()),
+            } => Some(snapshot_identity.terminal_projection_for_reporting()),
             _ => None,
         }
     }
@@ -84,7 +84,7 @@ impl BridgeLowerRuntimeEvidenceReference {
     pub fn route_identity(&self) -> Option<&str> {
         match &self.detail {
             BridgeLowerRuntimeEvidenceDetail::ContinuityDelivery { route_identity, .. } => {
-                Some(route_identity.as_str())
+                Some(route_identity.terminal_projection_for_reporting())
             }
             _ => None,
         }
@@ -95,7 +95,7 @@ impl BridgeLowerRuntimeEvidenceReference {
             BridgeLowerRuntimeEvidenceDetail::ContinuityDelivery {
                 continuity_identity,
                 ..
-            } => Some(continuity_identity.as_str()),
+            } => Some(continuity_identity.terminal_projection_for_reporting()),
             _ => None,
         }
     }
@@ -115,7 +115,7 @@ impl BridgeLowerRuntimeEvidenceReference {
             BridgeLowerRuntimeEvidenceDetail::ContinuityDelivery {
                 source_snapshot_identity,
                 ..
-            } => Some(source_snapshot_identity.as_str()),
+            } => Some(source_snapshot_identity.terminal_projection_for_reporting()),
             _ => None,
         }
     }
@@ -125,7 +125,7 @@ impl BridgeLowerRuntimeEvidenceReference {
             BridgeLowerRuntimeEvidenceDetail::SubscriptionAdmission {
                 admitted_subscription_identity,
                 ..
-            } => Some(admitted_subscription_identity.as_str()),
+            } => Some(admitted_subscription_identity.terminal_projection_for_reporting()),
             _ => None,
         }
     }
@@ -133,7 +133,7 @@ impl BridgeLowerRuntimeEvidenceReference {
     pub fn basis_identity(&self) -> Option<&str> {
         match &self.detail {
             BridgeLowerRuntimeEvidenceDetail::SubscriptionAdmission { basis_identity, .. } => {
-                Some(basis_identity.as_str())
+                Some(basis_identity.terminal_projection_for_reporting())
             }
             _ => None,
         }
@@ -143,7 +143,7 @@ impl BridgeLowerRuntimeEvidenceReference {
         match &self.detail {
             BridgeLowerRuntimeEvidenceDetail::SubscriptionAdmission {
                 strategy_identity, ..
-            } => Some(strategy_identity.as_str()),
+            } => Some(strategy_identity.terminal_projection_for_reporting()),
             _ => None,
         }
     }
@@ -227,7 +227,7 @@ impl BridgeLowerRuntimeEvidenceReference {
                                 ForgeQueryEvidenceTag::new("kind"),
                                 "truth_view_evaluation",
                             )
-                            .field_identity(
+                            .field_value(
                                 ForgeQueryEvidenceTag::new("authority_digest"),
                                 authority_digest,
                             ),
@@ -251,7 +251,7 @@ impl BridgeLowerRuntimeEvidenceReference {
                     bridge_identity_field(
                         encoder
                             .field_shape(ForgeQueryEvidenceTag::new("kind"), "continuity_delivery")
-                            .field_identity(
+                            .field_value(
                                 ForgeQueryEvidenceTag::new("continuity_resolution_digest"),
                                 continuity_resolution_digest,
                             ),
@@ -278,7 +278,7 @@ impl BridgeLowerRuntimeEvidenceReference {
                                 ForgeQueryEvidenceTag::new("kind"),
                                 "subscription_admission",
                             )
-                            .field_identity(
+                            .field_value(
                                 ForgeQueryEvidenceTag::new("subscription_digest"),
                                 subscription_digest,
                             ),
@@ -301,7 +301,7 @@ fn bridge_identity_field(
     tag: ForgeQueryEvidenceTag,
     identity: &BridgeIdentityEvidence,
 ) -> ForgeQueryEvidenceIdentityEncoder {
-    encoder.field_identity(tag, identity.as_str())
+    encoder.field_bridge_retained_evidence_identity(tag, identity)
 }
 
 pub(super) fn binding_identity(
@@ -309,7 +309,7 @@ pub(super) fn binding_identity(
     evidence: &BridgeLowerRuntimeEvidenceReference,
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::BridgeLowerRuntimeBasisBinding)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("capability_digest"),
             capability_digest,
         )

@@ -1,10 +1,8 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
 use crate::workflow::{
     lower_mutation_intent_declaration, LoweredMutationIntentDeclaration, WorkflowBasisFamily,
 };
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::batch_admission::AdmittedEffectBatch;
 use super::batch_execution::{EffectBatchExecutionDenial, ExecutedEffectBatchPlan};
@@ -65,24 +63,23 @@ impl LoweredRelationalMutationBatchExecutionArtifact {
         workflow_basis_lane: WorkflowBasisFamily,
         declarations: Vec<LoweredMutationIntentDeclaration>,
     ) -> Self {
-        let batch_mutation_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "lowered_relational_mutation_batch_v1",
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("workflow_basis"),
-            workflow_basis_lane.as_str(),
-        )
-        .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("declaration"),
-            declarations
-                .iter()
-                .map(LoweredMutationIntentDeclaration::lowering_identity),
-        )
-        .seal();
+        let batch_mutation_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "lowered_relational_mutation_batch_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("workflow_basis"),
+                    workflow_basis_lane.as_str(),
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("declaration"),
+                    declarations
+                        .iter()
+                        .map(LoweredMutationIntentDeclaration::lowering_identity),
+                )
+                .seal();
         Self {
             workflow_basis_lane,
             declarations,
@@ -131,44 +128,48 @@ impl LoweredEffectBatchExecutionPlan {
         artifact: LoweredEffectBatchExecutionArtifact,
         admitted_components: Vec<super::AdmittedEffectIntent>,
     ) -> Self {
-        let admitted_batch_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "admitted_effect_batch_v1",
-        )
-        .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("admitted"),
-            admitted_components
-                .iter()
-                .map(AdmittedEffectIntent::admitted_identity),
-        )
-        .seal();
+        let admitted_batch_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "admitted_effect_batch_v1",
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("admitted"),
+                    admitted_components
+                        .iter()
+                        .map(AdmittedEffectIntent::admitted_identity),
+                )
+                .seal();
         let counters = EffectLifecycleCounters::lowered_batch(
             admitted_components.len(),
             lowered_batch_artifact_width(&artifact),
             lowered_batch_artifact_executor_rediscovery_count(&artifact),
         );
-        let batch_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "lowered_effect_batch_execution_plan_v2",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("authority"), authority_lane.as_str())
-        .field_shape(ForgeQueryEvidenceTag::new("basis"), basis_family.as_str())
-        .field_shape(ForgeQueryEvidenceTag::new("owner"), authority_owner.as_str())
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("artifact"),
-            lowered_batch_artifact_identity(&artifact),
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("counters"),
-            &counters.evidence_identity(),
-        )
-        .seal();
+        let batch_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "lowered_effect_batch_execution_plan_v2",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authority"),
+                    authority_lane.as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("basis"), basis_family.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("owner"),
+                    authority_owner.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("artifact"),
+                    lowered_batch_artifact_identity(&artifact),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("counters"),
+                    &counters.evidence_identity(),
+                )
+                .seal();
         Self {
             authority_lane,
             basis_family,

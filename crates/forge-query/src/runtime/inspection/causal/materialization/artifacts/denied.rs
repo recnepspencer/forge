@@ -5,9 +5,9 @@ use super::super::super::observation_identity::{
     CausalObservationReceiptIdentity, CausalResultShapeContextIdentity,
 };
 use super::super::{
-    causal_materialization_identity, CausalInspectionArtifactKind, CausalInspectionBoundaryEnvelopeCategory,
-    CausalInspectionPerformanceEnvelope, CausalMaterializationReceipt,
-    QueryCausalTemporalAsyncExplanation,
+    causal_materialization_identity, CausalInspectionArtifactKind,
+    CausalInspectionBoundaryEnvelopeCategory, CausalInspectionPerformanceEnvelope,
+    CausalMaterializationReceipt, QueryCausalTemporalAsyncExplanation,
 };
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use forge_runtime_bridge::facade::{BridgeCausalEnvelopeDenialKind, BridgeCausalEvidenceFamily};
@@ -74,6 +74,12 @@ impl DeniedQueryCausalInspectionArtifact {
 
     pub fn query_observation_for_reporting(&self) -> &str {
         self.query_observation_identity.as_str()
+    }
+
+    pub(in crate::runtime) fn query_observation_identity(
+        &self,
+    ) -> &CausalObservationReceiptIdentity {
+        &self.query_observation_identity
     }
 
     pub fn result_shape_context_for_reporting(&self) -> &str {

@@ -255,7 +255,7 @@ fn preview_write_receipt_identity(
     sequence: usize,
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewWriteReceiptIdentity)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
             label.identity_digest().as_str(),
         )
@@ -278,7 +278,7 @@ fn preview_symbolic_entity_identity(
 ) -> ForgeQueryEntityIdentity {
     ForgeQueryEntityIdentity::preview(
         forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewWriteReceiptIdentity)
-            .field_identity(ForgeQueryEvidenceTag::new("symbol"), reference.symbol())
+            .field_value(ForgeQueryEvidenceTag::new("symbol"), reference.symbol())
             .optional_shape(
                 ForgeQueryEvidenceTag::new("target_collection"),
                 reference.target_collection(),

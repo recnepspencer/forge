@@ -110,7 +110,10 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
                 ForgeQueryEvidenceTag::new("identity_family"),
                 "forge_query_workflow_runtime_binding_v1",
             )
-            .field_shape(ForgeQueryEvidenceTag::new("kind"), "runtime_preflight_bundle")
+            .field_shape(
+                ForgeQueryEvidenceTag::new("kind"),
+                "runtime_preflight_bundle",
+            )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("plan"),
                 &preflight.plan().query().plan_digest().evidence_identity(),
@@ -139,9 +142,9 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
                 "forge_query_workflow_runtime_binding_v1",
             )
             .field_shape(ForgeQueryEvidenceTag::new("kind"), "preview_foundation")
-            .field_bridge_identity(
+            .field_bridge_authority_identity(
                 ForgeQueryEvidenceTag::new("preview_session"),
-                &preview_session_identity.evidence_identity(),
+                &preview_session_identity.bridge_trust_boundary(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("evaluation_class"),
@@ -152,7 +155,9 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
     }
 
     pub(crate) fn semantics_for_reporting(&self) -> String {
-        self.semantics_identity().as_str().to_string()
+        self.semantics_identity()
+            .terminal_projection_for_reporting()
+            .to_string()
     }
 }
 
@@ -252,7 +257,10 @@ impl ForgeQueryWorkflowLoweringSemantics {
                 "forge_query_workflow_lowering_v1",
             )
             .field_shape(ForgeQueryEvidenceTag::new("kind"), "merge")
-            .field_shape(ForgeQueryEvidenceTag::new("intent"), input.intent().as_str())
+            .field_shape(
+                ForgeQueryEvidenceTag::new("intent"),
+                input.intent().as_str(),
+            )
             .field_shape(
                 ForgeQueryEvidenceTag::new("target_branch"),
                 &input.target_branch().0,
@@ -270,13 +278,18 @@ impl ForgeQueryWorkflowLoweringSemantics {
                 "forge_query_workflow_lowering_v1",
             )
             .field_shape(ForgeQueryEvidenceTag::new("kind"), "writeback")
-            .field_shape(ForgeQueryEvidenceTag::new("family"), input.family().as_str())
+            .field_shape(
+                ForgeQueryEvidenceTag::new("family"),
+                input.family().as_str(),
+            )
             .seal(),
         }
     }
 
     pub(crate) fn semantics_for_reporting(&self) -> String {
-        self.semantics_identity().as_str().to_string()
+        self.semantics_identity()
+            .terminal_projection_for_reporting()
+            .to_string()
     }
 }
 
@@ -387,7 +400,10 @@ impl ForgeQueryWorkflowInspectionSemantics {
                     ForgeQueryEvidenceTag::new("identity_family"),
                     "forge_query_workflow_inspection_v1",
                 )
-                .field_shape(ForgeQueryEvidenceTag::new("kind"), "post_merge_from_writeback")
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("kind"),
+                    "post_merge_from_writeback",
+                )
                 .field_evidence_identity(
                     ForgeQueryEvidenceTag::new("lowered_writeback"),
                     lowered_writeback.lowering_identity(),
@@ -398,7 +414,9 @@ impl ForgeQueryWorkflowInspectionSemantics {
     }
 
     pub(crate) fn semantics_for_reporting(&self) -> String {
-        self.semantics_identity().as_str().to_string()
+        self.semantics_identity()
+            .terminal_projection_for_reporting()
+            .to_string()
     }
 }
 
@@ -456,34 +474,44 @@ impl ForgeQueryWorkflowRuntimeSemantics {
     }
 
     pub(crate) fn semantics_identity(&self) -> ForgeQueryEvidenceIdentity {
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "forge_query_workflow_runtime_semantics_v1",
-            )
-            .field_evidence_identity(
-                ForgeQueryEvidenceTag::new("binding"),
-                &self.binding.semantics_identity(),
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("declaration_family"),
-                self.declaration_family.as_str(),
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("authority_target_family"),
-                self.authority_target_family.as_str(),
-            )
-            .field_shape(ForgeQueryEvidenceTag::new("cost_class"), self.cost_class.as_str())
-            .field_shape(ForgeQueryEvidenceTag::new("budget_class"), self.budget_class.as_str())
-            .field_shape(
-                ForgeQueryEvidenceTag::new("freshness_policy"),
-                self.freshness_policy.as_str(),
-            )
-            .seal()
+        ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_workflow_runtime_semantics_v1",
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("binding"),
+            &self.binding.semantics_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("declaration_family"),
+            self.declaration_family.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority_target_family"),
+            self.authority_target_family.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("cost_class"),
+            self.cost_class.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("budget_class"),
+            self.budget_class.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("freshness_policy"),
+            self.freshness_policy.as_str(),
+        )
+        .seal()
     }
 
     pub(crate) fn semantics_for_reporting(&self) -> String {
-        self.semantics_identity().as_str().to_string()
+        self.semantics_identity()
+            .terminal_projection_for_reporting()
+            .to_string()
     }
 }
 

@@ -1,10 +1,12 @@
 use super::super::super::support::*;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::runtime::evidence_identities::{
     runtime_state_snapshot_basis_label_identity,
     runtime_state_snapshot_result_shape_label_identity,
     runtime_state_snapshot_test_subject_identity,
 };
-use crate::evidence_identity::{forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 fn test_runtime_world_basis() -> crate::application::ForgeQueryAdmittedWorldBasis {
     crate::application::ForgeQueryAdmittedWorldBasis::new(
@@ -12,7 +14,10 @@ fn test_runtime_world_basis() -> crate::application::ForgeQueryAdmittedWorldBasi
         "TestRuntimeBasis",
         "operating:runtime-basis".to_string(),
         forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_shape(ForgeQueryEvidenceTag::new("test_handle"), "handle:runtime-basis")
+            .field_shape(
+                ForgeQueryEvidenceTag::new("test_handle"),
+                "handle:runtime-basis",
+            )
             .seal(),
         "support:snapshot".to_string(),
         crate::query_basis_lifecycle::query_basis_lifecycle_support_report().report_identity(),
@@ -273,7 +278,7 @@ fn runtime_workspace_states_basis_lifecycle_surfaces() {
             forge_runtime_bridge::facade::BridgePreviewSessionIdentity::from_stable_name(
                 "preview:state-1",
             )
-            .evidence_identity(),
+            .bridge_admission_evidence(),
             crate::query_basis_lifecycle::BasisOperationLaneRequest::Observation,
         ),
     )

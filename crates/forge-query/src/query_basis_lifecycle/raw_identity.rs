@@ -13,8 +13,8 @@ pub enum RawBasisIdentity {
 impl RawBasisIdentity {
     pub fn as_str(&self) -> &str {
         match self {
-            Self::Query(identity) => identity.as_str(),
-            Self::Bridge(identity) => identity.as_str(),
+            Self::Query(identity) => identity.terminal_projection_for_reporting(),
+            Self::Bridge(identity) => identity.terminal_projection_for_reporting(),
         }
     }
 
@@ -25,7 +25,7 @@ impl RawBasisIdentity {
     ) -> ForgeQueryEvidenceIdentityEncoder {
         match self {
             Self::Query(identity) => encoder.field_evidence_identity(tag, identity),
-            Self::Bridge(identity) => encoder.field_identity(tag, identity.as_str()),
+            Self::Bridge(identity) => encoder.field_bridge_retained_evidence_identity(tag, identity),
         }
     }
 }

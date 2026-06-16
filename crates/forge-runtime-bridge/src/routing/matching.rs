@@ -165,7 +165,7 @@ mod tests {
     fn classify_surface_as_matched_when_direct_registration_exists() {
         let surface = field_surface("user", "profile", "name");
         let registry = registry(vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("field"),
+            BridgeAspectRegistrationId::admit_bridge_owned("field"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -195,7 +195,7 @@ mod tests {
     fn classify_surface_as_widening_when_registration_admits_widening() {
         let surface = field_surface("user", "profile", "name");
         let registry = registry(vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("field-widening"),
+            BridgeAspectRegistrationId::admit_bridge_owned("field-widening"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")

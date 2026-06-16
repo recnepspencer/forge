@@ -77,23 +77,23 @@ pub(super) fn compose_bridge_causal_envelope_identity(
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::CausalInspectionArtifact)
         .field_shape(ForgeQueryEvidenceTag::new("role"), "bridge-causal-envelope")
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("request"),
             &identity.request_evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("anchor"),
             &identity.causal_observation_anchor_evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("bindings"),
             &identity.evidence_binding_evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("counters"),
             &identity.counter_evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("identity"),
             &identity.envelope_evidence_identity(),
         )
@@ -114,19 +114,19 @@ pub(super) fn compose_bridge_causal_explanation_envelope_identity(
             ForgeQueryEvidenceTag::new("summary_kind"),
             bridge_causal_admission_summary_kind_label(envelope.admission_summary_kind()),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("admission_summary"),
             &envelope.admission_summary_evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("request"),
             &envelope.request_evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("anchor"),
             &envelope.causal_observation_anchor_evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("envelope"),
             &envelope.envelope_evidence_identity(),
         )
@@ -150,19 +150,19 @@ pub(super) fn compose_bridge_causal_envelope_receipt_identity(
             ForgeQueryEvidenceTag::new("role"),
             "bridge-causal-envelope-receipt",
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("envelope_identity"),
             &receipt.envelope_identity_evidence(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("envelope"),
             &receipt.envelope_evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("counters"),
             &receipt.counter_evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("receipt"),
             &receipt.receipt_evidence_identity(),
         )
@@ -179,7 +179,7 @@ pub(super) fn compose_bridge_causal_denial_identity(
             ForgeQueryEvidenceTag::new("family"),
             denial.family().as_str(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("failure"),
             &denial.failure_evidence_identity(),
         )
@@ -650,7 +650,10 @@ pub(super) fn compose_causal_performance_snapshot_identity(
 ) -> CausalInspectionPerformanceSnapshotIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::CausalInspectionPerformanceSnapshot)
         .field_shape(ForgeQueryEvidenceTag::new("size"), fixture_size.as_str())
-        .field_evidence_identity(causal_artifact_identity_tag(), artifact_identity.evidence_identity())
+        .field_evidence_identity(
+            causal_artifact_identity_tag(),
+            artifact_identity.evidence_identity(),
+        )
         .field_usize(
             ForgeQueryEvidenceTag::new("evidence_width"),
             evidence_reference_width,
@@ -820,28 +823,32 @@ pub(super) fn compose_causal_performance_certification_identity(
 pub(crate) fn causal_test_compose_bridge_causal_denial_for_reporting(
     denial: &BridgeCausalEnvelopeDenial,
 ) -> String {
-    compose_bridge_causal_denial_identity(denial).to_string()
+    let composed = compose_bridge_causal_denial_identity(denial);
+    composed.reporting_projection().to_string()
 }
 
 #[cfg(test)]
 pub(crate) fn causal_test_compose_bridge_causal_explanation_envelope_identity_for_reporting(
     envelope: &BridgeCausalExplanationEnvelope,
 ) -> String {
-    compose_bridge_causal_explanation_envelope_identity(envelope).to_string()
+    let composed = compose_bridge_causal_explanation_envelope_identity(envelope);
+    composed.reporting_projection().to_string()
 }
 
 #[cfg(test)]
 pub(crate) fn causal_test_compose_bridge_causal_envelope_identity_for_reporting(
     envelope: &BridgeCausalExplanationEnvelope,
 ) -> String {
-    compose_bridge_causal_envelope_identity(envelope.identity()).to_string()
+    let composed = compose_bridge_causal_envelope_identity(envelope.identity());
+    composed.reporting_projection().to_string()
 }
 
 #[cfg(test)]
 pub(crate) fn causal_test_compose_bridge_causal_envelope_receipt_identity_for_reporting(
     receipt: &BridgeCausalEnvelopeReceipt,
 ) -> String {
-    compose_bridge_causal_envelope_receipt_identity(receipt).to_string()
+    let composed = compose_bridge_causal_envelope_receipt_identity(receipt);
+    composed.reporting_projection().to_string()
 }
 
 #[cfg(test)]
@@ -850,14 +857,14 @@ pub(crate) fn causal_test_bridge_binding_reference_for_reporting(
     family: &str,
     bridge_reference: forge_runtime_bridge::facade::BridgeIdentityEvidence,
 ) -> String {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt)
+    let composed = ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt)
         .field_shape(
             ForgeQueryEvidenceTag::new("role"),
             "bridge-causal-evidence-reference",
         )
         .field_shape(ForgeQueryEvidenceTag::new("owner"), owner)
         .field_shape(ForgeQueryEvidenceTag::new("family"), family)
-        .field_bridge_identity(ForgeQueryEvidenceTag::new("reference"), &bridge_reference)
-        .seal()
-        .to_string()
+        .field_bridge_retained_evidence_identity(ForgeQueryEvidenceTag::new("reference"), &bridge_reference)
+        .seal();
+    composed.reporting_projection().to_string()
 }

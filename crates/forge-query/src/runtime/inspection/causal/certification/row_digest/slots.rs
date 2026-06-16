@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use forge_runtime_bridge::facade::BridgeCausalEvidenceFamily;
 
@@ -175,17 +175,32 @@ fn digest_for_any_family(
     references: &[QueryCausalEvidenceReferenceArtifact],
     families: &[&str],
 ) -> Option<String> {
-    let reference_digests = references
+    let reference_identities = references
         .iter()
         .filter(|reference| families.contains(&reference.family()))
-        .map(|reference| reference.reference_for_reporting())
+        .map(|reference| reference.reference_receipt_evidence_identity())
         .collect::<Vec<_>>();
-    if reference_digests.is_empty() {
+    if reference_identities.is_empty() {
         return None;
     }
-    Some(hash_parts(&[
-        "causal_inspection_named_evidence_slot_digest_v1".to_string(),
-        format!("families:{}", families.join("|")),
-        format!("references:{}", reference_digests.join("|")),
-    ]))
+    Some(
+        ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::CausalInspectionCertificationFailureEvidence,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "causal_inspection_named_evidence_slot_digest_v1",
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("family"),
+            families.iter().copied(),
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("reference"),
+            reference_identities,
+        )
+        .seal()
+        .as_str()
+        .to_string(),
+    )
 }

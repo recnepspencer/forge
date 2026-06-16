@@ -124,9 +124,10 @@ impl AdmittedBridgeSubscriptionResumeBasis {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            admitted_resume_basis_identity: BridgeSubscriptionAdmittedResumeBasisIdentity::new(
-                format!("bridge-admitted-subscription-resume-basis-id:sha256:{digest:x}"),
-            ),
+            admitted_resume_basis_identity:
+                BridgeSubscriptionAdmittedResumeBasisIdentity::admit_bridge_owned(format!(
+                    "bridge-admitted-subscription-resume-basis-id:sha256:{digest:x}"
+                )),
             retained_basis: retained_basis.clone(),
             counters: BridgeSubscriptionCounters::from_resume_basis_admission(),
             canonical_basis,

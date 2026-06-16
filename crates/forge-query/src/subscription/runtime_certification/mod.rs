@@ -1,6 +1,9 @@
+mod accessors;
 mod bundle;
 mod coverage;
 mod error;
+mod error_accessors;
+mod identities;
 mod scope;
 
 pub use bundle::{

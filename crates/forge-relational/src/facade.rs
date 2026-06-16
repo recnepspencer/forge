@@ -118,6 +118,10 @@ pub mod identity {
     };
 }
 
+pub mod identity_authority {
+    pub use crate::identity_authority::*;
+}
+
 pub mod inspection {
     pub use crate::inspection::data::{
         CommitInspection, ConnectivityComponentSummary, ConnectivityInspectionBudget,

@@ -7,7 +7,7 @@ pub(super) fn execute_authority_denial_certification(
     fixture: &BridgeHarnessFixture,
 ) -> Result<WritebackHarnessExecution, BridgeHarnessError> {
     let declaration = crate::facade::BridgeWritebackDeclaration::writeback_capable(
-        crate::facade::BridgeWritebackDeclarationIdentity::new(
+        crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial-preview",
         ),
         crate::facade::BridgeRequestKind::Preview,
@@ -28,7 +28,7 @@ pub(super) fn execute_authority_denial_certification(
     let unbound_runtime = build_writeback_runtime(runtime, fixture, false)?;
     let lowered_policy_bundle = lowered_policy(&unbound_runtime)?;
     let authority_declaration = crate::facade::BridgeWritebackDeclaration::writeback_capable(
-        crate::facade::BridgeWritebackDeclarationIdentity::new(
+        crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:unbound-authority",
         ),
         crate::facade::BridgeRequestKind::Authoritative,
@@ -54,7 +54,7 @@ pub(super) fn execute_authority_denial_certification(
     let authority_effect = unbound_runtime.lower_writeback_effect(
         &authority_contract,
         &authority_causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:effect",
         ),
         writeback_effect_intent(
@@ -66,7 +66,7 @@ pub(super) fn execute_authority_denial_certification(
         &authority_effect,
         &lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&authority_effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:idempotence",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -98,7 +98,7 @@ pub(super) fn execute_authority_denial_certification(
     )?;
     let merge_lowered_policy = lowered_policy(&merge_rejecting_runtime)?;
     let merge_declaration = crate::facade::BridgeWritebackDeclaration::writeback_capable(
-        crate::facade::BridgeWritebackDeclarationIdentity::new(
+        crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:merge-rejected",
         ),
         crate::facade::BridgeRequestKind::Authoritative,
@@ -124,7 +124,7 @@ pub(super) fn execute_authority_denial_certification(
     let merge_effect = merge_rejecting_runtime.lower_writeback_effect(
         &merge_contract,
         &merge_causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:merge-rejected:effect",
         ),
         writeback_effect_intent(
@@ -136,7 +136,7 @@ pub(super) fn execute_authority_denial_certification(
         &merge_effect,
         &merge_lowered_policy,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&merge_effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:merge-rejected:idempotence",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -159,7 +159,7 @@ pub(super) fn execute_authority_denial_certification(
     let unsafe_feedback_runtime = build_writeback_runtime(runtime, fixture, true)?;
     let unsafe_feedback_policy = lowered_policy(&unsafe_feedback_runtime)?;
     let unsafe_feedback_declaration = crate::facade::BridgeWritebackDeclaration::writeback_capable(
-        crate::facade::BridgeWritebackDeclarationIdentity::new(
+        crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:unsafe-feedback",
         ),
         crate::facade::BridgeRequestKind::Authoritative,
@@ -185,7 +185,7 @@ pub(super) fn execute_authority_denial_certification(
     let unsafe_feedback_effect = unsafe_feedback_runtime.lower_writeback_effect(
         &unsafe_feedback_contract,
         &unsafe_feedback_causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:unsafe-feedback:effect",
         ),
         writeback_effect_intent(
@@ -199,7 +199,7 @@ pub(super) fn execute_authority_denial_certification(
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(
             &unsafe_feedback_effect,
         ),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:unsafe-feedback:idempotence",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -213,7 +213,7 @@ pub(super) fn execute_authority_denial_certification(
     let unsafe_feedback_drift_effect = unsafe_feedback_runtime.lower_writeback_effect(
         &unsafe_feedback_contract,
         &unsafe_feedback_causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:unsafe-feedback:effect:drift",
         ),
         writeback_effect_intent(
@@ -249,7 +249,7 @@ pub(super) fn execute_authority_denial_certification(
     let contradictory_feedback_drift_effect = unsafe_feedback_runtime.lower_writeback_effect(
         &unsafe_feedback_contract,
         &unsafe_feedback_causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-authority-denial:unsafe-feedback:effect:contradictory",
         ),
         writeback_effect_intent(

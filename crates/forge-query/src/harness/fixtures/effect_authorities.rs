@@ -170,9 +170,7 @@ pub(crate) fn branch_snapshot_identity(
 ) -> ForgeQuerySnapshotIdentity {
     ForgeQuerySnapshotIdentity::from_relational_snapshot(
         RelationalBridgeSnapshotIdentityParts::new(
-            crate::effect_lifecycle::stable_branch_snapshot_id(
-                &BranchId(branch.to_string()),
-            ),
+            crate::effect_lifecycle::stable_branch_snapshot_id(&BranchId(branch.to_string())),
             branch_runtime_version(runtime, branch),
         ),
     )
@@ -211,7 +209,7 @@ impl CommittedPatchSource for TestBridgeSource {
                         .unwrap_or_else(|| {
                             stable_fixture_position(
                                 "effect-patch",
-                                request.commit_identity().evidence_identity().as_str(),
+                                request.commit_identity().bridge_admission_evidence().terminal_projection_for_reporting(),
                             )
                         }),
                 ),

@@ -32,7 +32,7 @@ impl ContinuityRemapPacket {
             packet_index,
         );
         Self {
-            packet_identity: ContinuityPacketIdentity::new(digest_string(
+            packet_identity: ContinuityPacketIdentity::admit_bridge_owned(digest_string(
                 "continuity-packet",
                 &basis,
             )),
@@ -129,7 +129,7 @@ impl TruthViewMaterializationPacket {
             packet_index,
         );
         Self {
-            packet_identity: TruthViewPacketIdentity::new(digest_string(
+            packet_identity: TruthViewPacketIdentity::admit_bridge_owned(digest_string(
                 "truth-view-packet",
                 &basis,
             )),
@@ -226,7 +226,10 @@ impl WideningAggregationPacket {
             packet_index,
         );
         Self {
-            packet_identity: WideningPacketIdentity::new(digest_string("widening-packet", &basis)),
+            packet_identity: WideningPacketIdentity::admit_bridge_owned(digest_string(
+                "widening-packet",
+                &basis,
+            )),
             workload_identity,
             originating_route_identity,
             widening_class,

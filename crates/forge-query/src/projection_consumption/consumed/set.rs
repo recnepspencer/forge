@@ -286,7 +286,9 @@ fn fact_set_digest(
                 format!(
                     "entity_identity:{}:{}",
                     fact.source_row_identity(),
-                    fact.entity_identity().evidence_identity()
+                    fact.entity_identity()
+                        .evidence_identity()
+                        .terminal_projection_for_reporting()
                 )
             }))
             .chain(view_local_identities.iter().map(|fact| {
@@ -313,7 +315,9 @@ fn fact_set_digest(
             .chain(target_identities.iter().map(|fact| {
                 format!(
                     "target_identity:{}",
-                    fact.target_identity().evidence_identity()
+                    fact.target_identity()
+                        .evidence_identity()
+                        .terminal_projection_for_reporting()
                 )
             }))
             .chain(
@@ -326,7 +330,9 @@ fn fact_set_digest(
                     "effect_continuity:{}:{}:{}",
                     fact.family() as u8,
                     fact.outcome_class() as u8,
-                    fact.prior_authoritative_identity().evidence_identity()
+                    fact.prior_authoritative_identity()
+                        .evidence_identity()
+                        .terminal_projection_for_reporting()
                 )
             }))
             .chain(effect_continuity_facts.iter().flat_map(|fact| {
@@ -335,7 +341,9 @@ fn fact_set_digest(
                     .map(|identity| {
                         format!(
                             "effect_continuity_successor:{}",
-                            identity.evidence_identity()
+                            identity
+                                .evidence_identity()
+                                .terminal_projection_for_reporting()
                         )
                     })
             }))
@@ -367,7 +375,12 @@ fn relation_endpoint_digest(fact: &ConsumedRelationEndpointFact) -> String {
             collection.as_deref().unwrap_or("none"),
             entity_identity
                 .as_ref()
-                .map(|identity| identity.evidence_identity().to_string())
+                .map(|identity| {
+                    identity
+                        .evidence_identity()
+                        .terminal_projection_for_reporting()
+                        .to_string()
+                })
                 .unwrap_or_else(|| "none".to_string())
         ),
         ConsumedRelationEndpointFact::GroupedProjection {

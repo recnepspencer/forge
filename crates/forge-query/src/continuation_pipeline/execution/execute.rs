@@ -119,7 +119,7 @@ pub(crate) fn execute_prepared_continuation_on_handle<
 
     let execution_digest =
         forge_query_evidence_identity(ForgeQueryEvidenceScope::ContinuationExecutionDigest)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("prepared"),
                 prepared.prepared_digest(),
             )
@@ -175,7 +175,7 @@ pub(crate) fn execute_prepared_continuation_on_handle<
                 ForgeQueryEvidenceTag::new("signal_compatibility"),
                 prepared.signal_compatibility_digest(),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("linked_artifacts"),
                 linked_artifacts_identity(&linked),
             )

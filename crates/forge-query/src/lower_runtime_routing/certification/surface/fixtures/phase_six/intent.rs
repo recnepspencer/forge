@@ -20,27 +20,27 @@ pub(crate) fn representative_runtime_intent_authority_row() -> RepresentativeArt
         ForgeQueryLowerRuntimeSeamKey::RuntimeIntentAuthorityAdapter,
         "Runtime intent authority seam",
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("strategy"),
                 receipt.strategy_identity(),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("outcome"),
                 receipt.outcome_digest(),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("provenance"),
                 receipt.execution_provenance_chain_digest(),
             )
             .seal(),
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("execution_binding"),
                 receipt.execution_binding_digest(),
             )
             .seal(),
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("execution_provenance"),
                 receipt.execution_provenance_chain_digest(),
             )
@@ -63,13 +63,13 @@ pub(crate) fn representative_intent_runtime_execution_row() -> RepresentativeArt
                 ForgeQueryEvidenceTag::new("snapshot"),
                 receipt.snapshot_evidence_identity(),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("receipt"),
                 receipt.receipt_digest(),
             )
             .seal(),
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("admission_decision"),
                 receipt.admission_decision_digest(),
             )

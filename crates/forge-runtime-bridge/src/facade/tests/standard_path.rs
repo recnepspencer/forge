@@ -13,12 +13,12 @@ use crate::speculation::{
 
 fn preview_declaration() -> BridgePreviewSessionDeclaration {
     BridgePreviewSessionDeclaration::new(
-        BridgePreviewSessionDeclarationIdentity::new("preview:analysis"),
+        BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("preview:analysis"),
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
-            BridgeSpeculativeBranchBindingIdentity::new("binding:analysis"),
+            BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("binding:analysis"),
             crate::truth_identity_fixtures::truth_branch_fixture("truth:analysis"),
-            BridgeSignalBranchIdentity::new("signal:analysis"),
+            BridgeSignalBranchIdentity::admit_bridge_owned("signal:analysis"),
         ),
         BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::branch_snapshot(
@@ -54,7 +54,7 @@ fn standard_builder_aliases_build_runtime() {
             ],
         ))
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping"),
+            BridgeMappingId::admit_bridge_owned("mapping"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("entity-1"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -67,7 +67,7 @@ fn standard_builder_aliases_build_runtime() {
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal:profile"),
+            SignalInvalidationScope::admit_bridge_owned("signal:profile"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -176,7 +176,7 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
 
     let comparison = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
-            BridgePreviewSessionIdentity::new("preview-session:std-compare"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:std-compare"),
             preview_declaration(),
             3,
             1,
@@ -202,7 +202,7 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
 
     let discarded = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
-            BridgePreviewSessionIdentity::new("preview-session:std-discard"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:std-discard"),
             preview_declaration(),
             3,
             1,
@@ -223,7 +223,7 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
 
     let promoted = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
-            BridgePreviewSessionIdentity::new("preview-session:std-promote"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:std-promote"),
             preview_declaration(),
             3,
             1,
@@ -241,7 +241,7 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
     assert_eq!(runtime.diagnostics().preview_discard_records().len(), 1);
     assert_eq!(runtime.diagnostics().preview_promotion_records().len(), 1);
     let promoted_session_identity =
-        BridgePreviewSessionIdentity::new("preview-session:std-promote");
+        BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:std-promote");
     assert!(matches!(
         runtime
             .diagnostics()

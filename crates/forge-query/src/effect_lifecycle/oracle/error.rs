@@ -1,6 +1,4 @@
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectExecutionOracleErrorKind {
@@ -58,24 +56,20 @@ impl EffectExecutionOracleError {
         oracle_identity: Option<&ForgeQueryEvidenceIdentity>,
     ) -> Self {
         let message = message.into();
-        let error_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_execution_oracle_error_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("execution_subject"),
-            execution_subject_identity,
-        )
-        .optional_evidence_identity(
-            ForgeQueryEvidenceTag::new("oracle"),
-            oracle_identity,
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("message"), message.as_str())
-        .seal();
+        let error_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_execution_oracle_error_v1",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("execution_subject"),
+                    execution_subject_identity,
+                )
+                .optional_evidence_identity(ForgeQueryEvidenceTag::new("oracle"), oracle_identity)
+                .field_shape(ForgeQueryEvidenceTag::new("message"), message.as_str())
+                .seal();
         Self {
             kind,
             message,

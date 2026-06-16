@@ -163,14 +163,14 @@ fn runtime_for_target(
 
 fn mapping_registration(target_selector: TruthPatchTargetSelector) -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("native-target-route"),
+        BridgeMappingId::admit_bridge_owned("native-target-route"),
         TruthPatchScope::for_target(
             MappingSelector::exact("entity-1"),
             aspect_key("profile"),
             target_selector,
         ),
         SnapshotReadContract::scalar(aspect_key("profile"), ScalarAspectType::String),
-        SignalInvalidationScope::new("signal.native-target"),
+        SignalInvalidationScope::admit_bridge_owned("signal.native-target"),
         CoarseRoutingMode::Direct,
     )
 }
@@ -181,7 +181,7 @@ fn aspect_registration(
     slice_kind: SubscriptionSliceKind,
 ) -> BridgeAspectRegistration {
     BridgeAspectRegistration::new(
-        BridgeAspectRegistrationId::new("native-target-aspect"),
+        BridgeAspectRegistrationId::admit_bridge_owned("native-target-aspect"),
         TruthPatchScope::for_target(
             MappingSelector::exact("entity-1"),
             aspect_key("profile"),

@@ -177,7 +177,7 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
         ),
         (
             ForgeQueryRuntimeError::SharedReadStaleBasis {
-                snapshot_identity: crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label("shared-read-stale"),
+                snapshot_identity: crate::memory_workspace::admit_external_snapshot_label("shared-read-stale"),
             },
             ConsumerStopRoute::SharedReadStaleBasis,
         ),

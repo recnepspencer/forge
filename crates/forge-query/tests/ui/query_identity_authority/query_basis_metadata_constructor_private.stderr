@@ -1,0 +1,37 @@
+error[E0451]: fields `query_digest`, `basis_digest`, `basis_family`, `cost_class`, `budget_class`, `historical_admission_class`, `historical_materialization_cost_class`, `requested_path_identity`, `admitted_path_identity`, `resolved_path_identity`, `materialization_path_identity`, `preview_provenance_identity`, `result_digest`, `drift_outcome`, `prediction_report` and `prediction_drift_outcome` of struct `QueryBasisMetadata` are private
+  --> tests/ui/query_basis_metadata_constructor_private.rs:5:9
+   |
+ 4 |     let _ = QueryBasisMetadata {
+   |             ------------------ in this type
+ 5 |         query_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field
+ 6 |         basis_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field
+ 7 |         basis_family: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^^^^^ private field
+ 8 |         cost_class: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^^^ private field
+ 9 |         budget_class: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^^^^^ private field
+10 |         historical_admission_class: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         historical_materialization_cost_class: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         requested_path_identity: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         admitted_path_identity: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         resolved_path_identity: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         materialization_path_identity: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         preview_provenance_identity: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         result_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field
+18 |         drift_outcome: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^^^^^^ private field
+19 |         prediction_report: None,
+   |         ^^^^^^^^^^^^^^^^^ private field
+20 |         prediction_drift_outcome: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field

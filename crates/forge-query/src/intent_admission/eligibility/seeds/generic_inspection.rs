@@ -145,7 +145,7 @@ impl ForgeQueryGenericInspectionIntentSeed {
             ForgeQueryGenericInspectionIntentTargetSeed::WriteReceipt(receipt.clone()),
             ForgeQueryGenericInspectionRequestLabel::new(format!(
                 "inspect.write_receipt.{}",
-                receipt.commit_identity()
+                receipt.commit_identity().evidence_identity().reporting_projection()
             )),
             generic_inspection_seed_identity("write_receipt")
                 .field_evidence_identity(
@@ -170,7 +170,7 @@ impl ForgeQueryGenericInspectionIntentSeed {
                 receipt.batch_digest()
             )),
             generic_inspection_seed_identity("batch_write_receipt")
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("batch_receipt"),
                     receipt.batch_digest(),
                 )
@@ -322,7 +322,7 @@ fn receipt_seed_input_digest(
 
 fn generic_inspection_seed_identity(
     target_family: &'static str,
-) -> crate::ForgeQueryEvidenceIdentityEncoder {
+) -> crate::evidence_identity::ForgeQueryEvidenceIdentityEncoder {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::GenericInspectionIntentSeed)
         .field_shape(ForgeQueryEvidenceTag::new("target_family"), target_family)
 }

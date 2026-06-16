@@ -129,7 +129,7 @@ pub(crate) fn active_subscription_for(
 
 fn profile_name_mapping() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("mapping"),
+        BridgeMappingId::admit_bridge_owned("mapping"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("entity-1"),
             profile_aspect_key(),
@@ -139,7 +139,7 @@ fn profile_name_mapping() -> BridgeMappingRegistration {
             profile_aspect_key(),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal:profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal:profile"),
         CoarseRoutingMode::Direct,
     )
 }

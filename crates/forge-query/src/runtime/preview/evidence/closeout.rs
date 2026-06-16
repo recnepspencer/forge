@@ -112,7 +112,7 @@ impl ForgeQueryPreviewCloseoutEvidence {
         let basis_evidence_rows = basis_admission.evidence_rows();
         let mut closeout_builder =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewCloseoutEvidence)
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("session_label_identity"),
                     basis_admission.label_identity().as_str(),
                 )
@@ -121,7 +121,7 @@ impl ForgeQueryPreviewCloseoutEvidence {
                     ForgeQueryEvidenceTag::new("effect_policy"),
                     effect_policy.as_str(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("basis_admission_digest"),
                     basis_admission.admission_digest().as_str(),
                 )
@@ -129,7 +129,7 @@ impl ForgeQueryPreviewCloseoutEvidence {
                     ForgeQueryEvidenceTag::new("authority_lane"),
                     basis_admission.authority_lane().as_str(),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("basis_evidence_row"),
                     basis_evidence_rows
                         .iter()
@@ -204,7 +204,7 @@ impl ForgeQueryPreviewCloseoutEvidence {
                     authoritative_residue_count,
                 );
         if let Some(rebinding_identity) = rebinding_identity.as_ref() {
-            closeout_builder = closeout_builder.field_identity(
+            closeout_builder = closeout_builder.field_value(
                 ForgeQueryEvidenceTag::new("rebinding_digest"),
                 rebinding_identity.as_str(),
             );

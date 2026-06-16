@@ -32,7 +32,7 @@ impl BridgeMergeParentOrderProof {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            proof_identity: BridgeMergeParentOrderProofIdentity::new(format!(
+            proof_identity: BridgeMergeParentOrderProofIdentity::admit_bridge_owned(format!(
                 "merge-parent-order-proof:sha256:{digest:x}"
             )),
             parents: Arc::from(parents),
@@ -91,7 +91,7 @@ impl BridgeMergeAuthorityBasis {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            basis_identity: BridgeMergeAuthorityBasisIdentity::new(format!(
+            basis_identity: BridgeMergeAuthorityBasisIdentity::admit_bridge_owned(format!(
                 "merge-authority-basis:sha256:{digest:x}"
             )),
             basis_kind,

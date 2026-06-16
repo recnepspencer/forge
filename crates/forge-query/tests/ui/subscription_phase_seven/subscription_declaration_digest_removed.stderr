@@ -1,0 +1,20 @@
+warning: unreachable statement
+ --> tests/ui/subscription_phase_seven/subscription_declaration_digest_removed.rs:5:5
+  |
+4 |     let declaration: QuerySubscriptionDeclarationArtifact = todo!();
+  |                                                             ------- any code following this expression is unreachable
+5 |     let _ = declaration.declaration_digest();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0624]: method `declaration_digest` is private
+ --> tests/ui/subscription_phase_seven/subscription_declaration_digest_removed.rs:5:25
+  |
+5 |     let _ = declaration.declaration_digest();
+  |                         ^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/subscription/declaration.rs
+  |
+  |     pub(crate) fn declaration_digest(&self) -> &QuerySubscriptionDeclarationDigest {
+  |     ------------------------------------------------------------------------------ private method defined here

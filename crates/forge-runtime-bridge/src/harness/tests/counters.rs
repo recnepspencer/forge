@@ -134,12 +134,12 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
         vec![field_aspect_registration()],
     );
     let declaration = BridgePreviewSessionDeclaration::new(
-        BridgePreviewSessionDeclarationIdentity::new("counter:preview-declaration"),
+        BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("counter:preview-declaration"),
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
-            BridgeSpeculativeBranchBindingIdentity::new("counter:binding"),
+            BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("counter:binding"),
             crate::truth_identity_fixtures::truth_branch_fixture("main"),
-            BridgeSignalBranchIdentity::new("signal:counter"),
+            BridgeSignalBranchIdentity::admit_bridge_owned("signal:counter"),
         ),
         preview_session_basis(CounterPreviewSessionBasisInput {
             truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture("main"),
@@ -151,7 +151,7 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
 
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("counter:preview-session"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("counter:preview-session"),
             declaration,
         )
         .expect("preview declaration should admit");
@@ -202,16 +202,18 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
 
     let promotion_admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("counter:preview-promotion-session"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("counter:preview-promotion-session"),
             BridgePreviewSessionDeclaration::new(
-                BridgePreviewSessionDeclarationIdentity::new(
+                BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
                     "counter:preview-promotion-declaration",
                 ),
                 BridgeRequestKind::Preview,
                 BridgeSpeculativeBranchBinding::new(
-                    BridgeSpeculativeBranchBindingIdentity::new("counter:promotion-binding"),
+                    BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(
+                        "counter:promotion-binding",
+                    ),
                     crate::truth_identity_fixtures::truth_branch_fixture("main"),
-                    BridgeSignalBranchIdentity::new("signal:counter"),
+                    BridgeSignalBranchIdentity::admit_bridge_owned("signal:counter"),
                 ),
                 preview_session_basis(CounterPreviewSessionBasisInput {
                     truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture(

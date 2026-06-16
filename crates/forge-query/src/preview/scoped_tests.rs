@@ -71,7 +71,7 @@ fn scoped_preview_live_admission_denies_mismatched_scoped_basis_semantics() {
         forge_runtime_bridge::facade::TruthSnapshotIdentity::from_bridge_harness_label(
             "snapshot:other",
         )
-        .evidence_identity(),
+        .bridge_admission_evidence(),
         BasisOperationLaneRequest::Observation,
     ))
     .expect("runtime-snapshot observation basis should scope");

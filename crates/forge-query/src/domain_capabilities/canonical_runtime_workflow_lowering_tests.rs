@@ -27,7 +27,7 @@ fn mutation_lowering_materializer_builds_runtime_lowered_declaration() {
         crate::ForgeQueryEvidenceTag::new("test_authority_binding"),
         "mutation-lowering",
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("binding"),
         "authority-binding:42",
     )
@@ -36,7 +36,7 @@ fn mutation_lowering_materializer_builds_runtime_lowered_declaration() {
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_mutation_reconciliation(
             "spatial.workflow.mutation",
             "runtime preflight should lower a relational mutation intent",
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "runtime-snapshot:42",
             ),
             authority_binding_identity.clone(),
@@ -60,7 +60,7 @@ fn mutation_lowering_materializer_builds_runtime_lowered_declaration() {
             .runtime_snapshot_identity()
             .map(|identity| identity.evidence_identity()),
         Some(
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "runtime-snapshot:42",
             )
             .evidence_identity()
@@ -113,7 +113,7 @@ fn writeback_lowering_materializer_builds_bridge_writeback_declaration() {
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_writeback_projected_state_diff(
             "spatial.workflow.writeback",
             "runtime preflight should lower a bridge writeback declaration",
-            crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+            crate::memory_workspace::admit_external_snapshot_label(
                 "runtime-snapshot:58",
             ),
         )
@@ -142,7 +142,7 @@ fn workflow_lowering_materializer_denies_missing_lowering_semantics() {
                 "missing lowering semantics should deny",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
-                        crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+                        crate::memory_workspace::admit_external_snapshot_label(
                             "runtime-snapshot:42",
                         ),
                     ),
@@ -175,7 +175,9 @@ fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
             "preview promotion writeback should preserve stale posture at lowering time",
             Some(ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:88"),
+                    crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                        "preview-session:88",
+                    ),
                     crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::WritebackLoweringNarrow,
@@ -193,7 +195,10 @@ fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
     match stale {
         TransitionOutcome::Stale(stale) => {
             assert_eq!(stale.category(), "workflow-preview");
-            assert_eq!(stale.bound_target_for_reporting(), target.target_identity().as_str());
+            assert_eq!(
+                stale.bound_target_for_reporting(),
+                target.target_identity().as_str()
+            );
         }
         other => panic!("expected stale outcome, got {other:?}"),
     }
@@ -216,7 +221,10 @@ fn discard_required_writeback_lowering_preserves_preview_stale_posture() {
     match stale {
         TransitionOutcome::Stale(stale) => {
             assert_eq!(stale.category(), "workflow-preview");
-            assert_eq!(stale.bound_target_for_reporting(), target.target_identity().as_str());
+            assert_eq!(
+                stale.bound_target_for_reporting(),
+                target.target_identity().as_str()
+            );
         }
         other => panic!("expected stale outcome, got {other:?}"),
     }
@@ -233,7 +241,9 @@ fn workflow_lowering_materializer_preserves_runtime_rebind_posture() {
             "preview-scoped writeback should preserve explicit rebind posture",
             Some(ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
-                    crate::facade::runtime::BridgePreviewSessionIdentity::new("preview-session:89"),
+                    crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
+                        "preview-session:89",
+                    ),
                     crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 crate::workflow::WorkflowDeclarationFamily::WritebackLoweringNarrow,
@@ -251,7 +261,10 @@ fn workflow_lowering_materializer_preserves_runtime_rebind_posture() {
     match rebind {
         TransitionOutcome::RebindRequired(rebind) => {
             assert_eq!(rebind.category(), "workflow-preview");
-            assert_eq!(rebind.bound_target_for_reporting(), target.target_identity().as_str());
+            assert_eq!(
+                rebind.bound_target_for_reporting(),
+                target.target_identity().as_str()
+            );
         }
         other => panic!("expected rebind-required outcome, got {other:?}"),
     }

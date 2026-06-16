@@ -71,9 +71,10 @@ impl BridgeSubscriptionContinuationIndex {
             candidate_input_basis,
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let continuation_index_identity = BridgeSubscriptionContinuationIndexIdentity::new(
-            format!("bridge-subscription-continuation-index-id:sha256:{digest:x}"),
-        );
+        let continuation_index_identity =
+            BridgeSubscriptionContinuationIndexIdentity::admit_bridge_owned(format!(
+                "bridge-subscription-continuation-index-id:sha256:{digest:x}"
+            ));
         let candidates = candidate_inputs
             .into_iter()
             .enumerate()

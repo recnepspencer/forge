@@ -42,7 +42,12 @@ pub(super) fn bundle_snapshot_identity(
                 snapshot_identities
                     .iter()
                     .map(|(view_name, snapshot_identity)| {
-                        format!("{view_name}:{}", snapshot_identity.evidence_identity())
+                        format!(
+                            "{view_name}:{}",
+                            snapshot_identity
+                                .evidence_identity()
+                                .terminal_projection_for_reporting()
+                        )
                     })
                     .collect::<Vec<_>>()
                     .join(", ")

@@ -134,7 +134,7 @@ impl BridgeValidatedWritebackCandidate {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Ok(Self {
-            candidate_identity: BridgeWritebackCandidateIdentity::new(format!(
+            candidate_identity: BridgeWritebackCandidateIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-candidate:sha256:{digest:x}"
             )),
             contract_digest,

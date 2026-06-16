@@ -1,7 +1,5 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::batch::LoweredEffectBatchExecutionPlan;
 use super::counters::EffectLifecycleCounters;
@@ -69,37 +67,36 @@ impl ExecutedEffectBatchPlan {
         aggregate_artifact: ExecutedEffectAuthorityArtifact,
         components: Vec<ExecutedEffectPlan>,
     ) -> Self {
-        let batch_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "executed_effect_batch_plan_v2",
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("authority"),
-            authority_lane.as_str(),
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("basis"), basis_family.as_str())
-        .field_shape(
-            ForgeQueryEvidenceTag::new("owner"),
-            authority_owner.as_str(),
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("lowered"),
-            lowered.batch_identity(),
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("aggregate"),
-            &executed_authority_artifact_identity(&aggregate_artifact),
-        )
-        .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("component"),
-            components
-                .iter()
-                .map(ExecutedEffectPlan::effect_execution_identity),
-        )
-        .seal();
+        let batch_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "executed_effect_batch_plan_v2",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authority"),
+                    authority_lane.as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("basis"), basis_family.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("owner"),
+                    authority_owner.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("lowered"),
+                    lowered.batch_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("aggregate"),
+                    &executed_authority_artifact_identity(&aggregate_artifact),
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("component"),
+                    components
+                        .iter()
+                        .map(ExecutedEffectPlan::effect_execution_identity),
+                )
+                .seal();
         let counters = EffectLifecycleCounters::executed_batch(
             components.len(),
             components

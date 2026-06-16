@@ -9,7 +9,7 @@ fn artifact_is_exported_through_runtime_facade_and_recomposes_from_typed_parts()
     let label = typed_temporal_preview_label();
     let recomposed =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SessionLabelIdentity)
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("session_label_namespace"),
                 "worth-kernel",
             )
@@ -17,7 +17,7 @@ fn artifact_is_exported_through_runtime_facade_and_recomposes_from_typed_parts()
                 ForgeQueryEvidenceTag::new("session_label_name_segment_count"),
                 2,
             )
-            .field_identity_sequence(
+            .field_value_sequence(
                 ForgeQueryEvidenceTag::new("session_label_name_segments"),
                 ["temporal", "preview"],
             )

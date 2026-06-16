@@ -32,8 +32,9 @@ pub(super) fn row_set_control_expected_digest(row_count: usize) -> String {
                     format!(
                         "entity_identity:{}:{}",
                         row.row_identity().as_str(),
-                        ForgeQueryEntityIdentity::authored_command(entity_identity)
+                        crate::memory_workspace::admit_authored_entity_label(entity_identity)
                             .evidence_identity()
+                            .terminal_projection_for_reporting()
                     ),
                     format!(
                         "display_field:{}:profile.display_name:{}",
@@ -55,7 +56,9 @@ pub(super) fn row_set_control_actual_digest(facts: &ConsumedProjectionFactSet) -
                 format!(
                     "entity_identity:{}:{}",
                     fact.source_row_identity(),
-                    fact.entity_identity().evidence_identity()
+                    fact.entity_identity()
+                        .evidence_identity()
+                        .terminal_projection_for_reporting()
                 )
             })
             .chain(facts.display_fields().iter().map(|fact| {

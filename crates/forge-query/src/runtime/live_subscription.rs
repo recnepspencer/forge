@@ -1,6 +1,7 @@
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
+use crate::identity::CanonicalResultShapeDigest;
 use crate::subscription::{
     ActiveSubscriptionCounters, QuerySubscriptionDeclarationCounters, QuerySubscriptionFamily,
     SubscriptionConsumerAttachment,
@@ -57,31 +58,35 @@ impl ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeLiveSubscriptionInstallation {
-    view_name: String,
-    authority_lane: ForgeQueryAuthorityLane,
-    query_identity: ForgeQueryEvidenceIdentity,
-    view_shape_identity: ForgeQueryEvidenceIdentity,
-    subscription_family: QuerySubscriptionFamily,
-    subscription_family_identity: ForgeQueryEvidenceIdentity,
-    subscription_declaration_identity: ForgeQueryEvidenceIdentity,
-    bridge_declaration_identity: ForgeQueryEvidenceIdentity,
-    admission_identity: ForgeQueryEvidenceIdentity,
-    activation_identity: ForgeQueryEvidenceIdentity,
-    basis_binding_identity: ForgeQueryEvidenceIdentity,
-    signal_strategy_identity: ForgeQueryEvidenceIdentity,
-    active_lane_identity: ForgeQueryEvidenceIdentity,
-    consumer_attachment_identity: ForgeQueryEvidenceIdentity,
-    consumer_identity: ForgeQueryEvidenceIdentity,
-    delivery_cursor_identity: ForgeQueryEvidenceIdentity,
-    subscription_budget_policy: ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,
-    active_lifecycle_budget_policy: ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,
-    consumer_attachment_budget_policy: ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,
-    runtime_budget_identity: ForgeQueryEvidenceIdentity,
-    support_identity: ForgeQueryEvidenceIdentity,
-    counters: QuerySubscriptionDeclarationCounters,
-    active_lane_counters: ActiveSubscriptionCounters,
-    consumer_attachment_counters: ActiveSubscriptionCounters,
-    installation_identity: ForgeQueryEvidenceIdentity,
+    pub(super) view_name: String,
+    pub(super) authority_lane: ForgeQueryAuthorityLane,
+    pub(super) query_identity: ForgeQueryEvidenceIdentity,
+    pub(super) view_shape_identity: ForgeQueryEvidenceIdentity,
+    pub(super) canonical_result_shape_digest: CanonicalResultShapeDigest,
+    pub(super) canonical_result_shape_identity: ForgeQueryEvidenceIdentity,
+    pub(super) subscription_family: QuerySubscriptionFamily,
+    pub(super) subscription_family_identity: ForgeQueryEvidenceIdentity,
+    pub(super) subscription_declaration_identity: ForgeQueryEvidenceIdentity,
+    pub(super) bridge_declaration_identity: ForgeQueryEvidenceIdentity,
+    pub(super) admission_identity: ForgeQueryEvidenceIdentity,
+    pub(super) activation_identity: ForgeQueryEvidenceIdentity,
+    pub(super) basis_binding_identity: ForgeQueryEvidenceIdentity,
+    pub(super) signal_strategy_identity: ForgeQueryEvidenceIdentity,
+    pub(super) active_lane_identity: ForgeQueryEvidenceIdentity,
+    pub(super) consumer_attachment_identity: ForgeQueryEvidenceIdentity,
+    pub(super) consumer_identity: ForgeQueryEvidenceIdentity,
+    pub(super) delivery_cursor_identity: ForgeQueryEvidenceIdentity,
+    pub(super) subscription_budget_policy: ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,
+    pub(super) active_lifecycle_budget_policy:
+        ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,
+    pub(super) consumer_attachment_budget_policy:
+        ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,
+    pub(super) runtime_budget_identity: ForgeQueryEvidenceIdentity,
+    pub(super) support_identity: ForgeQueryEvidenceIdentity,
+    pub(super) counters: QuerySubscriptionDeclarationCounters,
+    pub(super) active_lane_counters: ActiveSubscriptionCounters,
+    pub(super) consumer_attachment_counters: ActiveSubscriptionCounters,
+    pub(super) installation_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimeLiveSubscriptionInstallation {
@@ -89,6 +94,7 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         view_name: impl Into<String>,
         query_source_identity: ForgeQueryEvidenceIdentity,
         view_shape_source_identity: ForgeQueryEvidenceIdentity,
+        canonical_result_shape_digest: CanonicalResultShapeDigest,
         subscription_family: QuerySubscriptionFamily,
         subscription_declaration_source_identity: ForgeQueryEvidenceIdentity,
         bridge_declaration_source_identity: ForgeQueryEvidenceIdentity,
@@ -110,6 +116,7 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         let query_identity = live_subscription_input_identity("query", &query_source_identity);
         let view_shape_identity =
             live_subscription_input_identity("view_shape", &view_shape_source_identity);
+        let canonical_result_shape_identity = canonical_result_shape_digest.evidence_identity();
         let subscription_declaration_identity = live_subscription_input_identity(
             "subscription_declaration",
             &subscription_declaration_source_identity,
@@ -189,6 +196,10 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
             ForgeQueryEvidenceTag::new("view_shape"),
             &view_shape_identity,
         )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("canonical_result_shape"),
+            &canonical_result_shape_identity,
+        )
         .seal();
         let counter_identity =
             live_subscription_source_identity("counters", &counters.evidence_identity());
@@ -212,6 +223,10 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("view_shape"),
             &view_shape_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("canonical_result_shape"),
+            &canonical_result_shape_identity,
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("subscription_family"),
@@ -272,6 +287,8 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
             query_identity,
             view_shape_identity,
+            canonical_result_shape_digest,
+            canonical_result_shape_identity,
             subscription_family,
             subscription_family_identity,
             subscription_declaration_identity,
@@ -294,192 +311,6 @@ impl ForgeQueryRuntimeLiveSubscriptionInstallation {
             consumer_attachment_counters,
             installation_identity,
         }
-    }
-
-    pub fn view_name(&self) -> &str {
-        &self.view_name
-    }
-
-    pub fn authority_lane(&self) -> ForgeQueryAuthorityLane {
-        self.authority_lane
-    }
-
-    pub fn query_for_reporting(&self) -> &str {
-        self.query_identity.as_str()
-    }
-
-    pub fn query_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.query_identity
-    }
-
-    pub fn view_shape_for_reporting(&self) -> &str {
-        self.view_shape_identity.as_str()
-    }
-
-    pub fn view_shape_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.view_shape_identity
-    }
-
-    pub fn subscription_family(&self) -> &str {
-        self.subscription_family.as_str()
-    }
-
-    pub fn subscription_family_kind(&self) -> &QuerySubscriptionFamily {
-        &self.subscription_family
-    }
-
-    pub fn subscription_family_for_reporting(&self) -> &str {
-        self.subscription_family_identity.as_str()
-    }
-
-    pub fn subscription_family_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.subscription_family_identity
-    }
-
-    pub fn subscription_declaration_for_reporting(&self) -> &str {
-        self.subscription_declaration_identity.as_str()
-    }
-
-    pub fn subscription_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.subscription_declaration_identity
-    }
-
-    pub fn bridge_declaration_for_reporting(&self) -> &str {
-        self.bridge_declaration_identity.as_str()
-    }
-
-    pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.bridge_declaration_identity
-    }
-
-    pub fn admission_for_reporting(&self) -> &str {
-        self.admission_identity.as_str()
-    }
-
-    pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.admission_identity
-    }
-
-    pub fn activation_for_reporting(&self) -> &str {
-        self.activation_identity.as_str()
-    }
-
-    pub fn activation_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.activation_identity
-    }
-
-    pub fn basis_binding_for_reporting(&self) -> &str {
-        self.basis_binding_identity.as_str()
-    }
-
-    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.basis_binding_identity
-    }
-
-    pub fn signal_strategy_for_reporting(&self) -> &str {
-        self.signal_strategy_identity.as_str()
-    }
-
-    pub fn signal_strategy_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.signal_strategy_identity
-    }
-
-    pub fn active_lane_for_reporting(&self) -> &str {
-        self.active_lane_identity.as_str()
-    }
-
-    pub fn active_lane_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.active_lane_identity
-    }
-
-    pub fn consumer_attachment_for_reporting(&self) -> &str {
-        self.consumer_attachment_identity.as_str()
-    }
-
-    pub fn consumer_attachment_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.consumer_attachment_identity
-    }
-
-    pub fn consumer_for_reporting(&self) -> &str {
-        self.consumer_identity.as_str()
-    }
-
-    pub fn consumer_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.consumer_identity
-    }
-
-    pub fn delivery_cursor_for_reporting(&self) -> &str {
-        self.delivery_cursor_identity.as_str()
-    }
-
-    pub fn delivery_cursor_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.delivery_cursor_identity
-    }
-
-    pub fn support_for_reporting(&self) -> &str {
-        self.support_identity.as_str()
-    }
-
-    pub fn support_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.support_identity
-    }
-
-    pub fn subscription_budget_policy(&self) -> &str {
-        self.subscription_budget_policy.policy_label()
-    }
-
-    pub fn active_lifecycle_budget_policy(&self) -> &str {
-        self.active_lifecycle_budget_policy.policy_label()
-    }
-
-    pub fn consumer_attachment_budget_policy(&self) -> &str {
-        self.consumer_attachment_budget_policy.policy_label()
-    }
-
-    pub fn subscription_budget_policy_identity(
-        &self,
-    ) -> &ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity {
-        &self.subscription_budget_policy
-    }
-
-    pub fn active_lifecycle_budget_policy_identity(
-        &self,
-    ) -> &ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity {
-        &self.active_lifecycle_budget_policy
-    }
-
-    pub fn consumer_attachment_budget_policy_identity(
-        &self,
-    ) -> &ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity {
-        &self.consumer_attachment_budget_policy
-    }
-
-    pub fn runtime_budget_for_reporting(&self) -> &str {
-        self.runtime_budget_identity.as_str()
-    }
-
-    pub fn runtime_budget_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.runtime_budget_identity
-    }
-
-    pub fn counters(&self) -> &QuerySubscriptionDeclarationCounters {
-        &self.counters
-    }
-
-    pub fn active_lane_counters(&self) -> &ActiveSubscriptionCounters {
-        &self.active_lane_counters
-    }
-
-    pub fn consumer_attachment_counters(&self) -> &ActiveSubscriptionCounters {
-        &self.consumer_attachment_counters
-    }
-
-    pub fn installation_for_reporting(&self) -> &str {
-        self.installation_identity.as_str()
-    }
-
-    pub fn installation_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.installation_identity
     }
 }
 

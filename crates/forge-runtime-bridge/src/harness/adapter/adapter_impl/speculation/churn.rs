@@ -69,15 +69,19 @@ fn execute_one_churn_branch(
 ) -> Result<SpeculationChurnBranchExecution, BridgeHarnessError> {
     let session_id = format!("harness:speculation-churn:{index}");
     let preview_session_identity =
-        crate::facade::BridgePreviewSessionIdentity::new(session_id.clone());
+        crate::facade::BridgePreviewSessionIdentity::admit_bridge_owned(session_id.clone());
     let preview_declaration_identity =
-        crate::facade::BridgePreviewSessionDeclarationIdentity::new(session_id.clone());
+        crate::facade::BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
+            session_id.clone(),
+        );
     let binding_identity =
-        crate::facade::BridgeSpeculativeBranchBindingIdentity::new(format!("{session_id}:binding"));
+        crate::facade::BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(format!(
+            "{session_id}:binding"
+        ));
     let truth_branch_identity =
         crate::truth_identity_fixtures::truth_branch_fixture(format!("branch-{index}"));
     let signal_branch_identity =
-        crate::facade::BridgeSignalBranchIdentity::new(format!("signal:{index}"));
+        crate::facade::BridgeSignalBranchIdentity::admit_bridge_owned(format!("signal:{index}"));
     let snapshot_identity =
         crate::truth_identity_fixtures::truth_snapshot_fixture(format!("{session_id}:snapshot"));
     let admitted = runtime_bridge

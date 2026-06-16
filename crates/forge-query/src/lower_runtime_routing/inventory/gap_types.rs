@@ -50,7 +50,7 @@ impl ForgeQueryLowerRuntimeGapRegistryRow {
                 "lower_runtime_gap_registry_row_v1",
             )
             .field_shape(ForgeQueryEvidenceTag::new("seam"), self.seam_key.as_str())
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("concrete_seam"),
                 self.concrete_seam,
             )
@@ -62,11 +62,11 @@ impl ForgeQueryLowerRuntimeGapRegistryRow {
                 ForgeQueryEvidenceTag::new("missing_contract_owner"),
                 self.missing_contract_owner.as_str(),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("missing_contract"),
                 self.missing_contract,
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("required_closeout"),
                 self.required_closeout,
             )
@@ -117,7 +117,7 @@ impl ForgeQueryLowerRuntimeGapRegistry {
                 ForgeQueryEvidenceIdentity::compose(
                     ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("required_closeout"),
                     row.required_closeout(),
                 )

@@ -49,20 +49,20 @@ impl TestRelationalSource {
         state.branch_heads.insert(
             patch
                 .branch_identity()
-                .evidence_identity()
-                .as_str()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
                 .to_string(),
             patch
                 .commit_identity()
-                .evidence_identity()
-                .as_str()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
                 .to_string(),
         );
         state.committed_patches.insert(
             patch
                 .commit_identity()
-                .evidence_identity()
-                .as_str()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
                 .to_string(),
             patch,
         );
@@ -70,8 +70,8 @@ impl TestRelationalSource {
 
     fn insert_snapshot(&self, snapshot_identity: &str, records: Vec<SnapshotReadRecord>) {
         let snapshot_key = fixture_snapshot_identity(snapshot_identity)
-            .evidence_identity()
-            .as_str()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
             .to_string();
         self.state
             .write()
@@ -90,7 +90,7 @@ impl CommittedPatchSource for TestRelationalSource {
             .read()
             .expect("fixture bridge source lock poisoned")
             .committed_patches
-            .get(request.commit_identity().evidence_identity().as_str())
+            .get(request.commit_identity().bridge_admission_evidence().terminal_projection_for_reporting())
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -111,7 +111,7 @@ impl SnapshotReadSource for TestRelationalSource {
             .read()
             .expect("fixture bridge source lock poisoned")
             .snapshots
-            .get(identity.evidence_identity().as_str())
+            .get(identity.bridge_admission_evidence().terminal_projection_for_reporting())
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -137,7 +137,7 @@ impl TruthBranchHeadSource for TestRelationalSource {
             .expect("fixture bridge source lock poisoned");
         let commit_identity = state
             .branch_heads
-            .get(branch_identity.evidence_identity().as_str())
+            .get(branch_identity.bridge_admission_evidence().terminal_projection_for_reporting())
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
                     "no branch head registered for `{:?}`",
@@ -152,7 +152,7 @@ impl TruthBranchHeadSource for TestRelationalSource {
                 RelationalBridgeSourceError::new(format!(
                     "branch head `{}` for `{}` had no patch envelope",
                     commit_identity,
-                    branch_identity.evidence_identity().as_str()
+                    branch_identity.bridge_admission_evidence().terminal_projection_for_reporting()
                 ))
             })
     }

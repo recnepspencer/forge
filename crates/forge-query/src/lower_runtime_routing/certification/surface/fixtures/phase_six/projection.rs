@@ -132,12 +132,12 @@ pub(crate) fn representative_projection_bridge_row() -> RepresentativeArtifacts 
         "Projection source intake from bridge artifacts",
         bridge_grouped_projection_evidence(
             &source,
-            &grouped.digest().evidence_identity(),
+            &grouped.digest().bridge_admission_evidence(),
             "source",
         ),
         bridge_grouped_projection_evidence(
             &source,
-            &grouped.digest().evidence_identity(),
+            &grouped.digest().bridge_admission_evidence(),
             "retained",
         ),
     )
@@ -306,18 +306,18 @@ fn projection_source_evidence_identity(
                 source.family().as_str(),
             );
     if let Some(basis) = source.basis_digest() {
-        builder = builder.field_identity(ForgeQueryEvidenceTag::new("basis"), basis);
+        builder = builder.field_value(ForgeQueryEvidenceTag::new("basis"), basis);
     }
     if let Some(identity) = source.source_identity_handle().evidence_identity() {
         builder = builder.field_evidence_identity(ForgeQueryEvidenceTag::new("source"), identity);
     } else {
-        builder = builder.field_identity(
+        builder = builder.field_value(
             ForgeQueryEvidenceTag::new("source"),
             source.source_identity(),
         );
     }
     for reference in source.source_reference_identities() {
-        builder = builder.field_identity(
+        builder = builder.field_value(
             ForgeQueryEvidenceTag::new(reference.label()),
             reference.identity(),
         );
@@ -336,7 +336,7 @@ fn relational_grouped_projection_evidence(
             &projection_source_evidence_identity(source, "relational-grouped"),
         )
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_identity(ForgeQueryEvidenceTag::new("grouped"), grouped_digest)
+        .field_value(ForgeQueryEvidenceTag::new("grouped"), grouped_digest)
         .seal()
 }
 
@@ -351,7 +351,7 @@ fn bridge_grouped_projection_evidence(
             &projection_source_evidence_identity(source, "bridge-grouped"),
         )
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_bridge_identity(ForgeQueryEvidenceTag::new("grouped"), grouped_identity)
+        .field_bridge_retained_evidence_identity(ForgeQueryEvidenceTag::new("grouped"), grouped_identity)
         .seal()
 }
 

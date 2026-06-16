@@ -4,7 +4,6 @@ use crate::evidence_identity::{
 use crate::live::LiveQueryFamily;
 use crate::view_shape_live::LiveViewShapeFamily;
 
-use super::family::QuerySubscriptionFamily;
 use super::active_budget::ActiveSubscriptionAllocationPosture;
 use super::active_handle::ActiveSubscriptionLaneHandle;
 use super::attachment_budget::DeliveryBackpressurePolicy;
@@ -12,16 +11,17 @@ use super::basis_request::QuerySubscriptionBasisBindingRequestKind;
 use super::bridge_family::BridgeSubscriptionDeclarationFamilyKind;
 use super::bridge_slice::BridgeSubscriptionSliceKind;
 use super::delivery::QuerySubscriptionDeliveryIntent;
+use super::delivery_cause::QuerySubscriptionDeliveryCauseKind;
 use super::equivalence::QuerySubscriptionEquivalenceBasis;
+use super::family::QuerySubscriptionFamily;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::input::LiveQueryAdmissionArtifact;
 use super::maintenance_delta::QuerySubscriptionMaintenanceDeltaKind;
+use super::patch_group::QueryPatchGroupKind;
 use super::posture::{
     QuerySubscriptionBasisPosture, QuerySubscriptionBridgePosture, QuerySubscriptionCostPosture,
 };
 use super::signal_strategy::QuerySubscriptionSignalStrategyRequestKind;
-use super::delivery_cause::QuerySubscriptionDeliveryCauseKind;
-use super::patch_group::QueryPatchGroupKind;
 use super::slice::{QuerySubscriptionSliceIntent, QuerySubscriptionSlicePart};
 use super::slice_budget::QuerySubscriptionSliceBudget;
 
@@ -52,7 +52,10 @@ pub(super) fn live_relevance_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "live_relevance_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("live_family"), live_family.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("live_family"),
+            live_family.as_str(),
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("query"), query_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("plan"), plan_identity)
         .seal()
@@ -89,9 +92,7 @@ pub(super) fn patch_group_identity(
         .seal()
 }
 
-pub(super) fn delivery_cause_evidence_label_identity(
-    label: &str,
-) -> ForgeQueryEvidenceIdentity {
+pub(super) fn delivery_cause_evidence_label_identity(label: &str) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
         .field_shape(
             ForgeQueryEvidenceTag::new("identity_family"),
@@ -112,16 +113,6 @@ pub(super) fn delivery_cause_identity(
         )
         .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
         .field_evidence_identity(ForgeQueryEvidenceTag::new("evidence"), evidence_identity)
-        .seal()
-}
-
-pub(super) fn diagnostic_source_projection_identity(source: &str) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "query_subscription_diagnostic_source_projection_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("source"), source)
         .seal()
 }
 
@@ -188,7 +179,10 @@ pub(super) fn diagnostic_selection_context_selected_identity(
             "query_subscription_diagnostic_selection_context_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("kind"), "selected")
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("equivalence"), equivalence_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("equivalence"),
+            equivalence_identity,
+        )
         .seal()
 }
 
@@ -205,12 +199,18 @@ pub(super) fn diagnostic_selection_context_denied_identity(
         )
         .field_shape(ForgeQueryEvidenceTag::new("kind"), "selection_denied")
         .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
-        .field_shape(ForgeQueryEvidenceTag::new("query_family"), query_family_label)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("query_family"),
+            query_family_label,
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("declaration_family"),
             declaration_family_label,
         )
-        .field_shape(ForgeQueryEvidenceTag::new("basis_posture"), basis_posture_label)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("basis_posture"),
+            basis_posture_label,
+        )
         .seal()
 }
 
@@ -296,10 +296,8 @@ pub(super) fn support_subject_identity(
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity);
     if let Some(admission_identity) = admission_identity {
-        composer = composer.field_evidence_identity(
-            ForgeQueryEvidenceTag::new("admission"),
-            admission_identity,
-        );
+        composer = composer
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("admission"), admission_identity);
     }
     composer.seal()
 }
@@ -551,18 +549,30 @@ pub(super) fn diagnostic_semantic_labels_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "query_subscription_diagnostic_semantic_labels_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("query_family"), query_family_label)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("query_family"),
+            query_family_label,
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("declaration_family"),
             declaration_family_label,
         )
-        .field_shape(ForgeQueryEvidenceTag::new("bridge_family"), bridge_family_label)
-        .field_shape(ForgeQueryEvidenceTag::new("basis_posture"), basis_posture_label)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("bridge_family"),
+            bridge_family_label,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("basis_posture"),
+            basis_posture_label,
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("signal_strategy_class"),
             signal_strategy_class_label,
         )
-        .field_shape(ForgeQueryEvidenceTag::new("support_posture"), support_posture_label)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("support_posture"),
+            support_posture_label,
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("denial_or_coverage_class"),
             denial_or_coverage_class_label,
@@ -584,7 +594,10 @@ pub(super) fn diagnostic_failure_identity(
             "query_subscription_diagnostic_failure_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("failure_kind"), failure_kind)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("diagnostic"), diagnostic_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("diagnostic"),
+            diagnostic_identity,
+        )
         .seal()
 }
 
@@ -607,7 +620,10 @@ pub(super) fn diagnostic_admitted_bundle_identity(
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("trace"), trace_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("labels"), labels_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("support"), support_report_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("support"),
+            support_report_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("lifecycle_certification"),
             lifecycle_identity,
@@ -622,16 +638,12 @@ pub(super) fn diagnostic_admitted_bundle_identity(
         );
     }
     if let Some(preview_identity) = preview_identity {
-        composer = composer.field_evidence_identity(
-            ForgeQueryEvidenceTag::new("preview"),
-            preview_identity,
-        );
+        composer = composer
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("preview"), preview_identity);
     }
     if let Some(closeout_identity) = closeout_identity {
-        composer = composer.field_evidence_identity(
-            ForgeQueryEvidenceTag::new("closeout"),
-            closeout_identity,
-        );
+        composer = composer
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("closeout"), closeout_identity);
     }
     composer.seal()
 }
@@ -671,7 +683,10 @@ pub(super) fn live_delivery_intent_projection_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "live_delivery_intent_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("live_family"), live_family.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("live_family"),
+            live_family.as_str(),
+        )
         .seal()
 }
 
@@ -707,7 +722,10 @@ pub(super) fn subscription_fanout_report_identity(
             ForgeQueryEvidenceTag::new("shared_lane_count"),
             shared_lane_count as usize,
         )
-        .field_usize(ForgeQueryEvidenceTag::new("fanout_width"), fanout_width as usize)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("fanout_width"),
+            fanout_width as usize,
+        )
         .seal()
 }
 
@@ -720,7 +738,10 @@ pub(super) fn lifecycle_acknowledgement_frontier_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "subscription_acknowledgement_frontier_v1",
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("attachment"), attachment_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("attachment"),
+            attachment_identity,
+        )
         .field_usize(ForgeQueryEvidenceTag::new("sequence"), sequence as usize)
         .seal()
 }
@@ -746,7 +767,7 @@ pub(super) fn subscription_performance_receipt_source_identity(
 
 pub(super) fn lifecycle_continuation_endpoint_identity(
     role: &str,
-    label: &str,
+    source_identity: &ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
         .field_shape(
@@ -754,7 +775,22 @@ pub(super) fn lifecycle_continuation_endpoint_identity(
             "subscription_continuation_endpoint_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_shape(ForgeQueryEvidenceTag::new("label"), label)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
+        .seal()
+}
+
+pub(super) fn lifecycle_continuation_ordinary_checkpoint_identity(
+    active_lane_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_continuation_ordinary_checkpoint_v1",
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("active_lane"),
+            active_lane_identity,
+        )
         .seal()
 }
 
@@ -810,7 +846,9 @@ pub(super) fn manual_bridge_witness_identity(
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("bridge_slices"),
-            bridge_slices.iter().map(BridgeSubscriptionSliceKind::as_str),
+            bridge_slices
+                .iter()
+                .map(BridgeSubscriptionSliceKind::as_str),
         )
         .seal()
 }
@@ -836,7 +874,10 @@ pub(super) fn query_subscription_declaration_identity(
             "query_subscription_declaration_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
-        .field_shape(ForgeQueryEvidenceTag::new("live_family"), live_family.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("live_family"),
+            live_family.as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("view_family"),
             view_family
@@ -846,7 +887,10 @@ pub(super) fn query_subscription_declaration_identity(
         )
         .field_shape(ForgeQueryEvidenceTag::new("cost"), cost_posture.as_str())
         .field_shape(ForgeQueryEvidenceTag::new("basis"), basis_posture.as_str())
-        .field_shape(ForgeQueryEvidenceTag::new("bridge"), bridge_posture.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("bridge"),
+            bridge_posture.as_str(),
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("future_selection"),
             future_selection.projection_identity(),
@@ -953,17 +997,16 @@ pub(super) fn bridge_lowering_plan_identity(
             ForgeQueryEvidenceTag::new("bridge_family"),
             bridge_family.as_str(),
         )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("basis"),
-            basis_request_identity,
-        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_request_identity)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("signal_strategy"),
             signal_strategy_identity,
         )
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("bridge_slices"),
-            bridge_slices.iter().map(BridgeSubscriptionSliceKind::as_str),
+            bridge_slices
+                .iter()
+                .map(BridgeSubscriptionSliceKind::as_str),
         )
         .seal()
 }
@@ -995,10 +1038,7 @@ pub(super) fn admission_artifact_identity(
             ForgeQueryEvidenceTag::new("bridge_declaration"),
             bridge_declaration_identity,
         )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("basis"),
-            basis_binding_identity,
-        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_binding_identity)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("signal_strategy"),
             signal_strategy_identity,
@@ -1012,9 +1052,18 @@ pub(super) fn admission_artifact_identity(
             ForgeQueryEvidenceTag::new("budget_declaration"),
             declaration_width_limit,
         )
-        .field_usize(ForgeQueryEvidenceTag::new("budget_bridge"), bridge_width_limit)
-        .field_usize(ForgeQueryEvidenceTag::new("budget_basis"), basis_width_limit)
-        .field_usize(ForgeQueryEvidenceTag::new("budget_signal"), signal_width_limit)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("budget_bridge"),
+            bridge_width_limit,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("budget_basis"),
+            basis_width_limit,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("budget_signal"),
+            signal_width_limit,
+        )
         .field_usize(
             ForgeQueryEvidenceTag::new("budget_activation"),
             activation_width_limit,
@@ -1038,10 +1087,7 @@ pub(super) fn activation_checkpoint_identity(
             ForgeQueryEvidenceTag::new("query_declaration"),
             query_declaration_identity,
         )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("basis"),
-            basis_binding_identity,
-        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_binding_identity)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("future_selection"),
             future_selection_projection_identity,
@@ -1081,11 +1127,11 @@ pub(super) fn activation_input_identity(
             ForgeQueryEvidenceTag::new("future_selection"),
             future_selection_projection_identity,
         )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_binding_identity)
         .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("basis"),
-            basis_binding_identity,
+            ForgeQueryEvidenceTag::new("checkpoint"),
+            checkpoint_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("checkpoint"), checkpoint_identity)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("signal_strategy"),
             signal_strategy_identity,
@@ -1125,7 +1171,10 @@ pub(super) fn active_lane_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "active_subscription_lane_v1",
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("activation"), activation_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("activation"),
+            activation_identity,
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("admission"), admission_identity)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("query_declaration"),
@@ -1139,11 +1188,11 @@ pub(super) fn active_lane_identity(
             ForgeQueryEvidenceTag::new("future_selection"),
             future_selection_projection_identity,
         )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_binding_identity)
         .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("basis"),
-            basis_binding_identity,
+            ForgeQueryEvidenceTag::new("checkpoint"),
+            checkpoint_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("checkpoint"), checkpoint_identity)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("signal_strategy"),
             signal_strategy_identity,
@@ -1152,7 +1201,10 @@ pub(super) fn active_lane_identity(
         .field_shape(ForgeQueryEvidenceTag::new("delivery"), delivery_posture)
         .field_shape(ForgeQueryEvidenceTag::new("lookup"), lookup_class)
         .field_shape(ForgeQueryEvidenceTag::new("allocation"), allocation_policy)
-        .field_usize(ForgeQueryEvidenceTag::new("budget_registry"), registry_lookup_width)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("budget_registry"),
+            registry_lookup_width,
+        )
         .field_usize(ForgeQueryEvidenceTag::new("budget_fanout"), fanout_width)
         .field_usize(
             ForgeQueryEvidenceTag::new("budget_allocation"),
@@ -1179,10 +1231,68 @@ pub(super) fn scale_counter_snapshot_identity(
             "query_subscription_scale_counter_snapshot_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("fixture_size"), fixture_size)
-        .field_usize(ForgeQueryEvidenceTag::new("fixture_row_count"), fixture_row_count as usize)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("activation"), activation_identity)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("fixture_row_count"),
+            fixture_row_count as usize,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("activation"),
+            activation_identity,
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("admission"), admission_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("counter"), counter_identity)
+        .seal()
+}
+
+pub(super) fn scale_slope_report_identity(
+    activation_identity: &ForgeQueryEvidenceIdentity,
+    admission_identity: &ForgeQueryEvidenceIdentity,
+    small_snapshot_identity: &ForgeQueryEvidenceIdentity,
+    medium_snapshot_identity: &ForgeQueryEvidenceIdentity,
+    large_snapshot_identity: &ForgeQueryEvidenceIdentity,
+    small_row_count: u64,
+    medium_row_count: u64,
+    large_row_count: u64,
+    structural_counter_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "query_subscription_scale_slope_report_v1",
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("activation"),
+            activation_identity,
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("admission"), admission_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("small_snapshot"),
+            small_snapshot_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("medium_snapshot"),
+            medium_snapshot_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("large_snapshot"),
+            large_snapshot_identity,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("small_row_count"),
+            small_row_count as usize,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("medium_row_count"),
+            medium_row_count as usize,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("large_row_count"),
+            large_row_count as usize,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("structural_counter"),
+            structural_counter_identity,
+        )
         .seal()
 }
 
@@ -1205,7 +1315,10 @@ pub(super) fn certification_activation_bundle_identity(
             "query_subscription_certification_bundle_v1",
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("admission"), admission_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("activation"), activation_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("activation"),
+            activation_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("query_declaration"),
             query_declaration_identity,
@@ -1214,10 +1327,7 @@ pub(super) fn certification_activation_bundle_identity(
             ForgeQueryEvidenceTag::new("bridge_declaration"),
             bridge_declaration_identity,
         )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("basis"),
-            basis_binding_identity,
-        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_binding_identity)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("signal_strategy"),
             signal_strategy_identity,
@@ -1268,6 +1378,53 @@ pub(super) fn lifecycle_context_query_identity(
                 .map(|family| family.as_str())
                 .unwrap_or("none"),
         )
+        .seal()
+}
+
+pub(super) fn lifecycle_context_policy_identity(policy: &str) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_lifecycle_policy_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("policy"), policy)
+        .seal()
+}
+
+pub(super) fn lifecycle_context_tenant_basis_identity(
+    tenant_basis: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_lifecycle_tenant_basis_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("tenant_basis"), tenant_basis)
+        .seal()
+}
+
+pub(super) fn lifecycle_context_relationship_proof_identity(
+    relationship_proof: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_lifecycle_relationship_proof_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("relationship_proof"),
+            relationship_proof,
+        )
+        .seal()
+}
+
+pub(super) fn lifecycle_context_collection_absent_identity() -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_lifecycle_collection_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("collection"), "none")
         .seal()
 }
 
@@ -1328,6 +1485,24 @@ pub(super) fn lifecycle_absent_performance_receipt_identity() -> ForgeQueryEvide
         .seal()
 }
 
+pub(super) fn lifecycle_absent_preview_isolation_identity() -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_preview_isolation_absent_v1",
+        )
+        .seal()
+}
+
+pub(super) fn lifecycle_absent_preview_residue_identity() -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_preview_residue_absent_v1",
+        )
+        .seal()
+}
+
 pub(super) fn lifecycle_absent_continuation_identity() -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
         .field_shape(
@@ -1383,7 +1558,10 @@ pub(super) fn lifecycle_support_matrix_identity<'a>(
             ForgeQueryEvidenceTag::new("identity_family"),
             "subscription_support_matrix_v1",
         )
-        .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("elements"), support_identities)
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("elements"),
+            support_identities,
+        )
         .seal()
 }
 
@@ -1403,7 +1581,10 @@ pub(super) fn lifecycle_delivery_window_identity(
             "query_delivery_window_v1",
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("attachment"), attachment_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("attachment"),
+            attachment_identity,
+        )
         .field_usize(ForgeQueryEvidenceTag::new("sequence"), sequence as usize)
         .field_usize(
             ForgeQueryEvidenceTag::new("window_width"),
@@ -1431,7 +1612,7 @@ pub(super) fn lifecycle_delivery_window_identity(
 pub(super) fn lifecycle_maintenance_delta_identity(
     kind: QuerySubscriptionMaintenanceDeltaKind,
     lane_identity: &ForgeQueryEvidenceIdentity,
-    affected_scope: &str,
+    scope_identity: &ForgeQueryEvidenceIdentity,
     width: u64,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
@@ -1441,7 +1622,44 @@ pub(super) fn lifecycle_maintenance_delta_identity(
         )
         .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
         .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_identity)
-        .field_shape(ForgeQueryEvidenceTag::new("scope"), affected_scope)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("scope"), scope_identity)
+        .field_usize(ForgeQueryEvidenceTag::new("width"), width as usize)
+        .seal()
+}
+
+pub(super) fn lifecycle_maintenance_delta_scope_identity(
+    scope_label: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_maintenance_delta_scope_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("scope"), scope_label)
+        .seal()
+}
+
+pub(super) fn lifecycle_maintenance_delta_identity_typed(
+    kind: QuerySubscriptionMaintenanceDeltaKind,
+    lane_identity: &ForgeQueryEvidenceIdentity,
+    commit_identity: &ForgeQueryEvidenceIdentity,
+    collection_identity: &ForgeQueryEvidenceIdentity,
+    entity_identity: &ForgeQueryEvidenceIdentity,
+    width: u64,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "query_subscription_maintenance_delta_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_identity)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("commit"), commit_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("collection"),
+            collection_identity,
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("entity"), entity_identity)
         .field_usize(ForgeQueryEvidenceTag::new("width"), width as usize)
         .seal()
 }
@@ -1467,7 +1685,10 @@ pub(super) fn lifecycle_work_packet_identity(
             "active_delivery_work_packet_v1",
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("attachment"), attachment_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("attachment"),
+            attachment_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("maintenance_delta"),
             maintenance_delta_identity,
@@ -1521,7 +1742,10 @@ pub(super) fn lifecycle_delivery_batch_receipt_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "query_delivery_batch_receipt_v1",
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("attachment"), attachment_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("attachment"),
+            attachment_identity,
+        )
         .field_usize(ForgeQueryEvidenceTag::new("sequence"), sequence as usize)
         .seal()
 }
@@ -1545,7 +1769,10 @@ pub(super) fn lifecycle_delivery_batch_identity(
             ForgeQueryEvidenceTag::new("delivery_window"),
             delivery_window_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("work_packet"), work_packet_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("work_packet"),
+            work_packet_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("delivery_cause"),
             delivery_cause_identity,
@@ -1558,7 +1785,10 @@ pub(super) fn lifecycle_delivery_batch_identity(
                 "false"
             },
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("patch_group"), patch_group_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("patch_group"),
+            patch_group_identity,
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), receipt_identity)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("performance"),
@@ -1593,9 +1823,15 @@ pub(super) fn lifecycle_continuation_identity(
             future_selection_identity,
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("checkpoint"), checkpoint_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("checkpoint"),
+            checkpoint_identity,
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("authority"), authority_identity)
-        .field_usize(ForgeQueryEvidenceTag::new("remap_width"), remap_width as usize)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("remap_width"),
+            remap_width as usize,
+        )
         .seal()
 }
 
@@ -1618,13 +1854,19 @@ pub(super) fn lifecycle_closeout_identity(
             "subscription_lifecycle_closeout_v1",
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("attachment"), attachment_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("attachment"),
+            attachment_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("future_selection"),
             future_selection_identity,
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_binding_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("checkpoint"), checkpoint_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("checkpoint"),
+            checkpoint_identity,
+        )
         .field_shape(ForgeQueryEvidenceTag::new("kind"), closeout_kind)
         .field_shape(
             ForgeQueryEvidenceTag::new("lane_terminal"),
@@ -1654,9 +1896,9 @@ pub(super) fn diagnostic_source_identity(
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("query"), live.query_identity())
         .field_evidence_identity(ForgeQueryEvidenceTag::new("plan"), live.plan_identity())
-        .field_shape(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("collection"),
-            live.collection_digest().as_deref().unwrap_or("none"),
+            live.collection_identity(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("view_family"),
@@ -1672,17 +1914,17 @@ pub(super) fn diagnostic_source_identity(
             ForgeQueryEvidenceTag::new("future_selection"),
             live.future_selection().projection_identity(),
         )
-        .field_shape(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("policy"),
-            live.policy_digest().unwrap_or("none"),
+            live.policy_context_identity(),
         )
-        .field_shape(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("tenant"),
-            live.tenant_digest().unwrap_or("none"),
+            live.tenant_context_identity(),
         )
-        .field_shape(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("relationship_proof"),
-            live.relationship_proof_digest().unwrap_or("none"),
+            live.relationship_proof_context_identity(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("relationship_proof_posture"),
@@ -1751,13 +1993,19 @@ pub(super) fn preview_isolation_identity(
             "preview_subscription_isolation_artifact_v1",
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("attachment"), attachment_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("attachment"),
+            attachment_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("future_selection"),
             future_selection_identity,
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_binding_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("checkpoint"), checkpoint_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("checkpoint"),
+            checkpoint_identity,
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("epoch"), preview_epoch_identity)
         .field_shape(ForgeQueryEvidenceTag::new("state"), lifecycle_state)
         .field_usize(
@@ -1814,7 +2062,7 @@ pub(super) fn preview_discard_closeout_identity(
     checkpoint_identity: &ForgeQueryEvidenceIdentity,
     preview_epoch_identity: &ForgeQueryEvidenceIdentity,
     isolation_identity: &ForgeQueryEvidenceIdentity,
-    residue_report_digest: &str,
+    residue_report_identity: &ForgeQueryEvidenceIdentity,
     performance_receipt_identity: &ForgeQueryEvidenceIdentity,
     lifecycle_state: &str,
     counters_identity: &ForgeQueryEvidenceIdentity,
@@ -1825,18 +2073,24 @@ pub(super) fn preview_discard_closeout_identity(
             "preview_subscription_discard_closeout_v1",
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("attachment"), attachment_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("attachment"),
+            attachment_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("future_selection"),
             future_selection_identity,
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_binding_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("checkpoint"), checkpoint_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("checkpoint"),
+            checkpoint_identity,
+        )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("epoch"), preview_epoch_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("isolation"), isolation_identity)
-        .field_shape(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("residue_report"),
-            residue_report_digest,
+            residue_report_identity,
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("performance"),
@@ -1900,7 +2154,7 @@ pub(super) fn preview_promotion_handoff_identity(
     authoritative_checkpoint_identity: &ForgeQueryEvidenceIdentity,
     preview_epoch_identity: &ForgeQueryEvidenceIdentity,
     isolation_identity: &ForgeQueryEvidenceIdentity,
-    residue_report_digest: &str,
+    residue_report_identity: &ForgeQueryEvidenceIdentity,
     authority_identity: &ForgeQueryEvidenceIdentity,
     rebinding_identity: &ForgeQueryEvidenceIdentity,
     performance_receipt_identity: &ForgeQueryEvidenceIdentity,
@@ -1912,12 +2166,18 @@ pub(super) fn preview_promotion_handoff_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "preview_subscription_promotion_handoff_v1",
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("preview_lane"), preview_lane_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("preview_lane"),
+            preview_lane_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("authoritative_lane"),
             authoritative_lane_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("attachment"), attachment_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("attachment"),
+            attachment_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("future_selection"),
             future_selection_identity,
@@ -1933,9 +2193,9 @@ pub(super) fn preview_promotion_handoff_identity(
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("epoch"), preview_epoch_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("isolation"), isolation_identity)
-        .field_shape(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("residue_report"),
-            residue_report_digest,
+            residue_report_identity,
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("authority"), authority_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("rebinding"), rebinding_identity)
@@ -1958,6 +2218,11 @@ pub(super) fn lifecycle_certification_bundle_identity(
     query_scope_identity: &ForgeQueryEvidenceIdentity,
     subscription_family_identity: &ForgeQueryEvidenceIdentity,
     subscription_equivalence_identity: &ForgeQueryEvidenceIdentity,
+    policy_identity: &ForgeQueryEvidenceIdentity,
+    tenant_basis_identity: &ForgeQueryEvidenceIdentity,
+    relationship_proof_identity: &ForgeQueryEvidenceIdentity,
+    view_shape_identity: &ForgeQueryEvidenceIdentity,
+    basis_posture_identity: &ForgeQueryEvidenceIdentity,
     active_lane_identity: &ForgeQueryEvidenceIdentity,
     active_lane_handle_identity: &ForgeQueryEvidenceIdentity,
     performance_sequence_identity: &ForgeQueryEvidenceIdentity,
@@ -2000,7 +2265,24 @@ pub(super) fn lifecycle_certification_bundle_identity(
             ForgeQueryEvidenceTag::new("subscription_equivalence"),
             subscription_equivalence_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("active_lane"), active_lane_identity)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("policy"), policy_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("tenant_basis"),
+            tenant_basis_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("relationship_proof"),
+            relationship_proof_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("view_shape"),
+            view_shape_identity,
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_posture_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("active_lane"),
+            active_lane_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("active_lane_handle"),
             active_lane_handle_identity,
@@ -2009,7 +2291,10 @@ pub(super) fn lifecycle_certification_bundle_identity(
             ForgeQueryEvidenceTag::new("performance"),
             performance_sequence_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("attachment"), attachment_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("attachment"),
+            attachment_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("delivery_window"),
             delivery_window_identity,
@@ -2018,7 +2303,10 @@ pub(super) fn lifecycle_certification_bundle_identity(
             ForgeQueryEvidenceTag::new("maintenance_delta"),
             maintenance_delta_identity,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("work_packet"), work_packet_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("work_packet"),
+            work_packet_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("delivery_batch"),
             delivery_batch_identity,
@@ -2032,7 +2320,10 @@ pub(super) fn lifecycle_certification_bundle_identity(
             continuation_identity,
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("closeout"), closeout_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("support"), support_matrix_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("support"),
+            support_matrix_identity,
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("counters"),
             counter_sequence_identity,
@@ -2158,20 +2449,20 @@ pub(super) fn lifecycle_context_basis_posture_identity(basis: &str) -> ForgeQuer
 }
 
 pub(super) fn lifecycle_preview_promotion_residue_identity(
-    residue_digest: &str,
-    handoff_digest: &str,
-    authoritative_lane_digest: &str,
+    residue_identity: &ForgeQueryEvidenceIdentity,
+    handoff_identity: &ForgeQueryEvidenceIdentity,
+    authoritative_lane_identity: &ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
         .field_shape(
             ForgeQueryEvidenceTag::new("identity_family"),
             "subscription_preview_residue_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("residue"), residue_digest)
-        .field_shape(ForgeQueryEvidenceTag::new("handoff"), handoff_digest)
-        .field_shape(
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("residue"), residue_identity)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("handoff"), handoff_identity)
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("authoritative_lane"),
-            authoritative_lane_digest,
+            authoritative_lane_identity,
         )
         .seal()
 }

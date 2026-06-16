@@ -12,7 +12,7 @@ fn runtime_admits_and_activates_reused_preview_session_only_for_exact_equivalenc
     let runtime = runtime(BridgeRuntimePolicy::default());
     let source_admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:reuse-source"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:reuse-source"),
             preview_declaration(),
         )
         .expect("source preview declaration should admit");
@@ -21,7 +21,7 @@ fn runtime_admits_and_activates_reused_preview_session_only_for_exact_equivalenc
 
     let target_admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:reuse-target"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:reuse-target"),
             preview_declaration(),
         )
         .expect("target preview declaration should admit");
@@ -54,7 +54,7 @@ fn runtime_rejects_preview_reuse_when_target_basis_drifts() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let source_admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:reuse-source-drift"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:reuse-source-drift"),
             preview_declaration(),
         )
         .expect("source preview declaration should admit");
@@ -63,10 +63,10 @@ fn runtime_rejects_preview_reuse_when_target_basis_drifts() {
 
     let drifted_target = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:reuse-target-drift"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:reuse-target-drift"),
             preview_declaration().with_structural_basis(structural_basis(StructuralBasisInput {
-                schema_identity: StructuralSchemaIdentity::new("schema:drift"),
-                declaration_identity: StructuralIdentityDeclarationIdentity::new(
+                schema_identity: StructuralSchemaIdentity::admit_bridge_owned("schema:drift"),
+                declaration_identity: StructuralIdentityDeclarationIdentity::admit_bridge_owned(
                     "structural:drift",
                 ),
                 truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture(

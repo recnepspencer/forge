@@ -1,8 +1,8 @@
+use super::identity::basis_lifecycle_digest;
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
-use crate::identity::hash_parts;
 
 use super::{
     denied_basis_capability_for_lane_mismatch, lifecycle_posture_for_admission,
@@ -249,17 +249,23 @@ pub fn admit_basis_capability(eligibility: BasisEligibility) -> BasisCapabilityA
                 lower_runtime_evidence_placeholders,
                 permitted_lanes,
                 counters: eligibility.counters().clone(),
-                capability_digest: hash_parts(&[
-                    format!(
-                        "normalized_basis_intent_digest:{}",
-                        eligibility.normalized_basis_intent_digest()
-                    ),
-                    format!("family:{}", eligibility.family().as_str()),
-                    format!("operation_lane:{}", eligibility.operation_lane().as_str()),
-                    format!("visibility:{}", visibility.as_str()),
-                    format!("lifecycle_posture:{}", lifecycle_posture.as_str()),
-                    "disposition:success".to_string(),
-                ]),
+                capability_digest: basis_lifecycle_digest(
+                    "basis_capability_success_v1",
+                    [
+                        (
+                            "normalized_basis_intent_digest",
+                            eligibility.normalized_basis_intent_digest().to_string(),
+                        ),
+                        ("family", eligibility.family().as_str().to_string()),
+                        (
+                            "operation_lane",
+                            eligibility.operation_lane().as_str().to_string(),
+                        ),
+                        ("visibility", visibility.as_str().to_string()),
+                        ("lifecycle_posture", lifecycle_posture.as_str().to_string()),
+                        ("disposition", "success".to_string()),
+                    ],
+                ),
             })
         }
         BasisEligibilityDisposition::Advisory => {
@@ -278,17 +284,23 @@ pub fn admit_basis_capability(eligibility: BasisEligibility) -> BasisCapabilityA
                 lower_runtime_evidence_placeholders,
                 permitted_lanes,
                 counters: eligibility.counters().clone(),
-                advisory_digest: hash_parts(&[
-                    format!(
-                        "normalized_basis_intent_digest:{}",
-                        eligibility.normalized_basis_intent_digest()
-                    ),
-                    format!("family:{}", eligibility.family().as_str()),
-                    format!("operation_lane:{}", eligibility.operation_lane().as_str()),
-                    format!("visibility:{}", visibility.as_str()),
-                    format!("lifecycle_posture:{}", lifecycle_posture.as_str()),
-                    "disposition:advisory".to_string(),
-                ]),
+                advisory_digest: basis_lifecycle_digest(
+                    "basis_capability_advisory_v1",
+                    [
+                        (
+                            "normalized_basis_intent_digest",
+                            eligibility.normalized_basis_intent_digest().to_string(),
+                        ),
+                        ("family", eligibility.family().as_str().to_string()),
+                        (
+                            "operation_lane",
+                            eligibility.operation_lane().as_str().to_string(),
+                        ),
+                        ("visibility", visibility.as_str().to_string()),
+                        ("lifecycle_posture", lifecycle_posture.as_str().to_string()),
+                        ("disposition", "advisory".to_string()),
+                    ],
+                ),
             })
         }
     }
@@ -366,7 +378,10 @@ fn compose_admitted_capability_snapshot_basis_identity(
             "basis_capability_snapshot_basis_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("disposition"), "admitted")
-        .field_shape(ForgeQueryEvidenceTag::new("family"), capability.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            capability.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("operation_lane"),
             capability.operation_lane().as_str(),
@@ -379,7 +394,10 @@ fn compose_admitted_capability_snapshot_basis_identity(
             ForgeQueryEvidenceTag::new("lifecycle_posture"),
             capability.lifecycle_posture().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("scope_label"), capability.scope_label())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("scope_label"),
+            capability.scope_label(),
+        )
         .seal()
 }
 
@@ -392,7 +410,10 @@ fn compose_admitted_capability_snapshot_result_shape_identity(
             "basis_capability_snapshot_result_shape_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("disposition"), "admitted")
-        .field_shape(ForgeQueryEvidenceTag::new("family"), capability.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            capability.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("operation_lane"),
             capability.operation_lane().as_str(),
@@ -413,7 +434,10 @@ fn compose_advisory_capability_snapshot_basis_identity(
             "basis_capability_snapshot_basis_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("disposition"), "advisory")
-        .field_shape(ForgeQueryEvidenceTag::new("family"), capability.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            capability.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("operation_lane"),
             capability.operation_lane().as_str(),
@@ -426,7 +450,10 @@ fn compose_advisory_capability_snapshot_basis_identity(
             ForgeQueryEvidenceTag::new("lifecycle_posture"),
             capability.lifecycle_posture().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("scope_label"), capability.scope_label())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("scope_label"),
+            capability.scope_label(),
+        )
         .seal()
 }
 
@@ -439,7 +466,10 @@ fn compose_advisory_capability_snapshot_result_shape_identity(
             "basis_capability_snapshot_result_shape_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("disposition"), "advisory")
-        .field_shape(ForgeQueryEvidenceTag::new("family"), capability.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            capability.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("operation_lane"),
             capability.operation_lane().as_str(),

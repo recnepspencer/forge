@@ -1,0 +1,5 @@
+error[E0599]: no variant or associated item named `Unsupported` found for enum `QueryFamily` in the current scope
+ --> tests/ui/query_family_does_not_expose_unsupported_variant.rs:4:26
+  |
+4 |     let _ = QueryFamily::Unsupported("grouped");
+  |                          ^^^^^^^^^^^ variant or associated item not found in `QueryFamily`

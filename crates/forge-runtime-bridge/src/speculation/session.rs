@@ -21,24 +21,24 @@ pub type PreviewExecutionRecordIdentity = BridgeIdentity<PreviewExecutionRecordI
 
 impl BridgePreviewSessionIdentity {
     pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
-        Self::new(format!(
+        Self::admit_bridge_owned(format!(
             "bridge-preview-session:external-authority-evidence:{}",
             evidence_identity.as_str()
         ))
     }
 
     pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
-        Self::new(value)
+        Self::admit_bridge_owned(value)
     }
 }
 
 impl PreviewExecutionRecordIdentity {
     pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
-        Self::new(value)
+        Self::admit_bridge_owned(value)
     }
 
     pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
-        Self::new(format!(
+        Self::admit_bridge_owned(format!(
             "bridge-preview-execution-record:external-authority-evidence:{}",
             evidence_identity.as_str()
         ))
@@ -227,12 +227,12 @@ mod tests {
     #[test]
     fn preview_session_typestate_progression_is_canonical() {
         let declaration = BridgePreviewSessionDeclaration::new(
-            BridgePreviewSessionDeclarationIdentity::new("preview-declaration"),
+            BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("preview-declaration"),
             BridgeRequestKind::Preview,
             BridgeSpeculativeBranchBinding::new(
-                BridgeSpeculativeBranchBindingIdentity::new("binding"),
+                BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("binding"),
                 crate::truth_identity_fixtures::truth_branch_fixture("truth-branch"),
-                BridgeSignalBranchIdentity::new("signal-branch"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch"),
             ),
             preview_session_basis(),
         )
@@ -240,7 +240,7 @@ mod tests {
         .expect("preview declaration should validate");
 
         let declared = BridgePreviewSession::<PreviewDeclared>::declare(
-            BridgePreviewSessionIdentity::new("preview-session"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session"),
             declaration.clone(),
         );
         assert_eq!(
@@ -252,19 +252,19 @@ mod tests {
         );
         let admitted: BridgePreviewSession<PreviewAdmitted> = declared.admit();
         let active = admitted.activate(PreviewSessionActivation::new(
-            PreviewExecutionRecordIdentity::new("preview-execution"),
+            PreviewExecutionRecordIdentity::admit_bridge_owned("preview-execution"),
         ));
         let proof = active.promotion_admissibility_proof();
         let promoted = active
             .promote(&proof)
             .expect("matching proof should promote");
         let declared = BridgePreviewSession::<PreviewDeclared>::declare(
-            BridgePreviewSessionIdentity::new("preview-session-discard"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session-discard"),
             promoted.declaration().clone(),
         );
         let admitted: BridgePreviewSession<PreviewAdmitted> = declared.admit();
         let active = admitted.activate(PreviewSessionActivation::new(
-            PreviewExecutionRecordIdentity::new("preview-execution-discard"),
+            PreviewExecutionRecordIdentity::admit_bridge_owned("preview-execution-discard"),
         ));
         let discarded = active.discard();
 

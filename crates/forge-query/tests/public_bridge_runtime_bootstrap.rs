@@ -82,7 +82,11 @@ fn public_bridge_runtime_builder_lane_supports_seeded_existing_truth_probe() {
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
                 existing_authority("authority:task-bootstrap"),
-                ForgeQueryEntityIdentity::authored_command("public-entity-1"),
+                ForgeQueryEntityIdentity::admit_authored_entity_token(
+                    forge_query::facade::QueryExternalIdentityToken::new(
+                        std::sync::Arc::from("public-entity-1"),
+                    ),
+                ),
             )
             .expect("existing entity target should build")
             .in_target_collection("Task")
@@ -120,7 +124,11 @@ fn public_bridge_runtime_common_lane_fail_closes_existing_truth_probe_without_ve
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
                 existing_authority("authority:task-bootstrap"),
-                ForgeQueryEntityIdentity::authored_command("public-entity-1"),
+                ForgeQueryEntityIdentity::admit_authored_entity_token(
+                    forge_query::facade::QueryExternalIdentityToken::new(
+                        std::sync::Arc::from("public-entity-1"),
+                    ),
+                ),
             )
             .expect("existing entity target should build")
             .in_target_collection("Task")

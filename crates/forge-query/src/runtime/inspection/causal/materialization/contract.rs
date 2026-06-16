@@ -43,8 +43,7 @@ fn validate_query_observation_binding(
 ) -> Result<(), CausalInspectionMaterializationError> {
     let mut query_observation_binding_count = 0;
     let mut query_observation_matches_subject = false;
-    let expected_query_observation_identity =
-        query_observation_identity.bridge_evidence_identity();
+    let expected_query_observation_identity = query_observation_identity.bridge_evidence_identity();
     for binding in envelope.bindings() {
         if binding.owner() != BridgeCausalEvidenceOwner::Query
             || binding.family() != BridgeCausalEvidenceFamily::QueryObservation

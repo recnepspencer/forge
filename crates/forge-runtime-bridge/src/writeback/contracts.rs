@@ -103,7 +103,7 @@ impl AdmittedBridgeWritebackContract {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Ok(Self {
-            contract_identity: BridgeWritebackContractIdentity::new(format!(
+            contract_identity: BridgeWritebackContractIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-contract:sha256:{digest:x}"
             )),
             validated_declaration,

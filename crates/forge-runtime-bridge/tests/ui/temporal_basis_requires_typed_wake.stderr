@@ -1,46 +1,118 @@
 error[E0624]: associated function `new` is private
  --> tests/ui/temporal_basis_requires_typed_wake.rs:9:30
   |
-9 |         TruthBranchIdentity::new("branch-a"),
-  |                              ^^^ private associated function
+9 |           TruthBranchIdentity::new("branch-a"),
+  |                                ^^^ private associated function
   |
  ::: src/identity.rs
   |
-  |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-  |     ----------------------------------------------------- private associated function defined here
+  | /     pub(crate) fn new(
+  | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+ --> tests/ui/temporal_basis_requires_typed_wake.rs:9:34
+  |
+9 |         TruthBranchIdentity::new("branch-a"),
+  |         ------------------------ ^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+  |         |
+  |         arguments to this function are incorrect
+  |
+  = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+          found reference `&'static str`
+note: associated function defined here
+ --> src/identity.rs
+  |
+  |     pub(crate) fn new(
+  |                   ^^^
 
 error[E0624]: associated function `new` is private
   --> tests/ui/temporal_basis_requires_typed_wake.rs:10:30
    |
-10 |         TruthCommitIdentity::new("commit-a"),
-   |                              ^^^ private associated function
-   |
-  ::: src/identity.rs
-   |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
-
-error[E0624]: associated function `new` is private
-  --> tests/ui/temporal_basis_requires_typed_wake.rs:11:32
-   |
-11 |         TruthSnapshotIdentity::new("snapshot-a"),
+10 |           TruthCommitIdentity::new("commit-a"),
    |                                ^^^ private associated function
    |
   ::: src/identity.rs
    |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/temporal_basis_requires_typed_wake.rs:10:34
+   |
+10 |         TruthCommitIdentity::new("commit-a"),
+   |         ------------------------ ^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |         |
+   |         arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/temporal_basis_requires_typed_wake.rs:11:32
+   |
+11 |           TruthSnapshotIdentity::new("snapshot-a"),
+   |                                  ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/temporal_basis_requires_typed_wake.rs:11:36
+   |
+11 |         TruthSnapshotIdentity::new("snapshot-a"),
+   |         -------------------------- ^^^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |         |
+   |         arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
 
 error[E0624]: associated function `new` is private
   --> tests/ui/temporal_basis_requires_typed_wake.rs:14:30
    |
-14 |         TruthBranchIdentity::new("branch-a"),
-   |                              ^^^ private associated function
+14 |           TruthBranchIdentity::new("branch-a"),
+   |                                ^^^ private associated function
    |
   ::: src/identity.rs
    |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/temporal_basis_requires_typed_wake.rs:14:34
+   |
+14 |         TruthBranchIdentity::new("branch-a"),
+   |         ------------------------ ^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |         |
+   |         arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
 
 error[E0308]: mismatched types
   --> tests/ui/temporal_basis_requires_typed_wake.rs:24:14

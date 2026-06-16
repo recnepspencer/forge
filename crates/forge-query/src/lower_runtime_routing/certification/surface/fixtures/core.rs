@@ -39,7 +39,7 @@ fn fixture_retained_evidence_identity(
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(ForgeQueryEvidenceTag::new("fixture_family"), fixture_family)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("fixture_retained_label"),
             retained_label,
         )
@@ -211,7 +211,7 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
 fn representative_commit_identity(label: impl AsRef<str>) -> ForgeQueryCommitIdentity {
     ForgeQueryCommitIdentity::preview(
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WriteReceiptCommitIdentity)
-            .field_identity(ForgeQueryEvidenceTag::new("representative_commit"), label)
+            .field_value(ForgeQueryEvidenceTag::new("representative_commit"), label)
             .seal(),
     )
 }
@@ -219,13 +219,13 @@ fn representative_commit_identity(label: impl AsRef<str>) -> ForgeQueryCommitIde
 fn representative_snapshot_identity(label: impl AsRef<str>) -> ForgeQuerySnapshotIdentity {
     ForgeQuerySnapshotIdentity::preview(
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WriteReceiptSnapshotIdentity)
-            .field_identity(ForgeQueryEvidenceTag::new("representative_snapshot"), label)
+            .field_value(ForgeQueryEvidenceTag::new("representative_snapshot"), label)
             .seal(),
     )
 }
 
 fn representative_entity_identity(label: impl AsRef<str>) -> ForgeQueryEntityIdentity {
-    ForgeQueryEntityIdentity::authored_command(label)
+    crate::memory_workspace::admit_authored_entity_label(label)
 }
 
 pub(crate) fn representative_live_view_source_row() -> RepresentativeArtifacts {
@@ -254,13 +254,13 @@ pub(crate) fn representative_live_view_source_row() -> RepresentativeArtifacts {
         ForgeQueryLowerRuntimeAuthorityOwner::Query,
         "Live view source declaration",
         ForgeQueryLowerRuntimeSubjectIdentity::compose("live-view-source-route-subject")
-            .field_identity(ForgeQueryEvidenceTag::new("view"), handle.name())
-            .field_identity(ForgeQueryEvidenceTag::new("target"), request.target())
+            .field_value(ForgeQueryEvidenceTag::new("view"), handle.name())
+            .field_value(ForgeQueryEvidenceTag::new("target"), request.target())
             .field_shape(
                 ForgeQueryEvidenceTag::new("shape"),
                 request.view_shape().as_str(),
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("schema_basis"),
                 schema_view.basis().as_str(),
             )
@@ -319,7 +319,7 @@ pub(crate) fn representative_preview_basis_row() -> RepresentativeArtifacts {
         ForgeQueryLowerRuntimeAuthorityOwner::Query,
         "Preview basis admission",
         ForgeQueryLowerRuntimeSubjectIdentity::compose("preview-basis-route-subject")
-            .field_identity(ForgeQueryEvidenceTag::new("label"), admission.label())
+            .field_value(ForgeQueryEvidenceTag::new("label"), admission.label())
             .field_shape(
                 ForgeQueryEvidenceTag::new("policy"),
                 admission.effect_policy().as_str(),
@@ -336,7 +336,7 @@ pub(crate) fn representative_preview_basis_row() -> RepresentativeArtifacts {
     );
     let admission_evidence_identity =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(ForgeQueryEvidenceTag::new("label"), admission.label())
+            .field_value(ForgeQueryEvidenceTag::new("label"), admission.label())
             .field_shape(
                 ForgeQueryEvidenceTag::new("policy"),
                 admission.effect_policy().as_str(),
@@ -345,7 +345,7 @@ pub(crate) fn representative_preview_basis_row() -> RepresentativeArtifacts {
                 ForgeQueryEvidenceTag::new("lane"),
                 admission.authority_lane().as_str(),
             )
-            .field_identity_sequence(ForgeQueryEvidenceTag::new("evidence"), admission.evidence())
+            .field_value_sequence(ForgeQueryEvidenceTag::new("evidence"), admission.evidence())
             .seal();
     let eligibility =
         admitted_fixture_eligibility_from_evidence(request.clone(), &admission_evidence_identity);

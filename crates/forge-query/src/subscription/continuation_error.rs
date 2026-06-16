@@ -1,3 +1,5 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+
 use super::active_counters::ActiveSubscriptionCounters;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,7 +23,7 @@ impl SubscriptionContinuationDenialKind {
 pub struct SubscriptionContinuationError {
     denial_kind: SubscriptionContinuationDenialKind,
     message: String,
-    source_digest: String,
+    pub(in crate::subscription) source_identity: ForgeQueryEvidenceIdentity,
     counters: ActiveSubscriptionCounters,
 }
 
@@ -29,13 +31,13 @@ impl SubscriptionContinuationError {
     pub(super) fn new(
         denial_kind: SubscriptionContinuationDenialKind,
         message: impl Into<String>,
-        source_digest: impl Into<String>,
+        source_identity: ForgeQueryEvidenceIdentity,
         counters: ActiveSubscriptionCounters,
     ) -> Self {
         Self {
             denial_kind,
             message: message.into(),
-            source_digest: source_digest.into(),
+            source_identity,
             counters,
         }
     }
@@ -46,10 +48,6 @@ impl SubscriptionContinuationError {
 
     pub fn message(&self) -> &str {
         &self.message
-    }
-
-    pub fn source_digest(&self) -> &str {
-        &self.source_digest
     }
 
     pub fn counters(&self) -> &ActiveSubscriptionCounters {

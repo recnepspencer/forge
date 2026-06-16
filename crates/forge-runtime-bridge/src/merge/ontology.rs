@@ -85,9 +85,9 @@ impl BridgeMergeOntologyMappingSurface {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            mapping_identity: BridgeMergeOntologyMappingSurfaceIdentity::new(format!(
-                "merge-ontology-mapping-surface:sha256:{digest:x}"
-            )),
+            mapping_identity: BridgeMergeOntologyMappingSurfaceIdentity::admit_bridge_owned(
+                format!("merge-ontology-mapping-surface:sha256:{digest:x}"),
+            ),
             ontology_version,
             entries: Arc::from(entries),
             canonical_basis,

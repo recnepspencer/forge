@@ -259,7 +259,7 @@ fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
     assert_eq!(edge_rows.len(), 1);
     assert_eq!(
         edge_rows[0].external_row()["edge"]["source_identity"].as_str(),
-        Some(draft_identity.evidence_identity().as_str())
+        Some(draft_identity.evidence_identity().terminal_projection_for_reporting())
     );
     assert_eq!(
         edge_rows[0].external_row()["edge"]["target_identity"].as_str(),

@@ -9,46 +9,118 @@ warning: unused import: `BridgeCommittedPatchDigest`
 error[E0624]: associated function `new` is private
   --> tests/ui/private_committed_patch_envelope_constructor.rs:12:30
    |
-12 |         TruthCommitIdentity::new("commit"),
-   |                              ^^^ private associated function
-   |
-  ::: src/identity.rs
-   |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
-
-error[E0624]: associated function `new` is private
-  --> tests/ui/private_committed_patch_envelope_constructor.rs:13:29
-   |
-13 |         TruthPatchIdentity::new("patch"),
-   |                             ^^^ private associated function
-   |
-  ::: src/identity.rs
-   |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
-
-error[E0624]: associated function `new` is private
-  --> tests/ui/private_committed_patch_envelope_constructor.rs:14:32
-   |
-14 |         TruthSnapshotIdentity::new("snapshot"),
+12 |           TruthCommitIdentity::new("commit"),
    |                                ^^^ private associated function
    |
   ::: src/identity.rs
    |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/private_committed_patch_envelope_constructor.rs:12:34
+   |
+12 |         TruthCommitIdentity::new("commit"),
+   |         ------------------------ ^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |         |
+   |         arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/private_committed_patch_envelope_constructor.rs:13:29
+   |
+13 |           TruthPatchIdentity::new("patch"),
+   |                               ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/private_committed_patch_envelope_constructor.rs:13:33
+   |
+13 |         TruthPatchIdentity::new("patch"),
+   |         ----------------------- ^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |         |
+   |         arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/private_committed_patch_envelope_constructor.rs:14:32
+   |
+14 |           TruthSnapshotIdentity::new("snapshot"),
+   |                                  ^^^ private associated function
+   |
+  ::: src/identity.rs
+   |
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/private_committed_patch_envelope_constructor.rs:14:36
+   |
+14 |         TruthSnapshotIdentity::new("snapshot"),
+   |         -------------------------- ^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |         |
+   |         arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
 
 error[E0624]: associated function `new` is private
   --> tests/ui/private_committed_patch_envelope_constructor.rs:15:30
    |
-15 |         TruthBranchIdentity::new("branch"),
-   |                              ^^^ private associated function
+15 |           TruthBranchIdentity::new("branch"),
+   |                                ^^^ private associated function
    |
   ::: src/identity.rs
    |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/private_committed_patch_envelope_constructor.rs:15:34
+   |
+15 |         TruthBranchIdentity::new("branch"),
+   |         ------------------------ ^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |         |
+   |         arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
 
 error[E0599]: no function or associated item named `from_parts` found for struct `BridgeCommittedPatchEnvelope` in the current scope
   --> tests/ui/private_committed_patch_envelope_constructor.rs:17:43

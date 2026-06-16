@@ -1,6 +1,4 @@
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::envelope::SelfDescribingEffectEnvelope;
 use super::receipt::EffectExecutionReceipt;
@@ -58,7 +56,10 @@ impl EffectDiagnosticsMaterialization {
             ));
         }
         if request.include_counter_snapshot {
-            detail_sections.push(format!("counters:{}", receipt.delivery_counters().counter_for_reporting()));
+            detail_sections.push(format!(
+                "counters:{}",
+                receipt.delivery_counters().counter_for_reporting()
+            ));
         }
         if request.include_integrity_markers {
             detail_sections.push(format!(
@@ -73,18 +74,20 @@ impl EffectDiagnosticsMaterialization {
             ));
         }
         if request.include_source_refs {
-            detail_sections.push(format!("sources:{}", envelope.sources().sources_for_reporting()));
+            detail_sections.push(format!(
+                "sources:{}",
+                envelope.sources().sources_for_reporting()
+            ));
         }
-        let diagnostics_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_diagnostics_materialization_v1",
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), &receipt_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("envelope"), &envelope_identity)
-        .seal();
+        let diagnostics_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_diagnostics_materialization_v1",
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), &receipt_identity)
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("envelope"), &envelope_identity)
+                .seal();
         Self {
             receipt_identity,
             envelope_identity,

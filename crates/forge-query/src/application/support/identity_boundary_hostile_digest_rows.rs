@@ -83,7 +83,7 @@ pub(super) fn effect_intent_receipt_identity_delimiter_boundaries_row(
             ),
         )
         .field_shape(ForgeQueryEvidenceTag::new("trigger_source_kind"), "write")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("write_adjacent_trigger_digest"),
             "write-adjacent-trigger",
         )
@@ -121,7 +121,7 @@ pub(super) fn effect_intent_receipt_identity_delimiter_boundaries_row(
             ),
         )
         .field_shape(ForgeQueryEvidenceTag::new("trigger_source_kind"), "write")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("write_adjacent_trigger_digest"),
             "write-adjacent-trigger",
         )
@@ -168,19 +168,19 @@ pub(super) fn intent_provenance_chain_identity_delimiter_boundaries_row(
             .field_shape(ForgeQueryEvidenceTag::new("family"), "intent|family")
             .field_shape(ForgeQueryEvidenceTag::new("entrypoint"), "entrypoint")
             .field_shape(ForgeQueryEvidenceTag::new("seam"), "seam")
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("admission_decision_digest"),
                 "decision",
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("execution_handoff_digest"),
                 "handoff",
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("execution_binding_digest"),
                 "binding",
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("execution_outcome_digest"),
                 "outcome",
             )
@@ -197,19 +197,19 @@ pub(super) fn intent_provenance_chain_identity_delimiter_boundaries_row(
             .field_shape(ForgeQueryEvidenceTag::new("family"), "intent")
             .field_shape(ForgeQueryEvidenceTag::new("entrypoint"), "entrypoint")
             .field_shape(ForgeQueryEvidenceTag::new("seam"), "seam")
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("admission_decision_digest"),
                 "decision",
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("execution_handoff_digest"),
                 "handoff",
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("execution_binding_digest"),
                 "binding",
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("execution_outcome_digest"),
                 "family|outcome",
             )
@@ -291,7 +291,7 @@ fn witness_digest<'a>(
     forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact)
         .field_shape(ForgeQueryEvidenceTag::new("row_name"), row_name)
         .field_bool(ForgeQueryEvidenceTag::new("certified"), certified)
-        .field_identity_sequence(ForgeQueryEvidenceTag::new("evidence"), evidence)
+        .field_value_sequence(ForgeQueryEvidenceTag::new("evidence"), evidence)
         .seal()
         .as_str()
         .to_string()

@@ -5,7 +5,7 @@ use crate::evidence_identity::{
 #[derive(Debug, Eq, PartialEq)]
 pub struct SubscriptionConsumerAttachmentRequest {
     consumer_identity: ForgeQueryEvidenceIdentity,
-    delivery_cursor_seed: String,
+    delivery_cursor_seed_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl SubscriptionConsumerAttachmentRequest {
@@ -28,31 +28,38 @@ impl SubscriptionConsumerAttachmentRequest {
             &delivery_cursor_seed,
         )
         .seal();
+        let delivery_cursor_seed_identity = delivery_cursor_seed_identity(&delivery_cursor_seed);
         Self {
             consumer_identity,
-            delivery_cursor_seed,
+            delivery_cursor_seed_identity,
         }
     }
 
     pub fn from_consumer_identity(
         consumer_identity: ForgeQueryEvidenceIdentity,
-        delivery_cursor_seed: impl Into<String>,
+        delivery_cursor_seed_identity: ForgeQueryEvidenceIdentity,
     ) -> Self {
         Self {
             consumer_identity,
-            delivery_cursor_seed: delivery_cursor_seed.into(),
+            delivery_cursor_seed_identity,
         }
-    }
-
-    pub fn consumer_digest(&self) -> &str {
-        self.consumer_identity.as_str()
     }
 
     pub fn consumer_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.consumer_identity
     }
 
-    pub fn delivery_cursor_seed(&self) -> &str {
-        &self.delivery_cursor_seed
+    pub fn delivery_cursor_seed_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_cursor_seed_identity
     }
+}
+
+fn delivery_cursor_seed_identity(seed: &str) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "subscription_delivery_cursor_seed_v1",
+        )
+        .field_value(ForgeQueryEvidenceTag::new("seed"), seed)
+        .seal()
 }

@@ -3,7 +3,7 @@ use forge_query::facade::{
 };
 
 fn main() {
-    let _delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let _delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         todo!(),
         "employee.name",

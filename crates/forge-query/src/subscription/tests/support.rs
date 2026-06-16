@@ -47,8 +47,8 @@ fn support_matrix_is_family_aware_for_all_admitted_subscription_families() {
         assert_eq!(
             report
                 .support_matrix()
-                .capability_digest()
-                .as_str()
+                .capability_projection()
+                .label()
                 .is_empty(),
             false
         );
@@ -122,9 +122,12 @@ fn support_matrix_is_family_aware_for_all_admitted_subscription_families() {
         assert_eq!(report.counters().support_matrix_emission_count(), 1);
         assert_eq!(report.counters().support_family_index_lookup_count(), 1);
         assert_eq!(report.counters().support_matrix_scan_debt_count(), 0);
-        assert_eq!(report.lookup_receipt_digest(), lookup_receipt.digest());
-        assert!(!report.report_digest().is_empty());
-        assert!(!report.counter_snapshot().is_empty());
+        assert_eq!(
+            report.lookup_receipt_projection().label(),
+            lookup_receipt.lookup_receipt_projection().label()
+        );
+        assert!(!report.report_projection().label().is_empty());
+        assert!(!report.counter_snapshot_projection().label().is_empty());
     }
 }
 
@@ -177,8 +180,11 @@ fn active_lifecycle_subject_reports_certified_support_with_indexed_lookup_receip
         ),
     )
     .unwrap();
-    let subject =
-        QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &admission, &active_admission);
+    let subject = QuerySubscriptionSupportSubject::active_lifecycle(
+        &declaration,
+        &admission,
+        &active_admission,
+    );
     let evidence = QuerySubscriptionSupportEvidence::admission(&declaration, &admission).unwrap();
 
     let (report, lookup_receipt) = report_query_subscription_support(subject, evidence).unwrap();
@@ -252,7 +258,7 @@ fn support_report_denies_mismatched_declaration_subject_sources() {
         &QuerySubscriptionSupportReportDenialKind::DeclarationSourceMismatch
     );
     assert!(error.message().contains("same declaration artifact"));
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -284,7 +290,7 @@ fn support_report_denies_mismatched_admission_subject_sources() {
         &QuerySubscriptionSupportReportDenialKind::AdmissionSourceMismatch
     );
     assert!(error.message().contains("same admission artifact"));
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -302,7 +308,7 @@ fn support_evidence_rejects_mismatched_declaration_and_admission_sources_early()
     assert!(error
         .message()
         .contains("same canonical query subscription family"));
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -356,7 +362,7 @@ fn activation_support_denies_when_only_declaration_evidence_is_available() {
         &QuerySubscriptionSupportReportDenialKind::AdmissionEvidenceRequired
     );
     assert!(error.message().contains("requires admission evidence"));
-    assert!(!error.failure_digest().is_empty());
+    assert!(!error.failure_projection().label().is_empty());
 }
 
 #[test]
@@ -597,10 +603,10 @@ fn continuation_report_for(
     let evidence = admit_subscription_continuation_evidence(
         attachment.lane_digest().clone(),
         SubscriptionContinuationClass::IdentityRemap,
-        "employee:old",
-        "employee:new",
-        "basis:current",
-        "identity-evolution-authority",
+        continuation_test_identity("employee:old"),
+        continuation_test_identity("employee:new"),
+        continuation_test_identity("basis:current"),
+        continuation_test_identity("identity-evolution-authority"),
         ContinuationRemapWidth::measured(1),
     )
     .unwrap();

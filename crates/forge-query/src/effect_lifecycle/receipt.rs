@@ -1,7 +1,5 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::batch_execution::ExecutedEffectBatchPlan;
 use super::counters::EffectLifecycleCounters;
@@ -61,23 +59,22 @@ impl EffectReceiptDecisionTrace {
             .lowered_effect_execution_plan_identity()
             .clone();
         let authority_owner = executed.authority_owner();
-        let decision_trace_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_receipt_decision_trace_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("admitted"),
-            &admitted_or_batch_identity,
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("lowered"), &lowered_identity)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("authority_owner"),
-            authority_owner.as_str(),
-        )
-        .seal();
+        let decision_trace_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_receipt_decision_trace_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("admitted"),
+                    &admitted_or_batch_identity,
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("lowered"), &lowered_identity)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authority_owner"),
+                    authority_owner.as_str(),
+                )
+                .seal();
         Self {
             admitted_or_batch_identity,
             lowered_identity,
@@ -90,23 +87,22 @@ impl EffectReceiptDecisionTrace {
         let admitted_or_batch_identity = executed.lowered().admitted_batch_identity().clone();
         let lowered_identity = executed.lowered().batch_identity().clone();
         let authority_owner = executed.authority_owner();
-        let decision_trace_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_receipt_decision_trace_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("admitted_batch"),
-            &admitted_or_batch_identity,
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("lowered"), &lowered_identity)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("authority_owner"),
-            authority_owner.as_str(),
-        )
-        .seal();
+        let decision_trace_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_receipt_decision_trace_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("admitted_batch"),
+                    &admitted_or_batch_identity,
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("lowered"), &lowered_identity)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authority_owner"),
+                    authority_owner.as_str(),
+                )
+                .seal();
         Self {
             admitted_or_batch_identity,
             lowered_identity,
@@ -159,23 +155,22 @@ impl EffectReceiptIntegrityMarkers {
     ) -> Self {
         let authority_artifact_identity = executed_authority_artifact_identity(authority_artifact);
         let counter_snapshot_identity = counters.evidence_identity();
-        let integrity_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_receipt_integrity_markers_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("authority_artifact"),
-            &authority_artifact_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("counters"),
-            &counter_snapshot_identity,
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), receipt_identity)
-        .seal();
+        let integrity_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_receipt_integrity_markers_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("authority_artifact"),
+                    &authority_artifact_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("counters"),
+                    &counter_snapshot_identity,
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), receipt_identity)
+                .seal();
         Self {
             authority_artifact_identity,
             counter_snapshot_identity,
@@ -247,16 +242,21 @@ impl EffectExecutionReceipt {
             .normalized()
             .basis_family();
         let execution_identity = scalar_execution_receipt_identity(&executed, receipt_family);
-        let receipt_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_execution_receipt_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), receipt_family.as_str())
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("execution"), &execution_identity)
-        .seal();
+        let receipt_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_execution_receipt_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("family"),
+                    receipt_family.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("execution"),
+                    &execution_identity,
+                )
+                .seal();
         let decision_trace = EffectReceiptDecisionTrace::scalar(&executed);
         let integrity_markers = EffectReceiptIntegrityMarkers::new(
             executed.artifact(),
@@ -283,16 +283,21 @@ impl EffectExecutionReceipt {
         let authority_lane = executed.authority_lane();
         let basis_family = executed.basis_family();
         let execution_identity = batch_execution_receipt_identity(&executed);
-        let receipt_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::EffectIntentReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "effect_execution_receipt_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), receipt_family.as_str())
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("execution"), &execution_identity)
-        .seal();
+        let receipt_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_execution_receipt_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("family"),
+                    receipt_family.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("execution"),
+                    &execution_identity,
+                )
+                .seal();
         let decision_trace = EffectReceiptDecisionTrace::batch(&executed);
         let integrity_markers = EffectReceiptIntegrityMarkers::new(
             executed.aggregate_artifact(),
@@ -430,7 +435,9 @@ impl EffectExecutionReceipt {
 impl EffectReceiptTargetEvidence {
     pub fn writeback_outcome_for_reporting(&self) -> Option<&str> {
         match self {
-            Self::Writeback { outcome_identity, .. } => Some(outcome_identity.as_str()),
+            Self::Writeback {
+                outcome_identity, ..
+            } => Some(outcome_identity.as_str()),
             _ => None,
         }
     }
@@ -465,12 +472,13 @@ fn scalar_execution_receipt_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "effect_execution_receipt_execution_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), receipt_family.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            receipt_family.as_str(),
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("lowered"),
-            executed
-                .lowered()
-                .lowered_effect_execution_plan_identity(),
+            executed.lowered().lowered_effect_execution_plan_identity(),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("authority_artifact"),

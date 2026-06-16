@@ -1,4 +1,7 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{
+    project_query_subscription_evidence, QueryProjectionIdentity, QuerySubscriptionIdentityKind,
+};
 
 use super::basis_request::QuerySubscriptionBasisBindingRequest;
 use super::bridge_family::{
@@ -22,7 +25,6 @@ use super::signal_strategy::QuerySubscriptionSignalStrategyRequest;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeSubscriptionLoweringPlan {
-    query_declaration_for_reporting: String,
     query_declaration_identity: ForgeQueryEvidenceIdentity,
     bridge_declaration_identity: ForgeQueryEvidenceIdentity,
     family_map: QueryToBridgeSubscriptionFamilyMap,
@@ -35,16 +37,20 @@ pub struct BridgeSubscriptionLoweringPlan {
 }
 
 impl BridgeSubscriptionLoweringPlan {
-    pub fn query_declaration_for_reporting(&self) -> &str {
-        &self.query_declaration_for_reporting
+    pub fn query_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.query_declaration_identity)
     }
 
     pub fn query_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.query_declaration_identity
     }
 
-    pub fn bridge_declaration_for_reporting(&self) -> &str {
-        self.bridge_declaration_identity.as_str()
+    pub fn bridge_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.bridge_declaration_identity)
     }
 
     pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -85,7 +91,7 @@ pub fn lower_query_subscription_to_bridge(
     lowering_budget: QuerySubscriptionBridgeLoweringBudget,
 ) -> Result<BridgeSubscriptionLoweringPlan, QuerySubscriptionBridgeLoweringError> {
     let mut counters = declaration.counters().clone();
-    let source_digest = declaration.declaration_for_reporting().to_string();
+    let source_identity = declaration.declaration_identity();
     counters.bridge_family_registry_lookup_count = 1;
 
     let family_map = QueryToBridgeSubscriptionFamilyMap::for_query_family(declaration.family());
@@ -95,7 +101,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::BridgeFamilyUnsupported,
             "bridge family registry does not admit this query subscription family",
             QuerySubscriptionDiagnosticStage::BridgeFamilyLowering,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -109,7 +115,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::BridgeSliceUnsupported,
             "bridge slice registry does not admit every query subscription slice",
             QuerySubscriptionDiagnosticStage::BridgeSliceLowering,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -123,7 +129,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::BridgeFallbackUnsupported,
             "bridge fallback lowering is explicit debt and is not admitted by this lowering budget",
             QuerySubscriptionDiagnosticStage::BridgeFamilyLowering,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -134,7 +140,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::BasisBindingUnsupported,
             "bridge basis binding cannot honestly bind this query subscription basis",
             QuerySubscriptionDiagnosticStage::BasisBinding,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -145,7 +151,7 @@ pub fn lower_query_subscription_to_bridge(
             QuerySubscriptionBridgeLoweringDenialKind::LoweringBudgetExceeded,
             "bridge lowering exceeds its explicit bridge lowering budget",
             QuerySubscriptionDiagnosticStage::BridgeSliceLowering,
-            &source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -159,7 +165,6 @@ pub fn lower_query_subscription_to_bridge(
     counters.signal_strategy_request_count = 1;
 
     let query_declaration_identity = declaration.declaration_identity().clone();
-    let query_declaration_for_reporting = query_declaration_identity.as_str().to_string();
     let bridge_declaration_identity = bridge_lowering_plan_identity(
         &query_declaration_identity,
         family_map.bridge_family(),
@@ -169,7 +174,6 @@ pub fn lower_query_subscription_to_bridge(
     );
 
     Ok(BridgeSubscriptionLoweringPlan {
-        query_declaration_for_reporting,
         query_declaration_identity,
         bridge_declaration_identity,
         family_map,

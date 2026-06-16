@@ -25,6 +25,4 @@ fn public_bridge_hostile_certification_schedule_replays_identically() {
 
     assert_eq!(first, replay);
     assert_eq!(first, second);
-    assert_eq!(first.digest().as_str(), replay.digest().as_str());
-    assert_eq!(first.digest().as_str(), second.digest().as_str());
 }

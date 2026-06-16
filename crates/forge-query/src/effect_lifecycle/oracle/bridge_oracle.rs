@@ -1,10 +1,10 @@
-use forge_runtime_bridge::facade::{BridgeIdentityEvidence, BridgeWritebackOutcomeClass, RuntimeBridge};
+use forge_runtime_bridge::facade::{BridgeWritebackOutcomeClass, RuntimeBridge};
 
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
+
+use super::error::{
+    bridge_oracle_observation_subject, EffectExecutionOracleError, EffectExecutionOracleErrorKind,
 };
-
-use super::error::{bridge_oracle_observation_subject, EffectExecutionOracleError, EffectExecutionOracleErrorKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeExecutionOracle {
@@ -197,9 +197,19 @@ fn bridge_observation_subject_identity(
             "bridge_observation_subject_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("kind"), kind)
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("observed"),
-            &BridgeIdentityEvidence::from_external_authority(observed_digest),
+            &ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "bridge_observed_digest_v1",
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("observed_digest"),
+                    observed_digest,
+                )
+                .seal()
+                .bridge_external_identity_evidence(),
         )
         .seal()
 }
@@ -229,8 +239,14 @@ fn compose_bridge_oracle_identity(
             ForgeQueryEvidenceTag::new("outcome_class"),
             writeback_outcome_class_label(outcome_class),
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("request"), request_subject_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt"), receipt_subject_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("request"),
+            request_subject_identity,
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("receipt"),
+            receipt_subject_identity,
+        )
         .optional_evidence_identity(
             ForgeQueryEvidenceTag::new("execution_receipt"),
             execution_receipt_subject_identity,

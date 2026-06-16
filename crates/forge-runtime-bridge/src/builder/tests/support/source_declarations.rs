@@ -10,7 +10,7 @@ pub(in crate::builder::tests) fn source_declaration(
     capabilities: Vec<BridgeSourceCapability>,
 ) -> SourceDeclaration {
     SourceDeclaration::new(
-        SourceDeclarationIdentity::new(declaration_id),
+        SourceDeclarationIdentity::admit_bridge_owned(declaration_id),
         BridgeTruthViewSelector::committed_snapshot(
             truth_branch("main"),
             truth_snapshot(snapshot_fixture_id(snapshot_id), 1),

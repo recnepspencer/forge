@@ -1,7 +1,7 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
-use super::super::ForgeQueryRuntimeLiveSubscriptionInstallation;
 use super::super::evidence_identities::runtime_live_subscription_counter_inspection_identity;
+use super::super::ForgeQueryRuntimeLiveSubscriptionInstallation;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryLiveSubscriptionInspectionCounters {

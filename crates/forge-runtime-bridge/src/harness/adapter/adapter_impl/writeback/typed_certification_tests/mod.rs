@@ -52,7 +52,7 @@ fn writeback_fixture(name: &str) -> forge_harness::facade::ScenarioFixture<Bridg
 
 fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("typed-profile-name"),
+        BridgeMappingId::admit_bridge_owned("typed-profile-name"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -63,7 +63,7 @@ fn registration() -> BridgeMappingRegistration {
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.profile.typed"),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile.typed"),
         crate::facade::CoarseRoutingMode::Direct,
     )
 }

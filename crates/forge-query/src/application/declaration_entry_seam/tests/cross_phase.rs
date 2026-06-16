@@ -39,10 +39,7 @@ fn retained_world_basis_and_subject_aware_temporal_readiness_stay_stitched() {
     );
     assert_eq!(
         world_state.result_shape_for_reporting(),
-        runtime_state_snapshot_result_shape_label_identity(
-            world_basis.handle_identity(),
-        )
-        .as_str()
+        runtime_state_snapshot_result_shape_label_identity(world_basis.handle_identity(),).as_str()
     );
 
     match world_inspection {
@@ -54,7 +51,10 @@ fn retained_world_basis_and_subject_aware_temporal_readiness_stay_stitched() {
                 Some(world_basis.support_snapshot_digest())
             );
             assert_eq!(inspection.basis_digest(), world_state.basis_for_reporting());
-            assert_eq!(inspection.shape_digest(), world_state.result_shape_for_reporting());
+            assert_eq!(
+                inspection.shape_digest(),
+                world_state.result_shape_for_reporting()
+            );
         }
         other => panic!("expected basis lifecycle inspection, got {other:?}"),
     }

@@ -1,9 +1,7 @@
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::{EffectExecutionOracleError, EffectExecutionOracleErrorKind};
 
@@ -118,7 +116,7 @@ fn compose_relational_oracle_identity(
             ForgeQueryEvidenceTag::new("version_id"),
             observed_version_id as usize,
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("parent_commit_ids"),
             observed_parent_commit_ids
                 .iter()

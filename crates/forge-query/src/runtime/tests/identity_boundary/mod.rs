@@ -352,7 +352,10 @@ fn milestone_nine_six_certification_modules_do_not_use_hash_parts() {
 fn inventory_documents_excluded_folklore_paths() {
     use crate::application::{EXACT_ZERO_FORMAT_DIGEST_PATHS, EXCLUDED_FOLKLORE_PATHS};
 
-    assert!(EXCLUDED_FOLKLORE_PATHS.contains(&"subscription/"));
+    assert!(!EXCLUDED_FOLKLORE_PATHS.contains(&"subscription/"));
+    assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"subscription/input.rs"));
+    assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"subscription/diagnostic/trace.rs"));
+    assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"subscription/support/profile.rs"));
     assert!(!EXCLUDED_FOLKLORE_PATHS.contains(&"runtime/intent/receipt.rs"));
     assert!(!EXCLUDED_FOLKLORE_PATHS.contains(&"runtime/intent/receipt_identity.rs"));
     assert!(!EXCLUDED_FOLKLORE_PATHS.contains(&"runtime/intent/effect_triggered.rs"));
@@ -403,7 +406,7 @@ fn unified_inspection_request_labels_remain_typed_artifacts() {
 fn authoritative_mutation_seed_identity_resists_delimiter_pressure() {
     let left = ForgeQueryAuthoritativeMutationIntentSeed::new(
         ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: ForgeQueryEntityIdentity::authored_command("entity|a:1"),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("entity|a:1"),
             aspect_path: "profile.name".to_string(),
             value: json!("left"),
         },
@@ -413,7 +416,7 @@ fn authoritative_mutation_seed_identity_resists_delimiter_pressure() {
     );
     let right = ForgeQueryAuthoritativeMutationIntentSeed::new(
         ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: ForgeQueryEntityIdentity::authored_command("entity"),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("entity"),
             aspect_path: "a:1|profile.name".to_string(),
             value: json!("left"),
         },
@@ -435,12 +438,12 @@ fn authoritative_mutation_seed_identity_resists_delimiter_pressure() {
 #[test]
 fn authoritative_mutation_batch_seed_composes_component_evidence_identities() {
     let left = ForgeQueryWriteCommand::UpdateAspect {
-        entity_identity: ForgeQueryEntityIdentity::authored_command("batch:left|1"),
+        entity_identity: crate::memory_workspace::admit_authored_entity_label("batch:left|1"),
         aspect_path: "profile.name".to_string(),
         value: json!("left"),
     };
     let right = ForgeQueryWriteCommand::UpdateAspect {
-        entity_identity: ForgeQueryEntityIdentity::authored_command("batch:right:1"),
+        entity_identity: crate::memory_workspace::admit_authored_entity_label("batch:right:1"),
         aspect_path: "profile.name".to_string(),
         value: json!("right"),
     };
@@ -541,7 +544,7 @@ fn bridge_mutation_lowering_keeps_resolved_targets_typed() {
     );
     assert!(
         !bridge_lowering_source
-            .contains("identity.evidence_identity().as_str().to_string()"),
+            .contains("identity.terminal_projection_for_reporting().to_string()"),
         "bridge mutation lowering must not smuggle Query evidence strings into bridge-native target identity slots"
     );
 }

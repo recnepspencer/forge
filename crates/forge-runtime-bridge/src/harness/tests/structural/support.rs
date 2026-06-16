@@ -22,13 +22,17 @@ pub(super) fn structural_fixture(
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_structural_declaration(remap_declaration(
-                StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+                StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+                    "structural:analysis-remap",
+                ),
             ))
             .with_structural_declaration(branch_declaration(
-                StructuralIdentityDeclarationIdentity::new("structural:analysis-branch-compare"),
+                StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+                    "structural:analysis-branch-compare",
+                ),
             ))
             .with_structural_declaration(branch_head_declaration(
-                StructuralIdentityDeclarationIdentity::new(
+                StructuralIdentityDeclarationIdentity::admit_bridge_owned(
                     "structural:analysis-branch-head-compare",
                 ),
             ))
@@ -123,9 +127,9 @@ fn remap_declaration(
 ) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::advisory_remap(
         declaration_identity,
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::TopologyFingerprint,
             "geometry-topology-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -144,9 +148,9 @@ fn branch_declaration(
 ) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::branch_comparison(
         declaration_identity,
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::BranchComparisonFingerprint,
             "geometry-branch-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -171,9 +175,9 @@ fn branch_head_declaration(
 ) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::branch_comparison(
         declaration_identity,
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::BranchComparisonFingerprint,
             "geometry-branch-head-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -192,63 +196,71 @@ fn branch_head_declaration(
 }
 
 pub(super) fn exact_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::structural_remap_exact(StructuralIdentityDeclarationIdentity::new(
-        "structural:analysis-remap",
-    ))
+    BridgeHarnessTargetId::structural_remap_exact(
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
+    )
 }
 
 pub(super) fn ambiguous_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::structural_remap_ambiguous(StructuralIdentityDeclarationIdentity::new(
-        "structural:analysis-remap",
-    ))
+    BridgeHarnessTargetId::structural_remap_ambiguous(
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
+    )
 }
 
 pub(super) fn no_safe_match_target() -> BridgeHarnessTargetId {
     BridgeHarnessTargetId::structural_remap_no_safe_match(
-        StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
     )
 }
 
 pub(super) fn lineage_divergence_target() -> BridgeHarnessTargetId {
     BridgeHarnessTargetId::structural_remap_lineage_divergence(
-        StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
     )
 }
 
 pub(super) fn identity_conflict_target() -> BridgeHarnessTargetId {
     BridgeHarnessTargetId::structural_remap_identity_conflict(
-        StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
     )
 }
 
 pub(super) fn remap_replay_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::structural_remap_replay(StructuralIdentityDeclarationIdentity::new(
-        "structural:analysis-remap",
-    ))
+    BridgeHarnessTargetId::structural_remap_replay(
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:analysis-remap"),
+    )
 }
 
 pub(super) fn branch_compare_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::structural_branch_compare(StructuralIdentityDeclarationIdentity::new(
-        "structural:analysis-branch-compare",
-    ))
+    BridgeHarnessTargetId::structural_branch_compare(
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+            "structural:analysis-branch-compare",
+        ),
+    )
 }
 
 pub(super) fn branch_replay_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::structural_branch_replay(StructuralIdentityDeclarationIdentity::new(
-        "structural:analysis-branch-compare",
-    ))
+    BridgeHarnessTargetId::structural_branch_replay(
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+            "structural:analysis-branch-compare",
+        ),
+    )
 }
 
 pub(super) fn branch_head_compare_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::structural_branch_compare(StructuralIdentityDeclarationIdentity::new(
-        "structural:analysis-branch-head-compare",
-    ))
+    BridgeHarnessTargetId::structural_branch_compare(
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+            "structural:analysis-branch-head-compare",
+        ),
+    )
 }
 
 pub(super) fn branch_head_replay_target() -> BridgeHarnessTargetId {
-    BridgeHarnessTargetId::structural_branch_replay(StructuralIdentityDeclarationIdentity::new(
-        "structural:analysis-branch-head-compare",
-    ))
+    BridgeHarnessTargetId::structural_branch_replay(
+        StructuralIdentityDeclarationIdentity::admit_bridge_owned(
+            "structural:analysis-branch-head-compare",
+        ),
+    )
 }
 
 pub(super) fn direct_profile(name: &str) -> ExecutionProfile {

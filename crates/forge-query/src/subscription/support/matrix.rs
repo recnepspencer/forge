@@ -1,7 +1,9 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
-use super::super::family::QuerySubscriptionFamily;
 use super::super::evidence_identities::{support_matrix_identity, support_matrix_row_identity};
+use super::super::evidence_projection::subscription_evidence_projection;
+use super::super::family::QuerySubscriptionFamily;
 use super::profile::{
     QuerySubscriptionActiveLifecycleSupport, QuerySubscriptionLifecycleCloseoutSupport,
     QuerySubscriptionRuntimeBackedSupport, QuerySubscriptionSupportProfile,
@@ -16,7 +18,6 @@ pub struct QuerySubscriptionSupportMatrixRow {
     support_class: QuerySubscriptionSupportClass,
     posture: QuerySubscriptionSupportPosture,
     row_identity: ForgeQueryEvidenceIdentity,
-    row_for_reporting: String,
 }
 
 impl QuerySubscriptionSupportMatrixRow {
@@ -25,15 +26,11 @@ impl QuerySubscriptionSupportMatrixRow {
         support_class: QuerySubscriptionSupportClass,
         posture: QuerySubscriptionSupportPosture,
     ) -> Self {
-        let row_identity = support_matrix_row_identity(
-            family,
-            support_class.as_str(),
-            posture.as_str(),
-        );
+        let row_identity =
+            support_matrix_row_identity(family, support_class.as_str(), posture.as_str());
         Self {
             support_class,
             posture,
-            row_for_reporting: row_identity.as_str().to_string(),
             row_identity,
         }
     }
@@ -50,12 +47,10 @@ impl QuerySubscriptionSupportMatrixRow {
         &self.row_identity
     }
 
-    pub fn row_digest(&self) -> &str {
-        self.row_for_reporting()
-    }
-
-    pub fn row_for_reporting(&self) -> &str {
-        &self.row_for_reporting
+    pub fn row_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.row_identity)
     }
 }
 
@@ -65,7 +60,6 @@ pub struct QuerySubscriptionSupportMatrix {
     capability_digest: SubscriptionFamilyCapabilityDigest,
     rows: Vec<QuerySubscriptionSupportMatrixRow>,
     matrix_identity: ForgeQueryEvidenceIdentity,
-    matrix_for_reporting: String,
 }
 
 impl QuerySubscriptionSupportMatrix {
@@ -88,16 +82,12 @@ impl QuerySubscriptionSupportMatrix {
             .collect::<Vec<_>>();
         let row_refs: Vec<&ForgeQueryEvidenceIdentity> =
             rows.iter().map(|row| row.row_identity()).collect();
-        let matrix_identity = support_matrix_identity(
-            family,
-            capability_digest.capability_identity(),
-            row_refs,
-        );
+        let matrix_identity =
+            support_matrix_identity(family, capability_digest.capability_identity(), row_refs);
         Self {
             family: family.clone(),
             capability_digest,
             rows,
-            matrix_for_reporting: matrix_identity.as_str().to_string(),
             matrix_identity,
         }
     }
@@ -106,7 +96,7 @@ impl QuerySubscriptionSupportMatrix {
         &self.family
     }
 
-    pub fn capability_digest(&self) -> &SubscriptionFamilyCapabilityDigest {
+    pub(crate) fn capability_digest(&self) -> &SubscriptionFamilyCapabilityDigest {
         &self.capability_digest
     }
 
@@ -127,12 +117,10 @@ impl QuerySubscriptionSupportMatrix {
         &self.matrix_identity
     }
 
-    pub fn digest(&self) -> &str {
-        self.matrix_for_reporting()
-    }
-
-    pub fn matrix_for_reporting(&self) -> &str {
-        &self.matrix_for_reporting
+    pub fn matrix_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.matrix_identity)
     }
 }
 

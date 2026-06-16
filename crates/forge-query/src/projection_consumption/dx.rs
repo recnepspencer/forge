@@ -267,11 +267,7 @@ impl ForgeQueryDerivedArtifactBinding {
         requested: ProjectMaterializedFacts,
     ) -> Result<ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError> {
         let declaration = self
-            .declare_projection_fact_consumption(
-                result_shape,
-                authorized_projection,
-                requested,
-            )
+            .declare_projection_fact_consumption(result_shape, authorized_projection, requested)
             .map_err(ProjectionFactConsumptionPathError::Declaration)?;
         consume_attempt_from_declaration(declaration, |contract| {
             contract.extract_from_retained_derived_artifact_binding(self)

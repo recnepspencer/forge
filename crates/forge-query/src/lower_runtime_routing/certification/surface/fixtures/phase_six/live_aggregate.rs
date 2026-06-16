@@ -215,7 +215,9 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
     let activation_receipt = crate::runtime::SubscriptionActivationReceipt::from_activation(
         LIVE_AGGREGATE_VIEW_NAME,
         &activation,
-        "certified-live-aggregate-support",
+        crate::runtime::runtime_subscription_support_evidence_identity(
+            "certified-live-aggregate-support",
+        ),
         None,
     );
     let activation_identity = activation_receipt.activation_identity().clone();
@@ -239,6 +241,7 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
                 session.live_view().lowering().family(),
             ),
         ),
+        session.canonical().result_shape().digest().clone(),
         subscription_family,
         crate::runtime::live_subscription_source_identity(
             "subscription_declaration",
@@ -313,7 +316,7 @@ fn installation_attachment(
         &handle,
         SubscriptionConsumerAttachmentRequest::admitted(
             "runtime-live-aggregate",
-            activation.activation_for_reporting(),
+            activation.activation_projection().label(),
         ),
         consumer_attachment_budget(),
     )

@@ -4,7 +4,18 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use forge_foundational::facade::FoundationalIdentityKind;
+
 use crate::clone_budget::CheapClone;
+use crate::identity_authority::{
+    admit_bridge_truth_authority_identity, admit_bridge_truth_authority_identity_for_kind,
+    BridgeCanonicalDigestIdentityBasis, BridgeEvidenceReferenceIdentityKind,
+    BridgePreviewExecutionRecordIdentityKind, BridgePreviewSessionDeclarationIdentityKind,
+    BridgePreviewSessionIdentityKind, BridgeTruthAuthorityIdentity,
+    BridgeTruthBoundaryBridgedIdentity, BridgeTruthDigestIdentityEvidence,
+    BridgeTruthExternalIdentityToken, BridgeTruthProjectionIdentity,
+    BridgeWritebackDeclarationIdentityKind,
+};
 
 pub struct BridgeIdentity<Tag> {
     value: Arc<str>,
@@ -17,38 +28,52 @@ pub struct BridgeIdentityEvidence {
     payload: BridgeIdentityEvidencePayload,
 }
 
+pub trait BridgeIdentityAuthorityKind {
+    type Kind: FoundationalIdentityKind;
+}
+
 impl BridgeIdentityEvidence {
-    pub fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &str {
         self.value.as_ref()
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
 
-    pub fn from_external_authority(value: impl AsRef<str>) -> Self {
+    pub fn terminal_projection_for_reporting(&self) -> &str {
+        self.as_str()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn from_bridge_owner_external_authority(value: impl Into<Arc<str>>) -> Self {
+        Self::from_external_authority(
+            crate::identity_authority::bridge_truth_external_identity_token(value),
+        )
+    }
+
+    pub fn from_external_authority(
+        token: BridgeTruthExternalIdentityToken<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+    ) -> Self {
         Self {
-            value: Arc::from(value.as_ref()),
+            value: token.into_value(),
             payload: BridgeIdentityEvidencePayload::ExternalAuthority,
         }
     }
 
     pub fn from_query_evidence_identity(
-        scope: impl AsRef<str>,
-        identity_token: impl Into<Arc<str>>,
+        scope: BridgeTruthProjectionIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+        identity_token: BridgeTruthDigestIdentityEvidence<
+            BridgeCanonicalDigestIdentityBasis,
+            BridgeEvidenceReferenceIdentityKind,
+        >,
     ) -> Self {
+        let _identity_token = identity_token;
         Self {
-            value: identity_token.into(),
+            value: Arc::clone(scope.label()),
             payload: BridgeIdentityEvidencePayload::QueryEvidenceIdentity {
-                scope: Arc::from(scope.as_ref()),
+                scope: scope.into_label(),
             },
-        }
-    }
-
-    pub(crate) fn from_arc(value: &Arc<str>) -> Self {
-        Self {
-            value: Arc::clone(value),
-            payload: BridgeIdentityEvidencePayload::ExternalAuthority,
         }
     }
 
@@ -61,6 +86,28 @@ impl BridgeIdentityEvidence {
             payload: BridgeIdentityEvidencePayload::CanonicalBridgeEvidence { scope },
         }
     }
+
+    pub(crate) fn revalidate_bridge_retained_reference(
+        &self,
+    ) -> BridgeTruthBoundaryBridgedIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind> {
+        admit_bridge_truth_authority_identity(Arc::clone(&self.value)).bridge_trust_boundary()
+    }
+
+    pub fn from_boundary_bridged_identity<Kind>(
+        boundary: &BridgeTruthBoundaryBridgedIdentity<Arc<str>, Kind>,
+    ) -> Self
+    where
+        Kind: FoundationalIdentityKind,
+    {
+        Self {
+            value: Arc::clone(boundary.value()),
+            payload: BridgeIdentityEvidencePayload::ExternalAuthority,
+        }
+    }
+}
+
+pub fn bridge_identity_reporting_label(evidence: &BridgeIdentityEvidence) -> &str {
+    evidence.as_str()
 }
 
 impl Clone for BridgeIdentityEvidence {
@@ -108,12 +155,6 @@ enum BridgeIdentityEvidencePayload {
     QueryEvidenceIdentity { scope: Arc<str> },
 }
 
-impl AsRef<str> for BridgeIdentityEvidence {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
 impl fmt::Debug for BridgeIdentityEvidence {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("BridgeIdentityEvidence")
@@ -122,19 +163,19 @@ impl fmt::Debug for BridgeIdentityEvidence {
     }
 }
 
-impl fmt::Display for BridgeIdentityEvidence {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
 impl<Tag> BridgeIdentity<Tag> {
-    pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
+    pub(crate) fn new(
+        identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+    ) -> Self {
         Self {
-            value: value.into(),
+            value: identity.value().clone(),
             payload: BridgeIdentityPayload::OpaqueText,
             _tag: PhantomData,
         }
+    }
+
+    pub(crate) fn admit_bridge_owned(value: impl Into<Arc<str>>) -> Self {
+        Self::new(admit_bridge_truth_authority_identity(value))
     }
 
     pub(crate) fn with_payload(value: impl Into<Arc<str>>, payload: BridgeIdentityPayload) -> Self {
@@ -153,15 +194,38 @@ impl<Tag> BridgeIdentity<Tag> {
         &self.payload
     }
 
-    pub fn evidence_identity(&self) -> BridgeIdentityEvidence {
-        BridgeIdentityEvidence {
-            value: Arc::clone(&self.value),
-            payload: BridgeIdentityEvidencePayload::ExternalAuthority,
+    pub(crate) fn from_reference_evidence(
+        evidence: BridgeTruthBoundaryBridgedIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+    ) -> Self {
+        Self {
+            value: evidence.value().clone(),
+            payload: BridgeIdentityPayload::OpaqueText,
+            _tag: PhantomData,
         }
     }
 
-    pub(crate) fn from_reference_evidence(evidence: &BridgeIdentityEvidence) -> Self {
-        Self::new(evidence.as_str())
+    pub(crate) fn from_retained_evidence_reference(evidence: &BridgeIdentityEvidence) -> Self {
+        Self::from_reference_evidence(evidence.revalidate_bridge_retained_reference())
+    }
+
+    pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
+        BridgeIdentityEvidence::from_external_authority(
+            crate::identity_authority::bridge_truth_external_identity_token(Arc::clone(&self.value)),
+        )
+    }
+}
+
+impl<Tag> BridgeIdentity<Tag>
+where
+    Tag: BridgeIdentityAuthorityKind,
+{
+    pub fn bridge_trust_boundary(&self) -> BridgeTruthBoundaryBridgedIdentity<Arc<str>, Tag::Kind> {
+        admit_bridge_truth_authority_identity_for_kind::<Tag::Kind>(Arc::clone(&self.value))
+            .bridge_trust_boundary()
+    }
+
+    pub fn terminal_projection_for_reporting(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -172,6 +236,118 @@ impl<Tag> Clone for BridgeIdentity<Tag> {
 }
 
 impl<Tag> CheapClone for BridgeIdentity<Tag> {}
+
+macro_rules! bridge_identity_tags {
+    ($($tag:ident),+ $(,)?) => {
+        $(pub enum $tag {})+
+    };
+}
+
+bridge_identity_tags! {
+    TruthCommitTag, TruthPatchTag, TruthBranchTag, TruthSnapshotTag, CommittedPatchDigestTag,
+    MappingIdTag, FrozenMappingRegistrationIdentityTag, AspectRegistrationIdTag,
+    SignalInvalidationScopeTag, TruthDeltaSurfaceIdentityTag, TruthViewSelectorIdentityTag,
+    HistoricalEvaluationDeclarationIdentityTag, SnapshotReadTargetIdentityTag, RouteIdentityTag,
+    InvalidationIdentityTag, InvalidationTargetIdentityTag, SubscriptionSliceIdentityTag,
+    SubscriptionDeclarationFamilyIdentityTag, SubscriptionDeclarationIdentityTag,
+    SubscriptionSliceTargetIdentityTag, SubscriptionFamilyRegistryIdentityTag,
+    SubscriptionBasisIdentityTag, SubscriptionSignalStrategyIdentityTag,
+    AdmittedSubscriptionIdentityTag, SubscriptionLifecycleIdentityTag, SubscriptionReplayIdentityTag,
+    SubscriptionDeliveryCostProfileIdentityTag, SubscriptionConsumerContractIdentityTag,
+    SubscriptionActiveIdentityTag, SubscriptionDeliveryFamilyIdentityTag,
+    SubscriptionDeliveryWindowOpenIdentityTag, SubscriptionDeliveryWindowIdentityTag,
+    SubscriptionDeliveryMemberIdentityTag, SubscriptionDeliveryContentDigestTag,
+    SubscriptionDeliveryDiagnosticsReferenceIdentityTag, SubscriptionDeliveryBufferLifecycleIdentityTag,
+    SubscriptionSharingEligibilityIdentityTag, SubscriptionFanoutPlanIdentityTag,
+    SubscriptionFanoutLayoutIdentityTag, SubscriptionFanoutConsumerBindingIdentityTag,
+    SubscriptionFanoutDeliveryProjectionIdentityTag, SubscriptionFanoutDeliveryProjectionSetIdentityTag,
+    SubscriptionRetainedDeliveryWindowSeedIdentityTag, SubscriptionRetainedDeliveryReplaySeedIdentityTag,
+    SubscriptionFanoutProjectionValidationIdentityTag, SubscriptionDeliveryReplayReadinessIdentityTag,
+    SubscriptionDeliveryReplayPlanIdentityTag, SubscriptionAcknowledgementFrontierIdentityTag,
+    SubscriptionCheckpointReadyIdentityTag, SubscriptionCheckpointIdentityTag,
+    SubscriptionResumeAdmissionIdentityTag, SubscriptionResumePlanIdentityTag,
+    SubscriptionRetainedResumeBasisIdentityTag, SubscriptionRetainedTemporalResumeBasisIdentityTag,
+    SubscriptionRetainedInflightAsyncResumeBasisIdentityTag, SubscriptionRetainedDeliveryResumeBasisIdentityTag,
+    SubscriptionAdmittedResumeBasisIdentityTag, SubscriptionReplayReadinessIdentityTag,
+    SubscriptionDuplicateReplayPolicyIdentityTag, SubscriptionContinuationIndexIdentityTag,
+    SubscriptionContinuationCandidateIdentityTag, SubscriptionContinuationDecisionIdentityTag,
+    SubscriptionContinuationChildIdentityTag, SubscriptionPreviewBasisIdentityTag,
+    SubscriptionPreviewActiveIdentityTag, SubscriptionPreviewScopeIdentityTag,
+    SubscriptionPreviewParentBasisIdentityTag, SubscriptionPreviewLifecycleIdentityTag,
+    SubscriptionPreviewResidueScopeIdentityTag, SubscriptionPreviewResidueScopeIndexIdentityTag,
+    SubscriptionPreviewResidueArtifactIdentityTag, SubscriptionPreviewLifecycleResidueEnvelopeIdentityTag,
+    SubscriptionPreviewDiscardResidueProofIdentityTag, SubscriptionPreviewPromotionRecordIdentityTag,
+    SubscriptionPreviewLifecyclePromotionIdentityTag, SubscriptionPreviewAuthoritativeReadmissionIdentityTag,
+    SubscriptionPreviewWorkTraceIdentityTag, SubscriptionPreviewWorkRecordIdentityTag,
+    SubscriptionTemporalAdmissionIdentityTag, SubscriptionTemporalActivationReadyIdentityTag,
+    SubscriptionTemporalWakeRoutingRequestIdentityTag, SubscriptionHistoricalTruthBasisIdentityTag,
+    SubscriptionHistoricalPreviousValueEvidenceIdentityTag, SubscriptionHistoricalTemporalReplayBasisIdentityTag,
+    SubscriptionHistoricalTemporalReplayRequestIdentityTag, SubscriptionHistoricalTemporalReadinessIdentityTag,
+    SubscriptionPreviewTemporalAdmissionIdentityTag, SubscriptionPreviewTemporalActivationReadyIdentityTag,
+    SubscriptionTemporalCauseRecordIdentityTag, SubscriptionTemporalDeliveryPlanIdentityTag,
+    SubscriptionMixedCauseOrderingRequestIdentityTag, SubscriptionMixedCauseOrderedCauseIdentityTag,
+    SubscriptionMixedCauseSuppressedCauseIdentityTag, SubscriptionMixedCauseDeniedCauseIdentityTag,
+    SubscriptionMixedCauseOrderingIdentityTag, SubscriptionMixedCauseDeliveryWindowIdentityTag,
+    SubscriptionSharedDeliveryPlanIdentityTag, SubscriptionSharedDeliveryLayoutIdentityTag,
+    SubscriptionSharedDeliveryBundleDraftIdentityTag, SubscriptionSharedDeliveryBundleSealedIdentityTag,
+    SubscriptionSharedDeliveryProjectionIdentityTag, SubscriptionSharedDeliveryAcknowledgementIdentityTag,
+    ContinuityIdentityTag, HistoricalResolvedLineageIdentityTag, HistoricalResolvedRecordIdentityTag,
+    HistoricalEvaluationRecordIdentityTag, HistoricalEvaluationDecisionLogIdentityTag,
+    HistoricalEvaluationArtifactIdentityTag, HistoricalEvaluationFailureIdentityTag, WorkloadIdentityTag,
+    BulkPlanningIdentityTag, BulkAdmissionProfileIdentityTag, BulkPacketRegionIdentityTag,
+    BulkContinuityMemberIdentityTag, BulkTruthViewMemberIdentityTag, BulkWorkloadSegmentIdentityTag,
+    ReducedPublicationIdentityTag, ReducedRoutingTargetIdentityTag, ReducedTruthViewIdentityTag,
+    ReducedContinuityIdentityTag, ReducedWideningIdentityTag, RoutingPacketIdentityTag,
+    TruthViewPacketIdentityTag, ContinuityPacketIdentityTag, WideningPacketIdentityTag,
+    ReductionPacketIdentityTag, ChangeStreamDeclarationIdentityTag, StreamProtocolIdentityTag,
+    ConsumerContractIdentityTag, StreamMemberIdentityTag, StreamPositionIdentityTag, StreamWindowIdentityTag,
+    CheckpointTokenIdentityTag, StreamReplayRecordIdentityTag, BackpressureDecisionIdentityTag,
+    SourceDeclarationIdentityTag, SourceContractIdentityTag, SourceMaterializationRecordIdentityTag,
+    SourceFailureRecordIdentityTag, StructuralSchemaIdentityTag, StructuralEquivalenceContractIdentityTag,
+    StructuralDeclarationIdentityTag, StructuralContractIdentityTag, StructuralTruthViewBasisIdentityTag,
+    MergeDeclarationIdentityTag, MergeContractIdentityTag, MergeAuthorityBasisIdentityTag,
+    MergeOntologyMappingIdentityTag, MergeParentOrderIdentityTag, MergeRecordIdentityTag,
+    StructuralCandidateIdentityTag, StructuralFingerprintIdentityTag, StructuralRemapRecordIdentityTag,
+    StructuralBranchComparisonRecordIdentityTag, SpeculativeSignalBranchIdentityTag,
+    PreviewBranchBindingIdentityTag, PreviewSessionDeclarationIdentityTag, PreviewSessionIdentityTag,
+    PreviewExecutionRecordIdentityTag, PreviewDiscardRecordIdentityTag, PreviewPromotionRecordIdentityTag,
+    PromotionAdmissibilityProofIdentityTag, PreviewReuseEquivalenceIdentityTag, TemporalBasisIdentityTag,
+    TemporalCdcCursorIdentityTag, AsyncSourceDeclarationIdentityTag, AsyncSourceLoweringIdentityTag,
+    AsyncRequestTruthViewBasisIdentityTag, AsyncRequestSubscriptionInstanceIdentityTag,
+    AsyncRequestBasisBindingIdentityTag, AsyncRequestIdentityTag, AsyncInFlightRequestIdentityTag,
+    AsyncCompletionEnvelopeIdentityTag, AsyncCompletionIdentityTag, AsyncCompletionReceiptIdentityTag,
+    AsyncCompletionDenialIdentityTag, AsyncCompletionDenialReceiptIdentityTag,
+    AsyncCompletionSupersessionIdentityTag, AsyncCompletionSupersessionReceiptIdentityTag,
+    AsyncForwardCausalityIdentityTag, AsyncForwardCausalityReceiptIdentityTag,
+    AsyncWritebackAdmissionIdentityTag, AsyncWritebackMapperOutputIdentityTag,
+    AsyncWritebackStagedEffectIdentityTag, AsyncWritebackCommittedIdentityTag,
+    AsyncWritebackNoopIdentityTag, AsyncWritebackRejectedIdentityTag,
+    AsyncWritebackCausalityTransferReceiptIdentityTag, PolicyDeclarationIdentityTag,
+    PolicyContractIdentityTag, LoweredExecutionPolicyIdentityTag, PolicyProvenanceIdentityTag,
+    WritebackDeclarationIdentityTag, WritebackFamilyIdentityTag, WritebackStrategyIdentityTag,
+    WritebackStrategyCoherenceIdentityTag, WritebackContractIdentityTag,
+    WritebackAdmissionRecordIdentityTag, WritebackCausalityIdentityTag,
+    WritebackMapperEnvelopeIdentityTag, WritebackMappedFamilyInputIdentityTag,
+    WritebackEffectIdentityTag, WritebackIdempotenceIdentityTag, WritebackLoopPreventionIdentityTag,
+    WritebackCandidateIdentityTag, WritebackMapperWitnessIdentityTag, WritebackMapperRecordIdentityTag,
+    WritebackExecutionRecordIdentityTag, WritebackReplayRecordIdentityTag,
+}
+
+impl BridgeIdentityAuthorityKind for PreviewSessionIdentityTag {
+    type Kind = BridgePreviewSessionIdentityKind;
+}
+
+impl BridgeIdentityAuthorityKind for PreviewSessionDeclarationIdentityTag {
+    type Kind = BridgePreviewSessionDeclarationIdentityKind;
+}
+
+impl BridgeIdentityAuthorityKind for PreviewExecutionRecordIdentityTag {
+    type Kind = BridgePreviewExecutionRecordIdentityKind;
+}
+
+impl BridgeIdentityAuthorityKind for WritebackDeclarationIdentityTag {
+    type Kind = BridgeWritebackDeclarationIdentityKind;
+}
 
 impl<Tag> PartialEq for BridgeIdentity<Tag> {
     fn eq(&self, other: &Self) -> bool {
@@ -233,7 +409,7 @@ mod tests {
 
     #[test]
     fn debug_does_not_expose_identity_payload() {
-        let identity = BridgeIdentity::<TruthCommitTag>::new("commit-1");
+        let identity = BridgeIdentity::<TruthCommitTag>::admit_bridge_owned("commit-1");
 
         let debug = format!("{identity:?}");
 
@@ -254,213 +430,3 @@ mod tests {
         );
     }
 }
-
-pub enum TruthCommitTag {}
-pub enum TruthPatchTag {}
-pub enum TruthBranchTag {}
-pub enum TruthSnapshotTag {}
-pub enum CommittedPatchDigestTag {}
-pub enum MappingIdTag {}
-pub enum FrozenMappingRegistrationIdentityTag {}
-pub enum AspectRegistrationIdTag {}
-pub enum SignalInvalidationScopeTag {}
-pub enum TruthDeltaSurfaceIdentityTag {}
-pub enum TruthViewSelectorIdentityTag {}
-pub enum HistoricalEvaluationDeclarationIdentityTag {}
-pub enum SnapshotReadTargetIdentityTag {}
-pub enum RouteIdentityTag {}
-pub enum InvalidationIdentityTag {}
-pub enum InvalidationTargetIdentityTag {}
-pub enum SubscriptionSliceIdentityTag {}
-pub enum SubscriptionDeclarationFamilyIdentityTag {}
-pub enum SubscriptionDeclarationIdentityTag {}
-pub enum SubscriptionSliceTargetIdentityTag {}
-pub enum SubscriptionFamilyRegistryIdentityTag {}
-pub enum SubscriptionBasisIdentityTag {}
-pub enum SubscriptionSignalStrategyIdentityTag {}
-pub enum AdmittedSubscriptionIdentityTag {}
-pub enum SubscriptionLifecycleIdentityTag {}
-pub enum SubscriptionReplayIdentityTag {}
-pub enum SubscriptionDeliveryCostProfileIdentityTag {}
-pub enum SubscriptionConsumerContractIdentityTag {}
-pub enum SubscriptionActiveIdentityTag {}
-pub enum SubscriptionDeliveryFamilyIdentityTag {}
-pub enum SubscriptionDeliveryWindowOpenIdentityTag {}
-pub enum SubscriptionDeliveryWindowIdentityTag {}
-pub enum SubscriptionDeliveryMemberIdentityTag {}
-pub enum SubscriptionDeliveryContentDigestTag {}
-pub enum SubscriptionDeliveryDiagnosticsReferenceIdentityTag {}
-pub enum SubscriptionDeliveryBufferLifecycleIdentityTag {}
-pub enum SubscriptionSharingEligibilityIdentityTag {}
-pub enum SubscriptionFanoutPlanIdentityTag {}
-pub enum SubscriptionFanoutLayoutIdentityTag {}
-pub enum SubscriptionFanoutConsumerBindingIdentityTag {}
-pub enum SubscriptionFanoutDeliveryProjectionIdentityTag {}
-pub enum SubscriptionFanoutDeliveryProjectionSetIdentityTag {}
-pub enum SubscriptionRetainedDeliveryWindowSeedIdentityTag {}
-pub enum SubscriptionRetainedDeliveryReplaySeedIdentityTag {}
-pub enum SubscriptionFanoutProjectionValidationIdentityTag {}
-pub enum SubscriptionDeliveryReplayReadinessIdentityTag {}
-pub enum SubscriptionDeliveryReplayPlanIdentityTag {}
-pub enum SubscriptionAcknowledgementFrontierIdentityTag {}
-pub enum SubscriptionCheckpointReadyIdentityTag {}
-pub enum SubscriptionCheckpointIdentityTag {}
-pub enum SubscriptionResumeAdmissionIdentityTag {}
-pub enum SubscriptionResumePlanIdentityTag {}
-pub enum SubscriptionRetainedResumeBasisIdentityTag {}
-pub enum SubscriptionRetainedTemporalResumeBasisIdentityTag {}
-pub enum SubscriptionRetainedInflightAsyncResumeBasisIdentityTag {}
-pub enum SubscriptionRetainedDeliveryResumeBasisIdentityTag {}
-pub enum SubscriptionAdmittedResumeBasisIdentityTag {}
-pub enum SubscriptionReplayReadinessIdentityTag {}
-pub enum SubscriptionDuplicateReplayPolicyIdentityTag {}
-pub enum SubscriptionContinuationIndexIdentityTag {}
-pub enum SubscriptionContinuationCandidateIdentityTag {}
-pub enum SubscriptionContinuationDecisionIdentityTag {}
-pub enum SubscriptionContinuationChildIdentityTag {}
-pub enum SubscriptionPreviewBasisIdentityTag {}
-pub enum SubscriptionPreviewActiveIdentityTag {}
-pub enum SubscriptionPreviewScopeIdentityTag {}
-pub enum SubscriptionPreviewParentBasisIdentityTag {}
-pub enum SubscriptionPreviewLifecycleIdentityTag {}
-pub enum SubscriptionPreviewResidueScopeIdentityTag {}
-pub enum SubscriptionPreviewResidueScopeIndexIdentityTag {}
-pub enum SubscriptionPreviewResidueArtifactIdentityTag {}
-pub enum SubscriptionPreviewLifecycleResidueEnvelopeIdentityTag {}
-pub enum SubscriptionPreviewDiscardResidueProofIdentityTag {}
-pub enum SubscriptionPreviewPromotionRecordIdentityTag {}
-pub enum SubscriptionPreviewLifecyclePromotionIdentityTag {}
-pub enum SubscriptionPreviewAuthoritativeReadmissionIdentityTag {}
-pub enum SubscriptionPreviewWorkTraceIdentityTag {}
-pub enum SubscriptionPreviewWorkRecordIdentityTag {}
-pub enum SubscriptionTemporalAdmissionIdentityTag {}
-pub enum SubscriptionTemporalActivationReadyIdentityTag {}
-pub enum SubscriptionTemporalWakeRoutingRequestIdentityTag {}
-pub enum SubscriptionHistoricalTruthBasisIdentityTag {}
-pub enum SubscriptionHistoricalPreviousValueEvidenceIdentityTag {}
-pub enum SubscriptionHistoricalTemporalReplayBasisIdentityTag {}
-pub enum SubscriptionHistoricalTemporalReplayRequestIdentityTag {}
-pub enum SubscriptionHistoricalTemporalReadinessIdentityTag {}
-pub enum SubscriptionPreviewTemporalAdmissionIdentityTag {}
-pub enum SubscriptionPreviewTemporalActivationReadyIdentityTag {}
-pub enum SubscriptionTemporalCauseRecordIdentityTag {}
-pub enum SubscriptionTemporalDeliveryPlanIdentityTag {}
-pub enum SubscriptionMixedCauseOrderingRequestIdentityTag {}
-pub enum SubscriptionMixedCauseOrderedCauseIdentityTag {}
-pub enum SubscriptionMixedCauseSuppressedCauseIdentityTag {}
-pub enum SubscriptionMixedCauseDeniedCauseIdentityTag {}
-pub enum SubscriptionMixedCauseOrderingIdentityTag {}
-pub enum SubscriptionMixedCauseDeliveryWindowIdentityTag {}
-pub enum SubscriptionSharedDeliveryPlanIdentityTag {}
-pub enum SubscriptionSharedDeliveryLayoutIdentityTag {}
-pub enum SubscriptionSharedDeliveryBundleDraftIdentityTag {}
-pub enum SubscriptionSharedDeliveryBundleSealedIdentityTag {}
-pub enum SubscriptionSharedDeliveryProjectionIdentityTag {}
-pub enum SubscriptionSharedDeliveryAcknowledgementIdentityTag {}
-pub enum ContinuityIdentityTag {}
-pub enum HistoricalResolvedLineageIdentityTag {}
-pub enum HistoricalResolvedRecordIdentityTag {}
-pub enum HistoricalEvaluationRecordIdentityTag {}
-pub enum HistoricalEvaluationDecisionLogIdentityTag {}
-pub enum HistoricalEvaluationArtifactIdentityTag {}
-pub enum HistoricalEvaluationFailureIdentityTag {}
-pub enum WorkloadIdentityTag {}
-pub enum BulkPlanningIdentityTag {}
-pub enum BulkAdmissionProfileIdentityTag {}
-pub enum BulkPacketRegionIdentityTag {}
-pub enum BulkContinuityMemberIdentityTag {}
-pub enum BulkTruthViewMemberIdentityTag {}
-pub enum BulkWorkloadSegmentIdentityTag {}
-pub enum ReducedPublicationIdentityTag {}
-pub enum ReducedRoutingTargetIdentityTag {}
-pub enum ReducedTruthViewIdentityTag {}
-pub enum ReducedContinuityIdentityTag {}
-pub enum ReducedWideningIdentityTag {}
-pub enum RoutingPacketIdentityTag {}
-pub enum TruthViewPacketIdentityTag {}
-pub enum ContinuityPacketIdentityTag {}
-pub enum WideningPacketIdentityTag {}
-pub enum ReductionPacketIdentityTag {}
-pub enum ChangeStreamDeclarationIdentityTag {}
-pub enum StreamProtocolIdentityTag {}
-pub enum ConsumerContractIdentityTag {}
-pub enum StreamMemberIdentityTag {}
-pub enum StreamPositionIdentityTag {}
-pub enum StreamWindowIdentityTag {}
-pub enum CheckpointTokenIdentityTag {}
-pub enum StreamReplayRecordIdentityTag {}
-pub enum BackpressureDecisionIdentityTag {}
-pub enum SourceDeclarationIdentityTag {}
-pub enum SourceContractIdentityTag {}
-pub enum SourceMaterializationRecordIdentityTag {}
-pub enum SourceFailureRecordIdentityTag {}
-pub enum StructuralSchemaIdentityTag {}
-pub enum StructuralEquivalenceContractIdentityTag {}
-pub enum StructuralDeclarationIdentityTag {}
-pub enum StructuralContractIdentityTag {}
-pub enum StructuralTruthViewBasisIdentityTag {}
-pub enum MergeDeclarationIdentityTag {}
-pub enum MergeContractIdentityTag {}
-pub enum MergeAuthorityBasisIdentityTag {}
-pub enum MergeOntologyMappingIdentityTag {}
-pub enum MergeParentOrderIdentityTag {}
-pub enum MergeRecordIdentityTag {}
-pub enum StructuralCandidateIdentityTag {}
-pub enum StructuralFingerprintIdentityTag {}
-pub enum StructuralRemapRecordIdentityTag {}
-pub enum StructuralBranchComparisonRecordIdentityTag {}
-pub enum SpeculativeSignalBranchIdentityTag {}
-pub enum PreviewBranchBindingIdentityTag {}
-pub enum PreviewSessionDeclarationIdentityTag {}
-pub enum PreviewSessionIdentityTag {}
-pub enum PreviewExecutionRecordIdentityTag {}
-pub enum PreviewDiscardRecordIdentityTag {}
-pub enum PreviewPromotionRecordIdentityTag {}
-pub enum PromotionAdmissibilityProofIdentityTag {}
-pub enum PreviewReuseEquivalenceIdentityTag {}
-pub enum TemporalBasisIdentityTag {}
-pub enum TemporalCdcCursorIdentityTag {}
-pub enum AsyncSourceDeclarationIdentityTag {}
-pub enum AsyncSourceLoweringIdentityTag {}
-pub enum AsyncRequestTruthViewBasisIdentityTag {}
-pub enum AsyncRequestSubscriptionInstanceIdentityTag {}
-pub enum AsyncRequestBasisBindingIdentityTag {}
-pub enum AsyncRequestIdentityTag {}
-pub enum AsyncInFlightRequestIdentityTag {}
-pub enum AsyncCompletionEnvelopeIdentityTag {}
-pub enum AsyncCompletionIdentityTag {}
-pub enum AsyncCompletionReceiptIdentityTag {}
-pub enum AsyncCompletionDenialIdentityTag {}
-pub enum AsyncCompletionDenialReceiptIdentityTag {}
-pub enum AsyncCompletionSupersessionIdentityTag {}
-pub enum AsyncCompletionSupersessionReceiptIdentityTag {}
-pub enum AsyncForwardCausalityIdentityTag {}
-pub enum AsyncForwardCausalityReceiptIdentityTag {}
-pub enum AsyncWritebackAdmissionIdentityTag {}
-pub enum AsyncWritebackMapperOutputIdentityTag {}
-pub enum AsyncWritebackStagedEffectIdentityTag {}
-pub enum AsyncWritebackCommittedIdentityTag {}
-pub enum AsyncWritebackNoopIdentityTag {}
-pub enum AsyncWritebackRejectedIdentityTag {}
-pub enum AsyncWritebackCausalityTransferReceiptIdentityTag {}
-pub enum PolicyDeclarationIdentityTag {}
-pub enum PolicyContractIdentityTag {}
-pub enum LoweredExecutionPolicyIdentityTag {}
-pub enum PolicyProvenanceIdentityTag {}
-pub enum WritebackDeclarationIdentityTag {}
-pub enum WritebackFamilyIdentityTag {}
-pub enum WritebackStrategyIdentityTag {}
-pub enum WritebackStrategyCoherenceIdentityTag {}
-pub enum WritebackContractIdentityTag {}
-pub enum WritebackAdmissionRecordIdentityTag {}
-pub enum WritebackCausalityIdentityTag {}
-pub enum WritebackMapperEnvelopeIdentityTag {}
-pub enum WritebackMappedFamilyInputIdentityTag {}
-pub enum WritebackEffectIdentityTag {}
-pub enum WritebackIdempotenceIdentityTag {}
-pub enum WritebackLoopPreventionIdentityTag {}
-pub enum WritebackCandidateIdentityTag {}
-pub enum WritebackMapperWitnessIdentityTag {}
-pub enum WritebackMapperRecordIdentityTag {}
-pub enum WritebackExecutionRecordIdentityTag {}
-pub enum WritebackReplayRecordIdentityTag {}

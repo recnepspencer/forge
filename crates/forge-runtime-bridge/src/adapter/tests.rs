@@ -20,12 +20,12 @@ fn historical_lineage_authority_digest_is_canonical_for_same_inputs() {
     let left = BridgeHistoricalLineageAuthority::try_new(
         authority_basis.clone(),
         vec![
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:2"),
         ],
         vec![
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
         ],
         vec![3, 7],
     )
@@ -33,12 +33,12 @@ fn historical_lineage_authority_digest_is_canonical_for_same_inputs() {
     let right = BridgeHistoricalLineageAuthority::try_new(
         authority_basis,
         vec![
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:2"),
         ],
         vec![
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
         ],
         vec![3, 7],
     )
@@ -55,12 +55,12 @@ fn historical_lineage_authority_rejects_noncanonical_lineage_identities() {
     let error = BridgeHistoricalLineageAuthority::try_new(
         authority_basis(),
         vec![
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:2"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:1"),
         ],
         vec![
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
         ],
         vec![3, 7],
     )
@@ -77,12 +77,12 @@ fn historical_lineage_authority_rejects_noncanonical_record_identities() {
     let error = BridgeHistoricalLineageAuthority::try_new(
         authority_basis(),
         vec![
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:2"),
         ],
         vec![
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
         ],
         vec![3, 7],
     )
@@ -99,12 +99,12 @@ fn historical_lineage_authority_rejects_duplicate_lineage_identities() {
     let error = BridgeHistoricalLineageAuthority::try_new(
         authority_basis(),
         vec![
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:1"),
         ],
         vec![
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
         ],
         vec![3, 7],
     )
@@ -121,12 +121,12 @@ fn historical_lineage_authority_rejects_duplicate_record_identities() {
     let error = BridgeHistoricalLineageAuthority::try_new(
         authority_basis(),
         vec![
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:2"),
         ],
         vec![
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
         ],
         vec![3, 7],
     )
@@ -143,12 +143,12 @@ fn historical_lineage_authority_rejects_duplicate_event_ids() {
     let error = BridgeHistoricalLineageAuthority::try_new(
         authority_basis(),
         vec![
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:2"),
         ],
         vec![
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
         ],
         vec![3, 3],
     )
@@ -165,12 +165,12 @@ fn historical_lineage_authority_rejects_noncanonical_event_ids() {
     let error = BridgeHistoricalLineageAuthority::try_new(
         authority_basis(),
         vec![
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:2"),
         ],
         vec![
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
         ],
         vec![7, 3],
     )

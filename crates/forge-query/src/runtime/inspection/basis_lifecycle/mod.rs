@@ -2,9 +2,6 @@ mod build;
 
 use crate::application::ForgeQueryAdmittedWorldBasis;
 use crate::identity::hash_parts;
-use crate::runtime::evidence_identities::{
-    runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
-};
 use crate::query_basis_lifecycle::{
     BasisIntentDenial, BasisLifecyclePosture, BasisOperationLaneRequest, BasisVisibility,
     DeniedBasisCapability, InspectionBasisCapability, LowerRuntimeBoundInspectionBasis,
@@ -13,6 +10,9 @@ use crate::query_basis_lifecycle::{
     ObservationBasisCapability, ScopedInspectionBasis, ScopedObservationBasis, ScopedReplayBasis,
     ScopedSubscriptionActivationBasis, ScopedSubscriptionDeclarationBasis,
     SubscriptionActivationBasisCapability, SubscriptionDeclarationBasisCapability,
+};
+use crate::runtime::evidence_identities::{
+    runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
 };
 use crate::runtime::state_basis_classification::{
     authority_lane_for_denied_basis, authority_lane_for_intent_denial, state_kind_for_basis_denial,
@@ -51,14 +51,14 @@ impl ForgeQueryBasisLifecycleInspection {
             basis.basis_lifecycle_support_for_reporting(),
             basis.support_snapshot_digest()
         );
-        let basis_digest = runtime_state_snapshot_basis_label_identity(
-            basis.basis_lifecycle_support_identity(),
-        )
-        .as_str()
-        .to_string();
-        let shape_digest = runtime_state_snapshot_result_shape_label_identity(basis.handle_identity())
-            .as_str()
-            .to_string();
+        let basis_digest =
+            runtime_state_snapshot_basis_label_identity(basis.basis_lifecycle_support_identity())
+                .as_str()
+                .to_string();
+        let shape_digest =
+            runtime_state_snapshot_result_shape_label_identity(basis.handle_identity())
+                .as_str()
+                .to_string();
         let inspection_digest = hash_parts(&[
             "forge_query_basis_lifecycle_inspection_v1".to_string(),
             "subject:admitted_world_basis".to_string(),

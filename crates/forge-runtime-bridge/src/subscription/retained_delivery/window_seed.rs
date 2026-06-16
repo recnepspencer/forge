@@ -58,7 +58,7 @@ impl BridgeSubscriptionRetainedDeliveryWindowSeed {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             retained_delivery_window_seed_identity:
-                BridgeSubscriptionRetainedDeliveryWindowSeedIdentity::new(format!(
+                BridgeSubscriptionRetainedDeliveryWindowSeedIdentity::admit_bridge_owned(format!(
                     "bridge-subscription-retained-delivery-window-seed-id:sha256:{digest:x}"
                 )),
             active_subscription_identity: sealed_window.active_subscription_identity().clone(),

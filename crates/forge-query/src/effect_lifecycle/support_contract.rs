@@ -1,6 +1,4 @@
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::support_matrix::{EffectSupportCause, EffectSupportPosture};
 use super::taxonomy::{DeniedEffectEligibilityKind, EffectFamily};
@@ -52,24 +50,25 @@ impl EffectDeferredSupportContract {
         denial_kind: DeniedEffectEligibilityKind,
     ) -> Self {
         let residue_posture = EffectDeferredResiduePosture::ZeroOperationalResidue;
-        let contract_identity = ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "effect_deferred_support_contract_v1",
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("neighbor"),
-                neighbor_family.as_str(),
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("denial_kind"),
-                denial_kind.as_str(),
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("residue"),
-                residue_posture.as_str(),
-            )
-            .seal();
+        let contract_identity =
+            ForgeQueryEvidenceIdentity::compose(EFFECT_LIFECYCLE_IDENTITY_SCOPE)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_deferred_support_contract_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("neighbor"),
+                    neighbor_family.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("denial_kind"),
+                    denial_kind.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("residue"),
+                    residue_posture.as_str(),
+                )
+                .seal();
         Self {
             neighbor_family,
             denial_kind,

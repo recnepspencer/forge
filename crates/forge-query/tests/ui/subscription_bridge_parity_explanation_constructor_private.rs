@@ -15,8 +15,8 @@ fn main() {
         bridge_slice_labels: Vec::new(),
         basis_posture_label: String::new(),
         signal_strategy_class_label: String::new(),
-        counter_snapshot: String::new(),
-        explanation_digest: String::new(),
+        counter_identity: todo!(),
+        explanation_identity: todo!(),
         counters: QuerySubscriptionBridgeParityCounters::default(),
     };
 }

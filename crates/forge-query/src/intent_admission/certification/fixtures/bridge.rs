@@ -6,11 +6,12 @@ use forge_runtime_bridge::facade::{
     AspectKeySelector, BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
     BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeDeliveryReceipt, BridgeMappingId,
     BridgeMappingRegistration, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
-    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
-    TruthPatchTargetSelector, TruthSnapshotIdentity, TruthSnapshotReader,
+    RelationalBridgeSnapshotIdentityParts, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult,
+    SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity, TruthCommitIdentity,
+    TruthPatchIdentity, TruthPatchScope, TruthPatchTargetSelector, TruthSnapshotIdentity,
+    TruthSnapshotReader,
 };
 
 pub(crate) fn certification_bridge() -> RuntimeBridge {
@@ -46,8 +47,6 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for CertificationBridgeS
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_patch_envelope(
             request.commit_identity().clone(),
-            "certification-external-snapshot",
-            "main",
             "certification-entity",
             "certification-aspect",
             "value",
@@ -93,19 +92,21 @@ impl TruthSnapshotReader for CertificationSnapshotReader {
 
 fn native_patch_envelope(
     commit_identity: TruthCommitIdentity,
-    snapshot_identity: &str,
-    branch_identity: &str,
     entity_identity: &str,
     aspect: &str,
     field: &str,
 ) -> BridgeCommittedPatchEnvelope {
-    let patch_identity = TruthPatchIdentity::from_bridge_harness_label("patch:certification");
+    let commit_id = commit_identity.relational_commit_id().expect(
+        "intent certification fixture commit identity must retain relational commit payload",
+    );
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
             commit_identity,
-            patch_identity,
-            TruthSnapshotIdentity::from_bridge_harness_label(snapshot_identity),
-            TruthBranchIdentity::from_bridge_harness_label(branch_identity),
+            TruthPatchIdentity::from_relational_patch_position(commit_id),
+            TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(1, commit_id),
+            ),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             entity_identity,

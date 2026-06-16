@@ -34,11 +34,8 @@ impl ForgeQueryRuntime {
                 ForgeQueryWorkspaceError::new("mutation batch must declare at least one operation"),
             ));
         }
-        let requires_query_symbolic_aspect_resolution = commands
-            .iter()
-            .any(|command| !command.symbolic_aspect_references().is_empty());
-        let use_backend_atomic_batch = !requires_query_symbolic_aspect_resolution
-            && should_use_backend_atomic_batch(&self.backend.support_profile(), &commands);
+        let use_backend_atomic_batch =
+            should_use_backend_atomic_batch(&self.backend.support_profile(), &commands);
         let mut command_summaries: Vec<BatchCommandSummary> = Vec::with_capacity(commands.len());
         let mut resolved_receipts = Vec::with_capacity(commands.len());
         let mut symbolic_targets =

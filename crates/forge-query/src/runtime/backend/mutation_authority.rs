@@ -37,12 +37,11 @@ pub(crate) fn build_bridge_authority_bundle(
         &mutation_kind,
         snapshot_identity,
     );
+    let writeback_bridge_identity = writeback_identity.bridge_evidence_identity();
     let policy = bridge.lower_admitted_policy(
         &bridge
             .admit_policy_declaration(BridgePolicyDeclaration::new(
-                BridgePolicyDeclarationIdentity::from_external_authority_evidence(
-                    &writeback_identity,
-                ),
+                BridgePolicyDeclarationIdentity::from_bridge_evidence(&writeback_bridge_identity),
                 BridgeRequestKind::Authoritative,
                 BridgeExecutionPolicyClass::DeterministicCanonical,
                 BridgeDiagnosticsTier::Standard,
@@ -54,8 +53,8 @@ pub(crate) fn build_bridge_authority_bundle(
     let contract = bridge
         .admit_writeback_declaration(
             BridgeWritebackDeclaration::writeback_capable(
-                BridgeWritebackDeclarationIdentity::from_external_authority_evidence(
-                    &writeback_identity,
+                BridgeWritebackDeclarationIdentity::from_bridge_evidence(
+                    &writeback_bridge_identity,
                 ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackFamilyKind::AspectReconciliation,
@@ -76,16 +75,16 @@ pub(crate) fn build_bridge_authority_bundle(
         snapshot_parts.version_id().saturating_sub(1),
     );
     let causality = BridgeWritebackNativeCausalityInputs::new(
-        BridgeWritebackCausalityIdentity::from_external_authority_evidence(&writeback_identity),
+        BridgeWritebackCausalityIdentity::from_bridge_evidence(&writeback_bridge_identity),
         TruthCommitIdentity::from_relational_commit_id(snapshot_parts.version_id()),
-        BridgeRouteIdentity::from_external_authority_evidence(&writeback_identity),
+        BridgeRouteIdentity::from_bridge_evidence(&writeback_bridge_identity),
         TruthSnapshotIdentity::from_relational_snapshot(evaluation_snapshot),
         TruthSnapshotIdentity::from_relational_snapshot(snapshot_parts),
     );
     let effect = bridge.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::from_external_authority_evidence(&writeback_identity),
+        BridgeWritebackEffectIdentity::from_bridge_evidence(&writeback_bridge_identity),
         writeback_effect_intent(
             BridgeWritebackEffectClass::AspectReconciliation,
             &writeback_identity,
@@ -97,7 +96,7 @@ pub(crate) fn build_bridge_authority_bundle(
         &effect,
         &policy,
         &authoritative_state_basis,
-        BridgeWritebackIdempotenceIdentity::from_external_authority_evidence(&writeback_identity),
+        BridgeWritebackIdempotenceIdentity::from_bridge_evidence(&writeback_bridge_identity),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let (outcome, _) = bridge
@@ -211,8 +210,11 @@ fn attach_existing_truth_binding(
         return Ok(bridge_authority);
     };
     let authoritative_identity =
-        BridgeExistingTruthBindingAuthoritativeIdentity::from_external_authority_evidence(
-            binding.authoritative_identity().evidence_identity(),
+        BridgeExistingTruthBindingAuthoritativeIdentity::from_bridge_evidence(
+            &binding
+                .authoritative_identity()
+                .evidence_identity()
+                .bridge_evidence_identity(),
         );
     let target_collection = binding
         .target_collection()

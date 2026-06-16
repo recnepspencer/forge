@@ -120,7 +120,7 @@ fn workflow_inspection_materializer_denies_missing_inspection_semantics() {
                 "missing workflow inspection semantics should deny",
                 Some(ForgeQueryWorkflowRuntimeSemantics::new(
                     ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_snapshot_identity(
-                        crate::memory_workspace::ForgeQuerySnapshotIdentity::from_external_authority_label(
+                        crate::memory_workspace::admit_external_snapshot_label(
                             "runtime-snapshot:inspection",
                         ),
                     ),

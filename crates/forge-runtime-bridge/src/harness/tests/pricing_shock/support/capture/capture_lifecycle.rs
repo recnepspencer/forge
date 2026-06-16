@@ -6,7 +6,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_discard_bundle(
     let source = pricing_reference_source();
     let runtime = build_pricing_runtime(source.clone(), RecordingSignalBridgeSink::default());
     let discard_session_identity =
-        BridgePreviewSessionIdentity::new("pricing:preview-discard-churn");
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-discard-churn");
     let session = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
             discard_session_identity.clone(),
@@ -86,7 +86,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_promotion_bundle
     let source = pricing_reference_source();
     let runtime = build_pricing_runtime(source.clone(), RecordingSignalBridgeSink::default());
     let promotion_session_identity =
-        BridgePreviewSessionIdentity::new("pricing:preview-promote-churn");
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-promote-churn");
     let session = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
             promotion_session_identity.clone(),
@@ -144,7 +144,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_promotion_bundle
         main_rubber_cost_cents: read_single_money_cents(&main_eval),
         speculative_rubber_cost_cents: read_single_money_cents(&speculative_eval),
         lifecycle_state: promoted.session().lifecycle_state_kind(),
-        promotion_session_identity: BridgePreviewSessionIdentity::new(
+        promotion_session_identity: BridgePreviewSessionIdentity::admit_bridge_owned(
             promotion_record.preview_session_identity(),
         ),
         authoritative_commit_boundary_digest: promotion_record
@@ -153,11 +153,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_promotion_bundle
         authoritative_artifact_digest: promotion_record.authoritative_artifact_digest().to_owned(),
         replay_outcome: replay_bundle.lifecycle_outcome(),
         has_promotion_explanation: matches!(
-            runtime
-                .diagnostics()
-                .explain_session(&BridgePreviewSessionIdentity::new(
-                    "pricing:preview-promote-churn",
-                )),
+            runtime.diagnostics().explain_session(
+                &BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-promote-churn",)
+            ),
             Some(crate::facade::BridgeStandardSessionExplanation::PreviewPromotion(_))
         ),
     }

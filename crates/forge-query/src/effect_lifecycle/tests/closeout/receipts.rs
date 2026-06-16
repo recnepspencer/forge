@@ -75,7 +75,9 @@ fn mutation_execution_mints_receipt_first_envelope_and_diagnostics() {
     );
     assert_eq!(
         envelope.sources().authority_artifact_for_reporting(),
-        receipt.integrity_markers().authority_artifact_for_reporting()
+        receipt
+            .integrity_markers()
+            .authority_artifact_for_reporting()
     );
     assert_eq!(
         envelope.sources().counter_snapshot_for_reporting(),
@@ -94,8 +96,14 @@ fn mutation_execution_mints_receipt_first_envelope_and_diagnostics() {
     }));
 
     let diagnostics = receipt.materialize_diagnostics(EffectDiagnosticsRequest::forensic());
-    assert_eq!(diagnostics.receipt_for_reporting(), receipt.receipt_for_reporting());
-    assert_eq!(diagnostics.envelope_for_reporting(), envelope.envelope_for_reporting());
+    assert_eq!(
+        diagnostics.receipt_for_reporting(),
+        receipt.receipt_for_reporting()
+    );
+    assert_eq!(
+        diagnostics.envelope_for_reporting(),
+        envelope.envelope_for_reporting()
+    );
     assert!(diagnostics
         .detail_sections()
         .iter()

@@ -113,10 +113,10 @@ fn scoped_query_context_preview_derived_historical_uses_observation_basis() {
     .expect("preview binding should succeed");
     let foundation =
         admit_preview_workflow_foundation(&binding).expect("preview foundation should admit");
-    let preview_session_identity = foundation.preview_session_identity().evidence_identity();
+    let preview_session_identity = foundation.preview_session_identity().bridge_admission_evidence();
 
     let scoped = admit_scoped_query_basis_context(
-        QueryBasisContextRequest::preview_derived_historical(preview_session_identity.as_str()),
+        QueryBasisContextRequest::preview_derived_historical(preview_session_identity.terminal_projection_for_reporting().to_string()),
         QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
     )
     .expect("preview-derived scoped query context should admit");

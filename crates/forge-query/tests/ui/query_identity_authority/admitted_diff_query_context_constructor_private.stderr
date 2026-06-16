@@ -1,0 +1,63 @@
+warning: unused import: `QueryContextPredictionReport`
+ --> tests/ui/admitted_diff_query_context_constructor_private.rs:4:67
+  |
+4 |     QueryContextDriftOutcome, QueryContextPredictionDriftOutcome, QueryContextPredictionReport,
+  |                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unreachable statement
+  --> tests/ui/admitted_diff_query_context_constructor_private.rs:9:5
+   |
+ 8 |       let basis: AdmittedQueryBasisContext = loop {};
+   |                                              ------- any code following this expression is unreachable
+ 9 | /     let _ = AdmittedDiffQueryContext {
+10 | |         left: basis.clone(),
+11 | |         right: basis,
+12 | |         family: ComparisonBasisFamily::BranchToBranch,
+...  |
+18 | |         counters: QueryContextCounters::default(),
+19 | |     };
+   | |______^ unreachable statement
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unreachable expression
+  --> tests/ui/admitted_diff_query_context_constructor_private.rs:17:35
+   |
+16 |         prediction_report: loop {},
+   |                            ------- any code following this expression is unreachable
+17 |         prediction_drift_outcome: QueryContextPredictionDriftOutcome::PendingComparison,
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+
+warning: unused variable: `basis`
+ --> tests/ui/admitted_diff_query_context_constructor_private.rs:8:9
+  |
+8 |     let basis: AdmittedQueryBasisContext = loop {};
+  |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_basis`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `left`, `right`, `family`, `drift_outcome`, `cost_class`, `budget_class`, `prediction_report`, `prediction_drift_outcome` and `counters` of struct `AdmittedDiffQueryContext` are private
+  --> tests/ui/admitted_diff_query_context_constructor_private.rs:10:9
+   |
+ 9 |     let _ = AdmittedDiffQueryContext {
+   |             ------------------------ in this type
+10 |         left: basis.clone(),
+   |         ^^^^ private field
+11 |         right: basis,
+   |         ^^^^^ private field
+12 |         family: ComparisonBasisFamily::BranchToBranch,
+   |         ^^^^^^ private field
+13 |         drift_outcome: QueryContextDriftOutcome::BasisExact,
+   |         ^^^^^^^^^^^^^ private field
+14 |         cost_class: QueryContextCostClass::DiffComparisonBounded,
+   |         ^^^^^^^^^^ private field
+15 |         budget_class: QueryContextBudgetClass::ComparisonBounded,
+   |         ^^^^^^^^^^^^ private field
+16 |         prediction_report: loop {},
+   |         ^^^^^^^^^^^^^^^^^ private field
+17 |         prediction_drift_outcome: QueryContextPredictionDriftOutcome::PendingComparison,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         counters: QueryContextCounters::default(),
+   |         ^^^^^^^^ private field

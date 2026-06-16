@@ -2,7 +2,7 @@ pub(super) fn bulk_continuity_member_identity(
     lineage_context: &crate::continuity::BridgeLineageContext,
 ) -> BulkContinuityMemberIdentity {
     let authority_basis = lineage_context.authority_basis();
-    BulkContinuityMemberIdentity::new(digest_string(
+    BulkContinuityMemberIdentity::admit_bridge_owned(digest_string(
         "bulk-continuity-member",
         &format!(
             "bulk-continuity-member|authority={}|branch={}|snapshot={}",
@@ -16,7 +16,7 @@ pub(super) fn bulk_continuity_member_identity(
 pub(super) fn bulk_truth_view_member_identity(
     route: &BridgePlannedRoute,
 ) -> BulkTruthViewMemberIdentity {
-    BulkTruthViewMemberIdentity::new(digest_string(
+    BulkTruthViewMemberIdentity::admit_bridge_owned(digest_string(
         "bulk-truth-view-member",
         &format!(
             "bulk-truth-view-member|branch={}|snapshot={}|commit={}",

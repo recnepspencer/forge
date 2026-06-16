@@ -6,12 +6,13 @@ use forge_runtime_bridge::facade::{
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
     BridgeCommittedPatchTarget, BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration,
     BridgeWritebackOutcomeClass, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
-    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
-    TruthSnapshotIdentity, TruthSnapshotReader, TruthWritebackAuthority,
-    TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
+    RelationalBridgeSnapshotIdentityParts, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult,
+    SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity, TruthCommitIdentity,
+    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
+    TruthWritebackAuthority, TruthWritebackAuthorityError, TruthWritebackReceipt,
+    TruthWritebackRequest,
 };
 
 #[derive(Clone, Debug)]
@@ -24,8 +25,6 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for PublicBridgeSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_patch_envelope(
             request.commit_identity().clone(),
-            "public-bridge-snapshot",
-            "main",
             "entity",
             "aspect",
             "value",
@@ -120,21 +119,21 @@ pub(super) fn public_bridge() -> RuntimeBridge {
 
 fn native_patch_envelope(
     commit_identity: TruthCommitIdentity,
-    snapshot_identity: &str,
-    branch_identity: &str,
     entity_identity: &str,
     aspect: &str,
     field: &str,
 ) -> BridgeCommittedPatchEnvelope {
+    let commit_id = commit_identity
+        .relational_commit_id()
+        .expect("public bridge fixture commit identity must retain relational commit payload");
     BridgeCommittedPatchEnvelope::new(
         BridgeCommittedPatchEnvelopeIdentity::new(
             commit_identity.clone(),
-            TruthPatchIdentity::from_bridge_harness_label(format!(
-                "patch:{}",
-                commit_identity.evidence_identity().as_str()
-            )),
-            TruthSnapshotIdentity::from_bridge_harness_label(snapshot_identity),
-            TruthBranchIdentity::from_bridge_harness_label(branch_identity),
+            TruthPatchIdentity::from_relational_patch_position(commit_id),
+            TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(1, commit_id),
+            ),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             entity_identity,

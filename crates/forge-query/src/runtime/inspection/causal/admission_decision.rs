@@ -274,6 +274,10 @@ impl CausalInspectionAdmissionSubject {
         &self.query_observation_identity
     }
 
+    pub fn query_observation_for_reporting(&self) -> &str {
+        self.query_observation_identity.as_str()
+    }
+
     pub(super) fn query_observation_evidence_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
         self.query_observation_identity.evidence_identity()
     }

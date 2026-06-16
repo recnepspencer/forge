@@ -256,11 +256,11 @@ fn preview_promotion_binding<
     let promotion_continuation_digest = crate::evidence_identity::forge_query_evidence_identity(
         crate::evidence_identity::ForgeQueryEvidenceScope::PreviewPromotionContinuation,
     )
-    .field_identity(
+    .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("preview_basis"),
         &preview_basis_digest,
     )
-    .field_identity(
+    .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("declaration"),
         envelope.declaration_digest(),
     )
@@ -338,7 +338,9 @@ fn writeback_preparation_request<
         ),
         query_truth_commit_identity("truth-trigger", envelope.handle_identity_digest()),
         BridgeRouteIdentity::from_bridge_evidence(
-            &BridgeIdentityEvidence::from_external_authority(lowering.runtime_surface_identity()),
+            &lowering
+                .runtime_surface_identity()
+                .bridge_external_identity_evidence(),
         ),
         query_truth_snapshot_identity("evaluation", envelope.declaration_digest()),
         query_truth_snapshot_identity("truth-view-basis", basis_digest),
@@ -392,7 +394,7 @@ fn runtime_surface_identity<
             ForgeQueryEvidenceTag::new("declaration_family"),
             envelope.declaration_family_key(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("handle"),
             envelope.handle_identity_digest(),
         )
@@ -405,7 +407,7 @@ fn bridge_lowering_evidence_identity(
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::DeclarationBridgeLoweringIdentity)
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_identity(ForgeQueryEvidenceTag::new("evidence"), evidence)
+        .field_value(ForgeQueryEvidenceTag::new("evidence"), evidence)
         .seal()
 }
 
@@ -413,7 +415,5 @@ fn bridge_lowering_bridge_evidence_identity(
     role: &'static str,
     evidence: impl AsRef<str>,
 ) -> BridgeIdentityEvidence {
-    BridgeIdentityEvidence::from_external_authority(bridge_lowering_evidence_identity(
-        role, evidence,
-    ))
+    bridge_lowering_evidence_identity(role, evidence).bridge_external_identity_evidence()
 }

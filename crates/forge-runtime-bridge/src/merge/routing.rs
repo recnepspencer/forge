@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn reduced_merge_routing_artifact_tracks_continuity_candidate() {
         let declaration = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:test"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:test"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
             BridgeMergeAuthorityBasis::new(

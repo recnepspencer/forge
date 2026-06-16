@@ -1,4 +1,5 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::active_counters::ActiveSubscriptionCounters;
 use super::active_digest::ActiveSubscriptionLaneDigest;
@@ -10,6 +11,7 @@ use super::evidence_identities::{
     preview_authoritative_sharing_denial_identity, preview_epoch_identity,
     preview_isolation_identity,
 };
+use super::evidence_projection::subscription_evidence_projection;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::preview_isolation_error::{
     PreviewSubscriptionIsolationDenialKind, PreviewSubscriptionIsolationError,
@@ -90,11 +92,11 @@ impl PreviewSubscriptionIsolationArtifact {
         }
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
-    pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
+    pub(crate) fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
     }
 
@@ -102,28 +104,34 @@ impl PreviewSubscriptionIsolationArtifact {
         &self.future_selection
     }
 
+    pub fn basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.basis_binding_identity)
+    }
+
     pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.basis_binding_identity
     }
 
-    pub fn basis_binding_for_reporting(&self) -> &str {
-        self.basis_binding_identity.as_str()
+    pub fn checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.checkpoint_identity)
     }
 
     pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.checkpoint_identity
     }
 
-    pub fn checkpoint_for_reporting(&self) -> &str {
-        self.checkpoint_identity.as_str()
+    pub fn preview_epoch_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.preview_epoch_identity)
     }
 
     pub fn preview_epoch_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.preview_epoch_identity
-    }
-
-    pub fn preview_epoch_for_reporting(&self) -> &str {
-        self.preview_epoch_identity.as_str()
     }
 
     pub fn lifecycle_state(&self) -> PreviewSubscriptionLifecycleState {
@@ -138,12 +146,14 @@ impl PreviewSubscriptionIsolationArtifact {
         &self.counters
     }
 
-    pub fn isolation_identity(&self) -> &ForgeQueryEvidenceIdentity {
-        &self.isolation_identity
+    pub fn isolation_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.isolation_identity)
     }
 
-    pub fn isolation_for_reporting(&self) -> &str {
-        self.isolation_identity.as_str()
+    pub fn isolation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.isolation_identity
     }
 }
 
@@ -176,7 +186,7 @@ pub fn deny_preview_authoritative_sharing(
     Err(PreviewSubscriptionIsolationError::new(
         PreviewSubscriptionIsolationDenialKind::PreviewAuthoritativeSharingDenied,
         "preview subscription isolation cannot share attachment or fanout state with an authoritative active lane",
-        denial_identity.as_str(),
+        denial_identity,
         counters,
     ))
 }

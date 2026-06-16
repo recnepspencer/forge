@@ -1,5 +1,4 @@
-use crate::identity::hash_parts;
-
+use super::identity::basis_lifecycle_digest;
 use super::intent::{
     BasisOperationLaneRequest, RawBasisIntent, RawBasisSelector, RawBasisSourcePath,
     RawFutureBasisNeighborFamily,
@@ -240,16 +239,34 @@ pub fn normalize_raw_basis(
         return Err(malformed_identifier_denial(&intent, "basis_identifier"));
     }
 
-    let canonical_digest = hash_parts(&[
-        format!("family:{}", family.as_str()),
-        format!("authority:{}", authority_posture.as_str()),
-        format!("operation_lane:{}", intent.operation_lane().as_str()),
-        format!("tenant_scope:{}", intent.tenant_scope().unwrap_or("-")),
-        format!("policy_scope:{}", intent.policy_scope().unwrap_or("-")),
-        format!("schema_scope:{}", intent.schema_scope().unwrap_or("-")),
-        format!("tenant_schema_posture:{}", tenant_schema_posture.as_str()),
-        format!("normalized_label:{normalized_label}"),
-    ]);
+    let canonical_digest = basis_lifecycle_digest(
+        "normalized_basis_intent_v1",
+        [
+            ("family", family.as_str().to_string()),
+            ("authority", authority_posture.as_str().to_string()),
+            (
+                "operation_lane",
+                intent.operation_lane().as_str().to_string(),
+            ),
+            (
+                "tenant_scope",
+                intent.tenant_scope().unwrap_or("-").to_string(),
+            ),
+            (
+                "policy_scope",
+                intent.policy_scope().unwrap_or("-").to_string(),
+            ),
+            (
+                "schema_scope",
+                intent.schema_scope().unwrap_or("-").to_string(),
+            ),
+            (
+                "tenant_schema_posture",
+                tenant_schema_posture.as_str().to_string(),
+            ),
+            ("normalized_label", normalized_label.to_string()),
+        ],
+    );
 
     Ok(NormalizedBasisIntent {
         raw_basis_intent_digest: intent.raw_digest().to_string(),
@@ -281,11 +298,20 @@ pub(crate) fn unsupported_compatibility_family_denial(
         operation_lane,
         kind: BasisIntentDenialKind::UnsupportedCompatibilityFamily { family, owner },
         counters: BasisNormalizationCounters::denied(),
-        failure_digest: hash_parts(&[
-            format!("raw_basis_intent_digest:{raw_basis_intent_digest}"),
-            format!("failure:unsupported_compatibility_family:{family}"),
-            format!("owner:{owner}"),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_unsupported_compatibility_family_v1",
+            [
+                (
+                    "raw_basis_intent_digest",
+                    raw_basis_intent_digest.to_string(),
+                ),
+                (
+                    "failure",
+                    format!("unsupported_compatibility_family:{family}"),
+                ),
+                ("owner", owner.to_string()),
+            ],
+        ),
     }
 }
 
@@ -303,11 +329,14 @@ fn validate_optional_scope(
             operation_lane: operation_lane.clone(),
             kind: BasisIntentDenialKind::MalformedIdentifier { field },
             counters: BasisNormalizationCounters::denied(),
-            failure_digest: hash_parts(&[
-                format!("raw_basis_intent_digest:{raw_digest}"),
-                format!("field:{field}"),
-                "failure:malformed_identifier".to_string(),
-            ]),
+            failure_digest: basis_lifecycle_digest(
+                "basis_malformed_scope_denial_v1",
+                [
+                    ("raw_basis_intent_digest", raw_digest.to_string()),
+                    ("field", field.to_string()),
+                    ("failure", "malformed_identifier".to_string()),
+                ],
+            ),
         }),
         _ => Ok(()),
     }
@@ -320,11 +349,14 @@ fn malformed_identifier_denial(intent: &RawBasisIntent, field: &'static str) -> 
         operation_lane: intent.operation_lane().clone(),
         kind: BasisIntentDenialKind::MalformedIdentifier { field },
         counters: BasisNormalizationCounters::denied(),
-        failure_digest: hash_parts(&[
-            format!("raw_basis_intent_digest:{}", intent.raw_digest()),
-            format!("field:{field}"),
-            "failure:malformed_identifier".to_string(),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_malformed_identifier_denial_v1",
+            [
+                ("raw_basis_intent_digest", intent.raw_digest().to_string()),
+                ("field", field.to_string()),
+                ("failure", "malformed_identifier".to_string()),
+            ],
+        ),
     }
 }
 
@@ -346,9 +378,12 @@ fn unsupported_future_neighbor_denial(
         operation_lane: intent.operation_lane().clone(),
         kind: BasisIntentDenialKind::UnsupportedFutureNeighbor { family, owner },
         counters: BasisNormalizationCounters::denied(),
-        failure_digest: hash_parts(&[
-            format!("raw_basis_intent_digest:{}", intent.raw_digest()),
-            format!("failure:unsupported_future_neighbor:{owner}"),
-        ]),
+        failure_digest: basis_lifecycle_digest(
+            "basis_unsupported_future_neighbor_v1",
+            [
+                ("raw_basis_intent_digest", intent.raw_digest().to_string()),
+                ("failure", format!("unsupported_future_neighbor:{owner}")),
+            ],
+        ),
     }
 }

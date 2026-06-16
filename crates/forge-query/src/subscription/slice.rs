@@ -74,10 +74,6 @@ impl QuerySubscriptionSliceIntent {
         &self.slice_intent_identity
     }
 
-    pub fn slice_intent_for_reporting(&self) -> &str {
-        self.slice_intent_identity.as_str()
-    }
-
     pub fn len(&self) -> usize {
         self.parts.len()
     }

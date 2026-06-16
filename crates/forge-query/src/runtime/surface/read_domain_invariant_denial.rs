@@ -36,11 +36,11 @@ impl ForgeQueryReadDomainInvariantDenial {
                     ForgeQueryEvidenceTag::new("invariant_family"),
                     invariant_family.as_str(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("summary_digest"),
                     domain_invariant_summary.summary_digest(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("violation_digest"),
                     violation.violation_digest(),
                 )

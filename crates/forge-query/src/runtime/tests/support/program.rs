@@ -45,7 +45,7 @@ pub(in crate::runtime::tests) struct RefreshCountMaintainer;
 
 fn test_delta_display_identity(delta: &crate::memory_workspace::ForgeQueryMutationDelta) -> String {
     if let Some(upstream_view) = delta.collection.strip_prefix("derived:") {
-        if delta.entity_identity == ForgeQueryEntityIdentity::authored_command(upstream_view) {
+        if delta.entity_identity == crate::memory_workspace::admit_authored_entity_label(upstream_view) {
             return upstream_view.to_string();
         }
     }
@@ -67,7 +67,7 @@ impl ForgeQueryDerivedViewMaintainer for TitleListMaintainer {
         materialization.push_row(row.clone());
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label("derived-test-commit"),
+            crate::memory_workspace::admit_external_commit_label("derived-test-commit"),
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()
@@ -90,7 +90,7 @@ impl ForgeQueryDerivedViewMaintainer for SummaryMaintainer {
         materialization.replace_rows([row.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label("derived-summary-commit"),
+            crate::memory_workspace::admit_external_commit_label("derived-summary-commit"),
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()
@@ -116,7 +116,7 @@ impl ForgeQueryDerivedViewMaintainer for RefreshCountMaintainer {
         materialization.replace_rows([row.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label("refresh-count-incremental"),
+            crate::memory_workspace::admit_external_commit_label("refresh-count-incremental"),
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()
@@ -142,7 +142,7 @@ impl ForgeQueryDerivedViewMaintainer for RefreshCountMaintainer {
         materialization.replace_rows([row.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label("refresh-count-rebuild"),
+            crate::memory_workspace::admit_external_commit_label("refresh-count-rebuild"),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {

@@ -1,5 +1,4 @@
 use super::super::support::*;
-
 #[test]
 fn runtime_builder_rejects_missing_backend_inputs() {
     let error = match ForgeQueryRuntime::builder().build() {
@@ -206,26 +205,25 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
             .activation_input_count(),
         1
     );
-    assert!(
-        view.subscription_installation()
-            .support_for_reporting()
-            .starts_with("forge.query.evidence-identity.v1:")
-    );
+    assert!(view
+        .subscription_installation()
+        .support_projection().label()
+        .starts_with("forge.query.evidence-identity.v1:"));
     assert!(!view
         .subscription_installation()
-        .active_lane_for_reporting()
+        .active_lane_projection().label()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .consumer_attachment_for_reporting()
+        .consumer_attachment_projection().label()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .consumer_for_reporting()
+        .consumer_projection().label()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .delivery_cursor_for_reporting()
+        .delivery_cursor_projection().label()
         .is_empty());
     assert_eq!(
         view.subscription_installation()
@@ -255,15 +253,16 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY
     );
     assert_eq!(
-        view.subscription_installation().runtime_budget_for_reporting(),
-        runtime_subscription_budget_digest()
+        view.subscription_installation().runtime_budget_identity(),
+        &runtime_subscription_budget_digest()
     );
     let live_inspection = runtime
         .inspect_live_view(&view)
         .expect("inspector should retain live subscription installation");
     assert_eq!(
-        live_inspection.installation_for_reporting(),
-        view.subscription_installation().installation_for_reporting()
+        live_inspection.installation_projection().label(),
+        view.subscription_installation()
+            .installation_projection().label()
     );
     assert_eq!(
         receipt

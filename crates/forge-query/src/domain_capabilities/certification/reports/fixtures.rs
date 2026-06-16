@@ -104,12 +104,12 @@ pub(super) fn lower_runtime_envelope(
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
             "certification-report-target",
         )
-        .field_identity(ForgeQueryEvidenceTag::new("test_target"), target_digest)
+        .field_value(ForgeQueryEvidenceTag::new("test_target"), target_digest)
         .seal(),
     );
     let detail_identity =
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_identity(ForgeQueryEvidenceTag::new("test_detail"), "detail")
+            .field_value(ForgeQueryEvidenceTag::new("test_detail"), "detail")
             .seal();
     let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
         request,
@@ -128,7 +128,7 @@ pub(super) fn lower_runtime_envelope(
             &ForgeQueryEvidenceIdentity::compose(
                 ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
             )
-            .field_identity(
+            .field_value(
                 ForgeQueryEvidenceTag::new("certification_report_target"),
                 format!("retained:{target_digest}"),
             )

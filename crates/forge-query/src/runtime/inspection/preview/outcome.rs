@@ -104,7 +104,7 @@ impl ForgeQueryPreviewOutcomeInspection {
             ForgeQueryEvidenceScope::PreviewOutcomeInspectionArtifact,
         )
         .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "basis")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
             outcome.session_label().identity_digest().as_str(),
         )
@@ -117,7 +117,7 @@ impl ForgeQueryPreviewOutcomeInspection {
             ForgeQueryEvidenceScope::PreviewOutcomeInspectionArtifact,
         )
         .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "residue")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
             outcome.session_label().identity_digest().as_str(),
         )
@@ -170,7 +170,7 @@ impl ForgeQueryPreviewOutcomeInspection {
             ForgeQueryEvidenceScope::PreviewOutcomeInspectionArtifact,
         )
         .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "inspection")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
             outcome.session_label().identity_digest().as_str(),
         )

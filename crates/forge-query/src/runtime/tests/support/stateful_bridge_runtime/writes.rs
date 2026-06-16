@@ -9,7 +9,7 @@ pub(super) fn apply_command(
     entity_identity: &ForgeQueryEntityIdentity,
     entity_identity_text: &str,
 ) -> Result<ForgeQueryMutationKind, ForgeQueryWorkspaceError> {
-    let entity_identity_key = entity_identity.to_string();
+    let entity_identity_key = entity_identity.terminal_projection_for_reporting().to_string();
     match command.mutation_family() {
         ForgeQueryMutationFamily::Insert => {
             let external_row = external_row_from_command(state, command)?;

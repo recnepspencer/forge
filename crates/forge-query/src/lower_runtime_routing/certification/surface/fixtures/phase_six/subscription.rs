@@ -63,7 +63,9 @@ pub(crate) fn representative_subscription_activation_row() -> RepresentativeArti
     let activation_receipt = SubscriptionActivationReceipt::from_activation(
         "tasks.subscription",
         &activation,
-        "certified-subscription-activation-support",
+        crate::runtime::runtime_subscription_support_evidence_identity(
+            "certified-subscription-activation-support",
+        ),
         None,
     );
     let boundary = SubscriptionActivationBoundaryReceipt::from_activation(

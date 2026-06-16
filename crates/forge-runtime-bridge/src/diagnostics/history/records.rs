@@ -73,9 +73,10 @@ impl BridgeHistoricalEvaluationDecisionLog {
         );
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            decision_log_identity: BridgeHistoricalEvaluationDecisionLogIdentity::new(format!(
-                "historical-evaluation-decision-log:sha256:{digest:x}"
-            )),
+            decision_log_identity:
+                BridgeHistoricalEvaluationDecisionLogIdentity::admit_bridge_owned(format!(
+                    "historical-evaluation-decision-log:sha256:{digest:x}"
+                )),
             declaration_identity,
             selector_identity,
             resolved_policy_digest,
@@ -153,7 +154,7 @@ impl BridgeHistoricalEvaluationRecord {
         );
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            record_identity: BridgeHistoricalEvaluationRecordIdentity::new(format!(
+            record_identity: BridgeHistoricalEvaluationRecordIdentity::admit_bridge_owned(format!(
                 "historical-evaluation-record:sha256:{digest:x}"
             )),
             declaration,

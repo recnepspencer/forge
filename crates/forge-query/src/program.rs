@@ -118,7 +118,7 @@ impl ForgeQueryWriteCommandTemplate {
                 value,
             } => Ok(crate::runtime::ForgeQueryWriteCommand::UpdateAspect {
                 entity_identity:
-                    crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                    crate::memory_workspace::admit_authored_entity_label(
                         expect_string(entity_identity.evaluate(inputs)?, "entity_identity")?,
                     ),
                 aspect_path: aspect_path.clone(),
@@ -127,7 +127,7 @@ impl ForgeQueryWriteCommandTemplate {
             Self::Delete { entity_identity } => {
                 Ok(crate::runtime::ForgeQueryWriteCommand::Delete {
                     entity_identity:
-                        crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                        crate::memory_workspace::admit_authored_entity_label(
                             expect_string(entity_identity.evaluate(inputs)?, "entity_identity")?,
                         ),
                 })

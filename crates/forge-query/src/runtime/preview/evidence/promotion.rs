@@ -62,7 +62,7 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         let basis_evidence_rows = basis_admission.evidence_rows();
         let mut denial_builder =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewPromotionDenialEvidence)
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("session_label_identity"),
                     basis_admission.label_identity().as_str(),
                 )
@@ -71,7 +71,7 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
                     ForgeQueryEvidenceTag::new("effect_policy"),
                     effect_policy.as_str(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("basis_admission_digest"),
                     basis_admission.admission_digest().as_str(),
                 )
@@ -83,7 +83,7 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
                     ForgeQueryEvidenceTag::new("promotion_snapshot_identity"),
                     &promotion_snapshot_identity.evidence_identity(),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("basis_evidence_row"),
                     basis_evidence_rows
                         .iter()
@@ -117,7 +117,7 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             );
         }
         if let Some(rebinding_identity) = rebinding_identity.as_ref() {
-            denial_builder = denial_builder.field_identity(
+            denial_builder = denial_builder.field_value(
                 ForgeQueryEvidenceTag::new("rebinding_digest"),
                 rebinding_identity.as_str(),
             );

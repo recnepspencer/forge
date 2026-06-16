@@ -163,9 +163,7 @@ fn runtime_delivers_replay_audit_stream_window_and_retains_protocol_truth() {
     assert_eq!(
         runtime
             .diagnostics()
-            .stream_replay_record_for_identity(
-                result.replay_record().replay_record_identity().as_str()
-            )
+            .stream_replay_record_for_identity(result.replay_record().replay_record_identity())
             .expect("audit replay record should be retained")
             .replay_record_identity(),
         result.replay_record().replay_record_identity()

@@ -1,10 +1,10 @@
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_runtime_bridge::facade::{
     BridgeIdentityEvidence, BridgePolicyDeclaration, BridgePolicyDeclarationIdentity,
     BridgeRouteIdentity, BridgeWritebackCausalityIdentity, BridgeWritebackEffectIdentity,
     BridgeWritebackEffectIntent, BridgeWritebackIdempotenceIdentity,
     BridgeWritebackNativeCausalityInputs, RuntimeBridge,
 };
-use forge_foundational::facade::{AspectKey, AspectValue};
 
 use crate::application::{query_truth_commit_identity, query_truth_snapshot_identity};
 use crate::evidence_identity::{
@@ -39,7 +39,8 @@ pub(super) fn execute_lowered_writeback(
             ),
             query_truth_commit_identity(
                 "effect-causality",
-                effect_writeback_truth_commit_evidence("truth-commit-causality", declaration),
+                effect_writeback_truth_commit_evidence("truth-commit-causality", declaration)
+                    .as_str(),
             ),
             BridgeRouteIdentity::from_bridge_evidence(&effect_writeback_bridge_evidence(
                 "route",
@@ -47,11 +48,13 @@ pub(super) fn execute_lowered_writeback(
             )),
             query_truth_snapshot_identity(
                 "effect-evaluation",
-                effect_writeback_truth_snapshot_evidence("truth-snapshot-evaluation", declaration),
+                effect_writeback_truth_snapshot_evidence("truth-snapshot-evaluation", declaration)
+                    .as_str(),
             ),
             query_truth_snapshot_identity(
                 "effect-basis",
-                effect_writeback_truth_snapshot_evidence("truth-snapshot-basis", declaration),
+                effect_writeback_truth_snapshot_evidence("truth-snapshot-basis", declaration)
+                    .as_str(),
             ),
         ),
         BridgeWritebackEffectIdentity::from_bridge_evidence(&effect_writeback_bridge_evidence(
@@ -75,12 +78,12 @@ fn effect_writeback_bridge_evidence(
 ) -> BridgeIdentityEvidence {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_bridge_identity(
+        .field_bridge_authority_identity(
             ForgeQueryEvidenceTag::new("bridge_declaration"),
             &declaration
                 .bridge_declaration()
                 .declaration_identity()
-                .evidence_identity(),
+                .bridge_trust_boundary(),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("lowering"),

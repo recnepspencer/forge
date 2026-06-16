@@ -133,7 +133,9 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_replay_policy_fa
         BridgeRuntimePolicy::operational().with_replay_artifacts(false),
     );
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:pricing-showcase-replay-conflict"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned(
+            "policy:pricing-showcase-replay-conflict",
+        ),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Minimal,
@@ -160,7 +162,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_route_policy_con
         BridgeRuntimePolicy::operational().with_replay_artifacts(false),
     );
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:pricing-route-policy-conflict"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:pricing-route-policy-conflict"),
         BridgeRequestKind::Authoritative,
         BridgeExecutionPolicyClass::DeterministicCanonical,
         BridgeDiagnosticsTier::Standard,

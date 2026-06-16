@@ -123,7 +123,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_reference_worklo
 ) -> BridgeSubscriptionReferenceWorkloadSufficiency {
     let fixture_bundle = capture_pricing_workload_certification_bundle(
         policy.clone(),
-        BridgePreviewSessionIdentity::new("pricing:preview-reference-workload-skin"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-reference-workload-skin"),
     );
     let runtime = build_pricing_runtime_with_policy(
         pricing_reference_source(),

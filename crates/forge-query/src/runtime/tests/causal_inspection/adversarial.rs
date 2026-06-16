@@ -1,5 +1,3 @@
-use forge_runtime_bridge::facade::TruthCommitIdentity;
-
 use super::super::super::*;
 use super::materialization::support::*;
 
@@ -129,7 +127,7 @@ fn future_explanation_families_deny_without_bridge_assembly() {
 fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
     let runtime = bridge_runtime();
     let routed = runtime
-        .route(TruthCommitIdentity::from_bridge_harness_label(
+        .route(super::causal_truth_commit_identity(
             "commit-causal-adversarial-policy",
         ))
         .unwrap();
@@ -137,7 +135,7 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
     let mut policy_digests = Vec::new();
     let mut artifact_digests = Vec::new();
 
-    let route_identity = routed.route_identity().evidence_identity();
+    let route_identity = routed.route_identity().bridge_admission_evidence();
     for redaction_policy in [
         CausalInspectionRedactionPolicy::PreserveDetail,
         CausalInspectionRedactionPolicy::DigestOnly,
@@ -162,12 +160,12 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
                 ],
             );
             let plan = CausalInspection::for_observation(receipt)
-            .why_changed()
-            .reference_only()
-            .redaction(redaction_policy)
-            .materialization(materialization_policy)
-            .plan()
-            .expect("policy matrix row should plan");
+                .why_changed()
+                .reference_only()
+                .redaction(redaction_policy)
+                .materialization(materialization_policy)
+                .plan()
+                .expect("policy matrix row should plan");
             let artifact = plan
                 .materialize_with_bridge(&runtime)
                 .expect("policy matrix row should materialize");

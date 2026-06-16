@@ -11,15 +11,9 @@ pub type BridgeRouteIdentity = BridgeIdentity<RouteIdentityTag>;
 
 impl BridgeRouteIdentity {
     pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
-        Self::new(format!(
+        Self::admit_bridge_owned(format!(
             "bridge-route:external-authority-evidence:{}",
             evidence_identity.as_str()
-        ))
-    }
-
-    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
-        Self::from_bridge_evidence(&BridgeIdentityEvidence::from_external_authority(
-            evidence_identity,
         ))
     }
 }
@@ -52,7 +46,9 @@ pub use summaries::{
     BridgeRouteSourceSummary, BridgeRoutingSummary,
 };
 
-pub(crate) use bulk::{plan_bulk_workload, plan_bulk_workload_with_route_policy, planning_failure_kind_label};
+pub(crate) use bulk::{
+    plan_bulk_workload, plan_bulk_workload_with_route_policy, planning_failure_kind_label,
+};
 pub(crate) use ingestion::IngestedBridgePatch;
 pub(crate) use plan::{plan_ingested_patch, BridgePreparedDelivery};
 pub(crate) use replay::replay_route_record;

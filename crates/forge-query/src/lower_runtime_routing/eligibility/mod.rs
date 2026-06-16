@@ -108,14 +108,14 @@ mod tests {
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "write-authority",
             ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
-                .field_identity(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
+                .field_value(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
                 .seal(),
         );
 
         let detail_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
         )
-        .field_identity(ForgeQueryEvidenceTag::new("test_detail"), "detail-1")
+        .field_value(ForgeQueryEvidenceTag::new("test_detail"), "detail-1")
         .seal();
         let eligibility =
             ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
@@ -124,6 +124,7 @@ mod tests {
             );
 
         assert_eq!(eligibility.posture().as_str(), "admitted");
-        assert!(!eligibility.eligibility_identity().as_ref().is_empty());
+        let eligibility_identity = eligibility.eligibility_identity();
+        assert!(!eligibility_identity.reporting_projection().is_empty());
     }
 }

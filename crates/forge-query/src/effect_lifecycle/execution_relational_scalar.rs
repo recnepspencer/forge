@@ -107,10 +107,10 @@ pub(super) fn ensure_exact_basis_freshness(
         EffectExecutionDenialKind::RelationalExactBasisStale,
         format!(
             "lowered relational mutation execution preserved runtime snapshot `{}` for branch `{}` but current authority state is `{}`",
-            expected_snapshot_evidence.as_ref(),
+            expected_snapshot_evidence.reporting_projection(),
             target_branch.0
             ,
-            observed_snapshot_evidence.as_ref()
+            observed_snapshot_evidence.reporting_projection()
         ),
     ))
 }

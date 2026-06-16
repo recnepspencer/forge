@@ -3,6 +3,9 @@ use super::{
     WORKFLOW_REQUIRED_CANONICAL_ROW_NAMES, WORKFLOW_REQUIRED_REJECTION_ROW_NAMES,
 };
 use crate::aspect_field_authoring::single_aspect_field_patch_from_external_json;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::harness::certification::{milestone_five_point_five_requirements, unmet_required_rows};
 use crate::harness::fixtures::execution_preflights;
 use crate::harness::fixtures::relational_merge_inspection::deleted_vs_modified_inspection_artifact;
@@ -19,11 +22,10 @@ use forge_relational::facade::commit_strategies::{
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, PartitionId};
 use forge_relational::facade::merge::{MergeExecutionRequest, MergeIntent};
-use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 use forge_runtime_bridge::facade::{
-    BridgeIdentityEvidence, BridgeRequestKind, BridgeWritebackDeclaration,
-    BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackFamilyKind,
-    BridgeWritebackIdempotenceClass, BridgeWritebackStrategyClass,
+    BridgeRequestKind, BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity,
+    BridgeWritebackEffectClass, BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
+    BridgeWritebackStrategyClass,
 };
 use serde_json::json;
 
@@ -217,22 +219,21 @@ fn workflow_certification_writeback_lowering_matches_direct_bridge_control() {
     )
     .expect("writeback lowering should succeed");
 
-    let bridge_declaration_identity = ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::WorkflowMutationLowering,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "workflow_writeback_bridge_declaration_v1",
-    )
-    .field_identity(
-        ForgeQueryEvidenceTag::new("declaration"),
-        declaration.report().declaration_digest(),
-    )
-    .seal();
+    let bridge_declaration_identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "workflow_writeback_bridge_declaration_v1",
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("declaration"),
+                declaration.report().declaration_digest(),
+            )
+            .seal();
+    let bridge_declaration_evidence =
+        bridge_declaration_identity.bridge_external_identity_evidence();
     let control = BridgeWritebackDeclaration::writeback_capable(
-        BridgeWritebackDeclarationIdentity::from_bridge_evidence(
-            &BridgeIdentityEvidence::from_external_authority(bridge_declaration_identity),
-        ),
+        BridgeWritebackDeclarationIdentity::from_bridge_evidence(&bridge_declaration_evidence),
         BridgeRequestKind::Authoritative,
         BridgeWritebackFamilyKind::ProjectedStateDiff,
         BridgeWritebackEffectClass::ProjectedStateDiff,

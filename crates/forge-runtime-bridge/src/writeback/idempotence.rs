@@ -13,15 +13,9 @@ pub type BridgeWritebackIdempotenceIdentity = BridgeIdentity<WritebackIdempotenc
 
 impl BridgeWritebackIdempotenceIdentity {
     pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
-        Self::new(format!(
+        Self::admit_bridge_owned(format!(
             "bridge-writeback-idempotence:external-authority-evidence:{}",
             evidence_identity.as_str()
-        ))
-    }
-
-    pub fn from_external_authority_evidence(evidence_identity: impl AsRef<str>) -> Self {
-        Self::from_bridge_evidence(&BridgeIdentityEvidence::from_external_authority(
-            evidence_identity,
         ))
     }
 }

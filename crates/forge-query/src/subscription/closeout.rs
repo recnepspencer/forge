@@ -1,4 +1,5 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::active_budget::ActiveSubscriptionAllocationPosture;
 use super::active_counters::ActiveSubscriptionCounters;
@@ -7,6 +8,7 @@ use super::attachment::SubscriptionConsumerAttachment;
 use super::attachment_digest::SubscriptionConsumerAttachmentDigest;
 use super::delivery_density::ActiveDeliveryDensityPosture;
 use super::evidence_identities::lifecycle_closeout_identity;
+use super::evidence_projection::subscription_evidence_projection;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::performance_receipt::SubscriptionPerformanceReceipt;
 use super::preview_isolation::{
@@ -68,16 +70,6 @@ impl SubscriptionLifecycleCloseRequest {
             Self::TerminateConsumer(_) => SubscriptionLifecycleCloseoutKind::ConsumerTerminated,
             Self::PreviewDiscard(_) => SubscriptionLifecycleCloseoutKind::PreviewDiscarded,
             Self::PreviewPromotion(_) => SubscriptionLifecycleCloseoutKind::PreviewPromoted,
-        }
-    }
-
-    pub(super) fn source_for_reporting(&self) -> &str {
-        match self {
-            Self::DetachConsumer(attachment) | Self::TerminateConsumer(attachment) => {
-                attachment.attachment_digest().as_str()
-            }
-            Self::PreviewDiscard(closeout) => closeout.closeout_for_reporting(),
-            Self::PreviewPromotion(handoff) => handoff.handoff_for_reporting(),
         }
     }
 
@@ -143,7 +135,7 @@ impl SubscriptionLifecycleCloseDenialKind {
 pub struct SubscriptionLifecycleCloseError {
     denial_kind: SubscriptionLifecycleCloseDenialKind,
     message: String,
-    source_digest: String,
+    pub(in crate::subscription) source_identity: ForgeQueryEvidenceIdentity,
     counters: ActiveSubscriptionCounters,
 }
 
@@ -151,13 +143,13 @@ impl SubscriptionLifecycleCloseError {
     pub(super) fn new(
         denial_kind: SubscriptionLifecycleCloseDenialKind,
         message: impl Into<String>,
-        source_digest: impl Into<String>,
+        source_identity: ForgeQueryEvidenceIdentity,
         counters: ActiveSubscriptionCounters,
     ) -> Self {
         Self {
             denial_kind,
             message: message.into(),
-            source_digest: source_digest.into(),
+            source_identity,
             counters,
         }
     }
@@ -168,10 +160,6 @@ impl SubscriptionLifecycleCloseError {
 
     pub fn message(&self) -> &str {
         &self.message
-    }
-
-    pub fn source_digest(&self) -> &str {
-        &self.source_digest
     }
 
     pub fn counters(&self) -> &ActiveSubscriptionCounters {
@@ -188,12 +176,11 @@ pub struct SubscriptionLifecycleCloseout {
     checkpoint_identity: ForgeQueryEvidenceIdentity,
     closeout_kind: SubscriptionLifecycleCloseoutKind,
     lane_terminal: bool,
-    source_digest: String,
+    source_identity: ForgeQueryEvidenceIdentity,
     support_profile: QuerySubscriptionSupportProfile,
     performance_receipt: SubscriptionPerformanceReceipt,
     counters: ActiveSubscriptionCounters,
     closeout_identity: ForgeQueryEvidenceIdentity,
-    closeout_digest: String,
 }
 
 impl SubscriptionLifecycleCloseout {
@@ -205,15 +192,14 @@ impl SubscriptionLifecycleCloseout {
         if lane_terminal {
             counters.active_lane_close_count = 1;
         }
-        let source_digest = request.source_for_reporting().to_string();
+        let source_identity = request.source_identity();
         let support_profile =
-            QuerySubscriptionSupportProfile::active_runtime_admitted(&source_digest);
+            QuerySubscriptionSupportProfile::active_runtime_admitted(&source_identity);
         let active_lane_digest = request.lane_digest().clone();
         let attachment_digest = request.attachment_digest().clone();
         let future_selection = request.future_selection().clone();
         let basis_binding_identity = request.basis_binding_identity().clone();
         let checkpoint_identity = request.checkpoint_identity().clone();
-        let source_identity = request.source_identity();
         let consumed_width = if lane_terminal { 2 } else { 1 };
         let performance_receipt = SubscriptionPerformanceReceipt::new(
             consumed_width,
@@ -238,7 +224,6 @@ impl SubscriptionLifecycleCloseout {
             &counters.evidence_identity(),
             &source_identity,
         );
-        let closeout_digest = closeout_identity.as_str().to_string();
         Self {
             active_lane_digest,
             attachment_digest,
@@ -247,20 +232,19 @@ impl SubscriptionLifecycleCloseout {
             checkpoint_identity,
             closeout_kind,
             lane_terminal,
-            source_digest,
+            source_identity,
             support_profile,
             performance_receipt,
             counters,
             closeout_identity,
-            closeout_digest,
         }
     }
 
-    pub fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn active_lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.active_lane_digest
     }
 
-    pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
+    pub(crate) fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
     }
 
@@ -268,20 +252,24 @@ impl SubscriptionLifecycleCloseout {
         &self.future_selection
     }
 
+    pub fn basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.basis_binding_identity)
+    }
+
     pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.basis_binding_identity
     }
 
-    pub fn basis_binding_for_reporting(&self) -> &str {
-        self.basis_binding_identity.as_str()
+    pub fn checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.checkpoint_identity)
     }
 
     pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.checkpoint_identity
-    }
-
-    pub fn checkpoint_for_reporting(&self) -> &str {
-        self.checkpoint_identity.as_str()
     }
 
     pub fn closeout_kind(&self) -> &SubscriptionLifecycleCloseoutKind {
@@ -292,8 +280,14 @@ impl SubscriptionLifecycleCloseout {
         self.lane_terminal
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_digest
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
+    }
+
+    pub fn source_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.source_identity)
     }
 
     pub fn support_profile(&self) -> &QuerySubscriptionSupportProfile {
@@ -308,8 +302,10 @@ impl SubscriptionLifecycleCloseout {
         &self.counters
     }
 
-    pub fn closeout_for_reporting(&self) -> &str {
-        &self.closeout_digest
+    pub fn closeout_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.closeout_identity)
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {

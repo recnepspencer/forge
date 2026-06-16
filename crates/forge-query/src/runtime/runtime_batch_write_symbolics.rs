@@ -26,7 +26,7 @@ pub(super) fn record_planned_same_batch_symbolic_target(
     let Some(reference) = command.symbolic_target_reference() else {
         return;
     };
-    let planned_identity = ForgeQueryEntityIdentity::authored_command(format!(
+    let planned_identity = crate::memory_workspace::admit_authored_entity_label(format!(
         "planned-symbolic:{}",
         reference.symbol()
     ));

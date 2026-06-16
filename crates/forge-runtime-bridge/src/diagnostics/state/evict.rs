@@ -124,7 +124,7 @@ impl BridgeDiagnosticsState {
     ) {
         evict_index_entry(
             &mut self.latest_stream_checkpoint_by_identity,
-            evicted.checkpoint_token_identity(),
+            evicted.checkpoint_token_identity_for_reporting(),
             evicted,
         );
     }
@@ -140,7 +140,7 @@ impl BridgeDiagnosticsState {
         );
         evict_index_entry(
             &mut self.latest_stream_replay_by_checkpoint_identity,
-            evicted.checkpoint_token_identity(),
+            evicted.checkpoint_token_identity().as_str(),
             evicted,
         );
     }

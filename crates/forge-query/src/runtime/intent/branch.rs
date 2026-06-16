@@ -44,7 +44,7 @@ impl ForgeQueryBranchIntentReceipt {
                     ForgeQueryEvidenceTag::new("strategy_version"),
                     declaration.strategy_version(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("canonical_input_digest"),
                     &canonical_input_digest,
                 )

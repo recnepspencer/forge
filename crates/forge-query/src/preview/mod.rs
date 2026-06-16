@@ -12,6 +12,9 @@ use crate::identity::{
 };
 use crate::identity::{CollectionPlanDigest, ResultDigest};
 use crate::live::LiveQueryPlan;
+use crate::workflow::{
+    workflow_canonical_query_digest_evidence, workflow_validated_query_digest_evidence,
+};
 use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 use forge_runtime_bridge::facade::{
     BridgePreviewExecutionRecord, BridgePreviewLifecycleStateKind, BridgePreviewSession,
@@ -333,11 +336,11 @@ impl PreviewSessionBindingTuple {
             format!("evaluation_class:{}", evaluation_class.as_str()),
             format!(
                 "preview_session:{}",
-                preview_session_identity.evidence_identity().as_str()
+                preview_session_identity.terminal_projection_for_reporting()
             ),
             format!(
                 "declaration_identity:{}",
-                declaration_identity.evidence_identity().as_str()
+                declaration_identity.terminal_projection_for_reporting()
             ),
             format!("declaration_digest:{declaration_digest}"),
             format!("lifecycle:{lifecycle_state_kind:?}"),
@@ -345,8 +348,12 @@ impl PreviewSessionBindingTuple {
                 "execution_record:{}",
                 execution_record_identity
                     .as_ref()
-                    .map(|identity| identity.evidence_identity())
-                    .map(|identity| identity.as_str().to_string())
+                    .map(|identity| {
+                        identity
+                            .bridge_admission_evidence()
+                            .terminal_projection_for_reporting()
+                            .to_string()
+                    })
                     .as_deref()
                     .unwrap_or("none")
             ),
@@ -1593,8 +1600,8 @@ impl PreviewPromotionSnapshot {
         Self {
             record_identity: record
                 .record_identity()
-                .evidence_identity()
-                .as_str()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
                 .to_string(),
             proof_digest: record.promotion_proof_digest().to_string(),
         }
@@ -2266,11 +2273,11 @@ fn derive_preview_workflow_foundation(
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("canonical_query"),
-                &binding_tuple.canonical_query_digest().evidence_identity(),
+                &workflow_canonical_query_digest_evidence(binding_tuple.canonical_query_digest()),
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("validated_query"),
-                &binding_tuple.validated_query_digest().evidence_identity(),
+                &workflow_validated_query_digest_evidence(binding_tuple.validated_query_digest()),
             )
             .seal();
     let declaration_digest_identity =
@@ -2279,9 +2286,9 @@ fn derive_preview_workflow_foundation(
                 ForgeQueryEvidenceTag::new("identity_family"),
                 "forge_query_preview_declaration_digest_identity_v1",
             )
-            .field_bridge_identity(
+            .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("declaration"),
-                &binding_tuple.declaration_identity().evidence_identity(),
+                &binding_tuple.declaration_identity().bridge_admission_evidence(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("declaration_digest"),
@@ -2289,11 +2296,11 @@ fn derive_preview_workflow_foundation(
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("canonical_query"),
-                &binding_tuple.canonical_query_digest().evidence_identity(),
+                &workflow_canonical_query_digest_evidence(binding_tuple.canonical_query_digest()),
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("validated_query"),
-                &binding_tuple.validated_query_digest().evidence_identity(),
+                &workflow_validated_query_digest_evidence(binding_tuple.validated_query_digest()),
             )
             .seal();
     let artifact_identity =
@@ -2304,13 +2311,13 @@ fn derive_preview_workflow_foundation(
             )
             .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
             .field_shape(ForgeQueryEvidenceTag::new("request"), request.as_str())
-            .field_bridge_identity(
+            .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("preview_session"),
-                &binding_tuple.preview_session_identity().evidence_identity(),
+                &binding_tuple.preview_session_identity().bridge_admission_evidence(),
             )
-            .field_bridge_identity(
+            .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("declaration_identity"),
-                &binding_tuple.declaration_identity().evidence_identity(),
+                &binding_tuple.declaration_identity().bridge_admission_evidence(),
             )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("declaration_digest"),
@@ -2320,9 +2327,9 @@ fn derive_preview_workflow_foundation(
                 ForgeQueryEvidenceTag::new("lifecycle"),
                 format!("{:?}", binding_tuple.lifecycle_state_kind()),
             )
-            .field_bridge_identity(
+            .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("execution_record"),
-                &execution_record_identity.evidence_identity(),
+                &execution_record_identity.bridge_admission_evidence(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("evaluation_class"),
@@ -2674,13 +2681,13 @@ pub(crate) fn execute_preview_session_plan(
                 "preview_session:{}",
                 binding_tuple
                     .preview_session_identity()
-                    .evidence_identity()
-                    .as_str()
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting()
             ),
             format!("lifecycle:{:?}", binding_tuple.lifecycle_state_kind()),
             format!(
                 "execution_record:{}",
-                execution_record_identity.evidence_identity().as_str()
+                execution_record_identity.terminal_projection_for_reporting()
             ),
             format!("result:{}", execution.report().result_digest().as_str()),
             format!("comparison:{}", comparison_eligibility.digest()),
@@ -3055,7 +3062,7 @@ pub fn bind_preflight_to_preview_session(
         source.execution_record_preview_session_identity.as_ref()
     {
         if execution_record_session_identity
-            != source.preview_session_identity.evidence_identity().as_str()
+            != source.preview_session_identity.terminal_projection_for_reporting()
         {
             let mut counters = PreviewBindingCounters::default();
             counters.preview_invalid_basis_denial_count = 1;

@@ -121,7 +121,7 @@ pub(super) fn lower_runtime_envelope(label: &str) -> ForgeQueryLowerRuntimeBound
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
             "domain-capability-fixture-subject",
         )
-        .field_identity(
+        .field_value(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture"),
             label,
         )
@@ -136,7 +136,7 @@ pub(super) fn lower_runtime_envelope(label: &str) -> ForgeQueryLowerRuntimeBound
     let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
         crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
     )
-    .field_identity(
+    .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture_detail"),
         label,
     )
@@ -158,7 +158,7 @@ pub(super) fn lower_runtime_envelope(label: &str) -> ForgeQueryLowerRuntimeBound
             &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
                 crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
             )
-            .field_identity(
+            .field_value(
                 crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture_retained"),
                 label,
             )

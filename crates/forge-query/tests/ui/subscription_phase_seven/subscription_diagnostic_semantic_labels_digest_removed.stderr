@@ -1,0 +1,15 @@
+warning: unreachable statement
+ --> tests/ui/subscription_phase_seven/subscription_diagnostic_semantic_labels_digest_removed.rs:5:5
+  |
+4 |     let labels: QuerySubscriptionDiagnosticSemanticLabels = todo!();
+  |                                                             ------- any code following this expression is unreachable
+5 |     let _ = labels.digest();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `digest` found for struct `QuerySubscriptionDiagnosticSemanticLabels` in the current scope
+ --> tests/ui/subscription_phase_seven/subscription_diagnostic_semantic_labels_digest_removed.rs:5:20
+  |
+5 |     let _ = labels.digest();
+  |                    ^^^^^^ method not found in `QuerySubscriptionDiagnosticSemanticLabels`

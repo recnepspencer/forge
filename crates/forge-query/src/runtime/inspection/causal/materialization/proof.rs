@@ -40,7 +40,7 @@ impl CausalBridgeReadmissionProof {
             ForgeQueryEvidenceTag::new("anchor"),
             anchor_identity.evidence_identity(),
         )
-        .field_bridge_identity(
+        .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("bridge_summary"),
             &bridge_admission_summary_identity,
         )
@@ -67,7 +67,9 @@ impl CausalBridgeReadmissionProof {
     }
 
     pub fn bridge_admission_summary_for_reporting(&self) -> &str {
-        self.bridge_admission_summary_identity.as_str()
+        forge_runtime_bridge::facade::bridge_identity_reporting_label(
+            &self.bridge_admission_summary_identity,
+        )
     }
 
     pub fn bridge_envelope_for_reporting(&self) -> &str {

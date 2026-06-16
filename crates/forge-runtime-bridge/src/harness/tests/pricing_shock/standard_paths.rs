@@ -81,7 +81,7 @@ fn pricing_shock_standard_path_routes_evaluates_and_keeps_speculation_local() {
 
     let discarded = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
-            BridgePreviewSessionIdentity::new("pricing:preview-discard"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-discard"),
             pricing_preview_declaration(),
             4,
             2,
@@ -97,7 +97,7 @@ fn pricing_shock_standard_path_routes_evaluates_and_keeps_speculation_local() {
 
     let promoted = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
-            BridgePreviewSessionIdentity::new("pricing:preview-promote"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-promote"),
             pricing_preview_declaration(),
             4,
             2,
@@ -120,7 +120,7 @@ fn pricing_shock_standard_path_routes_evaluates_and_keeps_speculation_local() {
     assert!(matches!(
         runtime
             .diagnostics()
-            .explain_session(&BridgePreviewSessionIdentity::new(
+            .explain_session(&BridgePreviewSessionIdentity::admit_bridge_owned(
                 "pricing:preview-promote"
             )),
         Some(crate::facade::BridgeStandardSessionExplanation::PreviewPromotion(_))
@@ -143,7 +143,7 @@ fn pricing_shock_split_screen_keeps_main_and_speculative_truth_isolated() {
     let runtime = build_pricing_runtime(source, sink);
     let comparison = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
-            BridgePreviewSessionIdentity::new("pricing:preview-compare"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-compare"),
             pricing_preview_declaration(),
             4,
             2,

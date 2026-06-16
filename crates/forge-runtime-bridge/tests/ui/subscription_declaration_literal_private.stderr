@@ -1,13 +1,31 @@
 error[E0624]: associated function `new` is private
   --> tests/ui/subscription_declaration_literal_private.rs:11:70
    |
-11 |         declaration_identity: BridgeSubscriptionDeclarationIdentity::new("subscription:literal"),
-   |                                                                      ^^^ private associated function
+11 |           declaration_identity: BridgeSubscriptionDeclarationIdentity::new("subscription:literal"),
+   |                                                                        ^^^ private associated function
    |
   ::: src/identity.rs
    |
-   |     pub(crate) fn new(value: impl Into<Arc<str>>) -> Self {
-   |     ----------------------------------------------------- private associated function defined here
+   | /     pub(crate) fn new(
+   | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/ui/subscription_declaration_literal_private.rs:11:74
+   |
+11 |         declaration_identity: BridgeSubscriptionDeclarationIdentity::new("subscription:literal"),
+   |                               ------------------------------------------ ^^^^^^^^^^^^^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+   |                               |
+   |                               arguments to this function are incorrect
+   |
+   = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+           found reference `&'static str`
+note: associated function defined here
+  --> src/identity.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
 
 error: cannot construct `BridgeSubscriptionDeclaration` with struct literal syntax due to private fields
   --> tests/ui/subscription_declaration_literal_private.rs:10:13

@@ -209,13 +209,13 @@ mod tests {
         );
 
         let left = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:ordered-history"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:ordered-history"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             mapping.clone(),
             authority.clone(),
         );
         let right = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:ordered-history"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:ordered-history"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             mapping,
             authority,
@@ -238,7 +238,7 @@ mod tests {
     #[test]
     fn merge_history_declaration_carries_stage_inputs_in_digest() {
         let declaration = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:ordered-history"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:ordered-history"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
             BridgeMergeAuthorityBasis::new(

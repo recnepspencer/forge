@@ -1,17 +1,17 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{
+    project_query_subscription_evidence, QueryProjectionIdentity, QuerySubscriptionIdentityKind,
+};
 
 use super::admission::QuerySubscriptionAdmissionArtifact;
 use super::counters::QuerySubscriptionDeclarationCounters;
-use super::evidence_identities::{
-    activation_checkpoint_identity, activation_input_identity,
-};
+use super::evidence_identities::{activation_checkpoint_identity, activation_input_identity};
 use super::future_selection::QuerySubscriptionFutureSelection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubscriptionActivationInput {
     activation_identity: ForgeQueryEvidenceIdentity,
     admission_identity: ForgeQueryEvidenceIdentity,
-    query_declaration_for_reporting: String,
     query_declaration_identity: ForgeQueryEvidenceIdentity,
     bridge_declaration_identity: ForgeQueryEvidenceIdentity,
     future_selection: QuerySubscriptionFutureSelection,
@@ -22,32 +22,40 @@ pub struct SubscriptionActivationInput {
 }
 
 impl SubscriptionActivationInput {
-    pub fn activation_for_reporting(&self) -> &str {
-        self.activation_identity.as_str()
+    pub fn activation_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.activation_identity)
     }
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.activation_identity
     }
 
-    pub fn admission_for_reporting(&self) -> &str {
-        self.admission_identity.as_str()
+    pub fn admission_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.admission_identity)
     }
 
     pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.admission_identity
     }
 
-    pub fn query_declaration_for_reporting(&self) -> &str {
-        &self.query_declaration_for_reporting
+    pub fn query_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.query_declaration_identity)
     }
 
     pub fn query_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.query_declaration_identity
     }
 
-    pub fn bridge_declaration_for_reporting(&self) -> &str {
-        self.bridge_declaration_identity.as_str()
+    pub fn bridge_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.bridge_declaration_identity)
     }
 
     pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -58,24 +66,30 @@ impl SubscriptionActivationInput {
         &self.future_selection
     }
 
-    pub fn basis_binding_for_reporting(&self) -> &str {
-        self.basis_binding_identity.as_str()
+    pub fn basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.basis_binding_identity)
     }
 
     pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.basis_binding_identity
     }
 
-    pub fn checkpoint_for_reporting(&self) -> &str {
-        self.checkpoint_identity.as_str()
+    pub fn checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.checkpoint_identity)
     }
 
     pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.checkpoint_identity
     }
 
-    pub fn signal_strategy_for_reporting(&self) -> &str {
-        self.signal_strategy_identity.as_str()
+    pub fn signal_strategy_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.signal_strategy_identity)
     }
 
     pub fn signal_strategy_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -85,7 +99,6 @@ impl SubscriptionActivationInput {
     pub fn counters(&self) -> &QuerySubscriptionDeclarationCounters {
         &self.counters
     }
-
 }
 
 pub fn prepare_subscription_activation(
@@ -112,7 +125,6 @@ pub fn prepare_subscription_activation(
     SubscriptionActivationInput {
         activation_identity,
         admission_identity: admission.evidence_identity().clone(),
-        query_declaration_for_reporting: admission.query_declaration_for_reporting().to_string(),
         query_declaration_identity: admission.query_declaration_identity().clone(),
         bridge_declaration_identity: admission.bridge_declaration_identity().clone(),
         future_selection: admission.future_selection().clone(),

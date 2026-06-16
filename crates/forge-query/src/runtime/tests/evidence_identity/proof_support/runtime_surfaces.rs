@@ -34,11 +34,11 @@ pub(in super::super) fn compose_public_api_family_contract_identity(
         crate::ForgeQueryEvidenceTag::new("admission_fail_closed"),
         contract.admission_fail_closed(),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("authority_lanes"),
         contract.authority_lanes().iter().map(|lane| lane.as_str()),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("evidence"),
         contract.evidence().iter().map(String::as_str),
     )
@@ -59,7 +59,7 @@ pub(in super::super) fn compose_public_api_contract_identity(
         crate::ForgeQueryEvidenceTag::new("backend_posture"),
         contract.backend_posture().as_str(),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("family_contract_digest"),
         contract
             .families()
@@ -155,7 +155,7 @@ pub(in super::super) fn compose_public_support_matrix_identity(
         crate::ForgeQueryEvidenceTag::new("parallel_api_forbidden_row_count"),
         matrix.parallel_api_forbidden_row_count(),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("row_digest"),
         matrix.rows().iter().map(|row| row.row_digest().as_str()),
     )
@@ -217,35 +217,35 @@ pub(in super::super) fn compose_runtime_public_api_transcript_identity(
         crate::ForgeQueryEvidenceTag::new("transcript_family"),
         transcript.transcript_family(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("support_contract_digest"),
         transcript.support_contract_digest(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("state_digest"),
         transcript.state_digest(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("live_surface_digest"),
         transcript.live_surface_digest(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("computed_surface_digest"),
         transcript.computed_surface_digest(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("effect_surface_digest"),
         transcript.effect_surface_digest(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("intent_receipt_digest"),
         transcript.intent_receipt_digest(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("inspection_digest"),
         transcript.inspection_digest(),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("support_gated_neighbor_denial_digest"),
         transcript
             .support_gated_neighbor_denial_digests()
@@ -256,7 +256,7 @@ pub(in super::super) fn compose_runtime_public_api_transcript_identity(
         crate::ForgeQueryEvidenceTag::new("delivery_residue_count"),
         transcript.delivery_residue_count(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("authority_lane_digest"),
         transcript.authority_lane_digest(),
     )

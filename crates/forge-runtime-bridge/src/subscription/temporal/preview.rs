@@ -172,7 +172,7 @@ impl AdmittedPreviewTemporalBridgeSubscription {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
             preview_temporal_admission_identity:
-                BridgeSubscriptionPreviewTemporalAdmissionIdentity::new(format!(
+                BridgeSubscriptionPreviewTemporalAdmissionIdentity::admit_bridge_owned(format!(
                     "bridge-preview-temporal-subscription-admission-id:sha256:{digest:x}"
                 )),
             admitted: admitted.clone(),
@@ -251,9 +251,11 @@ impl BridgePreviewTemporalSubscriptionActivationReady {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             preview_temporal_activation_ready_identity:
-                BridgeSubscriptionPreviewTemporalActivationReadyIdentity::new(format!(
+                BridgeSubscriptionPreviewTemporalActivationReadyIdentity::admit_bridge_owned(
+                    format!(
                     "bridge-preview-temporal-subscription-activation-ready-id:sha256:{digest:x}"
-                )),
+                ),
+                ),
             ordinary_activation_ready,
             preview_temporal_admission: preview_temporal_admission.clone(),
             counters: BridgeSubscriptionCounters::from_temporal_activation_ready(),

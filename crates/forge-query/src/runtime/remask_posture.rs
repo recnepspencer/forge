@@ -149,8 +149,7 @@ impl ForgeQueryRuntimeRemaskPosture {
         let tenant_schema_digest = tenant_schema_digest.into();
         let relationship_proof_digest = relationship_proof_digest.into();
         let schema_context_digest = schema_context_digest.into();
-        let policy_identity =
-            remask_drift_label_identity("remask_policy_label_v1", &policy_digest);
+        let policy_identity = remask_drift_label_identity("remask_policy_label_v1", &policy_digest);
         let tenant_truth_identity =
             remask_drift_label_identity("remask_tenant_truth_label_v1", &tenant_truth_digest);
         let tenant_schema_identity =
@@ -159,10 +158,8 @@ impl ForgeQueryRuntimeRemaskPosture {
             "remask_relationship_proof_label_v1",
             &relationship_proof_digest,
         );
-        let schema_context_identity = remask_drift_label_identity(
-            "remask_schema_context_label_v1",
-            &schema_context_digest,
-        );
+        let schema_context_identity =
+            remask_drift_label_identity("remask_schema_context_label_v1", &schema_context_digest);
         let remask_identity = runtime_remask_posture_identity(
             disposition_kind,
             reason_kind,
@@ -279,12 +276,12 @@ impl ForgeQueryRuntimeRemaskPosture {
     }
 }
 
-fn remask_drift_label_identity(
-    identity_family: &str,
-    digest: &str,
-) -> ForgeQueryEvidenceIdentity {
+fn remask_drift_label_identity(identity_family: &str, digest: &str) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(ForgeQueryEvidenceTag::new("identity_family"), identity_family)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            identity_family,
+        )
         .field_shape(ForgeQueryEvidenceTag::new("digest"), digest)
         .seal()
 }

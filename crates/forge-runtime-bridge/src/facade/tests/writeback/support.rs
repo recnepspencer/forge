@@ -199,7 +199,7 @@ pub(super) fn lowered_policy(
 ) -> crate::facade::LoweredBridgeExecutionPolicy {
     let contract = runtime
         .admit_policy_declaration(BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:writeback"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:writeback"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -285,7 +285,7 @@ pub(super) fn causality_basis(
     BridgeWritebackNativeCausalityInputs::new(
         identity.clone(),
         crate::truth_identity_fixtures::truth_commit_fixture(truth_trigger_evidence_text),
-        BridgeRouteIdentity::new(identity.as_str()),
+        BridgeRouteIdentity::admit_bridge_owned(identity.as_str()),
         crate::truth_identity_fixtures::truth_snapshot_fixture(identity.as_str()),
         crate::truth_identity_fixtures::truth_snapshot_fixture(identity.as_str()),
     )

@@ -1,7 +1,9 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::delivery_dimensions::PreviewResidueWidth;
 use super::evidence_identities::preview_residue_report_identity;
+use super::evidence_projection::subscription_evidence_projection;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PreviewSubscriptionResidueClass {
@@ -49,7 +51,6 @@ pub struct PreviewSubscriptionResidueReport {
     temporary_execution_width: PreviewResidueWidth,
     temporary_diagnostics_width: PreviewResidueWidth,
     report_identity: ForgeQueryEvidenceIdentity,
-    report_for_reporting: String,
 }
 
 impl PreviewSubscriptionResidueReport {
@@ -72,7 +73,6 @@ impl PreviewSubscriptionResidueReport {
             temporary_execution_width.get(),
             temporary_diagnostics_width.get(),
         );
-        let report_for_reporting = report_identity.as_str().to_string();
         Self {
             authoritative_routing_width,
             authoritative_checkpoint_width,
@@ -82,7 +82,6 @@ impl PreviewSubscriptionResidueReport {
             temporary_execution_width,
             temporary_diagnostics_width,
             report_identity,
-            report_for_reporting,
         }
     }
 
@@ -128,16 +127,14 @@ impl PreviewSubscriptionResidueReport {
         }
     }
 
+    pub fn report_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.report_identity)
+    }
+
     pub fn report_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.report_identity
-    }
-
-    pub fn report_for_reporting(&self) -> &str {
-        &self.report_for_reporting
-    }
-
-    pub fn report_digest(&self) -> &str {
-        self.report_for_reporting()
     }
 }
 

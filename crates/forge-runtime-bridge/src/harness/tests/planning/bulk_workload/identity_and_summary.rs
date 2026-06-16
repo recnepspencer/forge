@@ -241,7 +241,7 @@ fn bridge_bulk_planning_identity_uses_frozen_registration_identity_without_leaki
         left_source,
         RecordingSignalBridgeSink::default(),
         vec![registration_with_signal_scope(
-            crate::facade::SignalInvalidationScope::new("signal.profile.left"),
+            crate::facade::SignalInvalidationScope::admit_bridge_owned("signal.profile.left"),
         )],
     );
 
@@ -261,7 +261,7 @@ fn bridge_bulk_planning_identity_uses_frozen_registration_identity_without_leaki
         right_source,
         RecordingSignalBridgeSink::default(),
         vec![registration_with_signal_scope(
-            crate::facade::SignalInvalidationScope::new("signal.profile.right"),
+            crate::facade::SignalInvalidationScope::admit_bridge_owned("signal.profile.right"),
         )],
     );
 
@@ -303,7 +303,7 @@ fn registration_with_signal_scope(
     signal_scope: crate::facade::SignalInvalidationScope,
 ) -> crate::facade::BridgeMappingRegistration {
     crate::facade::BridgeMappingRegistration::new(
-        crate::facade::BridgeMappingId::new("profile-name"),
+        crate::facade::BridgeMappingId::admit_bridge_owned("profile-name"),
         crate::facade::TruthPatchScope::for_entity_field(
             crate::facade::MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile")

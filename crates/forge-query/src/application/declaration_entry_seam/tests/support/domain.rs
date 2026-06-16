@@ -359,7 +359,7 @@ pub fn lower_runtime_envelope(
         crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
             "declaration-entry-seam-target",
         )
-        .field_identity(
+        .field_value(
             crate::evidence_identity::ForgeQueryEvidenceTag::new("test_target"),
             target_digest,
         )
@@ -368,7 +368,7 @@ pub fn lower_runtime_envelope(
     let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
         crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
     )
-    .field_identity(
+    .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
         "detail",
     )
@@ -390,7 +390,7 @@ pub fn lower_runtime_envelope(
             &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
                 crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
             )
-            .field_identity(
+            .field_value(
                 crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
                 format!("retained:{target_digest}"),
             )

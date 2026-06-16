@@ -33,6 +33,7 @@ use crate::facade::{
 use crate::identity::hash_parts;
 use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
+use crate::runtime::runtime_subscription_support_evidence_identity;
 use crate::ForgeQuerySessionLabel;
 
 mod transcript_authority;
@@ -166,16 +167,15 @@ impl ForgeQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
             .unwrap_or("TranscriptEntity")
             .to_string();
         let mutation_receipt = ForgeQueryMutationReceipt {
-            commit_identity: ForgeQueryCommitIdentity::from_external_authority_label(format!(
-                "transcript-intent-commit:{collection}"
-            )),
-            snapshot_identity: ForgeQuerySnapshotIdentity::from_external_authority_label(format!(
-                "transcript-intent-snapshot:{collection}"
-            )),
+            commit_identity: transcript_commit_identity("transcript-intent-commit", &collection),
+            snapshot_identity: transcript_snapshot_identity(
+                "transcript-intent-snapshot",
+                &collection,
+            ),
             deltas: vec![ForgeQueryMutationDelta {
                 collection,
                 entity_identity:
-                    crate::memory_workspace::ForgeQueryEntityIdentity::authored_command(
+                    crate::memory_workspace::admit_authored_entity_label(
                         "transcript-intent-entity-1",
                     ),
                 kind: ForgeQueryMutationKind::Updated,
@@ -210,6 +210,29 @@ impl ForgeQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
     }
 }
 
+fn transcript_commit_identity(namespace: &str, evidence: &str) -> ForgeQueryCommitIdentity {
+    ForgeQueryCommitIdentity::from_relational_commit_id(stable_transcript_position(
+        namespace, evidence,
+    ))
+}
+
+fn transcript_snapshot_identity(namespace: &str, evidence: &str) -> ForgeQuerySnapshotIdentity {
+    let snapshot_id = stable_transcript_position(namespace, evidence);
+    let version_id = stable_transcript_position(format!("{namespace}:version"), evidence);
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(snapshot_id, version_id),
+    )
+}
+
+fn stable_transcript_position(namespace: impl AsRef<str>, evidence: impl AsRef<str>) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in namespace.as_ref().bytes().chain(evidence.as_ref().bytes()) {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211_u64);
+    }
+    acc
+}
+
 struct TranscriptSignalSink;
 
 impl ForgeQueryRuntimeSignalSinkAdapter for TranscriptSignalSink {
@@ -225,8 +248,8 @@ impl ForgeQueryRuntimeSignalSinkAdapter for TranscriptSignalSink {
 struct TranscriptSubscriptionActivation;
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for TranscriptSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "transcript-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("transcript-subscription-activation")
     }
 
     fn admit_activation(

@@ -82,6 +82,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         self.world_basis.operating_context_identity_digest()
     }
 
+    pub(crate) fn world_basis(&self) -> &ForgeQueryAdmittedWorldBasis {
+        &self.world_basis
+    }
+
     pub fn role_claim_category(&self) -> FoundationalBoundaryArtifactCategory {
         self.role_claim_category
     }

@@ -1,9 +1,9 @@
 use crate::basis::{
-    preflight_execution_basis, resolve_snapshot_basis, BasisAuthorityFamily, BasisResolutionMode,
-    ExecutionBasisIntent, SnapshotLineageClass,
+    preflight_execution_basis, resolve_snapshot_basis, BasisAuthorityFamily, BasisPreflightError,
+    BasisResolutionError, BasisResolutionMode, ExecutionBasisIntent, SnapshotLineageClass,
 };
 use crate::declarative_live::canonicalize_declarative_request;
-use crate::execution::execute_preflight_bundle;
+use crate::execution::{execute_preflight_bundle, ExecutionError};
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::query_context::{
@@ -90,20 +90,20 @@ pub(in crate::runtime) fn execute_runtime_current_read_graph(
     .map_err(|error| {
         ForgeQueryReadDenial::new(
             ForgeQueryReadDenialKind::BasisResolutionDenied,
-            format!("{error:?}"),
+            basis_resolution_error_message(error),
         )
     })?;
     let preflight =
         preflight_execution_basis(read_graph.execution_plan().clone(), basis).map_err(|error| {
             ForgeQueryReadDenial::new(
                 ForgeQueryReadDenialKind::BasisPreflightDenied,
-                format!("{error:?}"),
+                basis_preflight_error_message(error),
             )
         })?;
     let execution = execute_preflight_bundle(&preflight).map_err(|error| {
         ForgeQueryReadDenial::new(
             ForgeQueryReadDenialKind::ExecutionDenied,
-            format!("{error:?}"),
+            execution_error_message(error),
         )
     })?;
     let rows = materialize_read_rows(runtime, read_graph)?;
@@ -130,7 +130,7 @@ pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
     let context_execution = execute_query_basis_context(context).map_err(|error| {
         ForgeQueryReadDenial::new(
             ForgeQueryReadDenialKind::BasisPreflightDenied,
-            format!("{error:?}"),
+            error.message().to_string(),
         )
     })?;
     let context_execution =
@@ -179,7 +179,7 @@ fn materialized_fact_posture_for_read_graph(
         let mut canonical_matches = runtime
             .live_subscriptions
             .values()
-            .filter(|state| state.installation.query_for_reporting() == lower_declaration_digest);
+            .filter(|state| state.installation.query_projection().label() == lower_declaration_digest.as_str());
         let state = canonical_matches.next()?;
         if canonical_matches.next().is_some() {
             return None;
@@ -196,7 +196,7 @@ fn query_context_basis_digest_identity(basis_digest: &str) -> crate::ForgeQueryE
     crate::ForgeQueryEvidenceIdentity::compose(
         crate::ForgeQueryEvidenceScope::QueryContextCompatibilityBasisLabel,
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("basis_digest"),
         basis_digest,
     )
@@ -223,11 +223,38 @@ fn context_allows_runtime_materialization(
     match context.family() {
         QueryContextFamily::CurrentBranchHead => true,
         QueryContextFamily::HistoricalSnapshot => {
-            context.declared_basis_label() == runtime_snapshot_identity.evidence_identity().as_str()
+            context.basis_digest()
+                == runtime_snapshot_identity
+                    .evidence_identity()
+                    .reporting_projection()
         }
         QueryContextFamily::BranchHead
         | QueryContextFamily::HistoricalCommit
         | QueryContextFamily::PreviewDerivedHistorical
         | QueryContextFamily::DiffComparison => false,
+    }
+}
+
+fn basis_resolution_error_message(error: BasisResolutionError) -> String {
+    match error {
+        BasisResolutionError::UnsupportedBasisKind => "unsupported basis kind".to_string(),
+        BasisResolutionError::ResolutionIdentityMismatch => {
+            "resolution identity mismatch".to_string()
+        }
+    }
+}
+
+fn basis_preflight_error_message(error: BasisPreflightError) -> String {
+    match error {
+        BasisPreflightError::BasisIntentMismatch => "basis intent mismatch".to_string(),
+        BasisPreflightError::PlannedRouteBasisMismatch => {
+            "planned route basis mismatch".to_string()
+        }
+    }
+}
+
+fn execution_error_message(error: ExecutionError) -> String {
+    match error {
+        ExecutionError::ExecutionInvariantViolation { message } => message.to_string(),
     }
 }

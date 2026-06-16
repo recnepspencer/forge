@@ -11,17 +11,17 @@ use crate::projection_consumption::{
     ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
 };
 
+use super::async_result_state::runtime_async_causality_identity;
+use super::evidence_identities::{
+    shared_read_bind_retained_artifact_label_identity, shared_read_republishing_causality_identity,
+    shared_read_unpublished_causality_identity,
+};
 use super::{
     ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationBundle,
     ForgeQueryDerivedMaterializationReceipt, ForgeQueryDerivedMaterializationResult,
     ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewHandle, ForgeQueryRuntime,
     ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeAsyncResultStateKind,
     ForgeQueryRuntimeError, ForgeQuerySharedReadGenerationLease,
-};
-use super::async_result_state::runtime_async_causality_identity;
-use super::evidence_identities::{
-    shared_read_bind_retained_artifact_label_identity, shared_read_republishing_causality_identity,
-    shared_read_unpublished_causality_identity,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -113,11 +113,7 @@ impl ForgeQueryPublishedDerivedArtifactHandle {
     ) -> Result<ForgeQueryPublishedProjectionConsumption, ProjectionFactConsumptionPathError> {
         match &self.published_binding {
             Some(binding) => Ok(ForgeQueryPublishedProjectionConsumption::Current(
-                binding.consume_projection_facts(
-                    result_shape,
-                    authorized_projection,
-                    requested,
-                )?,
+                binding.consume_projection_facts(result_shape, authorized_projection, requested)?,
             )),
             None => Ok(ForgeQueryPublishedProjectionConsumption::ResultState(
                 self.async_result_state

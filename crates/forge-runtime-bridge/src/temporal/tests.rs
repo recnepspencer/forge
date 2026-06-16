@@ -178,7 +178,7 @@ fn temporal_basis_accepts_cdc_cursor_as_first_class_truth_family() {
     let admitted = admit(
         BridgeTemporalTruthViewBasis::cdc_cursor(
             crate::truth_identity_fixtures::truth_branch_fixture("branch-a"),
-            BridgeTemporalCdcCursorIdentity::new("cursor-a"),
+            BridgeTemporalCdcCursorIdentity::admit_bridge_owned("cursor-a"),
             crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeTemporalSignalBasis::new(

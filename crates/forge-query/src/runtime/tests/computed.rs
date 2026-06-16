@@ -2,7 +2,7 @@ use super::support::*;
 use crate::memory_workspace::ForgeQueryCommitIdentity;
 
 fn external_commit(label: &str) -> ForgeQueryCommitIdentity {
-    ForgeQueryCommitIdentity::from_external_authority_label(label)
+    crate::memory_workspace::admit_external_commit_label(label)
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn maintained_derived_view_materializes_incremental_patches() {
         insert.affected_derived_view_ids(),
         &["task_titles".to_string()]
     );
-    let expected_row = Value::String(insert.deltas()[0].entity_identity.to_string());
+    let expected_row = Value::String(insert.deltas()[0].entity_identity.terminal_projection_for_reporting().to_string());
     assert_eq!(runtime.read_derived(&titles), vec![expected_row.clone()]);
     assert_eq!(patches.derived_patches.len(), 1);
     assert_eq!(patches.derived_patches[0].payload(), &expected_row);
@@ -149,7 +149,7 @@ fn nested_computed_views_route_in_deterministic_dependency_order() {
         runtime.read_derived(&summary),
         vec![Value::String(format!(
             "summary:{}",
-            insert.deltas()[0].entity_identity
+            insert.deltas()[0].entity_identity.terminal_projection_for_reporting()
         ))]
     );
 
@@ -590,7 +590,10 @@ fn downstream_refresh_fallback_seeds_retained_derived_and_live_rows_during_decla
             delta: &crate::memory_workspace::ForgeQueryMutationDelta,
             materialization: &mut ForgeQueryDerivedViewMaterialization,
         ) -> ForgeQueryDerivedPatch {
-            let row = Value::String(format!("incremental:{}", delta.entity_identity));
+            let row = Value::String(format!(
+                "incremental:{}",
+                delta.entity_identity.terminal_projection_for_reporting()
+            ));
             materialization.replace_rows([row.clone()]);
             ForgeQueryDerivedPatch::incremental(
                 view.name(),
@@ -766,7 +769,10 @@ fn downstream_refresh_fallback_receives_declared_live_siblings_through_computed_
             delta: &crate::memory_workspace::ForgeQueryMutationDelta,
             materialization: &mut ForgeQueryDerivedViewMaterialization,
         ) -> ForgeQueryDerivedPatch {
-            let row = Value::String(format!("incremental:{}", delta.entity_identity));
+            let row = Value::String(format!(
+                "incremental:{}",
+                delta.entity_identity.terminal_projection_for_reporting()
+            ));
             materialization.replace_rows([row.clone()]);
             ForgeQueryDerivedPatch::incremental(
                 view.name(),
@@ -882,7 +888,10 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
             delta: &crate::memory_workspace::ForgeQueryMutationDelta,
             materialization: &mut ForgeQueryDerivedViewMaterialization,
         ) -> ForgeQueryDerivedPatch {
-            let row = Value::String(format!("incremental:{}", delta.entity_identity));
+            let row = Value::String(format!(
+                "incremental:{}",
+                delta.entity_identity.terminal_projection_for_reporting()
+            ));
             materialization.replace_rows([row.clone()]);
             ForgeQueryDerivedPatch::incremental(
                 view.name(),
@@ -911,7 +920,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
                 .unwrap_or("missing");
             let row = Value::String(format!(
                 "{}:{}:{}",
-                refresh.refresh_identity(),
+                refresh.refresh_identity().terminal_projection_for_reporting(),
                 refresh.touched_aspect_paths().join("|"),
                 author
             ));
@@ -963,7 +972,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
         workspace.materialize(&metadata),
         vec![Value::String(format!(
             "{}:title.value:worth-topo",
-            receipt.commit_identity()
+            receipt.commit_identity().terminal_projection_for_reporting()
         ))]
     );
 }
@@ -1014,7 +1023,7 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
             delta: &crate::memory_workspace::ForgeQueryMutationDelta,
             materialization: &mut ForgeQueryDerivedViewMaterialization,
         ) -> ForgeQueryDerivedPatch {
-            let row = Value::String(delta.entity_identity.to_string());
+            let row = Value::String(delta.entity_identity.terminal_projection_for_reporting().to_string());
             materialization.replace_rows([row.clone()]);
             ForgeQueryDerivedPatch::incremental(
                 view.name(),
@@ -1040,7 +1049,7 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
                 upstreams
                     .live_rows("tasks.table")
                     .and_then(|rows| rows.first())
-                    .map(|entity| entity.identity().to_string())
+                    .map(|entity| entity.identity().terminal_projection_for_reporting())
                     .unwrap_or_else(|| "missing".to_string()),
             );
             materialization.replace_rows([row.clone()]);
@@ -1175,7 +1184,7 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
         .expect("count row should decode");
     assert_eq!(
         materialized_title,
-        receipt.deltas()[0].entity_identity.to_string()
+        receipt.deltas()[0].entity_identity.terminal_projection_for_reporting().to_string()
     );
     assert_eq!(materialized_count, CountRow { count: 1 });
 
@@ -1267,7 +1276,7 @@ fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
             delta: &crate::memory_workspace::ForgeQueryMutationDelta,
             materialization: &mut ForgeQueryDerivedViewMaterialization,
         ) -> ForgeQueryDerivedPatch {
-            let row = Value::String(delta.entity_identity.to_string());
+            let row = Value::String(delta.entity_identity.terminal_projection_for_reporting().to_string());
             materialization.replace_rows([row.clone()]);
             ForgeQueryDerivedPatch::incremental(
                 view.name(),
@@ -1293,7 +1302,7 @@ fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
                 upstreams
                     .live_rows("computed.bundle.binding.tasks")
                     .and_then(|rows| rows.first())
-                    .map(|entity| entity.identity().to_string())
+                    .map(|entity| entity.identity().terminal_projection_for_reporting())
                     .unwrap_or_else(|| "missing".to_string()),
             );
             materialization.replace_rows([row.clone()]);

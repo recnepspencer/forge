@@ -17,7 +17,6 @@ pub fn admit_active_subscription_lane(
     activation: SubscriptionActivationInput,
     budget: ActiveSubscriptionWorkBudget,
 ) -> Result<ActiveSubscriptionLaneAdmission, ActiveSubscriptionLifecycleError> {
-    let source_digest = activation.activation_for_reporting().to_string();
     let mut counters = ActiveSubscriptionCounters::default();
 
     if budget.exceeds_phase_one_budget() {
@@ -25,7 +24,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::WorkBudgetExceeded,
             "active subscription lane admission exceeds its explicit Phase 1 budget",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -35,7 +34,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::DurableCheckpointOverclaim,
             "durable active subscription checkpoints remain later-milestone debt",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -45,7 +44,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::StoreBackedRestartOverclaim,
             "store-backed restart-stable active subscription handles remain later-milestone debt",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -58,7 +57,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::HeapAllocationForbidden,
             "active lane allocation must use an admitted lifecycle allocation posture",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -76,7 +75,7 @@ pub fn admit_active_subscription_lane(
         return Err(ActiveSubscriptionLifecycleError::new(
             ActiveSubscriptionLifecycleDenialKind::LinearScanLookupForbidden,
             "active lane admission must use an indexed lookup class",
-            source_digest,
+            activation.evidence_identity().clone(),
             counters,
         ));
     }
@@ -118,14 +117,14 @@ pub fn admit_active_subscription_lane(
 
     Ok(ActiveSubscriptionLaneAdmission {
         lane_digest,
-        activation_digest: activation.activation_for_reporting().to_string(),
-        admission_digest: activation.admission_for_reporting().to_string(),
-        query_declaration_digest: activation.query_declaration_for_reporting().to_string(),
-        bridge_declaration_digest: activation.bridge_declaration_for_reporting().to_string(),
+        activation_identity: activation.evidence_identity().clone(),
+        admission_identity: activation.admission_identity().clone(),
+        query_declaration_identity: activation.query_declaration_identity().clone(),
+        bridge_declaration_identity: activation.bridge_declaration_identity().clone(),
         future_selection: activation.future_selection().clone(),
         basis_binding_identity: activation.basis_binding_identity().clone(),
         checkpoint_identity: activation.checkpoint_identity().clone(),
-        signal_strategy_digest: activation.signal_strategy_for_reporting().to_string(),
+        signal_strategy_identity: activation.signal_strategy_identity().clone(),
         lifecycle_posture,
         delivery_posture,
         lookup_class: *budget.lookup_class(),

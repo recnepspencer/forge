@@ -48,7 +48,7 @@ impl ForgeQueryIntentDenialInspection {
                 )
                 .field_shape(ForgeQueryEvidenceTag::new("stage"), evidence.stage())
                 .field_value(ForgeQueryEvidenceTag::new("message"), evidence.message())
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("strategy_identity"),
                     evidence.strategy_identity(),
                 )
@@ -68,7 +68,7 @@ impl ForgeQueryIntentDenialInspection {
                     ForgeQueryEvidenceTag::new("returned_strategy_descriptor_digest"),
                     returned_strategy_descriptor_digest.as_deref(),
                 )
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("canonical_input_digest"),
                     evidence.canonical_input_digest(),
                 )
@@ -90,7 +90,7 @@ impl ForgeQueryIntentDenialInspection {
                     ForgeQueryEvidenceTag::new("attempt_digest"),
                     attempt_digest.as_deref(),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("invariant_evidence"),
                     invariant_evidence.iter().map(String::as_str),
                 )

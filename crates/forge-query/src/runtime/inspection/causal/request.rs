@@ -48,10 +48,6 @@ impl CausalInspectionTarget {
         self.observation_target.identity().as_str()
     }
 
-    pub fn observation_target_digest(&self) -> &str {
-        self.observation_target_for_reporting()
-    }
-
     pub(in crate::runtime) fn observation_target_identity(
         &self,
     ) -> &super::observation_identity::CausalObservationTargetIdentity {
@@ -62,10 +58,6 @@ impl CausalInspectionTarget {
         self.result_shape_context.identity().as_str()
     }
 
-    pub fn result_shape_context_digest(&self) -> &str {
-        self.result_shape_context_for_reporting()
-    }
-
     pub(in crate::runtime) fn result_shape_context_identity(
         &self,
     ) -> &super::observation_identity::CausalResultShapeContextIdentity {
@@ -74,10 +66,6 @@ impl CausalInspectionTarget {
 
     pub fn target_for_reporting(&self) -> &str {
         self.target_identity.as_str()
-    }
-
-    pub fn target_digest(&self) -> &str {
-        self.target_for_reporting()
     }
 
     pub fn observation_target(&self) -> &CausalObservationTargetHandle {
@@ -180,7 +168,7 @@ impl CausalInspectionRequest {
         &self.requested_evidence_families
     }
 
-    pub fn request_digest(&self) -> &str {
+    pub fn request_for_reporting(&self) -> &str {
         self.request_identity.as_str()
     }
 
@@ -242,7 +230,7 @@ impl CausalInspectionRequestError {
         self.message
     }
 
-    pub fn failure_digest(&self) -> &str {
+    pub fn failure_for_reporting(&self) -> &str {
         self.failure_identity.as_str()
     }
 

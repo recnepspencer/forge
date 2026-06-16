@@ -175,8 +175,17 @@ pub(super) fn merge_lowered_row(
             .admitted()
             .admitted_for_reporting()
             .to_string(),
-        Some(lowered.authority_scoped_plan().plan_for_reporting().to_string()),
-        Some(lowered.lowered_effect_execution_plan_for_reporting().to_string()),
+        Some(
+            lowered
+                .authority_scoped_plan()
+                .plan_for_reporting()
+                .to_string(),
+        ),
+        Some(
+            lowered
+                .lowered_effect_execution_plan_for_reporting()
+                .to_string(),
+        ),
         None,
         None,
         lowered.counters().clone(),

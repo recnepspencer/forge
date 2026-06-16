@@ -233,11 +233,11 @@ pub(super) fn prepared_digest<
     bridge_routing: &crate::application::ForgeQueryDeclarationBridgeRouting<D, I>,
 ) -> String {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::ContinuationPreparedDigest)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("handle"),
             handle.handle_identity_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("operating_context"),
             handle.operating_context_identity_digest(),
         )
@@ -289,19 +289,19 @@ pub(super) fn prepared_digest<
             ForgeQueryEvidenceTag::new("signal_reason"),
             signal_truth.reason,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("future_projection"),
             bridge_routing.future_projection().projection_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("basis_lifecycle_support"),
             bridge_routing.basis_lifecycle_support_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("bridge_routing"),
             bridge_routing.bridge_routing_digest(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("linked_artifacts"),
             linked_artifacts_identity(linked),
         )
@@ -320,7 +320,7 @@ pub(super) fn transcript_digest(
         .field_shape(ForgeQueryEvidenceTag::new("kind"), kind)
         .field_shape(ForgeQueryEvidenceTag::new("family"), family)
         .field_shape(ForgeQueryEvidenceTag::new("outcome"), outcome)
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("linked_artifacts"),
             linked_artifacts_identity(linked),
         )

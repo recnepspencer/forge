@@ -11,6 +11,7 @@ use super::super::evidence_identities::{
 };
 use super::super::preview_isolation::PreviewSubscriptionIsolationArtifact;
 use super::super::support::QuerySubscriptionSupportReport;
+use super::super::validation_evidence::validation_evidence_identity_label;
 use super::bundle::{
     QuerySubscriptionDiagnosticBundleError, QuerySubscriptionDiagnosticBundleErrorKind,
     QuerySubscriptionDiagnosticCounters, QuerySubscriptionDiagnosticFailure,
@@ -25,38 +26,24 @@ use super::stage::{
 pub struct QuerySubscriptionDiagnosticStageTrace {
     stage: QuerySubscriptionDiagnosticStage,
     outcome: QuerySubscriptionDiagnosticOutcome,
-    source_for_reporting: String,
-    evidence_for_reporting: String,
+    source_identity: ForgeQueryEvidenceIdentity,
+    evidence_identity: ForgeQueryEvidenceIdentity,
     stage_trace_identity: ForgeQueryEvidenceIdentity,
-    stage_trace_for_reporting: String,
 }
 
 impl QuerySubscriptionDiagnosticStageTrace {
     fn from_evidence(evidence: &QuerySubscriptionDiagnosticEvidence) -> Self {
-        let source_identity = ForgeQueryEvidenceIdentity::compose(
-            crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
-        )
-        .field_shape(
-            crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
-            "query_subscription_diagnostic_stage_source_projection_v1",
-        )
-        .field_shape(
-            crate::evidence_identity::ForgeQueryEvidenceTag::new("source"),
-            evidence.source_digest(),
-        )
-        .seal();
         let stage_trace_identity = diagnostic_stage_trace_identity(
             evidence.stage().as_str(),
             evidence.outcome().as_str(),
-            &source_identity,
+            evidence.source_identity(),
             evidence.evidence_identity(),
         );
         Self {
             stage: *evidence.stage(),
             outcome: *evidence.outcome(),
-            source_for_reporting: evidence.source_digest().to_string(),
-            evidence_for_reporting: evidence.evidence_for_reporting().to_string(),
-            stage_trace_for_reporting: stage_trace_identity.as_str().to_string(),
+            source_identity: evidence.source_identity().clone(),
+            evidence_identity: evidence.evidence_identity().clone(),
             stage_trace_identity,
         }
     }
@@ -69,24 +56,16 @@ impl QuerySubscriptionDiagnosticStageTrace {
         &self.outcome
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_for_reporting
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
     }
 
-    pub fn evidence_digest(&self) -> &str {
-        &self.evidence_for_reporting
-    }
-
-    pub fn stage_trace_digest(&self) -> &str {
-        self.stage_trace_for_reporting()
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.evidence_identity
     }
 
     pub fn stage_trace_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.stage_trace_identity
-    }
-
-    pub fn stage_trace_for_reporting(&self) -> &str {
-        &self.stage_trace_for_reporting
     }
 }
 
@@ -96,7 +75,6 @@ pub struct QuerySubscriptionDiagnosticTrace {
     stage_traces: Vec<QuerySubscriptionDiagnosticStageTrace>,
     counter_snapshot: String,
     trace_identity: ForgeQueryEvidenceIdentity,
-    trace_for_reporting: String,
     counters: QuerySubscriptionDiagnosticCounters,
 }
 
@@ -113,16 +91,8 @@ impl QuerySubscriptionDiagnosticTrace {
         &self.counter_snapshot
     }
 
-    pub fn trace_digest(&self) -> &str {
-        self.trace_for_reporting()
-    }
-
     pub fn trace_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.trace_identity
-    }
-
-    pub fn trace_for_reporting(&self) -> &str {
-        &self.trace_for_reporting
     }
 
     pub fn counters(&self) -> &QuerySubscriptionDiagnosticCounters {
@@ -208,7 +178,9 @@ pub fn trace_admitted_query_subscription_diagnostics(
             QuerySubscriptionDiagnosticStage::Continuation,
             "subscription continuation report preserved canonical lane identity",
             continuation.evidence_identity(),
-            continuation.performance_receipt().performance_receipt_identity(),
+            continuation
+                .performance_receipt()
+                .performance_receipt_identity(),
         ));
     }
 
@@ -257,7 +229,7 @@ pub fn trace_denied_query_subscription_diagnostics(
                 QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
                 "diagnostic trace assembly may not bind an admitted family selection context to a family-selection denial",
                 &[
-                    format!("selection_context:{}", selection_context.digest()),
+                    format!("selection_context:{}", selection_context.context_projection().label()),
                     format!("failure_stage:{}", failure.stage().as_str()),
                 ],
             ));
@@ -292,8 +264,8 @@ pub fn trace_denied_query_subscription_diagnostics(
                 QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
                 "diagnostic trace assembly requires bridge lowering to bind the same declaration artifact",
                 &[
-                    format!("declaration:{}", declaration.declaration_for_reporting()),
-                    format!("lowering:{}", lowering.query_declaration_for_reporting()),
+                    format!("declaration:{}", declaration.declaration_projection().label()),
+                    format!("lowering:{}", lowering.query_declaration_projection().label()),
                 ],
             ));
         }
@@ -307,8 +279,8 @@ pub fn trace_denied_query_subscription_diagnostics(
                 QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
                 "diagnostic trace assembly requires admission to preserve declaration identity",
                 &[
-                    format!("declaration:{}", declaration.declaration_for_reporting()),
-                    format!("admission:{}", admission.query_declaration_for_reporting()),
+                    format!("declaration:{}", declaration.declaration_projection().label()),
+                    format!("admission:{}", admission.query_declaration_projection().label()),
                 ],
             ));
         }
@@ -322,10 +294,10 @@ pub fn trace_denied_query_subscription_diagnostics(
                 QuerySubscriptionDiagnosticBundleErrorKind::SupportSourceMismatch,
                 "diagnostic trace assembly requires support reporting to preserve declaration identity",
                 &[
-                    format!("declaration:{}", declaration.declaration_for_reporting()),
+                    format!("declaration:{}", declaration.declaration_projection().label()),
                     format!(
                         "support_declaration:{}",
-                        support.support_subject().declaration_digest()
+                        support.support_subject().declaration_projection().label()
                     ),
                 ],
             ));
@@ -550,8 +522,8 @@ fn validate_admitted_sources(
             QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
             "admitted diagnostic trace requires bridge lowering to preserve declaration identity",
             &[
-                format!("declaration:{}", declaration.declaration_for_reporting()),
-                format!("lowering:{}", lowering.query_declaration_for_reporting()),
+                format!("declaration:{}", declaration.declaration_projection().label()),
+                format!("lowering:{}", lowering.query_declaration_projection().label()),
             ],
         ));
     }
@@ -563,8 +535,8 @@ fn validate_admitted_sources(
             QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
             "admitted diagnostic trace requires admission to preserve declaration identity",
             &[
-                format!("declaration:{}", declaration.declaration_for_reporting()),
-                format!("admission:{}", admission.query_declaration_for_reporting()),
+                format!("declaration:{}", declaration.declaration_projection().label()),
+                format!("admission:{}", admission.query_declaration_projection().label()),
             ],
         ));
     }
@@ -576,10 +548,10 @@ fn validate_admitted_sources(
             QuerySubscriptionDiagnosticBundleErrorKind::SupportSourceMismatch,
             "admitted diagnostic trace requires support reporting to preserve declaration identity",
             &[
-                format!("declaration:{}", declaration.declaration_for_reporting()),
+                format!("declaration:{}", declaration.declaration_projection().label()),
                 format!(
                     "support_declaration:{}",
-                    support.support_subject().declaration_digest()
+                    support.support_subject().declaration_projection().label()
                 ),
             ],
         ));
@@ -592,10 +564,10 @@ fn validate_admitted_sources(
             QuerySubscriptionDiagnosticBundleErrorKind::LifecycleSourceMismatch,
             "admitted diagnostic trace requires lifecycle certification to preserve declaration identity",
             &[
-                format!("declaration:{}", declaration.declaration_for_reporting()),
+                format!("declaration:{}", declaration.declaration_projection().label()),
                 format!(
                     "lifecycle_declaration:{}",
-                    lifecycle.query_declaration_for_reporting()
+                    lifecycle.subscription_declaration_projection().label()
                 ),
             ],
         ));
@@ -615,7 +587,7 @@ fn validate_denied_selection_context(
                 QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
                 "diagnostic trace assembly may only use a selection-denied context for family-selection failures",
                 &[
-                    format!("selection_context:{}", selection_context.digest()),
+                    format!("selection_context:{}", selection_context.context_projection().label()),
                     format!("failure_stage:{}", failure_stage.as_str()),
                 ],
             ));
@@ -628,8 +600,14 @@ fn validate_denied_selection_context(
                 QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
                 "diagnostic trace assembly requires the selection-denied context and failure to bind the same canonical source digest",
                 &[
-                    format!("selection_source:{}", selection_context.source_digest()),
-                    format!("failure_source:{}", failure.source_digest()),
+                    format!(
+                        "selection_source:{}",
+                        validation_evidence_identity_label(&selection_context.source_identity())
+                    ),
+                    format!(
+                        "failure_source:{}",
+                        validation_evidence_identity_label(failure.source_identity())
+                    ),
                 ],
             ));
         }
@@ -638,7 +616,7 @@ fn validate_denied_selection_context(
                 QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
                 "diagnostic trace assembly may not attach declaration, lowering, admission, or support artifacts after family-selection denial",
                 &[
-                    format!("selection_context:{}", selection_context.digest()),
+                    format!("selection_context:{}", selection_context.context_projection().label()),
                     format!("failure_stage:{}", failure_stage.as_str()),
                 ],
             ));
@@ -664,9 +642,19 @@ fn stage_evidence_from_state(
     counter_identity: &ForgeQueryEvidenceIdentity,
 ) -> QuerySubscriptionDiagnosticEvidence {
     if admitted {
-        QuerySubscriptionDiagnosticEvidence::admitted(stage, reason, source_identity, counter_identity)
+        QuerySubscriptionDiagnosticEvidence::admitted(
+            stage,
+            reason,
+            source_identity,
+            counter_identity,
+        )
     } else {
-        QuerySubscriptionDiagnosticEvidence::denied(stage, reason, source_identity, counter_identity)
+        QuerySubscriptionDiagnosticEvidence::denied(
+            stage,
+            reason,
+            source_identity,
+            counter_identity,
+        )
     }
 }
 
@@ -682,7 +670,7 @@ fn trace_from_stage_evidence(
         .map(QuerySubscriptionDiagnosticStageTrace::from_evidence)
         .collect::<Vec<_>>();
     let counters = QuerySubscriptionDiagnosticCounters::trace_emitted(stage_traces.len() as u64);
-    let counter_snapshot = counters.digest();
+    let counter_snapshot = counters.counter_projection().label().to_string();
     let stage_trace_refs: Vec<&ForgeQueryEvidenceIdentity> = stage_traces
         .iter()
         .map(|trace| trace.stage_trace_identity())
@@ -696,7 +684,6 @@ fn trace_from_stage_evidence(
         terminal_stage,
         stage_traces,
         counter_snapshot,
-        trace_for_reporting: trace_identity.as_str().to_string(),
         trace_identity,
         counters,
     }

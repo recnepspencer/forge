@@ -73,7 +73,7 @@ fn runtime_basis(schema_basis: SchemaBasisDigest) -> crate::basis::ResolvedSnaps
         ResolvedSnapshotIdentity::new(
             BasisAuthorityFamily::Runtime,
             None,
-            ForgeQuerySnapshotIdentity::from_external_authority_label("phase-five-snapshot")
+            crate::memory_workspace::admit_external_snapshot_label("phase-five-snapshot")
                 .evidence_identity(),
             schema_basis,
             SnapshotLineageClass::CurrentHead,

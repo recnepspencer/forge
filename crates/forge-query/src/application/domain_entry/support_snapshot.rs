@@ -27,7 +27,12 @@ impl ForgeQueryDomainEntrySupportSnapshot {
         );
         let snapshot_digest = hash_parts(&[
             format!("report:{}", report.report_digest()),
-            format!("runtime_support:{}", runtime_support_matrix.matrix_digest()),
+            format!(
+                "runtime_support:{}",
+                runtime_support_matrix
+                    .matrix_digest()
+                    .terminal_projection_for_reporting()
+            ),
         ]);
         Self {
             report,

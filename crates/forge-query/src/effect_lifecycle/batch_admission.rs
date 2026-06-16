@@ -1,7 +1,5 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::admission::admit_effect_intent;
 use super::authoring_basis::EffectAuthoringBasis;
@@ -232,18 +230,17 @@ impl AdmittedEffectBatch {
     fn new(admitted: Vec<AdmittedEffectIntent>) -> Self {
         let authority_lane = admitted[0].normalized().authority_lane();
         let basis_family = admitted[0].normalized().basis_family();
-        let batch_identity = ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::WorkflowMutationLowering,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "admitted_effect_batch_v1",
-        )
-        .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("admitted"),
-            admitted.iter().map(AdmittedEffectIntent::admitted_identity),
-        )
-        .seal();
+        let batch_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "admitted_effect_batch_v1",
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("admitted"),
+                    admitted.iter().map(AdmittedEffectIntent::admitted_identity),
+                )
+                .seal();
         let counters = EffectLifecycleCounters::admitted_batch(admitted.len());
         Self {
             admitted,
@@ -306,9 +303,9 @@ fn validate_batch_component_lane_coherence<T>(
         ));
     }
     if components.iter().any(|item| {
-        normalized(item).scoped_basis_digest() != first.scoped_basis_digest()
-            || normalized(item).expected_lower_runtime_binding_digest()
-                != first.expected_lower_runtime_binding_digest()
+        normalized(item).scoped_basis_identity() != first.scoped_basis_identity()
+            || normalized(item).expected_lower_runtime_binding_identity()
+                != first.expected_lower_runtime_binding_identity()
     }) {
         return Err(EffectBatchAdmissionDenial::new(
             EffectBatchAdmissionDenialKind::MixedBasisIdentity,

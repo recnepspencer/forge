@@ -15,7 +15,7 @@ pub type BridgeFrozenMappingRegistrationIdentity =
 
 impl BridgeMappingId {
     pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
-        Self::new(value)
+        Self::admit_bridge_owned(value)
     }
 }
 
@@ -281,7 +281,7 @@ pub type SignalInvalidationScope = BridgeIdentity<SignalInvalidationScopeTag>;
 
 impl SignalInvalidationScope {
     pub fn from_stable_name(value: impl Into<Arc<str>>) -> Self {
-        Self::new(value)
+        Self::admit_bridge_owned(value)
     }
 }
 

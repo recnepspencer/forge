@@ -26,10 +26,10 @@ impl crate::adapter::ContinuityLineageSource for CausalLineageSource {
     > {
         crate::adapter::BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![BridgeHistoricalResolvedLineageIdentity::new(
+            vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
                 "lineage:causal-successor",
             )],
-            vec![BridgeHistoricalResolvedRecordIdentity::new(
+            vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
                 "record:causal-successor",
             )],
             vec![1],
@@ -63,7 +63,7 @@ pub(super) fn missing_bridge_reference(
     bridge_reference(
         BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
             family,
-            crate::facade::BridgeIdentityEvidence::from_external_authority(identity),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(identity),
         )
         .expect("bridge reference identity should be valid"),
     )
@@ -137,7 +137,7 @@ pub(super) fn bridge_stream_checkpoint_reference(
 ) -> BridgeCausalEvidenceReference {
     missing_bridge_reference(
         BridgeCausalEvidenceFamily::BridgeStreamCheckpoint,
-        checkpoint.checkpoint_token_identity(),
+        checkpoint.checkpoint_token_identity_for_reporting(),
     )
 }
 
@@ -210,9 +210,9 @@ pub(super) fn branch_comparison_declaration(
 ) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::branch_comparison(
         declaration_identity,
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::BranchComparisonFingerprint,
             "geometry-branch-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -278,7 +278,7 @@ pub(super) fn retained_runtime(
         .register_structural(branch_declaration)
         .register_merge(merge_declaration)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping"),
+            BridgeMappingId::admit_bridge_owned("mapping"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("entity-1"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -291,7 +291,7 @@ pub(super) fn retained_runtime(
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal:profile"),
+            SignalInvalidationScope::admit_bridge_owned("signal:profile"),
             CoarseRoutingMode::Direct,
         ))
         .build()

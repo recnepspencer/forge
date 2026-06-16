@@ -62,7 +62,7 @@ fn pricing_shock_promotion_stays_distinct_from_interleaved_main_truth() {
     );
     assert_eq!(
         promotion.promotion_session_identity,
-        BridgePreviewSessionIdentity::new("pricing:preview-promote-churn")
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-promote-churn")
     );
     assert!(promotion
         .authoritative_commit_boundary_digest
@@ -190,7 +190,7 @@ fn pricing_shock_merge_lane_preserves_aspect_reconciliation_history_and_revisita
     );
     assert_eq!(
         merge.merged_aspect_registration_id,
-        BridgeAspectRegistrationId::new("pricing-rubber-usd-field")
+        BridgeAspectRegistrationId::admit_bridge_owned("pricing-rubber-usd-field")
     );
     assert_eq!(
         merge.merged_fine_grained_match_status,

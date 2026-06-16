@@ -1,6 +1,7 @@
 use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::acknowledgement::{
     QueryDeliveryBatchReceipt, QueryDeliverySequence, SubscriptionAcknowledgementFrontier,
@@ -17,6 +18,7 @@ use super::attachment_error::{
 use super::attachment_request::SubscriptionConsumerAttachmentRequest;
 use super::delivery_density::ActiveDeliveryDensityPosture;
 use super::evidence_identities::subscription_performance_receipt_source_identity;
+use super::evidence_projection::subscription_evidence_projection;
 use super::fanout::{SubscriptionFanoutPlan, SubscriptionFanoutReport};
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::performance_receipt::SubscriptionPerformanceReceipt;
@@ -52,7 +54,7 @@ impl SubscriptionConsumerAttachment {
             return Err(SubscriptionConsumerAttachmentError::new(
                 SubscriptionConsumerAttachmentDenialKind::AttachmentBudgetExceeded,
                 "consumer attachment exceeds its explicit Phase 2 budget",
-                handle.lane_digest().as_str(),
+                handle.lane_digest().evidence_identity().clone(),
                 counters,
             ));
         }
@@ -61,7 +63,7 @@ impl SubscriptionConsumerAttachment {
             return Err(SubscriptionConsumerAttachmentError::new(
                 SubscriptionConsumerAttachmentDenialKind::BackpressureDenied,
                 "consumer attachment requested an inadmissible backpressure posture",
-                handle.lane_digest().as_str(),
+                handle.lane_digest().evidence_identity().clone(),
                 counters,
             ));
         }
@@ -114,14 +116,17 @@ impl SubscriptionConsumerAttachment {
             ForgeQueryEvidenceTag::new("identity_family"),
             "subscription_delivery_cursor_v1",
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_digest.evidence_identity())
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("lane"),
+            lane_digest.evidence_identity(),
+        )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("consumer"),
             request.consumer_identity(),
         )
-        .field_value(
+        .field_evidence_identity(
             ForgeQueryEvidenceTag::new("seed"),
-            request.delivery_cursor_seed(),
+            request.delivery_cursor_seed_identity(),
         )
         .field_value(
             ForgeQueryEvidenceTag::new("pacing_width"),
@@ -140,7 +145,10 @@ impl SubscriptionConsumerAttachment {
                 ForgeQueryEvidenceTag::new("identity_family"),
                 "subscription_consumer_attachment_v1",
             )
-            .field_evidence_identity(ForgeQueryEvidenceTag::new("lane"), lane_digest.evidence_identity())
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("lane"),
+                lane_digest.evidence_identity(),
+            )
             .field_evidence_identity(
                 ForgeQueryEvidenceTag::new("consumer"),
                 request.consumer_identity(),
@@ -208,7 +216,7 @@ impl SubscriptionConsumerAttachment {
             return Err(SubscriptionConsumerAttachmentError::new(
                 SubscriptionConsumerAttachmentDenialKind::AcknowledgementReceiptMismatch,
                 "acknowledgement receipt belongs to a different consumer attachment",
-                receipt.receipt_digest(),
+                receipt.evidence_identity().clone(),
                 counters,
             ));
         }
@@ -217,7 +225,7 @@ impl SubscriptionConsumerAttachment {
             return Err(SubscriptionConsumerAttachmentError::new(
                 SubscriptionConsumerAttachmentDenialKind::AcknowledgementSequenceRegression,
                 "acknowledgement receipt sequence does not advance the consumer frontier",
-                receipt.receipt_digest(),
+                receipt.evidence_identity().clone(),
                 counters,
             ));
         }
@@ -228,11 +236,11 @@ impl SubscriptionConsumerAttachment {
         Ok((self, counters))
     }
 
-    pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
+    pub(crate) fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
     }
 
-    pub fn lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
+    pub(crate) fn lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.lane_digest
     }
 
@@ -240,32 +248,40 @@ impl SubscriptionConsumerAttachment {
         &self.future_selection
     }
 
+    pub fn basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.basis_binding_identity)
+    }
+
     pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.basis_binding_identity
     }
 
-    pub fn basis_binding_for_reporting(&self) -> &str {
-        self.basis_binding_identity.as_str()
+    pub fn checkpoint_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.checkpoint_identity)
     }
 
     pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.checkpoint_identity
     }
 
-    pub fn checkpoint_for_reporting(&self) -> &str {
-        self.checkpoint_identity.as_str()
-    }
-
-    pub fn consumer_digest(&self) -> &str {
-        self.consumer_identity.as_str()
+    pub fn consumer_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.consumer_identity)
     }
 
     pub fn consumer_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.consumer_identity
     }
 
-    pub fn delivery_cursor_digest(&self) -> &str {
-        self.delivery_cursor_identity.as_str()
+    pub fn delivery_cursor_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.delivery_cursor_identity)
     }
 
     pub fn delivery_cursor_identity(&self) -> &ForgeQueryEvidenceIdentity {

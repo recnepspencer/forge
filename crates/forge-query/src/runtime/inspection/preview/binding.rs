@@ -34,7 +34,7 @@ impl ForgeQueryPreviewBindingInspection {
             ForgeQueryEvidenceScope::PreviewBindingInspectionArtifact,
         )
         .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "basis")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
             binding.label_identity().as_str(),
         )
@@ -56,7 +56,7 @@ impl ForgeQueryPreviewBindingInspection {
             ForgeQueryEvidenceScope::PreviewBindingInspectionArtifact,
         )
         .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "admission")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
             binding.label_identity().as_str(),
         )
@@ -84,7 +84,7 @@ impl ForgeQueryPreviewBindingInspection {
             ForgeQueryEvidenceTag::new("effect_disposition"),
             effect_disposition.as_deref(),
         )
-        .field_identity(ForgeQueryEvidenceTag::new("basis_digest"), &basis_digest)
+        .field_value(ForgeQueryEvidenceTag::new("basis_digest"), &basis_digest)
         .field_bool(
             ForgeQueryEvidenceTag::new("effect_delivery_admitted"),
             binding.effect_delivery_admitted(),
@@ -104,7 +104,7 @@ impl ForgeQueryPreviewBindingInspection {
             ForgeQueryEvidenceScope::PreviewBindingInspectionArtifact,
         )
         .field_shape(ForgeQueryEvidenceTag::new("artifact_kind"), "inspection")
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("admission_digest"),
             &admission_digest,
         )

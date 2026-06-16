@@ -369,13 +369,13 @@ mod tests {
             ForgeQueryLowerRuntimeAuthorityOwner::Signal,
             "frontier-evidence-intake",
             ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
-                .field_identity(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
+                .field_value(ForgeQueryEvidenceTag::new("test_subject"), "subject-1")
                 .seal(),
         );
         let detail_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
         )
-        .field_identity(ForgeQueryEvidenceTag::new("test_detail"), "detail-1")
+        .field_value(ForgeQueryEvidenceTag::new("test_detail"), "detail-1")
         .seal();
         let eligibility =
             ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
@@ -395,7 +395,7 @@ mod tests {
                 &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
                     crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
                 )
-                .field_identity(
+                .field_value(
                     crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
                     "evidence-1",
                 )
@@ -435,13 +435,13 @@ mod tests {
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "live-view-schema-admission",
             ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
-                .field_identity(ForgeQueryEvidenceTag::new("test_subject"), "subject-2")
+                .field_value(ForgeQueryEvidenceTag::new("test_subject"), "subject-2")
                 .seal(),
         );
         let detail_identity = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
         )
-        .field_identity(ForgeQueryEvidenceTag::new("test_detail"), "detail-2")
+        .field_value(ForgeQueryEvidenceTag::new("test_detail"), "detail-2")
         .seal();
         let eligibility =
             ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
@@ -454,7 +454,7 @@ mod tests {
                 &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
                     crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
                 )
-                .field_identity(
+                .field_value(
                     crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
                     "evidence-2",
                 )

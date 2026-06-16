@@ -45,54 +45,58 @@ fn causal_envelope_full_writeback_chain_lookup_cost_ignores_unrelated_records() 
             retain_writeback_chain(
                 &runtime,
                 RetainedWritebackChainInput {
-                    declaration_identity: BridgeWritebackDeclarationIdentity::new(format!(
-                        "writeback:causal-scale-{suffix}"
-                    )),
+                    declaration_identity: BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                        format!("writeback:causal-scale-{suffix}"),
+                    ),
                     strategy_descriptor_evidence_text: format!("causal-scale-{suffix}"),
-                    causality_identity: BridgeWritebackCausalityIdentity::new(format!(
-                        "causality:causal-scale-{suffix}"
-                    )),
+                    causality_identity: BridgeWritebackCausalityIdentity::admit_bridge_owned(
+                        format!("causality:causal-scale-{suffix}"),
+                    ),
                     causality_evidence_text: format!("causal-scale-{suffix}"),
-                    effect_identity: BridgeWritebackEffectIdentity::new(format!(
+                    effect_identity: BridgeWritebackEffectIdentity::admit_bridge_owned(format!(
                         "effect:causal-scale-{suffix}"
                     )),
                     effect_intent_value: format!("causal-scale-{suffix}"),
-                    idempotence_identity: BridgeWritebackIdempotenceIdentity::new(format!(
-                        "idempotence:causal-scale-{suffix}"
-                    )),
-                    drifted_effect_identity: BridgeWritebackEffectIdentity::new(format!(
-                        "effect:causal-scale-{suffix}-drifted"
-                    )),
+                    idempotence_identity: BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+                        format!("idempotence:causal-scale-{suffix}"),
+                    ),
+                    drifted_effect_identity: BridgeWritebackEffectIdentity::admit_bridge_owned(
+                        format!("effect:causal-scale-{suffix}-drifted"),
+                    ),
                     drifted_effect_intent_value: format!("causal-scale-{suffix}-drifted"),
-                    drifted_idempotence_identity: BridgeWritebackIdempotenceIdentity::new(format!(
-                        "idempotence:causal-scale-{suffix}-drifted"
-                    )),
+                    drifted_idempotence_identity:
+                        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(format!(
+                            "idempotence:causal-scale-{suffix}-drifted"
+                        )),
                 },
             );
         }
         let target_chain = retain_writeback_chain(
             &runtime,
             RetainedWritebackChainInput {
-                declaration_identity: BridgeWritebackDeclarationIdentity::new(
+                declaration_identity: BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "writeback:causal-scale-target",
                 ),
                 strategy_descriptor_evidence_text: "causal-scale-target".to_string(),
-                causality_identity: BridgeWritebackCausalityIdentity::new(
+                causality_identity: BridgeWritebackCausalityIdentity::admit_bridge_owned(
                     "causality:causal-scale-target",
                 ),
                 causality_evidence_text: "causal-scale-target".to_string(),
-                effect_identity: BridgeWritebackEffectIdentity::new("effect:causal-scale-target"),
+                effect_identity: BridgeWritebackEffectIdentity::admit_bridge_owned(
+                    "effect:causal-scale-target",
+                ),
                 effect_intent_value: "causal-scale-target".to_string(),
-                idempotence_identity: BridgeWritebackIdempotenceIdentity::new(
+                idempotence_identity: BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
                     "idempotence:causal-scale-target",
                 ),
-                drifted_effect_identity: BridgeWritebackEffectIdentity::new(
+                drifted_effect_identity: BridgeWritebackEffectIdentity::admit_bridge_owned(
                     "effect:causal-scale-target-drifted",
                 ),
                 drifted_effect_intent_value: "causal-scale-target-drifted".to_string(),
-                drifted_idempotence_identity: BridgeWritebackIdempotenceIdentity::new(
-                    "idempotence:causal-scale-target-drifted",
-                ),
+                drifted_idempotence_identity:
+                    BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+                        "idempotence:causal-scale-target-drifted",
+                    ),
             },
         );
         let routed = runtime
@@ -102,10 +106,10 @@ fn causal_envelope_full_writeback_chain_lookup_cost_ignores_unrelated_records() 
             .expect("route should succeed");
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                     "query-admission:writeback-full-scale",
                 ),
-                crate::facade::BridgeIdentityEvidence::from_external_authority(
+                crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                     "causal-anchor:writeback-full-scale",
                 ),
             )
@@ -113,7 +117,7 @@ fn causal_envelope_full_writeback_chain_lookup_cost_ignores_unrelated_records() 
             vec![
                 query_observation_reference(
                     BridgeCausalEvidenceReferenceIdentity::query_observation(
-                        crate::facade::BridgeIdentityEvidence::from_external_authority(
+                        crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
                             "query-observation:writeback-full-scale",
                         ),
                     )
@@ -162,7 +166,12 @@ fn causal_envelope_full_writeback_chain_lookup_cost_ignores_unrelated_records() 
         assert_eq!(envelope.counters().bridge_retained_lookup_count(), 7);
         assert_eq!(envelope.counters().retained_bridge_binding_count(), 7);
         assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
-        envelope_identities.push(envelope.identity().envelope_identity_for_reporting().to_string());
+        envelope_identities.push(
+            envelope
+                .identity()
+                .envelope_identity_for_reporting()
+                .to_string(),
+        );
     }
 
     assert_eq!(envelope_identities[0], envelope_identities[1]);

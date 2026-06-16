@@ -5,7 +5,7 @@ use crate::evidence_identity::{
 use crate::identity::BasisDigest;
 use crate::view_shape::{GroupedViewPlanningArtifact, ViewShapePlanArtifact, ViewShapePlanDigest};
 use forge_foundational::facade::{AspectKey, AspectValue, InternedString};
-use forge_runtime_bridge::facade::{BridgeGroupedTruthViewArtifact, BridgeIdentityEvidence};
+use forge_runtime_bridge::facade::BridgeGroupedTruthViewArtifact;
 
 use super::counters::ViewShapeLiveCounters;
 use super::error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
@@ -205,7 +205,7 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
     let plan_evidence_identity = plan.view_plan_digest().evidence_identity();
     let basis_evidence_identity = basis.proof().digest().evidence_identity();
     let grouped_truth_view_evidence_identity =
-        bridge_grouped_truth_view_evidence_identity(truth_view.digest().evidence_identity());
+        bridge_grouped_truth_view_digest_evidence_identity(truth_view.digest());
     let identity = ForgeQueryEvidenceIdentity::compose(
         ForgeQueryEvidenceScope::GroupedExecutionSurfaceArtifact,
     )
@@ -231,13 +231,17 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
     })
 }
 
-fn bridge_grouped_truth_view_evidence_identity(
-    bridge_identity: BridgeIdentityEvidence,
+pub(crate) fn bridge_grouped_truth_view_digest_evidence_identity(
+    digest: &forge_runtime_bridge::facade::BridgeGroupedTruthViewDigest,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::BridgeGroupedTruthViewDigest)
-        .field_bridge_identity(
-            ForgeQueryEvidenceTag::new("bridge_grouped_truth"),
-            &bridge_identity,
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "bridge_grouped_truth_view_digest_v1",
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("grouped_truth_view_digest"),
+            digest.as_str(),
         )
         .seal()
 }

@@ -197,11 +197,17 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
     ForgeQueryDeclarationFoundationalEvidence<D, I>,
     ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>,
 > {
-    if subject.handle_identity_digest() != expected_world_basis.handle_identity_for_reporting() {
+    let wrong_handle_identity = subject.handle_identity().map_or_else(
+        || subject.handle_identity_digest() != expected_world_basis.handle_identity_for_reporting(),
+        |subject_handle_identity| subject_handle_identity != expected_world_basis.handle_identity(),
+    );
+    if wrong_handle_identity {
         return Err(
             ForgeQueryDeclarationFoundationalEvidenceDenial::wrong_world(
                 subject.class(),
-                expected_world_basis.handle_identity_for_reporting().to_string(),
+                expected_world_basis
+                    .handle_identity_for_reporting()
+                    .to_string(),
                 subject.handle_identity_digest().to_string(),
                 expected_world_basis
                     .operating_context_identity_digest()
@@ -216,7 +222,9 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
         return Err(
             ForgeQueryDeclarationFoundationalEvidenceDenial::wrong_world(
                 subject.class(),
-                expected_world_basis.handle_identity_for_reporting().to_string(),
+                expected_world_basis
+                    .handle_identity_for_reporting()
+                    .to_string(),
                 subject.handle_identity_digest().to_string(),
                 expected_world_basis
                     .operating_context_identity_digest()
@@ -246,7 +254,9 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
         subject.operating_context_identity_digest().to_string(),
         expected_world_basis.handle_identity().clone(),
         expected_world_basis.support_snapshot_digest().to_string(),
-        expected_world_basis.basis_lifecycle_support_identity().clone(),
+        expected_world_basis
+            .basis_lifecycle_support_identity()
+            .clone(),
     );
     let aspect_contract = subject.aspect_contract().clone();
     let aspect_coverage = subject.aspect_coverage();

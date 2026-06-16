@@ -141,29 +141,29 @@ impl RuntimeHostileCertificationArtifact {
         let digest = ForgeQueryEvidenceIdentity::compose(
             ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             crate::ForgeQueryEvidenceTag::new("receipt_digest"),
             receipt_digests.iter().map(String::as_str),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             crate::ForgeQueryEvidenceTag::new("reader_result_digest"),
             reader_result_digests.iter().map(String::as_str),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             crate::ForgeQueryEvidenceTag::new("published_artifact_digest"),
             published_artifact_digests.iter().map(String::as_str),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             crate::ForgeQueryEvidenceTag::new("preview_closeout_digest"),
             preview_closeout_digests.iter().map(String::as_str),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             crate::ForgeQueryEvidenceTag::new("branch_basis_digest"),
             branch_basis_digests.iter().map(String::as_str),
         )
-        .field_identity(
+        .field_value(
             crate::ForgeQueryEvidenceTag::new("counter_digest"),
-            counters.digest().as_str(),
+            counters.digest().terminal_projection_for_reporting(),
         )
         .seal();
         Self {
@@ -200,11 +200,11 @@ pub(in crate::runtime::tests) fn hostile_write_receipt_digest(
         crate::ForgeQueryEvidenceTag::new("authority_lane"),
         receipt.authority_lane().as_str(),
     )
-    .field_identity(
+    .field_evidence_identity(
         crate::ForgeQueryEvidenceTag::new("commit_identity"),
         receipt.commit_evidence_identity(),
     )
-    .field_identity(
+    .field_evidence_identity(
         crate::ForgeQueryEvidenceTag::new("snapshot_identity"),
         receipt.snapshot_evidence_identity(),
     )
@@ -213,7 +213,7 @@ pub(in crate::runtime::tests) fn hostile_write_receipt_digest(
         receipt.declared_aspect_value_digest().unwrap_or("none"),
     )
     .seal()
-    .as_str()
+    .terminal_projection_for_reporting()
     .to_string()
 }
 
@@ -225,9 +225,9 @@ pub(in crate::runtime::tests) fn hostile_published_artifact_digest(
     ForgeQueryEvidenceIdentity::compose(
         ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
     )
-    .field_identity(
+    .field_evidence_identity(
         crate::ForgeQueryEvidenceTag::new("snapshot_identity"),
-        artifact.snapshot_identity().evidence_identity().as_str(),
+        &artifact.snapshot_identity().evidence_identity(),
     )
     .field_shape(
         crate::ForgeQueryEvidenceTag::new("view_name"),
@@ -241,11 +241,13 @@ pub(in crate::runtime::tests) fn hostile_published_artifact_digest(
             "false"
         },
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("binding_digest"),
-        inspection.artifact_binding_for_reporting().unwrap_or("none"),
+        inspection
+            .artifact_binding_for_reporting()
+            .unwrap_or("none"),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("async_result_state_digest"),
         inspection
             .async_result_state()
@@ -257,7 +259,7 @@ pub(in crate::runtime::tests) fn hostile_published_artifact_digest(
         consumed_title.unwrap_or("none"),
     )
     .seal()
-    .as_str()
+    .terminal_projection_for_reporting()
     .to_string()
 }
 
@@ -279,7 +281,7 @@ pub(in crate::runtime::tests) fn hostile_branch_basis_digest(
     session
         .basis_admission()
         .admission_digest()
-        .as_str()
+        .terminal_projection_for_reporting()
         .to_string()
 }
 

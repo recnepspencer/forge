@@ -30,12 +30,12 @@ fn equivalent_future_live_meaning_selects_same_family_regardless_of_construction
     for selection in &temporal_selections[1..] {
         assert_eq!(temporal_first.family(), selection.family());
         assert_eq!(
-            temporal_first.future_selection().projection_digest(),
-            selection.future_selection().projection_digest()
+            temporal_first.future_selection().future_selection_projection().label(),
+            selection.future_selection().future_selection_projection().label()
         );
         assert_eq!(
-            temporal_first.equivalence_basis().digest().as_str(),
-            selection.equivalence_basis().digest().as_str()
+            temporal_first.equivalence_basis().equivalence_projection().label(),
+            selection.equivalence_basis().equivalence_projection().label()
         );
     }
 
@@ -65,12 +65,12 @@ fn equivalent_future_live_meaning_selects_same_family_regardless_of_construction
     for selection in &async_selections[1..] {
         assert_eq!(async_first.family(), selection.family());
         assert_eq!(
-            async_first.future_selection().projection_digest(),
-            selection.future_selection().projection_digest()
+            async_first.future_selection().future_selection_projection().label(),
+            selection.future_selection().future_selection_projection().label()
         );
         assert_eq!(
-            async_first.equivalence_basis().digest().as_str(),
-            selection.equivalence_basis().digest().as_str()
+            async_first.equivalence_basis().equivalence_projection().label(),
+            selection.equivalence_basis().equivalence_projection().label()
         );
     }
 }
@@ -126,12 +126,12 @@ fn future_live_meaning_changes_selection_and_support_story_without_forking_famil
         "async_resource"
     );
     assert_ne!(
-        ordinary.equivalence_basis().digest().as_str(),
-        temporal.equivalence_basis().digest().as_str()
+        ordinary.equivalence_basis().equivalence_projection().label(),
+        temporal.equivalence_basis().equivalence_projection().label()
     );
     assert_ne!(
-        temporal.equivalence_basis().digest().as_str(),
-        async_live.equivalence_basis().digest().as_str()
+        temporal.equivalence_basis().equivalence_projection().label(),
+        async_live.equivalence_basis().equivalence_projection().label()
     );
 
     let temporal_declaration =
@@ -167,8 +167,8 @@ fn future_live_meaning_changes_selection_and_support_story_without_forking_famil
             .as_str()
     );
     assert_ne!(
-        temporal_declaration.declaration_digest().as_str(),
-        async_declaration.declaration_digest().as_str()
+        temporal_declaration.declaration_projection().label(),
+        async_declaration.declaration_projection().label()
     );
 }
 

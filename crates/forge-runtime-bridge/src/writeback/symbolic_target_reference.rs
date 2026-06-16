@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::identity::BridgeIdentityEvidence;
 use crate::relational_identity::RelationalBridgeRecordIdentityParts;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,10 +29,6 @@ impl BridgeSymbolicTargetSymbolIdentity {
 
     pub fn as_str(&self) -> &str {
         self.value.as_ref()
-    }
-
-    pub fn evidence_identity(&self) -> BridgeIdentityEvidence {
-        BridgeIdentityEvidence::from_arc(&self.value)
     }
 }
 

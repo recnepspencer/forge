@@ -147,7 +147,7 @@ fn extract_json_rows(
         .iter()
         .map(|row| {
             (
-                row.identity().to_string(),
+                row.identity().terminal_projection_for_reporting(),
                 Some(row.identity().clone()),
                 query_read_result_row_fields(contract, row),
             )
@@ -257,7 +257,7 @@ where
                     let entity_identity = match row_identity_mode {
                         RowIdentityExtractionMode::RowIdentityAsEntityIdentity => {
                             typed_entity_identity.clone().unwrap_or_else(|| {
-                                ForgeQueryEntityIdentity::authored_command(row_identity)
+                                crate::memory_workspace::admit_authored_entity_label(row_identity)
                             })
                         }
                         RowIdentityExtractionMode::IdentityFieldBackedEntityIdentity => {
@@ -267,7 +267,7 @@ where
                                 "identity.id",
                                 ProjectionFactKind::EntityIdentity,
                             )?;
-                            ForgeQueryEntityIdentity::authored_command(value.as_str().ok_or_else(
+                            crate::memory_workspace::admit_authored_entity_label(value.as_str().ok_or_else(
                                 || ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
                                     source_family: contract.source_family(),
                                     source_identity: format!(

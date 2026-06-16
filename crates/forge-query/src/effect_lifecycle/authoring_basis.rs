@@ -135,7 +135,10 @@ fn mutation_preparation_capability_identity(
             ForgeQueryEvidenceTag::new("variant"),
             "mutation_preparation",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), basis.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            basis.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("authority"),
             basis.authority().as_str(),
@@ -159,11 +162,11 @@ fn preview_closeout_capability_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "effect_authoring_capability_v1",
         )
+        .field_shape(ForgeQueryEvidenceTag::new("variant"), "preview_closeout")
         .field_shape(
-            ForgeQueryEvidenceTag::new("variant"),
-            "preview_closeout",
+            ForgeQueryEvidenceTag::new("family"),
+            basis.family().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), basis.family().as_str())
         .field_shape(
             ForgeQueryEvidenceTag::new("authority"),
             basis.authority().as_str(),
@@ -187,11 +190,11 @@ fn advisory_basis_capability_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "effect_authoring_capability_v1",
         )
+        .field_shape(ForgeQueryEvidenceTag::new("variant"), "inspection_advisory")
         .field_shape(
-            ForgeQueryEvidenceTag::new("variant"),
-            "inspection_advisory",
+            ForgeQueryEvidenceTag::new("family"),
+            normalized.family().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), normalized.family().as_str())
         .field_shape(
             ForgeQueryEvidenceTag::new("authority"),
             normalized.authority().as_str(),
@@ -219,7 +222,10 @@ fn deferred_basis_capability_identity(
             ForgeQueryEvidenceTag::new("variant"),
             "deferred_future_neighbor",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), normalized.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            normalized.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("authority"),
             normalized.authority().as_str(),
@@ -247,7 +253,10 @@ fn mutation_preparation_scoped_basis_identity(
             ForgeQueryEvidenceTag::new("variant"),
             "mutation_preparation",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), basis.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            basis.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("authority"),
             basis.authority().as_str(),
@@ -271,11 +280,11 @@ fn preview_closeout_scoped_basis_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "effect_authoring_scoped_basis_v1",
         )
+        .field_shape(ForgeQueryEvidenceTag::new("variant"), "preview_closeout")
         .field_shape(
-            ForgeQueryEvidenceTag::new("variant"),
-            "preview_closeout",
+            ForgeQueryEvidenceTag::new("family"),
+            basis.family().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), basis.family().as_str())
         .field_shape(
             ForgeQueryEvidenceTag::new("authority"),
             basis.authority().as_str(),
@@ -299,11 +308,11 @@ fn advisory_basis_scoped_basis_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "effect_authoring_scoped_basis_v1",
         )
+        .field_shape(ForgeQueryEvidenceTag::new("variant"), "inspection_advisory")
         .field_shape(
-            ForgeQueryEvidenceTag::new("variant"),
-            "inspection_advisory",
+            ForgeQueryEvidenceTag::new("family"),
+            normalized.family().as_str(),
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), normalized.family().as_str())
         .field_shape(
             ForgeQueryEvidenceTag::new("authority"),
             normalized.authority().as_str(),
@@ -331,7 +340,10 @@ fn deferred_basis_scoped_basis_identity(
             ForgeQueryEvidenceTag::new("variant"),
             "deferred_future_neighbor",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), normalized.family().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            normalized.family().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("authority"),
             normalized.authority().as_str(),
@@ -367,7 +379,10 @@ fn basis_lifecycle_scoped_basis_label_identity(
             ForgeQueryEvidenceTag::new("identity_family"),
             "basis_lifecycle_scoped_basis_label_v1",
         )
-        .field_shape(ForgeQueryEvidenceTag::new("scoped_basis"), scoped_basis_digest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("scoped_basis"),
+            scoped_basis_digest,
+        )
         .seal()
 }
 
@@ -386,9 +401,7 @@ fn basis_lifecycle_normalized_label_identity(
         .seal()
 }
 
-fn expected_lower_runtime_binding_identity(
-    binding_digest: &str,
-) -> ForgeQueryEvidenceIdentity {
+fn expected_lower_runtime_binding_identity(binding_digest: &str) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
         .field_shape(
             ForgeQueryEvidenceTag::new("identity_family"),

@@ -49,7 +49,7 @@ impl ForgeQueryPreviewExecutionEvidence {
     ) -> Self {
         let execution_identity =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewExecutionEvidence)
-                .field_identity(
+                .field_value(
                     ForgeQueryEvidenceTag::new("session_label_identity"),
                     basis_admission.label_identity().as_str(),
                 )
@@ -67,7 +67,7 @@ impl ForgeQueryPreviewExecutionEvidence {
                     ForgeQueryEvidenceTag::new("source_evidence_identity"),
                     source_evidence_identity,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("aspect_path"),
                     aspect_paths.iter().map(String::as_str),
                 )

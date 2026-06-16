@@ -128,11 +128,12 @@ impl BridgeSubscriptionAuthoritativePreviewReadmission {
         );
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            readmission_identity: BridgeSubscriptionPreviewAuthoritativeReadmissionIdentity::new(
-                format!(
+            readmission_identity:
+                BridgeSubscriptionPreviewAuthoritativeReadmissionIdentity::admit_bridge_owned(
+                    format!(
                     "bridge-subscription-preview-authoritative-readmission-id:sha256:{digest:x}"
                 ),
-            ),
+                ),
             readmission_class,
             promotion_identity: Arc::from(promotion.promotion_identity().as_str()),
             preview_active_subscription_identity: Arc::from(

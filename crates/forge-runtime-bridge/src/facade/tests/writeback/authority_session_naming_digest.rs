@@ -7,7 +7,7 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new(
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "writeback:batch-mutation-authority-naming-digest",
                 ),
                 BridgeRequestKind::Authoritative,
@@ -22,13 +22,15 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new(
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
             "causality:batch-mutation-authority-naming-digest:left",
         ),
         "batch-mutation-authority-naming-digest:left",
-        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-naming-digest:left"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "effect:batch-mutation-authority-naming-digest:left",
+        ),
         "batch-mutation-authority-naming-digest:left",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-naming-digest:left",
         ),
     )
@@ -45,13 +47,15 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new(
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
             "causality:batch-mutation-authority-naming-digest:right",
         ),
         "batch-mutation-authority-naming-digest:right",
-        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-naming-digest:right"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "effect:batch-mutation-authority-naming-digest:right",
+        ),
         "batch-mutation-authority-naming-digest:right",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-naming-digest:right",
         ),
     )
@@ -80,7 +84,9 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
 }
 
 fn bridge_naming_attachment(value: &str) -> crate::facade::BridgeNamingAttachmentIdentity {
-    crate::facade::BridgeNamingAttachmentIdentity::from_external_authority_evidence(value)
+    crate::facade::BridgeNamingAttachmentIdentity::from_bridge_evidence(
+        &crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(value),
+    )
 }
 
 fn bridge_naming_target(

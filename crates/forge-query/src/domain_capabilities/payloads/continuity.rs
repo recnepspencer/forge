@@ -41,10 +41,7 @@ impl ForgeQueryContinuityContributionPosture {
     }
 }
 
-fn continuity_authoritative_identity(
-    role: &str,
-    source_label: &str,
-) -> ForgeQueryEvidenceIdentity {
+fn continuity_authoritative_identity(role: &str, source_label: &str) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
         .field_shape(
             ForgeQueryEvidenceTag::new("identity_family"),
@@ -73,30 +70,30 @@ fn continuity_successor_authoritative_identity(
 fn compose_continuity_runtime_semantics_identity(
     runtime_semantics: &ForgeQueryContinuityRuntimeSemantics,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "forge_query_domain_capability_continuity_runtime_semantics_v1",
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("family"),
-        runtime_semantics.family().as_str(),
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("outcome_class"),
-        runtime_semantics.outcome_class().as_str(),
-    )
-    .field_evidence_identity(
-        ForgeQueryEvidenceTag::new("prior_authoritative"),
-        runtime_semantics.prior_authoritative_identity(),
-    )
-    .field_evidence_identity_sequence(
-        ForgeQueryEvidenceTag::new("successor_authoritative"),
-        runtime_semantics.successor_authoritative_identities().iter(),
-    )
-    .seal()
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_domain_capability_continuity_runtime_semantics_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            runtime_semantics.family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("outcome_class"),
+            runtime_semantics.outcome_class().as_str(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("prior_authoritative"),
+            runtime_semantics.prior_authoritative_identity(),
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("successor_authoritative"),
+            runtime_semantics
+                .successor_authoritative_identities()
+                .iter(),
+        )
+        .seal()
 }
 
 fn compose_continuity_payload_identity(

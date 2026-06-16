@@ -1,3 +1,4 @@
+use forge_runtime_bridge::facade::BridgeIdentityEvidence;
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
@@ -118,6 +119,14 @@ impl ForgeQueryMutationAuthorityIdentity {
 
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.identity
+    }
+
+    pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
+        self.identity.bridge_evidence_identity()
+    }
+
+    pub fn terminal_projection_for_reporting(&self) -> &str {
+        self.identity.reporting_projection()
     }
 }
 

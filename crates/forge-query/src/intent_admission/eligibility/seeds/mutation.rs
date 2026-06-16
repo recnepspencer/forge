@@ -280,7 +280,7 @@ fn symbolic_aspect_reference_identity(
 fn mutation_target_label(command: &ForgeQueryWriteCommand) -> String {
     command
         .declared_entity_identity_ref()
-        .map(ToString::to_string)
+        .map(|identity| identity.evidence_identity().reporting_projection().to_string())
         .or_else(|| command.declared_collection_ref().map(str::to_string))
         .unwrap_or_else(|| "unspecified-target".to_string())
 }

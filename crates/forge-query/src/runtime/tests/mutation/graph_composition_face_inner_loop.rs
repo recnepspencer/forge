@@ -145,31 +145,31 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
                 3,
                 Some("loop.id".to_string()),
                 "draft-loop".to_string(),
-                loop_identity.to_string(),
+                loop_identity.terminal_projection_for_reporting(),
             ),
             (
                 4,
                 Some("loop.id".to_string()),
                 "draft-loop".to_string(),
-                loop_identity.to_string(),
+                loop_identity.terminal_projection_for_reporting(),
             ),
             (
                 4,
                 Some("half_edge.id".to_string()),
                 "draft-half-edge-a".to_string(),
-                first_half_edge_identity.to_string(),
+                first_half_edge_identity.terminal_projection_for_reporting(),
             ),
             (
                 5,
                 Some("loop.id".to_string()),
                 "draft-loop".to_string(),
-                loop_identity.to_string(),
+                loop_identity.terminal_projection_for_reporting(),
             ),
             (
                 5,
                 Some("half_edge.id".to_string()),
                 "draft-half-edge-b".to_string(),
-                second_half_edge_identity.to_string(),
+                second_half_edge_identity.terminal_projection_for_reporting(),
             ),
         ],
     );
@@ -212,11 +212,11 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
     assert_eq!(face_loop_rows.len(), 1);
     assert_eq!(
         face_loop_rows[0].external_row()["loop"]["id"].as_str(),
-        Some(loop_identity.evidence_identity().as_str())
+        Some(loop_identity.evidence_identity().terminal_projection_for_reporting())
     );
     assert_eq!(
         face_loop_rows[0].external_row()["face"]["id"].as_str(),
-        Some(test_entity_identity("face-1").evidence_identity().as_str())
+        Some(test_entity_identity("face-1").evidence_identity().terminal_projection_for_reporting())
     );
     assert_eq!(loop_edge_rows.len(), 2);
     let loop_edge_half_edge_ids = loop_edge_rows
@@ -224,10 +224,10 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         .filter_map(|row| row.external_row()["half_edge"]["id"].as_str())
         .collect::<Vec<_>>();
     assert!(
-        loop_edge_half_edge_ids.contains(&first_half_edge_identity.evidence_identity().as_str())
+        loop_edge_half_edge_ids.contains(&first_half_edge_identity.evidence_identity().terminal_projection_for_reporting())
     );
     assert!(
-        loop_edge_half_edge_ids.contains(&second_half_edge_identity.evidence_identity().as_str())
+        loop_edge_half_edge_ids.contains(&second_half_edge_identity.evidence_identity().terminal_projection_for_reporting())
     );
 
     match workspace.inspect(&receipt).expect("receipt should inspect") {

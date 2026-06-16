@@ -4,11 +4,11 @@ pub(in super::super) fn compose_support_report_identity(
     crate::ForgeQueryEvidenceIdentity::compose(
         crate::ForgeQueryEvidenceScope::ApplicationSupportReport,
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("support_matrix_digest"),
         report.support_matrix().support_matrix_digest(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("validated_config_digest"),
         report.validated_config_digest(),
     )
@@ -24,28 +24,28 @@ pub(in super::super) fn compose_support_report_identity(
         crate::ForgeQueryEvidenceTag::new("unsupported_capability_count"),
         report.unsupported_capability_count(),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("admitted_capability_family"),
         report
             .admitted_capability_families()
             .iter()
             .map(crate::application::ForgeQueryCapabilityFamily::as_str),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("deferred_capability_family"),
         report
             .deferred_capability_families()
             .iter()
             .map(crate::application::ForgeQueryCapabilityFamily::as_str),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("unsupported_capability_family"),
         report
             .unsupported_capability_families()
             .iter()
             .map(crate::application::ForgeQueryCapabilityFamily::as_str),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("section_posture_digest"),
         report
             .section_postures()
@@ -70,7 +70,7 @@ pub(in super::super) fn compose_support_report_identity(
             .identity_evolution_support_profile()
             .map(crate::application::ForgeQueryIdentityEvolutionSupportProfile::profile_digest),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("identity_boundary_closure_digest"),
         report.identity_boundary_closure().closure_digest(),
     )

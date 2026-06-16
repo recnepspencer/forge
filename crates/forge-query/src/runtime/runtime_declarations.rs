@@ -33,10 +33,12 @@ impl ForgeQueryRuntime {
             &activation.request,
         );
         let future_selection = activation.active_lane_handle.future_selection();
-        let pending_async_projection_digest = future_selection.projection_digest().to_string();
-        let pending_async_result_state = future_selection
-            .requests_completion_lifecycle()
-            .then(|| {
+        let pending_async_projection_digest = future_selection
+            .future_selection_projection()
+            .label()
+            .to_string();
+        let pending_async_result_state =
+            future_selection.requests_completion_lifecycle().then(|| {
                 ForgeQueryRuntimeAsyncResultProjection::pending(&format!(
                     "async-pending:{pending_async_projection_digest}"
                 ))
@@ -232,7 +234,7 @@ fn live_source_declaration_error(
     let closeout_message = match closeout_result {
         Ok(closeout) => format!(
             "active subscription closeout:{}:terminal:{}",
-            closeout.closeout_for_reporting(),
+            closeout.closeout_projection().label(),
             closeout.lane_terminal()
         ),
         Err(closeout_error) => format!(

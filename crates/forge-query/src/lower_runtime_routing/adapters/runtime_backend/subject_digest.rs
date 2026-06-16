@@ -11,8 +11,8 @@ pub(super) fn live_view_subject_identity(
     request: &DeclarativeLiveQueryRequest,
 ) -> ForgeQueryLowerRuntimeSubjectIdentity {
     ForgeQueryLowerRuntimeSubjectIdentity::compose("live-view-route-subject")
-        .field_identity(ForgeQueryEvidenceTag::new("view"), view_name)
-        .field_identity(ForgeQueryEvidenceTag::new("target"), request.target())
+        .field_value(ForgeQueryEvidenceTag::new("view"), view_name)
+        .field_value(ForgeQueryEvidenceTag::new("target"), request.target())
         .field_shape(
             ForgeQueryEvidenceTag::new("shape"),
             request.view_shape().as_str(),
@@ -45,7 +45,7 @@ pub(super) fn write_command_subject_identity(
             command.declared_aspect_paths().len(),
         );
     if let Some(collection) = command.declared_collection_ref() {
-        encoder = encoder.field_identity(ForgeQueryEvidenceTag::new("collection"), collection);
+        encoder = encoder.field_value(ForgeQueryEvidenceTag::new("collection"), collection);
     }
     if let Some(identity) = command.declared_entity_identity_ref() {
         let entity_identity = identity.evidence_identity();
@@ -61,7 +61,7 @@ pub(super) fn activation_subject_identity(
     activation_receipt: &SubscriptionActivationReceipt,
 ) -> ForgeQueryLowerRuntimeSubjectIdentity {
     ForgeQueryLowerRuntimeSubjectIdentity::compose("subscription-activation-route-subject")
-        .field_identity(ForgeQueryEvidenceTag::new("view"), view_name)
+        .field_value(ForgeQueryEvidenceTag::new("view"), view_name)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("activation_receipt"),
             activation_receipt.receipt_identity(),

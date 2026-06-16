@@ -97,7 +97,7 @@ fn authoritative_row<'a>(
     state: &'a StatefulBridgeState,
     binding: &ForgeQueryExistingTruthTargetBinding,
 ) -> Result<&'a Value, String> {
-    let resolved_target_identity = binding.resolved_target_identity().to_string();
+    let resolved_target_identity = binding.resolved_target_identity().terminal_projection_for_reporting();
     let Some(collection) = state.collection_by_identity.get(&resolved_target_identity) else {
         return Err(format!(
             "resolved target `{}` is not present in authoritative truth",

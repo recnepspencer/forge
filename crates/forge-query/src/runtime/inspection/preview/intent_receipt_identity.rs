@@ -32,7 +32,7 @@ pub(super) fn preview_intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("intent_name"),
             receipt.intent_name(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("strategy_identity"),
             receipt.strategy_identity(),
         )
@@ -40,7 +40,7 @@ pub(super) fn preview_intent_receipt_inspection_identity(
             ForgeQueryEvidenceTag::new("strategy_version"),
             receipt.strategy_version(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("canonical_input_digest"),
             receipt.canonical_input_digest(),
         )

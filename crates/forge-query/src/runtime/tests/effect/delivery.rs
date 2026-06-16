@@ -163,7 +163,7 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
     assert_eq!(deliveries[0].aspect_paths(), &["title.summary".to_string()]);
     assert_eq!(
         runtime.read_derived(&titles),
-        vec![Value::String(write.deltas()[0].entity_identity.to_string())]
+        vec![Value::String(write.deltas()[0].entity_identity.terminal_projection_for_reporting().to_string())]
     );
 }
 

@@ -59,7 +59,7 @@ mod tests {
     #[test]
     fn validated_source_declaration_is_canonical_for_same_inputs() {
         let declaration = SourceDeclaration::new(
-            SourceDeclarationIdentity::new("source:profile"),
+            SourceDeclarationIdentity::admit_bridge_owned("source:profile"),
             BridgeTruthViewSelector::branch_snapshot(
                 crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
                 crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),

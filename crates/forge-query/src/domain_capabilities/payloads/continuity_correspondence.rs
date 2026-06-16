@@ -135,7 +135,10 @@ impl ForgeQueryContinuityCorrespondenceSemantics {
                 budget,
             } => identity
                 .field_shape(ForgeQueryEvidenceTag::new("kind"), "lineage")
-                .field_shape(ForgeQueryEvidenceTag::new("canonical_subject"), canonical_subject)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("canonical_subject"),
+                    canonical_subject,
+                )
                 .field_shape(
                     ForgeQueryEvidenceTag::new("authoritative_counterpart"),
                     authoritative_counterpart,
@@ -177,7 +180,10 @@ impl ForgeQueryContinuityCorrespondenceSemantics {
                 ordering_contract,
             } => identity
                 .field_shape(ForgeQueryEvidenceTag::new("kind"), "mixed")
-                .field_shape(ForgeQueryEvidenceTag::new("canonical_subject"), canonical_subject)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("canonical_subject"),
+                    canonical_subject,
+                )
                 .field_shape(
                     ForgeQueryEvidenceTag::new("authoritative_counterpart"),
                     authoritative_counterpart,

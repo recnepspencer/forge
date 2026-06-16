@@ -233,7 +233,9 @@ fn validate_bridge_summary(
                 query_admission_identity
                     .evidence_identity()
                     .bridge_evidence_identity(),
-                anchor_identity.evidence_identity().bridge_evidence_identity(),
+                anchor_identity
+                    .evidence_identity()
+                    .bridge_evidence_identity(),
             )
         }
         BridgeCausalInspectionAdmissionSummaryKind::Advisory => {
@@ -241,7 +243,9 @@ fn validate_bridge_summary(
                 query_admission_identity
                     .evidence_identity()
                     .bridge_evidence_identity(),
-                anchor_identity.evidence_identity().bridge_evidence_identity(),
+                anchor_identity
+                    .evidence_identity()
+                    .bridge_evidence_identity(),
             )
         }
     }

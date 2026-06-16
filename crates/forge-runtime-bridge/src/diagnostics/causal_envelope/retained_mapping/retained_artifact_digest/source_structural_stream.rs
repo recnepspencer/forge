@@ -26,13 +26,16 @@ pub(crate) fn source_materialization_record_digest(
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .source_materialization_record_for_identity(
-            SourceMaterializationRecordIdentity::from_reference_evidence(reference_identity)
-                .as_str(),
+            &SourceMaterializationRecordIdentity::from_reference_evidence(
+                reference_identity.revalidate_bridge_retained_reference(),
+            ),
         )
         .map(|record| {
             compose_retained_causal_mapping_evidence_identity(
                 RetainedCausalMappingDigestArtifact::SourceMaterializationRecord,
-                &[retained_mapping_bridge_identity_part(record.record_identity())],
+                &[retained_mapping_bridge_identity_part(
+                    record.record_identity(),
+                )],
             )
         })
 }
@@ -42,9 +45,9 @@ pub(crate) fn source_failure_record_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .source_failure_record_for_identity(
-            SourceFailureRecordIdentity::from_reference_evidence(reference_identity).as_str(),
-        )
+        .source_failure_record_for_identity(&SourceFailureRecordIdentity::from_reference_evidence(
+            reference_identity.revalidate_bridge_retained_reference(),
+        ))
         .map(|record| source_failure_digest(&record))
 }
 
@@ -112,8 +115,9 @@ pub(crate) fn structural_remap_record_digest(
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .structural_remap_record_for_identity(
-            BridgeStructuralRemapRecordIdentity::from_reference_evidence(reference_identity)
-                .as_str(),
+            &BridgeStructuralRemapRecordIdentity::from_reference_evidence(
+                reference_identity.revalidate_bridge_retained_reference(),
+            ),
         )
         .map(|record| {
             compose_retained_causal_mapping_evidence_identity(
@@ -133,10 +137,9 @@ pub(crate) fn structural_branch_comparison_record_digest(
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .structural_branch_comparison_record_for_identity(
-            BridgeStructuralBranchComparisonRecordIdentity::from_reference_evidence(
-                reference_identity,
-            )
-            .as_str(),
+            &BridgeStructuralBranchComparisonRecordIdentity::from_reference_evidence(
+                reference_identity.revalidate_bridge_retained_reference(),
+            ),
         )
         .map(|record| {
             compose_retained_causal_mapping_evidence_identity(
@@ -155,9 +158,9 @@ pub(crate) fn stream_replay_record_digest(
     reference_identity: &BridgeIdentityEvidence,
 ) -> Option<BridgeIdentityEvidence> {
     facade
-        .stream_replay_record_for_identity(
-            StreamReplayRecordIdentity::from_reference_evidence(reference_identity).as_str(),
-        )
+        .stream_replay_record_for_identity(&StreamReplayRecordIdentity::from_reference_evidence(
+            reference_identity.revalidate_bridge_retained_reference(),
+        ))
         .map(|record| {
             compose_retained_causal_mapping_evidence_identity(
                 RetainedCausalMappingDigestArtifact::StreamReplayRecord,
@@ -177,7 +180,7 @@ pub(crate) fn continuity_record_digest(
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .continuity_record_for_route_identity(&BridgeRouteIdentity::from_reference_evidence(
-            reference_identity,
+            reference_identity.revalidate_bridge_retained_reference(),
         ))
         .map(|record| {
             compose_retained_causal_mapping_evidence_identity(
@@ -200,7 +203,7 @@ pub(crate) fn merge_record_digest(
 ) -> Option<BridgeIdentityEvidence> {
     facade
         .merge_record_for_identity(&BridgeMergeRecordIdentity::from_reference_evidence(
-            reference_identity,
+            reference_identity.revalidate_bridge_retained_reference(),
         ))
         .map(|record| {
             compose_retained_causal_mapping_evidence_identity(

@@ -67,7 +67,10 @@ impl DxStoryEvidence {
         let digest = hash_parts(
             &std::iter::once(format!("story:{}", kind.as_str()))
                 .chain(std::iter::once(format!("transcript:{transcript}")))
-                .chain(std::iter::once(format!("counters:{}", counters.counter_for_reporting())))
+                .chain(std::iter::once(format!(
+                    "counters:{}",
+                    counters.counter_for_reporting()
+                )))
                 .chain(parts)
                 .collect::<Vec<_>>(),
         );
@@ -219,7 +222,9 @@ fn inspectable_lowered_story() -> DxStoryEvidence {
         DxStoryKind::InspectableLoweredPlan,
         transcript,
         vec![
-            lowered.lowered_effect_execution_plan_for_reporting().to_string(),
+            lowered
+                .lowered_effect_execution_plan_for_reporting()
+                .to_string(),
             lowered.authority_owner().as_str().to_string(),
             lowered.preview_posture().as_str().to_string(),
             lowered.policy_posture().as_str().to_string(),

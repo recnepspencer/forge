@@ -170,7 +170,7 @@ fn count_receipts_by_seam(
             .unwrap_or_else(|| {
                 panic!(
                     "receipt request {} must exist",
-                    receipt.request_identity().as_ref()
+                    receipt.request_identity().reporting_projection()
                 )
             });
         *counts.entry(*seam_key).or_insert(0usize) += 1;
@@ -201,7 +201,7 @@ fn receipt_kind_by_seam(
             .unwrap_or_else(|| {
                 panic!(
                     "receipt request {} must exist",
-                    receipt.request_identity().as_ref()
+                    receipt.request_identity().reporting_projection()
                 )
             });
         kinds.insert(*seam_key, receipt.kind());

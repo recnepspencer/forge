@@ -1,13 +1,17 @@
-use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-};
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::activation::SubscriptionActivationInput;
 use super::certification::{
     QuerySubscriptionCertificationDenialKind, QuerySubscriptionCertificationError,
 };
 use super::counters::QuerySubscriptionDeclarationCounters;
-use super::evidence_identities::scale_counter_snapshot_identity;
+use super::evidence_identities::typed_identity_drift;
+use super::evidence_identities::{scale_counter_snapshot_identity, scale_slope_report_identity};
+use super::evidence_projection::subscription_evidence_projection;
+use super::validation_evidence::{
+    validation_role_evidence_identity, validation_u64_role_evidence_identity,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionScaleFixtureSize {
@@ -30,11 +34,11 @@ impl QuerySubscriptionScaleFixtureSize {
 pub struct QuerySubscriptionScaleCounterSnapshot {
     fixture_size: QuerySubscriptionScaleFixtureSize,
     fixture_row_count: u64,
-    activation_for_reporting: String,
-    admission_for_reporting: String,
-    counter_digest: String,
+    activation_identity: ForgeQueryEvidenceIdentity,
+    admission_identity: ForgeQueryEvidenceIdentity,
+    counter_identity: ForgeQueryEvidenceIdentity,
     counters: QuerySubscriptionDeclarationCounters,
-    snapshot_digest: String,
+    snapshot_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionScaleCounterSnapshot {
@@ -43,25 +47,25 @@ impl QuerySubscriptionScaleCounterSnapshot {
         fixture_row_count: u64,
         activation: &SubscriptionActivationInput,
     ) -> Self {
-        let activation_for_reporting = activation.activation_for_reporting().to_string();
-        let admission_for_reporting = activation.admission_for_reporting().to_string();
+        let activation_identity = activation.evidence_identity().clone();
+        let admission_identity = activation.admission_identity().clone();
         let counters = activation.counters().clone();
-        let counter_digest = counters.digest();
+        let counter_identity = counters.evidence_identity();
         let snapshot_identity = scale_counter_snapshot_identity(
             fixture_size.as_str(),
             fixture_row_count,
-            activation.evidence_identity(),
-            activation.admission_identity(),
-            &counters.evidence_identity(),
+            &activation_identity,
+            &admission_identity,
+            &counter_identity,
         );
         Self {
             fixture_size,
             fixture_row_count,
-            activation_for_reporting,
-            admission_for_reporting,
-            counter_digest,
+            activation_identity,
+            admission_identity,
+            counter_identity,
             counters,
-            snapshot_digest: snapshot_identity.as_str().to_string(),
+            snapshot_identity,
         }
     }
 
@@ -73,24 +77,48 @@ impl QuerySubscriptionScaleCounterSnapshot {
         self.fixture_row_count
     }
 
-    pub fn activation_digest(&self) -> &str {
-        &self.activation_for_reporting
+    pub fn activation_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.activation_identity)
     }
 
-    pub fn admission_digest(&self) -> &str {
-        &self.admission_for_reporting
+    pub fn activation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.activation_identity
     }
 
-    pub fn counter_digest(&self) -> &str {
-        &self.counter_digest
+    pub fn admission_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.admission_identity)
+    }
+
+    pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_identity
+    }
+
+    pub fn counter_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.counter_identity)
+    }
+
+    pub fn counter_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.counter_identity
     }
 
     pub fn counters(&self) -> &QuerySubscriptionDeclarationCounters {
         &self.counters
     }
 
-    pub fn snapshot_digest(&self) -> &str {
-        &self.snapshot_digest
+    pub fn snapshot_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.snapshot_identity)
+    }
+
+    pub fn snapshot_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.snapshot_identity
     }
 
     #[cfg(test)]
@@ -100,56 +128,80 @@ impl QuerySubscriptionScaleCounterSnapshot {
         bridge_slice_count: u64,
     ) -> Self {
         self.counters.bridge_slice_count = bridge_slice_count;
-        self.counter_digest = self.counters.digest();
+        self.counter_identity = self.counters.evidence_identity();
         let snapshot_identity = scale_counter_snapshot_identity(
             self.fixture_size.as_str(),
             self.fixture_row_count,
             activation.evidence_identity(),
             activation.admission_identity(),
-            &self.counters.evidence_identity(),
+            &self.counter_identity,
         );
-        self.snapshot_digest = snapshot_identity.as_str().to_string();
+        self.snapshot_identity = snapshot_identity;
         self
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionScaleSlopeReport {
-    digest: String,
-    activation_digest: String,
-    admission_digest: String,
-    small_snapshot_digest: String,
-    medium_snapshot_digest: String,
-    large_snapshot_digest: String,
+    report_identity: ForgeQueryEvidenceIdentity,
+    activation_identity: ForgeQueryEvidenceIdentity,
+    admission_identity: ForgeQueryEvidenceIdentity,
+    small_snapshot_identity: ForgeQueryEvidenceIdentity,
+    medium_snapshot_identity: ForgeQueryEvidenceIdentity,
+    large_snapshot_identity: ForgeQueryEvidenceIdentity,
     small_row_count: u64,
     medium_row_count: u64,
     large_row_count: u64,
-    structural_counter_digest: String,
+    structural_counter_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionScaleSlopeReport {
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn report_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.report_identity)
     }
 
-    pub fn activation_digest(&self) -> &str {
-        &self.activation_digest
+    pub fn evidence_identity_ref(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.report_identity
     }
 
-    pub fn admission_digest(&self) -> &str {
-        &self.admission_digest
+    pub fn activation_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.activation_identity)
     }
 
-    pub fn small_snapshot_digest(&self) -> &str {
-        &self.small_snapshot_digest
+    pub fn activation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.activation_identity
     }
 
-    pub fn medium_snapshot_digest(&self) -> &str {
-        &self.medium_snapshot_digest
+    pub fn admission_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.admission_identity)
     }
 
-    pub fn large_snapshot_digest(&self) -> &str {
-        &self.large_snapshot_digest
+    pub fn admission_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_identity
+    }
+
+    pub fn small_snapshot_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.small_snapshot_identity)
+    }
+
+    pub fn medium_snapshot_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.medium_snapshot_identity)
+    }
+
+    pub fn large_snapshot_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.large_snapshot_identity)
     }
 
     pub fn small_row_count(&self) -> u64 {
@@ -164,55 +216,18 @@ impl QuerySubscriptionScaleSlopeReport {
         self.large_row_count
     }
 
-    pub fn structural_counter_digest(&self) -> &str {
-        &self.structural_counter_digest
+    pub fn structural_counter_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        subscription_evidence_projection(&self.structural_counter_identity)
+    }
+
+    pub fn structural_counter_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.structural_counter_identity
     }
 
     pub fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
-        ForgeQueryEvidenceIdentity::compose(
-            ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "query_subscription_scale_slope_report_v1",
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("activation"),
-            self.activation_digest.as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("admission"),
-            self.admission_digest.as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("small_snapshot"),
-            self.small_snapshot_digest.as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("medium_snapshot"),
-            self.medium_snapshot_digest.as_str(),
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("large_snapshot"),
-            self.large_snapshot_digest.as_str(),
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("small_row_count"),
-            self.small_row_count as usize,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("medium_row_count"),
-            self.medium_row_count as usize,
-        )
-        .field_usize(
-            ForgeQueryEvidenceTag::new("large_row_count"),
-            self.large_row_count as usize,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("structural_counter"),
-            self.structural_counter_digest.as_str(),
-        )
-        .seal()
+        self.report_identity.clone()
     }
 }
 
@@ -227,10 +242,10 @@ pub fn certify_query_subscription_scale_slope(
         || small.fixture_row_count == 0
         || !(small.fixture_row_count < medium.fixture_row_count
             && medium.fixture_row_count < large.fixture_row_count)
-        || small.activation_digest() != medium.activation_digest()
-        || medium.activation_digest() != large.activation_digest()
-        || small.admission_digest() != medium.admission_digest()
-        || medium.admission_digest() != large.admission_digest()
+        || typed_identity_drift(small.activation_identity(), medium.activation_identity())
+        || typed_identity_drift(medium.activation_identity(), large.activation_identity())
+        || typed_identity_drift(small.admission_identity(), medium.admission_identity())
+        || typed_identity_drift(medium.admission_identity(), large.admission_identity())
         || small.counters != medium.counters
         || medium.counters != large.counters
     {
@@ -238,73 +253,56 @@ pub fn certify_query_subscription_scale_slope(
             QuerySubscriptionCertificationDenialKind::ScaleSlopeDrift,
             "subscription structural counters must remain stable across row-count-only fixture scale",
             &[
-                format!("small:{}", small.snapshot_digest()),
-                format!("medium:{}", medium.snapshot_digest()),
-                format!("large:{}", large.snapshot_digest()),
-                format!("small_row_count:{}", small.fixture_row_count()),
-                format!("medium_row_count:{}", medium.fixture_row_count()),
-                format!("large_row_count:{}", large.fixture_row_count()),
-                format!("small_activation:{}", small.activation_digest()),
-                format!("medium_activation:{}", medium.activation_digest()),
-                format!("large_activation:{}", large.activation_digest()),
-                format!("small_admission:{}", small.admission_digest()),
-                format!("medium_admission:{}", medium.admission_digest()),
-                format!("large_admission:{}", large.admission_digest()),
-                format!("small_counters:{}", small.counter_digest()),
-                format!("medium_counters:{}", medium.counter_digest()),
-                format!("large_counters:{}", large.counter_digest()),
+                validation_role_evidence_identity("small", small.snapshot_identity()),
+                validation_role_evidence_identity("medium", medium.snapshot_identity()),
+                validation_role_evidence_identity("large", large.snapshot_identity()),
+                validation_u64_role_evidence_identity("small_row_count", small.fixture_row_count()),
+                validation_u64_role_evidence_identity(
+                    "medium_row_count",
+                    medium.fixture_row_count(),
+                ),
+                validation_u64_role_evidence_identity("large_row_count", large.fixture_row_count()),
+                validation_role_evidence_identity("small_activation", small.activation_identity()),
+                validation_role_evidence_identity(
+                    "medium_activation",
+                    medium.activation_identity(),
+                ),
+                validation_role_evidence_identity("large_activation", large.activation_identity()),
+                validation_role_evidence_identity("small_admission", small.admission_identity()),
+                validation_role_evidence_identity("medium_admission", medium.admission_identity()),
+                validation_role_evidence_identity("large_admission", large.admission_identity()),
+                validation_role_evidence_identity("small_counters", small.counter_identity()),
+                validation_role_evidence_identity("medium_counters", medium.counter_identity()),
+                validation_role_evidence_identity("large_counters", large.counter_identity()),
             ],
         ));
     }
 
-    let structural_counter_digest = small.counter_digest.clone();
-    let activation_digest = small.activation_for_reporting.clone();
-    let admission_digest = small.admission_for_reporting.clone();
-    let digest = ForgeQueryEvidenceIdentity::compose(
-        ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("identity_family"),
-        "query_subscription_scale_slope_report_v1",
-    )
-    .field_shape(ForgeQueryEvidenceTag::new("activation"), activation_digest.as_str())
-    .field_shape(ForgeQueryEvidenceTag::new("admission"), admission_digest.as_str())
-    .field_shape(ForgeQueryEvidenceTag::new("small_snapshot"), small.snapshot_digest.as_str())
-    .field_shape(
-        ForgeQueryEvidenceTag::new("medium_snapshot"),
-        medium.snapshot_digest.as_str(),
-    )
-    .field_shape(ForgeQueryEvidenceTag::new("large_snapshot"), large.snapshot_digest.as_str())
-    .field_usize(
-        ForgeQueryEvidenceTag::new("small_row_count"),
-        small.fixture_row_count as usize,
-    )
-    .field_usize(
-        ForgeQueryEvidenceTag::new("medium_row_count"),
-        medium.fixture_row_count as usize,
-    )
-    .field_usize(
-        ForgeQueryEvidenceTag::new("large_row_count"),
-        large.fixture_row_count as usize,
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("structural_counter"),
-        structural_counter_digest.as_str(),
-    )
-    .seal()
-    .as_str()
-    .to_string();
+    let structural_counter_identity = small.counter_identity.clone();
+    let activation_identity = small.activation_identity.clone();
+    let admission_identity = small.admission_identity.clone();
+    let report_identity = scale_slope_report_identity(
+        &activation_identity,
+        &admission_identity,
+        &small.snapshot_identity,
+        &medium.snapshot_identity,
+        &large.snapshot_identity,
+        small.fixture_row_count,
+        medium.fixture_row_count,
+        large.fixture_row_count,
+        &structural_counter_identity,
+    );
 
     Ok(QuerySubscriptionScaleSlopeReport {
-        digest,
-        activation_digest,
-        admission_digest,
-        small_snapshot_digest: small.snapshot_digest,
-        medium_snapshot_digest: medium.snapshot_digest,
-        large_snapshot_digest: large.snapshot_digest,
+        report_identity,
+        activation_identity,
+        admission_identity,
+        small_snapshot_identity: small.snapshot_identity,
+        medium_snapshot_identity: medium.snapshot_identity,
+        large_snapshot_identity: large.snapshot_identity,
         small_row_count: small.fixture_row_count,
         medium_row_count: medium.fixture_row_count,
         large_row_count: large.fixture_row_count,
-        structural_counter_digest,
+        structural_counter_identity,
     })
 }
