@@ -1,4 +1,6 @@
 use forge_query::facade::ForgeQueryWorkspace;
+use topology::certification::milestone_one_runtime_builder;
+use topology::runtime_support::{topology_runtime, TopologyRuntimeAdapters};
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -37,9 +39,12 @@ pub(crate) fn row_digest(
     workspace: &mut ForgeQueryWorkspace,
     row: &PrimitiveConstructionCorpusReplaySiegeRow,
 ) -> Result<String, PrimitiveConstructionCorpusReplaySiegeError> {
+    let _ = workspace;
     let scenario = scenario_for(row)?;
     let runtime_truth = row.runtime_truth();
-    let branch_basis_digest = prepare_branch_basis_digest(workspace, &scenario.intent)?;
+    let mut branch_basis_workspace = branch_basis_workspace_for(row.scenario_id());
+    let branch_basis_digest =
+        prepare_branch_basis_digest(&mut branch_basis_workspace, &scenario.intent)?;
     let replay_digest = runtime_truth.outcome_digest().to_string();
 
     Ok(digest_owned_parts(&[
@@ -132,6 +137,17 @@ pub(crate) fn prepare_authoring_order_lane_digest_rows(
         ));
     }
     Ok(rows)
+}
+
+fn branch_basis_workspace_for(scenario_id: &str) -> ForgeQueryWorkspace {
+    let runtime = milestone_one_runtime_builder()
+        .expect("runtime builder")
+        .build();
+    topology_runtime(
+        TopologyRuntimeAdapters::current_head(runtime),
+        format!("worth-kernel.corpus-branch-basis.{scenario_id}"),
+    )
+    .expect("branch basis workspace")
 }
 
 fn scenario_for(

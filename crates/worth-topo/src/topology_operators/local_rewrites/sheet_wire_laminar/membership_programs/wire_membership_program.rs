@@ -90,6 +90,16 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 half_edge_binding.query_identity_label,
             ));
         }
+        let mut relation_rebind_authorities = std::collections::BTreeMap::new();
+        for (_, relation_id, _) in &relation_rows_to_move {
+            relation_rebind_authorities.insert(
+                *relation_id,
+                crate::topology_operators::authority_identity::relation_continuity_rebind_authorities(
+                    *relation_id,
+                )
+                ?,
+            );
+        }
         self.workspace
             .compose_graph(|graph| {
                 graph.insert_entity(created_wire_key.clone(), "TopologyEntity", |mutation| {
@@ -119,11 +129,9 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                             }
                         },
                         |update| {
+                            let (prior, successor) = relation_rebind_authorities[relation_id].clone();
                             let update = update
-                                .continuity_rebind_existing_target(
-                                    format!("{relation_id:?}"),
-                                    format!("{relation_id:?}:successor"),
-                                )
+                                .continuity_rebind_existing_target(prior, successor)
                                 .aspect(
                                     "topology.kind",
                                     TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
@@ -156,7 +164,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 )?;
                 Ok(())
             })
-            .map_err(Into::into)
+            .map_err(TopologyMutationApplicationError::from)
     }
 
     pub(crate) fn compose_wire_split_program(
@@ -226,6 +234,16 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 half_edge_binding.query_identity_label,
             ));
         }
+        let mut relation_rebind_authorities = std::collections::BTreeMap::new();
+        for (_, relation_id, _) in &moved_relations {
+            relation_rebind_authorities.insert(
+                *relation_id,
+                crate::topology_operators::authority_identity::relation_continuity_rebind_authorities(
+                    *relation_id,
+                )
+                ?,
+            );
+        }
         self.workspace
             .compose_graph(|graph| {
                 graph.insert_entity(created_wire_key.clone(), "TopologyEntity", |mutation| {
@@ -255,11 +273,9 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                             }
                         },
                         |update| {
+                            let (prior, successor) = relation_rebind_authorities[relation_id].clone();
                             let update = update
-                                .continuity_rebind_existing_target(
-                                    format!("{relation_id:?}"),
-                                    format!("{relation_id:?}:successor"),
-                                )
+                                .continuity_rebind_existing_target(prior, successor)
                                 .aspect(
                                     "topology.kind",
                                     TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
@@ -285,6 +301,6 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 }
                 Ok(())
             })
-            .map_err(Into::into)
+            .map_err(TopologyMutationApplicationError::from)
     }
 }

@@ -54,12 +54,22 @@ fn temporal_async_and_mixed_live_meaning_become_real_active_lanes() {
 
         assert_eq!(admission.future_selection().class(), expected_class);
         assert_eq!(
-            admission.future_selection().future_selection_projection().label().as_str(),
+            admission
+                .future_selection()
+                .future_selection_projection()
+                .label()
+                .as_str(),
             future_digest.as_str()
         );
-        assert_eq!(admission.checkpoint_projection().label().as_str(), checkpoint_digest.as_str());
+        assert_eq!(
+            admission.checkpoint_projection().label().as_str(),
+            checkpoint_digest.as_str()
+        );
         assert_eq!(handle.future_selection().class(), expected_class);
-        assert_eq!(handle.checkpoint_projection().label().as_str(), checkpoint_digest.as_str());
+        assert_eq!(
+            handle.checkpoint_projection().label().as_str(),
+            checkpoint_digest.as_str()
+        );
         assert_eq!(runtime.lane_count(), 1);
     }
 }
@@ -111,7 +121,10 @@ fn future_equivalent_consumers_share_one_lane_and_retain_lane_owned_future_ident
         first_handle.future_selection(),
         second_handle.future_selection()
     );
-    assert_eq!(first_handle.checkpoint_projection().label().as_str(), expected_checkpoint.as_str());
+    assert_eq!(
+        first_handle.checkpoint_projection().label().as_str(),
+        expected_checkpoint.as_str()
+    );
     assert_eq!(
         first_attachment.future_selection(),
         second_attachment.future_selection()

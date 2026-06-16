@@ -1,7 +1,9 @@
 use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
-use super::error::{QuerySubscriptionRuntimeCertificationCounters, QuerySubscriptionRuntimeCertificationError};
 use super::super::evidence_projection::subscription_evidence_projection;
+use super::error::{
+    QuerySubscriptionRuntimeCertificationCounters, QuerySubscriptionRuntimeCertificationError,
+};
 
 impl QuerySubscriptionRuntimeCertificationCounters {
     pub fn counter_projection(

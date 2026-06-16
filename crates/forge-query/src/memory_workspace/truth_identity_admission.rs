@@ -6,8 +6,8 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 use crate::identity_authority::{
-    query_truth_identity_admission_authority, QueryCommitIdentityKind,
-    QueryEntityIdentityKind, QueryExternalIdentityToken, QuerySnapshotIdentityKind,
+    query_truth_identity_admission_authority, QueryCommitIdentityKind, QueryEntityIdentityKind,
+    QueryExternalIdentityToken, QuerySnapshotIdentityKind,
     QueryTruthIdentityAdmissionAuthorityIdentity,
 };
 
@@ -89,19 +89,13 @@ pub fn admit_authored_entity_token(
 }
 
 pub(crate) fn admit_external_commit_label(label: impl AsRef<str>) -> ForgeQueryCommitIdentity {
-    admit_external_commit_token(QueryExternalIdentityToken::new(Arc::from(
-        label.as_ref(),
-    )))
+    admit_external_commit_token(QueryExternalIdentityToken::new(Arc::from(label.as_ref())))
 }
 
 pub(crate) fn admit_external_snapshot_label(label: impl AsRef<str>) -> ForgeQuerySnapshotIdentity {
-    admit_external_snapshot_token(QueryExternalIdentityToken::new(Arc::from(
-        label.as_ref(),
-    )))
+    admit_external_snapshot_token(QueryExternalIdentityToken::new(Arc::from(label.as_ref())))
 }
 
 pub(crate) fn admit_authored_entity_label(label: impl AsRef<str>) -> ForgeQueryEntityIdentity {
-    admit_authored_entity_token(QueryExternalIdentityToken::new(Arc::from(
-        label.as_ref(),
-    )))
+    admit_authored_entity_token(QueryExternalIdentityToken::new(Arc::from(label.as_ref())))
 }

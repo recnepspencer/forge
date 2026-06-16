@@ -136,10 +136,9 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
         ForgeQueryRuntimeError::MissingLiveSubscription("sub.live".to_string()),
         ForgeQueryRuntimeError::MissingDerivedView("view.derived".to_string()),
         ForgeQueryRuntimeError::SharedReadStaleBasis {
-            snapshot_identity:
-                crate::memory_workspace::admit_external_snapshot_label(
-                    "snapshot.stale",
-                ),
+            snapshot_identity: crate::memory_workspace::admit_external_snapshot_label(
+                "snapshot.stale",
+            ),
         },
         ForgeQueryRuntimeError::MissingEffect("effect.name".to_string()),
         ForgeQueryRuntimeError::MissingPendingWriteIntent("effect.name".to_string()),

@@ -207,23 +207,28 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
     );
     assert!(view
         .subscription_installation()
-        .support_projection().label()
+        .support_projection()
+        .label()
         .starts_with("forge.query.evidence-identity.v1:"));
     assert!(!view
         .subscription_installation()
-        .active_lane_projection().label()
+        .active_lane_projection()
+        .label()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .consumer_attachment_projection().label()
+        .consumer_attachment_projection()
+        .label()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .consumer_projection().label()
+        .consumer_projection()
+        .label()
         .is_empty());
     assert!(!view
         .subscription_installation()
-        .delivery_cursor_projection().label()
+        .delivery_cursor_projection()
+        .label()
         .is_empty());
     assert_eq!(
         view.subscription_installation()
@@ -262,7 +267,8 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
     assert_eq!(
         live_inspection.installation_projection().label(),
         view.subscription_installation()
-            .installation_projection().label()
+            .installation_projection()
+            .label()
     );
     assert_eq!(
         receipt

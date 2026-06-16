@@ -7,53 +7,38 @@ error[E0624]: associated function `admitted` is private
  ::: src/subscription/certification.rs
   |
   | /     pub(crate) fn admitted(
-  | |         query_digest: impl Into<String>,
   | |         query_scope_identity: ForgeQueryEvidenceIdentity,
   | |         subscription_family_identity: ForgeQueryEvidenceIdentity,
+  | |         subscription_equivalence_identity: ForgeQueryEvidenceIdentity,
 ... |
   | |         basis_posture_identity: ForgeQueryEvidenceIdentity,
   | |     ) -> Self {
   | |_____________- private associated function defined here
 
-error[E0061]: this function takes 9 arguments but 8 arguments were supplied
+error[E0308]: arguments to this function are incorrect
   --> tests/ui/subscription_lifecycle_certification_context_admitted_private.rs:4:13
    |
- 4 |       let _ = SubscriptionLifecycleCertificationContext::admitted(
-   |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
- 5 | |         "query",
- 6 | |         "family",
-   | |         -------- expected `ForgeQueryEvidenceIdentity`, found `&str`
- 7 | |         "equivalence",
-   | |         ------------- expected `ForgeQueryEvidenceIdentity`, found `&str`
- 8 | |         "policy",
-   | |         -------- expected `ForgeQueryEvidenceIdentity`, found `&str`
- 9 | |         "tenant",
-   | |         -------- expected `ForgeQueryEvidenceIdentity`, found `&str`
-10 | |         "relationship",
-   | |         -------------- expected `ForgeQueryEvidenceIdentity`, found `&str`
-11 | |         "view",
-   | |         ------ expected `ForgeQueryEvidenceIdentity`, found `&str`
-12 | |         "basis",
-   | |         ------- expected `ForgeQueryEvidenceIdentity`, found `&str`
-13 | |     );
-   | |_____- argument #9 of type `ForgeQueryEvidenceIdentity` is missing
+ 4 |     let _ = SubscriptionLifecycleCertificationContext::admitted(
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         "query",
+   |         ------- expected `ForgeQueryEvidenceIdentity`, found `&str`
+ 6 |         "family",
+   |         -------- expected `ForgeQueryEvidenceIdentity`, found `&str`
+ 7 |         "equivalence",
+   |         ------------- expected `ForgeQueryEvidenceIdentity`, found `&str`
+ 8 |         "policy",
+   |         -------- expected `ForgeQueryEvidenceIdentity`, found `&str`
+ 9 |         "tenant",
+   |         -------- expected `ForgeQueryEvidenceIdentity`, found `&str`
+10 |         "relationship",
+   |         -------------- expected `ForgeQueryEvidenceIdentity`, found `&str`
+11 |         "view",
+   |         ------ expected `ForgeQueryEvidenceIdentity`, found `&str`
+12 |         "basis",
+   |         ------- expected `ForgeQueryEvidenceIdentity`, found `&str`
    |
 note: associated function defined here
   --> src/subscription/certification.rs
    |
    |     pub(crate) fn admitted(
    |                   ^^^^^^^^
-help: provide the argument
-   |
- 4 -     let _ = SubscriptionLifecycleCertificationContext::admitted(
- 5 -         "query",
- 6 -         "family",
- 7 -         "equivalence",
- 8 -         "policy",
- 9 -         "tenant",
-10 -         "relationship",
-11 -         "view",
-12 -         "basis",
-13 -     );
- 4 +     let _ = SubscriptionLifecycleCertificationContext::admitted("query", /* ForgeQueryEvidenceIdentity */, /* ForgeQueryEvidenceIdentity */, /* ForgeQueryEvidenceIdentity */, /* ForgeQueryEvidenceIdentity */, /* ForgeQueryEvidenceIdentity */, /* ForgeQueryEvidenceIdentity */, /* ForgeQueryEvidenceIdentity */, /* ForgeQueryEvidenceIdentity */);
-   |

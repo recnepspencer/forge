@@ -351,7 +351,10 @@ fn bridge_grouped_projection_evidence(
             &projection_source_evidence_identity(source, "bridge-grouped"),
         )
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
-        .field_bridge_retained_evidence_identity(ForgeQueryEvidenceTag::new("grouped"), grouped_identity)
+        .field_bridge_retained_evidence_identity(
+            ForgeQueryEvidenceTag::new("grouped"),
+            grouped_identity,
+        )
         .seal()
 }
 

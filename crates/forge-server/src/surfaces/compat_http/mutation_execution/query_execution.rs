@@ -119,7 +119,10 @@ pub(crate) fn execute_compatibility_mutation_request(
             format!("query workspace does not admit `inspect` facade family: {error}"),
         ));
     }
-    let observed_basis_digest = handoff.workspace().snapshot_token();
+    let observed_basis_digest = handoff
+        .workspace()
+        .snapshot_identity()
+        .terminal_projection_for_reporting();
     let precondition = match ForgeServerMutationPrecondition::from_prepared_request(
         &prepared_request,
         &operation_name,

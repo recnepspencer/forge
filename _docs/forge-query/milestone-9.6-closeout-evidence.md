@@ -1,0 +1,60 @@
+# Milestone 9.6 Closeout Evidence
+
+> **Branch:** `query-repair`
+>
+> **Date:** 2026-06-16
+>
+> **Verdict:** **CLEARED**
+
+## Before / after (lib regression burn-down)
+
+| Gate | Before (2026-06-16 QA re-open) | After (WS-1–WS-4 closeout) |
+|------|--------------------------------|----------------------------|
+| `cargo test -p forge-query --lib` | 2277 pass / **47 fail** | **2327 pass / 0 fail** |
+| `cargo test -p worth-kernel --lib construction` | folklore on basis/stop-class paths | **172 pass / 0 fail** |
+
+## WS-3 inventory hardening (evidence)
+
+- Expanded `EXACT_ZERO_FORMAT_DIGEST_PATHS` with `query_context/basis.rs` and crate-root `preview/mod.rs`.
+- Migrated remaining `hash_parts` / `terminal_projection_for_reporting()` folklore on those surfaces to typed `ForgeQueryEvidenceIdentity` composition (`preview/workflow_context_identity.rs`).
+- Added `EXCLUDED_FOLKLORE_DEFERRALS` with named owner milestones for each `EXCLUDED_FOLKLORE_PATHS` prefix.
+- Added `identity_boundary_certification_gate.rs` with `MILESTONE_9_6_CERTIFICATION_GATE_PATHS` and `MILESTONE_9_6_LIB_CERTIFICATION_GREEN`; support `Closed` now requires certification gate certified.
+- Widened `EXACT_ZERO_STRING_MATCHING_PATHS` to worth-kernel construction consumer tests (`branch_preview_basis.rs`, `construction.rs`).
+
+## Verification matrix (2026-06-16)
+
+```text
+cargo test -p forge-query session_label --lib          → 21/21
+cargo test -p forge-query evidence_identity --lib      → 19/19
+cargo test -p forge-query stop_class --lib             → 22/22
+cargo test -p forge-query identity_boundary --lib      → 27/27
+cargo test -p forge-query --lib --test-threads=2       → 2327/0
+cargo test -p worth-kernel --lib construction          → 172/0
+cargo check -p forge-query --lib                       → ok
+cargo test -p forge-query application::support::identity_boundary_inventory::tests --lib → 4/4
+cargo test -p forge-query application::support::tests::identity_boundary_support_report --lib → 4/4
+cargo test -p forge-query public_doc_coverage::tests::identity_boundary_docs --lib → 1/1
+```
+
+`cargo fmt --check --all` reports pre-existing drift outside forge-query (worth-topo); forge-query sources were formatted with `cargo fmt -p forge-query`.
+
+## Hostile QA (Closure Gate §1–5)
+
+| Check | Result |
+|-------|--------|
+| Covered forge-query surfaces + new feeders (`query_context/basis.rs`, `preview/mod.rs`) | No same-class digest folklore in inventory scan |
+| Support `Closed` derives from residue + hostile matrix + lib certification gate | Proven by `identity_boundary_support_report` tests |
+| worth-kernel construction basis/stop-class consumer paths | Typed `admission_identity()` + `stop_class()` matching; string-matching scan clean |
+| Named exclusions | Documented in `EXCLUDED_FOLKLORE_DEFERRALS` (9.7/9.8 owners) |
+
+## Remaining named deferrals (not blocking 9.6 ordinary-path closure)
+
+| Prefix | Owner |
+|--------|-------|
+| `projection_consumption/` | Milestone 9.7 |
+| `workflow/` | Milestone 9.7 |
+| `domain_capabilities/` | Milestone 9.7 |
+| `harness/milestone_nine_five_` | Milestone 9.5 harness-only |
+| `runtime/intent/declaration.rs` | Milestone 9.8 intent declaration lowering |
+
+worth-kernel `prepare_branch_basis_digest` still composes typed admission digests via `digest_owned_parts` for test parity labels — scoped follow-on for 9.7/9.8 prep per closeout plan risk register, not ordinary-path production in forge-query.

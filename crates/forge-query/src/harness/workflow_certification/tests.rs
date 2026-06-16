@@ -25,7 +25,7 @@ use forge_relational::facade::merge::{MergeExecutionRequest, MergeIntent};
 use forge_runtime_bridge::facade::{
     BridgeRequestKind, BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity,
     BridgeWritebackEffectClass, BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
-    BridgeWritebackStrategyClass,
+    BridgeWritebackRequestMode, BridgeWritebackStrategyClass,
 };
 use serde_json::json;
 
@@ -219,29 +219,56 @@ fn workflow_certification_writeback_lowering_matches_direct_bridge_control() {
     )
     .expect("writeback lowering should succeed");
 
-    let bridge_declaration_identity =
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("identity_family"),
-                "workflow_writeback_bridge_declaration_v1",
-            )
-            .field_value(
-                ForgeQueryEvidenceTag::new("declaration"),
-                declaration.report().declaration_digest(),
-            )
-            .seal();
-    let bridge_declaration_evidence =
-        bridge_declaration_identity.bridge_external_identity_evidence();
-    let control = BridgeWritebackDeclaration::writeback_capable(
-        BridgeWritebackDeclarationIdentity::from_bridge_evidence(&bridge_declaration_evidence),
+    assert_eq!(
+        lowered.bridge_declaration().request_kind(),
         BridgeRequestKind::Authoritative,
-        BridgeWritebackFamilyKind::ProjectedStateDiff,
+    );
+    assert_eq!(
+        lowered.bridge_declaration().request_mode(),
+        BridgeWritebackRequestMode::WritebackCapable,
+    );
+    assert_eq!(
+        lowered.bridge_declaration().family_kind(),
+        Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
+    );
+    assert_eq!(
+        lowered.bridge_declaration().effect_class(),
         BridgeWritebackEffectClass::ProjectedStateDiff,
-        BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
+    );
+    assert_eq!(
+        lowered.bridge_declaration().strategy_class(),
+        Some(BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation),
+    );
+    assert_eq!(
+        lowered.bridge_declaration().idempotence_class(),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
-
-    assert_eq!(lowered.bridge_declaration(), &control);
+    assert_eq!(
+        lowered.bridge_declaration().digest(),
+        BridgeWritebackDeclaration::writeback_capable(
+            BridgeWritebackDeclarationIdentity::from_bridge_evidence(
+                &ForgeQueryEvidenceIdentity::compose(
+                    ForgeQueryEvidenceScope::WorkflowMutationLowering
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "workflow_writeback_bridge_declaration_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("declaration"),
+                    declaration.report().declaration_identity(),
+                )
+                .seal()
+                .bridge_external_identity_evidence(),
+            ),
+            BridgeRequestKind::Authoritative,
+            BridgeWritebackFamilyKind::ProjectedStateDiff,
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
+            BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+        )
+        .digest(),
+    );
 }
 
 #[test]

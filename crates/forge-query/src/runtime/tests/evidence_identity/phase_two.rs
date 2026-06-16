@@ -25,7 +25,9 @@ fn support_matrix_and_state_snapshot_remain_in_phase_two_canonical_migration_cov
         "state explanation with | and : punctuation",
     );
 
-    assert_canonical_evidence_identity_token(matrix.matrix_digest().terminal_projection_for_reporting());
+    assert_canonical_evidence_identity_token(
+        matrix.matrix_digest().terminal_projection_for_reporting(),
+    );
     for row in matrix.rows() {
         assert_eq!(
             row.row_digest().as_str(),
@@ -103,7 +105,9 @@ fn state_snapshot_with_optional_postures_remains_in_phase_two_canonical_migratio
     .with_async_result_state(async_result_state)
     .with_remask_posture(remask_posture);
 
-    assert_canonical_evidence_identity_token(snapshot.state_digest().terminal_projection_for_reporting());
+    assert_canonical_evidence_identity_token(
+        snapshot.state_digest().terminal_projection_for_reporting(),
+    );
     assert_eq!(
         snapshot.state_digest().as_str(),
         compose_state_snapshot_identity(&snapshot).as_str()

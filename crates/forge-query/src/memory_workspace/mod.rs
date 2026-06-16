@@ -17,11 +17,11 @@ mod workspace;
 pub use identities::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
 };
-pub use truth_identity_admission::{
-    admit_authored_entity_token, admit_external_commit_token, admit_external_snapshot_token,
-};
 pub(crate) use truth_identity_admission::{
     admit_authored_entity_label, admit_external_commit_label, admit_external_snapshot_label,
+};
+pub use truth_identity_admission::{
+    admit_authored_entity_token, admit_external_commit_token, admit_external_snapshot_token,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

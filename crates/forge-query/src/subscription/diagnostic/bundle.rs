@@ -12,7 +12,6 @@ use super::super::continuation::SubscriptionContinuationReport;
 use super::super::declaration::QuerySubscriptionDeclarationArtifact;
 use super::super::declaration_error::QuerySubscriptionDeclarationDenial;
 use super::super::error::QuerySubscriptionFamilySelectionError;
-use super::super::validation_evidence::validation_evidence_identity_label;
 use super::super::evidence_identities::{
     diagnostic_admitted_bundle_identity, diagnostic_assembly_receipt_identity,
     diagnostic_bundle_width_identity, diagnostic_counters_identity,
@@ -24,6 +23,7 @@ use super::super::support::{
     QuerySubscriptionSupportPosture, QuerySubscriptionSupportReport,
     QuerySubscriptionSupportReportError,
 };
+use super::super::validation_evidence::validation_evidence_identity_label;
 use super::context::QuerySubscriptionDiagnosticSelectionContext;
 use super::stage::{QuerySubscriptionDiagnosticOutcome, QuerySubscriptionDiagnosticStage};
 use super::trace::QuerySubscriptionDiagnosticTrace;

@@ -77,7 +77,9 @@ pub(crate) fn representative_historical_bridge_lowering_row() -> RepresentativeA
         ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
             .field_bridge_retained_evidence_identity(
                 ForgeQueryEvidenceTag::new("declaration"),
-                &declaration.declaration_identity().bridge_admission_evidence(),
+                &declaration
+                    .declaration_identity()
+                    .bridge_admission_evidence(),
             )
             .field_shape(
                 ForgeQueryEvidenceTag::new("admitted_path_class"),

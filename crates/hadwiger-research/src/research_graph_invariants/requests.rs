@@ -111,7 +111,7 @@ impl ResearchGraphInvariantBoundarySource {
             source_kind: source.lower_runtime_boundary_source_kind(),
             source_digest: source
                 .lower_runtime_boundary_source_identity()
-                .as_str()
+                .terminal_projection_for_reporting()
                 .to_string(),
         }
     }
@@ -129,6 +129,6 @@ impl ResearchGraphInvariantBoundarySource {
     }
 
     pub(crate) fn envelope_digest(&self) -> &str {
-        self.envelope.envelope_identity().as_str()
+        self.envelope.envelope_identity().terminal_projection_for_reporting()
     }
 }

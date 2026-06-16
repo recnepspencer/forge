@@ -26,69 +26,68 @@ pub(super) fn coverage_row_identity(
     lifecycle_class: &str,
     failure_identity: Option<&ForgeQueryEvidenceIdentity>,
 ) -> ForgeQueryEvidenceIdentity {
-    let mut composer = ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "query_subscription_family_coverage_row_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("family"), family)
-        .field_shape(ForgeQueryEvidenceTag::new("row_class"), row_class)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("query"), query_scope_identity)
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("subscription_family"),
-            subscription_family_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("subscription_declaration"),
-            subscription_declaration_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("bridge_declaration"),
-            bridge_declaration_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("signal_strategy"),
-            signal_strategy_identity,
-        )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_identity)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("policy"), policy_identity)
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("tenant_basis"),
-            tenant_basis_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("relationship_proof"),
-            relationship_proof_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("view_shape"),
-            view_shape_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("support_report"),
-            support_report_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("bridge_parity"),
-            bridge_parity_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("lifecycle_certification"),
-            lifecycle_certification_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("diagnostic_bundle"),
-            diagnostic_bundle_identity,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("lifecycle_class"),
-            lifecycle_class,
-        );
+    let mut composer =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "query_subscription_family_coverage_row_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("family"), family)
+            .field_shape(ForgeQueryEvidenceTag::new("row_class"), row_class)
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("query"), query_scope_identity)
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("subscription_family"),
+                subscription_family_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("subscription_declaration"),
+                subscription_declaration_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("bridge_declaration"),
+                bridge_declaration_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("signal_strategy"),
+                signal_strategy_identity,
+            )
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_identity)
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("policy"), policy_identity)
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("tenant_basis"),
+                tenant_basis_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("relationship_proof"),
+                relationship_proof_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("view_shape"),
+                view_shape_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("support_report"),
+                support_report_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("bridge_parity"),
+                bridge_parity_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("lifecycle_certification"),
+                lifecycle_certification_identity,
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("diagnostic_bundle"),
+                diagnostic_bundle_identity,
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("lifecycle_class"),
+                lifecycle_class,
+            );
     if let Some(failure_identity) = failure_identity {
-        composer = composer.field_evidence_identity(
-            ForgeQueryEvidenceTag::new("failure"),
-            failure_identity,
-        );
+        composer = composer
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("failure"), failure_identity);
     } else {
         composer = composer.field_shape(ForgeQueryEvidenceTag::new("failure"), "none");
     }

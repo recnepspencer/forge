@@ -21,7 +21,10 @@ fn construction_source_does_not_change_exact_reuse_subscription_meaning() {
         assert_eq!(first.family(), selection.family());
         assert_eq!(
             first.equivalence_basis().equivalence_projection().label(),
-            selection.equivalence_basis().equivalence_projection().label()
+            selection
+                .equivalence_basis()
+                .equivalence_projection()
+                .label()
         );
     }
 }
@@ -73,15 +76,33 @@ fn meaning_digest_changes_for_policy_tenant_or_relationship_proof_context() {
     let changed_proof = select_query_subscription_family(changed_proof, roomy_budget()).unwrap();
 
     assert_ne!(
-        baseline.equivalence_basis().equivalence_projection().label(),
-        changed_policy.equivalence_basis().equivalence_projection().label()
+        baseline
+            .equivalence_basis()
+            .equivalence_projection()
+            .label(),
+        changed_policy
+            .equivalence_basis()
+            .equivalence_projection()
+            .label()
     );
     assert_ne!(
-        baseline.equivalence_basis().equivalence_projection().label(),
-        changed_tenant.equivalence_basis().equivalence_projection().label()
+        baseline
+            .equivalence_basis()
+            .equivalence_projection()
+            .label(),
+        changed_tenant
+            .equivalence_basis()
+            .equivalence_projection()
+            .label()
     );
     assert_ne!(
-        baseline.equivalence_basis().equivalence_projection().label(),
-        changed_proof.equivalence_basis().equivalence_projection().label()
+        baseline
+            .equivalence_basis()
+            .equivalence_projection()
+            .label(),
+        changed_proof
+            .equivalence_basis()
+            .equivalence_projection()
+            .label()
     );
 }

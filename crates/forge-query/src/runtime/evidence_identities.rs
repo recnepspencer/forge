@@ -282,7 +282,9 @@ pub(in crate::runtime) fn runtime_mixed_cause_suppressed_cause_identity(
         )
         .field_bridge_retained_evidence_identity(
             ForgeQueryEvidenceTag::new("suppressed_cause"),
-            &cause.suppressed_cause_identity().bridge_admission_evidence(),
+            &cause
+                .suppressed_cause_identity()
+                .bridge_admission_evidence(),
         )
         .seal()
 }

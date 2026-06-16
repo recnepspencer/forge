@@ -8,9 +8,7 @@ use super::tag::ForgeQueryEvidenceTag;
 use forge_foundational::facade::{
     CanonicalBasisEntry, CanonicalBasisEntryKind, FoundationalIdentityKind,
 };
-use forge_runtime_bridge::facade::{
-    BridgeIdentityEvidence, BridgeTruthBoundaryBridgedIdentity,
-};
+use forge_runtime_bridge::facade::{BridgeIdentityEvidence, BridgeTruthBoundaryBridgedIdentity};
 
 pub(crate) fn forge_query_evidence_identity(
     scope: ForgeQueryEvidenceScope,
@@ -60,7 +58,11 @@ impl ForgeQueryEvidenceIdentityEncoder {
         }
     }
 
-    pub(crate) fn field_shape(mut self, tag: ForgeQueryEvidenceTag, value: impl AsRef<str>) -> Self {
+    pub(crate) fn field_shape(
+        mut self,
+        tag: ForgeQueryEvidenceTag,
+        value: impl AsRef<str>,
+    ) -> Self {
         self.push_text(CanonicalBasisEntryKind::Shape, tag, value);
         self
     }
@@ -103,7 +105,11 @@ impl ForgeQueryEvidenceIdentityEncoder {
         self
     }
 
-    pub(crate) fn field_value(mut self, tag: ForgeQueryEvidenceTag, value: impl AsRef<str>) -> Self {
+    pub(crate) fn field_value(
+        mut self,
+        tag: ForgeQueryEvidenceTag,
+        value: impl AsRef<str>,
+    ) -> Self {
         self.push_text(CanonicalBasisEntryKind::Value, tag, value);
         self
     }
@@ -143,7 +149,11 @@ impl ForgeQueryEvidenceIdentityEncoder {
         self
     }
 
-    pub(crate) fn field_value_sequence<I, S>(mut self, tag: ForgeQueryEvidenceTag, values: I) -> Self
+    pub(crate) fn field_value_sequence<I, S>(
+        mut self,
+        tag: ForgeQueryEvidenceTag,
+        values: I,
+    ) -> Self
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,

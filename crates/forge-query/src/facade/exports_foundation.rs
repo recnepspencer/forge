@@ -235,6 +235,7 @@ pub use crate::identity::{
     HistoricalPathClassDigest, LineageDigest, PlanDigest, ResultDigest, SchemaBasisDigest,
     ValidatedQueryDigest, ValidatedResultShapeDigest,
 };
+pub use crate::identity_authority::QueryExternalIdentityToken;
 pub use crate::identity_evolution::{
     admit_identity_evolution_query, compare_identity_evolution_denial_classification,
     compare_identity_evolution_denial_replay, compare_identity_evolution_result_classification,
@@ -306,7 +307,6 @@ pub use crate::live_performance::{
     PatchWidthUnit, PerformanceStatus, PerformanceStatusMarker, RefreshAdmissionStatus,
     RefreshCostClass, VerifiedPerformance,
 };
-pub use crate::identity_authority::QueryExternalIdentityToken;
 pub use crate::memory_workspace::{
     admit_authored_entity_token, admit_external_commit_token, admit_external_snapshot_token,
     ForgeQueryAspect, ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
@@ -352,3 +352,4 @@ pub use crate::projection_consumption::{
     ProjectionFactRequest, ProjectionSourceFamily, ProjectionSourceReferenceIdentity,
     SelfDescribingProjectionConsumptionEnvelope, SourceMismatchedProjectionConsumption,
 };
+pub use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;

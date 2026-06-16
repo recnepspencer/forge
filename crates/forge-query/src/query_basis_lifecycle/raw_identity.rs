@@ -25,7 +25,9 @@ impl RawBasisIdentity {
     ) -> ForgeQueryEvidenceIdentityEncoder {
         match self {
             Self::Query(identity) => encoder.field_evidence_identity(tag, identity),
-            Self::Bridge(identity) => encoder.field_bridge_retained_evidence_identity(tag, identity),
+            Self::Bridge(identity) => {
+                encoder.field_bridge_retained_evidence_identity(tag, identity)
+            }
         }
     }
 }

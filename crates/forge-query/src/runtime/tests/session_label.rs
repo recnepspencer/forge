@@ -38,7 +38,7 @@ fn basis_identity(
     ForgeQueryEvidenceIdentity::compose(scope)
         .field_value(
             ForgeQueryEvidenceTag::new("session_label_identity"),
-            label.identity_digest().as_str(),
+            label.identity_digest().terminal_projection_for_reporting(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("effect_policy"),
@@ -49,8 +49,10 @@ fn basis_identity(
             authority_lane.as_str(),
         )
         .field_value_sequence(
-            ForgeQueryEvidenceTag::new("evidence_row"),
-            evidence_rows.iter().map(|row| row.row_digest().as_str()),
+            ForgeQueryEvidenceTag::new("basis_evidence"),
+            evidence_rows
+                .iter()
+                .map(|row| row.row_digest().terminal_projection_for_reporting()),
         )
         .seal()
 }

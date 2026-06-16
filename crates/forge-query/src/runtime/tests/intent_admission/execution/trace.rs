@@ -130,9 +130,7 @@ fn effect_triggered_trace_eligibility_preserves_write_adjacent_trigger_proof() {
 
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label(
-                "task-1",
-            ),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from remask drift"),
         })

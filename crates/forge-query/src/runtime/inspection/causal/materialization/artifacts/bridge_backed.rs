@@ -100,7 +100,10 @@ impl QueryCausalEvidenceReferenceArtifact {
             )
             .field_evidence_identity(ForgeQueryEvidenceTag::new("reference"), &reference_identity)
             .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
-            .field_bridge_retained_evidence_identity(ForgeQueryEvidenceTag::new("retained"), retained_record)
+            .field_bridge_retained_evidence_identity(
+                ForgeQueryEvidenceTag::new("retained"),
+                retained_record,
+            )
             .seal()
         });
         let reference_receipt_identity = ForgeQueryEvidenceIdentity::compose(

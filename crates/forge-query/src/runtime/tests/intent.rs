@@ -780,9 +780,7 @@ fn effect_triggered_pending_write_intent_executes_through_intent_authority_once(
 
     let write = runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label(
-                "task-1",
-            ),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from write"),
         })
@@ -1224,9 +1222,7 @@ fn effect_triggered_idempotent_intent_noop_consumes_pending_work_without_feedbac
 
     let write = runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label(
-                "task-1",
-            ),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("already reconciled title"),
         })

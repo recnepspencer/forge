@@ -141,7 +141,10 @@ impl From<BridgeIdentityEvidence> for CausalEvidenceReferenceInput {
         let bridge_authority = value.clone();
         let identity =
             ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReference)
-                .field_bridge_retained_evidence_identity(ForgeQueryEvidenceTag::new("bridge_evidence"), &value)
+                .field_bridge_retained_evidence_identity(
+                    ForgeQueryEvidenceTag::new("bridge_evidence"),
+                    &value,
+                )
                 .seal();
         Self::Typed(CausalEvidenceReferenceDigest {
             identity,

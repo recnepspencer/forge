@@ -48,8 +48,11 @@ fn historical_context_for_family(
     family: &ForgeQueryReadFamily,
     snapshot_identity: &ForgeQuerySnapshotIdentity,
 ) -> Result<AdmittedQueryBasisContext, TopologyReadError> {
-    let snapshot_evidence_identity = snapshot_identity.evidence_identity();
-    let snapshot_evidence_label = snapshot_evidence_identity.as_str();
+    let snapshot_evidence_label = snapshot_identity
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
+        .to_string();
+    let snapshot_evidence_label = snapshot_evidence_label.as_str();
     let query_preflight = runtime_preflight_for_family(family, snapshot_identity)?;
     let request = HistoricalEvaluationRequest::retained_snapshot(
         snapshot_evidence_label,

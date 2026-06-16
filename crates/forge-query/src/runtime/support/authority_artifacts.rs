@@ -1,10 +1,10 @@
-use forge_runtime_bridge::facade::BridgeIdentityEvidence;
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::runtime::ForgeQueryAuthorityLane;
+use forge_runtime_bridge::facade::BridgeIdentityEvidence;
 
 #[path = "authority_artifacts/basis_admission.rs"]
 mod basis_admission;

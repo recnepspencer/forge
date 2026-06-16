@@ -159,10 +159,7 @@ impl QuerySubscriptionRuntimeCertificationError {
         )
         .field_shape(ForgeQueryEvidenceTag::new("kind"), error_kind.as_str())
         .field_value(ForgeQueryEvidenceTag::new("message"), message)
-        .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("evidence"),
-            evidence.iter(),
-        )
+        .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("evidence"), evidence.iter())
         .seal();
         Self {
             error_kind,

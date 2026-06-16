@@ -41,15 +41,7 @@ fn runtime_builder_rejects_support_profiles_that_overclaim_unimplemented_familie
         ),
     );
 
-    let error = ForgeQueryRuntime::builder()
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
-        .write_authority(TestWriteAuthority)
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
+    let error = complete_backend_from_parts_builder()
         .support_profile(profile)
         .build_backend_from_parts()
         .build();

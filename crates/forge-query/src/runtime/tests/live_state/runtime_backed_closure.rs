@@ -197,9 +197,7 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         .expect("follow-on effect should declare");
     follow_on_runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label(
-                "task-1",
-            ),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from phase26 async completion"),
         })

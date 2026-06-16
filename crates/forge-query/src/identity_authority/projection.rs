@@ -20,7 +20,11 @@ use super::kinds::{
 pub(crate) fn project_query_subscription_evidence(
     identity: &ForgeQueryEvidenceIdentity,
 ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
-    project_query_evidence_with_authority(identity, query_subscription_authority(), query_subscription_authority())
+    project_query_evidence_with_authority(
+        identity,
+        query_subscription_authority(),
+        query_subscription_authority(),
+    )
 }
 
 pub(crate) fn project_query_evidence_identity(

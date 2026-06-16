@@ -210,7 +210,10 @@ fn preview_promotion_emits_handoff_to_authoritative_lane_without_in_place_mutati
         handoff.preview_basis_binding_projection().label(),
         handoff.authoritative_basis_binding_projection().label()
     );
-    assert_ne!(handoff.handoff_projection().label(), isolation_digest.as_str());
+    assert_ne!(
+        handoff.handoff_projection().label(),
+        isolation_digest.as_str()
+    );
     assert_eq!(
         handoff.residue_report_projection().label(),
         residue_report.report_projection().label()
@@ -294,8 +297,14 @@ fn future_preview_isolation_retains_basis_and_checkpoint_identity() {
     let error = deny_preview_authoritative_sharing(&isolation, &authoritative_handle).unwrap_err();
 
     assert_eq!(
-        isolation.future_selection().future_selection_projection().label(),
-        preview_attachment.future_selection().future_selection_projection().label()
+        isolation
+            .future_selection()
+            .future_selection_projection()
+            .label(),
+        preview_attachment
+            .future_selection()
+            .future_selection_projection()
+            .label()
     );
     assert_eq!(
         isolation.checkpoint_projection().label(),

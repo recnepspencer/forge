@@ -1,16 +1,16 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
+use super::super::evidence_projection::subscription_evidence_projection;
 use super::bundle::{
-    QuerySubscriptionAdmittedDiagnosticBundle, QuerySubscriptionDeniedDiagnosticBundle,
-    QuerySubscriptionDiagnosticBundleError, QuerySubscriptionDiagnosticBundleWidth,
-    QuerySubscriptionDiagnosticCounters, QuerySubscriptionDiagnosticFailure,
-    QuerySubscriptionDiagnosticSemanticLabels, DiagnosticAssemblyReceipt,
+    DiagnosticAssemblyReceipt, QuerySubscriptionAdmittedDiagnosticBundle,
+    QuerySubscriptionDeniedDiagnosticBundle, QuerySubscriptionDiagnosticBundleError,
+    QuerySubscriptionDiagnosticBundleWidth, QuerySubscriptionDiagnosticCounters,
+    QuerySubscriptionDiagnosticFailure, QuerySubscriptionDiagnosticSemanticLabels,
 };
 use super::context::QuerySubscriptionDiagnosticSelectionContext;
 use super::stage::QuerySubscriptionDiagnosticEvidence;
 use super::trace::{QuerySubscriptionDiagnosticStageTrace, QuerySubscriptionDiagnosticTrace};
-use super::super::evidence_projection::subscription_evidence_projection;
 
 impl QuerySubscriptionDiagnosticCounters {
     pub fn counter_projection(

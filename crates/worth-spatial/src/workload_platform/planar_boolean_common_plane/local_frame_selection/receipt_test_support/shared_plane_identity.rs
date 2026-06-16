@@ -11,7 +11,7 @@ use crate::facade::workload_binding::{
     PlanarLoopCarrierSet,
 };
 
-pub(super) fn shared_plane_identity_receipt(
+pub(crate) fn shared_plane_identity_receipt(
     declaration: &str,
 ) -> PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt {
     let left = certified_surface_support(declaration);

@@ -36,7 +36,7 @@ pub fn runtime_backed_delivery_bundle(
     )
     .with_output_digest(
         Output::SurfaceContract,
-        delivery.downstream_delivery_contract().contract_digest(),
+        delivery.downstream_delivery_contract().contract_for_reporting(),
     )
     .with_output_digest(Output::Declaration, lease.declaration_digest())
     .with_output_digest(Output::Handoff, delivery.handoff_digest())
@@ -108,7 +108,7 @@ pub fn compatibility_runtime_backed_delivery_bundle(
     let support_posture = support_posture_digest(handoff.support_posture()).to_string();
     let surface_contract = handoff
         .downstream_delivery_contract()
-        .contract_digest()
+        .contract_for_reporting()
         .to_string();
     let response = server
         .responses()

@@ -1,3 +1,7 @@
+use crate::application::{
+    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclarationEnvelope,
+    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+};
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution, ForgeQueryAdmissionContributionAuthoring,
@@ -22,25 +26,31 @@ pub fn admitted_declaration_support(
     )
 }
 
-pub fn admitted_declaration_explanation(
-    declaration_label: &str,
+pub fn admitted_declaration_explanation<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    declaration: &ForgeQueryCanonicalDeclarationArtifact<D, I>,
     semantic_code: &str,
     detail: &str,
 ) -> ForgeQueryAdmittedExplanationContribution<ForgeQueryDeclarationBoundContributionTarget> {
     admitted(
         ForgeQueryExplanationContributionAuthoring::requires_context(semantic_code, detail)
-            .bind_to_declaration_target(declaration_target(declaration_label)),
+            .bind_to_declaration_target(canonical_declaration_target(declaration)),
     )
 }
 
-pub fn admitted_declaration_advisory(
-    declaration_label: &str,
+pub fn admitted_declaration_advisory<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    declaration: &ForgeQueryCanonicalDeclarationArtifact<D, I>,
     semantic_code: &str,
     detail: &str,
 ) -> ForgeQueryAdmittedAdmissionContribution<ForgeQueryDeclarationBoundContributionTarget> {
     admitted(
         ForgeQueryAdmissionContributionAuthoring::advisory(semantic_code, detail)
-            .bind_to_declaration_target(declaration_target(declaration_label)),
+            .bind_to_declaration_target(canonical_declaration_target(declaration)),
     )
 }
 
@@ -181,4 +191,13 @@ fn declaration_target(label: &str) -> ForgeQueryDeclarationBoundContributionTarg
         serde_json::json!({ "fixture": label }),
     );
     ForgeQueryDeclarationBoundContributionTarget::for_intent_declaration(&declaration)
+}
+
+fn canonical_declaration_target<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    declaration: &ForgeQueryCanonicalDeclarationArtifact<D, I>,
+) -> ForgeQueryDeclarationBoundContributionTarget {
+    ForgeQueryDeclarationBoundContributionTarget::for_canonical_declaration(declaration)
 }

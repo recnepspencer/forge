@@ -190,7 +190,8 @@ impl ForgeQueryVerifiedAssumptionSet {
     }
 
     pub fn assumption_snapshot_token(&self) -> &str {
-        self.assumption_snapshot_evidence_identity.reporting_projection()
+        self.assumption_snapshot_evidence_identity
+            .reporting_projection()
     }
 
     pub fn assumption_snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {

@@ -135,6 +135,22 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             ));
         }
 
+        let region_rebind_authorities =
+            crate::topology_operators::authority_identity::relation_continuity_rebind_authorities(
+                *region_relation_id,
+            )
+            ?;
+        let mut face_rebind_authorities = std::collections::BTreeMap::new();
+        for (_, face_relation_id, _) in &face_relation_rows {
+            face_rebind_authorities.insert(
+                *face_relation_id,
+                crate::topology_operators::authority_identity::relation_continuity_rebind_authorities(
+                    *face_relation_id,
+                )
+                ?,
+            );
+        }
+
         self.workspace
             .compose_graph(|graph| {
                 graph.insert_entity(created_shell_key.clone(), "TopologyEntity", |mutation| {
@@ -165,8 +181,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                     |update| {
                         let update = update
                             .continuity_rebind_existing_target(
-                                format!("{region_relation_id:?}"),
-                                format!("{region_relation_id:?}:successor"),
+                                region_rebind_authorities.0.clone(),
+                                region_rebind_authorities.1.clone(),
                             )
                             .aspect(
                                 "topology.kind",
@@ -206,11 +222,10 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                             }
                         },
                         |update| {
+                            let (prior, successor) =
+                                face_rebind_authorities[face_relation_id].clone();
                             let update = update
-                                .continuity_rebind_existing_target(
-                                    format!("{face_relation_id:?}"),
-                                    format!("{face_relation_id:?}:successor"),
-                                )
+                                .continuity_rebind_existing_target(prior, successor)
                                 .aspect(
                                     "topology.kind",
                                     TopologyRelationKind::ShellOwnsFace.kind_name(),
@@ -240,7 +255,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 )?;
                 Ok(())
             })
-            .map_err(Into::into)
+            .map_err(TopologyMutationApplicationError::from)
     }
 
     pub(crate) fn compose_shell_split_program(
@@ -313,6 +328,12 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             face_relation_binding.query_identity.clone(),
         )?;
 
+        let face_rebind_authorities =
+            crate::topology_operators::authority_identity::relation_continuity_rebind_authorities(
+                *face_relation_id,
+            )
+            ?;
+
         self.workspace
             .compose_graph(|graph| {
                 let shell_symbol = graph.insert_entity(
@@ -367,8 +388,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                     |update| {
                         let update = update
                             .continuity_rebind_existing_target(
-                                format!("{face_relation_id:?}"),
-                                format!("{face_relation_id:?}:successor"),
+                                face_rebind_authorities.0.clone(),
+                                face_rebind_authorities.1.clone(),
                             )
                             .aspect(
                                 "topology.kind",
@@ -392,6 +413,6 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 )?;
                 Ok(())
             })
-            .map_err(Into::into)
+            .map_err(TopologyMutationApplicationError::from)
     }
 }

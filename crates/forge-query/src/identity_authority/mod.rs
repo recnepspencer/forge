@@ -11,11 +11,6 @@ pub(crate) use admission::{
     admit_query_causal_inspection_authority_identity, admit_query_feeder_authority_identity,
     admit_query_subscription_authority_identity,
 };
-pub(crate) use projection::{
-    project_query_causal_inspection_evidence, project_query_evidence_identity,
-    project_query_feeder_evidence, project_query_intent_evidence, project_query_receipt_evidence,
-    project_query_subscription_evidence, project_query_workflow_evidence,
-};
 pub use authority::{
     query_causal_inspection_authority, query_domain_capability_authority,
     query_downstream_adapter_authority, query_effect_lifecycle_authority, query_evidence_authority,
@@ -59,4 +54,9 @@ pub use phase_one_family_map::{
 };
 pub use phase_one_root_break_targets::{
     forge_query_identity_phase_one_root_break_targets, ForgeQueryIdentityPhaseOneRootBreakTarget,
+};
+pub(crate) use projection::{
+    project_query_causal_inspection_evidence, project_query_evidence_identity,
+    project_query_feeder_evidence, project_query_intent_evidence, project_query_receipt_evidence,
+    project_query_subscription_evidence, project_query_workflow_evidence,
 };

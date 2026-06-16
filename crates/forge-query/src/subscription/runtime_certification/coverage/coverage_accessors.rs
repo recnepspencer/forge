@@ -1,11 +1,11 @@
-use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
-use crate::subscription::evidence_projection::subscription_evidence_projection;
 use super::matrix::{CertifiedFamilyCoverageHandle, QuerySubscriptionFamilyCoverageMatrix};
 use super::variations::{
     QuerySubscriptionBasisVariationSet, QuerySubscriptionLifecycleClassVariationSet,
     QuerySubscriptionPolicyVariationSet, QuerySubscriptionRelationshipProofVariationSet,
     QuerySubscriptionTenantVariationSet, QuerySubscriptionViewShapeVariationSet,
 };
+use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
+use crate::subscription::evidence_projection::subscription_evidence_projection;
 
 macro_rules! variation_projection {
     ($ty:ty) => {

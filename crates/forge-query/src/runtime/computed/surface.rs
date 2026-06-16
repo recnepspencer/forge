@@ -181,34 +181,33 @@ impl ForgeQueryComputedInspectionEvidence {
             &patch_identities,
         );
         let pending_patch_digest = pending_patch_identity.reporting_projection().to_string();
-        let inspection_identity = forge_query_evidence_identity(
-            ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
-        )
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_computed_inspection_v1",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("declaration"),
-            &declaration_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("dependency"),
-            &dependency_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("produced_aspects"),
-            &produced_aspect_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("materialization"),
-            &materialization_identity,
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("pending_patches"),
-            &pending_patch_identity,
-        )
-        .seal();
+        let inspection_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "forge_query_computed_inspection_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("declaration"),
+                    &declaration_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("dependency"),
+                    &dependency_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("produced_aspects"),
+                    &produced_aspect_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("materialization"),
+                    &materialization_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("pending_patches"),
+                    &pending_patch_identity,
+                )
+                .seal();
         let inspection_digest = inspection_identity.reporting_projection().to_string();
         Self {
             name: view.declaration.name().to_string(),
@@ -450,7 +449,10 @@ impl ForgeQueryDerivedPatch {
                     .reporting_projection(),
                 self.entity_identity
                     .as_ref()
-                    .map(|identity| identity.evidence_identity().reporting_projection().to_string())
+                    .map(|identity| identity
+                        .evidence_identity()
+                        .reporting_projection()
+                        .to_string())
                     .unwrap_or_else(|| "unknown".to_string())
             ),
             ForgeQueryDerivedPatchFamily::RefreshFallback => format!(
@@ -500,10 +502,9 @@ impl ForgeQueryDerivedPatch {
     ) -> ForgeQueryMutationDelta {
         ForgeQueryMutationDelta {
             collection: format!("derived:{upstream_view}"),
-            entity_identity: self
-                .entity_identity
-                .clone()
-                .unwrap_or_else(|| crate::memory_workspace::admit_authored_entity_label(upstream_view)),
+            entity_identity: self.entity_identity.clone().unwrap_or_else(|| {
+                crate::memory_workspace::admit_authored_entity_label(upstream_view)
+            }),
             kind: ForgeQueryMutationKind::Updated,
             aspect_paths: self.aspect_paths.clone(),
         }
@@ -614,10 +615,7 @@ fn computed_materialization_inspection_identity(
             "forge_query_computed_materialization_inspection_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("name"), name)
-        .field_usize(
-            ForgeQueryEvidenceTag::new("rows"),
-            materialized_row_count,
-        )
+        .field_usize(ForgeQueryEvidenceTag::new("rows"), materialized_row_count)
         .field_value_sequence(
             ForgeQueryEvidenceTag::new("materialized_rows"),
             row_shapes.iter().map(String::as_str),
@@ -638,10 +636,7 @@ fn computed_pending_patch_inspection_identity(
             "forge_query_computed_pending_patch_inspection_v1",
         )
         .field_shape(ForgeQueryEvidenceTag::new("name"), name)
-        .field_usize(
-            ForgeQueryEvidenceTag::new("pending"),
-            pending_patch_count,
-        )
+        .field_usize(ForgeQueryEvidenceTag::new("pending"), pending_patch_count)
         .field_usize(
             ForgeQueryEvidenceTag::new("incremental"),
             pending_incremental_patch_count,
@@ -665,21 +660,22 @@ fn derived_patch_inspection_identity(
         ForgeQueryDerivedPatchFamily::Incremental => "incremental",
         ForgeQueryDerivedPatchFamily::RefreshFallback => "refresh_fallback",
     };
-    let mut encoder = forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("identity_family"),
-            "forge_query_computed_patch_inspection_v1",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("view_name"), view_name)
-        .field_shape(ForgeQueryEvidenceTag::new("family"), family)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("authority_lane"),
-            "derived_runtime_state",
-        )
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("commit"),
-            &patch.commit_identity.evidence_identity(),
-        );
+    let mut encoder =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_computed_patch_inspection_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("view_name"), view_name)
+            .field_shape(ForgeQueryEvidenceTag::new("family"), family)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("authority_lane"),
+                "derived_runtime_state",
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("commit"),
+                &patch.commit_identity.evidence_identity(),
+            );
     if let Some(entity) = &patch.entity_identity {
         encoder = encoder.field_evidence_identity(
             ForgeQueryEvidenceTag::new("entity"),

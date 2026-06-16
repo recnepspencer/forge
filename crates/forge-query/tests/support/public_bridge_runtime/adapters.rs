@@ -22,7 +22,9 @@ use forge_query::facade::{
 };
 use forge_query::facade::{ForgeQueryCommitIdentity, ForgeQueryEntityIdentity};
 use forge_relational::facade::runtime::RelationalRuntime;
-use forge_runtime_bridge::facade::{RelationalBridgeSnapshotIdentityParts, RuntimeBridge};
+use forge_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts, RuntimeBridge,
+};
 use serde_json::Value;
 
 use super::external_row::{apply_aspects_to_external_row, external_row_from_aspects};
@@ -133,9 +135,9 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for PublicWriteAuthorityAdapter {
                     .and_then(|binding| binding.target_collection().map(str::to_string))
             })
             .or_else(|| {
-                command.declared_entity_identity_ref().and_then(|identity| {
-                    state.collection_by_identity.get(identity).cloned()
-                })
+                command
+                    .declared_entity_identity_ref()
+                    .and_then(|identity| state.collection_by_identity.get(identity).cloned())
             })
             .ok_or_else(|| {
                 ForgeQueryWorkspaceError::new("public bridge write could not resolve collection")
@@ -143,12 +145,11 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for PublicWriteAuthorityAdapter {
         let entity_identity = match command.mutation_family() {
             forge_query::facade::ForgeQueryMutationFamily::Insert => {
                 state.next_entity_identity += 1;
-                ForgeQueryEntityIdentity::admit_authored_entity_token(
-                    forge_query::facade::QueryExternalIdentityToken::new(
-                        std::sync::Arc::from(format!(
-                            "public-bridge-entity-{}",
-                            state.next_entity_identity
-                        )),
+                ForgeQueryEntityIdentity::from_relational_record(
+                    RelationalBridgeRecordIdentityParts::entity(
+                        1,
+                        state.next_entity_identity as u64,
+                        0,
                     ),
                 )
             }
@@ -323,9 +324,9 @@ impl forge_query::facade::ForgeQueryRuntimeExistingTruthVerificationAdapter
             binding,
             aspects,
             &ForgeQuerySnapshotIdentity::admit_external_token(
-                forge_query::facade::QueryExternalIdentityToken::new(
-                    std::sync::Arc::from("public-bridge-existing-truth-snapshot"),
-                ),
+                forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
+                    "public-bridge-existing-truth-snapshot",
+                )),
             ),
         )
         .map_err(|error| {

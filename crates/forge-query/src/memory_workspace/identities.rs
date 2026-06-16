@@ -1,6 +1,7 @@
 use forge_runtime_bridge::facade::{
-    BridgeIdentityEvidence, RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts,
-    RelationalBridgeSnapshotIdentityParts, TruthCommitIdentity, TruthSnapshotIdentity,
+    BridgeIdentityEvidence, RelationalBridgeRecordIdentityKind,
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
+    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
 use crate::evidence_identity::{
@@ -90,7 +91,7 @@ impl ForgeQueryCommitIdentity {
         }
     }
 
-    pub(crate) fn terminal_projection_for_reporting(&self) -> String {
+    pub fn terminal_projection_for_reporting(&self) -> String {
         self.evidence_identity()
             .terminal_projection_for_reporting()
             .to_string()
@@ -180,19 +181,32 @@ impl ForgeQuerySnapshotIdentity {
 
     pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
         match self {
-            Self::RelationalBridge { bridge_identity, .. } => {
-                bridge_identity.bridge_admission_evidence()
-            }
+            Self::RelationalBridge {
+                bridge_identity, ..
+            } => bridge_identity.bridge_admission_evidence(),
             Self::EmptyRelationalState | Self::Preview { .. } => {
                 self.evidence_identity().bridge_evidence_identity()
             }
         }
     }
 
-    pub(crate) fn terminal_projection_for_reporting(&self) -> String {
+    pub fn terminal_projection_for_reporting(&self) -> String {
         self.evidence_identity()
             .terminal_projection_for_reporting()
             .to_string()
+    }
+
+    pub(crate) fn matches_declared_historical_basis_label(
+        &self,
+        declared_basis_label: &str,
+    ) -> bool {
+        if declared_basis_label == self.evidence_identity().as_str() {
+            return true;
+        }
+        declared_basis_label
+            == self
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
     }
 }
 

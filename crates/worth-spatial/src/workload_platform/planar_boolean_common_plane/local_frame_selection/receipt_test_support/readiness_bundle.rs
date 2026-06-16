@@ -1,8 +1,10 @@
 use crate::facade::planar_contract_bundle::{
-    admit_planar_contract_family, PlanarAdmissionFamily, PlanarBooleanReadinessBundle,
-    PlanarContractBundleValidationContracts, PlanarContractBundleValidator,
-    PlanarM7ReadinessBundle, PlanarM7ReadinessReceipt, PlanarM7ReadinessSupportPosture,
-    PlanarRuntimeConcern,
+    PlanarBooleanReadinessBundle, PlanarContractBundleValidationContracts,
+    PlanarContractBundleValidator, PlanarM7ReadinessBundle, PlanarM7ReadinessReceipt,
+    PlanarM7ReadinessSupportPosture,
+};
+use crate::facade::planar_contracts::{
+    admit_planar_contract_family, PlanarAdmissionFamily, PlanarRuntimeConcern,
 };
 use crate::facade::planar_diagnostics::{
     PlanarDiagnosticBundle, PlanarDiagnosticBundleContracts, PlanarDiagnosticSubject,
@@ -33,7 +35,7 @@ use super::handles::{
 };
 use super::{MOVEMENT, NEIGHBORHOOD, TOPOLOGY};
 
-pub(super) fn readiness_receipt() -> PlanarM7ReadinessReceipt {
+pub(crate) fn readiness_receipt() -> PlanarM7ReadinessReceipt {
     let bundle_receipt = boolean_readiness_bundle_receipt();
     let retained = RetainedPlanarFacts::from_boolean_readiness(bundle_receipt.clone())
         .retain_planar_classification()

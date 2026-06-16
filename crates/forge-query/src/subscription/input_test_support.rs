@@ -98,8 +98,9 @@ impl LiveQueryAdmissionArtifact {
             "plan-digest",
         )
         .seal();
-        let collection_identity = CollectionPlanDigest::from_parts(&["collection-digest".to_string()])
-            .evidence_identity();
+        let collection_identity =
+            CollectionPlanDigest::from_parts(&["collection-digest".to_string()])
+                .evidence_identity();
         let relevance_identity =
             live_relevance_identity(&live_family, &query_identity, &plan_identity);
         let delivery_intent_identity = live_delivery_intent_projection_identity(&live_family);
@@ -107,10 +108,9 @@ impl LiveQueryAdmissionArtifact {
             lifecycle_context_policy_identity(policy_label.as_deref().unwrap_or("none"));
         let tenant_context_identity =
             lifecycle_context_tenant_basis_identity(tenant_label.as_deref().unwrap_or("none"));
-        let relationship_proof_context_identity =
-            lifecycle_context_relationship_proof_identity(
-                relationship_proof_label.as_deref().unwrap_or("none"),
-            );
+        let relationship_proof_context_identity = lifecycle_context_relationship_proof_identity(
+            relationship_proof_label.as_deref().unwrap_or("none"),
+        );
         let policy_context_width = policy_label.as_deref().unwrap_or("none").len();
         let tenant_context_width = tenant_label.as_deref().unwrap_or("none").len();
         let mut artifact = Self {

@@ -17,8 +17,12 @@ impl ForgeQueryDeclarationEntryContributionProofScope {
         mut self,
         envelope: crate::runtime::ForgeQueryLowerRuntimeBoundaryEnvelope,
     ) -> Self {
-        self.lower_runtime_boundary_digest =
-            Some(envelope.envelope_identity().terminal_projection_for_reporting().to_string());
+        self.lower_runtime_boundary_digest = Some(
+            envelope
+                .envelope_identity()
+                .terminal_projection_for_reporting()
+                .to_string(),
+        );
         self
     }
 

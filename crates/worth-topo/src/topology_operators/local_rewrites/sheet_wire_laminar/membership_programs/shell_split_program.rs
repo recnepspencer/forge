@@ -164,6 +164,6 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 )?;
                 Ok(())
             })
-            .map_err(Into::into)
+            .map_err(TopologyMutationApplicationError::from)
     }
 }

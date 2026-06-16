@@ -127,6 +127,9 @@ fn entity_row(
     Some(ForgeQueryEntity::from_external_projection(
         entity_identity(entity.entity_id),
         serde_json::json!({
+            "identity": {
+                "id": entity_identity_label(entity.entity_id)
+            },
             "topology": {
                 "kind": kind.kind_name(),
                 "structure": structure
@@ -243,6 +246,9 @@ fn relation_row(
     let source_identity = identities.get(&relation.source)?.clone();
     let target_identity = identities.get(&relation.target)?.clone();
     let mut payload = serde_json::json!({
+        "identity": {
+            "id": relation_identity_label(relation.relation_id)
+        },
         "topology": {
             "kind": kind.kind_name(),
             "source_identity": source_identity,

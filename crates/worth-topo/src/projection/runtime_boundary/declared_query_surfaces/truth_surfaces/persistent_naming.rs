@@ -12,6 +12,7 @@ use forge_query::facade::{
 };
 use forge_relational::facade::identity::EntityId;
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
 use schema::facade::{QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis};
 use serde::{Deserialize, Serialize};
@@ -139,7 +140,7 @@ pub(crate) fn naming_attachment_report_from_query_input(
         {
             return Err(TopologyQuerySurfaceError::new(format!(
                 "query persistent-name row `{}` is missing lineage.provenance",
-                row.identity()
+                query_identity_label(row.identity())?
             )));
         }
         let target_identity = external_row
@@ -151,7 +152,7 @@ pub(crate) fn naming_attachment_report_from_query_input(
                 let Some(target_entity_id) = topology_identities.get(identity) else {
                     return Err(TopologyQuerySurfaceError::new(format!(
                         "query persistent-name row `{}` targets unknown topology identity `{identity}`",
-                        row.identity()
+                        query_identity_label(row.identity())?
                     )));
                 };
                 attachments
@@ -195,7 +196,8 @@ fn query_identity_label(
 ) -> Result<String, TopologyQuerySurfaceError> {
     let parts = identity.relational_record_parts().ok_or_else(|| {
         TopologyQuerySurfaceError::new(format!(
-            "persistent naming requires relational query identity, got `{identity}`"
+            "persistent naming requires relational query identity, got `{}`",
+            query_entity_identity_reporting_label(identity)
         ))
     })?;
     let kind = match parts.kind() {

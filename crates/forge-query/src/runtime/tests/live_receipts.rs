@@ -175,7 +175,10 @@ fn runtime_live_read_receipt_retains_materialized_remask_posture() {
         posture.runtime_origin_digest(),
         Some(
             view.subscription_installation()
-                .installation_projection().label().as_str())
+                .installation_projection()
+                .label()
+                .as_str()
+        )
     );
 }
 
@@ -221,7 +224,10 @@ fn runtime_live_read_receipt_retains_time_only_materialized_posture() {
         posture.runtime_origin_digest(),
         Some(
             view.subscription_installation()
-                .installation_projection().label().as_str())
+                .installation_projection()
+                .label()
+                .as_str()
+        )
     );
 }
 
@@ -318,7 +324,10 @@ fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() 
         Some(
             mixed_view
                 .subscription_installation()
-                .installation_projection().label().as_str())
+                .installation_projection()
+                .label()
+                .as_str()
+        )
     );
 }
 

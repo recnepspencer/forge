@@ -10,17 +10,20 @@ use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingInde
 use crate::topology_operators::application::{
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
+use crate::topology_operators::authority_identity::{
+    existing_entity_authority, existing_relation_authority,
+};
 use crate::topology_operators::mutation_sequence::TopologyDeclaredMutationMember;
 
 pub(super) fn bind_existing_relation_handle(
     runner: &TopologyMutationApplicationRunner<'_, '_>,
     relation_id: RelationId,
     query_identity: ForgeQueryEntityIdentity,
-) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
-    runner.workspace.bind_existing_relation(
-        ForgeQueryExistingRelationTarget::new(format!("{relation_id:?}"), query_identity)?
+) -> Result<ForgeQueryExistingTruthTargetBinding, TopologyMutationApplicationError> {
+    Ok(runner.workspace.bind_existing_relation(
+        ForgeQueryExistingRelationTarget::new(existing_relation_authority(relation_id)?, query_identity)?
             .in_target_collection("TopologyRelation")?,
-    )
+    )?)
 }
 
 pub(super) fn bind_existing_entity_handle(
@@ -43,7 +46,10 @@ pub(super) fn bind_existing_entity_handle(
         );
     }
     Ok(runner.workspace.bind_existing_entity(
-        ForgeQueryExistingEntityTarget::new(format!("{entity_id:?}"), binding.query_identity)?
+        ForgeQueryExistingEntityTarget::new(
+            existing_entity_authority(entity_id)?,
+            binding.query_identity,
+        )?
             .in_target_collection("TopologyEntity")?,
     )?)
 }

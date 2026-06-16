@@ -7,7 +7,8 @@ use crate::execution::{execute_preflight_bundle, ExecutionError};
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::query_context::{
-    execute_query_basis_context, AdmittedQueryBasisContext, QueryContextFamily,
+    execute_query_basis_context, AdmittedQueryBasisContext, HistoricalAdmissionClass,
+    QueryContextFamily,
 };
 use crate::runtime::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadDenial, ForgeQueryReadDenialKind,
@@ -176,10 +177,9 @@ fn materialized_fact_posture_for_read_graph(
         }
         state
     } else {
-        let mut canonical_matches = runtime
-            .live_subscriptions
-            .values()
-            .filter(|state| state.installation.query_projection().label() == lower_declaration_digest.as_str());
+        let mut canonical_matches = runtime.live_subscriptions.values().filter(|state| {
+            state.installation.query_projection().label() == lower_declaration_digest.as_str()
+        });
         let state = canonical_matches.next()?;
         if canonical_matches.next().is_some() {
             return None;
@@ -223,16 +223,34 @@ fn context_allows_runtime_materialization(
     match context.family() {
         QueryContextFamily::CurrentBranchHead => true,
         QueryContextFamily::HistoricalSnapshot => {
-            context.basis_digest()
-                == runtime_snapshot_identity
-                    .evidence_identity()
-                    .reporting_projection()
+            historical_snapshot_context_matches_bound_workspace(runtime_snapshot_identity, context)
         }
         QueryContextFamily::BranchHead
         | QueryContextFamily::HistoricalCommit
         | QueryContextFamily::PreviewDerivedHistorical
         | QueryContextFamily::DiffComparison => false,
     }
+}
+
+fn historical_snapshot_context_matches_bound_workspace(
+    runtime_snapshot_identity: &ForgeQuerySnapshotIdentity,
+    context: &AdmittedQueryBasisContext,
+) -> bool {
+    let Some(HistoricalAdmissionClass::RuntimeRetained) = context.historical_admission_class()
+    else {
+        return false;
+    };
+    workspace_matches_declared_historical_basis(
+        runtime_snapshot_identity,
+        context.declared_basis_label(),
+    )
+}
+
+fn workspace_matches_declared_historical_basis(
+    runtime_snapshot_identity: &ForgeQuerySnapshotIdentity,
+    declared_basis_label: &str,
+) -> bool {
+    runtime_snapshot_identity.matches_declared_historical_basis_label(declared_basis_label)
 }
 
 fn basis_resolution_error_message(error: BasisResolutionError) -> String {

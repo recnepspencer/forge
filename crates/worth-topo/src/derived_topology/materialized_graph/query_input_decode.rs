@@ -1,3 +1,4 @@
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use forge_query::facade::ForgeQueryEntityIdentity;
 use forge_relational::facade::identity::{EntityId, PartitionId};
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
@@ -77,12 +78,14 @@ pub(crate) fn entity_id_from_query_identity(
 ) -> Result<EntityId, TopologyMaterializationError> {
     let parts = identity.relational_record_parts().ok_or_else(|| {
         TopologyMaterializationError::new(format!(
-            "expected relational forge-query entity identity, found `{identity}`"
+            "expected relational forge-query entity identity, found `{}`",
+            query_entity_identity_reporting_label(identity)
         ))
     })?;
     if parts.kind() != RelationalBridgeRecordIdentityKind::Entity {
         return Err(TopologyMaterializationError::new(format!(
-            "expected forge-query entity identity, found `{identity}`"
+            "expected forge-query entity identity, found `{}`",
+            query_entity_identity_reporting_label(identity)
         )));
     }
     Ok(EntityId::new(

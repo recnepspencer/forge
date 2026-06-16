@@ -16,3 +16,11 @@ error[E0560]: struct `QuerySubscriptionMaintenanceDelta` has no field named `aff
   |         ^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionMaintenanceDelta` does not have this field
   |
   = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionMaintenanceDelta` has no field named `maintenance_delta_digest`
+ --> tests/ui/active_subscription_maintenance_delta_constructor_private.rs:9:9
+  |
+9 |         maintenance_delta_digest: "delta".to_string(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionMaintenanceDelta` does not have this field
+  |
+  = note: all struct fields are already assigned

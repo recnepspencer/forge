@@ -7,6 +7,9 @@ use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::topology_operators::authority_identity::{
+    existing_entity_authority, existing_relation_authority,
+};
 use crate::topology_operators::TopologyDeclaredMutationMember;
 
 use super::bindings::{query_entity_binding, query_relation_binding};
@@ -33,8 +36,11 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             );
         }
         let binding = self.workspace.bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new(format!("{entity_id:?}"), binding.query_identity)?
-                .in_target_collection("TopologyEntity")?,
+            ForgeQueryExistingEntityTarget::new(
+                existing_entity_authority(entity_id)?,
+                binding.query_identity,
+            )?
+            .in_target_collection("TopologyEntity")?,
         )?;
         Ok(builder.delete_existing_verified(
             binding,
@@ -72,7 +78,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         }
         let binding = self.workspace.bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
+                existing_relation_authority(relation_id)?,
                 binding.query_identity,
             )?
             .in_target_collection("TopologyRelation")?,

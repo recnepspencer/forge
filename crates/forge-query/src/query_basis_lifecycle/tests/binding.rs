@@ -30,7 +30,10 @@ fn truth_view_readmission_binds_branch_head_observation_evidence() {
         bound.evidence().kind(),
         BridgeLowerRuntimeEvidenceKind::TruthViewEvaluation
     );
-    let record_identity = evaluation.record().record_identity().bridge_admission_evidence();
+    let record_identity = evaluation
+        .record()
+        .record_identity()
+        .bridge_admission_evidence();
     assert_eq!(
         bound.evidence().record_identity(),
         Some(record_identity.terminal_projection_for_reporting())
@@ -51,7 +54,12 @@ fn truth_view_readmission_binds_branch_head_observation_evidence() {
     );
     assert_eq!(
         bound.evidence().snapshot_identity(),
-        Some(evaluation.snapshot_identity().bridge_admission_evidence().terminal_projection_for_reporting())
+        Some(
+            evaluation
+                .snapshot_identity()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
+        )
     );
     assert_eq!(bound.counters().lower_runtime_check_count(), 1);
     assert_eq!(bound.counters().denied_residue_count(), 0);

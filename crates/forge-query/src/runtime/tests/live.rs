@@ -201,7 +201,10 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
         inspection.authority_lane(),
         ForgeQueryAuthorityLane::AuthoritativeTruth
     );
-    assert_eq!(inspection.query_projection().label().as_str(), installation.query_projection().label().as_str());
+    assert_eq!(
+        inspection.query_projection().label().as_str(),
+        installation.query_projection().label().as_str()
+    );
     assert_eq!(
         inspection.view_shape_projection().label().as_str(),
         installation.view_shape_projection().label().as_str()
@@ -212,15 +215,27 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
     );
     assert_eq!(
         inspection.subscription_family_projection().label().as_str(),
-        installation.subscription_family_projection().label().as_str()
+        installation
+            .subscription_family_projection()
+            .label()
+            .as_str()
     );
     assert_eq!(
-        inspection.subscription_declaration_projection().label().as_str(),
-        installation.subscription_declaration_projection().label().as_str()
+        inspection
+            .subscription_declaration_projection()
+            .label()
+            .as_str(),
+        installation
+            .subscription_declaration_projection()
+            .label()
+            .as_str()
     );
     assert_eq!(
         inspection.bridge_declaration_projection().label().as_str(),
-        installation.bridge_declaration_projection().label().as_str()
+        installation
+            .bridge_declaration_projection()
+            .label()
+            .as_str()
     );
     assert_eq!(
         inspection.admission_projection().label().as_str(),
@@ -244,9 +259,15 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
     );
     assert_eq!(
         inspection.consumer_attachment_projection().label().as_str(),
-        installation.consumer_attachment_projection().label().as_str()
+        installation
+            .consumer_attachment_projection()
+            .label()
+            .as_str()
     );
-    assert_eq!(inspection.consumer_projection().label().as_str(), installation.consumer_projection().label().as_str());
+    assert_eq!(
+        inspection.consumer_projection().label().as_str(),
+        installation.consumer_projection().label().as_str()
+    );
     assert_eq!(
         inspection.delivery_cursor_projection().label().as_str(),
         installation.delivery_cursor_projection().label().as_str()
@@ -275,7 +296,11 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
         inspection.installation_projection().label().as_str(),
         installation.installation_projection().label().as_str()
     );
-    assert!(!inspection.inspection_projection().label().as_str().is_empty());
+    assert!(!inspection
+        .inspection_projection()
+        .label()
+        .as_str()
+        .is_empty());
 
     let counters = inspection.counters();
     assert_eq!(
@@ -284,11 +309,17 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
     );
     assert_eq!(
         counters.active_lane_counter_for_reporting(),
-        installation.active_lane_counters().counter_projection().label()
+        installation
+            .active_lane_counters()
+            .counter_projection()
+            .label()
     );
     assert_eq!(
         counters.consumer_attachment_counter_for_reporting(),
-        installation.consumer_attachment_counters().counter_projection().label()
+        installation
+            .consumer_attachment_counters()
+            .counter_projection()
+            .label()
     );
     assert_eq!(counters.family_selection_count(), 1);
     assert_eq!(counters.declaration_count(), 1);
@@ -362,7 +393,11 @@ fn grouped_live_view_inspection_preserves_grouped_family_and_baseline_support() 
     assert_eq!(inspection.counters().admission_count(), 1);
     assert_eq!(inspection.counters().active_lane_creation_count(), 1);
     assert_eq!(inspection.counters().consumer_attachment_count(), 1);
-    assert!(!inspection.inspection_projection().label().as_str().is_empty());
+    assert!(!inspection
+        .inspection_projection()
+        .label()
+        .as_str()
+        .is_empty());
 }
 
 #[test]

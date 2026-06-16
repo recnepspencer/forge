@@ -180,9 +180,7 @@ fn branch_mutation_basis(
 fn runtime_workflow_binding() -> crate::workflow::WorkflowContextBinding {
     synthetic_runtime_workflow_binding_for_snapshot_identity(
         "lower-runtime-effect-phase-six",
-        crate::memory_workspace::admit_external_snapshot_label(
-            "snapshot-1",
-        ),
+        crate::memory_workspace::admit_external_snapshot_label("snapshot-1"),
     )
 }
 

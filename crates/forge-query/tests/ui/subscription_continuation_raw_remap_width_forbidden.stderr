@@ -1,3 +1,25 @@
+error[E0624]: associated function `compose` is private
+ --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:7:33
+  |
+7 |     ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::SubscriptionActivationReceipt)
+  |                                 ^^^^^^^ private associated function
+  |
+ ::: src/evidence_identity/artifact.rs
+  |
+  |     pub(crate) fn compose(scope: ForgeQueryEvidenceScope) -> ForgeQueryEvidenceIdentityEncoder {
+  |     ------------------------------------------------------------------------------------------ private associated function defined here
+
+error[E0624]: method `field_shape` is private
+ --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:8:10
+  |
+8 |         .field_shape(
+  |          ^^^^^^^^^^^ private method
+  |
+ ::: src/evidence_identity/encoder.rs
+  |
+  |     pub(crate) fn field_shape(mut self, tag: ForgeQueryEvidenceTag, value: impl AsRef<str>) -> Self {
+  |     ----------------------------------------------------------------------------------------------- private method defined here
+
 warning: unreachable expression
   --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:19:9
    |

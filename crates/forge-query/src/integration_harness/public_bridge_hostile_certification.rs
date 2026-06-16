@@ -29,11 +29,13 @@ pub fn public_bridge_hostile_published_artifact_component_digest(
     title: &str,
 ) -> String {
     public_bridge_hostile_certification_evidence_label(
-        &forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact)
-            .field_evidence_identity(ForgeQueryEvidenceTag::new("snapshot"), snapshot_identity)
-            .field_value(ForgeQueryEvidenceTag::new("binding"), binding_for_reporting)
-            .field_shape(ForgeQueryEvidenceTag::new("title"), title)
-            .seal(),
+        &forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::RuntimeHostileCertificationArtifact,
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("snapshot"), snapshot_identity)
+        .field_value(ForgeQueryEvidenceTag::new("binding"), binding_for_reporting)
+        .field_shape(ForgeQueryEvidenceTag::new("title"), title)
+        .seal(),
     )
 }
 
@@ -45,15 +47,27 @@ pub fn compose_public_bridge_hostile_certification_digest(
             ForgeQueryEvidenceTag::new("pending_artifact"),
             input.pending_artifact,
         )
-        .field_value(ForgeQueryEvidenceTag::new("branch_basis_a"), input.branch_basis_a)
-        .field_value(ForgeQueryEvidenceTag::new("branch_basis_b"), input.branch_basis_b)
+        .field_value(
+            ForgeQueryEvidenceTag::new("branch_basis_a"),
+            input.branch_basis_a,
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("branch_basis_b"),
+            input.branch_basis_b,
+        )
         .field_value(
             ForgeQueryEvidenceTag::new("preview_discard"),
             input.preview_discard,
         )
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt_one"), &input.receipt_one)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("receipt_one"),
+            &input.receipt_one,
+        )
         .field_shape(ForgeQueryEvidenceTag::new("title_one"), input.title_one)
-        .field_evidence_identity(ForgeQueryEvidenceTag::new("receipt_two"), &input.receipt_two)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("receipt_two"),
+            &input.receipt_two,
+        )
         .field_shape(ForgeQueryEvidenceTag::new("title_two"), input.title_two)
         .field_value(
             ForgeQueryEvidenceTag::new("preview_promote"),

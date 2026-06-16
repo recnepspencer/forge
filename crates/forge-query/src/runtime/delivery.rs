@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::memory_workspace::{ForgeQueryMutationKind, ForgeQueryMutationReceipt};
+use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;
 use crate::subscription::{
     advance_subscription_acknowledgement, build_active_delivery_work_packet,
     emit_query_delivery_batch, lower_query_subscription_maintenance_delta,

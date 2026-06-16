@@ -85,8 +85,12 @@ impl SnapshotReadSource for TopologyRuntimeBridgeSource {
                 if expected != *identity {
                     return Err(RelationalBridgeSourceError::new(format!(
                         "topology snapshot certification runtime only exposes authoritative snapshot `{}`; requested `{}`",
-                        expected.evidence_identity().as_str(),
-                        identity.evidence_identity().as_str()
+                        expected
+                            .bridge_admission_evidence()
+                            .terminal_projection_for_reporting(),
+                        identity
+                            .bridge_admission_evidence()
+                            .terminal_projection_for_reporting()
                     )));
                 }
                 Ok(Box::new(TopologySnapshotReader::snapshot_read_only(
@@ -274,13 +278,17 @@ fn resolve_bridge_snapshot_version(
         .ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
                 "topology bridge snapshot identity `{}` does not resolve to the current-head published bundle",
-                identity.evidence_identity().as_str()
+                identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting()
             ))
         })?;
     if observed_snapshot.version_id != expected_version_id {
         return Err(RelationalBridgeSourceError::new(format!(
             "topology bridge snapshot identity `{}` expected version `{}` but authoritative binding resolved to version `{}`",
-            identity.evidence_identity().as_str(),
+            identity
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
             expected_version_id.0,
             observed_snapshot.version_id.0
         )));

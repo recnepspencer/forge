@@ -128,7 +128,15 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
         ),
         (
             ForgeQueryRuntimeError::MutationNamingDenied(ForgeQueryNamingMutationDenial::new(
-                &ForgeQueryNamingMutationIntent::attach_new_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("attachment-1").expect("naming attachment authority label")).expect("naming attachment identity")),
+                &ForgeQueryNamingMutationIntent::attach_new_target(
+                    crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(
+                        crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new(
+                            "attachment-1",
+                        )
+                        .expect("naming attachment authority label"),
+                    )
+                    .expect("naming attachment identity"),
+                ),
                 ForgeQueryNamingMutationDenialKind::RequiresSameBatchTargetReference,
                 "naming needs a same-batch target",
             )),
@@ -177,7 +185,9 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
         ),
         (
             ForgeQueryRuntimeError::SharedReadStaleBasis {
-                snapshot_identity: crate::memory_workspace::admit_external_snapshot_label("shared-read-stale"),
+                snapshot_identity: crate::memory_workspace::admit_external_snapshot_label(
+                    "shared-read-stale",
+                ),
             },
             ConsumerStopRoute::SharedReadStaleBasis,
         ),

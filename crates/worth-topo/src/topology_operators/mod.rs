@@ -1,3 +1,4 @@
+pub(crate) mod authority_identity;
 pub(crate) mod application;
 mod declaration_entry;
 mod declared_mutation_sequence_builder;

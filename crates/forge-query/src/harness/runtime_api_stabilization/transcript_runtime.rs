@@ -166,23 +166,16 @@ impl ForgeQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
             .and_then(Value::as_str)
             .unwrap_or("TranscriptEntity")
             .to_string();
-        let mutation_receipt = ForgeQueryMutationReceipt {
-            commit_identity: transcript_commit_identity("transcript-intent-commit", &collection),
-            snapshot_identity: transcript_snapshot_identity(
-                "transcript-intent-snapshot",
-                &collection,
-            ),
-            deltas: vec![ForgeQueryMutationDelta {
+        let mutation_receipt = ForgeQueryMutationReceipt::from_authoritative_parts(
+            transcript_commit_identity("transcript-intent-commit", &collection),
+            transcript_snapshot_identity("transcript-intent-snapshot", &collection),
+            vec![ForgeQueryMutationDelta::new(
                 collection,
-                entity_identity:
-                    crate::memory_workspace::admit_authored_entity_label(
-                        "transcript-intent-entity-1",
-                    ),
-                kind: ForgeQueryMutationKind::Updated,
-                aspect_paths: Vec::new(),
-            }],
-            bridge_authority: None,
-        };
+                crate::memory_workspace::admit_authored_entity_label("transcript-intent-entity-1"),
+                ForgeQueryMutationKind::Updated,
+                Vec::new(),
+            )],
+        );
         Ok(ForgeQueryIntentExecution::admitted(
             declaration.strategy_name(),
             declaration.strategy_version(),

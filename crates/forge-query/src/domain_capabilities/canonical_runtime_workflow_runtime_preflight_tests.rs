@@ -7,10 +7,7 @@ use super::{
     ForgeQueryWorkflowContributionAuthoring,
 };
 use crate::harness::fixtures::execution_preflights;
-use crate::workflow::{
-    bind_workflow_context, workflow_context_basis_identity, workflow_context_query_identity,
-    WorkflowBasisFamily, WorkflowBindingSource,
-};
+use crate::workflow::{bind_workflow_context, WorkflowBindingSource};
 
 #[test]
 fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_basis_identity() {
@@ -49,22 +46,11 @@ fn workflow_runtime_preflight_materializer_preserves_real_preflight_query_and_ba
     );
     assert_eq!(
         declaration.binding().query_for_reporting(),
-        workflow_context_query_identity(
-            &preflight
-                .plan()
-                .query()
-                .canonical_query_digest()
-                .evidence_identity(),
-        )
-        .as_str()
+        expected.query_for_reporting()
     );
     assert_eq!(
         declaration.binding().basis_for_reporting(),
-        workflow_context_basis_identity(
-            &WorkflowBasisFamily::RuntimePreflight,
-            preflight.basis().proof().identity(),
-        )
-        .as_str()
+        expected.basis_for_reporting()
     );
 }
 

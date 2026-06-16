@@ -78,9 +78,7 @@ pub(super) fn inspection_result_digest(inspection: &ForgeQueryInspection) -> Str
         ForgeQueryInspection::LiveView(inspection) => {
             inspection.inspection_projection().label().clone()
         }
-        ForgeQueryInspection::DerivedView(inspection) => {
-            inspection.inspection_digest().to_string()
-        }
+        ForgeQueryInspection::DerivedView(inspection) => inspection.inspection_digest().to_string(),
         ForgeQueryInspection::Effect(inspection) => inspection.inspection_digest().to_string(),
         ForgeQueryInspection::WriteReceipt(inspection) => {
             inspection.inspection_digest().to_string()

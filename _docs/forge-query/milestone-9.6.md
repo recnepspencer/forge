@@ -2,47 +2,34 @@
 
 > **Status:** Closed
 >
-> **Closeout note (2026-06-10):** Runtime identity closure is landed on branch
-> `query-repair`. The support-layer closure posture is now proof-derived
-> (`Open` / `Partial` / `Closed`), preview binding and preview outcome ordinary
-> paths retain typed `ForgeQuerySessionLabel` artifacts instead of collapsing
-> back to strings, and the hostile residue scans include same-class
-> string-carried session-identity seams.
+> **Closeout note (2026-06-16, branch `query-repair`):** Re-open hostile QA on
+> 2026-06-16 found doc `Closed` ahead of lib certification and inventory scope.
+> WS-1–WS-4 on `query-repair` restored honest closure:
 >
-> **Done in this pass**
+> - **Lib certification:** `cargo test -p forge-query --lib` → **2327/0** (was
+>   2277/47 before burn-down).
+> - **Consumer boundary:** `cargo test -p worth-kernel --lib construction` →
+>   **172/0**; basis admission uses typed `admission_identity()`; denial tests
+>   use `stop_class()` without string matching on covered paths.
+> - **Inventory scope:** `query_context/basis.rs` and crate-root `preview/mod.rs`
+>   added to format-digest scan; folklore migrated to typed evidence identity.
+> - **Closure honesty:** `identity_boundary_certification_gate.rs` ties support
+>   `Closed` to named 9.6 suite registration **and**
+>   `MILESTONE_9_6_LIB_CERTIFICATION_GREEN`; exclusions documented in
+>   `EXCLUDED_FOLKLORE_DEFERRALS`.
 >
-> - **Basis admission evidence rows:** `ForgeQueryBasisAdmissionEvidenceRow`,
->   typed `evidence_rows()` on preview/branch basis admission, digest uses row
->   digests not raw strings; call sites migrated across runtime adapters,
->   harness/fixtures, and tests.
-> - **Execution digest collision fix:** `ForgeQueryPreviewExecutionEvidence`
->   keys on `session_label_identity` from basis admission; call sites in
->   `session_execution.rs` / `workflow_ops.rs` updated.
-> - **Preview artifact API:** closeout, promotion, execution, outcome, and diff
->   store `ForgeQuerySessionLabel`; expose `session_label()` / `label_identity()`.
-> - **Domain-invariant chain:** graph/read violation hooks migrated off
->   `hash_parts`; denial digests exclude message text; hook paths added to
->   `identity_boundary_inventory.rs`.
-> - **Tests / inventory:** render-collision parity for closeout **and** execution
->   digests; denial digest stable under message rewording; identity-boundary
->   hostile matrix + residue inventory wired through support report.
+> Evidence ledger: [milestone-9.6-closeout-evidence.md](./milestone-9.6-closeout-evidence.md)
 >
-> **Verification**
+> **Verification (2026-06-16)**
 >
 > ```text
-> cargo test -p forge-query session_label --lib
-> cargo test -p forge-query evidence_identity --lib
-> cargo test -p forge-query stop_class --lib
-> cargo test -p forge-query identity_boundary --lib
-> cargo test -p forge-query --lib
+> cargo test -p forge-query session_label --lib          → 21/21
+> cargo test -p forge-query evidence_identity --lib      → 19/19
+> cargo test -p forge-query stop_class --lib             → 22/22
+> cargo test -p forge-query identity_boundary --lib      → 27/27
+> cargo test -p forge-query --lib                        → 2327/0
+> cargo test -p worth-kernel --lib construction          → 172/0
 > ```
->
-> The targeted `session_label`, `evidence_identity`, `stop_class`, and
-> `identity_boundary` suites are green again in this closeout pass, and full
-> `cargo test -p forge-query --lib` is green after the closure-honesty and
-> typed-session-identity cleanup. The support/profile closure surface no longer
-> hard-codes `Closed`; it derives posture from runtime-backed ordinary-surface
-> availability plus the hostile residue scans.
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >

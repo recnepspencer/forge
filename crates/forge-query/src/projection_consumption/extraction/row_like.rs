@@ -267,18 +267,20 @@ where
                                 "identity.id",
                                 ProjectionFactKind::EntityIdentity,
                             )?;
-                            crate::memory_workspace::admit_authored_entity_label(value.as_str().ok_or_else(
-                                || ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
-                                    source_family: contract.source_family(),
-                                    source_identity: format!(
-                                        "{}::{row_identity}",
-                                        contract.source_identity()
-                                    ),
-                                    field_key: "identity.id".to_string(),
-                                    fact_kind: ProjectionFactKind::EntityIdentity,
-                                    expected_shape: "string",
-                                },
-                            )?)
+                            crate::memory_workspace::admit_authored_entity_label(
+                                value.as_str().ok_or_else(|| {
+                                    ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
+                                        source_family: contract.source_family(),
+                                        source_identity: format!(
+                                            "{}::{row_identity}",
+                                            contract.source_identity()
+                                        ),
+                                        field_key: "identity.id".to_string(),
+                                        fact_kind: ProjectionFactKind::EntityIdentity,
+                                        expected_shape: "string",
+                                    }
+                                })?,
+                            )
                         }
                     };
                     entity_identities.push(ConsumedEntityIdentityFact::new(

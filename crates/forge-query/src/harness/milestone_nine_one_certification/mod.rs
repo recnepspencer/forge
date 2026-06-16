@@ -748,23 +748,38 @@ fn certified_lane_from_live(
         "subscription_family:{}",
         selection.family().as_str()
     )]);
-    let subscription_equivalence_digest =
-        selection.equivalence_basis().equivalence_projection().label().to_string();
+    let subscription_equivalence_digest = selection
+        .equivalence_basis()
+        .equivalence_projection()
+        .label()
+        .to_string();
     let declaration = declare_query_subscription(selection, slice_budget()).unwrap();
     let query_family = declaration.family().as_str().to_string();
     let declaration_digest = declaration.declaration_projection().label().to_string();
     let lowering = lower_query_subscription_to_bridge(declaration, lowering_budget()).unwrap();
     let bridge_family = lowering.bridge_family().as_str().to_string();
     let bridge_declaration_digest = lowering.bridge_declaration_projection().label().to_string();
-    let basis_request_digest = lowering.basis_request().basis_binding_projection().label().to_string();
+    let basis_request_digest = lowering
+        .basis_request()
+        .basis_binding_projection()
+        .label()
+        .to_string();
     let signal_strategy_digest = lowering
         .signal_strategy_request()
         .signal_strategy_projection()
         .label()
         .to_string();
     let admission = admit_query_subscription(lowering, admission_budget()).unwrap();
-    let support_profile_digest = admission.support_profile().profile_projection().label().to_string();
-    let diagnostics_digest = admission.diagnostics().diagnostics_projection().label().to_string();
+    let support_profile_digest = admission
+        .support_profile()
+        .profile_projection()
+        .label()
+        .to_string();
+    let diagnostics_digest = admission
+        .diagnostics()
+        .diagnostics_projection()
+        .label()
+        .to_string();
     let support_matrix_digest = digest_parts(&[
         format!("support:{}", support_profile_digest),
         format!("diagnostics:{}", diagnostics_digest),
@@ -816,8 +831,14 @@ fn certified_lane_from_live(
         support_profile_digest,
         diagnostics_digest,
         scale_slope_digest: certification.scale_slope_projection().label().to_string(),
-        scale_activation_digest: certification.scale_activation_projection().label().to_string(),
-        scale_admission_digest: certification.scale_admission_projection().label().to_string(),
+        scale_activation_digest: certification
+            .scale_activation_projection()
+            .label()
+            .to_string(),
+        scale_admission_digest: certification
+            .scale_admission_projection()
+            .label()
+            .to_string(),
         counter_snapshot_digest: digest_parts(&[
             format!(
                 "admission_counters:{}",
@@ -849,7 +870,10 @@ fn view_family_mismatch_rejection() -> MilestoneNineOneRejectionBundle {
         "",
         &[
             format!("message:{}", error.message()),
-            format!("diagnostic:{}", error.diagnostic().evidence_projection().label()),
+            format!(
+                "diagnostic:{}",
+                error.diagnostic().evidence_projection().label()
+            ),
             format!("counters:{}", error.counters().counter_projection().label()),
         ],
         error.counters().counter_projection().label().to_string(),
@@ -877,7 +901,10 @@ fn bridge_family_rejection() -> MilestoneNineOneRejectionBundle {
         "",
         &[
             format!("message:{}", error.message()),
-            format!("diagnostic:{}", error.diagnostic().evidence_projection().label()),
+            format!(
+                "diagnostic:{}",
+                error.diagnostic().evidence_projection().label()
+            ),
             format!("counters:{}", error.counters().counter_projection().label()),
         ],
         error.counters().counter_projection().label().to_string(),
@@ -907,7 +934,10 @@ fn masked_slice_rejection(
         "",
         &[
             format!("message:{}", error.message()),
-            format!("diagnostic:{}", error.diagnostic().evidence_projection().label()),
+            format!(
+                "diagnostic:{}",
+                error.diagnostic().evidence_projection().label()
+            ),
             format!("counters:{}", error.counters().counter_projection().label()),
         ],
         error.counters().counter_projection().label().to_string(),
@@ -930,7 +960,10 @@ fn broken_relationship_proof_rejection() -> MilestoneNineOneRejectionBundle {
         "",
         &[
             format!("message:{}", error.message()),
-            format!("diagnostic:{}", error.diagnostic().evidence_projection().label()),
+            format!(
+                "diagnostic:{}",
+                error.diagnostic().evidence_projection().label()
+            ),
             format!("counters:{}", error.counters().counter_projection().label()),
         ],
         error.counters().counter_projection().label().to_string(),
@@ -957,12 +990,18 @@ fn durable_reload_rejection() -> MilestoneNineOneRejectionBundle {
         error.support_profile().profile_projection().label(),
         &[
             format!("message:{}", error.message()),
-            format!("diagnostics:{}", error.diagnostics().diagnostics_projection().label()),
+            format!(
+                "diagnostics:{}",
+                error.diagnostics().diagnostics_projection().label()
+            ),
             format!(
                 "pipeline_diagnostic:{}",
                 error.pipeline_diagnostic().evidence_projection().label()
             ),
-            format!("support:{}", error.support_profile().profile_projection().label()),
+            format!(
+                "support:{}",
+                error.support_profile().profile_projection().label()
+            ),
             format!("counters:{}", error.counters().counter_projection().label()),
         ],
         error.counters().counter_projection().label().to_string(),

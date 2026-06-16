@@ -30,12 +30,24 @@ fn equivalent_future_live_meaning_selects_same_family_regardless_of_construction
     for selection in &temporal_selections[1..] {
         assert_eq!(temporal_first.family(), selection.family());
         assert_eq!(
-            temporal_first.future_selection().future_selection_projection().label(),
-            selection.future_selection().future_selection_projection().label()
+            temporal_first
+                .future_selection()
+                .future_selection_projection()
+                .label(),
+            selection
+                .future_selection()
+                .future_selection_projection()
+                .label()
         );
         assert_eq!(
-            temporal_first.equivalence_basis().equivalence_projection().label(),
-            selection.equivalence_basis().equivalence_projection().label()
+            temporal_first
+                .equivalence_basis()
+                .equivalence_projection()
+                .label(),
+            selection
+                .equivalence_basis()
+                .equivalence_projection()
+                .label()
         );
     }
 
@@ -65,12 +77,24 @@ fn equivalent_future_live_meaning_selects_same_family_regardless_of_construction
     for selection in &async_selections[1..] {
         assert_eq!(async_first.family(), selection.family());
         assert_eq!(
-            async_first.future_selection().future_selection_projection().label(),
-            selection.future_selection().future_selection_projection().label()
+            async_first
+                .future_selection()
+                .future_selection_projection()
+                .label(),
+            selection
+                .future_selection()
+                .future_selection_projection()
+                .label()
         );
         assert_eq!(
-            async_first.equivalence_basis().equivalence_projection().label(),
-            selection.equivalence_basis().equivalence_projection().label()
+            async_first
+                .equivalence_basis()
+                .equivalence_projection()
+                .label(),
+            selection
+                .equivalence_basis()
+                .equivalence_projection()
+                .label()
         );
     }
 }
@@ -126,12 +150,24 @@ fn future_live_meaning_changes_selection_and_support_story_without_forking_famil
         "async_resource"
     );
     assert_ne!(
-        ordinary.equivalence_basis().equivalence_projection().label(),
-        temporal.equivalence_basis().equivalence_projection().label()
+        ordinary
+            .equivalence_basis()
+            .equivalence_projection()
+            .label(),
+        temporal
+            .equivalence_basis()
+            .equivalence_projection()
+            .label()
     );
     assert_ne!(
-        temporal.equivalence_basis().equivalence_projection().label(),
-        async_live.equivalence_basis().equivalence_projection().label()
+        temporal
+            .equivalence_basis()
+            .equivalence_projection()
+            .label(),
+        async_live
+            .equivalence_basis()
+            .equivalence_projection()
+            .label()
     );
 
     let temporal_declaration =

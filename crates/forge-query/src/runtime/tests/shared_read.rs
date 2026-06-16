@@ -164,7 +164,10 @@ fn shared_read_unpublished_artifact_fails_closed_with_typed_pending_state() {
             assert_eq!(state.kind(), ForgeQueryRuntimeAsyncResultStateKind::Pending);
             assert_eq!(
                 state.basis_for_reporting(),
-                unpublished.snapshot_identity().bridge_admission_evidence().terminal_projection_for_reporting()
+                unpublished
+                    .snapshot_identity()
+                    .evidence_identity()
+                    .terminal_projection_for_reporting()
             );
         }
         other => panic!("expected pending async posture, got {other:?}"),

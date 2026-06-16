@@ -120,17 +120,16 @@ pub(crate) fn representative_write_authority_row() -> RepresentativeArtifacts {
     let command = ForgeQueryWriteCommand::Delete {
         entity_identity: representative_entity_identity("task-7"),
     };
-    let mutation_receipt = ForgeQueryMutationReceipt {
-        commit_identity: representative_commit_identity("commit-route-write-7"),
-        snapshot_identity: representative_snapshot_identity("snapshot-route-write-7"),
-        deltas: vec![ForgeQueryMutationDelta {
-            collection: "Task".to_string(),
-            entity_identity: representative_entity_identity("task-7"),
-            kind: ForgeQueryMutationKind::Deleted,
-            aspect_paths: vec!["status.value".to_string()],
-        }],
-        bridge_authority: None,
-    };
+    let mutation_receipt = ForgeQueryMutationReceipt::from_authoritative_parts(
+        representative_commit_identity("commit-route-write-7"),
+        representative_snapshot_identity("snapshot-route-write-7"),
+        vec![ForgeQueryMutationDelta::new(
+            "Task",
+            representative_entity_identity("task-7"),
+            ForgeQueryMutationKind::Deleted,
+            vec!["status.value".to_string()],
+        )],
+    );
     let execution = WriteAuthorityExecutionReceipt::from_command(&command, mutation_receipt);
     RepresentativeArtifacts {
         seam_key: ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
@@ -170,25 +169,25 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
         ForgeQueryMutationKind::Updated,
     )
     .expect("representative signal authority should build");
-    let mutation_receipt = ForgeQueryMutationReceipt {
-        commit_identity: ForgeQueryCommitIdentity::from_relational_commit_id(1),
+    let mutation_receipt = ForgeQueryMutationReceipt::from_bridge_authoritative_parts(
+        ForgeQueryCommitIdentity::from_relational_commit_id(1),
         snapshot_identity,
-        deltas: vec![
-            ForgeQueryMutationDelta {
-                collection: "Task".to_string(),
-                entity_identity: representative_task_identity,
-                kind: ForgeQueryMutationKind::Updated,
-                aspect_paths: vec!["status.value".to_string()],
-            },
-            ForgeQueryMutationDelta {
-                collection: "Task".to_string(),
-                entity_identity: representative_entity_identity("task-10"),
-                kind: ForgeQueryMutationKind::Updated,
-                aspect_paths: vec!["priority.value".to_string()],
-            },
+        vec![
+            ForgeQueryMutationDelta::new(
+                "Task",
+                representative_task_identity,
+                ForgeQueryMutationKind::Updated,
+                vec!["status.value".to_string()],
+            ),
+            ForgeQueryMutationDelta::new(
+                "Task",
+                representative_entity_identity("task-10"),
+                ForgeQueryMutationKind::Updated,
+                vec!["priority.value".to_string()],
+            ),
         ],
-        bridge_authority: Some(bridge_authority),
-    };
+        bridge_authority,
+    );
     let routing = SignalInvalidationRoutingReceipt::from_mutation_receipt(&mutation_receipt)
         .expect("representative signal routing fixture must carry bridge authority");
     let boundary_receipt =

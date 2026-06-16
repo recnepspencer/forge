@@ -197,10 +197,12 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
     ForgeQueryDeclarationFoundationalEvidence<D, I>,
     ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>,
 > {
-    let wrong_handle_identity = subject.handle_identity().map_or_else(
-        || subject.handle_identity_digest() != expected_world_basis.handle_identity_for_reporting(),
-        |subject_handle_identity| subject_handle_identity != expected_world_basis.handle_identity(),
-    );
+    let wrong_handle_identity = match subject.handle_identity() {
+        Some(subject_handle_identity) => {
+            subject_handle_identity != expected_world_basis.handle_identity()
+        }
+        None => subject.handle_identity_digest() != expected_world_basis.handle_identity().as_str(),
+    };
     if wrong_handle_identity {
         return Err(
             ForgeQueryDeclarationFoundationalEvidenceDenial::wrong_world(

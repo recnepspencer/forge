@@ -1,11 +1,11 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
+use super::super::evidence_projection::subscription_evidence_projection;
 use super::identities::{
     bridge_parity_counter_identity, bridge_parity_failure_identity, bridge_parity_receipt_identity,
     bridge_parity_width_identity,
 };
-use super::super::evidence_projection::subscription_evidence_projection;
 use super::witness::BridgeWitnessAssemblyPosture;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

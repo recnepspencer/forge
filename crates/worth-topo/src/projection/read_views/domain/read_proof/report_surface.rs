@@ -64,7 +64,12 @@ impl TopologyReadRequestReport {
     pub fn executed_snapshot_identity_diagnostic_label(&self) -> Option<String> {
         self.executed_snapshot_identity
             .as_ref()
-            .map(|identity| identity.evidence_identity().as_str().to_string())
+            .map(|identity| {
+                identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting()
+                    .to_string()
+            })
     }
 
     pub fn executed_built_in_operator_coverage(&self) -> &[ForgeQueryReadBuiltInOperator] {

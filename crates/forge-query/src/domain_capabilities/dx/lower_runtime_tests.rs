@@ -279,25 +279,22 @@ fn write_authority_boundary_source(
     use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
     let command = ForgeQueryWriteCommand::Delete {
-        entity_identity: crate::memory_workspace::admit_authored_entity_label(
-            target_digest,
-        ),
+        entity_identity: crate::memory_workspace::admit_authored_entity_label(target_digest),
     };
-    let mutation_receipt = crate::memory_workspace::ForgeQueryMutationReceipt {
-        commit_identity: crate::memory_workspace::ForgeQueryCommitIdentity::preview(
-            crate::ForgeQueryEvidenceIdentity::compose(
-                crate::ForgeQueryEvidenceScope::WriteReceiptCommitIdentity,
-            )
-            .field_value(crate::ForgeQueryEvidenceTag::new("target"), target_digest)
-            .seal(),
-        ),
-        snapshot_identity:
+    let mutation_receipt =
+        crate::memory_workspace::ForgeQueryMutationReceipt::from_authoritative_parts(
+            crate::memory_workspace::ForgeQueryCommitIdentity::preview(
+                crate::ForgeQueryEvidenceIdentity::compose(
+                    crate::ForgeQueryEvidenceScope::WriteReceiptCommitIdentity,
+                )
+                .field_value(crate::ForgeQueryEvidenceTag::new("target"), target_digest)
+                .seal(),
+            ),
             crate::memory_workspace::ForgeQuerySnapshotIdentity::from_relational_snapshot(
                 RelationalBridgeSnapshotIdentityParts::new(1, 1),
             ),
-        deltas: Vec::new(),
-        bridge_authority: None,
-    };
+            Vec::new(),
+        );
     crate::runtime::WriteAuthorityExecutionReceipt::from_command(&command, mutation_receipt)
 }
 

@@ -131,7 +131,10 @@ impl ForgeQueryLiveReadExecutionHandoff {
                     .as_str()
             ),
             format!("decision:{}", plan.decision_digest()),
-            format!("installation:{}", installation.installation_projection().label()),
+            format!(
+                "installation:{}",
+                installation.installation_projection().label()
+            ),
         ]);
         Self {
             installation,

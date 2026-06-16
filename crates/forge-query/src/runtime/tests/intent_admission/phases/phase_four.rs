@@ -41,9 +41,7 @@ fn effect_admitted_handoff_materializes_self_contained_execution_binding() {
         .expect("write-intent effect should declare");
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label(
-                "task-1",
-            ),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from binding"),
         })
@@ -91,9 +89,7 @@ fn effect_receipt_surfaces_provenance_without_nested_receipt_spelunking() {
         .expect("write-intent effect should declare");
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label(
-                "task-1",
-            ),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title from outer receipt"),
         })
@@ -250,9 +246,7 @@ fn stale_effect_execution_binding_fails_as_typed_handoff_violation() {
         .expect("write-intent effect should declare");
     runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: crate::memory_workspace::admit_authored_entity_label(
-                "task-1",
-            ),
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
             aspect_path: "title.value".to_string(),
             value: json!("title before stale execution"),
         })

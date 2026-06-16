@@ -1,10 +1,10 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
+use super::acknowledgement::{QueryDeliveryBatchReceipt, SubscriptionAcknowledgementFrontier};
 use super::active_digest::ActiveSubscriptionLaneDigest;
 use super::active_handle::ActiveSubscriptionLaneHandle;
 use super::active_lane::{ActiveSubscriptionLane, ActiveSubscriptionLaneAdmission};
-use super::acknowledgement::{QueryDeliveryBatchReceipt, SubscriptionAcknowledgementFrontier};
 use super::attachment::SubscriptionConsumerAttachment;
 use super::attachment_digest::SubscriptionConsumerAttachmentDigest;
 use super::closeout::SubscriptionLifecycleCloseout;

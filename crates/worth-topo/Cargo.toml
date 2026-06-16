@@ -10,7 +10,7 @@ name = "topology"
 
 [[test]]
 name = "public_api_contract"
-path = "src/certification/public_facade_contracts/contracts/public_api.rs"
+path = "src/certification/public_facade_contracts/contracts/public_api_contract_entry.rs"
 
 [[test]]
 name = "public_topology_operator_closeout_contract"
@@ -19,6 +19,14 @@ path = "src/certification/public_facade_contracts/contracts/topology_operator_cl
 [[test]]
 name = "ui"
 path = "src/certification/public_facade_contracts/compile_fail_contracts.rs"
+
+[[test]]
+name = "phase_boundaries_query_runtime_phase_eight_compile_fail"
+path = "tests/phase_boundaries_query_runtime_phase_eight_compile_fail.rs"
+
+[[test]]
+name = "phase_boundaries_query_runtime_phase_nine_compile_fail"
+path = "tests/phase_boundaries_query_runtime_phase_nine_compile_fail.rs"
 
 [dependencies]
 forge-foundational.workspace = true

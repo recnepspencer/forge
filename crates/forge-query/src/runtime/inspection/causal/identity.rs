@@ -857,14 +857,19 @@ pub(crate) fn causal_test_bridge_binding_reference_for_reporting(
     family: &str,
     bridge_reference: forge_runtime_bridge::facade::BridgeIdentityEvidence,
 ) -> String {
-    let composed = ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt)
-        .field_shape(
-            ForgeQueryEvidenceTag::new("role"),
-            "bridge-causal-evidence-reference",
-        )
-        .field_shape(ForgeQueryEvidenceTag::new("owner"), owner)
-        .field_shape(ForgeQueryEvidenceTag::new("family"), family)
-        .field_bridge_retained_evidence_identity(ForgeQueryEvidenceTag::new("reference"), &bridge_reference)
-        .seal();
+    let composed = ForgeQueryEvidenceIdentity::compose(
+        ForgeQueryEvidenceScope::CausalEvidenceReferenceReceipt,
+    )
+    .field_shape(
+        ForgeQueryEvidenceTag::new("role"),
+        "bridge-causal-evidence-reference",
+    )
+    .field_shape(ForgeQueryEvidenceTag::new("owner"), owner)
+    .field_shape(ForgeQueryEvidenceTag::new("family"), family)
+    .field_bridge_retained_evidence_identity(
+        ForgeQueryEvidenceTag::new("reference"),
+        &bridge_reference,
+    )
+    .seal();
     composed.reporting_projection().to_string()
 }

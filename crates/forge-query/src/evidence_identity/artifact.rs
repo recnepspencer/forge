@@ -1,13 +1,13 @@
+use super::encoder::ForgeQueryEvidenceIdentityEncoder;
+use super::scheme::ForgeQueryEvidenceIdentityScheme;
+use super::scope::ForgeQueryEvidenceScope;
+use super::sealed::SealedForgeQueryEvidenceIdentity;
 use forge_foundational::facade::CanonicalDerivedDigest;
 use forge_runtime_bridge::facade::{
     bridge_truth_digest_identity_evidence_from_external_token,
     bridge_truth_external_identity_token, bridge_truth_projection_identity_from_external_token,
     BridgeIdentityEvidence,
 };
-use super::encoder::ForgeQueryEvidenceIdentityEncoder;
-use super::scheme::ForgeQueryEvidenceIdentityScheme;
-use super::scope::ForgeQueryEvidenceScope;
-use super::sealed::SealedForgeQueryEvidenceIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryEvidenceIdentityComparisonError {
@@ -63,7 +63,7 @@ impl ForgeQueryEvidenceIdentity {
         self.as_str()
     }
 
-    pub(crate) fn terminal_projection_for_reporting(&self) -> &str {
+    pub fn terminal_projection_for_reporting(&self) -> &str {
         self.reporting_projection()
     }
 

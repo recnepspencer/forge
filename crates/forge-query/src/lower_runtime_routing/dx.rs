@@ -67,7 +67,9 @@ pub fn summarize_lower_runtime_boundary(
             envelope.route_kind().as_str(),
             envelope.support_posture().as_str(),
         ),
-        envelope.envelope_identity().terminal_projection_for_reporting(),
+        envelope
+            .envelope_identity()
+            .terminal_projection_for_reporting(),
     )
 }
 
@@ -83,10 +85,16 @@ pub fn inspect_lower_runtime_boundary(
             envelope.route_cost_posture().as_str(),
             envelope.route_failure_topology().as_str(),
             envelope.retained_evidence_identity().as_str(),
-            envelope.route_authority_identity().terminal_projection_for_reporting(),
-            envelope.route_evidence_identity().terminal_projection_for_reporting(),
+            envelope
+                .route_authority_identity()
+                .terminal_projection_for_reporting(),
+            envelope
+                .route_evidence_identity()
+                .terminal_projection_for_reporting(),
         ),
-        envelope.envelope_identity().terminal_projection_for_reporting(),
+        envelope
+            .envelope_identity()
+            .terminal_projection_for_reporting(),
     )
 }
 
@@ -175,7 +183,9 @@ mod tests {
 
         assert_eq!(
             summary.summary_digest(),
-            envelope.envelope_identity().terminal_projection_for_reporting()
+            envelope
+                .envelope_identity()
+                .terminal_projection_for_reporting()
         );
         assert_eq!(
             summary.headline(),
@@ -244,7 +254,9 @@ mod tests {
 
         assert_eq!(
             inspection.inspection_digest(),
-            envelope.envelope_identity().terminal_projection_for_reporting()
+            envelope
+                .envelope_identity()
+                .terminal_projection_for_reporting()
         );
         assert_eq!(
             inspection.headline(),
@@ -257,8 +269,12 @@ mod tests {
                 envelope.route_cost_posture().as_str(),
                 envelope.route_failure_topology().as_str(),
                 envelope.retained_evidence_identity().as_str(),
-                envelope.route_authority_identity().terminal_projection_for_reporting(),
-                envelope.route_evidence_identity().terminal_projection_for_reporting(),
+                envelope
+                    .route_authority_identity()
+                    .terminal_projection_for_reporting(),
+                envelope
+                    .route_evidence_identity()
+                    .terminal_projection_for_reporting(),
             )
         );
     }

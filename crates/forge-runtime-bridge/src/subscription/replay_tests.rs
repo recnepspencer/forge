@@ -9,12 +9,16 @@ use crate::input::envelope::{
 };
 use crate::mapping::SubscriptionSliceKind;
 use crate::snapshot::{SnapshotReadPacket, TruthSnapshotIdentity, TruthSnapshotReader};
+use crate::truth_identity_fixtures::{truth_branch, truth_snapshot};
 
 use super::{
     super::BridgeSubscriptionLifecycleRecord, super::BridgeSubscriptionLifecycleStateKind,
     BridgeRetainedSubscriptionBundle, BridgeSubscriptionReplayMismatchKind,
     BridgeSubscriptionReplaySummary,
 };
+
+const REPLAY_SNAPSHOT: fn() -> TruthSnapshotIdentity = || truth_snapshot(1, 1);
+const REPLAY_BRANCH: fn() -> TruthBranchIdentity = || truth_branch("analysis");
 
 #[derive(Clone)]
 struct StaticSource;
@@ -23,7 +27,7 @@ struct StaticSnapshotReader;
 
 impl TruthSnapshotReader for StaticSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a")
+        REPLAY_SNAPSHOT()
     }
 
     fn read_packet(
@@ -32,7 +36,7 @@ impl TruthSnapshotReader for StaticSnapshotReader {
     ) -> Result<crate::snapshot::SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError>
     {
         Ok(crate::snapshot::SnapshotReadPacketResult::new(
-            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            REPLAY_SNAPSHOT(),
             request
                 .reads()
                 .iter()
@@ -56,8 +60,8 @@ impl crate::adapter::CommittedPatchSource for StaticSource {
             BridgeCommittedPatchEnvelopeIdentity::new(
                 request.commit_identity().clone(),
                 TruthPatchIdentity::from_relational_patch_position(1),
-                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
-                TruthBranchIdentity::from_relational_branch_id("analysis"),
+                REPLAY_SNAPSHOT(),
+                REPLAY_BRANCH(),
             ),
             vec![profile_name_patch_item("entity-1")],
         )
@@ -70,7 +74,7 @@ impl crate::adapter::SnapshotReadSource for StaticSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, crate::adapter::RelationalBridgeSourceError> {
-        if crate::truth_identity_fixtures::truth_snapshot_fixture_matches(identity, "snapshot-a") {
+        if snapshot_matches_replay_fixture(identity) {
             Ok(Box::new(StaticSnapshotReader))
         } else {
             Err(crate::adapter::RelationalBridgeSourceError::new(format!(
@@ -90,7 +94,7 @@ impl crate::adapter::TruthBranchHeadSource for StaticSource {
             BridgeCommittedPatchEnvelopeIdentity::new(
                 crate::facade::TruthCommitIdentity::from_relational_commit_id(100),
                 TruthPatchIdentity::from_relational_patch_position(100),
-                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                REPLAY_SNAPSHOT(),
                 branch_identity.clone(),
             ),
             vec![profile_name_patch_item("entity-1")],
@@ -111,6 +115,12 @@ impl crate::adapter::InvalidationSink for StaticSink {
             delivery.source_snapshot().clone(),
         ))
     }
+}
+
+fn snapshot_matches_replay_fixture(identity: &TruthSnapshotIdentity) -> bool {
+    identity
+        .relational_snapshot_parts()
+        .is_some_and(|parts| parts.snapshot_id() == 1 && parts.version_id() == 1)
 }
 
 fn profile_name_patch_item(entity_identity: &str) -> BridgeCommittedPatchItem {
@@ -202,18 +212,14 @@ fn replay_rejects_lifecycle_admitted_mismatch() {
     let detail_admitted = runtime
         .admit_subscription(
             &detail,
-            BridgeSubscriptionBasisRequest::snapshot(
-                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
-            ),
+            BridgeSubscriptionBasisRequest::snapshot(REPLAY_SNAPSHOT()),
         )
         .expect("detail admission should succeed");
     let collection = declare_collection(&runtime);
     let collection_admitted = runtime
         .admit_subscription(
             &collection,
-            BridgeSubscriptionBasisRequest::branch_head(
-                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
-            ),
+            BridgeSubscriptionBasisRequest::branch_head(REPLAY_BRANCH()),
         )
         .expect("collection admission should succeed");
 

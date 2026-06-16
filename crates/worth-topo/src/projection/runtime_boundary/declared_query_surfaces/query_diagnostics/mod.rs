@@ -1,5 +1,5 @@
 use forge_query::facade::{
-    ForgeQueryCommitIdentity, ForgeQueryComputedBuilder, ForgeQueryDerivedPatch,
+    ForgeQueryComputedBuilder, ForgeQueryDerivedPatch,
     ForgeQueryDerivedView, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedRefreshContext,
     ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError, ForgeQueryWorkspace,
@@ -134,7 +134,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyDiagnosticsMaintainer {
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label(
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-diagnostics-incremental-unexpected",
             ),
             delta.entity_identity().clone(),
@@ -169,7 +169,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyDiagnosticsMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label("topology-diagnostics"),
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity("topology-diagnostics"),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {
@@ -211,7 +211,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label(
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-equivalence-incremental-unexpected",
             ),
             delta.entity_identity().clone(),
@@ -243,7 +243,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label(
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-equivalence-contract",
             ),
             if view.produced_aspects().is_empty() {

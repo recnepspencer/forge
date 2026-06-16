@@ -24,9 +24,8 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         let aspect_paths = command.declared_aspect_paths();
         let collection = command_collection(&command);
-        let entity_identity = crate::memory_workspace::admit_authored_entity_label(
-            "external-entity-1",
-        );
+        let entity_identity =
+            crate::memory_workspace::admit_authored_entity_label("external-entity-1");
         let snapshot_identity =
             crate::memory_workspace::ForgeQuerySnapshotIdentity::from_relational_snapshot(
                 RelationalBridgeSnapshotIdentityParts::new(1, 1),
@@ -39,18 +38,15 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
             &entity_identity,
             ForgeQueryMutationKind::Created,
         )?;
-        let receipt = ForgeQueryMutationReceipt {
-            commit_identity:
-                crate::memory_workspace::ForgeQueryCommitIdentity::from_relational_commit_id(1),
+        let receipt = test_mutation_receipt_with_bridge_authority(
+            crate::memory_workspace::ForgeQueryCommitIdentity::from_relational_commit_id(1),
             snapshot_identity,
-            deltas: vec![crate::memory_workspace::ForgeQueryMutationDelta {
-                collection,
-                entity_identity,
-                kind: ForgeQueryMutationKind::Created,
-                aspect_paths,
-            }],
-            bridge_authority: Some(bridge_authority),
-        };
+            collection,
+            entity_identity,
+            ForgeQueryMutationKind::Created,
+            aspect_paths,
+            bridge_authority,
+        );
         Ok(self.build_write_authority_execution_receipt(&command, receipt))
     }
 }
@@ -80,26 +76,14 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AuthorityLessWriteAuthority {
         command: ForgeQueryWriteCommand,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         let collection = command_collection(&command);
-        let receipt = ForgeQueryMutationReceipt {
-            commit_identity:
-                crate::memory_workspace::admit_external_commit_label(
-                    "authority-less-commit",
-                ),
-            snapshot_identity:
-                crate::memory_workspace::admit_external_snapshot_label(
-                    "authority-less-snapshot",
-                ),
-            deltas: vec![crate::memory_workspace::ForgeQueryMutationDelta {
-                collection,
-                entity_identity:
-                    crate::memory_workspace::admit_authored_entity_label(
-                        "authority-less-entity",
-                    ),
-                kind: ForgeQueryMutationKind::Created,
-                aspect_paths: command.declared_aspect_paths(),
-            }],
-            bridge_authority: None,
-        };
+        let receipt = test_mutation_receipt(
+            crate::memory_workspace::admit_external_commit_label("authority-less-commit"),
+            crate::memory_workspace::admit_external_snapshot_label("authority-less-snapshot"),
+            collection,
+            crate::memory_workspace::admit_authored_entity_label("authority-less-entity"),
+            ForgeQueryMutationKind::Created,
+            command.declared_aspect_paths(),
+        );
         Ok(self.build_write_authority_execution_receipt(&command, receipt))
     }
 }
@@ -154,9 +138,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
             let collection = command_collection(&command);
             let entity_identity_text = format!("external-entity-{}", index + 1);
             let entity_identity =
-                crate::memory_workspace::admit_authored_entity_label(
-                    &entity_identity_text,
-                );
+                crate::memory_workspace::admit_authored_entity_label(&entity_identity_text);
             let snapshot_identity =
                 crate::memory_workspace::ForgeQuerySnapshotIdentity::from_relational_snapshot(
                     RelationalBridgeSnapshotIdentityParts::new(10, index as u64 + 1),
@@ -169,20 +151,17 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
                 &entity_identity,
                 ForgeQueryMutationKind::Created,
             )?;
-            let receipt = ForgeQueryMutationReceipt {
-                commit_identity:
-                    crate::memory_workspace::ForgeQueryCommitIdentity::from_relational_commit_id(
-                        index as u64 + 1,
-                    ),
+            let receipt = test_mutation_receipt_with_bridge_authority(
+                crate::memory_workspace::ForgeQueryCommitIdentity::from_relational_commit_id(
+                    index as u64 + 1,
+                ),
                 snapshot_identity,
-                deltas: vec![crate::memory_workspace::ForgeQueryMutationDelta {
-                    collection,
-                    entity_identity,
-                    kind: ForgeQueryMutationKind::Created,
-                    aspect_paths,
-                }],
-                bridge_authority: Some(bridge_authority),
-            };
+                collection,
+                entity_identity,
+                ForgeQueryMutationKind::Created,
+                aspect_paths,
+                bridge_authority,
+            );
             receipts.push(self.build_write_authority_execution_receipt(&command, receipt));
         }
         Ok(receipts)
@@ -225,9 +204,7 @@ impl ForgeQueryRuntimeSignalSinkAdapter for DriftingSignalSink {
     ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
         let mut drifted = receipt.clone();
         drifted.commit_identity =
-            crate::memory_workspace::admit_external_commit_label(
-                "drifted-signal-routing-commit",
-            );
+            crate::memory_workspace::admit_external_commit_label("drifted-signal-routing-commit");
         let routed = self.build_signal_invalidation_routing_receipt(&drifted)?;
         self.build_signal_invalidation_boundary_receipt(&drifted, routed)
     }

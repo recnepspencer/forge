@@ -9,7 +9,7 @@ use crate::topology_operators::{
     NamingMutationContinuityMatrix, TopologyMutationDigest, TopologyMutationNamingOutcome,
     TopologyMutationSequenceDigest,
 };
-use crate::validation::facade::{TopologyValidationInputClass, TopologyValidationRow};
+use crate::validation::{TopologyValidationInputClass, TopologyValidationRow};
 use crate::validation::{DerivedTopologyValidationReport, TopologyValidationPhase};
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 

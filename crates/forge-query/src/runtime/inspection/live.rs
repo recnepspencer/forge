@@ -21,7 +21,8 @@ pub struct ForgeQueryLiveViewInspection {
     pub(in crate::runtime::inspection) view_shape_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::runtime::inspection) subscription_family: String,
     pub(in crate::runtime::inspection) subscription_family_identity: ForgeQueryEvidenceIdentity,
-    pub(in crate::runtime::inspection) subscription_declaration_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::runtime::inspection) subscription_declaration_identity:
+        ForgeQueryEvidenceIdentity,
     pub(in crate::runtime::inspection) bridge_declaration_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::runtime::inspection) admission_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::runtime::inspection) activation_identity: ForgeQueryEvidenceIdentity,
@@ -36,12 +37,16 @@ pub struct ForgeQueryLiveViewInspection {
     pub(in crate::runtime::inspection) consumer_attachment_budget_policy: String,
     pub(in crate::runtime::inspection) runtime_budget_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::runtime::inspection) support_identity: ForgeQueryEvidenceIdentity,
-    pub(in crate::runtime::inspection) last_delivery_cause_kind: Option<QuerySubscriptionDeliveryCauseKind>,
-    pub(in crate::runtime::inspection) last_delivery_cause_identity: Option<ForgeQueryEvidenceIdentity>,
+    pub(in crate::runtime::inspection) last_delivery_cause_kind:
+        Option<QuerySubscriptionDeliveryCauseKind>,
+    pub(in crate::runtime::inspection) last_delivery_cause_identity:
+        Option<ForgeQueryEvidenceIdentity>,
     pub(in crate::runtime::inspection) last_delivery_had_relational_patch: bool,
-    pub(in crate::runtime::inspection) mixed_cause_delivery: Option<ForgeQueryRuntimeMixedCauseDelivery>,
+    pub(in crate::runtime::inspection) mixed_cause_delivery:
+        Option<ForgeQueryRuntimeMixedCauseDelivery>,
     pub(in crate::runtime::inspection) ordinary_runtime_posture: ForgeQueryOrdinaryRuntimePosture,
-    pub(in crate::runtime::inspection) async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
+    pub(in crate::runtime::inspection) async_result_state:
+        Option<ForgeQueryRuntimeAsyncResultState>,
     pub(in crate::runtime::inspection) remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
     pub(in crate::runtime::inspection) installation_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::runtime::inspection) counters: ForgeQueryLiveSubscriptionInspectionCounters,

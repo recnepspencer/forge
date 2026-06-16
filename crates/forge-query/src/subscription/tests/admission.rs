@@ -42,7 +42,10 @@ fn bridge_lowering_admits_to_runtime_backed_subscription_artifact() {
     );
     assert_eq!(
         admission.signal_strategy_projection().label(),
-        lowering.signal_strategy_request().signal_strategy_projection().label()
+        lowering
+            .signal_strategy_request()
+            .signal_strategy_projection()
+            .label()
     );
     assert_eq!(admission.counters().admission_count(), 1);
     assert_eq!(admission.counters().admission_denial_count(), 0);
@@ -121,13 +124,19 @@ fn activation_input_is_prepared_only_from_admitted_subscription_artifact() {
     let admission = admit_query_subscription(lowering, roomy_admission_budget()).unwrap();
     let admission_digest = admission.admission_projection().label().to_string();
     let query_declaration_digest = admission.query_declaration_projection().label().to_string();
-    let bridge_declaration_digest = admission.bridge_declaration_projection().label().to_string();
+    let bridge_declaration_digest = admission
+        .bridge_declaration_projection()
+        .label()
+        .to_string();
     let basis_binding_digest = admission.basis_binding_projection().label().to_string();
     let signal_strategy_digest = admission.signal_strategy_projection().label().to_string();
 
     let activation = prepare_subscription_activation(admission);
 
-    assert_eq!(activation.admission_projection().label().as_str(), admission_digest.as_str());
+    assert_eq!(
+        activation.admission_projection().label().as_str(),
+        admission_digest.as_str()
+    );
     assert_eq!(
         activation.query_declaration_projection().label().as_str(),
         query_declaration_digest.as_str()

@@ -23,19 +23,21 @@ impl<'a> RetainedTopologyRows<'a> {
     ) -> Result<RetainedTopologyRow<'a>, TopologyReadError> {
         self.rows
             .iter()
-            .find(|row| query_identity_label(row.identity()).as_deref() == Some(identity))
+            .find(|row| retained_row_identity_label(row).as_deref() == Some(identity))
             .map(|row| RetainedTopologyRow { row })
             .ok_or_else(|| {
+                let inventory = self
+                    .identities()
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 TopologyReadError::read_family_execution_denied(format!(
-                    "{label} rows did not retain anchor `{identity}`"
+                    "{label} rows did not retain anchor `{identity}`; retained identities: [{inventory}]"
                 ))
             })
     }
 
     pub(crate) fn identities(&self) -> impl Iterator<Item = String> + 'a {
-        self.rows
-            .iter()
-            .filter_map(|row| query_identity_label(row.identity()))
+        self.rows.iter().filter_map(|row| retained_row_identity_label(row))
     }
 }
 
@@ -195,6 +197,24 @@ pub(crate) fn edge_identity_by_row(
     rows.row(identity, label)?
         .relation_target_identity(edge_relation, label)
         .map(str::to_string)
+}
+
+fn retained_row_identity_label(row: &ForgeQueryEntity) -> Option<String> {
+    row_projection_identity_label(row).or_else(|| query_identity_label(row.identity()))
+}
+
+fn row_projection_identity_label(row: &ForgeQueryEntity) -> Option<String> {
+    row.external_row()
+        .get("identity")
+        .and_then(|value| value.get("id"))
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| {
+            row.external_row()
+                .get("id")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
 }
 
 fn query_identity_label(identity: &ForgeQueryEntityIdentity) -> Option<String> {

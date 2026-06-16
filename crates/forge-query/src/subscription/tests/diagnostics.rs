@@ -158,7 +158,11 @@ fn bridge_family_slice_and_basis_denials_have_distinct_diagnostic_stages() {
     assert_eq!(family_error.counters().bridge_lowering_count(), 0);
     assert_eq!(family_error.counters().bridge_family_denial_count(), 1);
     assert_eq!(
-        family_error.diagnostic().counter_projection().label().as_str(),
+        family_error
+            .diagnostic()
+            .counter_projection()
+            .label()
+            .as_str(),
         family_error.counters().counter_projection().label()
     );
 
@@ -178,7 +182,11 @@ fn bridge_family_slice_and_basis_denials_have_distinct_diagnostic_stages() {
     assert_eq!(slice_error.counters().bridge_lowering_count(), 0);
     assert_eq!(slice_error.counters().bridge_slice_denial_count(), 1);
     assert_eq!(
-        slice_error.diagnostic().counter_projection().label().as_str(),
+        slice_error
+            .diagnostic()
+            .counter_projection()
+            .label()
+            .as_str(),
         slice_error.counters().counter_projection().label()
     );
 
@@ -206,7 +214,11 @@ fn bridge_family_slice_and_basis_denials_have_distinct_diagnostic_stages() {
     assert_eq!(basis_error.counters().bridge_lowering_count(), 0);
     assert_eq!(basis_error.counters().basis_binding_denial_count(), 1);
     assert_eq!(
-        basis_error.diagnostic().counter_projection().label().as_str(),
+        basis_error
+            .diagnostic()
+            .counter_projection()
+            .label()
+            .as_str(),
         basis_error.counters().counter_projection().label()
     );
 }
@@ -230,7 +242,11 @@ fn durable_reload_overclaim_carries_support_and_pipeline_diagnostics() {
         &QuerySubscriptionDiagnosticStage::DurableReloadOverclaim
     );
     assert_eq!(
-        error.pipeline_diagnostic().counter_projection().label().as_str(),
+        error
+            .pipeline_diagnostic()
+            .counter_projection()
+            .label()
+            .as_str(),
         error.counters().counter_projection().label()
     );
     assert_eq!(
@@ -263,7 +279,11 @@ fn durable_reload_overclaim_carries_support_and_pipeline_diagnostics() {
         error.support_profile().source_projection().label(),
         error.pipeline_diagnostic().source_projection().label()
     );
-    assert!(!error.support_profile().profile_projection().label().is_empty());
+    assert!(!error
+        .support_profile()
+        .profile_projection()
+        .label()
+        .is_empty());
 }
 
 #[test]
@@ -376,6 +396,10 @@ fn certified_subscription_identity(
         lower_query_subscription_to_bridge(declaration, roomy_lowering_budget()).unwrap();
     CertifiedSubscriptionIdentity {
         declaration_digest,
-        basis_request_digest: lowering.basis_request().basis_binding_projection().label().to_string(),
+        basis_request_digest: lowering
+            .basis_request()
+            .basis_binding_projection()
+            .label()
+            .to_string(),
     }
 }

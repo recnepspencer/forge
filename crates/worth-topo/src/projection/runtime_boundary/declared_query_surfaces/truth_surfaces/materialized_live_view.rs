@@ -1,5 +1,5 @@
 use forge_query::facade::{
-    ForgeQueryCommitIdentity, ForgeQueryComputedBuilder, ForgeQueryDerivedPatch,
+    ForgeQueryComputedBuilder, ForgeQueryDerivedPatch,
     ForgeQueryDerivedView, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
     ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
@@ -48,7 +48,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyMaterializedMaintainer {
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label(
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-materialized-incremental-unexpected",
             ),
             delta.entity_identity().clone(),
@@ -82,7 +82,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyMaterializedMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label("topology-materialized"),
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity("topology-materialized"),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {

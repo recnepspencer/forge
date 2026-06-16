@@ -29,7 +29,7 @@ impl ForgeServerDirectState {
         let canonical_digest = format!(
             "forge-server-direct-state-v1:{}:{}",
             handoff_digest,
-            runtime_state.state_digest()
+            runtime_state.state_digest().terminal_projection_for_reporting(),
         );
         Self {
             support_posture,

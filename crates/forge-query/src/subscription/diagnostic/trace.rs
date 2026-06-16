@@ -279,8 +279,14 @@ pub fn trace_denied_query_subscription_diagnostics(
                 QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
                 "diagnostic trace assembly requires admission to preserve declaration identity",
                 &[
-                    format!("declaration:{}", declaration.declaration_projection().label()),
-                    format!("admission:{}", admission.query_declaration_projection().label()),
+                    format!(
+                        "declaration:{}",
+                        declaration.declaration_projection().label()
+                    ),
+                    format!(
+                        "admission:{}",
+                        admission.query_declaration_projection().label()
+                    ),
                 ],
             ));
         }
@@ -522,8 +528,14 @@ fn validate_admitted_sources(
             QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
             "admitted diagnostic trace requires bridge lowering to preserve declaration identity",
             &[
-                format!("declaration:{}", declaration.declaration_projection().label()),
-                format!("lowering:{}", lowering.query_declaration_projection().label()),
+                format!(
+                    "declaration:{}",
+                    declaration.declaration_projection().label()
+                ),
+                format!(
+                    "lowering:{}",
+                    lowering.query_declaration_projection().label()
+                ),
             ],
         ));
     }
@@ -535,8 +547,14 @@ fn validate_admitted_sources(
             QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
             "admitted diagnostic trace requires admission to preserve declaration identity",
             &[
-                format!("declaration:{}", declaration.declaration_projection().label()),
-                format!("admission:{}", admission.query_declaration_projection().label()),
+                format!(
+                    "declaration:{}",
+                    declaration.declaration_projection().label()
+                ),
+                format!(
+                    "admission:{}",
+                    admission.query_declaration_projection().label()
+                ),
             ],
         ));
     }
@@ -548,7 +566,10 @@ fn validate_admitted_sources(
             QuerySubscriptionDiagnosticBundleErrorKind::SupportSourceMismatch,
             "admitted diagnostic trace requires support reporting to preserve declaration identity",
             &[
-                format!("declaration:{}", declaration.declaration_projection().label()),
+                format!(
+                    "declaration:{}",
+                    declaration.declaration_projection().label()
+                ),
                 format!(
                     "support_declaration:{}",
                     support.support_subject().declaration_projection().label()

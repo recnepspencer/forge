@@ -256,7 +256,8 @@ pub(crate) fn representative_basis_subscription_readmission_row() -> Representat
 }
 
 fn phase_six_branch_identity() -> forge_runtime_bridge::facade::BridgeIdentityEvidence {
-    TruthBranchIdentity::from_relational_branch_id(PHASE_SIX_MAIN_BRANCH).bridge_admission_evidence()
+    TruthBranchIdentity::from_relational_branch_id(PHASE_SIX_MAIN_BRANCH)
+        .bridge_admission_evidence()
 }
 
 fn readmission_row(

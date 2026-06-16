@@ -85,7 +85,10 @@ fn build_support_snapshot(
         declaration,
         read_family_row,
         read_family_contract,
-        support_matrix.matrix_digest().to_string(),
+        support_matrix
+            .matrix_digest()
+            .terminal_projection_for_reporting()
+            .to_string(),
     )
 }
 

@@ -145,7 +145,10 @@ impl ForgeQueryGenericInspectionIntentSeed {
             ForgeQueryGenericInspectionIntentTargetSeed::WriteReceipt(receipt.clone()),
             ForgeQueryGenericInspectionRequestLabel::new(format!(
                 "inspect.write_receipt.{}",
-                receipt.commit_identity().evidence_identity().reporting_projection()
+                receipt
+                    .commit_identity()
+                    .evidence_identity()
+                    .reporting_projection()
             )),
             generic_inspection_seed_identity("write_receipt")
                 .field_evidence_identity(

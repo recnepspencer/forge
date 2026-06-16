@@ -330,11 +330,17 @@ fn denial_materializes_from_query_boundary_source_and_retains_source_basis() {
     );
     assert_eq!(
         denial.lower_runtime_source_digest(),
-        source.boundary_envelope().envelope_identity().as_str()
+        source
+            .boundary_envelope()
+            .envelope_identity()
+            .terminal_projection_for_reporting()
     );
     assert_eq!(
         denial.lower_runtime_envelope_digest(),
-        source.boundary_envelope().envelope_identity().as_str()
+        source
+            .boundary_envelope()
+            .envelope_identity()
+            .terminal_projection_for_reporting()
     );
     assert!(!denial.query_denial().unwrap().denial_digest().is_empty());
     assert!(!denial.admits_theorem_authority());

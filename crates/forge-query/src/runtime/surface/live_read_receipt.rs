@@ -41,7 +41,8 @@ impl ForgeQueryLiveReadReceipt {
             canonical_result_shape_digest: installation.canonical_result_shape_digest().clone(),
             canonical_result_shape_identity: installation.canonical_result_shape_identity().clone(),
             subscription_family_digest: installation
-                .subscription_family_projection().label()
+                .subscription_family_projection()
+                .label()
                 .to_string(),
             result_digest: materialized_result_digest(
                 installation.query_projection().label(),

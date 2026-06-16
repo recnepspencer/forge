@@ -144,9 +144,13 @@ pub fn select_query_subscription_family(
     counters.family_registry_lookup_count = 1;
     counters.view_family_registry_lookup_count = u64::from(live.view_family.is_some());
 
-    let classification =
-        classify_subscription_family(&live, source_identity, &mut counters)?;
-    validate_future_selection(&live, &classification.family, source_identity, &mut counters)?;
+    let classification = classify_subscription_family(&live, source_identity, &mut counters)?;
+    validate_future_selection(
+        &live,
+        &classification.family,
+        source_identity,
+        &mut counters,
+    )?;
     validate_admission_dimensions(
         &live,
         &classification.family,

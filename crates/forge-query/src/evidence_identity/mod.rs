@@ -1,11 +1,11 @@
 mod artifact;
 mod encoder;
-mod terminal_reporting;
 mod foundational;
 mod scheme;
 mod scope;
 mod sealed;
 mod tag;
+mod terminal_reporting;
 
 #[cfg(test)]
 mod tests;

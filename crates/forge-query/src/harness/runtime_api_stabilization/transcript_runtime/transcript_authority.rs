@@ -114,9 +114,8 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
             ForgeQueryWriteCommand::Delete { .. } => ("TranscriptEntity".to_string(), Vec::new()),
         };
         let entity_identity_text = "transcript-entity-1";
-        let entity_identity = crate::memory_workspace::admit_authored_entity_label(
-            entity_identity_text,
-        );
+        let entity_identity =
+            crate::memory_workspace::admit_authored_entity_label(entity_identity_text);
         let snapshot_identity = ForgeQuerySnapshotIdentity::from_relational_snapshot(
             RelationalBridgeSnapshotIdentityParts::new(1, 1),
         );
@@ -128,17 +127,17 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
             &entity_identity,
             ForgeQueryMutationKind::Updated,
         )?;
-        let receipt = ForgeQueryMutationReceipt {
-            commit_identity: ForgeQueryCommitIdentity::from_relational_commit_id(1),
+        let receipt = ForgeQueryMutationReceipt::from_bridge_authoritative_parts(
+            ForgeQueryCommitIdentity::from_relational_commit_id(1),
             snapshot_identity,
-            deltas: vec![ForgeQueryMutationDelta {
+            vec![ForgeQueryMutationDelta::new(
                 collection,
                 entity_identity,
-                kind: ForgeQueryMutationKind::Updated,
+                ForgeQueryMutationKind::Updated,
                 aspect_paths,
-            }],
-            bridge_authority: Some(bridge_authority),
-        };
+            )],
+            bridge_authority,
+        );
         Ok(self.build_write_authority_execution_receipt(&command, receipt))
     }
 }

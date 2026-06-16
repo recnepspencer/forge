@@ -170,9 +170,6 @@ pub(super) fn bridge_parity_failure_identity(
         )
         .field_shape(ForgeQueryEvidenceTag::new("reason"), reason)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
-        .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("evidence"),
-            evidence.iter(),
-        )
+        .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("evidence"), evidence.iter())
         .seal()
 }

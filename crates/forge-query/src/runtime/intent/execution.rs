@@ -71,12 +71,11 @@ impl ForgeQueryIntentExecution {
             canonical_input_digest: canonical_input_digest.into(),
             outcome_digest: outcome_digest.into(),
             invariant_evidence: invariant_evidence.into_iter().map(Into::into).collect(),
-            mutation_receipt: ForgeQueryMutationReceipt {
+            mutation_receipt: ForgeQueryMutationReceipt::from_authoritative_parts(
                 commit_identity,
                 snapshot_identity,
-                deltas: Vec::new(),
-                bridge_authority: None,
-            },
+                Vec::new(),
+            ),
         }
     }
 
@@ -97,12 +96,11 @@ impl ForgeQueryIntentExecution {
             canonical_input_digest: canonical_input_digest.into(),
             outcome_digest: invariant_failure_digest.into(),
             invariant_evidence: invariant_evidence.into_iter().map(Into::into).collect(),
-            mutation_receipt: ForgeQueryMutationReceipt {
-                commit_identity: ForgeQueryCommitIdentity::absent(),
+            mutation_receipt: ForgeQueryMutationReceipt::from_authoritative_parts(
+                ForgeQueryCommitIdentity::absent(),
                 snapshot_identity,
-                deltas: Vec::new(),
-                bridge_authority: None,
-            },
+                Vec::new(),
+            ),
         }
     }
 

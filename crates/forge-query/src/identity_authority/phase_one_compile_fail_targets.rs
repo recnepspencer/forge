@@ -61,10 +61,6 @@ const FORGE_QUERY_IDENTITY_PHASE_ONE_COMPILE_FAIL_TARGETS:
         "evidence compose entry is crate-private",
     ),
     ForgeQueryIdentityPhaseOneCompileFailTarget::new(
-        "tests/ui/query_identity_authority/external_terminal_projection_forbidden.rs",
-        "terminal projection export is crate-private",
-    ),
-    ForgeQueryIdentityPhaseOneCompileFailTarget::new(
         "tests/ui/query_identity_authority/external_encoder_forbidden.rs",
         "evidence encoder is crate-private",
     ),

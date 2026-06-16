@@ -1,3 +1,6 @@
+use crate::topology_operators::authority_identity::{
+    existing_entity_authority, existing_relation_authority,
+};
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
@@ -20,8 +23,8 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
     let support = workspace.public_authoritative_mutation_evidence_support();
     let binding = workspace
         .bind_existing_entity(
-            forge_query::facade::ForgeQueryExistingEntityTarget::new(
-                format!("{:?}", seeded.vertex),
+            forge_query::facade::            ForgeQueryExistingEntityTarget::new(
+                existing_entity_authority(seeded.vertex).expect("entity authority"),
                 entity_identity(seeded.vertex),
             )
             .expect("existing entity target should build")
@@ -113,8 +116,8 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
     let support = workspace.public_authoritative_mutation_evidence_support();
     let binding = workspace
         .bind_existing_relation(
-            forge_query::facade::ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
+            forge_query::facade::            ForgeQueryExistingRelationTarget::new(
+                existing_relation_authority(relation_id).expect("relation authority"),
                 relation_identity(relation_id),
             )
             .expect("existing relation target should build")
@@ -172,8 +175,8 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
         .expect("relation verify should execute");
     let binding = workspace
         .bind_existing_relation(
-            forge_query::facade::ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
+            forge_query::facade::            ForgeQueryExistingRelationTarget::new(
+                existing_relation_authority(relation_id).expect("relation authority"),
                 relation_identity(relation_id),
             )
             .expect("existing relation target should build")

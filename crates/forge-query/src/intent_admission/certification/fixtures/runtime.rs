@@ -248,17 +248,16 @@ impl ForgeQueryIntentAuthorityAdapter for CertificationIntentAuthority {
             certification_commit_identity_for("certification-intent-commit", &collection);
         let snapshot_identity =
             certification_snapshot_identity_for("certification-intent-snapshot", &collection);
-        let mutation_receipt = ForgeQueryMutationReceipt {
+        let mutation_receipt = ForgeQueryMutationReceipt::from_authoritative_parts(
             commit_identity,
             snapshot_identity,
-            deltas: vec![ForgeQueryMutationDelta {
+            vec![ForgeQueryMutationDelta::new(
                 collection,
-                entity_identity: certification_entity_identity("certification-intent-entity-1"),
-                kind: ForgeQueryMutationKind::Updated,
-                aspect_paths: vec!["title.value".to_string()],
-            }],
-            bridge_authority: None,
-        };
+                certification_entity_identity("certification-intent-entity-1"),
+                ForgeQueryMutationKind::Updated,
+                vec!["title.value".to_string()],
+            )],
+        );
         Ok(ForgeQueryIntentExecution::admitted(
             declaration.strategy_name(),
             declaration.strategy_version(),

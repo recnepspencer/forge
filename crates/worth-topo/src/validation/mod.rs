@@ -14,5 +14,6 @@ pub use error::TopologyValidationError;
 pub(crate) use facade::TopologyValidator;
 pub use facade::{
     validate_interpreted_topology, validate_named_topology_truth, DerivedTopologyValidationReport,
-    TopologyValidationPhase, TopologyValidationReport,
+    TopologyValidationInputClass, TopologyValidationPhase, TopologyValidationReport,
+    TopologyValidationRow,
 };

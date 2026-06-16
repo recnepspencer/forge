@@ -640,11 +640,26 @@ fn admitted_activation_emits_query_subscription_certification_bundle() {
         certify_query_subscription_activation(admission, activation, scale_report).unwrap();
 
     assert!(!bundle.certification_bundle_projection().label().is_empty());
-    assert_eq!(bundle.admission_projection().label(), admission_digest.as_str());
-    assert_eq!(bundle.activation_projection().label(), activation_digest.as_str());
-    assert_eq!(bundle.scale_slope_projection().label(), scale_slope_digest.as_str());
-    assert_eq!(bundle.scale_activation_projection().label(), activation_digest.as_str());
-    assert_eq!(bundle.scale_admission_projection().label(), admission_digest.as_str());
+    assert_eq!(
+        bundle.admission_projection().label(),
+        admission_digest.as_str()
+    );
+    assert_eq!(
+        bundle.activation_projection().label(),
+        activation_digest.as_str()
+    );
+    assert_eq!(
+        bundle.scale_slope_projection().label(),
+        scale_slope_digest.as_str()
+    );
+    assert_eq!(
+        bundle.scale_activation_projection().label(),
+        activation_digest.as_str()
+    );
+    assert_eq!(
+        bundle.scale_admission_projection().label(),
+        admission_digest.as_str()
+    );
     assert!(!bundle.support_profile_projection().label().is_empty());
     assert!(!bundle.diagnostics_projection().label().is_empty());
     assert!(!bundle.admission_counter_projection().label().is_empty());
@@ -853,14 +868,19 @@ fn lifecycle_certification_emits_runtime_backed_bundle() {
     );
     assert_eq!(
         bundle.delivery_receipt_projection().label(),
-        artifacts.delivery_batch.receipt().receipt_projection().label()
+        artifacts
+            .delivery_batch
+            .receipt()
+            .receipt_projection()
+            .label()
     );
     assert_eq!(
         bundle.acknowledgement_frontier_projection().label(),
         artifacts
             .acknowledged_attachment
             .acknowledgement_frontier()
-            .frontier_projection().label()
+            .frontier_projection()
+            .label()
     );
     assert!(artifacts.continuation_report.is_none());
     assert_eq!(

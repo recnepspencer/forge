@@ -42,10 +42,9 @@ fn runtime_write_denies_when_write_authority_route_receipt_drifts_from_command()
             let honest = authority.write(bridge, relational_runtime, command.clone())?;
             Ok(WriteAuthorityExecutionReceipt::from_command(
                 &ForgeQueryWriteCommand::Delete {
-                    entity_identity:
-                        crate::memory_workspace::admit_authored_entity_label(
-                            "drifted-entity",
-                        ),
+                    entity_identity: crate::memory_workspace::admit_authored_entity_label(
+                        "drifted-entity",
+                    ),
                 },
                 honest.mutation_receipt().clone(),
             ))

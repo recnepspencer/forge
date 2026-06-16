@@ -279,7 +279,12 @@ fn digest_eligibilities(surface: &ForgeQueryLowerRuntimeRepresentativeSurface) -
         &surface
             .eligibilities()
             .iter()
-            .map(|eligibility| eligibility.eligibility_identity().terminal_projection_for_reporting().to_string())
+            .map(|eligibility| {
+                eligibility
+                    .eligibility_identity()
+                    .terminal_projection_for_reporting()
+                    .to_string()
+            })
             .collect::<Vec<_>>(),
     )
 }
@@ -299,7 +304,12 @@ fn digest_boundary_receipts(surface: &ForgeQueryLowerRuntimeRepresentativeSurfac
         &surface
             .boundary_receipts()
             .iter()
-            .map(|receipt| receipt.boundary_execution_identity().terminal_projection_for_reporting().to_string())
+            .map(|receipt| {
+                receipt
+                    .boundary_execution_identity()
+                    .terminal_projection_for_reporting()
+                    .to_string()
+            })
             .collect::<Vec<_>>(),
     )
 }
@@ -309,7 +319,12 @@ fn digest_envelopes(surface: &ForgeQueryLowerRuntimeRepresentativeSurface) -> St
         &surface
             .envelopes()
             .iter()
-            .map(|envelope| envelope.envelope_identity().terminal_projection_for_reporting().to_string())
+            .map(|envelope| {
+                envelope
+                    .envelope_identity()
+                    .terminal_projection_for_reporting()
+                    .to_string()
+            })
             .collect::<Vec<_>>(),
     )
 }
@@ -342,8 +357,14 @@ fn digest_envelope_field(
             .envelopes()
             .iter()
             .map(|envelope| match field {
-                "authority" => envelope.route_authority_identity().terminal_projection_for_reporting().to_string(),
-                "evidence" => envelope.route_evidence_identity().terminal_projection_for_reporting().to_string(),
+                "authority" => envelope
+                    .route_authority_identity()
+                    .terminal_projection_for_reporting()
+                    .to_string(),
+                "evidence" => envelope
+                    .route_evidence_identity()
+                    .terminal_projection_for_reporting()
+                    .to_string(),
                 "cost" => envelope.route_cost_posture().as_str().to_string(),
                 _ => envelope.route_failure_topology().as_str().to_string(),
             })

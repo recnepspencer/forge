@@ -131,7 +131,8 @@ impl QueryRuntimeSupport {
             .expect("source half-edge should expose edge identity");
         self.lookup()
             .find_entity_id_by_identity(
-                self.entity_rows
+                &self
+                    .entity_rows
                     .iter()
                     .filter_map(|row| query_identity_label(row.identity()))
                     .find(|identity| {

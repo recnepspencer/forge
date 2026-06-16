@@ -17,9 +17,6 @@ use super::closeout::SubscriptionLifecycleCloseoutKind;
 use super::continuation::SubscriptionContinuationReport;
 use super::delivery_window::QueryDeliveryBatch;
 use super::delivery_work_packet::ActiveDeliveryWorkPacket;
-use super::validation_evidence::{
-    validation_role_evidence_identity, validation_shape_role_evidence_identity,
-};
 use super::evidence_identities::{
     certification_activation_bundle_identity, lifecycle_absent_continuation_identity,
     lifecycle_absent_performance_receipt_identity, lifecycle_absent_preview_isolation_identity,
@@ -45,6 +42,9 @@ use super::preview_isolation::{
 };
 use super::scale::QuerySubscriptionScaleSlopeReport;
 use super::selection::QuerySubscriptionFamilySelection;
+use super::validation_evidence::{
+    validation_role_evidence_identity, validation_shape_role_evidence_identity,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionCertificationDenialKind {
@@ -114,10 +114,7 @@ fn subscription_certification_failure_identity(
         )
         .field_shape(ForgeQueryEvidenceTag::new("kind"), kind)
         .field_value(ForgeQueryEvidenceTag::new("message"), message)
-        .field_evidence_identity_sequence(
-            ForgeQueryEvidenceTag::new("evidence"),
-            evidence.iter(),
-        )
+        .field_evidence_identity_sequence(ForgeQueryEvidenceTag::new("evidence"), evidence.iter())
         .seal()
 }
 
@@ -339,13 +336,15 @@ pub struct SubscriptionLifecycleCertificationBundle {
     pub(in crate::subscription) active_lane_handle_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) active_lane_lookup_class_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) subscription_budget_identity: ForgeQueryEvidenceIdentity,
-    pub(in crate::subscription) subscription_performance_receipt_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) subscription_performance_receipt_identity:
+        ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) consumer_attachment_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) acknowledgement_frontier_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) delivery_window_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) maintenance_delta_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) active_delivery_work_packet_identity: ForgeQueryEvidenceIdentity,
-    pub(in crate::subscription) active_delivery_density_posture_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) active_delivery_density_posture_identity:
+        ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) allocation_posture_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) delivery_batch_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) patch_group_identity: ForgeQueryEvidenceIdentity,
@@ -361,7 +360,8 @@ pub struct SubscriptionLifecycleCertificationBundle {
     pub(in crate::subscription) bridge_declaration_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) signal_strategy_identity: ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) counter_sequence_identity: ForgeQueryEvidenceIdentity,
-    pub(in crate::subscription) subscription_lifecycle_scale_slope_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) subscription_lifecycle_scale_slope_identity:
+        ForgeQueryEvidenceIdentity,
     pub(in crate::subscription) support_matrix_identity: ForgeQueryEvidenceIdentity,
 }
 
@@ -575,10 +575,7 @@ pub fn certify_subscription_lifecycle(
                     "lowering_delta",
                     lowering_report.maintenance_delta_identity(),
                 ),
-                validation_role_evidence_identity(
-                    "delta",
-                    maintenance_delta.evidence_identity(),
-                ),
+                validation_role_evidence_identity("delta", maintenance_delta.evidence_identity()),
             ],
         ));
     }

@@ -66,7 +66,7 @@ pub(crate) fn prepare_query_handoff(
         workspace.name(),
         &operation,
         &support_posture,
-        downstream_delivery_contract.contract_digest(),
+            downstream_delivery_contract.contract_for_reporting(),
     );
 
     TransitionOutcome::Success(ForgeServerQueryHandoff::new(
@@ -239,7 +239,7 @@ fn derive_support_posture(
                         family_contract,
                         runtime_resume_support_posture: contract.runtime_resume_support_posture(),
                         durable_resume_support_posture: contract.durable_resume_support_posture(),
-                        contract_digest: contract.contract_digest().to_string(),
+                        contract_digest: contract.contract_for_reporting().to_string(),
                     },
                 ),
                 ForgeServerQueryRequestedResume::RuntimeBacked { .. }
@@ -250,8 +250,8 @@ fn derive_support_posture(
                             family_contract,
                             runtime_resume_support_posture: contract
                                 .runtime_resume_support_posture(),
-                            support_digest: contract.runtime_resume_support_digest().to_string(),
-                            contract_digest: contract.contract_digest().to_string(),
+                            support_digest: contract.runtime_resume_support_for_reporting().to_string(),
+                            contract_digest: contract.contract_for_reporting().to_string(),
                         },
                     )
                 }
@@ -271,7 +271,7 @@ fn derive_support_posture(
                         diagnostics_profile,
                         format!(
                             "durable resume remains deferred with digest {}",
-                            contract.durable_resume_support_digest()
+                            contract.durable_resume_support_for_reporting()
                         ),
                     ))
                 }
@@ -279,8 +279,8 @@ fn derive_support_posture(
                     Ok(ForgeServerQuerySupportPosture::DurableResumeSupported {
                         family_contract,
                         durable_resume_support_posture: contract.durable_resume_support_posture(),
-                        support_digest: contract.durable_resume_support_digest().to_string(),
-                        contract_digest: contract.contract_digest().to_string(),
+                        support_digest: contract.durable_resume_support_for_reporting().to_string(),
+                        contract_digest: contract.contract_for_reporting().to_string(),
                     })
                 }
             }

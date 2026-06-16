@@ -1,13 +1,21 @@
-error[E0451]: fields `authority_scoped_plan`, `artifact`, `lowered_effect_execution_plan_identity` and `counters` of struct `LoweredEffectExecutionPlan` are private
-  --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_lowered_execution_plan_constructor_private.rs:16:9
+error[E0624]: associated function `compose` is private
+  --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_lowered_execution_plan_constructor_private.rs:19:77
    |
-15 |     let _ = LoweredEffectExecutionPlan {
-   |             -------------------------- in this type
-16 |         authority_scoped_plan: authority_scoped_plan(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
-17 |         artifact: artifact(),
-   |         ^^^^^^^^ private field
-18 |         lowered_effect_execution_plan_identity: ForgeQueryEvidenceIdentity::compose(
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-19 |         counters: EffectLifecycleCounters::default(),
-   |         ^^^^^^^^ private field
+19 |         lowered_effect_execution_plan_identity: ForgeQueryEvidenceIdentity::compose(
+   |                                                                             ^^^^^^^ private associated function
+   |
+  ::: src/evidence_identity/artifact.rs
+   |
+   |     pub(crate) fn compose(scope: ForgeQueryEvidenceScope) -> ForgeQueryEvidenceIdentityEncoder {
+   |     ------------------------------------------------------------------------------------------ private associated function defined here
+
+error[E0624]: method `field_shape` is private
+  --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_lowered_execution_plan_constructor_private.rs:22:10
+   |
+22 |         .field_shape(ForgeQueryEvidenceTag::new("identity_family"), "test")
+   |          ^^^^^^^^^^^ private method
+   |
+  ::: src/evidence_identity/encoder.rs
+   |
+   |     pub(crate) fn field_shape(mut self, tag: ForgeQueryEvidenceTag, value: impl AsRef<str>) -> Self {
+   |     ----------------------------------------------------------------------------------------------- private method defined here

@@ -45,7 +45,9 @@ pub(in crate::runtime::tests) struct RefreshCountMaintainer;
 
 fn test_delta_display_identity(delta: &crate::memory_workspace::ForgeQueryMutationDelta) -> String {
     if let Some(upstream_view) = delta.collection.strip_prefix("derived:") {
-        if delta.entity_identity == crate::memory_workspace::admit_authored_entity_label(upstream_view) {
+        if delta.entity_identity
+            == crate::memory_workspace::admit_authored_entity_label(upstream_view)
+        {
             return upstream_view.to_string();
         }
     }

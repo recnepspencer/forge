@@ -246,6 +246,7 @@ fn primary_multi_verified_update_batch_shares_one_commit_boundary() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .existing_truth_verification(PermissiveExistingTruthVerificationAdapter)
         .write_authority(AtomicBatchCountingWriteAuthority {
             attempted_writes: attempted_writes.clone(),

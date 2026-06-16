@@ -51,27 +51,28 @@ fn scoped_query_context_current_head_uses_observation_basis() {
 #[test]
 fn scoped_query_context_historical_snapshot_uses_materialization_basis() {
     let query_preflight = execution_preflights::direct_runtime_preflight();
+    let snapshot_basis = "history:scoped-snapshot";
     let request = HistoricalEvaluationRequest::retained_snapshot(
-        "history:scoped-snapshot",
+        snapshot_basis,
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
     let capability = HistoricalCapabilityDescriptor::retained_snapshot(
-        "history:scoped-snapshot",
+        snapshot_basis,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
     let admission = admit_historical_evaluation_path(request, capability)
         .expect("retained history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::retained_snapshot("history:scoped-snapshot"),
+        HistoricalMaterializationDescriptor::retained_snapshot(snapshot_basis),
     )
     .expect("retained history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
 
     let scoped = admit_scoped_query_basis_context(
-        QueryBasisContextRequest::historical_snapshot("history:scoped-snapshot"),
+        QueryBasisContextRequest::historical_snapshot(snapshot_basis.to_string()),
         QueryContextBindingSource::Historical {
             query_preflight: &query_preflight,
             admission: &admission,
@@ -113,10 +114,16 @@ fn scoped_query_context_preview_derived_historical_uses_observation_basis() {
     .expect("preview binding should succeed");
     let foundation =
         admit_preview_workflow_foundation(&binding).expect("preview foundation should admit");
-    let preview_session_identity = foundation.preview_session_identity().bridge_admission_evidence();
+    let preview_session_identity = foundation
+        .preview_session_identity()
+        .bridge_admission_evidence();
 
     let scoped = admit_scoped_query_basis_context(
-        QueryBasisContextRequest::preview_derived_historical(preview_session_identity.terminal_projection_for_reporting().to_string()),
+        QueryBasisContextRequest::preview_derived_historical(
+            preview_session_identity
+                .terminal_projection_for_reporting()
+                .to_string(),
+        ),
         QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
     )
     .expect("preview-derived scoped query context should admit");

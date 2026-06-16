@@ -95,8 +95,14 @@ fn time_only_and_relational_delivery_batches_keep_distinct_cause_identity() {
     let relational = emit_query_delivery_batch(&mut runtime, window, packet).unwrap();
 
     assert_ne!(
-        time_only.delivery_cause().delivery_cause_projection().label(),
-        relational.delivery_cause().delivery_cause_projection().label()
+        time_only
+            .delivery_cause()
+            .delivery_cause_projection()
+            .label(),
+        relational
+            .delivery_cause()
+            .delivery_cause_projection()
+            .label()
     );
     assert_ne!(
         time_only.patch_group().patch_group_projection().label(),

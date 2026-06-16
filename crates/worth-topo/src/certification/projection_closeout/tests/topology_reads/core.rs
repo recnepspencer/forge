@@ -297,7 +297,7 @@ fn snapshot_topology_read_uses_historical_basis_context_receipt() {
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("wire should expose successor source");
     let handle = snapshot_query_handle();
-    let snapshot_token = workspace.snapshot_token().to_string();
+    let snapshot_identity = workspace.snapshot_identity();
     let mut reads = handle.topology_reads(&mut workspace);
     let loop_cycle = reads
         .loop_cycle(&start_identity, 5)
@@ -308,8 +308,8 @@ fn snapshot_topology_read_uses_historical_basis_context_receipt() {
         TopologyReadExecutionEngine::QueryRuntimeHistorical
     );
     assert_eq!(
-        loop_cycle.request_report.executed_snapshot_token.as_deref(),
-        Some(snapshot_token.as_str())
+        loop_cycle.request_report.executed_snapshot_identity(),
+        Some(&snapshot_identity)
     );
     assert!(loop_cycle
         .request_report

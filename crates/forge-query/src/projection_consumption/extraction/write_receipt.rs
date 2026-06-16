@@ -14,14 +14,9 @@ pub(super) fn extract_write_receipt_facts(
     receipt: &ForgeQueryWriteReceipt,
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
     super::ensure_contract_family(contract, ProjectionSourceFamily::QueryWriteReceipt)?;
-    let receipt_commit_identity = receipt.commit_identity().bridge_admission_evidence();
-    super::ensure_source_identity(
-        contract.source_identity(),
-        receipt_commit_identity.terminal_projection_for_reporting(),
-    )?;
-    let receipt_source_identity = receipt_commit_identity
-        .terminal_projection_for_reporting()
-        .to_string();
+    let receipt_commit_identity = receipt.commit_evidence_identity();
+    super::ensure_source_identity(contract.source_identity(), receipt_commit_identity.as_str())?;
+    let receipt_source_identity = receipt_commit_identity.as_str().to_string();
 
     let mut target_identities = Vec::new();
     let mut source_references = Vec::new();

@@ -1,11 +1,14 @@
 use crate::basis::{BasisAuthorityFamily, ExecutionPreflightBundle};
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::historical::{
     HistoricalCapabilityDescriptor, HistoricalEvaluationAdmission,
     HistoricalMaterializationPathMetadata, RequestedHistoricalPathClass,
     ResolvedHistoricalPathClass,
 };
-use crate::identity::hash_parts;
 use crate::preview::{AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationRequest};
+use forge_runtime_bridge::facade::bridge_identity_reporting_label;
 
 use super::historical::{
     drift_outcome_for_historical, historical_admission_class, materialization_path_cost_class,
@@ -619,17 +622,26 @@ fn bind_historical_context(
             .validated_query_digest()
             .as_str()
             .to_string(),
-        basis_digest: hash_parts(&[
-            format!(
-                "basis_identity:{}",
-                admission.requested_path().basis_identity()
-            ),
-            format!(
-                "requested_path:{}",
-                admission.requested_path().requested_path_class().as_str()
-            ),
-            format!("materialization:{}", materialization_identity),
-        ]),
+        basis_digest: forge_query_evidence_identity(ForgeQueryEvidenceScope::BasisDigest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "query_context_historical_basis_binding_v1",
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("basis_identity"),
+                admission.requested_path().basis_identity(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("requested_path"),
+                admission.requested_path().requested_path_class().as_str(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("materialization"),
+                &materialization_identity,
+            )
+            .seal()
+            .as_str()
+            .to_string(),
         basis_authority_family: query_preflight
             .basis()
             .identity()
@@ -693,11 +705,12 @@ fn bind_preview_context(
         historical_materialization_cost_class: None,
         materialization_path_identity_source: None,
         preview_provenance_identity_source: Some(
-            foundation
-                .preview_session_identity()
-                .bridge_admission_evidence()
-                .terminal_projection_for_reporting()
-                .to_string(),
+            bridge_identity_reporting_label(
+                &foundation
+                    .preview_session_identity()
+                    .bridge_admission_evidence(),
+            )
+            .to_string(),
         ),
         prediction_report: Some(QueryContextPredictionReport::for_preview_binding()),
         prediction_drift_outcome: Some(QueryContextPredictionDriftOutcome::PendingExecution),

@@ -90,7 +90,12 @@ impl CommittedPatchSource for TestRelationalSource {
             .read()
             .expect("fixture bridge source lock poisoned")
             .committed_patches
-            .get(request.commit_identity().bridge_admission_evidence().terminal_projection_for_reporting())
+            .get(
+                request
+                    .commit_identity()
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
+            )
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -111,7 +116,11 @@ impl SnapshotReadSource for TestRelationalSource {
             .read()
             .expect("fixture bridge source lock poisoned")
             .snapshots
-            .get(identity.bridge_admission_evidence().terminal_projection_for_reporting())
+            .get(
+                identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
+            )
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -137,7 +146,11 @@ impl TruthBranchHeadSource for TestRelationalSource {
             .expect("fixture bridge source lock poisoned");
         let commit_identity = state
             .branch_heads
-            .get(branch_identity.bridge_admission_evidence().terminal_projection_for_reporting())
+            .get(
+                branch_identity
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
+            )
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
                     "no branch head registered for `{:?}`",
@@ -152,7 +165,9 @@ impl TruthBranchHeadSource for TestRelationalSource {
                 RelationalBridgeSourceError::new(format!(
                     "branch head `{}` for `{}` had no patch envelope",
                     commit_identity,
-                    branch_identity.bridge_admission_evidence().terminal_projection_for_reporting()
+                    branch_identity
+                        .bridge_admission_evidence()
+                        .terminal_projection_for_reporting()
                 ))
             })
     }

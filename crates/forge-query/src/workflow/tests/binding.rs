@@ -23,11 +23,9 @@ fn runtime_preflight_binding_preserves_query_and_basis_digests() {
 
     assert_eq!(
         binding.query_for_reporting(),
-        workflow_context_query_identity(
-            &workflow_canonical_query_digest_evidence(
-                preflight.plan().query().canonical_query_digest(),
-            ),
-        )
+        workflow_context_query_identity(&workflow_canonical_query_digest_evidence(
+            preflight.plan().query().canonical_query_digest(),
+        ),)
         .as_str()
     );
     assert_eq!(
@@ -71,7 +69,7 @@ fn preview_workflow_foundation_binding_preserves_preview_identity() {
         workflow_context_query_identity(&workflow_validated_query_digest_evidence(
             foundation.validated_query_digest(),
         ))
-            .as_str()
+        .as_str()
     );
     assert_eq!(
         workflow_binding.preview_evaluation_class(),
@@ -121,7 +119,7 @@ fn preview_promotion_comparison_basis_can_author_inspection_and_merge_when_permi
         workflow_context_query_identity(&workflow_validated_query_digest_evidence(
             comparison.validated_query_digest(),
         ))
-            .as_str()
+        .as_str()
     );
     let inspection = admit_query_workflow_declaration(
         &workflow_binding,

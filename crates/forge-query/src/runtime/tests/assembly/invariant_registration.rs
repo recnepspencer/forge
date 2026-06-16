@@ -109,17 +109,10 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for InspectingCatalogWriteAuthority 
 
 #[test]
 fn query_builder_register_invariant_lowers_custom_rule_into_relational_runtime() {
-    let mut runtime = ForgeQueryRuntime::builder()
+    let mut runtime = complete_backend_from_parts_builder()
         .register_invariant(CertificationBoundaryViolationRule)
         .expect("custom query invariant registration should succeed")
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
         .write_authority(InspectingInvariantWriteAuthority)
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
         .build_backend_from_parts()
         .build()
         .expect("query runtime with registered invariant should build");
@@ -143,18 +136,11 @@ fn query_builder_invariant_catalog_lowers_into_relational_runtime_config() {
         )],
     };
 
-    let mut runtime = ForgeQueryRuntime::builder()
+    let mut runtime = complete_backend_from_parts_builder()
         .invariant_catalog(expected_catalog.clone())
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
         .write_authority(InspectingCatalogWriteAuthority {
             expected_catalog: expected_catalog.clone(),
         })
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
         .build_backend_from_parts()
         .build()
         .expect("query runtime with invariant catalog should build");
@@ -203,6 +189,7 @@ fn query_builder_rejects_explicit_backend_when_query_owned_invariants_are_queued
             .schema_adapter(TestSchemaAdapter)
             .source_adapter(TestSourceAdapter::default())
             .write_authority(TestWriteAuthority)
+            .snapshot_identity(TestSnapshotIdentityAdapter)
             .signal_sink(TestSignalSink)
             .subscription_activation(TestSubscriptionActivation)
             .preview_basis(TestPreviewBasis)
@@ -251,11 +238,8 @@ fn query_builder_accepts_proof_lane_invariant_registration_artifact() {
         ready,
     ));
 
-    let mut runtime = ForgeQueryRuntime::builder()
+    let mut runtime = complete_backend_from_parts_builder()
         .invariant_registration_artifact(artifact)
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
         .write_authority(InspectingCatalogWriteAuthority {
             expected_catalog: InvariantCatalog {
                 registrations: vec![InvariantRegistration::commit_boundary_blocking(
@@ -263,10 +247,6 @@ fn query_builder_accepts_proof_lane_invariant_registration_artifact() {
                 )],
             },
         })
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
         .build_backend_from_parts()
         .build()
         .expect("query runtime should accept proof-lane invariant registration artifacts");
@@ -313,23 +293,16 @@ fn query_builder_canonicalizes_and_deduplicates_merged_invariant_catalog_sources
         ],
     };
 
-    let mut runtime = ForgeQueryRuntime::builder()
+    let mut runtime = complete_backend_from_parts_builder()
         .invariant_catalog(InvariantCatalog {
             registrations: vec![InvariantRegistration::commit_boundary_blocking(
                 InvariantRule::MaxMergedIntents(9),
             )],
         })
         .invariant_registration_artifact(artifact)
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
         .write_authority(InspectingCatalogWriteAuthority {
             expected_catalog: expected_catalog.clone(),
         })
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
         .build_backend_from_parts()
         .build()
         .expect("merged invariant catalogs should lower canonically");

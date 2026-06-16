@@ -138,7 +138,9 @@ impl EffectLifecycleCounters {
     }
 
     pub fn counter_for_reporting(&self) -> String {
-        self.evidence_identity().terminal_projection_for_reporting().to_string()
+        self.evidence_identity()
+            .terminal_projection_for_reporting()
+            .to_string()
     }
 
     pub(crate) fn combine(&self, other: &Self) -> Self {

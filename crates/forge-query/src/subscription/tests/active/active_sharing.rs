@@ -229,9 +229,11 @@ fn slow_consumer_gap_policy_changes_only_that_consumer_delivery_digest() {
     assert_ne!(
         normal
             .performance_receipt()
-            .performance_receipt_projection().label(),
+            .performance_receipt_projection()
+            .label(),
         slow.performance_receipt()
-            .performance_receipt_projection().label()
+            .performance_receipt_projection()
+            .label()
     );
     assert_eq!(runtime.counters().delivery_gap_notice_count(), 1);
 }

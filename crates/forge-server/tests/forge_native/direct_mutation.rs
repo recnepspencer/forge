@@ -1,8 +1,10 @@
 use forge_proof::TransitionOutcome;
 use forge_query::facade::{
     ForgeQueryAspectMutationBuilder, ForgeQueryExistingEntityTarget,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryMutationAuthorityIdentity, ForgeQueryRuntimeFacadeFamily,
     ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand,
+    QueryExternalIdentityToken, admit_authored_entity_token,
 };
 use forge_server::{
     ForgeServerDirectMutationOutcome, ForgeServerQueryHandoffDenialCode,
@@ -41,7 +43,12 @@ fn direct_single_mutation_returns_provenance_bearing_result_boundary() {
     let inspection = result
         .single_inspection()
         .expect("single mutation should expose a write inspection");
-    assert_eq!(result.result_digest(), receipt.commit_identity());
+    assert_eq!(
+        result.result_digest(),
+        receipt
+            .commit_evidence_identity()
+            .terminal_projection_for_reporting()
+    );
     assert_eq!(result.inspection_digest(), inspection.inspection_digest());
     assert_eq!(
         result.execution_provenance_digest(),
@@ -49,8 +56,14 @@ fn direct_single_mutation_returns_provenance_bearing_result_boundary() {
             .execution_provenance_chain_digest()
             .expect("single receipt should preserve execution provenance")
     );
-    assert_eq!(inspection.commit_identity(), receipt.commit_identity());
-    assert_eq!(inspection.snapshot_token(), receipt.snapshot_token());
+    assert_eq!(
+        inspection.commit_identity(),
+        receipt.commit_identity()
+    );
+    assert_eq!(
+        inspection.snapshot_identity(),
+        receipt.snapshot_identity()
+    );
     assert!(mutation
         .canonical_digest()
         .contains(mutation.handoff_digest()));
@@ -287,10 +300,19 @@ fn existing_binding(
     resolved_entity_identity: &str,
 ) -> ForgeQueryExistingTruthTargetBinding {
     ForgeQueryExistingTruthTargetBinding::from_entity_target(
-        ForgeQueryExistingEntityTarget::new(authoritative_identity, resolved_entity_identity)
-            .expect("existing entity target should build")
-            .in_target_collection("Task")
-            .expect("existing entity target collection should build"),
+        ForgeQueryExistingEntityTarget::new(
+            ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+                ForgeQueryExistingTruthBindingAuthorityLabel::new(authoritative_identity)
+                    .expect("existing-truth authority label"),
+            )
+            .expect("existing-truth authority identity"),
+            admit_authored_entity_token(
+                QueryExternalIdentityToken::new(std::sync::Arc::from(resolved_entity_identity)),
+            ),
+        )
+        .expect("existing entity target should build")
+        .in_target_collection("Task")
+        .expect("existing entity target collection should build"),
     )
     .expect("existing entity binding should build")
 }

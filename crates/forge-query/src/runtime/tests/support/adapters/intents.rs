@@ -9,26 +9,14 @@ impl ForgeQueryIntentAuthorityAdapter for TestIntentAuthority {
         _relational_runtime: Option<&mut RelationalRuntime>,
         declaration: &ForgeQueryIntentDeclaration,
     ) -> Result<ForgeQueryIntentExecution, ForgeQueryWorkspaceError> {
-        let mutation_receipt = ForgeQueryMutationReceipt {
-            commit_identity:
-                crate::memory_workspace::admit_external_commit_label(
-                    "external-intent-commit-1",
-                ),
-            snapshot_identity:
-                crate::memory_workspace::admit_external_snapshot_label(
-                    "external-intent-snapshot-1",
-                ),
-            deltas: vec![crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: "Task".to_string(),
-                entity_identity:
-                    crate::memory_workspace::admit_authored_entity_label(
-                        "intent-task-1",
-                    ),
-                kind: ForgeQueryMutationKind::Updated,
-                aspect_paths: vec!["title.value".to_string()],
-            }],
-            bridge_authority: None,
-        };
+        let mutation_receipt = test_mutation_receipt(
+            crate::memory_workspace::admit_external_commit_label("external-intent-commit-1"),
+            crate::memory_workspace::admit_external_snapshot_label("external-intent-snapshot-1"),
+            "Task",
+            crate::memory_workspace::admit_authored_entity_label("intent-task-1"),
+            ForgeQueryMutationKind::Updated,
+            vec!["title.value".to_string()],
+        );
         Ok(ForgeQueryIntentExecution::admitted(
             declaration.strategy_name(),
             declaration.strategy_version(),
@@ -89,9 +77,7 @@ impl ForgeQueryIntentAuthorityAdapter for NoopIntentAuthority {
                 declaration.input_digest().to_string(),
             ]),
             ["test-invariant-authority", "idempotent-noop"],
-            crate::memory_workspace::admit_external_commit_label(
-                "external-intent-noop-commit-1",
-            ),
+            crate::memory_workspace::admit_external_commit_label("external-intent-noop-commit-1"),
             crate::memory_workspace::admit_external_snapshot_label(
                 "external-intent-noop-snapshot-1",
             ),
@@ -108,18 +94,14 @@ impl ForgeQueryIntentAuthorityAdapter for EmptyMutatingIntentAuthority {
         _relational_runtime: Option<&mut RelationalRuntime>,
         declaration: &ForgeQueryIntentDeclaration,
     ) -> Result<ForgeQueryIntentExecution, ForgeQueryWorkspaceError> {
-        let mutation_receipt = ForgeQueryMutationReceipt {
-            commit_identity:
-                crate::memory_workspace::admit_external_commit_label(
-                    "external-intent-empty-mutating-commit-1",
-                ),
-            snapshot_identity:
-                crate::memory_workspace::admit_external_snapshot_label(
-                    "external-intent-empty-mutating-snapshot-1",
-                ),
-            deltas: Vec::new(),
-            bridge_authority: None,
-        };
+        let mutation_receipt = test_empty_mutation_receipt(
+            crate::memory_workspace::admit_external_commit_label(
+                "external-intent-empty-mutating-commit-1",
+            ),
+            crate::memory_workspace::admit_external_snapshot_label(
+                "external-intent-empty-mutating-snapshot-1",
+            ),
+        );
         Ok(ForgeQueryIntentExecution::admitted(
             declaration.strategy_name(),
             declaration.strategy_version(),
@@ -182,26 +164,14 @@ impl ForgeQueryIntentAuthorityAdapter for DriftingIntentAuthority {
         _relational_runtime: Option<&mut RelationalRuntime>,
         declaration: &ForgeQueryIntentDeclaration,
     ) -> Result<ForgeQueryIntentExecution, ForgeQueryWorkspaceError> {
-        let mutation_receipt = ForgeQueryMutationReceipt {
-            commit_identity:
-                crate::memory_workspace::admit_external_commit_label(
-                    "external-intent-commit-1",
-                ),
-            snapshot_identity:
-                crate::memory_workspace::admit_external_snapshot_label(
-                    "external-intent-snapshot-1",
-                ),
-            deltas: vec![crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: "Task".to_string(),
-                entity_identity:
-                    crate::memory_workspace::admit_authored_entity_label(
-                        "intent-task-1",
-                    ),
-                kind: ForgeQueryMutationKind::Updated,
-                aspect_paths: vec!["title.value".to_string()],
-            }],
-            bridge_authority: None,
-        };
+        let mutation_receipt = test_mutation_receipt(
+            crate::memory_workspace::admit_external_commit_label("external-intent-commit-1"),
+            crate::memory_workspace::admit_external_snapshot_label("external-intent-snapshot-1"),
+            "Task",
+            crate::memory_workspace::admit_authored_entity_label("intent-task-1"),
+            ForgeQueryMutationKind::Updated,
+            vec!["title.value".to_string()],
+        );
         Ok(ForgeQueryIntentExecution::admitted(
             "strategy.intent.other",
             declaration.strategy_version(),

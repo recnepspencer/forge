@@ -283,7 +283,8 @@ mod tests {
             )
             .expect("naming attachment identity"),
         );
-        let authored_identity = crate::memory_workspace::admit_authored_entity_label("entity:task-1");
+        let authored_identity =
+            crate::memory_workspace::admit_authored_entity_label("entity:task-1");
 
         assert!(
             bridge_naming_mutation_bundle(&intent, Some(&authored_identity), Some("Task"))

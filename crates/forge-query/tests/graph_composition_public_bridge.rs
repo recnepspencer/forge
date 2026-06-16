@@ -1,16 +1,17 @@
 use forge_query::facade::{
     ForgeQueryContinuityPriorAuthorityLabel, ForgeQueryContinuitySuccessorAuthorityLabel,
-    ForgeQueryEntityIdentity, ForgeQueryExistingRelationTarget,
-    ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryExistingTruthTargetBinding,
-    ForgeQueryGraphCompositionAdmissionTraceStage, ForgeQueryGraphCompositionLifecycleOutcomeKind,
-    ForgeQueryGraphCompositionProgramStepKind, ForgeQueryInspection, ForgeQueryLiveView,
-    ForgeQueryMutationAuthorityIdentity, ForgeQueryRuntimeError, ForgeQuerySymbolicTargetReference,
+    ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthBindingAuthorityLabel,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionAdmissionTraceStage,
+    ForgeQueryGraphCompositionLifecycleOutcomeKind, ForgeQueryGraphCompositionProgramStepKind,
+    ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
+    ForgeQueryRuntimeError, ForgeQuerySymbolicTargetReference,
 };
 use serde_json::{json, Value};
 
 mod support;
 
 use support::public_bridge_runtime::{public_graph_support_profile, PublicBridgeRuntimeHarness};
+use support::test_entity_identities::relational_test_entity_identity;
 
 fn public_verified_relation_profile(
     operation_family: &str,
@@ -83,11 +84,7 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
                     .symbolic_entity_identity("edge.source_identity", &draft)
                     .existing_entity_identity(
                         "edge.target_identity",
-                        ForgeQueryEntityIdentity::admit_authored_entity_token(
-                            forge_query::facade::QueryExternalIdentityToken::new(
-                                std::sync::Arc::from("task-existing"),
-                            ),
-                        ),
+                        relational_test_entity_identity("task-existing"),
                     )
             })?;
             graph.update_entity(&draft, |task| task.aspect("title.value", "Published task"))?;
@@ -169,11 +166,7 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
     let harness = PublicBridgeRuntimeHarness::new();
     let binding = ForgeQueryExistingRelationTarget::new(
         existing_authority("authority:loop-next-rel"),
-        ForgeQueryEntityIdentity::admit_authored_entity_token(
-            forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
-                "HalfEdgeNextRelation:1",
-            )),
-        ),
+        relational_test_entity_identity("HalfEdgeNextRelation:1"),
     )
     .expect("existing relation target should build")
     .in_target_collection("HalfEdgeNextRelation")

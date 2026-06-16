@@ -110,7 +110,10 @@ pub fn readmit_bridge_truth_view_evidence(
 
     let counters = admitted.counters().clone().with_lower_runtime_check(0);
     let evidence = BridgeLowerRuntimeEvidenceReference::truth_view(
-        evaluation.record().record_identity().bridge_admission_evidence(),
+        evaluation
+            .record()
+            .record_identity()
+            .bridge_admission_evidence(),
         selector.selector_identity().bridge_admission_evidence(),
         evaluation
             .record()
@@ -398,13 +401,22 @@ fn subscription_evidence(
 }
 
 fn truth_branch_label(identity: &TruthBranchIdentity) -> String {
-    identity.bridge_admission_evidence().terminal_projection_for_reporting().to_string()
+    identity
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
+        .to_string()
 }
 
 fn truth_commit_label(identity: &TruthCommitIdentity) -> String {
-    identity.bridge_admission_evidence().terminal_projection_for_reporting().to_string()
+    identity
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
+        .to_string()
 }
 
 fn truth_snapshot_label(identity: &TruthSnapshotIdentity) -> String {
-    identity.bridge_admission_evidence().terminal_projection_for_reporting().to_string()
+    identity
+        .bridge_admission_evidence()
+        .terminal_projection_for_reporting()
+        .to_string()
 }

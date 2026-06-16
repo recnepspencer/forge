@@ -118,8 +118,7 @@ pub use contribution_composed_orchestration::{
 };
 pub use evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityComparisonError,
-    ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope,
-    ForgeQueryEvidenceTag,
+    ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 pub use family_helpers::{
     ForgeQueryFamilyHelpers, ForgeQueryGeometryActiveFaceSelectionHelperFamily,

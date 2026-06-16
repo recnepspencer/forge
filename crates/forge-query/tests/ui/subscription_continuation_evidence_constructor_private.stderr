@@ -23,3 +23,11 @@ error[E0560]: struct `SubscriptionContinuationEvidence` has no field named `auth
    |         ^^^^^^^^^^^^^^^^ `SubscriptionContinuationEvidence` does not have this field
    |
    = note: all struct fields are already assigned
+
+error[E0560]: struct `SubscriptionContinuationEvidence` has no field named `continuation_digest`
+  --> tests/ui/subscription_continuation_evidence_constructor_private.rs:12:9
+   |
+12 |         continuation_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ `SubscriptionContinuationEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned

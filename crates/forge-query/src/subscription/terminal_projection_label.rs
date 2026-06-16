@@ -12,7 +12,11 @@ pub struct TerminalProjectionLabel(String);
 
 impl TerminalProjectionLabel {
     pub fn from_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
-        Self(subscription_evidence_projection(identity).label().to_string())
+        Self(
+            subscription_evidence_projection(identity)
+                .label()
+                .to_string(),
+        )
     }
 
     pub(crate) fn from_projection(

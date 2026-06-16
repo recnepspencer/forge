@@ -174,7 +174,10 @@ fn collection_and_grouped_deliveries_have_distinct_patch_digests() {
         QueryPatchGroupKind::GroupedMembershipPatchGroup
     );
     assert_ne!(
-        collection_batch.patch_group().patch_group_projection().label(),
+        collection_batch
+            .patch_group()
+            .patch_group_projection()
+            .label(),
         grouped_batch.patch_group().patch_group_projection().label()
     );
     assert_eq!(grouped_batch.counters().grouped_membership_patch_width(), 1);
@@ -522,10 +525,12 @@ fn performance_receipt_digest_binds_allocation_posture() {
     assert_ne!(
         patch_packet
             .performance_receipt()
-            .performance_receipt_projection().label(),
+            .performance_receipt_projection()
+            .label(),
         debt_packet
             .performance_receipt()
-            .performance_receipt_projection().label()
+            .performance_receipt_projection()
+            .label()
     );
     assert_ne!(
         patch_packet.work_packet_projection().label(),

@@ -6,15 +6,15 @@ use super::super::diagnostic::QuerySubscriptionAdmittedDiagnosticBundle;
 use super::super::evidence_identities::typed_identity_drift;
 use super::super::family::QuerySubscriptionFamily;
 use super::super::support::QuerySubscriptionSupportReport;
+use super::super::validation_evidence::{
+    validation_role_evidence_identity, validation_shape_role_evidence_identity,
+};
 use super::coverage::CertifiedFamilyCoverageHandle;
 use super::error::{
     QuerySubscriptionRuntimeCertificationCounters, QuerySubscriptionRuntimeCertificationError,
     QuerySubscriptionRuntimeCertificationErrorKind,
 };
 use super::identities::runtime_certification_counter_identity;
-use super::super::validation_evidence::{
-    validation_role_evidence_identity, validation_shape_role_evidence_identity,
-};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionRuntimeCertificationScope {

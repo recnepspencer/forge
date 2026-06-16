@@ -131,7 +131,10 @@ pub(crate) fn lower_materialization_from_artifact(
 ) -> Result<HistoricalMaterializationDescriptor, HistoricalEvaluationError> {
     let _ = requested_path_class;
     lower_materialization_descriptor(
-        artifact.declaration_identity().bridge_admission_evidence().terminal_projection_for_reporting(),
+        artifact
+            .declaration_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
         artifact.materialization_path(),
     )
 }

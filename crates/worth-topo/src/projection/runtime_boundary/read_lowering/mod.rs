@@ -183,8 +183,12 @@ pub(crate) fn lower_topology_read(
         query_family: canonical.query().family().clone(),
         root_entity: canonical.query().root().as_str().to_string(),
         traversal_steps,
-        canonical_query_digest: canonical.query().digest().as_str().to_string(),
-        canonical_result_shape_digest: canonical.result_shape().digest().as_str().to_string(),
+        canonical_query_digest: canonical.report().identity_freeze().query_digest.clone(),
+        canonical_result_shape_digest: canonical
+            .report()
+            .identity_freeze()
+            .result_shape_digest
+            .clone(),
         planned_execution_route: plan.query().route().clone(),
         live_query_family: live_promotion.family().clone(),
         live_performance_status: live_promotion

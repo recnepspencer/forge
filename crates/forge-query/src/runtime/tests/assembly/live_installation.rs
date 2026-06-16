@@ -95,18 +95,22 @@ fn runtime_equivalent_live_declarations_share_active_lane_with_distinct_consumer
     assert_eq!(
         first
             .subscription_installation()
-            .active_lane_projection().label(),
+            .active_lane_projection()
+            .label(),
         second
             .subscription_installation()
-            .active_lane_projection().label()
+            .active_lane_projection()
+            .label()
     );
     assert_ne!(
         first
             .subscription_installation()
-            .consumer_attachment_projection().label(),
+            .consumer_attachment_projection()
+            .label(),
         second
             .subscription_installation()
-            .consumer_attachment_projection().label()
+            .consumer_attachment_projection()
+            .label()
     );
     assert_eq!(
         second

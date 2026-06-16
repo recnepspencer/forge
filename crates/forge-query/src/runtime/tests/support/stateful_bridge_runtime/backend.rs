@@ -157,25 +157,23 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                 state.next_snapshot_token as u64,
             ),
         );
-        let bridge_authority = Some(build_bridge_authority_bundle(
+        let bridge_authority = build_bridge_authority_bundle(
             &state.bridge,
             &snapshot_identity,
             &command,
             &collection,
             &entity_identity,
             mutation_kind.clone(),
-        )?);
-        Ok(ForgeQueryMutationReceipt {
+        )?;
+        Ok(test_mutation_receipt_with_bridge_authority(
             commit_identity,
             snapshot_identity,
-            deltas: vec![ForgeQueryMutationDelta {
-                collection,
-                entity_identity,
-                kind: mutation_kind,
-                aspect_paths: command.declared_aspect_paths(),
-            }],
+            collection,
+            entity_identity,
+            mutation_kind,
+            command.declared_aspect_paths(),
             bridge_authority,
-        })
+        ))
     }
 
     fn write_batch(
@@ -203,7 +201,9 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                 ));
             }
         }
-        let resolved_target_identity = binding.resolved_target_identity().terminal_projection_for_reporting();
+        let resolved_target_identity = binding
+            .resolved_target_identity()
+            .terminal_projection_for_reporting();
         let Some(actual_collection) = state.collection_by_identity.get(&resolved_target_identity)
         else {
             return Err(ForgeQueryExistingTruthBindingDenial::new(
@@ -270,7 +270,9 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                         .identity_by_storage_key
                         .get(identity)
                         .cloned()
-                        .unwrap_or_else(|| crate::memory_workspace::admit_authored_entity_label(identity)),
+                        .unwrap_or_else(|| {
+                            crate::memory_workspace::admit_authored_entity_label(identity)
+                        }),
                     external_row.clone(),
                 )
             })

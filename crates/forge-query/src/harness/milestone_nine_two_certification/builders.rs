@@ -526,7 +526,12 @@ fn lifecycle_lane_with_delivery_profile(
         let (window, report) =
             apply_active_subscription_continuation(&mut runtime, window, evidence).unwrap();
         let (delta, counters) = lower_subscription_continuation_report(&report);
-        (window, delta, Some(report), vec![counters.counter_projection().label().to_string()])
+        (
+            window,
+            delta,
+            Some(report),
+            vec![counters.counter_projection().label().to_string()],
+        )
     } else {
         let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
             delta_kind,
@@ -699,7 +704,8 @@ fn deliver_to_attachment(
         .performance_receipt_projection()
         .label()
         .to_string();
-    let active_delivery_work_packet_digest = work_packet.work_packet_projection().label().to_string();
+    let active_delivery_work_packet_digest =
+        work_packet.work_packet_projection().label().to_string();
     let density_posture_digest =
         digest_parts(&[work_packet.density_posture().as_str().to_string()]);
     let maintenance_delta_digest = work_packet
@@ -711,7 +717,11 @@ fn deliver_to_attachment(
     let batch_counter_digest = batch.counters().counter_projection().label().to_string();
     let delivery_batch_digest = batch.delivery_batch_projection().label().to_string();
     let delivery_window_digest = batch.delivery_window_projection().label().to_string();
-    let patch_group_digest = batch.patch_group().patch_group_projection().label().to_string();
+    let patch_group_digest = batch
+        .patch_group()
+        .patch_group_projection()
+        .label()
+        .to_string();
     let delivery_receipt_digest = batch.receipt().receipt_projection().label().to_string();
     let acknowledgement =
         advance_subscription_acknowledgement(runtime, attachment, batch.receipt().clone()).unwrap();
@@ -764,7 +774,8 @@ fn sharing_lane(
         attachment_budget(),
     )
     .unwrap();
-    let first_attachment_counter_digest = runtime.counters().counter_projection().label().to_string();
+    let first_attachment_counter_digest =
+        runtime.counters().counter_projection().label().to_string();
     let second = attach_subscription_consumer(
         &mut runtime,
         &joined,
@@ -772,7 +783,8 @@ fn sharing_lane(
         attachment_budget(),
     )
     .unwrap();
-    let second_attachment_counter_digest = runtime.counters().counter_projection().label().to_string();
+    let second_attachment_counter_digest =
+        runtime.counters().counter_projection().label().to_string();
     let first_window = open_query_delivery_window(&mut runtime, &first, delivery_budget()).unwrap();
     let first_window_counter_digest = runtime.counters().counter_projection().label().to_string();
     let second_window =
@@ -880,8 +892,14 @@ fn sharing_lane(
         format!("second_attach:{second_attachment_counter_digest}"),
         format!("first_window:{first_window_counter_digest}"),
         format!("second_window:{second_window_counter_digest}"),
-        format!("first_lowering:{}", first_lowering_counters.counter_projection().label()),
-        format!("second_lowering:{}", second_lowering_counters.counter_projection().label()),
+        format!(
+            "first_lowering:{}",
+            first_lowering_counters.counter_projection().label()
+        ),
+        format!(
+            "second_lowering:{}",
+            second_lowering_counters.counter_projection().label()
+        ),
         format!("first_packet:{}", first_evidence.work_packet_counter_digest),
         format!(
             "second_packet:{}",
@@ -998,7 +1016,10 @@ fn preview_discard_lane() -> SubscriptionLifecycleCertificationBundle {
         .unwrap(),
     );
     let mut counter_evidence = bundle.counter_evidence.clone();
-    counter_evidence.push(format!("lowering:{}", lowering_counters.counter_projection().label()));
+    counter_evidence.push(format!(
+        "lowering:{}",
+        lowering_counters.counter_projection().label()
+    ));
     counter_evidence.extend([
         "authoritative_routing_residue:0".to_string(),
         "authoritative_checkpoint_residue:0".to_string(),
@@ -1114,7 +1135,10 @@ fn preview_promotion_lane() -> SubscriptionLifecycleCertificationBundle {
         .unwrap(),
     );
     let mut counter_evidence = bundle.counter_evidence.clone();
-    counter_evidence.push(format!("lowering:{}", lowering_counters.counter_projection().label()));
+    counter_evidence.push(format!(
+        "lowering:{}",
+        lowering_counters.counter_projection().label()
+    ));
     bundle.counter_snapshot = digest_parts(&counter_evidence);
     bundle.counter_evidence = counter_evidence;
     bundle

@@ -1,4 +1,5 @@
 use super::support::*;
+use crate::evidence_identity::forge_query_evidence_identity;
 use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 pub(super) fn compose_authoritative_intent_receipt_identity(
@@ -20,7 +21,29 @@ fn compose_authoritative_intent_receipt_identity_with_effect_trigger(
     receipt: &ForgeQueryIntentReceipt,
     effect_trigger_digest: Option<&str>,
 ) -> ForgeQueryEvidenceIdentity {
-    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::AuthoritativeIntentReceipt)
+    let invariant_evidence_identities = receipt_value_identities(
+        "authoritative-receipt-invariant-evidence",
+        receipt.invariant_evidence(),
+    );
+    let effect_trigger_identity = effect_trigger_digest.map(|digest| {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeIntentReceipt)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("role"),
+                "authoritative-receipt-effect-trigger",
+            )
+            .field_value(ForgeQueryEvidenceTag::new("digest"), digest)
+            .seal()
+    });
+    let affected_live_view_identities = receipt_value_identities(
+        "authoritative-receipt-affected-live-view",
+        receipt.affected_live_view_ids(),
+    );
+    let affected_derived_view_identities = receipt_value_identities(
+        "authoritative-receipt-affected-derived-view",
+        receipt.affected_derived_view_ids(),
+    );
+
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeIntentReceipt)
         .field_shape(
             ForgeQueryEvidenceTag::new("intent_name"),
             receipt.intent_name(),
@@ -49,9 +72,9 @@ fn compose_authoritative_intent_receipt_identity_with_effect_trigger(
             ForgeQueryEvidenceTag::new("outcome_digest"),
             receipt.outcome_digest(),
         )
-        .field_value_sequence(
+        .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("invariant_evidence"),
-            receipt.invariant_evidence().iter().map(String::as_str),
+            invariant_evidence_identities.iter(),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("source_lane"),
@@ -61,9 +84,9 @@ fn compose_authoritative_intent_receipt_identity_with_effect_trigger(
             ForgeQueryEvidenceTag::new("target_lane"),
             receipt.target_lane().as_str(),
         )
-        .optional_identity(
+        .optional_evidence_identity(
             ForgeQueryEvidenceTag::new("effect_trigger_digest"),
-            effect_trigger_digest,
+            effect_trigger_identity.as_ref(),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("commit_evidence_identity"),
@@ -73,16 +96,13 @@ fn compose_authoritative_intent_receipt_identity_with_effect_trigger(
             ForgeQueryEvidenceTag::new("snapshot_evidence_identity"),
             receipt.snapshot_evidence_identity(),
         )
-        .field_value_sequence(
+        .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("affected_live_view_id"),
-            receipt.affected_live_view_ids().iter().map(String::as_str),
+            affected_live_view_identities.iter(),
         )
-        .field_value_sequence(
+        .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("affected_derived_view_id"),
-            receipt
-                .affected_derived_view_ids()
-                .iter()
-                .map(String::as_str),
+            affected_derived_view_identities.iter(),
         )
         .field_usize(
             ForgeQueryEvidenceTag::new("considered_computed_view_count"),
@@ -209,9 +229,9 @@ pub(super) fn compose_effect_intent_receipt_identity(
             ForgeQueryEvidenceTag::new("trigger_source_kind"),
             receipt.trigger_source_kind().as_str(),
         )
-        .field_value(
-            ForgeQueryEvidenceTag::new("write_adjacent_trigger_digest"),
-            receipt.write_adjacent_trigger().digest(),
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("write_adjacent_trigger"),
+            receipt.write_adjacent_trigger().identity(),
         )
         .field_value(
             ForgeQueryEvidenceTag::new("pending_intent_target"),
@@ -368,4 +388,19 @@ pub(super) fn compose_effect_intent_receipt_inspection_identity(
             inspection.feedback_graph().graph_identity(),
         )
         .seal()
+}
+
+fn receipt_value_identities(
+    role: &'static str,
+    values: &[String],
+) -> Vec<ForgeQueryEvidenceIdentity> {
+    values
+        .iter()
+        .map(|value| {
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeIntentReceipt)
+                .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+                .field_value(ForgeQueryEvidenceTag::new("value"), value)
+                .seal()
+        })
+        .collect()
 }

@@ -1181,18 +1181,59 @@ milestone. Do not collapse these rows back into broad folder claims.
 | Forge-server test adapters | runtime test adapters | snapshot adapter + mutation receipt fixtures | `snapshot_token() -> String`, formatted receipts | Phase 9 fixed | Server test adapters no longer implement the removed `snapshot_token`/`support_evidence` string shims; mutation receipt fixtures use typed commit, snapshot, entity, and subscription-support evidence identities. Gates: `cargo test -p forge-server --test forge_native_facade_entry` (`62 passed`), compat phase three/four (`8 passed` each) |
 | Forge-server integration tests | direct mutation/projection tests | inspection/read receipt assertions | snapshot/commit string equality | Phase 9 fixed | Forge-native integration tests compare typed receipt/inspection identities or explicit evidence projections only at result/reporting edges; the backend-verified assertion denial fixture now requires a canonical relational bridge record identity instead of falling back from a raw task label. Gate: `cargo test -p forge-server --test forge_native_facade_entry` (`62 passed`) |
 | Worth-kernel / forge-kernel | local/display formatting only in sweep | no identity-lowering authority found | ordinary local strings | Out of scope | Do not add blocker without new evidence |
-| Subscription replay tests | bridge replay tests | truth identities from string literals | deferred replay fixture labels | Deferred | Owner milestone remains subscription replay typed identity milestone |
+| Subscription replay tests | bridge replay tests | truth identities from string literals | deferred replay fixture labels | Phase 10 | Close in Phase 10: migrate `subscription/replay_tests.rs` to typed relational constructors; no separate owner milestone |
 
-### Phase 10 — closure
+### Phase 10 — closure (zero-deferral closeout)
 
-- [x] Phase 7 QA gate `CLEARED` (recorded in compiler ledger/header)
-- [x] `cargo check --workspace` green
-- [x] Compile-fail gate tests still pass
-- [x] Compiler Failure Ledger and historical rows: all in-scope rows closed by
-  authority-category fix, compile-fail guard, terminal projection quarantine, or
-  named deferred owner milestone
-- [x] `milestone-9.6-bridge-truth-identity-closeout.md`
-- [x] Status -> `Closed`
+Phase 10 closes Milestone 9.6 only when **every item below is met**. Nothing from
+Phase 9 or earlier closeout passes may remain silently deferred.
+
+**Workspace and QA**
+
+- [ ] Phase 7 QA gate `CLEARED` (recorded in compiler ledger/header)
+- [ ] Phase 9 hostile QA `CLEARED` on `query-repair` (gate paths + residual folklore)
+- [ ] `cargo check --workspace` green
+- [ ] Full compile-fail matrix green (see closeout doc Verification Gates — all
+  `phase_boundaries_*` suites, not the fast Phase 9 subset alone)
+- [ ] Hostile QA pass on full 9.6 bar (code inspection, not tests alone)
+
+**worth-topo Phase 9 compile-fail extension (required — was deferred from Phase 9)**
+
+- [ ] Add `query_runtime_phase_nine` trybuild manifest mirroring Phase 8
+  (`phase_eight_compile_fail_targets.rs` pattern)
+- [ ] Extend folklore inventory: scan previously excluded harness paths
+  (`PHASE_EIGHT_EXCLUDED_FOLKLORE_PATHS`) with Phase 9 forbidden patterns
+  (`ForgeQueryMutationReceipt {`, harness authority folklore)
+- [ ] Add compile-fail UI fixtures (e.g. mutation receipt struct literals,
+  terminal projection authority misuse)
+- [ ] Wire `phase_boundaries_query_runtime_phase_nine_compile_fail.rs` + Cargo.toml
+
+**forge-runtime-bridge subscription replay (required — was deferred to non-existent owner milestone)**
+
+- [ ] Migrate `src/subscription/replay_tests.rs` from label-based
+  `truth_identity_fixtures::{truth_snapshot_fixture, truth_branch_fixture}` to
+  typed relational constructors (`truth_snapshot`, `truth_branch`,
+  `from_relational_*`)
+- [ ] Close matrix row **Subscription replay tests** in this milestone
+- [ ] Add compile-fail or folklore guard on replay test paths if label-mint
+  patterns remain reachable
+
+**worth-spatial certification (required — observed 55 failures in public_api_contract)**
+
+- [ ] Triage and fix `cargo test -p worth-spatial --test public_api_contract`
+  failures (boolean evidence ledger, evidence-ledger receipts, honesty guards,
+  workload vocabulary)
+- [ ] Distinguish 9.6 harness fallout vs pre-existing drift; fix either way
+  before closeout
+
+**Documentation and ledger**
+
+- [ ] Update `phase-9-discovery-ledger.md` — remove open trybuild row; record
+  Phase 10 execution
+- [ ] Append `query-repair` closeout section to
+  `milestone-9.6-bridge-truth-identity-closeout.md` with gate evidence
+- [ ] Compiler Failure Ledger: all in-scope rows closed (no unnamed deferrals)
+- [ ] Milestone status -> `Closed` only after all Phase 10 boxes above are checked
 
 ## Phase 7 QA gate
 
@@ -1527,7 +1568,7 @@ text, and closing Phase 7 from row-scoped scans alone.
 | 9 | forge-server | `surfaces/compat_http/mutation_execution/query_execution.rs` | Compatibility precondition observes `handoff.workspace().snapshot_token()` as a string basis digest. | Fixed | Compatibility precondition now reads `workspace().snapshot_identity()` and converts it only to the terminal HTTP validator label; the erased `snapshot_token()` backend/source seam remains absent. Gate: `cargo check -p forge-server` |
 | 9 | forge-server | `tests/support/direct_context_runtime.rs`, `tests/support/query_handoff/runtime.rs`, `tests/support/query_handoff/runtime_mutation_support.rs`, `tests/support/compat_http/phase_three_runtime.rs`, `tests/support/compat_http/phase_four_runtime.rs` | Server test adapters implement `snapshot_token(&self) -> String` and construct `ForgeQueryMutationReceipt` with formatted commit/snapshot strings. | Fixed | Adapters provide typed snapshot/session/support evidence identities, mutation receipts are built from typed commit/snapshot/entity identities, and split helper files keep touched tests within the 400-line cap. Gates: `cargo test -p forge-server --test forge_native_facade_entry` (`62 passed`), compat phase three/four (`8 passed` each) |
 | 9 | forge-server | `tests/forge_native/direct_mutation.rs`, `tests/forge_native/direct_projection.rs` | Forge-native integration tests compare result/inspection digests to `receipt.commit_identity()`, assert `inspection.snapshot_token() == receipt.snapshot_token()`, and consume direct projection read receipt snapshot tokens as strings. | Fixed | Direct integration assertions now compare typed commit/snapshot handles or explicit evidence/projection accessors, and the backend-verified assertion denial fixture rejects fake raw entity labels by requiring canonical relational bridge identity input. Gate: `cargo test -p forge-server --test forge_native_facade_entry` (`62 passed`) |
-| — | forge-runtime-bridge | `src/subscription/replay_tests.rs` | Subscription replay tests mint truth identities from string literals/formatted commit and patch text, but subscription replay is outside this milestone's ordinary truth-routing spine. | Deferred | Owner milestone: subscription replay typed identity milestone |
+| — | forge-runtime-bridge | `src/subscription/replay_tests.rs` | Subscription replay tests mint truth identities from string literals/formatted commit and patch text, but subscription replay is outside this milestone's ordinary truth-routing spine. | Fixed | Phase 10: migrated to typed relational constructors; folklore guard in `tests/subscription_replay_folklore_guard.rs` |
 
 **Historical note:** rows below the header were produced by the earlier Phase 1
 scan and remain useful trace material. They are not sufficient for closure after

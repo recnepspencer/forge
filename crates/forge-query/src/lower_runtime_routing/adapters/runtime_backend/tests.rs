@@ -100,22 +100,13 @@ fn route_plan_drift_rejects_foreign_boundary_receipt() {
 #[test]
 fn write_authority_boundary_receipt_carries_boundary_envelope() {
     let command = ForgeQueryWriteCommand::Delete {
-        entity_identity: crate::memory_workspace::admit_authored_entity_label(
-            "task-1",
-        ),
+        entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
     };
-    let mutation_receipt = ForgeQueryMutationReceipt {
-        commit_identity:
-            crate::memory_workspace::admit_external_commit_label(
-                "commit-1",
-            ),
-        snapshot_identity:
-            crate::memory_workspace::admit_external_snapshot_label(
-                "snapshot-1",
-            ),
-        deltas: Vec::new(),
-        bridge_authority: None,
-    };
+    let mutation_receipt = ForgeQueryMutationReceipt::from_authoritative_parts(
+        crate::memory_workspace::admit_external_commit_label("commit-1"),
+        crate::memory_workspace::admit_external_snapshot_label("snapshot-1"),
+        Vec::new(),
+    );
     let receipt = WriteAuthorityExecutionReceipt::from_command(&command, mutation_receipt);
 
     assert_eq!(

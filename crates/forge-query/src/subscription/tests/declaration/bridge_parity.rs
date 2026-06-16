@@ -42,11 +42,17 @@ fn manual_bridge_witness_and_parity_explanation_bind_canonical_bridge_artifacts(
         "exact_detail_signals"
     );
     assert_eq!(
-        explanation.comparison().query_declaration_projection().label(),
+        explanation
+            .comparison()
+            .query_declaration_projection()
+            .label(),
         artifacts.declaration.declaration_projection().label()
     );
     assert_eq!(
-        explanation.comparison().bridge_declaration_projection().label(),
+        explanation
+            .comparison()
+            .bridge_declaration_projection()
+            .label(),
         artifacts.lowering.bridge_declaration_projection().label()
     );
     assert_eq!(

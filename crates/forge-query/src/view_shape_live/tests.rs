@@ -951,7 +951,10 @@ fn grouped_baseline_is_derived_from_authoritative_execution_bindings() {
     );
     assert_eq!(
         grouped_execution.truth_view_evidence_identity().as_str(),
-        bridge_grouped_truth_view_evidence_identity_for_test(&truth_view).as_str()
+        crate::view_shape_live::grouped_execution::bridge_grouped_truth_view_digest_evidence_identity(
+            truth_view.digest(),
+        )
+        .as_str()
     );
     assert_eq!(baseline.desired_state().result().row_count(), 2);
     assert_eq!(baseline.desired_state().result().lane_count(), 2);
@@ -975,7 +978,10 @@ fn bridge_grouped_truth_view_evidence_identity_for_test(
     )
     .field_value(
         crate::evidence_identity::ForgeQueryEvidenceTag::new("bridge_grouped_truth"),
-        truth_view.digest().bridge_admission_evidence().terminal_projection_for_reporting(),
+        truth_view
+            .digest()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting(),
     )
     .seal()
 }

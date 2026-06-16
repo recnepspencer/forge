@@ -49,7 +49,7 @@ pub fn product_retained_bundle(
     )
     .with_output_digest(
         Output::RetainedState,
-        retained.runtime_state().state_digest(),
+        retained.runtime_state().state_digest().terminal_projection_for_reporting(),
     )
     .with_optional_output_digest(Output::Basis, retained.basis_digest())
     .with_optional_output_digest(Output::Remask, retained.remask_posture().remask_digest())
@@ -57,13 +57,13 @@ pub fn product_retained_bundle(
         Output::AsyncResult,
         retained
             .async_result_state()
-            .map(|state| state.inner().result_state_digest()),
+            .map(|state| state.inner().result_state_for_reporting()),
     )
     .with_optional_output_digest(
         Output::TemporalState,
         retained
             .temporal_state()
-            .map(|state| state.inner().state_digest()),
+            .map(|state| state.inner().state_digest().terminal_projection_for_reporting()),
     )
 }
 
@@ -91,7 +91,7 @@ pub fn lower_direct_state_bundle(
     )
     .with_output_digest(Output::Branch, state.direct_context().branch_digest())
     .with_output_digest(Output::Workspace, state.direct_context().workspace_digest())
-    .with_output_digest(Output::RetainedState, state.runtime_state().state_digest())
+    .with_output_digest(Output::RetainedState, state.runtime_state().state_digest().terminal_projection_for_reporting())
     .with_optional_output_digest(Output::Basis, state.direct_context().basis_digest())
     .with_optional_output_digest(
         Output::Remask,
@@ -102,14 +102,14 @@ pub fn lower_direct_state_bundle(
         state
             .async_result_state()
             .as_ref()
-            .map(|value| value.inner().result_state_digest()),
+            .map(|value| value.inner().result_state_for_reporting()),
     )
     .with_optional_output_digest(
         Output::TemporalState,
         state
             .temporal_state()
             .as_ref()
-            .map(|value| value.inner().state_digest()),
+            .map(|value| value.inner().state_digest().terminal_projection_for_reporting()),
     )
 }
 

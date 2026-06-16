@@ -59,18 +59,18 @@ mod dimensions;
 mod equivalence;
 mod equivalence_accessors;
 mod error;
-mod evidence_projection;
 mod evidence_identities;
-mod identity_authority;
+mod evidence_projection;
 mod family;
 mod fanout;
 mod future_selection;
 mod future_selection_accessors;
+mod identity_authority;
 mod input;
 mod input_accessors;
-mod lane_attachment_accessors;
 #[cfg(test)]
 mod input_test_support;
+mod lane_attachment_accessors;
 mod maintenance_delta;
 mod patch_group;
 mod performance_receipt;
@@ -101,13 +101,6 @@ pub use identity_authority::{
     FORGE_QUERY_SUBSCRIPTION_PHASE_SEVEN_GOLDEN_PATH_COUNT,
 };
 
-pub use terminal_projection_label::TerminalProjectionLabel;
-pub(crate) use validation_evidence::{
-    validation_evidence_identity_label, validation_evidence_pair,
-    validation_evidence_projection_pair, validation_label_list_evidence_identity,
-    validation_role_evidence_identity, validation_shape_role_evidence_identity,
-    validation_u64_role_evidence_identity, validation_usize_role_evidence_identity,
-};
 pub use acknowledgement::{
     QueryDeliveryBatchReceipt, QueryDeliverySequence, SubscriptionAcknowledgementFrontier,
 };
@@ -299,6 +292,13 @@ pub use support::{
     QuerySubscriptionSupportReportDenialKind, QuerySubscriptionSupportReportError,
     QuerySubscriptionSupportSubject, SubscriptionFamilyCapabilityDigest, SupportLookupReceipt,
     SupportResolutionPosture,
+};
+pub use terminal_projection_label::TerminalProjectionLabel;
+pub(crate) use validation_evidence::{
+    validation_evidence_identity_label, validation_evidence_pair,
+    validation_evidence_projection_pair, validation_label_list_evidence_identity,
+    validation_role_evidence_identity, validation_shape_role_evidence_identity,
+    validation_u64_role_evidence_identity, validation_usize_role_evidence_identity,
 };
 
 #[cfg(test)]

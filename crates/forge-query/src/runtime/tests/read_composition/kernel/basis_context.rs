@@ -334,8 +334,7 @@ fn runtime_preflight_for_family(
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        crate::memory_workspace::admit_external_snapshot_label(snapshot_token)
-            .evidence_identity(),
+        crate::memory_workspace::admit_external_snapshot_label(snapshot_token).evidence_identity(),
         family.read_graph().schema_basis().clone(),
         lineage_class,
     );
@@ -363,11 +362,9 @@ fn assert_context_materialized_rows(
             .as_str()
             .is_some_and(|digest| digest == context.query_digest())
     }));
-    assert!(rows.iter().all(|row| row
-        .identity()
-        .evidence_identity()
-        .as_str()
-        .starts_with("query-context:")));
+    assert!(rows
+        .iter()
+        .all(|row| row.identity().relational_record_parts().is_none()));
 }
 
 fn assert_runtime_materialized_rows(rows: &[crate::facade::ForgeQueryEntity]) {

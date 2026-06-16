@@ -52,7 +52,9 @@ fn runtime_downstream_delivery_projects_time_only_contract_with_explicit_resume_
         .expect("retained time-only delivery should exist");
     let basis_digest = view
         .subscription_installation()
-        .basis_binding_projection().label().to_string();
+        .basis_binding_projection()
+        .label()
+        .to_string();
 
     assert_eq!(
         delivery.delivery_class(),

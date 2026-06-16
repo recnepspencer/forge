@@ -209,7 +209,10 @@ impl CommittedPatchSource for TestBridgeSource {
                         .unwrap_or_else(|| {
                             stable_fixture_position(
                                 "effect-patch",
-                                request.commit_identity().bridge_admission_evidence().terminal_projection_for_reporting(),
+                                request
+                                    .commit_identity()
+                                    .bridge_admission_evidence()
+                                    .terminal_projection_for_reporting(),
                             )
                         }),
                 ),

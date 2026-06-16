@@ -5,8 +5,6 @@
 
 use super::ForgeQueryEvidenceIdentity;
 
-pub(crate) fn evidence_identity_reporting_label(
-    identity: &ForgeQueryEvidenceIdentity,
-) -> &str {
+pub(crate) fn evidence_identity_reporting_label(identity: &ForgeQueryEvidenceIdentity) -> &str {
     identity.reporting_projection()
 }

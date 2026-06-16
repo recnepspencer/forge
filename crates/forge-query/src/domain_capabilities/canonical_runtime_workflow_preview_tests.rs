@@ -201,7 +201,10 @@ fn preview_workflow_artifact_separates_request_family_in_identity_basis() {
             .declaration_identity()
             .bridge_admission_evidence()
             .terminal_projection_for_reporting(),
-        discard.declaration_identity().bridge_admission_evidence().terminal_projection_for_reporting()
+        discard
+            .declaration_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
     );
     assert_ne!(
         promotion.declaration_digest_for_reporting(),
@@ -219,9 +222,7 @@ fn preview_workflow_artifact_materializer_denies_runtime_only_workflow_postures(
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection(
             "spatial.confirmation.runtime",
             "authoritative confirmation requires runtime preflight context",
-            crate::memory_workspace::admit_external_snapshot_label(
-                "runtime-snapshot:77",
-            ),
+            crate::memory_workspace::admit_external_snapshot_label("runtime-snapshot:77"),
         ),
         admitted_plan_target_parts(
             "plan-preview-runtime",

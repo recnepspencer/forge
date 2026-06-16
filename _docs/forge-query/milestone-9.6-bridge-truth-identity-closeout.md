@@ -1,10 +1,32 @@
 # Forge Query Milestone 9.6 Bridge Truth Identity Closeout
 
-> **Status:** Closed
+> **Status:** Phase 10 closeout in progress (`query-repair`, 2026-06-16)
 >
-> **Date:** 2026-06-15
+> **Prior closeout date:** 2026-06-15
 >
 > **Governing law:** Architecture Law 42 and Forge Foundational identity lifecycle categories.
+
+## Phase 10 zero-deferral requirements
+
+The 2026-06-15 closeout is superseded for final milestone closure by the Phase 10
+pass on branch `query-repair`. Phase 10 must complete **all** items below before
+status returns to `Closed`. See also `phase-10-closeout-ledger.md` and the Phase 10
+section in `milestone-9.6-bridge-truth-identity-lowering.md`.
+
+1. **Full compile-fail matrix** — every gate in Verification Gates below, plus all
+   forge-query `phase_boundaries_*` suites and worth-topo Phase 8 + Phase 9 trybuild
+   drivers.
+2. **worth-topo Phase 9 compile-fail extension** — `query_runtime_phase_nine`
+   manifest, harness folklore scan (no `PHASE_EIGHT_EXCLUDED` skips), UI fixtures.
+3. **forge-runtime-bridge subscription replay** — migrate `replay_tests.rs` from
+   label-based `truth_*_fixture` helpers to typed relational constructors; close
+   matrix row in this milestone (no separate owner milestone).
+4. **worth-spatial `public_api_contract`** — fix all integration test failures
+   (observed 55 failures / 322 pass); triage as 9.6 fallout or certification drift
+   but fix before closeout.
+5. **Phase 9 closeout evidence** — append gate results from `query-repair` hostile
+   QA and compile-fail runs to this document.
+6. **Compiler Failure Ledger** — no open in-scope rows without explicit fix path.
 
 ## Closure Summary
 
@@ -79,14 +101,40 @@ typed evidence identities:
 
 ## Verification Gates
 
+### Phase 10 full matrix (required before final close)
+
+**Workspace**
+
 - `cargo check --workspace`
 - `cargo check -p forge-runtime-bridge -p forge-query --lib`
+
+**Compile-fail (all must pass)**
+
 - `cargo test -p forge-runtime-bridge --test phase_boundaries_compile_fail`
 - `cargo test -p forge-runtime-bridge --test phase_boundaries_bridge_truth_identity_compile_fail`
 - `cargo test -p forge-runtime-bridge --test phase_boundaries_bridge_truth_identity_digest`
 - `cargo test -p forge-query --test phase_boundaries_bridge_truth_identity_compile_fail`
+- `cargo test -p forge-query --test phase_boundaries_query_identity_authority_compile_fail`
+- `cargo test -p forge-query --test phase_boundaries_intent_admission_compile_fail`
+- `cargo test -p forge-query --test phase_boundaries_compile_fail`
+- All other `cargo test -p forge-query --test phase_boundaries_*` suites
+- `cargo test -p worth-topo --test phase_boundaries_query_runtime_phase_eight_compile_fail`
+- `cargo test -p worth-topo --test phase_boundaries_query_runtime_phase_nine_compile_fail`
 - `cargo test -p forge-relational --test phase_boundaries_compile_fail`
 - `cargo test -p forge-signal --test phase_2a_signal_boundaries`
+
+**Integration / certification**
+
+- `cargo test -p worth-spatial --test public_api_contract -- --test-threads=1`
+  (serial harness required; default parallel run has shared-state flake unrelated to
+  identity authority — see phase-10-closeout-ledger P10-4)
+- `cargo test -p worth-spatial --lib`
+- `cargo test -p worth-topo --lib topology_read`
+- `cargo test -p forge-server --test forge_native_facade_entry`
+- `cargo test -p forge-server --test compat_http_phase_three`
+- `cargo test -p forge-runtime-bridge subscription::replay --lib`
+
+**Phase 7 certification lanes (2026-06-15 baseline — re-run for Phase 10)**
 - `cargo test -p forge-query runtime::surface::mutation_evidence::batch --lib`
 - `cargo test -p forge-query runtime::tests::causal_inspection::certification::row_digest --lib`
 - `cargo test -p forge-query runtime::tests::causal_inspection::certification --lib`
@@ -96,7 +144,14 @@ typed evidence identities:
 
 Evidence files for the final pass are stored under `_docs/forge-query/goal_mode_final_*` and `_docs/forge-query/goal_mode_bridge_*`.
 
-## Deferred Scope
+## Deferred Scope (superseded by Phase 10)
 
-- Subscription replay typed identity fixture cleanup remains deferred to the subscription replay typed identity milestone.
-- Out-of-scope local/display formatting in worth-kernel and forge-kernel remains ordinary projection text unless a future trace finds an authority path.
+The items below were deferred in the 2026-06-15 closeout. **Phase 10 closes them
+in this milestone** — they must not remain deferred at final closeout:
+
+- ~~Subscription replay typed identity fixture cleanup~~ → **P10-3** (required)
+- worth-spatial `public_api_contract` integration failures → **P10-4** (required)
+- worth-topo Phase 9 compile-fail extension → **P10-2** (required)
+
+**Still out of scope:** ordinary local/display formatting in worth-kernel and
+forge-kernel unless a trace finds an authority path.

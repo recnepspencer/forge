@@ -1,8 +1,8 @@
 use std::fmt;
 
 use forge_query::facade::{
-    ForgeQueryCommitIdentity, ForgeQueryComputedBuilder, ForgeQueryDerivedPatch,
-    ForgeQueryDerivedView, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryComputedBuilder, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
+    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
 use schema::facade::QueryAspectPath;
@@ -67,7 +67,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyInterpretedMaintainer {
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label(
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-interpreted-incremental-unexpected",
             ),
             delta.entity_identity().clone(),
@@ -96,7 +96,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyInterpretedMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label("topology-interpreted"),
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity("topology-interpreted"),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {
@@ -143,7 +143,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyValidationMaintainer {
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label(
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
                 "topology-validation-incremental-unexpected",
             ),
             delta.entity_identity().clone(),
@@ -176,7 +176,7 @@ impl ForgeQueryDerivedViewMaintainer for TopologyValidationMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            ForgeQueryCommitIdentity::from_external_authority_label("topology-validation"),
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity("topology-validation"),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {

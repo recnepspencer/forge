@@ -1,19 +1,17 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
+use super::super::evidence_projection::subscription_evidence_projection;
 use super::bundle::{
     CertificationCoverageReceipt, QuerySubscriptionRuntimeCertificationBundle,
     SubscriptionCertificationCoverageWidth,
 };
 use super::coverage::QuerySubscriptionFamilyCoverageRow;
 use super::scope::QuerySubscriptionRuntimeCertificationScope;
-use super::super::evidence_projection::subscription_evidence_projection;
 
 macro_rules! row_projection {
     ($name:ident, $field:ident) => {
-        pub fn $name(
-            &self,
-        ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        pub fn $name(&self) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
             subscription_evidence_projection(&self.$field)
         }
     };
@@ -28,12 +26,18 @@ impl QuerySubscriptionRuntimeCertificationScope {
 }
 
 impl QuerySubscriptionFamilyCoverageRow {
-    row_projection!(subscription_declaration_projection, subscription_declaration_identity);
+    row_projection!(
+        subscription_declaration_projection,
+        subscription_declaration_identity
+    );
     row_projection!(bridge_declaration_projection, bridge_declaration_identity);
     row_projection!(signal_strategy_projection, signal_strategy_identity);
     row_projection!(support_report_projection, support_report_identity);
     row_projection!(bridge_parity_projection, bridge_parity_identity);
-    row_projection!(lifecycle_certification_projection, lifecycle_certification_identity);
+    row_projection!(
+        lifecycle_certification_projection,
+        lifecycle_certification_identity
+    );
     row_projection!(diagnostic_bundle_projection, diagnostic_bundle_identity);
     row_projection!(basis_projection, basis_identity);
     row_projection!(policy_projection, policy_identity);

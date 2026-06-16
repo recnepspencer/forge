@@ -15,7 +15,13 @@ pub(super) fn materialized_fact_posture_from_live_subscription_state(
         state.installation.query_projection().label(),
         basis_identity.as_str(),
         state.installation.support_projection().label(),
-        Some(state.installation.installation_projection().label().to_string()),
+        Some(
+            state
+                .installation
+                .installation_projection()
+                .label()
+                .to_string(),
+        ),
     )
 }
 

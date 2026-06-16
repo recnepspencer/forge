@@ -350,7 +350,21 @@ fn milestone_nine_six_certification_modules_do_not_use_hash_parts() {
 
 #[test]
 fn inventory_documents_excluded_folklore_paths() {
-    use crate::application::{EXACT_ZERO_FORMAT_DIGEST_PATHS, EXCLUDED_FOLKLORE_PATHS};
+    use crate::application::{
+        EXACT_ZERO_FORMAT_DIGEST_PATHS, EXCLUDED_FOLKLORE_DEFERRALS, EXCLUDED_FOLKLORE_PATHS,
+    };
+
+    assert_eq!(
+        EXCLUDED_FOLKLORE_PATHS.len(),
+        EXCLUDED_FOLKLORE_DEFERRALS.len(),
+        "every excluded folklore prefix must carry a named owner milestone"
+    );
+    for (path, _owner) in EXCLUDED_FOLKLORE_DEFERRALS {
+        assert!(
+            EXCLUDED_FOLKLORE_PATHS.contains(path),
+            "deferral entry must remain listed in EXCLUDED_FOLKLORE_PATHS: {path}"
+        );
+    }
 
     assert!(!EXCLUDED_FOLKLORE_PATHS.contains(&"subscription/"));
     assert!(EXACT_ZERO_FORMAT_DIGEST_PATHS.contains(&"subscription/input.rs"));

@@ -20,12 +20,28 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
                 .aspect("title.value", "Before continuity rebind")
         })
         .expect("seed insert should execute");
-    let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
+    let binding_authority =
         crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
             crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-1")
                 .expect("existing-truth authority label"),
         )
-        .expect("existing-truth authority identity"),
+        .expect("existing-truth authority identity");
+    let prior_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(
+            crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1")
+                .expect("continuity prior authority label"),
+        )
+        .expect("continuity prior authority identity");
+    let successor_authority =
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(
+            crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new(
+                "authority:task-1-successor",
+            )
+            .expect("continuity successor authority label"),
+        )
+        .expect("continuity successor authority identity");
+    let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
+        binding_authority.clone(),
         seed.deltas()[0].entity_identity.clone(),
     )
     .expect("binding should build")
@@ -37,8 +53,11 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
     );
     let receipt = workspace
         .update_existing(binding, |task| {
-            task.continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-1").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-1-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"))
-                .aspect("title.value", "After continuity rebind")
+            task.continuity_rebind_existing_target(
+                prior_authority.clone(),
+                successor_authority.clone(),
+            )
+            .aspect("title.value", "After continuity rebind")
         })
         .expect("continuity-aware existing-target update should execute");
     let inspection = workspace
@@ -58,13 +77,13 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
     );
     assert_eq!(
         continuity.prior_authoritative_identity().as_str(),
-        "authority:task-1"
+        expected_bridge_continuity_authority_label(&prior_authority).as_str()
     );
     assert_eq!(
         continuity
             .successor_authoritative_identity()
             .map(|identity| identity.as_str()),
-        Some("authority:task-1-successor")
+        Some(expected_bridge_continuity_authority_label(&successor_authority).as_str(),)
     );
     let basis_binding_digest = continuity
         .basis_binding_digest()
@@ -93,13 +112,13 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
                 .expect("inspection should retain continuity evidence");
             assert_eq!(
                 continuity.prior_authoritative_identity().as_str(),
-                "authority:task-1"
+                expected_bridge_continuity_authority_label(&prior_authority).as_str()
             );
             assert_eq!(
                 continuity
                     .successor_authoritative_identity()
                     .map(|identity| identity.as_str()),
-                Some("authority:task-1-successor")
+                Some(expected_bridge_continuity_authority_label(&successor_authority).as_str(),)
             );
             assert_eq!(
                 continuity

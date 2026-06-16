@@ -430,7 +430,11 @@ fn certification_bundle(
             .coverage_resolution_posture()
             .as_str()
             .to_string(),
-        query_digest: artifacts.lifecycle_bundle.query_scope_projection().label().to_string(),
+        query_digest: artifacts
+            .lifecycle_bundle
+            .query_scope_projection()
+            .label()
+            .to_string(),
         subscription_family_digest: artifacts
             .lifecycle_bundle
             .subscription_family_projection()
@@ -477,11 +481,7 @@ fn certification_bundle(
             .lookup_receipt_projection()
             .label()
             .to_string(),
-        manual_bridge_witness_digest: artifacts
-            .witness
-            .witness_projection()
-            .label()
-            .to_string(),
+        manual_bridge_witness_digest: artifacts.witness.witness_projection().label().to_string(),
         bridge_parity_digest: artifacts
             .parity_explanation
             .explanation_projection()
@@ -492,14 +492,22 @@ fn certification_bundle(
             .receipt_projection()
             .label()
             .to_string(),
-        diagnostic_trace_digest: artifacts.admitted_trace.trace_projection().label().to_string(),
+        diagnostic_trace_digest: artifacts
+            .admitted_trace
+            .trace_projection()
+            .label()
+            .to_string(),
         admitted_diagnostic_bundle_digest: artifacts
             .admitted_bundle
             .bundle_projection()
             .label()
             .to_string(),
         denied_diagnostic_bundle_digest: "none".to_string(),
-        diagnostic_assembly_receipt_digest: artifacts.diagnostic_receipt.assembly_receipt_projection().label().to_string(),
+        diagnostic_assembly_receipt_digest: artifacts
+            .diagnostic_receipt
+            .assembly_receipt_projection()
+            .label()
+            .to_string(),
         lifecycle_certification_digest: artifacts
             .lifecycle_bundle
             .certification_bundle_projection()

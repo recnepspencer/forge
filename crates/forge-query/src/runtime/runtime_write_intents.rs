@@ -119,7 +119,10 @@ impl ForgeQueryRuntime {
 
 fn review_request_detail(command: &ForgeQueryWriteCommand) -> String {
     match command.declared_entity_identity_ref() {
-        Some(identity) => identity.evidence_identity().reporting_projection().to_string(),
+        Some(identity) => identity
+            .evidence_identity()
+            .reporting_projection()
+            .to_string(),
         None => command
             .declared_collection_ref()
             .unwrap_or("scalar-write")

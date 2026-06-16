@@ -344,7 +344,8 @@ fn runtime_workspace_inspection_surfaces_basis_lifecycle_artifacts() {
             );
             assert_eq!(
                 inspection.shape_digest(),
-                world_basis.handle_identity_for_reporting()
+                runtime_state_snapshot_result_shape_label_identity(world_basis.handle_identity())
+                    .as_str()
             );
         }
         other => panic!("expected admitted world basis inspection, got {other:?}"),

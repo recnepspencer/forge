@@ -127,10 +127,12 @@ fn advisory_and_identity_break_continuations_are_distinct_counters() {
     assert_ne!(
         advisory_report
             .performance_receipt()
-            .performance_receipt_projection().label(),
+            .performance_receipt_projection()
+            .label(),
         break_report
             .performance_receipt()
-            .performance_receipt_projection().label()
+            .performance_receipt_projection()
+            .label()
     );
     assert_eq!(break_counters.continuation_identity_break_count(), 1);
     assert_eq!(break_counters.continuation_advisory_count(), 0);
@@ -253,8 +255,14 @@ fn future_bearing_continuation_retains_checkpoint_and_future_identity() {
         apply_active_subscription_continuation(&mut runtime, window, evidence).unwrap();
 
     assert_eq!(
-        report.future_selection().future_selection_projection().label(),
-        attachment.future_selection().future_selection_projection().label()
+        report
+            .future_selection()
+            .future_selection_projection()
+            .label(),
+        attachment
+            .future_selection()
+            .future_selection_projection()
+            .label()
     );
     assert_eq!(
         report.checkpoint_identity(),

@@ -3,12 +3,19 @@
 use forge_proof::TransitionOutcome;
 use forge_query::facade::{
     ForgeQueryEntity, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLivePatch,
-    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime, ForgeQueryRuntimeBackend,
-    ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
-    SubscriptionActivationInput, SubscriptionActivationReceipt,
+    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
+    ForgeQueryRuntimeBackend, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel,
+    ForgeQuerySnapshotIdentity, ForgeQueryWorkspace, ForgeQueryWorkspaceError,
+    ForgeQueryWriteCommand, ForgeQueryWriteReceipt, SubscriptionActivationInput,
+    SubscriptionActivationReceipt,
+};
+use forge_query::facade::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryMutationDelta,
+    ForgeQueryMutationKind,
+};
+use forge_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
 };
 use forge_server::{
     request_context::DiagnosticRichnessProfile,
@@ -253,10 +260,12 @@ impl StatefulCountingMutationRuntimeBackend {
         self.snapshot_version.fetch_add(1, Ordering::Relaxed) + 1
     }
 
-    fn snapshot_token_value(&self) -> String {
-        format!(
-            "phase-three-stateful-mutation-snapshot-{}",
-            self.snapshot_version.load(Ordering::Relaxed)
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(
+                self.snapshot_version.load(Ordering::Relaxed) as u64,
+                1,
+            ),
         )
     }
 }
@@ -337,8 +346,13 @@ impl ForgeQueryRuntimeBackend for StatefulCountingMutationRuntimeBackend {
         Vec::new()
     }
 
-    fn snapshot_token(&self) -> String {
-        self.snapshot_token_value()
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(
+                self.snapshot_version.load(Ordering::Relaxed) as u64,
+                1,
+            ),
+        )
     }
 
     fn install_live_subscription(
@@ -351,7 +365,7 @@ impl ForgeQueryRuntimeBackend for StatefulCountingMutationRuntimeBackend {
 
     fn admit_preview_basis(
         &self,
-        _label: &str,
+        _label: &ForgeQuerySessionLabel,
         _effect_policy: forge_query::facade::ForgeQueryEffectPolicy,
         _authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
@@ -377,21 +391,24 @@ fn test_mutation_receipt(
     ordinal: usize,
     kind: ForgeQueryMutationKind,
 ) -> ForgeQueryMutationReceipt {
-    ForgeQueryMutationReceipt {
-        commit_identity: format!("phase-three-mutation-commit-{ordinal}"),
-        snapshot_token: format!("phase-three-stateful-mutation-snapshot-{ordinal}"),
-        deltas: vec![ForgeQueryMutationDelta {
-            collection: command
+    ForgeQueryMutationReceipt::from_authoritative_parts(
+        ForgeQueryCommitIdentity::from_relational_commit_id(ordinal as u64),
+        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(ordinal as u64, 1),
+        ),
+        vec![ForgeQueryMutationDelta::new(
+            command
                 .declared_collection()
                 .unwrap_or_else(|| "Task".to_string()),
-            entity_identity: command
-                .declared_entity_identity()
-                .unwrap_or_else(|| format!("phase-three-mutation-entity-{ordinal}")),
+            command.declared_entity_identity().unwrap_or_else(|| {
+                ForgeQueryEntityIdentity::from_relational_record(
+                    RelationalBridgeRecordIdentityParts::entity(1, ordinal as u64, 0),
+                )
+            }),
             kind,
-            aspect_paths: command.declared_aspect_paths(),
-        }],
-        bridge_authority: None,
-    }
+            command.declared_aspect_paths(),
+        )],
+    )
 }
 
 fn mutation_kind(command: &ForgeQueryWriteCommand) -> ForgeQueryMutationKind {

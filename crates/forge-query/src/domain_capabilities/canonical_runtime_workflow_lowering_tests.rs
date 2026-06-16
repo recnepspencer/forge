@@ -36,9 +36,7 @@ fn mutation_lowering_materializer_builds_runtime_lowered_declaration() {
         ForgeQueryWorkflowContributionAuthoring::confirmation_required_mutation_reconciliation(
             "spatial.workflow.mutation",
             "runtime preflight should lower a relational mutation intent",
-            crate::memory_workspace::admit_external_snapshot_label(
-                "runtime-snapshot:42",
-            ),
+            crate::memory_workspace::admit_external_snapshot_label("runtime-snapshot:42"),
             authority_binding_identity.clone(),
             EntityId::new(PartitionId(1), 41, 0),
             json!({"name":"after"}),
@@ -60,10 +58,8 @@ fn mutation_lowering_materializer_builds_runtime_lowered_declaration() {
             .runtime_snapshot_identity()
             .map(|identity| identity.evidence_identity()),
         Some(
-            crate::memory_workspace::admit_external_snapshot_label(
-                "runtime-snapshot:42",
-            )
-            .evidence_identity()
+            crate::memory_workspace::admit_external_snapshot_label("runtime-snapshot:42",)
+                .evidence_identity()
         )
     );
     assert_eq!(lowered.counters().workflow_mutation_lowering_count(), 1);

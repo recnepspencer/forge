@@ -197,7 +197,7 @@ where
                 context.member_index(),
                 context.shared_contribution_count(),
                 context.member_contribution_count(),
-                member.composition_identity().as_str()
+                member.composition_identity().terminal_projection_for_reporting()
             )
         })
         .collect::<Vec<_>>();

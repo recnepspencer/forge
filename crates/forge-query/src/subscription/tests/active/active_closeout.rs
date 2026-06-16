@@ -109,11 +109,21 @@ fn final_consumer_closeout_carries_support_and_performance_receipt() {
         &QuerySubscriptionDurableSupport::ExplicitDebt
     );
     assert_eq!(
-        closeout.future_selection().future_selection_projection().label().as_str(),
+        closeout
+            .future_selection()
+            .future_selection_projection()
+            .label()
+            .as_str(),
         expected_future.as_str()
     );
-    assert_eq!(closeout.basis_binding_projection().label().as_str(), expected_basis.as_str());
-    assert_eq!(closeout.checkpoint_projection().label().as_str(), expected_checkpoint.as_str());
+    assert_eq!(
+        closeout.basis_binding_projection().label().as_str(),
+        expected_basis.as_str()
+    );
+    assert_eq!(
+        closeout.checkpoint_projection().label().as_str(),
+        expected_checkpoint.as_str()
+    );
     assert_eq!(closeout.performance_receipt().consumed_width(), 2);
     assert_eq!(closeout.performance_receipt().remaining_width(), 0);
     assert!(!closeout.closeout_projection().label().is_empty());
@@ -195,8 +205,14 @@ fn preview_discard_closeout_can_close_the_runtime_lane() {
         &SubscriptionLifecycleCloseoutKind::PreviewDiscarded
     );
     assert_eq!(
-        closeout.future_selection().future_selection_projection().label(),
-        attachment.future_selection().future_selection_projection().label()
+        closeout
+            .future_selection()
+            .future_selection_projection()
+            .label(),
+        attachment
+            .future_selection()
+            .future_selection_projection()
+            .label()
     );
     assert_eq!(
         closeout.checkpoint_projection().label(),

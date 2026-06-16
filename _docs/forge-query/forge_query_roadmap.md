@@ -3155,10 +3155,13 @@ This milestone is complete only when `forge-query` can prove:
 
 ## Milestone 9.6: Product Boundary Debt Closure For Evidence Identity, Typed Stop Classes, And Session Label Identity
 
-> **Status:** Closed — identity-boundary inventory, derived residue reporting,
-> hostile certification matrix, and certification suites in
+> **Status:** Closed — identity-boundary inventory (including `query_context/basis.rs`
+> and crate-root `preview/mod.rs` feeders), derived residue reporting, lib
+> certification gate, hostile certification matrix, and certification suites in
 > `crates/forge-query/src/application/support/identity_boundary_inventory.rs`,
-> `identity_boundary_hostile_matrix.rs`, and `runtime/tests/identity_boundary/`.
+> `identity_boundary_certification_gate.rs`, `identity_boundary_hostile_matrix.rs`,
+> and `runtime/tests/identity_boundary/`. Closeout evidence:
+> [milestone-9.6-closeout-evidence.md](./milestone-9.6-closeout-evidence.md).
 
 ### Goal
 

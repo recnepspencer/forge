@@ -75,7 +75,12 @@ fn maintained_derived_view_materializes_incremental_patches() {
         insert.affected_derived_view_ids(),
         &["task_titles".to_string()]
     );
-    let expected_row = Value::String(insert.deltas()[0].entity_identity.terminal_projection_for_reporting().to_string());
+    let expected_row = Value::String(
+        insert.deltas()[0]
+            .entity_identity
+            .terminal_projection_for_reporting()
+            .to_string(),
+    );
     assert_eq!(runtime.read_derived(&titles), vec![expected_row.clone()]);
     assert_eq!(patches.derived_patches.len(), 1);
     assert_eq!(patches.derived_patches[0].payload(), &expected_row);
@@ -149,7 +154,9 @@ fn nested_computed_views_route_in_deterministic_dependency_order() {
         runtime.read_derived(&summary),
         vec![Value::String(format!(
             "summary:{}",
-            insert.deltas()[0].entity_identity.terminal_projection_for_reporting()
+            insert.deltas()[0]
+                .entity_identity
+                .terminal_projection_for_reporting()
         ))]
     );
 
@@ -920,7 +927,9 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
                 .unwrap_or("missing");
             let row = Value::String(format!(
                 "{}:{}:{}",
-                refresh.refresh_identity().terminal_projection_for_reporting(),
+                refresh
+                    .refresh_identity()
+                    .terminal_projection_for_reporting(),
                 refresh.touched_aspect_paths().join("|"),
                 author
             ));
@@ -972,7 +981,9 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
         workspace.materialize(&metadata),
         vec![Value::String(format!(
             "{}:title.value:worth-topo",
-            receipt.commit_identity().terminal_projection_for_reporting()
+            receipt
+                .commit_identity()
+                .terminal_projection_for_reporting()
         ))]
     );
 }
@@ -1023,7 +1034,12 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
             delta: &crate::memory_workspace::ForgeQueryMutationDelta,
             materialization: &mut ForgeQueryDerivedViewMaterialization,
         ) -> ForgeQueryDerivedPatch {
-            let row = Value::String(delta.entity_identity.terminal_projection_for_reporting().to_string());
+            let row = Value::String(
+                delta
+                    .entity_identity
+                    .terminal_projection_for_reporting()
+                    .to_string(),
+            );
             materialization.replace_rows([row.clone()]);
             ForgeQueryDerivedPatch::incremental(
                 view.name(),
@@ -1184,7 +1200,10 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
         .expect("count row should decode");
     assert_eq!(
         materialized_title,
-        receipt.deltas()[0].entity_identity.terminal_projection_for_reporting().to_string()
+        receipt.deltas()[0]
+            .entity_identity
+            .terminal_projection_for_reporting()
+            .to_string()
     );
     assert_eq!(materialized_count, CountRow { count: 1 });
 
@@ -1276,7 +1295,12 @@ fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
             delta: &crate::memory_workspace::ForgeQueryMutationDelta,
             materialization: &mut ForgeQueryDerivedViewMaterialization,
         ) -> ForgeQueryDerivedPatch {
-            let row = Value::String(delta.entity_identity.terminal_projection_for_reporting().to_string());
+            let row = Value::String(
+                delta
+                    .entity_identity
+                    .terminal_projection_for_reporting()
+                    .to_string(),
+            );
             materialization.replace_rows([row.clone()]);
             ForgeQueryDerivedPatch::incremental(
                 view.name(),

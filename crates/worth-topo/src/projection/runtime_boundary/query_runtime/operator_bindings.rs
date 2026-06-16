@@ -139,7 +139,7 @@ fn query_identity_label(
 ) -> Result<String, TopologyMutationApplicationError> {
     let parts = identity.relational_record_parts().ok_or_else(|| {
         TopologyMutationApplicationError::MaterializedDecode(format!(
-            "topology operator bindings require relational query row identities, got `{identity}`"
+            "topology operator bindings require relational query row identities"
         ))
     })?;
     let kind = match parts.kind() {
@@ -154,6 +154,11 @@ fn query_identity_label(
     ))
 }
 
+fn row_identity_label_for_error(row: &ForgeQueryEntity) -> String {
+    query_identity_label(row.identity())
+        .unwrap_or_else(|_| "non-relational-query-identity".to_string())
+}
+
 pub(crate) fn decode_entity_id(
     row: &ForgeQueryEntity,
     context: &str,
@@ -165,7 +170,7 @@ pub(crate) fn decode_entity_id(
         .ok_or_else(|| {
             TopologyMutationApplicationError::MaterializedDecode(format!(
                 "query entity `{}` is missing lineage.provenance while resolving {context}",
-                row.identity()
+                row_identity_label_for_error(row)
             ))
         })?;
     serde_json::from_value::<EntityId>(provenance.clone()).map_err(|error| {
@@ -186,7 +191,7 @@ pub(crate) fn decode_relation_id(
         .ok_or_else(|| {
             TopologyMutationApplicationError::MaterializedDecode(format!(
                 "query relation `{}` is missing lineage.provenance while resolving {context}",
-                row.identity()
+                row_identity_label_for_error(row)
             ))
         })?;
     serde_json::from_value::<RelationId>(provenance.clone()).map_err(|error| {
@@ -208,7 +213,7 @@ pub(crate) fn decode_entity_kind(
         .ok_or_else(|| {
             TopologyMutationApplicationError::MaterializedDecode(format!(
                 "query entity `{}` is missing topology.kind while resolving {context}",
-                row.identity()
+                row_identity_label_for_error(row)
             ))
         })?;
     EntityKind::ALL
@@ -222,7 +227,7 @@ pub(crate) fn decode_entity_kind(
         .ok_or_else(|| {
             TopologyMutationApplicationError::MaterializedDecode(format!(
                 "query entity `{}` reported unknown topology kind `{kind_name}` while resolving {context}",
-                row.identity()
+                row_identity_label_for_error(row)
             ))
         })
 }
@@ -239,7 +244,7 @@ pub(crate) fn decode_relation_kind(
         .ok_or_else(|| {
             TopologyMutationApplicationError::MaterializedDecode(format!(
                 "query relation `{}` is missing topology.kind while resolving {context}",
-                row.identity()
+                row_identity_label_for_error(row)
             ))
         })?;
     RelationKind::ALL
@@ -253,7 +258,7 @@ pub(crate) fn decode_relation_kind(
         .ok_or_else(|| {
             TopologyMutationApplicationError::MaterializedDecode(format!(
                 "query relation `{}` reported unknown topology kind `{kind_name}` while resolving {context}",
-                row.identity()
+                row_identity_label_for_error(row)
             ))
         })
 }
@@ -271,7 +276,7 @@ pub(crate) fn decode_relation_endpoint(
         .ok_or_else(|| {
             TopologyMutationApplicationError::MaterializedDecode(format!(
                 "query relation `{}` is missing topology.{endpoint} while resolving {context}",
-                row.identity()
+                row_identity_label_for_error(row)
             ))
         })
 }

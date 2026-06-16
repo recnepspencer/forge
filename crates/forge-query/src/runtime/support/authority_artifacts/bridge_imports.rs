@@ -77,6 +77,9 @@ fn bridge_import_identity(
     forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAuthorityIdentity)
         .field_shape(ForgeQueryEvidenceTag::new("role"), role)
         .field_shape(ForgeQueryEvidenceTag::new("bridge_family"), bridge_family)
-        .field_bridge_retained_evidence_identity(ForgeQueryEvidenceTag::new("bridge_identity"), identity)
+        .field_bridge_retained_evidence_identity(
+            ForgeQueryEvidenceTag::new("bridge_identity"),
+            identity,
+        )
         .seal()
 }

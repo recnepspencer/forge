@@ -2,8 +2,7 @@ use super::WorkflowCounters;
 use crate::basis::{BasisAuthorityFamily, ExecutionPreflightBundle};
 use crate::correspondence_history::CorrespondenceHistoricalEnvelope;
 use crate::evidence_identity::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
-    ForgeQueryEvidenceTag,
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 use crate::identity::{CanonicalQueryDigest, PlanDigest, ValidatedQueryDigest};
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;

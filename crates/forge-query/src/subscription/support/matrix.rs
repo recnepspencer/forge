@@ -47,9 +47,7 @@ impl QuerySubscriptionSupportMatrixRow {
         &self.row_identity
     }
 
-    pub fn row_projection(
-        &self,
-    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+    pub fn row_projection(&self) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
         subscription_evidence_projection(&self.row_identity)
     }
 }

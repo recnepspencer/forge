@@ -93,8 +93,5 @@ pub(crate) fn validation_evidence_projection_pair(
     right_key: &str,
     right: TerminalProjectionLabel,
 ) -> [String; 2] {
-    [
-        format!("{left_key}:{left}"),
-        format!("{right_key}:{right}"),
-    ]
+    [format!("{left_key}:{left}"), format!("{right_key}:{right}")]
 }

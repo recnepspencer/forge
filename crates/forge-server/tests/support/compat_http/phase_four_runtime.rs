@@ -2,16 +2,18 @@
 
 use forge_proof::TransitionOutcome;
 use forge_query::facade::{
-    DeclarativeLiveQueryRequest, ForgeQueryEntity, ForgeQueryIntentDeclaration,
-    ForgeQueryIntentExecution, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
-    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
-    ForgeQueryRuntimeBackend, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSchemaAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeSupportProfile,
+    DeclarativeLiveQueryRequest, ForgeQueryEntity, ForgeQueryEvidenceIdentity,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLivePatch,
+    ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryRuntime, ForgeQueryRuntimeBackend, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity,
     ForgeQueryWorkspace, ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
     LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
     SubscriptionActivationReceipt,
 };
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use forge_server::{
     request_context::DiagnosticRichnessProfile,
     surfaces::{CompatHttpSurface, ForgeNativeSurface},
@@ -270,7 +272,11 @@ impl ForgeQueryRuntimeBackend for StreamingDatasetRuntimeBackend {
             .map(|index| {
                 let payload = "x".repeat(self.payload_width);
                 ForgeQueryEntity::from_external_projection(
-                    format!("stream-row-{index}"),
+                    forge_query::facade::admit_authored_entity_token(
+                        forge_query::facade::QueryExternalIdentityToken::new(
+                            std::sync::Arc::from(format!("stream-row-{index}")),
+                        ),
+                    ),
                     streaming_row(index, &payload),
                 )
             })
@@ -285,8 +291,10 @@ impl ForgeQueryRuntimeBackend for StreamingDatasetRuntimeBackend {
         Vec::new()
     }
 
-    fn snapshot_token(&self) -> String {
-        "phase-four-streaming-snapshot".to_string()
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        )
     }
 
     fn install_live_subscription(
@@ -301,7 +309,7 @@ impl ForgeQueryRuntimeBackend for StreamingDatasetRuntimeBackend {
 
     fn admit_preview_basis(
         &self,
-        _label: &str,
+        _label: &ForgeQuerySessionLabel,
         _effect_policy: forge_query::facade::ForgeQueryEffectPolicy,
         _authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
@@ -373,8 +381,10 @@ impl ForgeQueryRuntimeSchemaAdapter for TestSchemaAdapter {
 struct TestSubscriptionActivation;
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for TestSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "phase-four-streaming-support".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query::facade::runtime_subscription_support_evidence_identity(
+            "phase-four-streaming-support",
+        )
     }
 
     fn admit_activation(

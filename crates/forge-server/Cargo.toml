@@ -21,6 +21,7 @@ flate2 = "1"
 tracing.workspace = true
 
 [dev-dependencies]
+forge-runtime-bridge.workspace = true
 sha2 = "0.10"
 trybuild.workspace = true
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

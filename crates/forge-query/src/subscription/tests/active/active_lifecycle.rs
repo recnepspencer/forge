@@ -8,8 +8,14 @@ fn active_lane_admission_preserves_activation_digests_and_phase_one_posture() {
     let activation = activation_for(LiveQueryFamily::Detail, None);
     let activation_digest = activation.activation_projection().label().to_string();
     let admission_digest = activation.admission_projection().label().to_string();
-    let query_declaration_digest = activation.query_declaration_projection().label().to_string();
-    let bridge_declaration_digest = activation.bridge_declaration_projection().label().to_string();
+    let query_declaration_digest = activation
+        .query_declaration_projection()
+        .label()
+        .to_string();
+    let bridge_declaration_digest = activation
+        .bridge_declaration_projection()
+        .label()
+        .to_string();
     let basis_binding_digest = activation.basis_binding_projection().label().to_string();
     let signal_strategy_digest = activation.signal_strategy_projection().label().to_string();
     let signal_strategy_identity = activation.signal_strategy_identity().clone();
@@ -20,8 +26,14 @@ fn active_lane_admission_preserves_activation_digests_and_phase_one_posture() {
     )
     .unwrap();
 
-    assert_eq!(admission.activation_projection().label().as_str(), activation_digest.as_str());
-    assert_eq!(admission.admission_projection().label().as_str(), admission_digest.as_str());
+    assert_eq!(
+        admission.activation_projection().label().as_str(),
+        activation_digest.as_str()
+    );
+    assert_eq!(
+        admission.admission_projection().label().as_str(),
+        admission_digest.as_str()
+    );
     assert_eq!(
         admission.query_declaration_projection().label().as_str(),
         query_declaration_digest.as_str()
@@ -332,9 +344,11 @@ fn lifecycle_heap_allocation_debt_is_explicit_and_digest_bound() {
     assert_ne!(
         normal
             .performance_receipt()
-            .performance_receipt_projection().label(),
+            .performance_receipt_projection()
+            .label(),
         debt.performance_receipt()
-            .performance_receipt_projection().label()
+            .performance_receipt_projection()
+            .label()
     );
     assert_eq!(
         debt.allocation_posture(),

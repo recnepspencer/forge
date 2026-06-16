@@ -59,7 +59,10 @@ impl ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget {
     ) -> Self {
         Self(ForgeQueryBindingTarget::new(
             ForgeQueryBindingTargetKind::LowerRuntimeBoundaryEnvelope,
-            envelope.envelope_identity().terminal_projection_for_reporting().to_string(),
+            envelope
+                .envelope_identity()
+                .terminal_projection_for_reporting()
+                .to_string(),
             ForgeQueryBindingTargetSemantics::for_lower_runtime_boundary_envelope(envelope),
         ))
     }

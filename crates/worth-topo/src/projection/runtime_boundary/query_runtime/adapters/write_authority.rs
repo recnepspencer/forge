@@ -39,7 +39,7 @@ impl TopologyRuntimeWriteAuthority {
 impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
     fn write(
         &mut self,
-        _bridge: &RuntimeBridge,
+        bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
     ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
@@ -62,12 +62,14 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
                 write_command_label(other)
             ))),
         }?;
+        let mutation_receipt =
+            self.with_bridge_authority(bridge, &command, mutation_receipt)?;
         Ok(self.build_write_authority_execution_receipt(&command, mutation_receipt))
     }
 
     fn write_batch(
         &mut self,
-        _bridge: &RuntimeBridge,
+        bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         commands: Vec<ForgeQueryWriteCommand>,
     ) -> Result<Vec<WriteAuthorityExecutionReceipt>, ForgeQueryWorkspaceError> {
@@ -138,6 +140,11 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
                     receipt_identity.1.clone(),
                     deltas,
                 );
+                let mutation_receipt = self.with_bridge_authority(
+                    bridge,
+                    &authored_command,
+                    mutation_receipt,
+                )?;
                 Ok(self.build_write_authority_execution_receipt(
                     &authored_command,
                     mutation_receipt,
@@ -294,6 +301,33 @@ impl TopologyRuntimeWriteAuthority {
             commit_identity,
             snapshot_identity,
             deltas,
+        ))
+    }
+
+    fn with_bridge_authority(
+        &self,
+        bridge: &RuntimeBridge,
+        command: &ForgeQueryWriteCommand,
+        receipt: ForgeQueryMutationReceipt,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let delta = receipt.deltas().first().ok_or_else(|| {
+            ForgeQueryWorkspaceError::new(
+                "topology production runtime cannot attach bridge authority without mutation deltas",
+            )
+        })?;
+        let bridge_authority = self.build_bridge_mutation_authority_bundle(
+            bridge,
+            receipt.snapshot_identity(),
+            command,
+            delta.collection(),
+            delta.entity_identity(),
+            delta.kind().clone(),
+        )?;
+        Ok(ForgeQueryMutationReceipt::from_bridge_authoritative_parts(
+            receipt.commit_identity().clone(),
+            receipt.snapshot_identity().clone(),
+            receipt.deltas().to_vec(),
+            bridge_authority,
         ))
     }
 }

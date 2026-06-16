@@ -265,12 +265,11 @@ impl ForgeQueryWriteReceipt {
         let snapshot_evidence_identity =
             super::write_receipt_snapshot_evidence_identity(&snapshot_identity);
         Self {
-            inner: ForgeQueryMutationReceipt {
+            inner: ForgeQueryMutationReceipt::from_authoritative_parts(
                 commit_identity,
                 snapshot_identity,
-                deltas: Vec::new(),
-                bridge_authority: None,
-            },
+                Vec::new(),
+            ),
             commit_evidence_identity,
             snapshot_evidence_identity,
             mutation_family: ForgeQueryMutationFamily::Update,

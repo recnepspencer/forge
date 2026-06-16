@@ -3,6 +3,9 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 
+use super::identity_boundary_certification_gate::{
+    milestone_nine_six_certification_gate_certified, MILESTONE_9_6_CERTIFICATION_GATE_PATHS,
+};
 use super::identity_boundary_hostile_matrix::ForgeQueryIdentityBoundaryHostileMatrixArtifact;
 use super::identity_boundary_inventory::{
     scan_format_digest_residue_paths, scan_lower_runtime_identity_shim_paths,
@@ -289,6 +292,7 @@ pub struct ForgeQueryIdentityBoundaryClosure {
     session_label: ForgeQuerySessionLabelBoundaryClosure,
     residue_status: ForgeQueryFolkloreResidueStatus,
     hostile_matrix_certified: bool,
+    certification_gate_certified: bool,
     hostile_matrix_digest: String,
     closure_identity: ForgeQueryEvidenceIdentity,
 }
@@ -303,6 +307,7 @@ impl ForgeQueryIdentityBoundaryClosure {
     ) -> Self {
         let hostile_matrix_certified = hostile_matrix.certified();
         let hostile_matrix_digest = hostile_matrix.artifact_digest();
+        let certification_gate_certified = milestone_nine_six_certification_gate_certified();
         let format_digest_residue_paths = scan_format_digest_residue_paths();
         let string_matching_residue_paths = scan_string_matching_residue_paths();
         let raw_session_admission_residue_paths = scan_raw_session_admission_residue_paths();
@@ -334,6 +339,7 @@ impl ForgeQueryIdentityBoundaryClosure {
             stop_class.status(),
             session_label.status(),
             residue_status.is_zero(),
+            certification_gate_certified,
         );
         let mut closure_builder = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::ApplicationIdentityBoundaryClosure,
@@ -359,6 +365,10 @@ impl ForgeQueryIdentityBoundaryClosure {
             ForgeQueryEvidenceTag::new("hostile_matrix_certified"),
             hostile_matrix_certified,
         )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("certification_gate_certified"),
+            certification_gate_certified,
+        )
         .field_value(
             ForgeQueryEvidenceTag::new("hostile_matrix_digest"),
             hostile_matrix_digest,
@@ -380,6 +390,10 @@ impl ForgeQueryIdentityBoundaryClosure {
             EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS
                 .iter()
                 .copied(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("milestone_nine_six_certification_gate_path"),
+            MILESTONE_9_6_CERTIFICATION_GATE_PATHS.iter().copied(),
         );
         if let ForgeQueryFolkloreResidueStatus::FolkloreResidueRemaining(paths) = &residue_status {
             closure_builder = closure_builder.field_value_sequence(
@@ -395,6 +409,7 @@ impl ForgeQueryIdentityBoundaryClosure {
             session_label,
             residue_status,
             hostile_matrix_certified,
+            certification_gate_certified,
             hostile_matrix_digest: hostile_matrix_digest.to_string(),
             closure_identity,
         }
@@ -426,6 +441,10 @@ impl ForgeQueryIdentityBoundaryClosure {
 
     pub fn hostile_matrix_certified(&self) -> bool {
         self.hostile_matrix_certified
+    }
+
+    pub fn certification_gate_certified(&self) -> bool {
+        self.certification_gate_certified
     }
 
     pub fn exact_zero_format_digest_paths(&self) -> &'static [&'static str] {
@@ -472,8 +491,10 @@ fn derive_closure_status(
     stop_class: ForgeQueryMilestoneClosureStatus,
     session_label: ForgeQueryMilestoneClosureStatus,
     residue_clean: bool,
+    certification_gate_certified: bool,
 ) -> ForgeQueryMilestoneClosureStatus {
     if residue_clean
+        && certification_gate_certified
         && evidence_identity == ForgeQueryMilestoneClosureStatus::Closed
         && stop_class == ForgeQueryMilestoneClosureStatus::Closed
         && session_label == ForgeQueryMilestoneClosureStatus::Closed
@@ -483,6 +504,7 @@ fn derive_closure_status(
         && stop_class == ForgeQueryMilestoneClosureStatus::Open
         && session_label == ForgeQueryMilestoneClosureStatus::Open
         && !residue_clean
+        && !certification_gate_certified
     {
         ForgeQueryMilestoneClosureStatus::Open
     } else {

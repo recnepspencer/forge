@@ -11,6 +11,7 @@ use crate::topology_operators::application::{
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
 use crate::topology_operators::local_rewrites::boundary_wiring::adjacency_support::single_outgoing_relation_target_identity;
+use crate::topology_operators::authority_identity::existing_relation_authority;
 use crate::topology_operators::topology_relation_dependency_path;
 
 impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
@@ -95,7 +96,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
 
         let binding = self.workspace.bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
+                existing_relation_authority(relation_id)?,
                 relation_binding.query_identity,
             )?
             .in_target_collection("TopologyRelation")?,

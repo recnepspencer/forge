@@ -66,7 +66,9 @@ pub(super) fn missing_record_error(
 ) -> BridgeSnapshotReadError {
     BridgeSnapshotReadError::new(format!(
         "topology snapshot reader could not find {kind} `{identity}` in authoritative snapshot `{}`",
-        snapshot_identity.evidence_identity().as_str()
+        snapshot_identity
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
     ))
 }
 
@@ -78,7 +80,9 @@ pub(super) fn missing_aspect_error(
 ) -> BridgeSnapshotReadError {
     BridgeSnapshotReadError::new(format!(
         "topology snapshot reader could not resolve aspect `{aspect}` on {kind} `{identity}` in authoritative snapshot `{}`",
-        snapshot_identity.evidence_identity().as_str()
+        snapshot_identity
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
     ))
 }
 

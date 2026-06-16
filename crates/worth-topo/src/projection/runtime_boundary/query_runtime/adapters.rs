@@ -1,17 +1,21 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::{
-    DeclarativeLiveQueryRequest, ForgeQueryEffectPolicy, ForgeQueryEntity, ForgeQueryLivePatch,
-    ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
-    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
+    DeclarativeLiveQueryRequest, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy,
+    ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQuerySessionLabel, ForgeQueryWorkspaceError, ForgeQueryWriteReceipt, QuerySchemaView,
-    SubscriptionActivationInput,
+    ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError,
+    ForgeQueryWriteReceipt, QuerySchemaView, SubscriptionActivationInput,
+    runtime_subscription_support_evidence_identity,
 };
 use forge_runtime_bridge::facade::{
-    BridgeDeliveryReceipt, InvalidationSink, RuntimeBridge, SignalBridgeSinkError,
+    BridgeDeliveryReceipt, BridgeWritebackOutcomeClass, InvalidationSink, RuntimeBridge,
+    SignalBridgeSinkError, TruthWritebackAuthority, TruthWritebackAuthorityError,
+    TruthWritebackReceipt, TruthWritebackRequest,
 };
 
 mod binding;
@@ -44,7 +48,8 @@ pub(crate) fn build_runtime_bridge(
     let builder = RuntimeBridgeBuilder::new()
         .with_relational_source(source.clone())
         .with_truth_branch_head_source(source)
-        .with_signal_sink(TopologyStaticBridgeSink);
+        .with_signal_sink(TopologyStaticBridgeSink)
+        .with_writeback_authority(TopologyProductionWritebackAuthority);
     let mut mappings = milestone_one_bridge_mapping_registrations().into_iter();
     let first = mappings
         .next()
@@ -128,12 +133,12 @@ impl ForgeQueryRuntimeSourceAdapter for TopologyRuntimeSourceAdapter {
 
     fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
         let mut affected = receipt
-            .deltas
+            .deltas()
             .iter()
             .flat_map(|delta| {
                 self.live_views
                     .iter()
-                    .filter(move |(_, target)| *target == &delta.collection)
+                    .filter(move |(_, target)| *target == &delta.collection())
                     .map(|(name, _)| name.clone())
             })
             .collect::<Vec<_>>();
@@ -141,9 +146,27 @@ impl ForgeQueryRuntimeSourceAdapter for TopologyRuntimeSourceAdapter {
         affected.dedup();
         affected
     }
+}
 
-    fn snapshot_token(&self) -> String {
-        self.binding.snapshot_token()
+impl ForgeQueryRuntimeSnapshotIdentityAdapter for TopologyRuntimeSourceAdapter {
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        self.binding.current_snapshot_identity()
+    }
+}
+
+pub(super) struct TopologyRuntimeSnapshotIdentityAdapter {
+    binding: TopologyRuntimeBinding,
+}
+
+impl TopologyRuntimeSnapshotIdentityAdapter {
+    pub(super) fn new(binding: TopologyRuntimeBinding) -> Self {
+        Self { binding }
+    }
+}
+
+impl ForgeQueryRuntimeSnapshotIdentityAdapter for TopologyRuntimeSnapshotIdentityAdapter {
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        self.binding.current_snapshot_identity()
     }
 }
 
@@ -155,8 +178,8 @@ impl ForgeQueryRuntimeSignalSinkAdapter for TopologyStaticSignalSink {
         receipt: &ForgeQueryMutationReceipt,
     ) -> Result<forge_query::facade::SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError>
     {
-        let routing_receipt = self.build_signal_invalidation_routing_receipt(receipt);
-        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routing_receipt))
+        let routing_receipt = self.build_signal_invalidation_routing_receipt(receipt)?;
+        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routing_receipt)?)
     }
 }
 
@@ -171,9 +194,10 @@ impl TopologySubscriptionActivation {
 }
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for TopologySubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        self.support_evidence.to_string()
+    fn support_evidence_identity(&self) -> forge_query::facade::ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity(self.support_evidence)
     }
+
     fn admit_activation(
         &mut self,
         view_name: &str,
@@ -216,7 +240,9 @@ impl ForgeQueryRuntimePreviewBasisAdapter for TopologyPreviewBasis {
                 authority,
                 label.clone(),
                 effect_policy,
-                [*support_evidence],
+                [ForgeQueryBasisAdmissionEvidenceRow::support_profile_token(
+                    *support_evidence,
+                )],
             )),
             Self::Denied { denial_reason } => Err(ForgeQueryWorkspaceError::new(*denial_reason)),
         }
@@ -248,6 +274,21 @@ impl ForgeQueryRuntimeInspectorEvidenceAdapter for TopologyInspectorEvidence {
             self.receipt_label,
             receipt.authority_lane(),
             [self.evidence_label],
+        ))
+    }
+}
+
+#[derive(Clone, Debug)]
+struct TopologyProductionWritebackAuthority;
+
+impl TruthWritebackAuthority for TopologyProductionWritebackAuthority {
+    fn execute_writeback(
+        &self,
+        request: TruthWritebackRequest,
+    ) -> Result<TruthWritebackReceipt, TruthWritebackAuthorityError> {
+        Ok(TruthWritebackReceipt::new(
+            BridgeWritebackOutcomeClass::AuthoritativeCommit,
+            &request,
         ))
     }
 }

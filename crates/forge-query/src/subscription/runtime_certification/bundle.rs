@@ -292,7 +292,10 @@ pub fn certify_query_subscription_runtime_family(
 
     Ok((
         QuerySubscriptionRuntimeCertificationBundle {
-            query_scope_identity: scope.lifecycle_certification().query_scope_identity().clone(),
+            query_scope_identity: scope
+                .lifecycle_certification()
+                .query_scope_identity()
+                .clone(),
             subscription_family_identity: scope
                 .lifecycle_certification()
                 .subscription_family_identity()

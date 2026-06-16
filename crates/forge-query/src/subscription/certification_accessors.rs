@@ -202,9 +202,7 @@ impl SubscriptionLifecycleCertificationContext {
 
 macro_rules! lifecycle_bundle_projection {
     ($method:ident, $field:ident) => {
-        pub fn $method(
-            &self,
-        ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        pub fn $method(&self) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
             subscription_evidence_projection(&self.$field)
         }
     };

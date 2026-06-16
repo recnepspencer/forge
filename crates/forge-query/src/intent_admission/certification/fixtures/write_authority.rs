@@ -37,17 +37,17 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
             &entity_identity_handle,
             ForgeQueryMutationKind::Updated,
         )?;
-        let receipt = ForgeQueryMutationReceipt {
+        let receipt = ForgeQueryMutationReceipt::from_bridge_authoritative_parts(
             commit_identity,
             snapshot_identity,
-            deltas: vec![ForgeQueryMutationDelta {
+            vec![ForgeQueryMutationDelta::new(
                 collection,
-                entity_identity: entity_identity_handle,
-                kind: ForgeQueryMutationKind::Updated,
+                entity_identity_handle,
+                ForgeQueryMutationKind::Updated,
                 aspect_paths,
-            }],
-            bridge_authority: Some(bridge_authority),
-        };
+            )],
+            bridge_authority,
+        );
         Ok(self.build_write_authority_execution_receipt(&command, receipt))
     }
 }

@@ -206,14 +206,23 @@ fn basis_request_digest_changes_by_basis_posture() {
     );
     assert_ne!(
         current.basis_request().basis_binding_projection().label(),
-        changed_policy.basis_request().basis_binding_projection().label()
+        changed_policy
+            .basis_request()
+            .basis_binding_projection()
+            .label()
     );
     assert_ne!(
         current.basis_request().basis_binding_projection().label(),
-        changed_tenant.basis_request().basis_binding_projection().label()
+        changed_tenant
+            .basis_request()
+            .basis_binding_projection()
+            .label()
     );
     assert_eq!(
-        current.basis_request().source_declaration_projection().label(),
+        current
+            .basis_request()
+            .source_declaration_projection()
+            .label(),
         current.query_declaration_projection().label()
     );
     assert_eq!(
@@ -280,11 +289,20 @@ fn basis_request_tracks_declaration_owned_future_identity_without_local_reclassi
     );
     assert_ne!(
         ordinary.basis_request().basis_binding_projection().label(),
-        async_edge_42.basis_request().basis_binding_projection().label()
+        async_edge_42
+            .basis_request()
+            .basis_binding_projection()
+            .label()
     );
     assert_ne!(
-        async_edge_42.basis_request().basis_binding_projection().label(),
-        async_edge_77.basis_request().basis_binding_projection().label()
+        async_edge_42
+            .basis_request()
+            .basis_binding_projection()
+            .label(),
+        async_edge_77
+            .basis_request()
+            .basis_binding_projection()
+            .label()
     );
 }
 
