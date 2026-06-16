@@ -7,6 +7,7 @@ mod command_projection_mosaic_scope;
 mod command_projection_ordering;
 mod command_projection_overflow_behavior;
 mod command_projection_readiness_display_policy;
+mod command_projection_selection_mode;
 mod command_projection_shortcut_visibility;
 mod command_projection_surface;
 
@@ -19,5 +20,6 @@ pub use command_projection_mosaic_scope::CommandProjectionMosaicScope;
 pub use command_projection_ordering::CommandProjectionOrdering;
 pub use command_projection_overflow_behavior::CommandProjectionOverflowBehavior;
 pub use command_projection_readiness_display_policy::CommandProjectionReadinessDisplayPolicy;
+pub use command_projection_selection_mode::CommandProjectionSelectionMode;
 pub use command_projection_shortcut_visibility::CommandProjectionShortcutVisibility;
 pub use command_projection_surface::CommandProjectionSurface;

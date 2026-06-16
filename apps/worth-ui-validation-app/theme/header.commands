@@ -1,0 +1,17 @@
+# Worth UI validation header command labels.
+# Edit labels while the validation app is running to exercise command fact reload.
+validation.command.file.new = New File
+validation.command.file.open = Open File
+validation.command.file.save = Save
+validation.command.file.exit = Exit
+validation.command.edit.undo = Undo
+validation.command.edit.redo = Redo
+validation.command.edit.cut = Cut
+validation.command.edit.copy = Copy
+validation.command.edit.paste = Paste
+validation.command.terminal.new = New Terminal
+validation.command.terminal.split = Split Terminal
+validation.command.terminal.clear = Clear Terminal
+validation.command.help.palette = Command Palette
+validation.command.help.docs = Worth UI Docs
+validation.command.help.about = About Worth UI

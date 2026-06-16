@@ -75,6 +75,12 @@ impl CommandDescriptor {
         self
     }
 
+    pub(crate) fn with_label_replaced(&self, label: impl Into<String>) -> Self {
+        let mut descriptor = self.clone();
+        descriptor.label = label.into();
+        descriptor
+    }
+
     pub fn id(&self) -> &CommandId {
         &self.id
     }

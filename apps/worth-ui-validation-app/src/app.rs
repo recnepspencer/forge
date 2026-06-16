@@ -24,7 +24,9 @@ impl ValidationWorkbenchApp {
             workbench: launch.into_runtime_workbench(),
             reload_loop: ValidationReloadLoop::start(
                 ValidationReloadLoopConfig::new(default_header_theme_path())
-                    .with_source_path(default_validation_source_path()),
+                    .with_source_path(default_validation_source_path())
+                    .with_command_path(default_header_command_path())
+                    .with_command_projection_path(default_header_command_projection_path()),
             )
             .expect("validation reload loop should observe the header theme file"),
             evidence_log: ValidationReloadEvidenceLog::default(),
@@ -115,12 +117,42 @@ fn render_reload_evidence_entry(ui: &mut egui::Ui, entry: &ValidationReloadEvide
             ui.label(format!("Touched tokens: {touched_theme_token_count}"));
             ui.label(format!("Header rebind: {header_rebind_status:?}"));
         }
+        ValidationReloadEvidenceEntry::CommandReload {
+            status,
+            active_snapshot_digest,
+            touched_command_count,
+            header_rebind_status,
+        } => {
+            ui.label(format!("Command reload status: {status:?}"));
+            ui.label(format!("Active snapshot: {active_snapshot_digest}"));
+            ui.label(format!("Touched commands: {touched_command_count}"));
+            ui.label(format!("Header rebind: {header_rebind_status:?}"));
+        }
+        ValidationReloadEvidenceEntry::CommandProjectionReload {
+            status,
+            active_snapshot_digest,
+            touched_projection_count,
+            header_rebind_status,
+        } => {
+            ui.label(format!("Command projection reload status: {status:?}"));
+            ui.label(format!("Active snapshot: {active_snapshot_digest}"));
+            ui.label(format!("Touched projections: {touched_projection_count}"));
+            ui.label(format!("Header rebind: {header_rebind_status:?}"));
+        }
         ValidationReloadEvidenceEntry::SourceActivationDenied(stage) => {
             ui.label("Source activation denied");
             ui.label(format!("Denied stage: {stage:?}"));
         }
         ValidationReloadEvidenceEntry::ThemeActivationDenied(stage) => {
             ui.label("Theme activation denied");
+            ui.label(format!("Denied stage: {stage:?}"));
+        }
+        ValidationReloadEvidenceEntry::CommandActivationDenied(stage) => {
+            ui.label("Command activation denied");
+            ui.label(format!("Denied stage: {stage:?}"));
+        }
+        ValidationReloadEvidenceEntry::CommandProjectionActivationDenied(stage) => {
+            ui.label("Command projection activation denied");
             ui.label(format!("Denied stage: {stage:?}"));
         }
         ValidationReloadEvidenceEntry::InputUnreadable(denial) => {
@@ -133,6 +165,14 @@ fn render_reload_evidence_entry(ui: &mut egui::Ui, entry: &ValidationReloadEvide
 
 fn default_header_theme_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("theme/header.theme")
+}
+
+fn default_header_command_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("theme/header.commands")
+}
+
+fn default_header_command_projection_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("theme/header.projections")
 }
 
 fn default_validation_source_path() -> PathBuf {

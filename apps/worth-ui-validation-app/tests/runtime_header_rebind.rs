@@ -84,7 +84,7 @@ fn ready_but_unactivated_reload_cannot_rebind_header_frame() {
 }
 
 #[test]
-fn activated_reload_rebinds_header_through_runtime_evidence() {
+fn activated_reload_preserves_header_when_dependencies_do_not_change() {
     let mut workbench = runtime_workbench();
     let before_digest = workbench.header_frame_plan().frame_digest();
     let reload = workbench.prepare_reload(reload_request(&meaningfully_changed_source()));
@@ -95,7 +95,7 @@ fn activated_reload_rebinds_header_through_runtime_evidence() {
     assert_eq!(evidence.status(), ValidationReloadStatus::Activated);
     let receipt = workbench
         .rebind_header_after_reload(&evidence)
-        .expect("activated reload evidence rebinds header frame");
+        .expect("activated reload evidence is valid for header dependency rebind");
 
     assert_eq!(
         receipt.status(),
@@ -103,7 +103,7 @@ fn activated_reload_rebinds_header_through_runtime_evidence() {
     );
     assert_eq!(receipt.previous_frame_digest(), before_digest);
     assert_eq!(receipt.rebound_frame_digest(), before_digest);
-    assert_eq!(receipt.projection_rebuild_count(), 1);
+    assert_eq!(receipt.projection_rebuild_count(), 0);
     assert_eq!(receipt.source_parse_count(), 0);
     assert_eq!(receipt.registry_lookup_count(), 0);
     assert_eq!(receipt.artifact_tree_scan_count(), 0);

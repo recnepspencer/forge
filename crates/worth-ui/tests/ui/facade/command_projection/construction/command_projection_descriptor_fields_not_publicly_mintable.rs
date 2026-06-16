@@ -15,6 +15,7 @@ fn main() {
         icon_label_policy: worth_ui::facade::CommandProjectionIconLabelPolicy::PreferCommandIconAndLabel,
         overflow_behavior: worth_ui::facade::CommandProjectionOverflowBehavior::NoOverflow,
         mosaic_scope: None,
+        selection_mode: worth_ui::facade::CommandProjectionSelectionMode::SingleSelect,
         meaning_overrides: Vec::new(),
     };
 }

@@ -1,9 +1,10 @@
 use worth_ui::facade::{
-    WorthUiCapabilityReloadStage, WorthUiCapabilityReloadStatus, WorthUiHeaderFrameRebindStatus,
+    CommandProjectionSelectionMode, WorthUiCapabilityReloadStage, WorthUiCapabilityReloadStatus,
+    WorthUiHeaderFrameRebindStatus,
 };
 use worth_ui_validation_app::reload::{
-    ValidationReloadInput, ValidationReloadTick, ValidationRuntimeReloadTickOutcome,
-    ValidationThemeSource,
+    ValidationCommandProjectionSource, ValidationCommandSource, ValidationReloadInput,
+    ValidationReloadTick, ValidationRuntimeReloadTickOutcome, ValidationThemeSource,
 };
 use worth_ui_validation_app::{ValidationRuntimeWorkbench, ValidationWorkbenchLaunch};
 
@@ -168,12 +169,135 @@ fn stale_prepared_theme_reload_cannot_overwrite_newer_active_snapshot() {
     );
 }
 
+#[test]
+fn command_label_change_activates_runtime_snapshot_and_rebinds_header_menu() {
+    let mut workbench = runtime_workbench();
+    let before_snapshot = workbench.runtime().inspect_active().snapshot_digest();
+    let before_header = workbench.header_frame_plan().frame_digest();
+
+    let outcome = apply_command_source(
+        &mut workbench,
+        "\
+validation.command.file.new = Create File
+validation.command.file.open = Open File
+validation.command.file.save = Save
+validation.command.file.exit = Exit
+validation.command.edit.undo = Undo
+validation.command.edit.redo = Redo
+validation.command.edit.cut = Cut
+validation.command.edit.copy = Copy
+validation.command.edit.paste = Paste
+validation.command.terminal.new = New Terminal
+validation.command.terminal.split = Split Terminal
+validation.command.terminal.clear = Clear Terminal
+validation.command.help.palette = Command Palette
+validation.command.help.docs = Worth UI Docs
+validation.command.help.about = About Worth UI",
+    );
+
+    let ValidationRuntimeReloadTickOutcome::CommandReloaded {
+        evidence,
+        header_receipt,
+    } = outcome
+    else {
+        panic!("command source reload should activate through runtime capability reload");
+    };
+    assert_eq!(evidence.status(), WorthUiCapabilityReloadStatus::Activated);
+    assert_eq!(evidence.touched_theme_token_count(), 15);
+    assert_ne!(
+        workbench.runtime().inspect_active().snapshot_digest(),
+        before_snapshot
+    );
+    assert_ne!(workbench.header_frame_plan().frame_digest(), before_header);
+    assert_eq!(
+        header_receipt
+            .expect("command reload should rebind dependent header")
+            .status(),
+        WorthUiHeaderFrameRebindStatus::ReboundAfterActivation
+    );
+    let file_menu = workbench
+        .header_frame_plan()
+        .menu_plan()
+        .execute_frame()
+        .groups()
+        .iter()
+        .find(|group| group.title() == "File")
+        .expect("file menu remains projected")
+        .clone();
+    assert_eq!(file_menu.commands()[0].label(), "Create File");
+}
+
+#[test]
+fn command_projection_policy_change_rebinds_header_without_local_style_state() {
+    let mut workbench = runtime_workbench();
+    let before_header = workbench.header_frame_plan().frame_digest();
+
+    let outcome = apply_command_projection_source(
+        &mut workbench,
+        "\
+validation.header.menu.file = multi
+validation.header.menu.edit = single
+validation.header.menu.terminal = single
+validation.header.menu.help = single",
+    );
+
+    let ValidationRuntimeReloadTickOutcome::CommandProjectionReloaded {
+        evidence,
+        header_receipt,
+    } = outcome
+    else {
+        panic!("projection source reload should activate through runtime capability reload");
+    };
+    assert_eq!(evidence.status(), WorthUiCapabilityReloadStatus::Activated);
+    assert_eq!(evidence.touched_theme_token_count(), 4);
+    assert_ne!(workbench.header_frame_plan().frame_digest(), before_header);
+    assert_eq!(
+        header_receipt
+            .expect("projection reload should rebind dependent header")
+            .status(),
+        WorthUiHeaderFrameRebindStatus::ReboundAfterActivation
+    );
+    let file_menu = workbench
+        .header_frame_plan()
+        .menu_plan()
+        .execute_frame()
+        .groups()
+        .iter()
+        .find(|group| group.title() == "File")
+        .expect("file menu remains projected")
+        .clone();
+    assert_eq!(
+        file_menu.selection_mode(),
+        CommandProjectionSelectionMode::MultiSelect
+    );
+}
+
 fn apply_theme_source(
     workbench: &mut ValidationRuntimeWorkbench,
     source_text: &str,
 ) -> ValidationRuntimeReloadTickOutcome {
     workbench.apply_reload_tick(ValidationReloadTick::Changed(
         ValidationReloadInput::HeaderTheme(ValidationThemeSource::new(source_text)),
+    ))
+}
+
+fn apply_command_source(
+    workbench: &mut ValidationRuntimeWorkbench,
+    source_text: &str,
+) -> ValidationRuntimeReloadTickOutcome {
+    workbench.apply_reload_tick(ValidationReloadTick::Changed(
+        ValidationReloadInput::HeaderCommands(ValidationCommandSource::new(source_text)),
+    ))
+}
+
+fn apply_command_projection_source(
+    workbench: &mut ValidationRuntimeWorkbench,
+    source_text: &str,
+) -> ValidationRuntimeReloadTickOutcome {
+    workbench.apply_reload_tick(ValidationReloadTick::Changed(
+        ValidationReloadInput::HeaderCommandProjections(ValidationCommandProjectionSource::new(
+            source_text,
+        )),
     ))
 }
 

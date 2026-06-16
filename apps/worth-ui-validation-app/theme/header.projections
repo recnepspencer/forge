@@ -1,0 +1,6 @@
+# Worth UI validation header command projection interaction policy.
+# Change any value to `multi` or `single` while running.
+validation.header.menu.file = single
+validation.header.menu.edit = single
+validation.header.menu.terminal = single
+validation.header.menu.help = single

@@ -1,7 +1,13 @@
+use crate::runtime::WorthUiRuntimeFactSet;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiCapabilityReloadStage {
     ThemeTokenSourceParse,
     ThemeTokenAdmission,
+    CommandSourceParse,
+    CommandAdmission,
+    CommandProjectionSourceParse,
+    CommandProjectionAdmission,
     ActiveSnapshotDrift,
     RuntimeInstanceMismatch,
     MissingReadyActivation,
@@ -30,6 +36,7 @@ pub struct WorthUiCapabilityReloadEvidence {
     registry_lookup_count: usize,
     artifact_tree_scan_count: usize,
     active_runtime_mutations_before_activation: usize,
+    changed_facts: WorthUiRuntimeFactSet,
 }
 
 impl WorthUiCapabilityReloadEvidence {
@@ -54,6 +61,7 @@ impl WorthUiCapabilityReloadEvidence {
             registry_lookup_count: 0,
             artifact_tree_scan_count: 0,
             active_runtime_mutations_before_activation: 0,
+            changed_facts: WorthUiRuntimeFactSet::empty(),
         }
     }
 
@@ -66,6 +74,7 @@ impl WorthUiCapabilityReloadEvidence {
         touched_theme_token_count: usize,
         theme_token_family_entry_count: usize,
         registry_lookup_count: usize,
+        changed_facts: WorthUiRuntimeFactSet,
     ) -> Self {
         Self {
             runtime_instance_witness,
@@ -81,6 +90,7 @@ impl WorthUiCapabilityReloadEvidence {
             registry_lookup_count,
             artifact_tree_scan_count: 0,
             active_runtime_mutations_before_activation: 0,
+            changed_facts,
         }
     }
 
@@ -140,5 +150,9 @@ impl WorthUiCapabilityReloadEvidence {
 
     pub fn active_runtime_mutations_before_activation(&self) -> usize {
         self.active_runtime_mutations_before_activation
+    }
+
+    pub fn changed_facts(&self) -> &WorthUiRuntimeFactSet {
+        &self.changed_facts
     }
 }

@@ -1,4 +1,5 @@
 use crate::capability::{CapabilitySnapshot, CommandId};
+use crate::runtime::{WorthUiProjectionDependencySet, WorthUiRuntimeFactId};
 
 use super::{
     WorthUiHeaderFrameReceipt, WorthUiHeaderMenuCommand, WorthUiHeaderMenuGroup,
@@ -9,6 +10,7 @@ use super::{
 pub struct WorthUiHeaderMenuPlan {
     receipt: WorthUiHeaderFrameReceipt,
     projection_digest: u64,
+    dependencies: WorthUiProjectionDependencySet,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -33,8 +35,11 @@ impl WorthUiHeaderMenuPlan {
         }
 
         let mut groups = Vec::with_capacity(requests.len());
+        let mut dependencies = WorthUiProjectionDependencySet::empty();
         for request in requests {
-            groups.push(group_from_projection(snapshot, &request)?);
+            let (group, group_dependencies) = group_from_projection(snapshot, &request)?;
+            dependencies = dependencies.merge(&group_dependencies);
+            groups.push(group);
         }
 
         let projection_digest = digest_groups(&groups);
@@ -42,6 +47,7 @@ impl WorthUiHeaderMenuPlan {
         Ok(Self {
             receipt: WorthUiHeaderFrameReceipt::new(groups, projected_command_count),
             projection_digest,
+            dependencies,
         })
     }
 
@@ -60,12 +66,16 @@ impl WorthUiHeaderMenuPlan {
     pub fn projection_digest(&self) -> u64 {
         self.projection_digest
     }
+
+    pub fn dependencies(&self) -> &WorthUiProjectionDependencySet {
+        &self.dependencies
+    }
 }
 
 fn group_from_projection(
     snapshot: &CapabilitySnapshot,
     request: &WorthUiHeaderMenuProjectionRequest,
-) -> Result<WorthUiHeaderMenuGroup, WorthUiHeaderMenuPlanDenial> {
+) -> Result<(WorthUiHeaderMenuGroup, WorthUiProjectionDependencySet), WorthUiHeaderMenuPlanDenial> {
     let projection = snapshot
         .command_projections()
         .get(request.projection_id())
@@ -75,20 +85,36 @@ fn group_from_projection(
             )
         })?;
     let projection_id = request.projection_id().as_str().to_owned();
+    let mut dependencies = WorthUiProjectionDependencySet::empty()
+        .depends_on(WorthUiRuntimeFactId::command_projection(
+            request.projection_id(),
+        ))
+        .depends_on(WorthUiRuntimeFactId::command_projection_interaction_policy(
+            request.projection_id(),
+        ));
     let commands = projection
         .command_references()
         .iter()
-        .map(|reference| command_from_snapshot(snapshot, &projection_id, reference.command_id()))
+        .map(|reference| {
+            dependencies = dependencies
+                .clone()
+                .depends_on(WorthUiRuntimeFactId::command(reference.command_id()));
+            command_from_snapshot(snapshot, &projection_id, reference.command_id())
+        })
         .collect::<Result<Vec<_>, _>>()?;
 
     if commands.is_empty() {
         return Err(WorthUiHeaderMenuPlanDenial::EmptyProjection(projection_id));
     }
 
-    Ok(WorthUiHeaderMenuGroup::new(
-        request.title(),
-        request.projection_id().as_str(),
-        commands,
+    Ok((
+        WorthUiHeaderMenuGroup::new(
+            request.title(),
+            request.projection_id().as_str(),
+            projection.selection_mode(),
+            commands,
+        ),
+        dependencies,
     ))
 }
 
@@ -116,7 +142,10 @@ fn digest_groups(groups: &[WorthUiHeaderMenuGroup]) -> u64 {
     groups.iter().fold(0xcbf2_9ce4_8422_2325, |digest, group| {
         group.commands().iter().fold(
             fold_bytes(
-                fold_bytes(digest, group.projection_id().as_bytes()),
+                fold_bytes(
+                    fold_bytes(digest, group.projection_id().as_bytes()),
+                    group.selection_mode().token().as_bytes(),
+                ),
                 group.title().as_bytes(),
             ),
             |command_digest, command| {

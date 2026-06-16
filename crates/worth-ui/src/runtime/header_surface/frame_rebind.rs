@@ -155,6 +155,18 @@ impl WorthUiRuntimeHost {
                 Err(WorthUiHeaderFrameRebindDenial::CapabilityReloadNotActivated)
             }
             WorthUiCapabilityReloadStatus::Activated => {
+                if !current_plan
+                    .dependencies()
+                    .intersects(evidence.changed_facts())
+                {
+                    return Ok((
+                        current_plan.clone(),
+                        WorthUiHeaderFrameRebindReceipt::preserved(
+                            WorthUiHeaderFrameRebindStatus::EquivalentAfterActivation,
+                            current_plan.frame_digest(),
+                        ),
+                    ));
+                }
                 let (menu_requests, theme_request) = request.into_parts();
                 let snapshot = self.active_state_for_read().capability_snapshot();
                 let rebound =
@@ -206,6 +218,18 @@ impl WorthUiRuntimeHost {
                 Err(WorthUiHeaderFrameRebindDenial::ReloadNotActivated)
             }
             WorthUiValidationReloadStatus::Activated => {
+                if !current_plan
+                    .dependencies()
+                    .intersects(evidence.changed_facts())
+                {
+                    return Ok((
+                        current_plan.clone(),
+                        WorthUiHeaderFrameRebindReceipt::preserved(
+                            WorthUiHeaderFrameRebindStatus::EquivalentAfterActivation,
+                            current_plan.frame_digest(),
+                        ),
+                    ));
+                }
                 let (menu_requests, theme_request) = request.into_parts();
                 let rebound =
                     WorthUiHeaderFramePlan::from_snapshot(snapshot, menu_requests, theme_request)

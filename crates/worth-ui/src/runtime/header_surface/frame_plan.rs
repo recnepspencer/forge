@@ -1,4 +1,5 @@
 use crate::capability::CapabilitySnapshot;
+use crate::runtime::WorthUiProjectionDependencySet;
 
 use super::{
     WorthUiHeaderFrameReceipt, WorthUiHeaderMenuPlan, WorthUiHeaderMenuPlanDenial,
@@ -11,6 +12,7 @@ pub struct WorthUiHeaderFramePlan {
     menu_plan: WorthUiHeaderMenuPlan,
     theme_plan: WorthUiHeaderThemePlan,
     frame_digest: u64,
+    dependencies: WorthUiProjectionDependencySet,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -37,10 +39,15 @@ impl WorthUiHeaderFramePlan {
         let theme_plan =
             WorthUiHeaderThemePlan::from_snapshot(snapshot, theme_request).map_err(Self::theme)?;
         let frame_digest = digest_pair(menu_plan.projection_digest(), theme_plan.theme_digest());
+        let dependencies = menu_plan
+            .dependencies()
+            .clone()
+            .merge(theme_plan.dependencies());
         Ok(Self {
             menu_plan,
             theme_plan,
             frame_digest,
+            dependencies,
         })
     }
 
@@ -62,6 +69,10 @@ impl WorthUiHeaderFramePlan {
 
     pub fn frame_digest(&self) -> u64 {
         self.frame_digest
+    }
+
+    pub fn dependencies(&self) -> &WorthUiProjectionDependencySet {
+        &self.dependencies
     }
 
     fn menu(denial: WorthUiHeaderMenuPlanDenial) -> WorthUiHeaderFramePlanDenial {

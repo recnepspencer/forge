@@ -28,9 +28,23 @@ pub enum ValidationReloadEvidenceEntry {
         touched_theme_token_count: usize,
         header_rebind_status: Option<WorthUiHeaderFrameRebindStatus>,
     },
+    CommandReload {
+        status: WorthUiCapabilityReloadStatus,
+        active_snapshot_digest: u64,
+        touched_command_count: usize,
+        header_rebind_status: Option<WorthUiHeaderFrameRebindStatus>,
+    },
+    CommandProjectionReload {
+        status: WorthUiCapabilityReloadStatus,
+        active_snapshot_digest: u64,
+        touched_projection_count: usize,
+        header_rebind_status: Option<WorthUiHeaderFrameRebindStatus>,
+    },
     ThemeDenied(ValidationThemeReloadDenial),
     SourceActivationDenied(ValidationReloadStage),
     ThemeActivationDenied(WorthUiCapabilityReloadStage),
+    CommandActivationDenied(WorthUiCapabilityReloadStage),
+    CommandProjectionActivationDenied(WorthUiCapabilityReloadStage),
     InputUnreadable(ValidationReloadInputDenial),
 }
 
@@ -62,6 +76,30 @@ impl ValidationReloadEvidenceLog {
             }
             ValidationRuntimeReloadTickOutcome::ThemeActivationDenied(stage) => {
                 self.record_theme_activation_denial(stage);
+            }
+            ValidationRuntimeReloadTickOutcome::CommandReloaded {
+                evidence,
+                header_receipt,
+            } => {
+                self.record_command_reload(
+                    &evidence,
+                    header_receipt.as_ref().map(|receipt| receipt.status()),
+                );
+            }
+            ValidationRuntimeReloadTickOutcome::CommandProjectionReloaded {
+                evidence,
+                header_receipt,
+            } => {
+                self.record_command_projection_reload(
+                    &evidence,
+                    header_receipt.as_ref().map(|receipt| receipt.status()),
+                );
+            }
+            ValidationRuntimeReloadTickOutcome::CommandActivationDenied(stage) => {
+                self.record_command_activation_denial(stage);
+            }
+            ValidationRuntimeReloadTickOutcome::CommandProjectionActivationDenied(stage) => {
+                self.record_command_projection_activation_denial(stage);
             }
             ValidationRuntimeReloadTickOutcome::SourceReloadedAndThemeDenied {
                 evidence,
@@ -127,12 +165,51 @@ impl ValidationReloadEvidenceLog {
         });
     }
 
+    pub fn record_command_reload(
+        &mut self,
+        evidence: &worth_ui::facade::WorthUiCapabilityReloadEvidence,
+        header_rebind_status: Option<WorthUiHeaderFrameRebindStatus>,
+    ) {
+        self.push_entry(ValidationReloadEvidenceEntry::CommandReload {
+            status: evidence.status(),
+            active_snapshot_digest: evidence.active_snapshot_digest_after(),
+            touched_command_count: evidence.touched_theme_token_count(),
+            header_rebind_status,
+        });
+    }
+
+    pub fn record_command_projection_reload(
+        &mut self,
+        evidence: &worth_ui::facade::WorthUiCapabilityReloadEvidence,
+        header_rebind_status: Option<WorthUiHeaderFrameRebindStatus>,
+    ) {
+        self.push_entry(ValidationReloadEvidenceEntry::CommandProjectionReload {
+            status: evidence.status(),
+            active_snapshot_digest: evidence.active_snapshot_digest_after(),
+            touched_projection_count: evidence.touched_theme_token_count(),
+            header_rebind_status,
+        });
+    }
+
     pub fn record_source_activation_denial(&mut self, stage: ValidationReloadStage) {
         self.push_entry(ValidationReloadEvidenceEntry::SourceActivationDenied(stage));
     }
 
     pub fn record_theme_activation_denial(&mut self, stage: WorthUiCapabilityReloadStage) {
         self.push_entry(ValidationReloadEvidenceEntry::ThemeActivationDenied(stage));
+    }
+
+    pub fn record_command_activation_denial(&mut self, stage: WorthUiCapabilityReloadStage) {
+        self.push_entry(ValidationReloadEvidenceEntry::CommandActivationDenied(
+            stage,
+        ));
+    }
+
+    pub fn record_command_projection_activation_denial(
+        &mut self,
+        stage: WorthUiCapabilityReloadStage,
+    ) {
+        self.push_entry(ValidationReloadEvidenceEntry::CommandProjectionActivationDenied(stage));
     }
 
     pub fn record_input_unreadable(&mut self, denial: ValidationReloadInputDenial) {

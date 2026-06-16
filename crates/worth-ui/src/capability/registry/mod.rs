@@ -29,8 +29,9 @@ pub use command_projection::{
     CommandProjectionCommandReference, CommandProjectionDescriptor, CommandProjectionGrouping,
     CommandProjectionIconLabelPolicy, CommandProjectionKey, CommandProjectionMeaningOverride,
     CommandProjectionMosaicScope, CommandProjectionOrdering, CommandProjectionOverflowBehavior,
-    CommandProjectionReadinessDisplayPolicy, CommandProjectionShortcutVisibility,
-    CommandProjectionSurface, FrozenCommandProjectionCapabilities, FrozenCommandProjectionEntry,
+    CommandProjectionReadinessDisplayPolicy, CommandProjectionSelectionMode,
+    CommandProjectionShortcutVisibility, CommandProjectionSurface,
+    FrozenCommandProjectionCapabilities, FrozenCommandProjectionEntry,
 };
 pub(crate) use component::{ComponentAcceptedRegistrationProof, ComponentRegistry};
 pub use component::{

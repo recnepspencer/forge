@@ -1,12 +1,17 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use super::{ValidationSourcePackage, ValidationThemeSource};
+use super::{
+    ValidationCommandProjectionSource, ValidationCommandSource, ValidationSourcePackage,
+    ValidationThemeSource,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ValidationReloadInput {
     SourcePackage(ValidationSourcePackage),
     HeaderTheme(ValidationThemeSource),
+    HeaderCommands(ValidationCommandSource),
+    HeaderCommandProjections(ValidationCommandProjectionSource),
     SourcePackageAndHeaderTheme {
         source: ValidationSourcePackage,
         theme: ValidationThemeSource,
@@ -24,6 +29,8 @@ impl ValidationReloadInput {
         match self {
             Self::SourcePackage(source) => Some(source.source_digest()),
             Self::HeaderTheme(_) => None,
+            Self::HeaderCommands(_) => None,
+            Self::HeaderCommandProjections(_) => None,
             Self::SourcePackageAndHeaderTheme { source, .. } => Some(source.source_digest()),
         }
     }
@@ -32,6 +39,8 @@ impl ValidationReloadInput {
         match self {
             Self::SourcePackage(_) => None,
             Self::HeaderTheme(theme) => Some(theme.source_digest()),
+            Self::HeaderCommands(_) => None,
+            Self::HeaderCommandProjections(_) => None,
             Self::SourcePackageAndHeaderTheme { theme, .. } => Some(theme.source_digest()),
         }
     }

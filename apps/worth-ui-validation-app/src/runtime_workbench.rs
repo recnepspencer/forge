@@ -1,15 +1,17 @@
 use worth_ui::facade::{
     WorthUiApp, WorthUiCapabilityPreparedReload, WorthUiCapabilityReloadEvidence,
-    WorthUiCapabilityReloadRequest, WorthUiCapabilityReloadStage, WorthUiHeaderFramePlan,
+    WorthUiCapabilityReloadRequest, WorthUiCapabilityReloadStage,
+    WorthUiCommandProjectionReloadPackage, WorthUiCommandReloadPackage, WorthUiHeaderFramePlan,
     WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindReceipt, WorthUiRuntimeHost,
     WorthUiThemeTokenReloadPackage,
 };
 
 use crate::app_capabilities::validation_header_frame_rebind_request;
 use crate::reload::{
-    ValidationPreparedReload, ValidationReloadEvidence, ValidationReloadInput,
-    ValidationReloadRequest, ValidationReloadStage, ValidationReloadTick,
-    ValidationRuntimeReloadTickOutcome, ValidationSourcePackage, ValidationThemeSource,
+    ValidationCommandProjectionSource, ValidationCommandSource, ValidationPreparedReload,
+    ValidationReloadEvidence, ValidationReloadInput, ValidationReloadRequest,
+    ValidationReloadStage, ValidationReloadTick, ValidationRuntimeReloadTickOutcome,
+    ValidationSourcePackage, ValidationThemeSource,
 };
 
 pub struct ValidationRuntimeWorkbench {
@@ -65,11 +67,39 @@ impl ValidationRuntimeWorkbench {
             ))
     }
 
-    pub fn activate_theme_capability_reload(
+    pub fn prepare_command_capability_reload(
+        &self,
+        commands: &ValidationCommandSource,
+    ) -> WorthUiCapabilityPreparedReload {
+        self.runtime
+            .prepare_capability_reload(WorthUiCapabilityReloadRequest::from_commands(
+                command_reload_package(commands),
+            ))
+    }
+
+    pub fn prepare_command_projection_capability_reload(
+        &self,
+        command_projections: &ValidationCommandProjectionSource,
+    ) -> WorthUiCapabilityPreparedReload {
+        self.runtime.prepare_capability_reload(
+            WorthUiCapabilityReloadRequest::from_command_projections(
+                command_projection_reload_package(command_projections),
+            ),
+        )
+    }
+
+    pub fn activate_capability_reload(
         &mut self,
         prepared: WorthUiCapabilityPreparedReload,
     ) -> Result<WorthUiCapabilityReloadEvidence, WorthUiCapabilityReloadStage> {
         prepared.activate(&mut self.runtime)
+    }
+
+    pub fn activate_theme_capability_reload(
+        &mut self,
+        prepared: WorthUiCapabilityPreparedReload,
+    ) -> Result<WorthUiCapabilityReloadEvidence, WorthUiCapabilityReloadStage> {
+        self.activate_capability_reload(prepared)
     }
 
     pub fn rebind_header_after_reload(
@@ -108,6 +138,10 @@ impl ValidationRuntimeWorkbench {
         match input {
             ValidationReloadInput::SourcePackage(source) => self.apply_source_reload(source),
             ValidationReloadInput::HeaderTheme(theme) => self.apply_theme_reload(theme),
+            ValidationReloadInput::HeaderCommands(commands) => self.apply_command_reload(commands),
+            ValidationReloadInput::HeaderCommandProjections(command_projections) => {
+                self.apply_command_projection_reload(command_projections)
+            }
             ValidationReloadInput::SourcePackageAndHeaderTheme { source, theme } => {
                 let source_outcome = self.apply_source_reload(source);
                 let theme_outcome = self.apply_theme_reload(theme);
@@ -171,6 +205,60 @@ impl ValidationRuntimeWorkbench {
         }
     }
 
+    fn apply_command_reload(
+        &mut self,
+        commands: ValidationCommandSource,
+    ) -> ValidationRuntimeReloadTickOutcome {
+        let prepared = self.prepare_command_capability_reload(&commands);
+        if prepared.is_ready() {
+            return match self.activate_capability_reload(prepared) {
+                Ok(evidence) => {
+                    let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
+                    ValidationRuntimeReloadTickOutcome::CommandReloaded {
+                        evidence,
+                        header_receipt,
+                    }
+                }
+                Err(stage) => ValidationRuntimeReloadTickOutcome::CommandActivationDenied(stage),
+            };
+        }
+
+        let evidence = prepared.evidence().clone();
+        let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
+        ValidationRuntimeReloadTickOutcome::CommandReloaded {
+            evidence,
+            header_receipt,
+        }
+    }
+
+    fn apply_command_projection_reload(
+        &mut self,
+        command_projections: ValidationCommandProjectionSource,
+    ) -> ValidationRuntimeReloadTickOutcome {
+        let prepared = self.prepare_command_projection_capability_reload(&command_projections);
+        if prepared.is_ready() {
+            return match self.activate_capability_reload(prepared) {
+                Ok(evidence) => {
+                    let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
+                    ValidationRuntimeReloadTickOutcome::CommandProjectionReloaded {
+                        evidence,
+                        header_receipt,
+                    }
+                }
+                Err(stage) => {
+                    ValidationRuntimeReloadTickOutcome::CommandProjectionActivationDenied(stage)
+                }
+            };
+        }
+
+        let evidence = prepared.evidence().clone();
+        let header_receipt = self.rebind_header_after_capability_reload(&evidence).ok();
+        ValidationRuntimeReloadTickOutcome::CommandProjectionReloaded {
+            evidence,
+            header_receipt,
+        }
+    }
+
     fn rebind_header_after_capability_reload(
         &mut self,
         evidence: &WorthUiCapabilityReloadEvidence,
@@ -189,6 +277,22 @@ fn theme_token_reload_package(theme: &ValidationThemeSource) -> WorthUiThemeToke
     WorthUiThemeTokenReloadPackage::from_source(
         "apps/worth-ui-validation-app/theme/header.theme",
         theme.source_text(),
+    )
+}
+
+fn command_reload_package(commands: &ValidationCommandSource) -> WorthUiCommandReloadPackage {
+    WorthUiCommandReloadPackage::from_source(
+        "apps/worth-ui-validation-app/theme/header.commands",
+        commands.source_text(),
+    )
+}
+
+fn command_projection_reload_package(
+    command_projections: &ValidationCommandProjectionSource,
+) -> WorthUiCommandProjectionReloadPackage {
+    WorthUiCommandProjectionReloadPackage::from_source(
+        "apps/worth-ui-validation-app/theme/header.projections",
+        command_projections.source_text(),
     )
 }
 

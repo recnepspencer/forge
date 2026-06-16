@@ -1,3 +1,5 @@
+use crate::runtime::{WorthUiRuntimeFactId, WorthUiRuntimeFactSet};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiValidationReloadStage {
     EmptyRequest,
@@ -56,6 +58,7 @@ pub struct WorthUiValidationReloadEvidence {
     durable_state_reconciliation_receipts: usize,
     query_binding_planning_ran: bool,
     durable_state_planning_ran: bool,
+    changed_facts: WorthUiRuntimeFactSet,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -96,6 +99,7 @@ impl WorthUiValidationReloadEvidence {
                 durable_state_reconciliation_receipts: 0,
                 query_binding_planning_ran: false,
                 durable_state_planning_ran: false,
+                changed_facts: WorthUiRuntimeFactSet::empty(),
             },
         }
     }
@@ -192,6 +196,10 @@ impl WorthUiValidationReloadEvidence {
         self.durable_state_planning_ran
     }
 
+    pub fn changed_facts(&self) -> &WorthUiRuntimeFactSet {
+        &self.changed_facts
+    }
+
     pub(crate) fn mark_activated(
         mut self,
         active_artifact_digest_after: u64,
@@ -200,6 +208,10 @@ impl WorthUiValidationReloadEvidence {
         self.status = WorthUiValidationReloadStatus::Activated;
         self.active_artifact_digest_after = active_artifact_digest_after;
         self.active_plan_digest_after = active_plan_digest_after;
+        self.changed_facts
+            .insert(WorthUiRuntimeFactId::active_artifact());
+        self.changed_facts
+            .insert(WorthUiRuntimeFactId::execution_plan());
         self
     }
 }

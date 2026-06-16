@@ -32,7 +32,17 @@ pub enum ValidationRuntimeReloadTickOutcome {
         evidence: WorthUiCapabilityReloadEvidence,
         header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
     },
+    CommandReloaded {
+        evidence: WorthUiCapabilityReloadEvidence,
+        header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
+    },
+    CommandProjectionReloaded {
+        evidence: WorthUiCapabilityReloadEvidence,
+        header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,
+    },
     ThemeActivationDenied(WorthUiCapabilityReloadStage),
+    CommandActivationDenied(WorthUiCapabilityReloadStage),
+    CommandProjectionActivationDenied(WorthUiCapabilityReloadStage),
     SourceReloadedAndThemeDenied {
         evidence: ValidationReloadEvidence,
         header_receipt: Option<WorthUiHeaderFrameRebindReceipt>,

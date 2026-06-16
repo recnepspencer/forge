@@ -6,7 +6,7 @@ use super::{
     CommandProjectionCommandReference, CommandProjectionGrouping, CommandProjectionIconLabelPolicy,
     CommandProjectionMeaningOverride, CommandProjectionMosaicScope, CommandProjectionOrdering,
     CommandProjectionOverflowBehavior, CommandProjectionReadinessDisplayPolicy,
-    CommandProjectionShortcutVisibility, CommandProjectionSurface,
+    CommandProjectionSelectionMode, CommandProjectionShortcutVisibility, CommandProjectionSurface,
 };
 
 /// Declarative command-spine projection supplied by an application.
@@ -21,6 +21,7 @@ pub struct CommandProjectionDescriptor {
     shortcut_visibility: CommandProjectionShortcutVisibility,
     readiness_display_policy: CommandProjectionReadinessDisplayPolicy,
     icon_label_policy: CommandProjectionIconLabelPolicy,
+    selection_mode: CommandProjectionSelectionMode,
     overflow_behavior: CommandProjectionOverflowBehavior,
     mosaic_scope: Option<CommandProjectionMosaicScope>,
     meaning_overrides: Vec<CommandProjectionMeaningOverride>,
@@ -38,6 +39,7 @@ impl CommandProjectionDescriptor {
             shortcut_visibility: CommandProjectionShortcutVisibility::Hidden,
             readiness_display_policy: CommandProjectionReadinessDisplayPolicy::HideReadiness,
             icon_label_policy: CommandProjectionIconLabelPolicy::PreferCommandIconAndLabel,
+            selection_mode: CommandProjectionSelectionMode::SingleSelect,
             overflow_behavior: CommandProjectionOverflowBehavior::NoOverflow,
             mosaic_scope: None,
             meaning_overrides: Vec::new(),
@@ -88,6 +90,11 @@ impl CommandProjectionDescriptor {
 
     pub fn with_icon_label_policy(mut self, policy: CommandProjectionIconLabelPolicy) -> Self {
         self.icon_label_policy = policy;
+        self
+    }
+
+    pub fn with_selection_mode(mut self, selection_mode: CommandProjectionSelectionMode) -> Self {
+        self.selection_mode = selection_mode;
         self
     }
 
@@ -143,6 +150,10 @@ impl CommandProjectionDescriptor {
 
     pub fn icon_label_policy(&self) -> CommandProjectionIconLabelPolicy {
         self.icon_label_policy
+    }
+
+    pub fn selection_mode(&self) -> CommandProjectionSelectionMode {
+        self.selection_mode
     }
 
     pub fn overflow_behavior(&self) -> CommandProjectionOverflowBehavior {

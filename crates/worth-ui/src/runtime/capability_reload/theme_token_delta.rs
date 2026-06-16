@@ -4,6 +4,7 @@ use crate::capability::{
     CapabilitySnapshot, FrozenThemeTokenCapabilities, ThemeColorValue,
     ThemeTokenAcceptedRegistrationProof, ThemeTokenDescriptor, ThemeTokenId, ThemeTokenValue,
 };
+use crate::runtime::{WorthUiRuntimeFactId, WorthUiRuntimeFactSet};
 
 use super::{WorthUiCapabilityReloadStage, WorthUiThemeTokenReloadPackage};
 
@@ -13,6 +14,7 @@ pub(crate) struct WorthUiThemeTokenDelta {
     touched_theme_token_count: usize,
     registry_lookup_count: usize,
     theme_token_family_entry_count: usize,
+    changed_facts: WorthUiRuntimeFactSet,
 }
 
 impl WorthUiThemeTokenDelta {
@@ -31,20 +33,36 @@ impl WorthUiThemeTokenDelta {
         );
         let theme_tokens =
             FrozenThemeTokenCapabilities::from_accepted_descriptors(descriptors, &accepted);
+        let mut changed_facts = WorthUiRuntimeFactSet::empty();
+        changed_facts.extend(
+            parsed_tokens
+                .iter()
+                .map(|(token_id, _)| WorthUiRuntimeFactId::theme_token(token_id)),
+        );
         Ok(Self {
             snapshot: active_snapshot.with_theme_tokens_replaced(theme_tokens),
             touched_theme_token_count: parsed_tokens.len(),
             registry_lookup_count: parsed_tokens.len(),
             theme_token_family_entry_count,
+            changed_facts,
         })
     }
 
-    pub(crate) fn into_parts(self) -> (CapabilitySnapshot, usize, usize, usize) {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        CapabilitySnapshot,
+        usize,
+        usize,
+        usize,
+        WorthUiRuntimeFactSet,
+    ) {
         (
             self.snapshot,
             self.touched_theme_token_count,
             self.theme_token_family_entry_count,
             self.registry_lookup_count,
+            self.changed_facts,
         )
     }
 }

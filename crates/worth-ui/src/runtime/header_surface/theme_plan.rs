@@ -1,4 +1,5 @@
 use crate::capability::{CapabilitySnapshot, ThemeTokenId, ThemeTokenValue};
+use crate::runtime::{WorthUiProjectionDependencySet, WorthUiRuntimeFactId};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiHeaderThemeTokenRequest {
@@ -14,6 +15,7 @@ pub struct WorthUiHeaderThemeTokenRequest {
 pub struct WorthUiHeaderThemePlan {
     receipt: WorthUiHeaderThemeFrameReceipt,
     theme_digest: u64,
+    dependencies: WorthUiProjectionDependencySet,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,6 +62,7 @@ impl WorthUiHeaderThemePlan {
         snapshot: &CapabilitySnapshot,
         request: WorthUiHeaderThemeTokenRequest,
     ) -> Result<Self, WorthUiHeaderThemePlanDenial> {
+        let dependencies = request.dependencies();
         let receipt = WorthUiHeaderThemeFrameReceipt::new(
             resolve_color(snapshot, &request.panel_fill)?,
             resolve_color(snapshot, &request.menu_fill)?,
@@ -72,6 +75,7 @@ impl WorthUiHeaderThemePlan {
         Ok(Self {
             receipt,
             theme_digest,
+            dependencies,
         })
     }
 
@@ -81,6 +85,30 @@ impl WorthUiHeaderThemePlan {
 
     pub fn theme_digest(&self) -> u64 {
         self.theme_digest
+    }
+
+    pub fn dependencies(&self) -> &WorthUiProjectionDependencySet {
+        &self.dependencies
+    }
+}
+
+impl WorthUiHeaderThemeTokenRequest {
+    fn dependencies(&self) -> WorthUiProjectionDependencySet {
+        [
+            &self.panel_fill,
+            &self.menu_fill,
+            &self.menu_hover_fill,
+            &self.menu_active_fill,
+            &self.text,
+            &self.border,
+        ]
+        .into_iter()
+        .fold(
+            WorthUiProjectionDependencySet::empty(),
+            |dependencies, token_id| {
+                dependencies.depends_on(WorthUiRuntimeFactId::theme_token(token_id))
+            },
+        )
     }
 }
 

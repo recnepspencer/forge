@@ -1,5 +1,8 @@
 use eframe::egui::{self, Color32, Context, Frame, RichText, Stroke, TopBottomPanel, Visuals};
-use worth_ui::facade::{WorthUiHeaderFrameReceipt, WorthUiHeaderThemeFrameReceipt};
+use worth_ui::facade::{
+    CommandProjectionSelectionMode, WorthUiHeaderFrameReceipt, WorthUiHeaderMenuCommand,
+    WorthUiHeaderThemeFrameReceipt,
+};
 
 pub fn render_header_only(
     ctx: &Context,
@@ -29,17 +32,43 @@ fn render_menus(
             ui.menu_button(menu.title(), |ui| {
                 ui.set_min_width(220.0);
                 for command in menu.commands() {
-                    let mut text = command.label().to_owned();
-                    if let Some(shortcut) = command.shortcut() {
-                        text.push_str("    ");
-                        text.push_str(shortcut);
-                    }
-                    ui.button(RichText::new(text).color(theme_color(theme.text())))
-                        .on_hover_text(command.command_id());
+                    render_menu_command(ui, command, menu.selection_mode(), theme);
                 }
             });
         }
     });
+}
+
+fn render_menu_command(
+    ui: &mut egui::Ui,
+    command: &WorthUiHeaderMenuCommand,
+    selection_mode: CommandProjectionSelectionMode,
+    theme: &WorthUiHeaderThemeFrameReceipt,
+) {
+    let text = menu_command_text(command);
+    match selection_mode {
+        CommandProjectionSelectionMode::SingleSelect => {
+            ui.button(RichText::new(text).color(theme_color(theme.text())))
+                .on_hover_text(command.command_id());
+        }
+        CommandProjectionSelectionMode::MultiSelect => {
+            let mut selected = false;
+            ui.checkbox(
+                &mut selected,
+                RichText::new(text).color(theme_color(theme.text())),
+            )
+            .on_hover_text(command.command_id());
+        }
+    }
+}
+
+fn menu_command_text(command: &WorthUiHeaderMenuCommand) -> String {
+    let mut text = command.label().to_owned();
+    if let Some(shortcut) = command.shortcut() {
+        text.push_str("    ");
+        text.push_str(shortcut);
+    }
+    text
 }
 
 fn apply_validation_theme(ctx: &Context, theme: &WorthUiHeaderThemeFrameReceipt) {

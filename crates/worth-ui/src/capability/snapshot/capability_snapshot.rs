@@ -202,10 +202,42 @@ impl CapabilitySnapshot {
         &self,
         theme_tokens: FrozenThemeTokenCapabilities,
     ) -> Self {
+        self.with_replaced_families(
+            self.commands.clone(),
+            self.command_projections.clone(),
+            theme_tokens,
+        )
+    }
+
+    pub(crate) fn with_commands_replaced(&self, commands: FrozenCommandCapabilities) -> Self {
+        self.with_replaced_families(
+            commands,
+            self.command_projections.clone(),
+            self.theme_tokens.clone(),
+        )
+    }
+
+    pub(crate) fn with_command_projections_replaced(
+        &self,
+        command_projections: FrozenCommandProjectionCapabilities,
+    ) -> Self {
+        self.with_replaced_families(
+            self.commands.clone(),
+            command_projections,
+            self.theme_tokens.clone(),
+        )
+    }
+
+    fn with_replaced_families(
+        &self,
+        commands: FrozenCommandCapabilities,
+        command_projections: FrozenCommandProjectionCapabilities,
+        theme_tokens: FrozenThemeTokenCapabilities,
+    ) -> Self {
         CapabilitySnapshotBuilder::new(CapabilitySnapshotFreezeInput {
             registered_capabilities: self.registered_capabilities.clone(),
-            commands: self.commands.clone(),
-            command_projections: self.command_projections.clone(),
+            commands,
+            command_projections,
             components: self.components.clone(),
             icons: self.icons.clone(),
             surfaces: self.surfaces.clone(),

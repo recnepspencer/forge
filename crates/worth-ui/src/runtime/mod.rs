@@ -51,6 +51,7 @@ mod reload_counter_boundary;
 mod reload_failure;
 mod reload_storm_certification;
 mod replacement;
+mod runtime_fact;
 mod runtime_instance_id;
 mod source_ingress;
 mod state_inventory;
@@ -93,6 +94,7 @@ pub use canvas_spatial_lane::{
 pub use capability_reload::{
     WorthUiCapabilityPreparedReload, WorthUiCapabilityReloadEvidence,
     WorthUiCapabilityReloadRequest, WorthUiCapabilityReloadStage, WorthUiCapabilityReloadStatus,
+    WorthUiCommandProjectionReloadPackage, WorthUiCommandReloadPackage,
     WorthUiThemeTokenReloadPackage,
 };
 pub use diagnostics::{
@@ -300,6 +302,10 @@ pub use replacement::{
     WorthUiAmbiguousReplacementDenial, WorthUiNodeLifecycleTransition,
     WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters,
     WorthUiNodeReplacementPlan,
+};
+pub use runtime_fact::{
+    WorthUiProjectionDependencySet, WorthUiRuntimeFactFamily, WorthUiRuntimeFactId,
+    WorthUiRuntimeFactSet,
 };
 pub(crate) use runtime_instance_id::WorthUiRuntimeInstanceId;
 pub use source_ingress::{
