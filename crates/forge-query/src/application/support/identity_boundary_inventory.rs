@@ -127,6 +127,11 @@ pub const EXACT_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
     "runtime/intent/branch.rs",
     "runtime/branch.rs",
     "preview/scoped.rs",
+    "preview/mod.rs",
+    "query_context/basis.rs",
+    "query_context/execution.rs",
+    "query_context/metadata.rs",
+    "query_context/support.rs",
     "intent_admission/handoffs/bindings/mod.rs",
     "intent_admission/handoffs/bindings/read.rs",
     "intent_admission/handoffs/bindings/inspection.rs",
@@ -349,8 +354,11 @@ pub const LOWER_RUNTIME_IDENTITY_SHIM_PATHS: &[&str] = &[
     "lower_runtime_routing/certification/surface/fixtures/phase_six/subscription.rs",
 ];
 
-pub const EXACT_ZERO_STRING_MATCHING_PATHS: &[&str] =
-    &["runtime/tests/stop_class/consumer_support/routing.rs"];
+pub const EXACT_ZERO_STRING_MATCHING_PATHS: &[&str] = &[
+    "runtime/tests/stop_class/consumer_support/routing.rs",
+    "worth-kernel/construction/tests/branch_preview_basis.rs",
+    "worth-kernel/construction/tests/construction.rs",
+];
 
 pub const EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS: &[&str] =
     &["runtime/runtime_sessions.rs", "runtime/workspace.rs"];
@@ -367,6 +375,7 @@ pub const EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS: &[&str] = &[
 ];
 
 /// Paths that retain pre-9.6 joined-string digest folklore by explicit milestone scope.
+/// See `EXCLUDED_FOLKLORE_DEFERRALS` for owner milestones referenced in closeout evidence.
 #[allow(dead_code)]
 pub const EXCLUDED_FOLKLORE_PATHS: &[&str] = &[
     "projection_consumption/",
@@ -374,6 +383,31 @@ pub const EXCLUDED_FOLKLORE_PATHS: &[&str] = &[
     "domain_capabilities/",
     "harness/milestone_nine_five_",
     "runtime/intent/declaration.rs",
+];
+
+/// Named deferrals for same-class folklore outside the Milestone 9.6 ordinary-path contract.
+#[allow(dead_code)]
+pub const EXCLUDED_FOLKLORE_DEFERRALS: &[(&str, &str)] = &[
+    (
+        "projection_consumption/",
+        "Milestone 9.7 — projection-consumption digest feeders",
+    ),
+    (
+        "workflow/",
+        "Milestone 9.7 — workflow digest feeder migration (outside preview crate root)",
+    ),
+    (
+        "domain_capabilities/",
+        "Milestone 9.7 — domain-capability integration digest surfaces",
+    ),
+    (
+        "harness/milestone_nine_five_",
+        "Milestone 9.5 harness-only fixtures; not ordinary-path production",
+    ),
+    (
+        "runtime/intent/declaration.rs",
+        "Milestone 9.8 — intent declaration identity lowering track",
+    ),
 ];
 
 const FORBIDDEN_DIGEST_FOLKLORE_PATTERNS: &[&str] = &[

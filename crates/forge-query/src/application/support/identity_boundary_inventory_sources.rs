@@ -48,6 +48,11 @@ pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
         "runtime/intent/branch.rs" => Some(include_str!("../../runtime/intent/branch.rs")),
         "runtime/branch.rs" => Some(include_str!("../../runtime/branch.rs")),
         "preview/scoped.rs" => Some(include_str!("../../preview/scoped.rs")),
+        "preview/mod.rs" => Some(include_str!("../../preview/mod.rs")),
+        "query_context/basis.rs" => Some(include_str!("../../query_context/basis.rs")),
+        "query_context/execution.rs" => Some(include_str!("../../query_context/execution.rs")),
+        "query_context/metadata.rs" => Some(include_str!("../../query_context/metadata.rs")),
+        "query_context/support.rs" => Some(include_str!("../../query_context/support.rs")),
         "intent_admission/handoffs/bindings/mod.rs" => Some(include_str!(
             "../../intent_admission/handoffs/bindings/mod.rs"
         )),
@@ -658,6 +663,30 @@ pub fn source_for_string_matching_path(path: &str) -> Option<&'static str> {
         "runtime/tests/stop_class/consumer_support/routing.rs" => Some(include_str!(
             "../../runtime/tests/stop_class/consumer_support/routing.rs"
         )),
+        "worth-kernel/construction/tests/branch_preview_basis.rs" => Some(include_str!(
+            "../../../../worth-kernel/src/construction/tests/branch_preview_basis.rs"
+        )),
+        "worth-kernel/construction/tests/construction.rs" => Some(include_str!(
+            "../../../../worth-kernel/src/construction/tests/construction.rs"
+        )),
+        _ => None,
+    }
+}
+
+pub fn source_for_certification_gate_path(path: &str) -> Option<&'static str> {
+    match path {
+        "runtime/tests/session_label.rs" => {
+            Some(include_str!("../../runtime/tests/session_label.rs"))
+        }
+        "runtime/tests/evidence_identity/mod.rs" => {
+            Some(include_str!("../../runtime/tests/evidence_identity/mod.rs"))
+        }
+        "runtime/tests/stop_class/mod.rs" => {
+            Some(include_str!("../../runtime/tests/stop_class/mod.rs"))
+        }
+        "runtime/tests/identity_boundary/mod.rs" => {
+            Some(include_str!("../../runtime/tests/identity_boundary/mod.rs"))
+        }
         _ => None,
     }
 }

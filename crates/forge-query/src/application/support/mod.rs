@@ -1,16 +1,21 @@
 mod closure;
+mod identity_boundary_certification_gate;
 mod identity_boundary_hostile_matrix;
 pub(crate) mod identity_boundary_inventory;
 mod registry;
 mod report;
 #[cfg(test)]
 mod tests;
+mod worth_ui_binding_evidence;
 
 pub use crate::query_context::QueryContextDeferredScopeMarker;
 pub use closure::{
     ForgeQueryEvidenceIdentityBoundaryClosure, ForgeQueryFolkloreResidueStatus,
     ForgeQueryIdentityBoundaryClosure, ForgeQueryMilestoneClosureStatus,
     ForgeQuerySessionLabelBoundaryClosure, ForgeQueryStopClassBoundaryClosure,
+};
+pub use identity_boundary_certification_gate::{
+    milestone_nine_six_certification_gate_certified, MILESTONE_9_6_CERTIFICATION_GATE_PATHS,
 };
 pub use identity_boundary_hostile_matrix::{
     identity_boundary_hostile_matrix_artifact, identity_boundary_hostile_matrix_digest,
@@ -27,8 +32,8 @@ pub use identity_boundary_inventory::{
     scan_string_matching_residue_paths, EVIDENCE_IDENTITY_COVERED_SURFACES,
     EXACT_ZERO_FORMAT_DIGEST_PATHS, EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS,
     EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
-    EXCLUDED_FOLKLORE_PATHS, LOWER_RUNTIME_IDENTITY_SHIM_PATHS, SESSION_LABEL_ORDINARY_ENTRYPOINTS,
-    STOP_CLASS_COVERED_CONTRACTS,
+    EXCLUDED_FOLKLORE_DEFERRALS, EXCLUDED_FOLKLORE_PATHS, LOWER_RUNTIME_IDENTITY_SHIM_PATHS,
+    SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
 };
 pub use registry::{
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
@@ -39,3 +44,4 @@ pub use report::{
     ForgeQueryQueryContextSupportProfile, ForgeQuerySupportReport, ForgeQuerySupportReportCounters,
     ForgeQuerySupportSectionPosture,
 };
+pub use worth_ui_binding_evidence::worth_ui_query_binding_evidence_identity;

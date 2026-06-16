@@ -1,5 +1,7 @@
 use crate::execution::execute_preflight_bundle;
-use crate::identity::{hash_parts, ResultDigest};
+use crate::identity::ResultDigest;
+
+use super::identity::compose_preview_derived_result_shape_digest;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 
 #[path = "execution_synthetic.rs"]
@@ -343,14 +345,10 @@ pub fn execute_query_basis_context(
                 query_digest: context.query_digest().to_string(),
                 basis_digest: context.basis_digest().to_string(),
                 result_digest: result_digest.as_str().to_string(),
-                result_shape_digest: hash_parts(&[
-                    format!(
-                        "preview_query:{}",
-                        foundation.validated_query_digest().as_str()
-                    ),
-                    format!("shape_check_width:{}", foundation.shape_check_width()),
-                    "preview_query_context_shape".to_string(),
-                ]),
+                result_shape_digest: compose_preview_derived_result_shape_digest(
+                    foundation.validated_query_digest().as_str(),
+                    foundation.shape_check_width(),
+                ),
                 rows,
                 family: QueryContextExecutionFamily::PreviewDerivedHistorical,
                 cost_class: context.cost_class().clone(),
