@@ -2,6 +2,7 @@ mod activation_staging;
 mod active;
 mod admission;
 mod atomic_plan_swap;
+mod authoring_snapshot;
 mod candidate;
 mod canvas_spatial_lane;
 mod capability_reload;
@@ -39,6 +40,7 @@ mod matching;
 mod measurement;
 mod narrowing;
 mod ordinary_lane;
+mod page_surface;
 mod plan_equivalence;
 mod plan_inspection;
 mod plan_topology;
@@ -75,6 +77,7 @@ pub use atomic_plan_swap::{
     WorthUiAtomicPlanSwapCounters, WorthUiPlanSwapDenialReason, WorthUiPlanSwapReceipt,
     WorthUiPlanSwapRollback, WorthUiPriorValidPlanObservation,
 };
+pub use authoring_snapshot::WorthUiRuntimeAuthoringSnapshot;
 pub use candidate::{
     WorthUiCandidateArtifactBundle, WorthUiCandidateAuthoringLane,
     WorthUiCandidateDependencyMetadata, WorthUiCandidateLoweringBasis,
@@ -225,6 +228,11 @@ pub use ordinary_lane::{
     WorthUiOrdinaryLaneCounters, WorthUiOrdinaryLaneFrameDenial,
     WorthUiOrdinaryLaneFrameDenialReason, WorthUiOrdinaryLaneFrameReceipt, WorthUiOrdinaryLaneNode,
     WorthUiOrdinaryLanePlan, WorthUiOrdinaryLanePlanDenial, WorthUiOrdinaryLanePlanDenialReason,
+};
+pub use page_surface::{
+    WorthUiPageHostFrameReceipt, WorthUiPageHostPlan, WorthUiPageHostPlanDenial,
+    WorthUiPageHostRebindDenial, WorthUiPageHostRebindReceipt, WorthUiPageHostRebindStatus,
+    WorthUiPageHostRequest, WorthUiPageHostSlotReceipt,
 };
 pub use plan_equivalence::{
     WorthUiExecutionPlanDigest, WorthUiExecutionPlanEquivalence,

@@ -11,10 +11,13 @@ use crate::runtime::source_ingress::ordering_receipt::WorthUiCandidateOrderingRe
 use crate::runtime::source_ingress::provider::WorthUiSourceProvider;
 use crate::runtime::source_ingress::revision::WorthUiSourcePackageRevision;
 use crate::runtime::WorthUiReplacementCause;
-use crate::runtime::{WorthUiReplacementCandidate, WorthUiReplacementCandidateDenial};
+use crate::runtime::{
+    WorthUiReplacementCandidate, WorthUiReplacementCandidateDenial, WorthUiRuntimeAuthoringSnapshot,
+};
 use crate::source::{
-    WorthUiArtifact, WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
-    WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
+    build_content_slot_catalog, build_layout_topology_catalog, WorthUiArtifact,
+    WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
+    WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer, WorthUiParsedSourcePackage,
     WorthUiParsedSourceToArtifactInputLowerer, WorthUiSourcePackageLoader, WorthUiSourceParser,
     WorthUiStructuralLegalityLowerer,
 };
@@ -22,6 +25,7 @@ use crate::source::{
 #[derive(Debug, Eq, PartialEq)]
 pub struct WorthUiWatchedCandidateSubmission {
     candidate: WorthUiReplacementCandidate,
+    authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
     revision: WorthUiSourcePackageRevision,
     ordering_receipt: WorthUiCandidateOrderingReceipt,
     counters: WorthUiSourceIngressCounters,
@@ -39,11 +43,12 @@ impl WorthUiDebouncedWatcherBatch {
         snapshot: &CapabilitySnapshot,
     ) -> Result<WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial> {
         let (provider, revision, ordering_receipt, mut counters) = self.into_parts();
-        let candidate =
+        let (candidate, authoring_snapshot) =
             lower_provider_to_candidate(&provider, snapshot, &revision, &ordering_receipt)?;
         counters.emit_candidate_submission();
         Ok(WorthUiWatchedCandidateSubmission {
             candidate,
+            authoring_snapshot,
             revision,
             ordering_receipt,
             counters,
@@ -67,6 +72,24 @@ impl WorthUiWatchedCandidateSubmission {
     pub fn into_candidate(self) -> WorthUiReplacementCandidate {
         self.candidate
     }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        WorthUiReplacementCandidate,
+        Option<WorthUiRuntimeAuthoringSnapshot>,
+        WorthUiSourcePackageRevision,
+        WorthUiCandidateOrderingReceipt,
+        WorthUiSourceIngressCounters,
+    ) {
+        (
+            self.candidate,
+            self.authoring_snapshot,
+            self.revision,
+            self.ordering_receipt,
+            self.counters,
+        )
+    }
 }
 
 fn lower_provider_to_candidate(
@@ -74,7 +97,13 @@ fn lower_provider_to_candidate(
     snapshot: &CapabilitySnapshot,
     revision: &WorthUiSourcePackageRevision,
     ordering_receipt: &WorthUiCandidateOrderingReceipt,
-) -> Result<WorthUiReplacementCandidate, WorthUiWatchedCandidateSubmissionDenial> {
+) -> Result<
+    (
+        WorthUiReplacementCandidate,
+        Option<WorthUiRuntimeAuthoringSnapshot>,
+    ),
+    WorthUiWatchedCandidateSubmissionDenial,
+> {
     if !ordering_receipt.matches_revision(revision) {
         return Err(source_denial(
             WorthUiSourceIngressDenialReason::OrderingReceiptDrift,
@@ -87,11 +116,13 @@ fn lower_provider_to_candidate(
                 WorthUiSourceIngressDenialReason::NoCandidateMaterial,
             ))
         })?;
-        return rust_authored_candidate(artifact, snapshot.digest(), revision);
+        return rust_authored_candidate(artifact, snapshot.digest(), revision)
+            .map(|candidate| (candidate, None));
     }
     if !provider.source_modules().is_empty() {
-        let artifact = file_authored_artifact(provider, snapshot)?;
-        return file_authored_candidate(artifact, snapshot.digest(), provider, revision);
+        let (artifact, authoring_snapshot) = file_authored_material(provider, snapshot)?;
+        return file_authored_candidate(artifact, snapshot.digest(), provider, revision)
+            .map(|candidate| (candidate, Some(authoring_snapshot)));
     }
     Err(source_denial(
         WorthUiSourceIngressDenialReason::NoCandidateMaterial,
@@ -114,10 +145,13 @@ fn reject_ambiguous_candidate_material(
     Ok(())
 }
 
-fn file_authored_artifact(
+fn file_authored_material(
     provider: &WorthUiSourceProvider,
     snapshot: &CapabilitySnapshot,
-) -> Result<WorthUiArtifact, WorthUiWatchedCandidateSubmissionDenial> {
+) -> Result<
+    (WorthUiArtifact, WorthUiRuntimeAuthoringSnapshot),
+    WorthUiWatchedCandidateSubmissionDenial,
+> {
     let mut loader = WorthUiSourcePackageLoader::from_workspace_root(provider.workspace_root());
     for module in provider.source_modules() {
         loader = loader.register_module_with_source(module.relative_path(), module.source_text());
@@ -127,9 +161,24 @@ fn file_authored_artifact(
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourcePackageRejected))?;
     let parsed = WorthUiSourceParser::parse_package(&source_package)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourceParseRejected))?;
+    let authoring_snapshot = file_authored_authoring_snapshot(&parsed)?;
     let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed)
         .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
     canonical_artifact_from_input(artifact_input, snapshot)
+        .map(|artifact| (artifact, authoring_snapshot))
+}
+
+fn file_authored_authoring_snapshot(
+    parsed: &WorthUiParsedSourcePackage,
+) -> Result<WorthUiRuntimeAuthoringSnapshot, WorthUiWatchedCandidateSubmissionDenial> {
+    let layout_topology = build_layout_topology_catalog(parsed)
+        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
+    let content_slots = build_content_slot_catalog(parsed, &layout_topology)
+        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::AuthoringEntryRejected))?;
+    Ok(WorthUiRuntimeAuthoringSnapshot::new(
+        layout_topology,
+        content_slots,
+    ))
 }
 
 fn canonical_artifact_from_input(

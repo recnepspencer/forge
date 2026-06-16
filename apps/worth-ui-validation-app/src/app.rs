@@ -2,7 +2,7 @@ use eframe::{App, Frame, NativeOptions};
 use egui::{CentralPanel, Context};
 use std::path::PathBuf;
 use std::time::Duration;
-use worth_ui::facade::{WorthUiHeaderMenuPlan, WorthUiHeaderThemePlan};
+use worth_ui::facade::{WorthUiHeaderMenuPlan, WorthUiHeaderThemePlan, WorthUiPageHostPlan};
 
 use crate::header::render_header_only;
 use crate::launch::PreparedValidationWorkbenchLaunch;
@@ -48,6 +48,10 @@ impl ValidationWorkbenchApp {
     pub fn header_theme_plan(&self) -> &WorthUiHeaderThemePlan {
         self.workbench.header_frame_plan().theme_plan()
     }
+
+    pub fn page_host_plan(&self) -> &WorthUiPageHostPlan {
+        self.workbench.page_host_plan()
+    }
 }
 
 impl App for ValidationWorkbenchApp {
@@ -57,6 +61,8 @@ impl App for ValidationWorkbenchApp {
         let frame = self.workbench.header_frame_plan().execute_frame();
         render_header_only(ctx, frame.menu(), frame.theme());
         CentralPanel::default().show(ctx, |ui| {
+            render_page_host(ui, self.workbench.page_host_plan());
+            ui.separator();
             ui.heading("Worth UI reload evidence");
             render_reload_evidence_log(ui, &self.evidence_log);
         });
@@ -82,6 +88,19 @@ fn render_reload_evidence_log(ui: &mut egui::Ui, evidence_log: &ValidationReload
     for entry in evidence_log.entries().iter().rev() {
         render_reload_evidence_entry(ui, entry);
         ui.separator();
+    }
+}
+
+fn render_page_host(ui: &mut egui::Ui, page_host_plan: &WorthUiPageHostPlan) {
+    let receipt = page_host_plan.execute_frame();
+    ui.heading(format!("Page: {}", receipt.page_name()));
+    ui.label(format!("Page host frame: {}", receipt.frame_digest()));
+    for slot in receipt.slots() {
+        ui.horizontal(|ui| {
+            ui.label(slot.slot_name());
+            ui.label("->");
+            ui.monospace(slot.surface_id());
+        });
     }
 }
 

@@ -3,8 +3,8 @@ use crate::runtime::active::{
     WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeState,
 };
 use crate::runtime::{
-    WorthUiRuntimeActivationStatus, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch,
-    WorthUiRuntimeLifecycle,
+    WorthUiRuntimeActivationStatus, WorthUiRuntimeAuthoringSnapshot,
+    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLifecycle,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -13,6 +13,7 @@ pub(crate) struct WorthUiPriorValidPlan {
     active_plan: WorthUiActiveExecutionPlan,
     snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
+    authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
     frame_epoch: WorthUiRuntimeFrameEpoch,
@@ -36,6 +37,7 @@ impl WorthUiPriorValidPlan {
             active_plan: active.active_plan(),
             snapshot: active.capability_snapshot().clone(),
             snapshot_digest: active.snapshot_digest(),
+            authoring_snapshot: active.authoring_snapshot().cloned(),
             lifecycle: active.lifecycle(),
             status: active.status(),
             frame_epoch: active.frame_epoch(),
@@ -50,6 +52,7 @@ impl WorthUiPriorValidPlan {
             self.active_plan,
             self.snapshot.clone(),
             self.snapshot_digest,
+            self.authoring_snapshot.clone(),
             self.lifecycle,
             self.status,
             self.frame_epoch,

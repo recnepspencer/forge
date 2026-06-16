@@ -2,11 +2,13 @@ use worth_ui::facade::{
     WorthUiApp, WorthUiCapabilityPreparedReload, WorthUiCapabilityReloadEvidence,
     WorthUiCapabilityReloadRequest, WorthUiCapabilityReloadStage,
     WorthUiCommandProjectionReloadPackage, WorthUiCommandReloadPackage, WorthUiHeaderFramePlan,
-    WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindReceipt, WorthUiRuntimeHost,
+    WorthUiHeaderFrameRebindDenial, WorthUiHeaderFrameRebindReceipt, WorthUiPageHostPlan,
+    WorthUiPageHostRebindDenial, WorthUiPageHostRebindReceipt, WorthUiRuntimeHost,
     WorthUiThemeTokenReloadPackage,
 };
 
 use crate::app_capabilities::validation_header_frame_rebind_request;
+use crate::launch::validation_page_host_request;
 use crate::reload::{
     ValidationCommandProjectionSource, ValidationCommandSource, ValidationPreparedReload,
     ValidationReloadEvidence, ValidationReloadInput, ValidationReloadRequest,
@@ -18,6 +20,7 @@ pub struct ValidationRuntimeWorkbench {
     app: WorthUiApp,
     runtime: WorthUiRuntimeHost,
     header_frame_plan: WorthUiHeaderFramePlan,
+    page_host_plan: WorthUiPageHostPlan,
 }
 
 impl ValidationRuntimeWorkbench {
@@ -25,11 +28,13 @@ impl ValidationRuntimeWorkbench {
         app: WorthUiApp,
         runtime: WorthUiRuntimeHost,
         header_frame_plan: WorthUiHeaderFramePlan,
+        page_host_plan: WorthUiPageHostPlan,
     ) -> Self {
         Self {
             app,
             runtime,
             header_frame_plan,
+            page_host_plan,
         }
     }
 
@@ -43,6 +48,10 @@ impl ValidationRuntimeWorkbench {
 
     pub fn header_frame_plan(&self) -> &WorthUiHeaderFramePlan {
         &self.header_frame_plan
+    }
+
+    pub fn page_host_plan(&self) -> &WorthUiPageHostPlan {
+        &self.page_host_plan
     }
 
     pub fn prepare_reload(&self, request: ValidationReloadRequest) -> ValidationPreparedReload {
@@ -162,6 +171,7 @@ impl ValidationRuntimeWorkbench {
             return match self.activate_reload(prepared) {
                 Ok(evidence) => {
                     let header_receipt = self.rebind_header_after_reload(&evidence).ok();
+                    let _ = self.rebind_page_host_after_reload(&evidence);
                     ValidationRuntimeReloadTickOutcome::SourceReloaded {
                         evidence,
                         header_receipt,
@@ -173,6 +183,7 @@ impl ValidationRuntimeWorkbench {
 
         let evidence = prepared.evidence().clone();
         let header_receipt = self.rebind_header_after_reload(&evidence).ok();
+        let _ = self.rebind_page_host_after_reload(&evidence);
         ValidationRuntimeReloadTickOutcome::SourceReloaded {
             evidence,
             header_receipt,
@@ -269,6 +280,19 @@ impl ValidationRuntimeWorkbench {
             evidence,
         )?;
         self.header_frame_plan = next_plan;
+        Ok(receipt)
+    }
+
+    fn rebind_page_host_after_reload(
+        &mut self,
+        evidence: &ValidationReloadEvidence,
+    ) -> Result<WorthUiPageHostRebindReceipt, WorthUiPageHostRebindDenial> {
+        let (next_plan, receipt) = self.runtime.rebind_page_host_after_reload(
+            &self.page_host_plan,
+            validation_page_host_request(),
+            evidence,
+        )?;
+        self.page_host_plan = next_plan;
         Ok(receipt)
     }
 }

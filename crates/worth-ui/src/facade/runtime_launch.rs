@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
 use crate::facade::WorthUiApp;
-use crate::runtime::{WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeLaunch};
+use crate::runtime::{
+    WorthUiRuntimeAuthoringSnapshot, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeLaunch,
+};
 use crate::source::{
     build_content_slot_catalog, build_layout_topology_catalog, WorthUiArtifact,
     WorthUiArtifactInput, WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
@@ -110,10 +112,16 @@ impl WorthUiRuntimeLaunchBuilder {
         let artifact = assemble_canonical_artifact(&identity_seeded)?;
         let content_slots = verify_content_slots_against_artifact(content_slots, &artifact)?;
 
+        let authoring_snapshot =
+            WorthUiRuntimeAuthoringSnapshot::new(layout_topology.clone(), content_slots.clone());
         Ok(WorthUiPreparedRuntimeAuthoring::new(
             layout_topology,
             content_slots,
-            WorthUiRuntimeLaunch::from_facade_artifact(artifact, self.diagnostic_policy),
+            WorthUiRuntimeLaunch::from_facade_authoring(
+                artifact,
+                authoring_snapshot,
+                self.diagnostic_policy,
+            ),
         ))
     }
 }

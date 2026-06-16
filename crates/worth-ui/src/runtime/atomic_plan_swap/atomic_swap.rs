@@ -193,15 +193,18 @@ fn commit_swap_payload(
 ) {
     let (next_artifact, next_plan, next_snapshot) = payload.into_parts();
     let preserved_snapshot = active.capability_snapshot().clone();
+    let preserved_authoring_snapshot = active.authoring_snapshot().cloned();
+    let diagnostic_policy = active.diagnostic_policy();
     *active = WorthUiActiveRuntimeState::from_preserved_authority(
         next_artifact,
         next_plan,
         preserved_snapshot,
         next_snapshot,
+        preserved_authoring_snapshot,
         WorthUiRuntimeLifecycle::Active,
         WorthUiRuntimeActivationStatus::Active,
         runtime_frame_epoch,
-        active.diagnostic_policy(),
+        diagnostic_policy,
     );
 }
 

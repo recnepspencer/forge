@@ -3,9 +3,10 @@ use crate::runtime::validation_reload::evidence::WorthUiValidationReloadEvidence
 use crate::runtime::{
     WorthUiCandidateAdmission, WorthUiDurableStateFamily, WorthUiExecutionPlan,
     WorthUiReadyActivation, WorthUiReplacementCandidate, WorthUiRuntimeArtifactComparison,
-    WorthUiRuntimeArtifactComparisonOutcome, WorthUiRuntimeHost, WorthUiRuntimeInstanceId,
-    WorthUiSourceProvider, WorthUiValidationReloadEvidence, WorthUiValidationReloadRequest,
-    WorthUiValidationReloadStage, WorthUiValidationReloadStatus, WorthUiWatcherEvent,
+    WorthUiRuntimeArtifactComparisonOutcome, WorthUiRuntimeAuthoringSnapshot, WorthUiRuntimeHost,
+    WorthUiRuntimeInstanceId, WorthUiSourceProvider, WorthUiValidationReloadEvidence,
+    WorthUiValidationReloadRequest, WorthUiValidationReloadStage, WorthUiValidationReloadStatus,
+    WorthUiWatcherEvent,
 };
 
 pub struct WorthUiValidationPreparedReload {
@@ -13,6 +14,7 @@ pub struct WorthUiValidationPreparedReload {
     evidence: WorthUiValidationReloadEvidence,
     ready: Option<WorthUiReadyActivation>,
     candidate_plan: Option<WorthUiExecutionPlan>,
+    candidate_authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
 }
 
 impl WorthUiRuntimeHost {
@@ -31,7 +33,7 @@ impl WorthUiRuntimeHost {
             return denied_reload(evidence, self, WorthUiValidationReloadStage::EmptyRequest);
         }
 
-        let (candidate, evidence) =
+        let (candidate, candidate_authoring_snapshot, evidence) =
             match self.lower_validation_reload_request(snapshot, request, evidence) {
                 Ok(lowered) => lowered,
                 Err((stage, evidence)) => return denied_reload(evidence, self, stage),
@@ -70,10 +72,16 @@ impl WorthUiRuntimeHost {
                 ),
                 ready: None,
                 candidate_plan: None,
+                candidate_authoring_snapshot: None,
             };
         }
 
-        self.plan_validation_reload_replacement(admitted, comparison, evidence)
+        self.plan_validation_reload_replacement(
+            admitted,
+            candidate_authoring_snapshot,
+            comparison,
+            evidence,
+        )
     }
 
     fn lower_validation_reload_request(
@@ -84,6 +92,7 @@ impl WorthUiRuntimeHost {
     ) -> Result<
         (
             WorthUiReplacementCandidate,
+            Option<WorthUiRuntimeAuthoringSnapshot>,
             WorthUiValidationReloadEvidenceBuilder,
         ),
         (
@@ -102,24 +111,27 @@ impl WorthUiRuntimeHost {
                     evidence.clone(),
                 )
             })?;
-        let evidence = evidence.record_source_ingress(
-            batch.source_revision().final_package_digest(),
-            batch.ordering_receipt().receipt_digest(),
-            batch.counters(),
-        );
         let submission = batch.lower_to_candidate_submission(snapshot).map_err(|_| {
             (
                 WorthUiValidationReloadStage::CandidateSubmission,
                 evidence.clone(),
             )
         })?;
-        let evidence = evidence.record_candidate_submission(submission.counters());
-        Ok((submission.into_candidate(), evidence))
+        let (candidate, candidate_authoring_snapshot, revision, ordering_receipt, counters) =
+            submission.into_parts();
+        let evidence = evidence.record_source_ingress(
+            revision.final_package_digest(),
+            ordering_receipt.receipt_digest(),
+            counters,
+        );
+        let evidence = evidence.record_candidate_submission(counters);
+        Ok((candidate, candidate_authoring_snapshot, evidence))
     }
 
     fn plan_validation_reload_replacement(
         &self,
         admitted: crate::runtime::WorthUiAdmittedReplacementCandidate,
+        candidate_authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
         comparison: WorthUiRuntimeArtifactComparison,
         evidence: WorthUiValidationReloadEvidenceBuilder,
     ) -> WorthUiValidationPreparedReload {
@@ -288,6 +300,7 @@ impl WorthUiRuntimeHost {
             ),
             ready: Some(ready),
             candidate_plan: Some(candidate_plan),
+            candidate_authoring_snapshot,
         }
     }
 }
@@ -318,6 +331,9 @@ impl WorthUiValidationPreparedReload {
         runtime
             .swap_ready_activation_at_frame_boundary(ready, candidate_plan, boundary)
             .map_err(|_| WorthUiValidationReloadStage::PlanSwap)?;
+        runtime
+            .active_state_for_swap_mut()
+            .replace_authoring_snapshot(self.candidate_authoring_snapshot);
         let after = runtime.inspect_active();
         Ok(self
             .evidence
@@ -360,6 +376,7 @@ fn denied_reload(
         ),
         ready: None,
         candidate_plan: None,
+        candidate_authoring_snapshot: None,
     }
 }
 
@@ -380,6 +397,7 @@ fn denied_reload_with_detail(
         ),
         ready: None,
         candidate_plan: None,
+        candidate_authoring_snapshot: None,
     }
 }
 

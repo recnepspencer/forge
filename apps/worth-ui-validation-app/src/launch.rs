@@ -1,6 +1,7 @@
 use worth_ui::facade::{
     CommandId, WorthUi, WorthUiApp, WorthUiHeaderFramePlan, WorthUiHeaderFramePlanDenial,
-    WorthUiHeaderMenuPlan, WorthUiHeaderThemePlan, WorthUiRuntimeHost, WorthUiRuntimeLaunchDenial,
+    WorthUiHeaderMenuPlan, WorthUiHeaderThemePlan, WorthUiPageHostPlan, WorthUiPageHostPlanDenial,
+    WorthUiPageHostRequest, WorthUiRuntimeHost, WorthUiRuntimeLaunchDenial,
     WorthUiRuntimeLaunchPreparationDenial, WorthUiRuntimeSourceModule,
 };
 
@@ -17,11 +18,13 @@ pub struct PreparedValidationWorkbenchLaunch {
     app: WorthUiApp,
     runtime: WorthUiRuntimeHost,
     header_frame_plan: WorthUiHeaderFramePlan,
+    page_host_plan: WorthUiPageHostPlan,
 }
 
 #[derive(Debug)]
 pub enum ValidationWorkbenchLaunchError {
     HeaderFrame(WorthUiHeaderFramePlanDenial),
+    PageHost(WorthUiPageHostPlanDenial),
     RuntimePreparation(WorthUiRuntimeLaunchPreparationDenial),
     RuntimeLaunch(WorthUiRuntimeLaunchDenial),
 }
@@ -51,11 +54,15 @@ impl ValidationWorkbenchLaunch {
         let runtime = app
             .launch_runtime(runtime_launch)
             .map_err(ValidationWorkbenchLaunchError::RuntimeLaunch)?;
+        let page_host_plan =
+            WorthUiPageHostPlan::from_runtime(&runtime, validation_page_host_request())
+                .map_err(ValidationWorkbenchLaunchError::PageHost)?;
 
         Ok(PreparedValidationWorkbenchLaunch {
             app,
             runtime,
             header_frame_plan,
+            page_host_plan,
         })
     }
 }
@@ -81,12 +88,25 @@ impl PreparedValidationWorkbenchLaunch {
         &self.header_frame_plan
     }
 
+    pub fn page_host_plan(&self) -> &WorthUiPageHostPlan {
+        &self.page_host_plan
+    }
+
     pub fn into_runtime_workbench(self) -> ValidationRuntimeWorkbench {
-        ValidationRuntimeWorkbench::new(self.app, self.runtime, self.header_frame_plan)
+        ValidationRuntimeWorkbench::new(
+            self.app,
+            self.runtime,
+            self.header_frame_plan,
+            self.page_host_plan,
+        )
     }
 
     pub fn has_command(&self, command_id: &str) -> bool {
         let id = CommandId::new(command_id).expect("valid command id");
         self.app.capabilities().commands().get(&id).is_some()
     }
+}
+
+pub(crate) fn validation_page_host_request() -> WorthUiPageHostRequest {
+    WorthUiPageHostRequest::new("HeaderProofPage")
 }

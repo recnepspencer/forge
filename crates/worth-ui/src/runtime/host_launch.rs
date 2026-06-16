@@ -1,10 +1,13 @@
-use crate::runtime::{WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch};
+use crate::runtime::{
+    WorthUiRuntimeAuthoringSnapshot, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch,
+};
 use crate::source::WorthUiArtifact;
 
 /// Launch request for creating an active runtime host from canonical artifact truth.
 #[derive(Debug)]
 pub struct WorthUiRuntimeLaunch {
     pub(crate) artifact: WorthUiArtifact,
+    pub(crate) authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
     pub(crate) frame_epoch: WorthUiRuntimeFrameEpoch,
     pub(crate) diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
 }

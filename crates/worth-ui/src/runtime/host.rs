@@ -30,10 +30,10 @@ use crate::runtime::{
     WorthUiPendingExecutionPlanLoweringInput, WorthUiPlanLoweringDenial,
     WorthUiReplacementImpactClassification, WorthUiReplacementImpactDenial,
     WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial,
-    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeHandleAllocation,
-    WorthUiRuntimeHandleAllocationDenial, WorthUiRuntimeImpactNarrowing,
-    WorthUiRuntimeImpactNarrowingDenial, WorthUiRuntimeInstanceId, WorthUiRuntimeLaunch,
-    WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle,
+    WorthUiRuntimeAuthoringSnapshot, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch,
+    WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationDenial,
+    WorthUiRuntimeImpactNarrowing, WorthUiRuntimeImpactNarrowingDenial, WorthUiRuntimeInstanceId,
+    WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle,
 };
 use crate::runtime::{
     WorthUiDurableStateInventory, WorthUiDurableStateReconciliationDenial,
@@ -64,6 +64,7 @@ impl WorthUiRuntimeHost {
     ) -> Result<Self, WorthUiRuntimeLaunchDenial> {
         let WorthUiRuntimeLaunch {
             artifact,
+            authoring_snapshot,
             frame_epoch,
             diagnostic_policy,
         } = launch;
@@ -75,6 +76,7 @@ impl WorthUiRuntimeHost {
             active_plan,
             snapshot.clone(),
             snapshot_digest,
+            authoring_snapshot,
             frame_epoch,
             diagnostic_policy,
         );
@@ -101,6 +103,10 @@ impl WorthUiRuntimeHost {
 
     pub fn inspect_active(&self) -> WorthUiActiveRuntimeObservation {
         self.active.observation()
+    }
+
+    pub fn active_authoring_snapshot(&self) -> Option<&WorthUiRuntimeAuthoringSnapshot> {
+        self.active.authoring_snapshot()
     }
 
     pub fn replacement_admission_basis(&self) -> WorthUiActiveReplacementBasis {
@@ -366,6 +372,7 @@ fn build_active_runtime_state(
     active_plan: WorthUiActiveExecutionPlan,
     snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
+    authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
     frame_epoch: WorthUiRuntimeFrameEpoch,
     diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
 ) -> WorthUiActiveRuntimeState {
@@ -374,18 +381,21 @@ fn build_active_runtime_state(
         active_plan,
         snapshot,
         snapshot_digest,
+        authoring_snapshot,
         frame_epoch,
         diagnostic_policy,
     )
 }
 
 impl WorthUiRuntimeLaunch {
-    pub(crate) fn from_facade_artifact(
+    pub(crate) fn from_facade_authoring(
         artifact: WorthUiArtifact,
+        authoring_snapshot: WorthUiRuntimeAuthoringSnapshot,
         diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
     ) -> Self {
         Self {
             artifact,
+            authoring_snapshot: Some(authoring_snapshot),
             frame_epoch: WorthUiRuntimeFrameEpoch::initial(),
             diagnostic_policy,
         }
@@ -395,6 +405,7 @@ impl WorthUiRuntimeLaunch {
     pub(crate) fn from_canonical_artifact(artifact: WorthUiArtifact) -> Self {
         Self {
             artifact,
+            authoring_snapshot: None,
             frame_epoch: WorthUiRuntimeFrameEpoch::initial(),
             diagnostic_policy: WorthUiRuntimeDiagnosticPolicy::minimal(),
         }

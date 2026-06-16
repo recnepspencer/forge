@@ -3,8 +3,8 @@ use crate::runtime::active::{
     WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeObservation,
 };
 use crate::runtime::{
-    WorthUiRuntimeActivationStatus, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch,
-    WorthUiRuntimeLifecycle,
+    WorthUiRuntimeActivationStatus, WorthUiRuntimeAuthoringSnapshot,
+    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLifecycle,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -13,6 +13,7 @@ pub(crate) struct WorthUiActiveRuntimeState {
     active_plan: WorthUiActiveExecutionPlan,
     snapshot: CapabilitySnapshot,
     snapshot_digest: CapabilitySnapshotDigest,
+    authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
     lifecycle: WorthUiRuntimeLifecycle,
     status: WorthUiRuntimeActivationStatus,
     frame_epoch: WorthUiRuntimeFrameEpoch,
@@ -25,6 +26,7 @@ impl WorthUiActiveRuntimeState {
         active_plan: WorthUiActiveExecutionPlan,
         snapshot: CapabilitySnapshot,
         snapshot_digest: CapabilitySnapshotDigest,
+        authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
         frame_epoch: WorthUiRuntimeFrameEpoch,
         diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
     ) -> Self {
@@ -33,6 +35,7 @@ impl WorthUiActiveRuntimeState {
             active_plan,
             snapshot,
             snapshot_digest,
+            authoring_snapshot,
             lifecycle: WorthUiRuntimeLifecycle::Active,
             status: WorthUiRuntimeActivationStatus::Active,
             frame_epoch,
@@ -67,6 +70,10 @@ impl WorthUiActiveRuntimeState {
         &self.snapshot
     }
 
+    pub(crate) fn authoring_snapshot(&self) -> Option<&WorthUiRuntimeAuthoringSnapshot> {
+        self.authoring_snapshot.as_ref()
+    }
+
     pub(crate) fn replace_capability_snapshot(
         &mut self,
         snapshot: CapabilitySnapshot,
@@ -75,6 +82,13 @@ impl WorthUiActiveRuntimeState {
         self.snapshot_digest = snapshot.digest();
         self.snapshot = snapshot;
         self.active_plan = active_plan;
+    }
+
+    pub(crate) fn replace_authoring_snapshot(
+        &mut self,
+        authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
+    ) {
+        self.authoring_snapshot = authoring_snapshot;
     }
 
     pub(crate) fn frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
@@ -98,6 +112,7 @@ impl WorthUiActiveRuntimeState {
         active_plan: WorthUiActiveExecutionPlan,
         snapshot: CapabilitySnapshot,
         snapshot_digest: CapabilitySnapshotDigest,
+        authoring_snapshot: Option<WorthUiRuntimeAuthoringSnapshot>,
         lifecycle: WorthUiRuntimeLifecycle,
         status: WorthUiRuntimeActivationStatus,
         frame_epoch: WorthUiRuntimeFrameEpoch,
@@ -108,6 +123,7 @@ impl WorthUiActiveRuntimeState {
             active_plan,
             snapshot,
             snapshot_digest,
+            authoring_snapshot,
             lifecycle,
             status,
             frame_epoch,
