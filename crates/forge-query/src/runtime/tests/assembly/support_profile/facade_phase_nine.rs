@@ -4,7 +4,6 @@ use std::sync::{
 };
 
 use super::super::super::support::*;
-use crate::memory_workspace::ForgeQueryCommitIdentity;
 
 #[derive(Clone)]
 struct PhaseNineMaintainer {

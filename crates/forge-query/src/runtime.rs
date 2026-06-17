@@ -216,6 +216,7 @@ mod downstream_delivery_resume;
 mod effect;
 mod error;
 mod evidence_identities;
+#[cfg(test)]
 pub(crate) use evidence_identities::{
     runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
 };

@@ -14,10 +14,10 @@ use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::projection_consumption::{
     declare_projection_consumption, discover_projection_consumption_support,
     evaluate_projection_consumption_eligibility, AdmittedProjectionConsumption,
-    MaterializedProjectionContract, ProjectionConsumptionDeclaration,
-    ProjectionConsumptionDeclarationError, ProjectionConsumptionEligibility,
-    ProjectionConsumptionSupportReport, DeferredProjectionConsumptionReason,
-    ProjectionConsumptionDenialReason,
+    DeferredProjectionConsumptionReason, MaterializedProjectionContract,
+    ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError,
+    ProjectionConsumptionDenialReason, ProjectionConsumptionEligibility,
+    ProjectionConsumptionSupportReport,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -248,9 +248,9 @@ fn missing_runtime_semantics_denial(
 fn declaration_error_label(error: &ProjectionConsumptionDeclarationError) -> &'static str {
     match error {
         ProjectionConsumptionDeclarationError::NoRequestedFacts => "no-requested-facts",
-        ProjectionConsumptionDeclarationError::SourceAuthorizedProjectionQueryMismatch { .. } => {
-            "source-authorized-projection-query-mismatch"
-        }
+        ProjectionConsumptionDeclarationError::SourceAuthorizedProjectionQueryMismatch {
+            ..
+        } => "source-authorized-projection-query-mismatch",
         ProjectionConsumptionDeclarationError::BindingAuthorizedProjectionResultShapeMismatch {
             ..
         } => "binding-authorized-projection-result-shape-mismatch",

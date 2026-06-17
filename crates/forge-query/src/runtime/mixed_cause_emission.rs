@@ -16,10 +16,7 @@ use super::delivery::{
     ForgeQueryRuntimeDeliveryBatch, ForgeQueryRuntimeLiveSubscriptionState,
     ForgeQueryRuntimeRetainedDelivery,
 };
-use super::{
-    ForgeQueryAuthorityLane, ForgeQueryRuntime, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeMixedCauseDelivery,
-};
+use super::{ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryRuntimeMixedCauseDelivery};
 
 pub(crate) fn emit_mixed_cause_live_subscription_delivery(
     active_subscriptions: &mut ActiveSubscriptionRuntime,

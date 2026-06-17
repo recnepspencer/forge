@@ -36,7 +36,6 @@ use crate::facade::{
     ExecutionBasisIntent, QueryBasisContextRequest, QueryContextBindingSource,
     ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
-use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
 use std::cell::Cell;
 use std::rc::Rc;

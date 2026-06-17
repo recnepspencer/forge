@@ -75,7 +75,9 @@ fn compose_explanation_runtime_semantics_identity(
     )
     .field_value_sequence(
         ForgeQueryEvidenceTag::new("evidence_families"),
-        requested_evidence_families.iter().map(CausalEvidenceFamily::as_str),
+        requested_evidence_families
+            .iter()
+            .map(CausalEvidenceFamily::as_str),
     )
     .field_shape(
         ForgeQueryEvidenceTag::new("redaction"),
@@ -102,13 +104,13 @@ fn compose_explanation_payload_identity(
     runtime_semantics: Option<&ForgeQueryExplanationRuntimeSemantics>,
 ) -> ForgeQueryEvidenceIdentity {
     let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v2")
-    .field_shape(
-        ForgeQueryEvidenceTag::new("category"),
-        ForgeQueryDomainCapabilityCategory::ExplanationInspection.as_str(),
-    )
-    .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
-    .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
-    .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+        .field_shape(
+            ForgeQueryEvidenceTag::new("category"),
+            ForgeQueryDomainCapabilityCategory::ExplanationInspection.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
     identity = match runtime_semantics {
         Some(semantics) => identity.field_evidence_identity(
             ForgeQueryEvidenceTag::new("runtime_semantics"),

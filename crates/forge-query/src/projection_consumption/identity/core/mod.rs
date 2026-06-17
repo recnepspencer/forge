@@ -1,8 +1,8 @@
 mod contract;
 mod counters;
 mod declaration;
-mod entries;
 mod eligibility;
+mod entries;
 mod envelope;
 mod receipt;
 mod transitions;

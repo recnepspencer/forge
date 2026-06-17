@@ -3,6 +3,7 @@ use forge_proof::TransitionOutcome;
 use crate::domain_capabilities::denials::{
     ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
 };
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
 use crate::domain_capabilities::payloads::{
     ForgeQueryContinuityContributionPayload, ForgeQueryContinuityContributionPosture,
     ForgeQueryContinuityRuntimeSemantics,
@@ -15,11 +16,8 @@ use crate::domain_capabilities::{
     ForgeQueryCanonicalContinuityArtifact, ForgeQueryDomainCapabilityTransitionOutcome,
     ForgeQueryMaterializationReadyContinuityContribution,
 };
-use crate::domain_capabilities::identity::domain_capability_scope_encoder;
-use crate::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag,
-};
 use crate::runtime::{ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 pub fn materialize_canonical_continuity_artifact<T>(
     contribution: ForgeQueryMaterializationReadyContinuityContribution<T>,

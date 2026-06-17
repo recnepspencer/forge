@@ -10,9 +10,7 @@ use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
-use crate::memory_workspace::{
-    ForgeQueryEntity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
-};
+use crate::memory_workspace::{ForgeQueryEntity, ForgeQuerySnapshotIdentity};
 use crate::projection_consumption::{ProjectMaterializedFacts, ProjectionFactKind};
 use crate::runtime::{
     ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationReceipt,
@@ -37,6 +35,7 @@ pub(super) fn shared_test_result_shape() -> &'static SharedTestResultShape {
     })
 }
 
+#[allow(dead_code)]
 pub(super) fn result_shape_identity_for_test(label: &str) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(
@@ -72,6 +71,7 @@ pub(super) fn test_result_shape_canonical_digest(label: &str) -> String {
         .to_string()
 }
 
+#[allow(dead_code)]
 pub(super) fn test_result_shape_digest(label: &str) -> String {
     test_result_shape_identity(label).as_str().to_string()
 }

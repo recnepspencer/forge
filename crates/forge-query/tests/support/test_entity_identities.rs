@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use forge_query::facade::{ForgeQueryEntityIdentity, RelationalBridgeRecordIdentityParts};
 
 pub fn relational_test_entity_identity(label: &str) -> ForgeQueryEntityIdentity {

@@ -100,6 +100,7 @@ impl CanonicalResultShapeDigest {
         Self(AuthorityBackedDigestLabel::from_parts(parts))
     }
 
+    #[allow(dead_code)]
     pub(crate) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self(AuthorityBackedDigestLabel::from_evidence_identity(identity))
     }
@@ -285,6 +286,7 @@ impl CorrespondenceOutcomeDigest {
         Self(digest_hash_parts(parts))
     }
 
+    #[allow(dead_code)]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
@@ -298,6 +300,7 @@ impl CorrespondenceCostPostureDigest {
         Self(digest_hash_parts(parts))
     }
 
+    #[allow(dead_code)]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
@@ -311,6 +314,7 @@ impl HistoricalPathClassDigest {
         Self(digest_hash_parts(parts))
     }
 
+    #[allow(dead_code)]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
@@ -324,6 +328,7 @@ impl HistoricalCostPostureDigest {
         Self(digest_hash_parts(parts))
     }
 
+    #[allow(dead_code)]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
     }

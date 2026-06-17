@@ -53,13 +53,13 @@ fn compose_workflow_payload_identity(
     inspection_semantics: Option<&ForgeQueryWorkflowInspectionSemantics>,
 ) -> ForgeQueryEvidenceIdentity {
     let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v5")
-    .field_shape(
-        ForgeQueryEvidenceTag::new("category"),
-        ForgeQueryDomainCapabilityCategory::WorkflowPreview.as_str(),
-    )
-    .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
-    .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
-    .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+        .field_shape(
+            ForgeQueryEvidenceTag::new("category"),
+            ForgeQueryDomainCapabilityCategory::WorkflowPreview.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
     identity = match runtime_semantics {
         Some(runtime) => identity.field_evidence_identity(
             ForgeQueryEvidenceTag::new("runtime"),

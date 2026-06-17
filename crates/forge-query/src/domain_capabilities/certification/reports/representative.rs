@@ -24,12 +24,12 @@ use crate::domain_capabilities::certification::{
     forge_query_domain_capability_compile_fail_boundary_digest,
     forge_query_domain_capability_public_surface_inventory,
 };
+use crate::domain_capabilities::identity::compose_canonical_runtime_materialization_digest;
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution, forge_query_domain,
     ForgeQuerySupportContributionAuthoring,
 };
-use crate::domain_capabilities::identity::compose_canonical_runtime_materialization_digest;
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::ForgeQueryIntentAdmissionCoveredEntrypoint;
 use forge_relational::facade::runtime::InvariantCatalog;
@@ -285,43 +285,45 @@ pub fn forge_query_domain_capability_representative_report(
         domain_capability_contribution_request_digest: request_digest,
         domain_capability_contribution_eligibility_digest: eligibility_digest,
         admitted_domain_capability_contribution_digest: admitted_digest,
-        canonical_runtime_materialization_digest: compose_canonical_runtime_materialization_digest([
-            materialize_canonical_admission_artifact(admitted_ready(admission_requested(
-                &admitted_plan,
-            )))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_support_traceability_artifact(admitted_ready(
-                support_traceability_requested(&declaration),
-            ))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_invariant_capability_artifact(admitted_ready(
-                invariant_requested(&declaration),
-            ))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_workflow_artifact(admitted_ready(workflow_requested(
-                &declaration,
-            )))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_continuity_artifact(admitted_ready(continuity_requested(
-                &admitted_plan,
-            )))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_aftermath_artifact(admitted_ready(aftermath_requested(
-                &projection_plan,
-            )))
-            .materialization_digest()
-            .to_string(),
-            materialize_canonical_explanation_artifact(admitted_ready(explanation_requested(
-                &lower_runtime,
-            )))
-            .materialization_digest()
-            .to_string(),
-        ]),
+        canonical_runtime_materialization_digest: compose_canonical_runtime_materialization_digest(
+            [
+                materialize_canonical_admission_artifact(admitted_ready(admission_requested(
+                    &admitted_plan,
+                )))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_support_traceability_artifact(admitted_ready(
+                    support_traceability_requested(&declaration),
+                ))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_invariant_capability_artifact(admitted_ready(
+                    invariant_requested(&declaration),
+                ))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_workflow_artifact(admitted_ready(workflow_requested(
+                    &declaration,
+                )))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_continuity_artifact(admitted_ready(continuity_requested(
+                    &admitted_plan,
+                )))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_aftermath_artifact(admitted_ready(aftermath_requested(
+                    &projection_plan,
+                )))
+                .materialization_digest()
+                .to_string(),
+                materialize_canonical_explanation_artifact(admitted_ready(explanation_requested(
+                    &lower_runtime,
+                )))
+                .materialization_digest()
+                .to_string(),
+            ],
+        ),
         admission_artifact_digest: decision_digest(&admission_decision),
         support_artifact_digest: support_artifact.materialization_digest().to_string(),
         workflow_artifact_digest: workflow_declaration

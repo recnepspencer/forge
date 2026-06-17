@@ -23,6 +23,7 @@ impl QuerySubscriptionMeaningDigest {
         Self(identity.as_str().to_string())
     }
 
+    #[allow(dead_code)]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
@@ -68,6 +69,7 @@ impl QuerySubscriptionEquivalenceBasis {
         &self.equivalence_identity
     }
 
+    #[allow(dead_code)]
     pub(crate) fn digest(&self) -> &QuerySubscriptionMeaningDigest {
         &self.digest
     }

@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::authoring::ScalarPredicateValue;
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativePredicateFilter};
-use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryEntityIdentity};
+use crate::memory_workspace::ForgeQueryEntity;
 use crate::query_context::QueryContextExecutionArtifact;
 use crate::runtime::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadDenial, ForgeQueryReadDenialKind,

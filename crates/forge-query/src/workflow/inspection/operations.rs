@@ -6,8 +6,7 @@ use super::identities::{
 use super::*;
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::workflow::inspection_projection::{
-    relational_merge_class_admission, relational_merge_class_label,
-    relational_merge_class_shape,
+    relational_merge_class_admission, relational_merge_class_label, relational_merge_class_shape,
 };
 use forge_relational::facade::merge::{
     NormalizedRelationalMergeRequest, RelationalMergeInspectionArtifact,

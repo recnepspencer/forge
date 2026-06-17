@@ -87,6 +87,7 @@ impl QuerySubscriptionAdmissionArtifact {
         &self.signal_strategy_identity
     }
 
+    #[cfg(test)]
     pub(crate) fn recomputed_evidence_identity(
         &self,
         counters_identity: &ForgeQueryEvidenceIdentity,

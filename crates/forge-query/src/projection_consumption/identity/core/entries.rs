@@ -28,7 +28,10 @@ pub(crate) fn compose_bound_fact_family_entry_digest(
     fact_family: &BoundProjectionFactFamily,
 ) -> String {
     let mut encoder = consumption_scope_encoder("projection_bound_fact_family_entry_v1")
-        .field_shape(ForgeQueryEvidenceTag::new("kind"), fact_family.kind().as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("kind"),
+            fact_family.kind().as_str(),
+        )
         .field_shape(
             ForgeQueryEvidenceTag::new("support_posture"),
             fact_family.support_posture().as_str(),

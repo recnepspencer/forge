@@ -156,6 +156,7 @@ impl QuerySubscriptionFutureSelection {
         &self.projection_identity
     }
 
+    #[allow(dead_code)]
     pub(crate) fn projection_digest(&self) -> &str {
         self.projection_identity.as_str()
     }

@@ -2,7 +2,6 @@ use super::evidence_identities::{
     runtime_state_snapshot_basis_label_identity,
     runtime_state_snapshot_result_shape_batch_write_receipt_identity,
     runtime_state_snapshot_result_shape_facade_family_identity,
-    runtime_state_snapshot_result_shape_label_identity,
     runtime_state_snapshot_result_shape_write_receipt_identity,
 };
 use super::ordinary_runtime_posture::project_live_subscription_ordinary_runtime_posture;

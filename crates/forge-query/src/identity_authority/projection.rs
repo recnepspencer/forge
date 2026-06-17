@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use forge_foundational::facade::{
     admit_foundational_authority_identity, project_foundational_identity,
 };

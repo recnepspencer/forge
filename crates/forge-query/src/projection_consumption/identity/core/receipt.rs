@@ -3,10 +3,7 @@ use crate::ForgeQueryEvidenceTag;
 
 use super::super::super::contracts::ProjectionContractSupportPosture;
 use super::super::super::eligibility::ProjectionConsumptionWarningKind;
-use super::super::super::receipt_transitions::{
-    ProjectionConsumptionDeferredNeighborFamily, ProjectionConsumptionTransitionKind,
-    ProjectionConsumptionTransitionPosture,
-};
+use super::super::super::receipt_transitions::ProjectionConsumptionDeferredNeighborFamily;
 use super::super::super::source::ProjectionSourceFamily;
 
 pub(crate) fn compose_receipt_integrity_digest(

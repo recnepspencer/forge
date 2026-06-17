@@ -42,10 +42,10 @@ impl ForgeQueryAftermathContributionPosture {
 
 fn aftermath_source_identity(source: &ProjectionConsumptionSource) -> ForgeQueryEvidenceIdentity {
     let mut identity = domain_capability_scope_encoder("forge_query_aftermath_source_v1")
-    .field_shape(
-        ForgeQueryEvidenceTag::new("source_family"),
-        source.family().as_str(),
-    );
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source_family"),
+            source.family().as_str(),
+        );
     identity = match source.source_identity_handle().evidence_identity() {
         Some(source_identity) => {
             identity.field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
@@ -121,13 +121,13 @@ fn compose_aftermath_payload_identity(
     runtime_semantics: Option<&ForgeQueryAftermathRuntimeSemantics>,
 ) -> ForgeQueryEvidenceIdentity {
     let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v3")
-    .field_shape(
-        ForgeQueryEvidenceTag::new("category"),
-        ForgeQueryDomainCapabilityCategory::ConsequenceAftermath.as_str(),
-    )
-    .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
-    .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
-    .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+        .field_shape(
+            ForgeQueryEvidenceTag::new("category"),
+            ForgeQueryDomainCapabilityCategory::ConsequenceAftermath.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
     identity = match runtime_semantics {
         Some(runtime) => {
             let runtime_identity = runtime.semantics_identity();

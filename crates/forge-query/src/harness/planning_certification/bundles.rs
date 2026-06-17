@@ -5,7 +5,6 @@ use crate::facade::{
     BasisResolutionMode, ExecutionBasisIntent, GuidedAuthoringPath, PlanningError,
     ResolvedSnapshotIdentity, RootEntityKey, SnapshotLineageClass,
 };
-use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 
 use super::super::planning_matrix::{
     PlanningCertificationBundle, PlanningCertificationRow, PlanningHostileExpectation,

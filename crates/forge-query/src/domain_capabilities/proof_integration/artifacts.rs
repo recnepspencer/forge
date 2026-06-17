@@ -13,6 +13,7 @@ use super::proofs::{
     AdmittedContributionProof, DomainCapabilityContributionAuthority, EligibleContributionProof,
     MaterializationReadyContributionProof, RequestedContributionProof,
 };
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
 use crate::domain_capabilities::payloads::{
     ForgeQueryAdmissionContributionPayload, ForgeQueryAftermathContributionPayload,
     ForgeQueryContinuityContributionPayload, ForgeQueryDomainCapabilityPayload,
@@ -23,7 +24,6 @@ use crate::domain_capabilities::targets::{
     ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
     ForgeQueryDomainCapabilityTargetBinding, ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
 };
-use crate::domain_capabilities::identity::domain_capability_scope_encoder;
 use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 type DomainCapabilityBasis = FreshnessScopedBasis<CurrentValidity, AssumptionBasis<String>>;

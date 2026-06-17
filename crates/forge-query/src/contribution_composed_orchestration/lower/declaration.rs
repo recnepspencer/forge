@@ -21,6 +21,7 @@ pub(crate) struct DeclarationLowering<
     pub(crate) envelope: ForgeQueryDeclarationEnvelope<D, I>,
     pub(crate) target: ForgeQueryDeclarationBoundContributionTarget,
     pub(crate) declaration_aspect_record: ForgeQueryContributionComposedIntentAspectRecord,
+    #[allow(dead_code)]
     pub(crate) lowering_declaration_identity: ForgeQueryEvidenceIdentity,
 }
 

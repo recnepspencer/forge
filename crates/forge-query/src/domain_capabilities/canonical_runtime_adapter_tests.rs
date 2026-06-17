@@ -160,18 +160,17 @@ fn continuity_runtime_materializer_builds_continuity_evidence() {
     );
     assert_eq!(preserved.prior_authoritative_identity().as_str(), "edge:12");
     let expected_binding_target = admitted_plan_target("plan-continuity");
-    let expected_binding_identity = domain_capability_scope_encoder(
-        "domain_capability_continuity_binding_v1",
-    )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("target_kind"),
-        ForgeQueryDomainCapabilityTargetBinding::kind(&expected_binding_target).as_str(),
-    )
-    .field_evidence_identity(
-        ForgeQueryEvidenceTag::new("binding"),
-        &ForgeQueryBindingTargetWitness::binding_identity(&expected_binding_target),
-    )
-    .seal();
+    let expected_binding_identity =
+        domain_capability_scope_encoder("domain_capability_continuity_binding_v1")
+            .field_shape(
+                ForgeQueryEvidenceTag::new("target_kind"),
+                ForgeQueryDomainCapabilityTargetBinding::kind(&expected_binding_target).as_str(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("binding"),
+                &ForgeQueryBindingTargetWitness::binding_identity(&expected_binding_target),
+            )
+            .seal();
     let expected_basis_binding_digest = ForgeQueryMutationEvidenceDigest::source_identity(
         "continuity-basis-binding",
         &expected_binding_identity,

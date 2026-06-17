@@ -1,4 +1,3 @@
-use super::core::compose_extraction_counters_digest;
 use super::scope::{
     certification_scope_encoder, compose_certification_sequence_digest,
     compose_labeled_entry_digest, seal,
@@ -72,10 +71,7 @@ pub(crate) fn compose_certified_source_digest(contract: &MaterializedProjectionC
         .source_reference_identities()
         .iter()
         .map(|identity| {
-            compose_certified_source_reference_entry_digest(
-                identity.label(),
-                identity.identity(),
-            )
+            compose_certified_source_reference_entry_digest(identity.label(), identity.identity())
         })
         .collect::<Vec<_>>();
     seal(
@@ -288,10 +284,4 @@ pub(crate) fn compose_support_matrix_support_width_digest(
         "support_digest",
         support_digests,
     )
-}
-
-pub(crate) fn compose_extraction_counters_digest_ref(
-    counters: &super::super::consumed::ProjectionFactExtractionCounters,
-) -> String {
-    compose_extraction_counters_digest(counters)
 }

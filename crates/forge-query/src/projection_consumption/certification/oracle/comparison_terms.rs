@@ -1,7 +1,7 @@
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::projection_consumption::identity::{
-    compose_certification_sequence_digest, compose_json_canonical_digest,
-    compose_labeled_entry_digest, certification_scope_encoder, seal,
+    certification_scope_encoder, compose_certification_sequence_digest,
+    compose_json_canonical_digest, compose_labeled_entry_digest, seal,
 };
 use crate::projection_consumption::ConsumedProjectionFactSet;
 use crate::ForgeQueryEvidenceTag;

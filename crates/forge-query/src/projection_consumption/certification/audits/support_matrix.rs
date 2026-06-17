@@ -162,16 +162,14 @@ pub fn projection_consumption_support_matrix() -> ProjectionConsumptionSupportMa
         "row",
         rows.iter().map(|row| row.row_digest().to_string()),
     );
-    let support_traceability_digest = compose_support_traceability_digest(
-        rows
-            .iter()
-            .map(|row| compose_support_traceability_row_digest(
-                row.admission_rule(),
-                row.hostile_neighbor(),
-                row.certification_lane(),
-                row.structural_proof().as_str(),
-            )),
-    );
+    let support_traceability_digest = compose_support_traceability_digest(rows.iter().map(|row| {
+        compose_support_traceability_row_digest(
+            row.admission_rule(),
+            row.hostile_neighbor(),
+            row.certification_lane(),
+            row.structural_proof().as_str(),
+        )
+    }));
     ProjectionConsumptionSupportMatrix {
         rows,
         matrix_digest,

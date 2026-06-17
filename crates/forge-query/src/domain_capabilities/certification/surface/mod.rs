@@ -1,11 +1,11 @@
 use crate::domain_capabilities::aftermath::DOMAIN_CAPABILITY_AFTERMATH_CATEGORY_MODULE;
 use crate::domain_capabilities::continuity::DOMAIN_CAPABILITY_CONTINUITY_CATEGORY_MODULE;
 use crate::domain_capabilities::explanation::DOMAIN_CAPABILITY_EXPLANATION_CATEGORY_MODULE;
-use crate::domain_capabilities::workflow::DOMAIN_CAPABILITY_WORKFLOW_CATEGORY_MODULE;
-use crate::domain_capabilities::ForgeQueryDomainCapabilityCategory;
 use crate::domain_capabilities::identity::{
     compose_certified_surface_row_digest, compose_public_surface_digest,
 };
+use crate::domain_capabilities::workflow::DOMAIN_CAPABILITY_WORKFLOW_CATEGORY_MODULE;
+use crate::domain_capabilities::ForgeQueryDomainCapabilityCategory;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDomainCapabilityCertifiedSurfaceRow {

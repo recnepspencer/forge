@@ -52,12 +52,18 @@ pub(crate) fn compose_closeout_forbidden_fallback_surface_row_digest(
 ) -> String {
     seal(
         certification_scope_encoder("projection_consumption_certification_row_v1")
-            .field_shape(ForgeQueryEvidenceTag::new("lane"), "forbidden_fallback_surface")
+            .field_shape(
+                ForgeQueryEvidenceTag::new("lane"),
+                "forbidden_fallback_surface",
+            )
             .field_shape(
                 ForgeQueryEvidenceTag::new("forbidden_fallback"),
                 forbidden_fallback_digest,
             )
-            .field_usize(ForgeQueryEvidenceTag::new("total_occurrences"), total_occurrences),
+            .field_usize(
+                ForgeQueryEvidenceTag::new("total_occurrences"),
+                total_occurrences,
+            ),
     )
 }
 

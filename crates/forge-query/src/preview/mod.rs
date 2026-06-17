@@ -12,9 +12,6 @@ use crate::identity::{
 };
 use crate::identity::{CollectionPlanDigest, ResultDigest};
 use crate::live::LiveQueryPlan;
-use crate::workflow::{
-    workflow_canonical_query_digest_evidence, workflow_validated_query_digest_evidence,
-};
 use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 #[cfg(test)]
 use forge_runtime_bridge::facade::bridge_identity_reporting_label;
@@ -37,13 +34,13 @@ pub(crate) use domain_capability::{
     admit_contributed_preview_workflow_foundation,
     materialize_contributed_preview_workflow_foundation_artifact,
 };
-pub(crate) use workflow_context_identity::preview_lifecycle_state_label;
 pub use scoped::{
     admit_scoped_preview_live_session_plan, admit_scoped_preview_session_plan_binding,
     admit_scoped_preview_session_plan_binding_from_preview_binding,
     execute_scoped_preview_live_session_plan, scoped_observation_basis_for_preview_binding,
     ScopedPreviewLiveSessionPlanBinding, ScopedPreviewSessionPlanBinding,
 };
+pub(crate) use workflow_context_identity::preview_lifecycle_state_label;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReadOnlyPreviewEvaluation(());
@@ -3126,9 +3123,7 @@ mod tests {
         PreviewSessionQueryContext, PreviewWorkflowFoundationFailureClass,
         PreviewWorkflowFoundationRequest,
     };
-    use crate::evidence_identity::{
-        ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-    };
+    use crate::evidence_identity::ForgeQueryEvidenceIdentity;
     use crate::harness::fixtures::{
         execution_preflights,
         preview_bridge::{
@@ -3137,9 +3132,7 @@ mod tests {
             promoted_preview_replay_bundle,
         },
     };
-    use crate::workflow::{
-        workflow_canonical_query_digest_evidence, workflow_validated_query_digest_evidence,
-    };
+
     use forge_runtime_bridge::facade::BridgePreviewLifecycleStateKind;
 
     fn expected_preview_declaration_digest_identity(

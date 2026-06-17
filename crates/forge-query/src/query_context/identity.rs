@@ -197,7 +197,7 @@ pub(crate) fn compose_query_diff_counter_snapshot_digest(
 pub(crate) fn compose_query_context_support_profile_digest(
     admitted_basis_families: &[QueryContextFamily],
     admitted_comparison_families: &[ComparisonBasisFamily],
-    deferred_scope_markers: &[QueryContextDeferredScopeMarker],
+    _deferred_scope_markers: &[QueryContextDeferredScopeMarker],
 ) -> String {
     ForgeQueryEvidenceIdentity::compose(
         ForgeQueryEvidenceScope::QueryContextCompatibilityBasisLabel,

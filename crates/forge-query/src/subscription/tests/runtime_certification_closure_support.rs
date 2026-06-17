@@ -110,7 +110,7 @@ pub(crate) fn runtime_backed_subscription_certification_summary(
         "affected-scope",
         MaintenanceDeltaWidth::measured(1),
     );
-    let delivery_window_digest = window.delivery_window_projection().label().to_string();
+    let _delivery_window_digest = window.delivery_window_projection().label().to_string();
     let (delta, lowering_report, _) = lower_query_subscription_maintenance_delta(delta)
         .expect("runtime-backed detail family should lower maintenance delta");
     let work_packet = build_active_delivery_work_packet(

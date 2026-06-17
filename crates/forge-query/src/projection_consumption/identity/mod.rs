@@ -15,7 +15,7 @@ pub(crate) use core::*;
 pub(crate) use extraction::*;
 pub(crate) use fact_set::*;
 pub(crate) use scope::{
-    compose_certification_sequence_digest, compose_labeled_entry_digest,
-    compose_sequence_digest, compose_certification_sequence_digest as compose_digest_sequence,
-    consumption_scope_encoder, certification_scope_encoder, scope_encoder, seal,
+    certification_scope_encoder, compose_certification_sequence_digest,
+    compose_certification_sequence_digest as compose_digest_sequence, compose_labeled_entry_digest,
+    seal,
 };

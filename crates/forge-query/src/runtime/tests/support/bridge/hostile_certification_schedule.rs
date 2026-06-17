@@ -3,7 +3,6 @@ use std::sync::{
     Arc,
 };
 
-use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::projection_consumption::ProjectionFactConsumptionAttempt;
 use crate::runtime::tests::support::*;
 

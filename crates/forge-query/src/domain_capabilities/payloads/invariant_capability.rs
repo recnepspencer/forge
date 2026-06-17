@@ -121,13 +121,13 @@ fn compose_invariant_capability_payload_identity(
     invariant_registration: Option<&ForgeQueryInvariantRegistrationRuntimeSemantics>,
 ) -> ForgeQueryEvidenceIdentity {
     let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v3")
-    .field_shape(
-        ForgeQueryEvidenceTag::new("category"),
-        ForgeQueryDomainCapabilityCategory::InvariantCapability.as_str(),
-    )
-    .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
-    .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
-    .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+        .field_shape(
+            ForgeQueryEvidenceTag::new("category"),
+            ForgeQueryDomainCapabilityCategory::InvariantCapability.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
     identity = match graph_capability {
         Some(semantics) => identity.field_evidence_identity(
             ForgeQueryEvidenceTag::new("graph_capability"),
@@ -284,11 +284,11 @@ impl ForgeQueryInvariantRegistrationRuntimeSemantics {
         invariant_catalog: &InvariantCatalog,
     ) -> ForgeQueryEvidenceIdentity {
         domain_capability_scope_encoder("forge_query_invariant_registration_runtime_semantics_v1")
-        .field_shape(
-            ForgeQueryEvidenceTag::new("registration_label"),
-            invariant_catalog.canonical_registration_digest(),
-        )
-        .seal()
+            .field_shape(
+                ForgeQueryEvidenceTag::new("registration_label"),
+                invariant_catalog.canonical_registration_digest(),
+            )
+            .seal()
     }
 
     pub fn invariant_catalog(&self) -> &InvariantCatalog {

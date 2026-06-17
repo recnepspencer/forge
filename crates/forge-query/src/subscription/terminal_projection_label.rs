@@ -19,16 +19,19 @@ impl TerminalProjectionLabel {
         )
     }
 
+    #[allow(dead_code)]
     pub(crate) fn from_projection(
         projection: QueryProjectionIdentity<String, QuerySubscriptionIdentityKind>,
     ) -> Self {
         Self(projection.label().to_string())
     }
 
+    #[allow(dead_code)]
     pub(crate) fn from_terminal_parts(parts: impl Into<String>) -> Self {
         Self(parts.into())
     }
 
+    #[allow(dead_code)]
     pub(crate) fn as_terminal_label(&self) -> &str {
         &self.0
     }

@@ -2,14 +2,11 @@ use crate::projection_consumption::identity::{
     compose_closeout_compile_fail_boundary_row_digest,
     compose_closeout_dx_transcript_surface_row_digest,
     compose_closeout_forbidden_fallback_surface_row_digest,
-    compose_closeout_oracle_surface_row_digest,
-    compose_closeout_proof_shape_surface_row_digest,
+    compose_closeout_oracle_surface_row_digest, compose_closeout_proof_shape_surface_row_digest,
     compose_closeout_public_boundary_surface_row_digest,
     compose_closeout_seeded_replay_surface_row_digest,
-    compose_closeout_support_matrix_surface_row_digest,
-    compose_failure_digest_bundle,
-    compose_negative_dx_boundary_digest,
-    compose_target_dx_digest,
+    compose_closeout_support_matrix_surface_row_digest, compose_failure_digest_bundle,
+    compose_negative_dx_boundary_digest, compose_target_dx_digest,
 };
 
 use super::super::receipt_transitions::ProjectionConsumptionTransitionRules;

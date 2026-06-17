@@ -3,12 +3,12 @@ use crate::domain_capabilities::certification::reports::fixtures::{
     intent_declaration, lower_runtime_envelope, plan_support_requested,
     projection_contract_request, store_backed_replay_gap_request, success,
 };
-use crate::domain_capabilities::materialize_intent_admission_support_traceability_report;
-use crate::domain_capabilities::{forge_query_domain, ForgeQueryDomainCapabilityCategory};
 use crate::domain_capabilities::identity::{
     compose_scaled_category_digest, compose_scaled_contribution_digest,
     compose_scaled_support_digest, compose_scaled_trace_digest,
 };
+use crate::domain_capabilities::materialize_intent_admission_support_traceability_report;
+use crate::domain_capabilities::{forge_query_domain, ForgeQueryDomainCapabilityCategory};
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::ForgeQueryIntentAdmissionCoveredEntrypoint;
 

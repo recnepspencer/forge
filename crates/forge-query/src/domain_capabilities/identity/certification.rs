@@ -1,17 +1,19 @@
 use super::scope::{
     compose_certification_sequence_digest, domain_capability_certification_scope_encoder, seal,
 };
-use crate::domain_capabilities::ForgeQueryDomainCapabilityCategory;
 use crate::domain_capabilities::certification::{
     ForgeQueryDomainCapabilityCompileFailBoundary, ForgeQueryDomainCapabilityGoldenTranscript,
 };
+use crate::domain_capabilities::ForgeQueryDomainCapabilityCategory;
 use crate::ForgeQueryEvidenceTag;
 
 pub(crate) fn compose_compile_fail_boundary_row_digest(label: &str, path: &str) -> String {
     seal(
-        domain_capability_certification_scope_encoder("domain_capability_compile_fail_boundary_row_v1")
-            .field_shape(ForgeQueryEvidenceTag::new("label"), label)
-            .field_shape(ForgeQueryEvidenceTag::new("path"), path),
+        domain_capability_certification_scope_encoder(
+            "domain_capability_compile_fail_boundary_row_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("label"), label)
+        .field_shape(ForgeQueryEvidenceTag::new("path"), path),
     )
 }
 
@@ -92,12 +94,10 @@ pub(crate) fn compose_certified_surface_row_digest(
     )
 }
 
-pub(crate) fn compose_public_surface_digest(row_digests: impl IntoIterator<Item = String>) -> String {
-    compose_certification_sequence_digest(
-        "domain_capability_public_surface_v1",
-        "row",
-        row_digests,
-    )
+pub(crate) fn compose_public_surface_digest(
+    row_digests: impl IntoIterator<Item = String>,
+) -> String {
+    compose_certification_sequence_digest("domain_capability_public_surface_v1", "row", row_digests)
 }
 
 pub(crate) fn compose_certification_surface_digest(
@@ -110,29 +110,31 @@ pub(crate) fn compose_certification_surface_digest(
     compile_fail_boundary_count: usize,
 ) -> String {
     seal(
-        domain_capability_certification_scope_encoder("forge_query_domain_capability_certification_surface_v1")
-            .field_shape(
-                ForgeQueryEvidenceTag::new("public_surface"),
-                public_surface_digest,
-            )
-            .field_shape(ForgeQueryEvidenceTag::new("target_dx"), target_dx_digest)
-            .field_shape(
-                ForgeQueryEvidenceTag::new("golden_transcript"),
-                golden_transcript_digest,
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("compile_fail_boundary"),
-                compile_fail_boundary_digest,
-            )
-            .field_usize(ForgeQueryEvidenceTag::new("category_count"), category_count)
-            .field_usize(
-                ForgeQueryEvidenceTag::new("golden_transcript_count"),
-                golden_transcript_count,
-            )
-            .field_usize(
-                ForgeQueryEvidenceTag::new("compile_fail_boundary_count"),
-                compile_fail_boundary_count,
-            ),
+        domain_capability_certification_scope_encoder(
+            "forge_query_domain_capability_certification_surface_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("public_surface"),
+            public_surface_digest,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("target_dx"), target_dx_digest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("golden_transcript"),
+            golden_transcript_digest,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("compile_fail_boundary"),
+            compile_fail_boundary_digest,
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("category_count"), category_count)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("golden_transcript_count"),
+            golden_transcript_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("compile_fail_boundary_count"),
+            compile_fail_boundary_count,
+        ),
     )
 }
 
@@ -179,14 +181,16 @@ pub(crate) fn compose_counter_snapshot_digest(
     support_width: usize,
 ) -> String {
     seal(
-        domain_capability_certification_scope_encoder("domain_capability_certification_counter_snapshot_v1")
-            .field_usize(
-                ForgeQueryEvidenceTag::new("contribution_width"),
-                contribution_width,
-            )
-            .field_usize(ForgeQueryEvidenceTag::new("trace_width"), trace_width)
-            .field_usize(ForgeQueryEvidenceTag::new("category_width"), category_width)
-            .field_usize(ForgeQueryEvidenceTag::new("support_width"), support_width),
+        domain_capability_certification_scope_encoder(
+            "domain_capability_certification_counter_snapshot_v1",
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("contribution_width"),
+            contribution_width,
+        )
+        .field_usize(ForgeQueryEvidenceTag::new("trace_width"), trace_width)
+        .field_usize(ForgeQueryEvidenceTag::new("category_width"), category_width)
+        .field_usize(ForgeQueryEvidenceTag::new("support_width"), support_width),
     )
 }
 
@@ -205,21 +209,17 @@ pub(crate) fn compose_slope_scale_entry_digest(
     )
 }
 
-pub(crate) fn compose_slope_digest(
-    scale_entries: impl IntoIterator<Item = String>,
-) -> String {
-    compose_certification_sequence_digest(
-        "domain_capability_slope_v1",
-        "scale",
-        scale_entries,
-    )
+pub(crate) fn compose_slope_digest(scale_entries: impl IntoIterator<Item = String>) -> String {
+    compose_certification_sequence_digest("domain_capability_slope_v1", "scale", scale_entries)
 }
 
 fn compose_certification_bundle_output_entry_digest(name: &'static str, value: &str) -> String {
     seal(
-        domain_capability_certification_scope_encoder("domain_capability_certification_bundle_output_entry_v1")
-            .field_shape(ForgeQueryEvidenceTag::new("name"), name)
-            .field_shape(ForgeQueryEvidenceTag::new("value"), value),
+        domain_capability_certification_scope_encoder(
+            "domain_capability_certification_bundle_output_entry_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("name"), name)
+        .field_shape(ForgeQueryEvidenceTag::new("value"), value),
     )
 }
 
@@ -228,9 +228,7 @@ pub(crate) fn compose_certification_bundle_digest(
 ) -> String {
     let output_entries = outputs
         .into_iter()
-        .map(|(name, value)| {
-            compose_certification_bundle_output_entry_digest(name, value.as_ref())
-        })
+        .map(|(name, value)| compose_certification_bundle_output_entry_digest(name, value.as_ref()))
         .collect::<Vec<_>>();
     compose_certification_sequence_digest(
         "domain_capability_certification_bundle_v1",

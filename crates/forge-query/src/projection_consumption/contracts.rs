@@ -3,8 +3,7 @@ use super::facts::ProjectionMaterializedFactPosture;
 use super::facts::{ProjectionFactKind, ProjectionFactRequest};
 use super::identity::compose_materialized_projection_contract_digest;
 use super::source::{
-    ProjectionConsumptionSource, ProjectionSourceFamily, ProjectionSourceIdentity,
-    ProjectionSourceReferenceIdentity,
+    ProjectionSourceFamily, ProjectionSourceIdentity, ProjectionSourceReferenceIdentity,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

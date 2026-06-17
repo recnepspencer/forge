@@ -6,11 +6,8 @@ use super::super::consumed::{
 };
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::ProjectionFactKind;
-use super::super::identity::{
-    compose_query_context_row_identity, compose_scoped_row_source_identity,
-};
+use super::super::identity::compose_query_context_row_identity;
 use super::super::source::ProjectionSourceFamily;
-use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::projection_consumption::ProjectionFactExtractionError;
 use crate::query_context::QueryContextExecutionArtifact;
 

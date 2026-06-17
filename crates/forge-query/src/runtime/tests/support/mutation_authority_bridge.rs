@@ -34,6 +34,7 @@ pub(in crate::runtime::tests) fn expected_bridge_continuity_authority_label(
     .to_string()
 }
 
+#[allow(dead_code)]
 pub(in crate::runtime::tests) fn expected_bridge_existing_truth_authority_label(
     authority: &ForgeQueryMutationAuthorityIdentity,
 ) -> String {

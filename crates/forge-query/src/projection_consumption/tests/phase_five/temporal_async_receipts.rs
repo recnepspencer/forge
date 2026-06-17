@@ -2,7 +2,6 @@ use crate::authorized_projection::{
     AuthorizedProjectionArtifact, AuthorizedProjectionCounters, MaskedProjectionArtifact,
     PolicyFieldInfluenceSet,
 };
-use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::projection_consumption::{
     ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionMaterializedFactPosture,
     ProjectionMaterializedFactPostureKind,

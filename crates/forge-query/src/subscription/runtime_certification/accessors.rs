@@ -1,4 +1,3 @@
-use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::super::evidence_projection::subscription_evidence_projection;

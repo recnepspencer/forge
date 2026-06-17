@@ -1,13 +1,12 @@
 use forge_foundational::{
     foundational_diagnostic_boundary_artifact_subject, foundational_diagnostic_code,
     foundational_diagnostic_locator_boundary_artifact, foundational_diagnostic_scope,
-    BoundaryArtifactField, BoundaryArtifactLocator,
-    FoundationalDiagnosticDenialClass, FoundationalDiagnosticEvidencePosture,
-    FoundationalDiagnosticLocalityClaim, FoundationalDiagnosticOutcomeKind,
-    FoundationalDiagnosticProvenanceReadyRow, FoundationalDiagnosticRow,
-    FoundationalDiagnosticSemanticLabelSet, FoundationalDiagnosticSeverity,
-    FoundationalDiagnosticSupportEvidencePosture, FoundationalDiagnosticSupportRow,
-    FoundationalDiagnosticWidenedFalloutPosture,
+    BoundaryArtifactField, BoundaryArtifactLocator, FoundationalDiagnosticDenialClass,
+    FoundationalDiagnosticEvidencePosture, FoundationalDiagnosticLocalityClaim,
+    FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticProvenanceReadyRow,
+    FoundationalDiagnosticRow, FoundationalDiagnosticSemanticLabelSet,
+    FoundationalDiagnosticSeverity, FoundationalDiagnosticSupportEvidencePosture,
+    FoundationalDiagnosticSupportRow, FoundationalDiagnosticWidenedFalloutPosture,
 };
 
 use super::identity::{

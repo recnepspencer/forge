@@ -96,7 +96,7 @@ mod validation_evidence;
 pub use identity_authority::{
     forge_query_subscription_phase_seven_compile_fail_targets,
     forge_query_subscription_phase_seven_golden_paths,
-    ForgeQuerySubscriptionPhaseSevenCompileFailTarget, ForgeQuerySubscriptionPhaseSevenGoldenPath,
+    ForgeQuerySubscriptionPhaseSevenCompileFailTarget,
     FORGE_QUERY_SUBSCRIPTION_PHASE_SEVEN_COMPILE_FAIL_TARGET_COUNT,
     FORGE_QUERY_SUBSCRIPTION_PHASE_SEVEN_GOLDEN_PATH_COUNT,
 };
@@ -193,7 +193,6 @@ pub use declaration_error::{
 };
 pub use delivery::QuerySubscriptionDeliveryIntent;
 pub use delivery_budget::QueryDeliveryWindowBudget;
-pub(crate) use delivery_cause::delivery_cause_evidence_label_identity;
 #[allow(unused_imports)]
 pub use delivery_cause::{QuerySubscriptionDeliveryCause, QuerySubscriptionDeliveryCauseKind};
 pub use delivery_denials::{deny_raw_bridge_invalidation_delivery, deny_raw_cdc_delivery_fallback};
@@ -294,12 +293,6 @@ pub use support::{
     SupportResolutionPosture,
 };
 pub use terminal_projection_label::TerminalProjectionLabel;
-pub(crate) use validation_evidence::{
-    validation_evidence_identity_label, validation_evidence_pair,
-    validation_evidence_projection_pair, validation_label_list_evidence_identity,
-    validation_role_evidence_identity, validation_shape_role_evidence_identity,
-    validation_u64_role_evidence_identity, validation_usize_role_evidence_identity,
-};
 
 #[cfg(test)]
 mod tests;

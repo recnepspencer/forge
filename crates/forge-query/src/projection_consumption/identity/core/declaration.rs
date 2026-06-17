@@ -1,5 +1,5 @@
-use super::entries::compose_fact_request_entry_digest;
 use super::super::scope::{consumption_scope_encoder, seal};
+use super::entries::compose_fact_request_entry_digest;
 use crate::ForgeQueryEvidenceTag;
 
 use super::super::super::declaration::ProjectionConsumptionBindingContext;

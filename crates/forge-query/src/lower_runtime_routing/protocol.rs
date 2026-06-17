@@ -47,14 +47,6 @@ pub struct ForgeQueryLowerRuntimeSubjectIdentityEncoder {
 }
 
 impl ForgeQueryLowerRuntimeSubjectIdentityEncoder {
-    pub(crate) fn field_identity(
-        mut self,
-        tag: ForgeQueryEvidenceTag,
-        value: impl AsRef<str>,
-    ) -> Self {
-        self.field_value(tag, value)
-    }
-
     pub(crate) fn field_value(
         mut self,
         tag: ForgeQueryEvidenceTag,

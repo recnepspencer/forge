@@ -1,8 +1,8 @@
+use super::super::scope::{consumption_scope_encoder, seal};
+use super::eligibility::compose_eligibility_warning_kinds_digest;
 use super::entries::{
     compose_bound_fact_family_entry_digest, compose_projection_source_reference_entry_digest,
 };
-use super::eligibility::compose_eligibility_warning_kinds_digest;
-use super::super::scope::{consumption_scope_encoder, seal};
 use crate::ForgeQueryEvidenceTag;
 
 use super::super::super::contracts::{

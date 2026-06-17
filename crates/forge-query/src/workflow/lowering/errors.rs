@@ -23,9 +23,7 @@ impl WorkflowLoweringFailureClass {
         match self {
             Self::InvalidWorkflowDeclarationFamily => "invalid_workflow_declaration_family",
             Self::UnsupportedMergeFamily => "unsupported_merge_family",
-            Self::UnsupportedRelationalStrategyTarget => {
-                "unsupported_relational_strategy_target"
-            }
+            Self::UnsupportedRelationalStrategyTarget => "unsupported_relational_strategy_target",
             Self::UnsupportedWritebackFamily => "unsupported_writeback_family",
             Self::InvalidMergeBranchPairing => "invalid_merge_branch_pairing",
             Self::UnsupportedWritebackCausality => "unsupported_writeback_causality",

@@ -240,14 +240,6 @@ impl CommittedPatchSource for TestBridgeSource {
     }
 }
 
-fn latest_runtime_version(runtime: &RelationalRuntime) -> u64 {
-    runtime
-        .history()
-        .latest_commit()
-        .map(|commit| commit.version_id.0)
-        .unwrap_or(0)
-}
-
 fn branch_runtime_version(runtime: &RelationalRuntime, branch: &str) -> u64 {
     runtime
         .history()

@@ -19,8 +19,8 @@ use forge_relational::facade::grouped_truth::{
 };
 use forge_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
-    SnapshotReadContract, SnapshotReadPacket,
-    SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest, TruthSnapshotIdentity,
+    SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    SnapshotReadRequest, TruthSnapshotIdentity,
 };
 
 use super::super::consumed::ConsumedProjectionFactSet;

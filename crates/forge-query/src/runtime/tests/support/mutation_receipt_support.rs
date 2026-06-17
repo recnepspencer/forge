@@ -1,4 +1,3 @@
-use super::*;
 use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryMutationDelta,
     ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQuerySnapshotIdentity,
@@ -48,6 +47,7 @@ pub(in crate::runtime::tests) fn test_mutation_receipt_with_bridge_authority(
     )
 }
 
+#[allow(dead_code)]
 pub(in crate::runtime::tests) fn test_relational_snapshot_identity(
     branch_id: u64,
     snapshot_id: u64,

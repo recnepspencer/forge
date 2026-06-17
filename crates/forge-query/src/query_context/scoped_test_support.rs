@@ -3,6 +3,7 @@ use crate::evidence_identity::{
 };
 use crate::query_context::QueryContextFamily;
 
+#[allow(dead_code)]
 pub(super) fn scoped_query_context_compatibility_label(
     family: QueryContextFamily,
     declared_basis_label: &str,

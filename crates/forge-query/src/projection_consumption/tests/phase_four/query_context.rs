@@ -7,7 +7,6 @@ use super::support::{
     admitted, binding_for_result_shape, query_context_execution_current,
     query_context_execution_historical, query_context_execution_preview,
 };
-use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 
 #[test]

@@ -12,7 +12,6 @@ use crate::facade::ForgeQueryApplicationFacade;
 use crate::intent_admission::{
     ForgeQueryAuthoritativeMutationIntentSeed, ForgeQueryAuthoritativeMutationPreflight,
 };
-use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::ForgeQueryWriteCommand;
 use crate::ForgeQueryEvidenceIdentityScheme;
 

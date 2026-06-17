@@ -280,19 +280,13 @@ pub fn materialize_lower_runtime_support_traceability_artifact(
         payload.semantic_code(),
     )
     .field_shape(ForgeQueryEvidenceTag::new("detail"), payload.detail())
-    .field_shape(
-        ForgeQueryEvidenceTag::new("seam_key"),
-        seam_key.as_str(),
-    )
+    .field_shape(ForgeQueryEvidenceTag::new("seam_key"), seam_key.as_str())
     .field_shape(ForgeQueryEvidenceTag::new("capability"), capability_label)
     .field_shape(
         ForgeQueryEvidenceTag::new("crossing"),
         crossing_classification.as_str(),
     )
-    .field_shape(
-        ForgeQueryEvidenceTag::new("route"),
-        route_kind.as_str(),
-    )
+    .field_shape(ForgeQueryEvidenceTag::new("route"), route_kind.as_str())
     .field_shape(
         ForgeQueryEvidenceTag::new("support_posture"),
         support_posture.as_str(),
@@ -375,7 +369,13 @@ fn support_traceability_row(
             family.as_str(),
             entrypoint.as_str(),
             support_detail_label(payload.semantic_code(), payload.detail()),
-            Some(domain_contribution.target().binding_identity().as_str().to_string()),
+            Some(
+                domain_contribution
+                    .target()
+                    .binding_identity()
+                    .as_str()
+                    .to_string(),
+            ),
             Some(request_digest.to_string()),
             Some(eligibility_digest.to_string()),
             Some(decision_digest.to_string()),
@@ -392,7 +392,12 @@ fn support_lane(posture: ForgeQuerySupportContributionPosture) -> &'static str {
 }
 
 fn support_detail_label(semantic_code: &str, detail: &str) -> String {
-    let mut label = String::with_capacity(semantic_code.len().saturating_add(1).saturating_add(detail.len()));
+    let mut label = String::with_capacity(
+        semantic_code
+            .len()
+            .saturating_add(1)
+            .saturating_add(detail.len()),
+    );
     label.push_str(semantic_code);
     label.push(':');
     label.push_str(detail);

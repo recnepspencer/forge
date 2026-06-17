@@ -144,6 +144,7 @@ impl LiveQueryAdmissionArtifact {
         artifact
     }
 
+    #[allow(dead_code)]
     pub(crate) fn for_test_without_collection(
         live_family: LiveQueryFamily,
         view_family: Option<LiveViewShapeFamily>,

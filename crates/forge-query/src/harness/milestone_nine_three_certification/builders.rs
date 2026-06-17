@@ -852,7 +852,7 @@ fn lane_for(
         preview_discard = Some(discard);
     }
 
-    let delivery_window_digest = window.delivery_window_projection().label().to_string();
+    let _delivery_window_digest = window.delivery_window_projection().label().to_string();
     let work_packet = build_active_delivery_work_packet(
         &mut runtime,
         &attachment,

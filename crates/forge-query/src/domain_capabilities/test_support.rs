@@ -107,7 +107,10 @@ pub(super) fn admitted_plan_target_parts(
         domain_capability_scope_encoder("forge_query_domain_capability_admitted_plan_fixture_v1")
             .field_shape(ForgeQueryEvidenceTag::new("plan_label"), plan_label)
             .field_shape(ForgeQueryEvidenceTag::new("request"), request_digest)
-            .field_shape(ForgeQueryEvidenceTag::new("eligibility"), eligibility_digest)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("eligibility"),
+                eligibility_digest,
+            )
             .field_shape(ForgeQueryEvidenceTag::new("decision"), decision_digest),
     );
     ForgeQueryAdmittedPlanBoundContributionTarget::for_admitted_intent_plan(&admitted_plan(

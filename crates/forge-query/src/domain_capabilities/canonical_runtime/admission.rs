@@ -117,7 +117,13 @@ pub fn materialize_runtime_admission_support_traceability_row(
             family.as_str(),
             entrypoint.as_str(),
             support_detail_label(payload.semantic_code(), payload.detail()),
-            Some(domain_contribution.target().binding_identity().as_str().to_string()),
+            Some(
+                domain_contribution
+                    .target()
+                    .binding_identity()
+                    .as_str()
+                    .to_string(),
+            ),
             Some(request_digest.to_string()),
             Some(eligibility_digest.to_string()),
             Some(decision_digest.to_string()),
@@ -126,7 +132,12 @@ pub fn materialize_runtime_admission_support_traceability_row(
 }
 
 fn support_detail_label(semantic_code: &str, detail: &str) -> String {
-    let mut label = String::with_capacity(semantic_code.len().saturating_add(1).saturating_add(detail.len()));
+    let mut label = String::with_capacity(
+        semantic_code
+            .len()
+            .saturating_add(1)
+            .saturating_add(detail.len()),
+    );
     label.push_str(semantic_code);
     label.push(':');
     label.push_str(detail);

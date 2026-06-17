@@ -15,7 +15,6 @@ use crate::identity_evolution::{
     LineageTraversalDescriptor,
 };
 use crate::live::{BridgeChangeSummary, BridgeFieldDelta};
-use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
     ViewShapeComplexityStatus, ViewShapeDescriptor,
