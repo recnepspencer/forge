@@ -3,18 +3,18 @@ use crate::evidence_identity::{
     ForgeQueryEvidenceTag,
 };
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryBatchMutationEvidence,
-    ForgeQueryGraphCompositionAssumptionSummary, ForgeQueryGraphCompositionBreadth,
-    ForgeQueryGraphCompositionEvidence, ForgeQueryGraphCompositionLifecycleOutcomes,
-    ForgeQueryGraphCompositionLineageSummary, ForgeQueryGraphCompositionProgram,
+    ForgeQueryAuthorityLane, ForgeQueryBatchMutationEvidence, ForgeQueryGraphCompositionBreadth,
+    ForgeQueryGraphCompositionLifecycleOutcomes, ForgeQueryGraphCompositionProgram,
     ForgeQueryGraphCompositionResolutionMap, ForgeQueryIntentDecisionTraceEnvelope,
-    ForgeQueryIntentExecutionProvenance, ForgeQueryRuntimeError,
+    ForgeQueryIntentExecutionProvenance, ForgeQueryJournalPosition, ForgeQueryRuntimeError,
 };
 
 use super::batch_receipt_aggregates::{
     batch_bridge_evidence_from_receipts, derive_batch_receipt_aggregates,
 };
 use super::ForgeQueryWriteReceipt;
+
+mod graph_composition_accessors;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBatchWriteReceipt {
@@ -83,6 +83,11 @@ impl ForgeQueryBatchWriteReceipt {
         let graph_lifecycle_digest =
             ForgeQueryGraphCompositionLifecycleOutcomes::derive(&graph_composition_program)
                 .map(|outcomes| outcomes.lifecycle_evidence_digest().clone());
+        let journal_position_identities = write_receipts
+            .iter()
+            .map(ForgeQueryWriteReceipt::journal_position)
+            .map(ForgeQueryJournalPosition::evidence_identity)
+            .collect::<Vec<_>>();
         let batch_digest =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::BatchWriteReceipt)
                 .field_evidence_identity(
@@ -102,6 +107,10 @@ impl ForgeQueryBatchWriteReceipt {
                     write_receipts
                         .iter()
                         .map(ForgeQueryWriteReceipt::commit_evidence_identity),
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("journal_position_identity"),
+                    journal_position_identities.iter(),
                 )
                 .field_evidence_identity_sequence(
                     ForgeQueryEvidenceTag::new("touched_aspect_path"),
@@ -291,54 +300,18 @@ impl ForgeQueryBatchWriteReceipt {
         (!self.graph_composition_program.is_empty()).then_some(&self.graph_composition_program)
     }
 
-    pub fn graph_composition_evidence(&self) -> Option<ForgeQueryGraphCompositionEvidence> {
-        let lifecycle_outcomes =
-            ForgeQueryGraphCompositionLifecycleOutcomes::derive(&self.graph_composition_program)?;
-        ForgeQueryGraphCompositionEvidence::derive(
-            &self.write_receipts,
-            &self.graph_composition_breadth,
-            &lifecycle_outcomes,
-            &self.graph_composition_resolution_map,
-            self.affected_live_view_ids.len(),
-            self.affected_derived_view_ids.len(),
-            self.considered_computed_view_count,
-        )
-    }
-
-    pub fn graph_composition_assumption_summary(
-        &self,
-    ) -> Option<ForgeQueryGraphCompositionAssumptionSummary> {
-        if self.graph_composition_program.is_empty() {
-            return None;
-        }
-        ForgeQueryGraphCompositionAssumptionSummary::derive(&self.write_receipts)
-    }
-
-    pub fn graph_composition_lineage_summary(
-        &self,
-    ) -> Option<ForgeQueryGraphCompositionLineageSummary> {
-        if self.graph_composition_program.is_empty() {
-            return None;
-        }
-        ForgeQueryGraphCompositionLineageSummary::derive(&self.write_receipts)
-    }
-
-    pub fn graph_composition_lifecycle_outcomes(
-        &self,
-    ) -> Option<ForgeQueryGraphCompositionLifecycleOutcomes> {
-        ForgeQueryGraphCompositionLifecycleOutcomes::derive(&self.graph_composition_program)
-    }
-
-    pub fn graph_composition_resolution_map(&self) -> &ForgeQueryGraphCompositionResolutionMap {
-        &self.graph_composition_resolution_map
-    }
-
     pub fn write_count(&self) -> usize {
         self.write_receipts.len()
     }
 
     pub fn write_receipts(&self) -> &[ForgeQueryWriteReceipt] {
         &self.write_receipts
+    }
+
+    pub fn journal_positions(&self) -> impl Iterator<Item = &ForgeQueryJournalPosition> {
+        self.write_receipts
+            .iter()
+            .map(ForgeQueryWriteReceipt::journal_position)
     }
 
     pub fn touched_aspect_paths(&self) -> &[String] {

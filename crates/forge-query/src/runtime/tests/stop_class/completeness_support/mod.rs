@@ -103,6 +103,10 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
         Some(ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly),
         "temporal gate is closed",
     );
+    let replay_denial = ForgeQueryJournalReplayDenial::new(
+        ForgeQueryJournalReplayDenialKind::UnknownSegmentIdentity,
+        "segment is not retained by replay registry",
+    );
 
     vec![
         ForgeQueryRuntimeError::MissingBackend,
@@ -140,6 +144,7 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
                 "snapshot.stale",
             ),
         },
+        ForgeQueryRuntimeError::JournalReplayDenied(replay_denial),
         ForgeQueryRuntimeError::MissingEffect("effect.name".to_string()),
         ForgeQueryRuntimeError::MissingPendingWriteIntent("effect.name".to_string()),
         ForgeQueryRuntimeError::RetainedRowDecode {
@@ -282,6 +287,7 @@ pub(super) fn runtime_error_variant_key(error: &ForgeQueryRuntimeError) -> &'sta
         ForgeQueryRuntimeError::EffectPolicyDenied(_) => "effect_policy_denied",
         ForgeQueryRuntimeError::PreviewPromotionStaleBasis(_) => "preview_promotion_stale_basis",
         ForgeQueryRuntimeError::SharedReadStaleBasis { .. } => "shared_read_stale_basis",
+        ForgeQueryRuntimeError::JournalReplayDenied(_) => "journal_replay_denied",
         ForgeQueryRuntimeError::PreviewPromotionAtomicBatchUnsupported(_) => {
             "preview_promotion_atomic_batch_unsupported"
         }
@@ -326,6 +332,7 @@ pub(super) fn stop_class_variant_key(stop_class: ForgeQueryStopClass<'_>) -> &'s
         ForgeQueryStopClass::RuntimeLookupFailed { .. } => "runtime_lookup_failed",
         ForgeQueryStopClass::MissingRuntimeArtifact { .. } => "missing_runtime_artifact",
         ForgeQueryStopClass::SharedReadStaleBasis { .. } => "shared_read_stale_basis",
+        ForgeQueryStopClass::JournalReplayDenied { .. } => "journal_replay_denied",
         ForgeQueryStopClass::RuntimeDeclarationFailed { .. } => "runtime_declaration_failed",
         ForgeQueryStopClass::PreviewOperationEffectDenied { .. } => {
             "preview_operation_effect_denied"

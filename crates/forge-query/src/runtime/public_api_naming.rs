@@ -193,6 +193,12 @@ impl ForgeQueryRuntimePublicApiNamingContract {
                 ["workspace.write(...)"],
                 false,
             ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "replay",
+                "replay_journal_segment",
+                ["ForgeQueryJournalReplayRequest"],
+                true,
+            ),
         ];
         let preferred_entrypoint_count = rows.len();
         let alternate_name_count = rows.iter().map(|row| row.alternate_names().len()).sum();

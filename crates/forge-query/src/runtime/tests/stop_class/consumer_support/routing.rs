@@ -24,6 +24,7 @@ pub(in super::super) enum ConsumerStopRoute<'a> {
     RuntimeLookupDenied(ForgeQueryRuntimeLookupFailureKind),
     MissingRuntimeArtifact(ForgeQueryRuntimeMissingArtifactKind),
     SharedReadStaleBasis,
+    JournalReplayDenied(ForgeQueryJournalReplayDenialKind),
     RuntimeDeclarationDenied(ForgeQueryRuntimeDeclarationFailureKind),
     PreviewOperationEffectDenied(crate::ForgeQueryEvidenceIdentity),
     UnsupportedAuthorityRequirement(ForgeQueryAuthorityRequirement),
@@ -92,6 +93,9 @@ pub(in super::super) fn route_consumer_stop_class(
             ConsumerStopRoute::MissingRuntimeArtifact(kind)
         }
         ForgeQueryStopClass::SharedReadStaleBasis { .. } => ConsumerStopRoute::SharedReadStaleBasis,
+        ForgeQueryStopClass::JournalReplayDenied { denial } => {
+            ConsumerStopRoute::JournalReplayDenied(denial.kind())
+        }
         ForgeQueryStopClass::RuntimeDeclarationFailed { kind, .. } => {
             ConsumerStopRoute::RuntimeDeclarationDenied(kind)
         }

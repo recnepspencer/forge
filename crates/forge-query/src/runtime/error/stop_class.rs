@@ -92,6 +92,9 @@ pub enum ForgeQueryStopClass<'a> {
     SharedReadStaleBasis {
         snapshot_identity: &'a crate::memory_workspace::ForgeQuerySnapshotIdentity,
     },
+    JournalReplayDenied {
+        denial: &'a ForgeQueryJournalReplayDenial,
+    },
     RuntimeDeclarationFailed {
         kind: ForgeQueryRuntimeDeclarationFailureKind,
         name: &'a str,

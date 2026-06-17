@@ -1,33 +1,30 @@
-use std::collections::BTreeMap;
-#[cfg(test)]
-use std::sync::atomic::AtomicUsize;
-#[cfg(test)]
-use std::sync::atomic::Ordering;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
-use crate::runtime::shared_read::SharedReadDerivedViewState;
 
-#[cfg(test)]
 use super::ForgeQuerySharedReadCounters;
 use super::{
-    ForgeQuerySharedReadGenerationEntry, ForgeQuerySharedReadGenerationId,
-    ForgeQuerySharedReadGenerationLease, ForgeQuerySharedReadPinnedSnapshot,
+    collect_retired_zero_pin_generations, ForgeQuerySharedReadCurrentGeneration,
+    ForgeQuerySharedReadGenerationDiagnostic, ForgeQuerySharedReadGenerationEntry,
+    ForgeQuerySharedReadGenerationId, ForgeQuerySharedReadGenerationLease,
+    ForgeQuerySharedReadHotPathMeasurement, ForgeQuerySharedReadPinnedSnapshot,
+    ForgeQuerySharedReadPinningDiagnostics,
 };
 
 #[derive(Clone, Debug)]
 pub(in crate::runtime) struct ForgeQuerySharedReadPinRegistry {
     state: Arc<Mutex<ForgeQuerySharedReadPinRegistryState>>,
-    #[cfg(test)]
-    committed_read_hot_path_lock_count: Arc<AtomicUsize>,
+    current_generation: Arc<ForgeQuerySharedReadCurrentGeneration>,
+    hot_path_measurement: ForgeQuerySharedReadHotPathMeasurement,
 }
 
 impl Default for ForgeQuerySharedReadPinRegistry {
     fn default() -> Self {
         Self {
             state: Arc::new(Mutex::new(ForgeQuerySharedReadPinRegistryState::default())),
-            #[cfg(test)]
-            committed_read_hot_path_lock_count: Arc::new(AtomicUsize::new(0)),
+            current_generation: Arc::new(ForgeQuerySharedReadCurrentGeneration::default()),
+            hot_path_measurement: ForgeQuerySharedReadHotPathMeasurement::default(),
         }
     }
 }
@@ -36,28 +33,34 @@ impl ForgeQuerySharedReadPinRegistry {
     pub(in crate::runtime) fn capture_committed_snapshot(
         &self,
         snapshot_identity: ForgeQuerySnapshotIdentity,
-        derived_views: BTreeMap<String, SharedReadDerivedViewState>,
-    ) {
+    ) -> ForgeQuerySharedReadGenerationId {
         let mut state = self.state.lock().expect("shared-read pin registry lock");
-        state.capture_committed_snapshot(snapshot_identity, derived_views);
+        state.capture_committed_snapshot(snapshot_identity, &self.current_generation)
     }
 
     pub(in crate::runtime) fn pin_current_generation(
         &self,
     ) -> Option<ForgeQuerySharedReadGenerationLease> {
-        let entry = {
-            let mut state = self.state.lock().expect("shared-read pin registry lock");
-            state.pin_current_generation()
-        }?;
-        Some(ForgeQuerySharedReadGenerationLease::new(
-            self.clone(),
-            entry,
-        ))
+        loop {
+            let entry = self.current_generation.load()?;
+            entry.pin();
+            if !entry.is_invalidated() {
+                return Some(ForgeQuerySharedReadGenerationLease::new(
+                    self.clone(),
+                    entry,
+                ));
+            }
+            let remaining_pin_count = entry.release_pin();
+            if entry.is_retired() && remaining_pin_count == 0 {
+                self.drain_retired_generation();
+            }
+        }
     }
 
     pub(in crate::runtime) fn has_current_generation(&self) -> bool {
-        let state = self.state.lock().expect("shared-read pin registry lock");
-        state.current_generation_ordinal.is_some()
+        self.current_generation
+            .load()
+            .is_some_and(|entry| !entry.is_retired())
     }
 
     pub(in crate::runtime) fn release_generation(
@@ -68,26 +71,47 @@ impl ForgeQuerySharedReadPinRegistry {
         if !(entry.is_retired() && remaining_pin_count == 0) {
             return;
         }
+        self.drain_retired_generation();
+    }
+
+    pub(in crate::runtime) fn drain_retired_generation(&self) {
         let mut state = self.state.lock().expect("shared-read pin registry lock");
         state.collect_retired_zero_pin_generations();
     }
 
-    #[cfg(test)]
     pub(in crate::runtime) fn counters(&self) -> ForgeQuerySharedReadCounters {
         let state = self.state.lock().expect("shared-read pin registry lock");
         state.counters(
-            self.committed_read_hot_path_lock_count
-                .load(Ordering::SeqCst),
+            self.hot_path_measurement
+                .committed_read_hot_path_lock_count(),
         )
     }
 
-    #[cfg(test)]
-    pub(crate) fn force_retire_snapshot_identity(
+    pub(in crate::runtime) fn diagnostics(&self) -> ForgeQuerySharedReadPinningDiagnostics {
+        let state = self.state.lock().expect("shared-read pin registry lock");
+        let counters = state.counters(
+            self.hot_path_measurement
+                .committed_read_hot_path_lock_count(),
+        );
+        ForgeQuerySharedReadPinningDiagnostics::new(counters, state.generation_diagnostics())
+    }
+
+    pub(in crate::runtime) fn retained_generation_ordinals(&self) -> BTreeSet<u64> {
+        let state = self.state.lock().expect("shared-read pin registry lock");
+        state.retained_generation_ordinals()
+    }
+
+    pub(in crate::runtime) fn record_committed_read_hot_path_lock_for_certification(&self) {
+        self.hot_path_measurement
+            .record_committed_read_hot_path_lock();
+    }
+
+    pub(in crate::runtime) fn force_retire_snapshot_identity(
         &self,
         snapshot_identity: &ForgeQuerySnapshotIdentity,
     ) {
         let mut state = self.state.lock().expect("shared-read pin registry lock");
-        state.force_retire_snapshot_identity(snapshot_identity);
+        state.force_retire_snapshot_identity(snapshot_identity, &self.current_generation);
     }
 }
 
@@ -103,10 +127,19 @@ impl ForgeQuerySharedReadPinRegistryState {
     fn capture_committed_snapshot(
         &mut self,
         snapshot_identity: ForgeQuerySnapshotIdentity,
-        derived_views: BTreeMap<String, SharedReadDerivedViewState>,
-    ) {
+        current_generation: &ForgeQuerySharedReadCurrentGeneration,
+    ) -> ForgeQuerySharedReadGenerationId {
         if self.current_snapshot_identity.as_ref() == Some(&snapshot_identity) {
-            return;
+            let ordinal = self
+                .current_generation_ordinal
+                .expect("current snapshot identity requires current generation");
+            return self
+                .generations
+                .get(&ordinal)
+                .expect("current generation should exist")
+                .snapshot()
+                .generation()
+                .clone();
         }
 
         if let Some(current) = self.current_generation_ordinal {
@@ -119,37 +152,20 @@ impl ForgeQuerySharedReadPinRegistryState {
         let generation =
             ForgeQuerySharedReadGenerationId::new(self.next_generation_ordinal, snapshot_identity);
         let ordinal = generation.ordinal();
-        let snapshot = ForgeQuerySharedReadPinnedSnapshot::new(generation, derived_views);
+        let snapshot = ForgeQuerySharedReadPinnedSnapshot::new(generation.clone());
         self.current_snapshot_identity = Some(snapshot.generation().snapshot_identity().clone());
         self.current_generation_ordinal = Some(ordinal);
-        self.generations.insert(
-            ordinal,
-            Arc::new(ForgeQuerySharedReadGenerationEntry::new(snapshot)),
-        );
+        let entry = Arc::new(ForgeQuerySharedReadGenerationEntry::new(snapshot));
+        current_generation.publish(Arc::clone(&entry));
+        self.generations.insert(ordinal, entry);
         self.collect_retired_zero_pin_generations();
-    }
-
-    fn pin_current_generation(&mut self) -> Option<Arc<ForgeQuerySharedReadGenerationEntry>> {
-        let ordinal = self.current_generation_ordinal?;
-        let entry = Arc::clone(self.generations.get(&ordinal)?);
-        entry.pin();
-        Some(entry)
+        generation
     }
 
     fn collect_retired_zero_pin_generations(&mut self) {
-        let removable = self
-            .generations
-            .iter()
-            .filter_map(|(ordinal, entry)| {
-                (entry.is_retired() && entry.pin_count() == 0).then_some(*ordinal)
-            })
-            .collect::<Vec<_>>();
-        for ordinal in removable {
-            self.generations.remove(&ordinal);
-        }
+        collect_retired_zero_pin_generations(&mut self.generations);
     }
 
-    #[cfg(test)]
     fn counters(&self, committed_read_hot_path_lock_count: usize) -> ForgeQuerySharedReadCounters {
         let orphaned_generation_count = self
             .generations
@@ -168,8 +184,31 @@ impl ForgeQuerySharedReadPinRegistryState {
         )
     }
 
-    #[cfg(test)]
-    fn force_retire_snapshot_identity(&mut self, snapshot_identity: &ForgeQuerySnapshotIdentity) {
+    fn retained_generation_ordinals(&self) -> BTreeSet<u64> {
+        self.generations.keys().copied().collect()
+    }
+
+    fn generation_diagnostics(&self) -> Vec<ForgeQuerySharedReadGenerationDiagnostic> {
+        self.generations
+            .iter()
+            .map(|(ordinal, entry)| {
+                ForgeQuerySharedReadGenerationDiagnostic::new(
+                    *ordinal,
+                    entry.snapshot().generation().snapshot_identity().clone(),
+                    self.current_generation_ordinal == Some(*ordinal),
+                    entry.is_retired(),
+                    entry.is_invalidated(),
+                    entry.pin_count(),
+                )
+            })
+            .collect()
+    }
+
+    fn force_retire_snapshot_identity(
+        &mut self,
+        snapshot_identity: &ForgeQuerySnapshotIdentity,
+        current_generation: &ForgeQuerySharedReadCurrentGeneration,
+    ) {
         let affected = self
             .generations
             .iter()
@@ -182,8 +221,9 @@ impl ForgeQuerySharedReadPinRegistryState {
             let Some(entry) = self.generations.get(&ordinal) else {
                 continue;
             };
-            entry.retire();
+            entry.invalidate();
             if self.current_generation_ordinal == Some(ordinal) {
+                current_generation.clear_if_generation(entry);
                 self.current_generation_ordinal = None;
                 self.current_snapshot_identity = None;
             }

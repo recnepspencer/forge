@@ -86,6 +86,18 @@ mod workflow;
 #[cfg(test)]
 mod future_signal_test_support;
 
+pub use application::{
+    ForgeQueryConcurrentHostileMatrixArtifact, ForgeQueryConcurrentHostileMatrixPosture,
+    ForgeQueryConcurrentHostileMatrixSabotage, ForgeQueryConcurrentHostileMatrixSabotageKind,
+    ForgeQueryMilestoneClosureStatus, ForgeQueryMilestoneNineSevenDerivedClosure,
+    ForgeQueryMilestoneNineSevenPhaseClosure, ForgeQueryPublicBridgeForbiddenAccessFinding,
+    ForgeQueryPublicBridgeForbiddenAccessPattern,
+    ForgeQueryPublicBridgeProjectionConsumptionEvidence,
+    ForgeQueryPublicBridgePublishedProjectionReader, ForgeQueryPublicBridgeReaderLaneCertification,
+    ForgeQueryPublicBridgeReaderLaneInventory, ForgeQueryPublicBridgeReaderLanePosture,
+    ForgeQueryPublicBridgeReaderLaneSabotage, ForgeQueryPublicBridgeReaderLaneSabotageKind,
+    ForgeQueryPublicBridgeReaderLaneSabotageOutcome,
+};
 pub use continuation_pipeline::{
     ForgeQueryContinuationBasisPosture, ForgeQueryContinuationExecution,
     ForgeQueryContinuationExecutionChecked, ForgeQueryContinuationExecutionOutcome,
@@ -210,6 +222,11 @@ pub use recovery_boundary::{
     ForgeQueryRecoveryGroupedMemberContext, ForgeQueryRecoveryMaterialization,
     ForgeQueryRecoveryRequest, ForgeQueryRecoveryRequestKind, ForgeQueryRecoverySourceFamily,
     ForgeQueryRecoveryStopFamily, ForgeQueryRecoveryStopKind,
+};
+pub use runtime::{
+    ForgeQueryConcurrentHostileMatrixCounterSnapshot, ForgeQueryConcurrentHostileMatrixTopology,
+    ForgeQueryConcurrentSubmissionIntake, ForgeQueryConcurrentSubmissionLane,
+    ForgeQueryConcurrentSubmissionRecord,
 };
 pub use session_label::{
     ForgeQuerySessionLabel, ForgeQuerySessionLabelError, ForgeQuerySessionLabelSegment,

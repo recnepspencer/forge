@@ -25,6 +25,7 @@ pub struct ForgeQueryBatchWriteReceiptInspection {
     graph_composition_resolution_map: ForgeQueryGraphCompositionResolutionMap,
     write_receipt_count: usize,
     commit_identities: Vec<ForgeQueryCommitIdentity>,
+    journal_position_identities: Vec<ForgeQueryEvidenceIdentity>,
     component_operations: Vec<ForgeQueryBatchWriteComponentInspection>,
     touched_aspect_paths: Vec<String>,
     affected_live_view_ids: Vec<String>,
@@ -43,6 +44,10 @@ impl ForgeQueryBatchWriteReceiptInspection {
             .write_receipts()
             .iter()
             .map(ForgeQueryBatchWriteComponentInspection::from_write_receipt)
+            .collect::<Vec<_>>();
+        let journal_position_identities = receipt
+            .journal_positions()
+            .map(|position| position.evidence_identity())
             .collect::<Vec<_>>();
         let batch_mutation_evidence = receipt.batch_mutation_evidence().clone();
         let graph_composition_breadth = receipt.graph_composition_breadth().clone();
@@ -64,6 +69,7 @@ impl ForgeQueryBatchWriteReceiptInspection {
                 graph_composition_evidence: graph_composition_evidence.as_ref(),
                 batch_mutation_evidence: &batch_mutation_evidence,
                 commit_identities: &commit_identities,
+                journal_position_identities: &journal_position_identities,
                 component_operations: &component_operations,
                 graph_composition_resolution_map: &graph_composition_resolution_map,
                 touched_aspect_paths: &touched_aspect_paths,
@@ -82,6 +88,7 @@ impl ForgeQueryBatchWriteReceiptInspection {
             graph_composition_resolution_map,
             write_receipt_count: receipt.write_count(),
             commit_identities,
+            journal_position_identities,
             component_operations,
             touched_aspect_paths,
             affected_live_view_ids,
@@ -150,6 +157,10 @@ impl ForgeQueryBatchWriteReceiptInspection {
 
     pub fn commit_identities(&self) -> &[ForgeQueryCommitIdentity] {
         &self.commit_identities
+    }
+
+    pub fn journal_position_identities(&self) -> &[ForgeQueryEvidenceIdentity] {
+        &self.journal_position_identities
     }
 
     pub fn component_operations(&self) -> &[ForgeQueryBatchWriteComponentInspection] {

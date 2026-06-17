@@ -1,9 +1,14 @@
 mod closure;
+mod concurrent_hostile_matrix;
 mod identity_boundary_certification_gate;
 mod identity_boundary_hostile_matrix;
 pub(crate) mod identity_boundary_inventory;
+mod journal_identity;
+mod milestone_nine_seven_closure;
+mod public_bridge_reader_lane;
 mod registry;
 mod report;
+mod shared_read_pinning;
 #[cfg(test)]
 mod tests;
 mod worth_ui_binding_evidence;
@@ -13,6 +18,10 @@ pub use closure::{
     ForgeQueryEvidenceIdentityBoundaryClosure, ForgeQueryFolkloreResidueStatus,
     ForgeQueryIdentityBoundaryClosure, ForgeQueryMilestoneClosureStatus,
     ForgeQuerySessionLabelBoundaryClosure, ForgeQueryStopClassBoundaryClosure,
+};
+pub use concurrent_hostile_matrix::{
+    ForgeQueryConcurrentHostileMatrixArtifact, ForgeQueryConcurrentHostileMatrixPosture,
+    ForgeQueryConcurrentHostileMatrixSabotage, ForgeQueryConcurrentHostileMatrixSabotageKind,
 };
 pub use identity_boundary_certification_gate::{
     milestone_nine_six_certification_gate_certified, MILESTONE_9_6_CERTIFICATION_GATE_PATHS,
@@ -35,6 +44,27 @@ pub use identity_boundary_inventory::{
     EXCLUDED_FOLKLORE_DEFERRALS, EXCLUDED_FOLKLORE_PATHS, LOWER_RUNTIME_IDENTITY_SHIM_PATHS,
     SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
 };
+#[cfg(test)]
+pub(crate) use journal_identity::{
+    forge_query_journal_identity_inventory, scan_journal_identity_forbidden_patterns,
+    scan_journal_identity_required_pattern_failures, ForgeQueryJournalIdentityOperationKind,
+};
+pub use journal_identity::{
+    ForgeQueryJournalIdentityBoundaryPosture, ForgeQueryJournalIdentityCertification,
+    ForgeQueryJournalIdentityInventoryEvidence, ForgeQueryJournalIdentityScheduleEvidence,
+    ForgeQueryJournalReplayBoundaryCertification, ForgeQueryJournalReplaySurfaceEvidence,
+};
+pub use milestone_nine_seven_closure::{
+    ForgeQueryMilestoneNineSevenDerivedClosure, ForgeQueryMilestoneNineSevenPhaseClosure,
+};
+pub use public_bridge_reader_lane::{
+    ForgeQueryPublicBridgeForbiddenAccessFinding, ForgeQueryPublicBridgeForbiddenAccessPattern,
+    ForgeQueryPublicBridgeProjectionConsumptionEvidence,
+    ForgeQueryPublicBridgePublishedProjectionReader, ForgeQueryPublicBridgeReaderLaneCertification,
+    ForgeQueryPublicBridgeReaderLaneInventory, ForgeQueryPublicBridgeReaderLanePosture,
+    ForgeQueryPublicBridgeReaderLaneSabotage, ForgeQueryPublicBridgeReaderLaneSabotageKind,
+    ForgeQueryPublicBridgeReaderLaneSabotageOutcome,
+};
 pub use registry::{
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
     ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus, ForgeQuerySupportMatrix,
@@ -43,5 +73,17 @@ pub use report::{
     ForgeQueryIdentityEvolutionSupportProfile, ForgeQueryQueryCompositionSupportProfile,
     ForgeQueryQueryContextSupportProfile, ForgeQuerySupportReport, ForgeQuerySupportReportCounters,
     ForgeQuerySupportSectionPosture,
+};
+#[cfg(test)]
+pub(crate) use shared_read_pinning::{
+    scan_shared_read_mint_forbidden_patterns, scan_shared_read_pin_hot_path_forbidden_patterns,
+    scan_shared_read_pin_required_pattern_failures, scan_shared_read_pin_retire_forbidden_patterns,
+    shared_read_pinning_operation_inventory, ForgeQuerySharedReadPinningOperationKind,
+};
+pub use shared_read_pinning::{
+    ForgeQuerySharedReadPinningBoundaryClosure, ForgeQuerySharedReadPinningBoundaryPosture,
+    ForgeQuerySharedReadPinningCertification, ForgeQuerySharedReadPinningCounterEvidence,
+    ForgeQuerySharedReadPinningHostileMatrixEvidence, ForgeQuerySharedReadPinningInventoryEvidence,
+    ForgeQuerySharedReadPortabilityEvidence, ForgeQuerySharedReadStaleBasisDenialEvidence,
 };
 pub use worth_ui_binding_evidence::worth_ui_query_binding_evidence_identity;

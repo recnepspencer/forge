@@ -16,6 +16,8 @@ use crate::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::runtime::tests) struct RuntimeHostileCertificationCounters {
     committed_read_hot_path_lock_count: usize,
+    shared_read_mint_row_clone_count: usize,
+    published_artifact_registry_lease_count: usize,
     reader_derived_evaluation_count: usize,
     orphaned_snapshot_generation_count: usize,
     unretired_read_pin_count: usize,
@@ -33,6 +35,9 @@ impl RuntimeHostileCertificationCounters {
     ) -> Self {
         let committed_read_hot_path_lock_count =
             shared_read_structural_lock_acquisition_count(runtime);
+        let shared_read_mint_row_clone_count = shared_read_mint_row_clone_count(runtime);
+        let published_artifact_registry_lease_count =
+            published_artifact_registry_lease_count(runtime);
         let orphaned_snapshot_generation_count =
             shared_read_structural_orphaned_generation_count(runtime);
         let unretired_read_pin_count = shared_read_structural_unretired_pin_count(runtime);
@@ -42,6 +47,14 @@ impl RuntimeHostileCertificationCounters {
         .field_usize(
             crate::ForgeQueryEvidenceTag::new("committed_read_hot_path_lock_count"),
             committed_read_hot_path_lock_count,
+        )
+        .field_usize(
+            crate::ForgeQueryEvidenceTag::new("shared_read_mint_row_clone_count"),
+            shared_read_mint_row_clone_count,
+        )
+        .field_usize(
+            crate::ForgeQueryEvidenceTag::new("published_artifact_registry_lease_count"),
+            published_artifact_registry_lease_count,
         )
         .field_usize(
             crate::ForgeQueryEvidenceTag::new("reader_derived_evaluation_count"),
@@ -66,6 +79,8 @@ impl RuntimeHostileCertificationCounters {
         .seal();
         Self {
             committed_read_hot_path_lock_count,
+            shared_read_mint_row_clone_count,
+            published_artifact_registry_lease_count,
             reader_derived_evaluation_count,
             orphaned_snapshot_generation_count,
             unretired_read_pin_count,
@@ -77,6 +92,14 @@ impl RuntimeHostileCertificationCounters {
 
     pub(in crate::runtime::tests) fn committed_read_hot_path_lock_count(&self) -> usize {
         self.committed_read_hot_path_lock_count
+    }
+
+    pub(in crate::runtime::tests) fn shared_read_mint_row_clone_count(&self) -> usize {
+        self.shared_read_mint_row_clone_count
+    }
+
+    pub(in crate::runtime::tests) fn published_artifact_registry_lease_count(&self) -> usize {
+        self.published_artifact_registry_lease_count
     }
 
     pub(in crate::runtime::tests) fn reader_derived_evaluation_count(&self) -> usize {
@@ -108,6 +131,18 @@ fn shared_read_structural_lock_acquisition_count(_runtime: &ForgeQueryRuntime) -
     _runtime
         .shared_read_counters()
         .committed_read_hot_path_lock_count()
+}
+
+fn shared_read_mint_row_clone_count(_runtime: &ForgeQueryRuntime) -> usize {
+    _runtime
+        .shared_read_counters()
+        .shared_read_mint_row_clone_count()
+}
+
+fn published_artifact_registry_lease_count(_runtime: &ForgeQueryRuntime) -> usize {
+    _runtime
+        .shared_read_counters()
+        .published_artifact_registry_lease_count()
 }
 
 fn shared_read_structural_orphaned_generation_count(_runtime: &ForgeQueryRuntime) -> usize {
@@ -290,12 +325,7 @@ pub(in crate::runtime::tests) fn hostile_journal_gap_count(
 ) -> usize {
     let ordinals = receipts
         .iter()
-        .filter_map(|receipt| {
-            receipt
-                .commit_identity()
-                .bridge_identity()
-                .and_then(|identity| identity.relational_commit_id())
-        })
+        .map(|receipt| receipt.journal_position().ordinal_for_reporting())
         .collect::<Vec<_>>();
     ordinals
         .windows(2)

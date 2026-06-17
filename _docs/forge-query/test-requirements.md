@@ -199,6 +199,35 @@ The following do not count as certification:
 - validating only one execution path when the milestone claims path parity
 - inspecting logs as the primary proof artifact
 
+## Milestone 9.7 Phase 17 Required Suite
+
+`Public-Bridge Reader-Lane Honesty Closure Test` is required for Phase 17. It
+must prove that the public-bridge hostile certification path consumes published
+derived artifacts only through typed projection-consumption receipts, that the
+common and builder public-bootstrap paths produce equivalent certification
+artifacts, that the public-bridge certification inventory has exact-zero direct
+materialization row reads, and that sabotage restoring row-spelunking is
+localized and rejected.
+
+The detailed assertion matrix lives in
+[Milestones 9.4-9.7](./test-requirements-milestones-9_4-9_7.md).
+
+## Milestone 9.7 Phase 18 Required Suite
+
+`Milestone 9.7 Derived Closure Posture Test` is required for Phase 18. It must
+prove that milestone `Closed` posture is derived from the Phase 13 shared-read
+pinning closure, Phase 15 journal/replay closure, Phase 16 concurrent hostile
+matrix, and Phase 17 public-bridge reader-lane honesty artifact. The suite must
+show that reopening any required phase-local proof, or removing its evidence
+digest, prevents Milestone 9.7 from reporting `Closed`.
+
+The closeout parity requirement is also part of this suite: support/profile
+publication, this requirements matrix, and
+[milestone-9.7-closeout.md](./milestone-9.7-closeout.md) must agree on the
+derived posture boundary and must name defended exclusions instead of silently
+expanding Milestone 9.7 ownership. The support-profile contract must not
+hard-code `Closed`; `Closed` is produced only by the derived closure artifact
+after it receives all required phase-local proofs.
 
 ## Section Index
 

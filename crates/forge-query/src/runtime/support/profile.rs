@@ -74,6 +74,16 @@ impl ForgeQueryRuntimeSupportProfile {
                 ],
             ),
             ForgeQueryRuntimeFamilySupport::supported(
+                ForgeQueryRuntimeFacadeFamily::Replay,
+                [ForgeQueryAuthorityLane::AuthoritativeTruth],
+                [],
+                [
+                    "journal-segment-identity",
+                    "journal-replay-outcome",
+                    "published-derived-artifact-consumption",
+                ],
+            ),
+            ForgeQueryRuntimeFamilySupport::supported(
                 ForgeQueryRuntimeFacadeFamily::Effect,
                 [ForgeQueryAuthorityLane::EffectDeliveryState],
                 [ForgeQueryEffectPolicy::AuthoritativeAllowed],

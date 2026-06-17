@@ -13,11 +13,13 @@ fn hostile_certification_artifact_matches_serialized_replay_and_repeated_runs() 
 }
 
 #[test]
-fn hostile_certification_counters_stay_at_exact_zero() {
+fn hostile_certification_counters_prove_zero_shared_read_lock_and_phase_eleven_residue() {
     let artifact = execute_runtime_hostile_schedule();
     let counters = artifact.counters();
 
     assert_eq!(counters.committed_read_hot_path_lock_count(), 0);
+    assert_eq!(counters.shared_read_mint_row_clone_count(), 0);
+    assert!(counters.published_artifact_registry_lease_count() > 0);
     assert_eq!(counters.reader_derived_evaluation_count(), 0);
     assert_eq!(counters.orphaned_snapshot_generation_count(), 0);
     assert_eq!(counters.unretired_read_pin_count(), 0);

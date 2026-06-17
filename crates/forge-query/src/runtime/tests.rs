@@ -6,6 +6,7 @@ mod branch;
 mod causal_inspection;
 #[allow(deprecated)]
 mod computed;
+mod concurrent_hostile_matrix;
 #[allow(deprecated)]
 mod effect;
 mod evidence_identity;
@@ -22,6 +23,9 @@ mod intent_receipt_identity_scheme;
 mod intent_receipt_identity_support;
 mod intent_receipt_preview_identity_composition;
 mod intent_receipt_preview_identity_fixtures;
+mod journal_identity;
+mod journal_identity_support;
+mod journal_replay;
 #[allow(deprecated)]
 mod live;
 mod live_artifacts;
@@ -38,6 +42,8 @@ mod read_composition;
 mod session_label;
 mod session_label_outputs;
 mod shared_read;
+mod shared_read_pinning;
+mod shared_read_support;
 mod stop_class;
 
 pub(crate) use crate::runtime::inspection::{

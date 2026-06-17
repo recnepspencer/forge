@@ -45,6 +45,7 @@ pub enum ForgeQueryRuntimeError {
     SharedReadStaleBasis {
         snapshot_identity: crate::memory_workspace::ForgeQuerySnapshotIdentity,
     },
+    JournalReplayDenied(ForgeQueryJournalReplayDenial),
     MissingEffect(String),
     MissingPendingWriteIntent(String),
     RetainedRowDecode {
@@ -188,6 +189,12 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 f,
                 "shared read basis `{}` is stale and can no longer serve published artifacts",
                 snapshot_identity.terminal_projection_for_reporting()
+            ),
+            Self::JournalReplayDenied(denial) => write!(
+                f,
+                "journal replay denied: {} ({})",
+                denial.kind().as_str(),
+                denial.message()
             ),
             Self::MissingEffect(effect) => write!(f, "unknown effect `{effect}`"),
             Self::MissingPendingWriteIntent(effect) => {

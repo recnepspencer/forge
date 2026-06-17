@@ -210,6 +210,7 @@ mod branch;
 mod bridge_mutation_lowering;
 mod builder;
 mod computed;
+mod concurrent_hostile_matrix;
 mod delivery;
 mod downstream_delivery_contract;
 mod downstream_delivery_resume;
@@ -225,6 +226,8 @@ mod fallback_seam_counters;
 mod handle_contract;
 mod inspection;
 mod intent;
+mod journal_position;
+mod journal_replay;
 mod live_subscription;
 mod live_subscription_accessors;
 mod materialized_fact_posture;
@@ -235,6 +238,7 @@ mod mutation_surface;
 mod ordinary_runtime_posture;
 mod preview;
 mod public_api;
+mod published_artifacts;
 mod read_composition;
 mod read_composition_builder_shared;
 mod read_composition_builder_walks;
@@ -268,6 +272,7 @@ mod runtime_inspection_materialization_intents;
 mod runtime_intent_phase_four_execution;
 mod runtime_intent_phase_three_resolution;
 mod runtime_intents;
+mod runtime_journal_replay;
 mod runtime_probe_routing_intents;
 mod runtime_read_intents;
 mod runtime_reads_programs;
@@ -352,6 +357,11 @@ pub use computed::{
     ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedRefreshContext,
     ForgeQueryRetainedRefreshOrigin, ForgeQueryRetainedUpstreamInputs,
+};
+pub use concurrent_hostile_matrix::{
+    ForgeQueryConcurrentHostileMatrixCounterSnapshot, ForgeQueryConcurrentHostileMatrixTopology,
+    ForgeQueryConcurrentSubmissionIntake, ForgeQueryConcurrentSubmissionLane,
+    ForgeQueryConcurrentSubmissionRecord,
 };
 pub use delivery::ForgeQueryRuntimeDeliveryBatch;
 use delivery::{
@@ -461,6 +471,20 @@ pub use intent::{
     ForgeQueryIntentExecutionProvenance, ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
     ForgeQueryPreviewIntentReceipt,
 };
+#[allow(unused_imports)]
+pub use journal_position::{ForgeQueryJournalPosition, ForgeQueryJournalPositionAuthority};
+#[allow(unused_imports)]
+pub use journal_position::{
+    ForgeQueryJournalPositionAdmissionError, ForgeQueryJournalPositionSchedule,
+    ForgeQueryJournalPositionScheduleViolation, ForgeQueryJournalPositionScheduleViolationKind,
+};
+pub(crate) use journal_replay::journal_replay_truth_reconstruction_identity;
+pub use journal_replay::{
+    ForgeQueryJournalReplayCounterSnapshot, ForgeQueryJournalReplayDenial,
+    ForgeQueryJournalReplayDenialKind, ForgeQueryJournalReplayDiagnostics,
+    ForgeQueryJournalReplayOutcome, ForgeQueryJournalReplayRequest,
+    ForgeQueryJournalSegmentIdentity,
+};
 pub(crate) use live_subscription::{
     live_subscription_source_identity, live_subscription_view_shape_source_identity,
 };
@@ -520,6 +544,11 @@ pub use public_api::{
     ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicApiNamingRow,
     ForgeQueryRuntimePublicApiTranscriptEvidence,
 };
+#[allow(unused_imports)]
+pub use published_artifacts::{
+    ForgeQueryPublishedArtifactCounterSnapshot, ForgeQueryPublishedArtifactDiagnostics,
+    ForgeQueryPublishedArtifactGenerationDiagnostic,
+};
 pub use read_composition::ForgeQueryReadBuilder;
 pub use read_composition_hooks::{
     ForgeQueryReadInvariantPackContext, ForgeQueryReadInvariantPackViolation,
@@ -557,12 +586,16 @@ use runtime_helpers::{
 #[allow(unused_imports)]
 pub use shared_read::{
     ForgeQueryPublishedDerivedArtifactHandle, ForgeQueryPublishedProjectionConsumption,
-    ForgeQueryPublishedProjectionInspection, ForgeQuerySharedReadContext,
+    ForgeQueryPublishedProjectionInspection, ForgeQuerySharedReadBasisInspection,
+    ForgeQuerySharedReadContext,
 };
-#[cfg(test)]
-pub(in crate::runtime) use shared_read_pins::ForgeQuerySharedReadCounters;
 pub(in crate::runtime) use shared_read_pins::{
     forge_query_shared_read_stale_basis_error, ForgeQuerySharedReadGenerationLease,
+};
+#[allow(unused_imports)]
+pub use shared_read_pins::{
+    ForgeQuerySharedReadCounters, ForgeQuerySharedReadGenerationDiagnostic,
+    ForgeQuerySharedReadPinningDiagnostics,
 };
 pub use state::ForgeQueryRuntimeStateTarget;
 pub use state_snapshot::{ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot};
@@ -649,6 +682,8 @@ pub struct ForgeQueryRuntime {
     run_traces: BTreeMap<String, ForgeQueryProgramTrace>,
     derived_views: BTreeMap<String, ForgeQueryDerivedViewRuntime>,
     shared_read_pins: shared_read_pins::ForgeQuerySharedReadPinRegistry,
+    published_artifacts: published_artifacts::ForgeQueryPublishedArtifactRegistry,
+    journal_replay: journal_replay::ForgeQueryJournalReplayRegistry,
     derived_dependency_index: ForgeQueryComputedDependencyIndex,
     effects: BTreeMap<String, ForgeQueryEffectRuntime>,
     effect_index: ForgeQueryEffectIndex,

@@ -170,7 +170,7 @@ impl ForgeQueryRuntime {
             mutation_family,
             &receipt,
         );
-        self.route_authoritative_mutation_receipt(
+        let receipt = self.route_authoritative_mutation_receipt(
             receipt,
             mutation_family,
             declared_collection,
@@ -186,7 +186,9 @@ impl ForgeQueryRuntime {
             mutation_metadata,
             decision_trace_envelope,
             execution_provenance,
-        )
+        )?;
+        self.journal_replay.record_write_receipt(&receipt);
+        Ok(receipt)
     }
 
     fn execute_backend_or_synthetic_write(

@@ -30,7 +30,6 @@ impl ForgeQueryEvidenceIdentity {
         ForgeQueryEvidenceIdentityEncoder::new(scope, ForgeQueryEvidenceIdentityScheme::V1)
     }
 
-    #[cfg(test)]
     pub(crate) fn compose_with_scheme(
         scope: ForgeQueryEvidenceScope,
         scheme: ForgeQueryEvidenceIdentityScheme,

@@ -4,8 +4,8 @@ use super::completeness_support::{
     representative_runtime_stop_errors, runtime_error_variant_key, stop_class_variant_key,
 };
 
-const PHASE_THREE_COVERED_RUNTIME_ERROR_VARIANT_COUNT: usize = 47;
-const PHASE_THREE_STOP_CLASS_VARIANT_COUNT: usize = 26;
+const PHASE_THREE_COVERED_RUNTIME_ERROR_VARIANT_COUNT: usize = 48;
+const PHASE_THREE_STOP_CLASS_VARIANT_COUNT: usize = 27;
 
 #[test]
 fn runtime_stop_class_classifier_is_complete_for_covered_runtime_error_variants() {
@@ -78,6 +78,14 @@ fn runtime_stop_class_classifier_is_complete_for_covered_runtime_error_variants(
     assert_eq!(
         shared_read_stale_basis_count, 1,
         "shared-read stale basis must stay inside the phase-3 typed taxonomy representatives"
+    );
+    let journal_replay_denial_count = representative_errors
+        .iter()
+        .filter(|error| stop_class_variant_key(error.stop_class()) == "journal_replay_denied")
+        .count();
+    assert_eq!(
+        journal_replay_denial_count, 1,
+        "journal replay denial must stay inside the typed taxonomy representatives"
     );
 
     let classifier_source = include_str!("../../error/stop_classify.rs");

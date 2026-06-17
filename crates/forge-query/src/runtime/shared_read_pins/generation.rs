@@ -1,11 +1,9 @@
-use std::collections::BTreeMap;
 use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
     Arc,
 };
 
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
-use crate::runtime::shared_read::SharedReadDerivedViewState;
 
 use super::ForgeQuerySharedReadPinRegistry;
 
@@ -38,28 +36,15 @@ impl ForgeQuerySharedReadGenerationId {
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::runtime) struct ForgeQuerySharedReadPinnedSnapshot {
     generation: ForgeQuerySharedReadGenerationId,
-    derived_views: BTreeMap<String, SharedReadDerivedViewState>,
 }
 
 impl ForgeQuerySharedReadPinnedSnapshot {
-    pub(in crate::runtime) fn new(
-        generation: ForgeQuerySharedReadGenerationId,
-        derived_views: BTreeMap<String, SharedReadDerivedViewState>,
-    ) -> Self {
-        Self {
-            generation,
-            derived_views,
-        }
+    pub(in crate::runtime) fn new(generation: ForgeQuerySharedReadGenerationId) -> Self {
+        Self { generation }
     }
 
     pub(in crate::runtime) fn generation(&self) -> &ForgeQuerySharedReadGenerationId {
         &self.generation
-    }
-
-    pub(in crate::runtime) fn derived_views(
-        &self,
-    ) -> &BTreeMap<String, SharedReadDerivedViewState> {
-        &self.derived_views
     }
 }
 
@@ -68,6 +53,7 @@ pub(in crate::runtime) struct ForgeQuerySharedReadGenerationEntry {
     snapshot: ForgeQuerySharedReadPinnedSnapshot,
     pin_count: AtomicUsize,
     retired: AtomicBool,
+    invalidated: AtomicBool,
 }
 
 impl ForgeQuerySharedReadGenerationEntry {
@@ -76,6 +62,7 @@ impl ForgeQuerySharedReadGenerationEntry {
             snapshot,
             pin_count: AtomicUsize::new(0),
             retired: AtomicBool::new(false),
+            invalidated: AtomicBool::new(false),
         }
     }
 
@@ -101,8 +88,18 @@ impl ForgeQuerySharedReadGenerationEntry {
         self.retired.store(true, Ordering::SeqCst);
     }
 
+    #[allow(dead_code)]
+    pub(in crate::runtime) fn invalidate(&self) {
+        self.invalidated.store(true, Ordering::SeqCst);
+        self.retire();
+    }
+
     pub(in crate::runtime) fn is_retired(&self) -> bool {
         self.retired.load(Ordering::SeqCst)
+    }
+
+    pub(in crate::runtime) fn is_invalidated(&self) -> bool {
+        self.invalidated.load(Ordering::SeqCst)
     }
 }
 
@@ -126,16 +123,12 @@ impl ForgeQuerySharedReadGenerationLease {
         Self { registry, entry }
     }
 
-    pub(in crate::runtime) fn snapshot(&self) -> &ForgeQuerySharedReadPinnedSnapshot {
-        self.entry.snapshot()
-    }
-
     pub(in crate::runtime) fn generation(&self) -> &ForgeQuerySharedReadGenerationId {
         self.entry.snapshot().generation()
     }
 
     pub(in crate::runtime) fn is_generation_live(&self) -> bool {
-        !self.entry.is_retired()
+        !self.entry.is_invalidated()
     }
 }
 
