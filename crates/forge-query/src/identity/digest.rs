@@ -44,6 +44,10 @@ impl AuthorityBackedDigestLabel {
         }
     }
 
+    pub fn from_domain_parts(parts: &[String]) -> Self {
+        Self::from_parts(parts)
+    }
+
     fn as_str(&self) -> &str {
         &self.label
     }
@@ -224,16 +228,15 @@ impl BasisDigest {
         Self(AuthorityBackedDigestLabel::from_parts(parts))
     }
 
-    pub fn from_domain_parts(parts: &[String]) -> Self {
-        Self(AuthorityBackedDigestLabel::from_parts(parts))
-    }
-
     pub(crate) fn from_evidence_identity(
         identity: &crate::evidence_identity::ForgeQueryEvidenceIdentity,
     ) -> Self {
         Self(AuthorityBackedDigestLabel::from_evidence_identity(identity))
     }
 
+    pub fn from_domain_parts(parts: &[String]) -> Self {
+        Self(AuthorityBackedDigestLabel::from_domain_parts(parts))
+    }
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }

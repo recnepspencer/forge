@@ -3,6 +3,7 @@ use crate::runtime::mutation::ForgeQueryMutationMetadata;
 
 use super::{ForgeQueryMutationFamily, ForgeQueryWriteCommand};
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::runtime::ForgeQueryJournalPosition;
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
     ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent,
@@ -20,7 +21,8 @@ mod helpers;
 mod preview;
 
 use crate::memory_workspace::{
-    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryMutationKind,
+    ForgeQuerySnapshotIdentity,
 };
 use helpers::{
     assertion_evidence, continuity_mutation_evidence, naming_mutation_evidence,
@@ -31,6 +33,8 @@ use helpers::{
 pub struct ForgeQueryWriteReceipt {
     pub(super) inner: ForgeQueryMutationReceipt,
     pub(super) commit_evidence_identity: ForgeQueryEvidenceIdentity,
+    pub(super) committed_truth_identity: ForgeQueryEvidenceIdentity,
+    pub(super) journal_position: ForgeQueryJournalPosition,
     pub(super) snapshot_evidence_identity: ForgeQueryEvidenceIdentity,
     pub(super) mutation_family: ForgeQueryMutationFamily,
     pub(super) authority_lane: ForgeQueryAuthorityLane,
@@ -98,6 +102,9 @@ impl ForgeQueryWriteReceipt {
     ) -> Self {
         let commit_evidence_identity =
             write_receipt_commit_evidence_identity(&inner.commit_identity);
+        let committed_truth_identity = write_receipt_committed_truth_identity(&inner);
+        let journal_position =
+            ForgeQueryJournalPosition::from_commit_identity(&inner.commit_identity);
         let snapshot_evidence_identity =
             write_receipt_snapshot_evidence_identity(&inner.snapshot_identity);
         let target_evidence = target_evidence_from_receipt(
@@ -164,6 +171,8 @@ impl ForgeQueryWriteReceipt {
         Self {
             inner,
             commit_evidence_identity,
+            committed_truth_identity,
+            journal_position,
             snapshot_evidence_identity,
             mutation_family,
             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
@@ -221,6 +230,9 @@ impl ForgeQueryWriteReceipt {
     ) -> Self {
         let commit_evidence_identity =
             write_receipt_commit_evidence_identity(&inner.commit_identity);
+        let committed_truth_identity = write_receipt_committed_truth_identity(&inner);
+        let journal_position =
+            ForgeQueryJournalPosition::from_commit_identity(&inner.commit_identity);
         let snapshot_evidence_identity =
             write_receipt_snapshot_evidence_identity(&inner.snapshot_identity);
         let target_evidence = target_evidence_from_receipt(
@@ -287,6 +299,8 @@ impl ForgeQueryWriteReceipt {
         Self {
             inner,
             commit_evidence_identity,
+            committed_truth_identity,
+            journal_position,
             snapshot_evidence_identity,
             mutation_family,
             authority_lane,
@@ -333,4 +347,41 @@ fn write_receipt_snapshot_evidence_identity(
     snapshot_identity: &ForgeQuerySnapshotIdentity,
 ) -> ForgeQueryEvidenceIdentity {
     snapshot_identity.evidence_identity()
+}
+
+fn write_receipt_committed_truth_identity(
+    receipt: &ForgeQueryMutationReceipt,
+) -> ForgeQueryEvidenceIdentity {
+    let delta_descriptors = receipt
+        .deltas
+        .iter()
+        .map(|delta| {
+            format!(
+                "{}:{}:{}",
+                delta.collection(),
+                mutation_kind_as_str(delta.kind()),
+                delta.aspect_paths().join("|")
+            )
+        })
+        .collect::<Vec<_>>();
+    crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+        crate::evidence_identity::ForgeQueryEvidenceScope::JournalReplayOutcome,
+    )
+    .field_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("committed_write_identity"),
+        &receipt.commit_identity.evidence_identity(),
+    )
+    .field_value_sequence(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("committed_delta_descriptor"),
+        delta_descriptors.iter().map(String::as_str),
+    )
+    .seal()
+}
+
+fn mutation_kind_as_str(kind: &ForgeQueryMutationKind) -> &'static str {
+    match kind {
+        ForgeQueryMutationKind::Created => "created",
+        ForgeQueryMutationKind::Updated => "updated",
+        ForgeQueryMutationKind::Deleted => "deleted",
+    }
 }

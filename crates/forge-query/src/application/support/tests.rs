@@ -6,6 +6,7 @@ use crate::application::{
 use crate::composition::runtime_backed_query_composition_support_profile;
 
 mod identity_boundary_support_report;
+mod milestone_nine_seven_closure;
 
 fn query_disabled_application_facade() -> ForgeQueryApplicationFacade {
     ForgeQueryApplicationFacade::new(

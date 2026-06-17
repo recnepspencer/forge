@@ -370,7 +370,7 @@ impl ForgeQueryRuntime {
             &combined_receipt,
             &batch_request_detail,
         );
-        ForgeQueryBatchWriteReceipt::new(
+        let receipt = ForgeQueryBatchWriteReceipt::new(
             write_receipts,
             ForgeQueryAuthorityLane::AuthoritativeTruth,
             ForgeQueryAuthorityLane::AuthoritativeTruth,
@@ -389,6 +389,8 @@ impl ForgeQueryRuntime {
             summary.refresh_fallback,
             decision_trace_envelope,
             execution_provenance,
-        )
+        )?;
+        self.journal_replay.record_batch_receipt(&receipt);
+        Ok(receipt)
     }
 }

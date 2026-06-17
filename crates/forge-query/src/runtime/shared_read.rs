@@ -1,27 +1,21 @@
-use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::canonicalization::CanonicalResultShapeArtifact;
-use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
-    ForgeQueryEvidenceTag,
-};
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::projection_consumption::{
     ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
 };
 
-use super::async_result_state::runtime_async_causality_identity;
-use super::evidence_identities::{
-    shared_read_bind_retained_artifact_label_identity, shared_read_republishing_causality_identity,
-    shared_read_unpublished_causality_identity,
+use super::published_artifacts::{
+    ForgeQueryPublishedArtifactDiagnostics, ForgeQueryPublishedArtifactEntry,
+    ForgeQueryPublishedArtifactRegistry, ForgeQueryPublishedArtifactResolution,
 };
 use super::{
-    ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationBundle,
-    ForgeQueryDerivedMaterializationReceipt, ForgeQueryDerivedMaterializationResult,
-    ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewHandle, ForgeQueryRuntime,
-    ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeAsyncResultStateKind,
-    ForgeQueryRuntimeError, ForgeQuerySharedReadGenerationLease,
+    ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedViewHandle, ForgeQueryRuntime,
+    ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeError, ForgeQuerySharedReadGenerationLease,
+    ForgeQuerySharedReadPinningDiagnostics,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -71,7 +65,7 @@ impl ForgeQueryPublishedProjectionInspection {
 pub struct ForgeQueryPublishedDerivedArtifactHandle {
     lease: ForgeQuerySharedReadGenerationLease,
     view_name: String,
-    published_binding: Option<ForgeQueryDerivedArtifactBinding>,
+    published_binding: Option<Arc<ForgeQueryDerivedArtifactBinding>>,
     async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
 }
 
@@ -85,7 +79,7 @@ impl ForgeQueryPublishedDerivedArtifactHandle {
     }
 
     pub fn published_binding(&self) -> Option<&ForgeQueryDerivedArtifactBinding> {
-        self.published_binding.as_ref()
+        self.published_binding.as_deref()
     }
 
     pub fn async_result_state(&self) -> Option<&ForgeQueryRuntimeAsyncResultState> {
@@ -124,14 +118,49 @@ impl ForgeQueryPublishedDerivedArtifactHandle {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQuerySharedReadBasisInspection {
+    generation_ordinal: u64,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    snapshot_evidence_identity: ForgeQueryEvidenceIdentity,
+}
+
+impl ForgeQuerySharedReadBasisInspection {
+    pub(in crate::runtime) fn from_lease(lease: &ForgeQuerySharedReadGenerationLease) -> Self {
+        let generation = lease.generation();
+        Self {
+            generation_ordinal: generation.ordinal(),
+            snapshot_identity: generation.snapshot_identity().clone(),
+            snapshot_evidence_identity: generation.snapshot_identity().evidence_identity(),
+        }
+    }
+
+    pub fn generation_ordinal(&self) -> u64 {
+        self.generation_ordinal
+    }
+
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn snapshot_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.snapshot_evidence_identity
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct ForgeQuerySharedReadContext {
     lease: ForgeQuerySharedReadGenerationLease,
+    published_artifacts: ForgeQueryPublishedArtifactRegistry,
 }
 
 impl ForgeQuerySharedReadContext {
     pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
         self.lease.generation().snapshot_identity()
+    }
+
+    pub fn inspect_basis(&self) -> ForgeQuerySharedReadBasisInspection {
+        ForgeQuerySharedReadBasisInspection::from_lease(&self.lease)
     }
 
     pub fn published_derived_artifact<T>(
@@ -143,40 +172,34 @@ impl ForgeQuerySharedReadContext {
                 self.snapshot_identity().clone(),
             ));
         }
-        let Some(derived_view) = self.lease.snapshot().derived_views().get(view.name()) else {
-            return Err(ForgeQueryRuntimeError::MissingDerivedView(
-                view.name().to_string(),
-            ));
-        };
-        if !derived_view.published {
-            return Ok(ForgeQueryPublishedDerivedArtifactHandle {
+        match self
+            .published_artifacts
+            .resolve(self.lease.generation(), view.name())
+        {
+            ForgeQueryPublishedArtifactResolution::Published {
+                binding,
+                async_result_state,
+            } => Ok(ForgeQueryPublishedDerivedArtifactHandle {
                 lease: self.lease.clone(),
                 view_name: view.name().to_string(),
-                published_binding: None,
-                async_result_state: Some(ForgeQueryRuntimeAsyncResultState::new(
-                    ForgeQueryRuntimeAsyncResultStateKind::Pending,
-                    &runtime_async_causality_identity(&shared_read_unpublished_causality_identity(
-                        view.name(),
-                        &self.snapshot_identity().evidence_identity(),
-                    )),
-                    &self.snapshot_identity().evidence_identity(),
-                    &shared_read_generation_identity(self.snapshot_identity()),
-                )),
-            });
+                published_binding: Some(binding),
+                async_result_state,
+            }),
+            ForgeQueryPublishedArtifactResolution::Unpublished { async_result_state } => {
+                Ok(ForgeQueryPublishedDerivedArtifactHandle {
+                    lease: self.lease.clone(),
+                    view_name: view.name().to_string(),
+                    published_binding: None,
+                    async_result_state: Some(async_result_state),
+                })
+            }
+            ForgeQueryPublishedArtifactResolution::MissingGeneration => Err(
+                super::forge_query_shared_read_stale_basis_error(self.snapshot_identity().clone()),
+            ),
+            ForgeQueryPublishedArtifactResolution::MissingView => Err(
+                ForgeQueryRuntimeError::MissingDerivedView(view.name().to_string()),
+            ),
         }
-
-        let binding = bind_shared_read_artifact(
-            self.snapshot_identity(),
-            view.name(),
-            derived_view.materialization.clone(),
-        )?;
-        Ok(ForgeQueryPublishedDerivedArtifactHandle {
-            lease: self.lease.clone(),
-            view_name: view.name().to_string(),
-            published_binding: Some(binding),
-            async_result_state: derived_view
-                .async_result_state(self.snapshot_identity(), view.name()),
-        })
     }
 
     #[allow(dead_code)]
@@ -187,75 +210,12 @@ impl ForgeQuerySharedReadContext {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub(in crate::runtime) struct SharedReadDerivedViewState {
-    pub(in crate::runtime) published: bool,
-    pub(in crate::runtime) materialization: ForgeQueryDerivedMaterializationResult,
-    pub(in crate::runtime) pending_patch_count: usize,
-    pub(in crate::runtime) pending_refresh_fallback_count: usize,
-}
-
-impl SharedReadDerivedViewState {
-    fn async_result_state(
-        &self,
-        snapshot_identity: &ForgeQuerySnapshotIdentity,
-        view_name: &str,
-    ) -> Option<ForgeQueryRuntimeAsyncResultState> {
-        if self.pending_patch_count == 0 {
-            return None;
-        }
-
-        let kind = if self.pending_refresh_fallback_count > 0 {
-            ForgeQueryRuntimeAsyncResultStateKind::Revalidating
-        } else {
-            ForgeQueryRuntimeAsyncResultStateKind::Stale
-        };
-
-        Some(ForgeQueryRuntimeAsyncResultState::new(
-            kind,
-            &runtime_async_causality_identity(&shared_read_republishing_causality_identity(
-                view_name,
-                kind,
-                &snapshot_identity.evidence_identity(),
-            )),
-            &snapshot_identity.evidence_identity(),
-            &shared_read_generation_identity(snapshot_identity),
-        ))
-    }
-}
-
 impl ForgeQueryRuntime {
     pub(in crate::runtime) fn capture_shared_read_generation(
         &mut self,
         snapshot_identity: ForgeQuerySnapshotIdentity,
     ) {
-        let derived_views = self
-            .derived_views
-            .iter()
-            .map(|(view_name, runtime_view)| {
-                let evidence =
-                    super::ForgeQueryComputedInspectionEvidence::from_runtime(runtime_view);
-                let receipt = ForgeQueryDerivedMaterializationReceipt::from_evidence(
-                    &evidence,
-                    snapshot_identity.clone(),
-                );
-                let materialization = ForgeQueryDerivedMaterializationResult::new(
-                    runtime_view.materialization.rows().to_vec(),
-                    receipt,
-                );
-                (
-                    view_name.clone(),
-                    SharedReadDerivedViewState {
-                        published: runtime_view.materialization.is_published(),
-                        materialization,
-                        pending_patch_count: evidence.pending_patch_count(),
-                        pending_refresh_fallback_count: evidence.pending_refresh_fallback_count(),
-                    },
-                )
-            })
-            .collect::<BTreeMap<_, _>>();
-        self.shared_read_pins
-            .capture_committed_snapshot(snapshot_identity, derived_views);
+        self.publish_shared_read_generation(snapshot_identity);
     }
 
     pub(in crate::runtime) fn mint_shared_read_context(
@@ -263,34 +223,7 @@ impl ForgeQueryRuntime {
     ) -> Result<ForgeQuerySharedReadContext, ForgeQueryRuntimeError> {
         let snapshot_identity = self.current_snapshot_identity();
         if !self.shared_read_pins.has_current_generation() {
-            let derived_views = self
-                .derived_views
-                .iter()
-                .map(|(view_name, runtime_view)| {
-                    let evidence =
-                        super::ForgeQueryComputedInspectionEvidence::from_runtime(runtime_view);
-                    let receipt = ForgeQueryDerivedMaterializationReceipt::from_evidence(
-                        &evidence,
-                        snapshot_identity.clone(),
-                    );
-                    let materialization = ForgeQueryDerivedMaterializationResult::new(
-                        runtime_view.materialization.rows().to_vec(),
-                        receipt,
-                    );
-                    (
-                        view_name.clone(),
-                        SharedReadDerivedViewState {
-                            published: runtime_view.materialization.is_published(),
-                            materialization,
-                            pending_patch_count: evidence.pending_patch_count(),
-                            pending_refresh_fallback_count: evidence
-                                .pending_refresh_fallback_count(),
-                        },
-                    )
-                })
-                .collect::<BTreeMap<_, _>>();
-            self.shared_read_pins
-                .capture_committed_snapshot(snapshot_identity, derived_views);
+            self.capture_shared_read_generation_for_current_snapshot(snapshot_identity);
         }
         let lease = self
             .shared_read_pins
@@ -302,49 +235,69 @@ impl ForgeQueryRuntime {
                     ),
                 )
             })?;
-        Ok(ForgeQuerySharedReadContext { lease })
+        Ok(ForgeQuerySharedReadContext {
+            lease,
+            published_artifacts: self.published_artifacts.clone(),
+        })
     }
 
-    #[cfg(test)]
-    pub(in crate::runtime) fn shared_read_counters(&self) -> super::ForgeQuerySharedReadCounters {
-        self.shared_read_pins.counters()
+    #[allow(dead_code)]
+    pub fn shared_read_counters(&self) -> super::ForgeQuerySharedReadCounters {
+        self.shared_read_pins
+            .counters()
+            .with_published_artifacts(self.published_artifacts.counters().snapshot())
     }
 
-    #[cfg(test)]
-    pub(crate) fn force_retire_shared_read_snapshot_for_tests(
+    pub fn shared_read_pinning_diagnostics(&self) -> ForgeQuerySharedReadPinningDiagnostics {
+        self.shared_read_pins.diagnostics()
+    }
+
+    pub fn published_artifact_diagnostics(&self) -> ForgeQueryPublishedArtifactDiagnostics {
+        self.published_artifacts.diagnostics()
+    }
+
+    pub fn invalidate_shared_read_snapshot_for_certification(
         &self,
         snapshot_identity: &ForgeQuerySnapshotIdentity,
     ) {
         self.shared_read_pins
             .force_retire_snapshot_identity(snapshot_identity);
     }
+
+    pub fn record_shared_read_hot_path_lock_for_certification(&self) {
+        self.shared_read_pins
+            .record_committed_read_hot_path_lock_for_certification();
+    }
 }
 
-fn bind_shared_read_artifact(
-    snapshot_identity: &ForgeQuerySnapshotIdentity,
-    view_name: &str,
-    materialization: ForgeQueryDerivedMaterializationResult,
-) -> Result<ForgeQueryDerivedArtifactBinding, ForgeQueryRuntimeError> {
-    let bundle = ForgeQueryDerivedMaterializationBundle::new(
-        snapshot_identity.clone(),
-        BTreeMap::from([(view_name.to_string(), materialization)]),
-    );
-    bundle.bind_retained_artifact_identity(
-        shared_read_bind_retained_artifact_label_identity(
-            view_name,
-            &snapshot_identity.evidence_identity(),
-        ),
-        [ForgeQueryDerivedMaterializationTarget::new(view_name)],
-    )
-}
+impl ForgeQueryRuntime {
+    fn capture_shared_read_generation_for_current_snapshot(
+        &self,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
+    ) {
+        self.publish_shared_read_generation(snapshot_identity);
+    }
 
-fn shared_read_generation_identity(
-    snapshot_identity: &ForgeQuerySnapshotIdentity,
-) -> ForgeQueryEvidenceIdentity {
-    forge_query_evidence_identity(ForgeQueryEvidenceScope::SharedReadGeneration)
-        .field_evidence_identity(
-            ForgeQueryEvidenceTag::new("snapshot_identity"),
-            &snapshot_identity.evidence_identity(),
-        )
-        .seal()
+    fn publish_shared_read_generation(&self, snapshot_identity: ForgeQuerySnapshotIdentity) {
+        let generation = self
+            .shared_read_pins
+            .capture_committed_snapshot(snapshot_identity.clone());
+        let entries = self
+            .derived_views
+            .iter()
+            .map(|(view_name, runtime_view)| {
+                let entry = ForgeQueryPublishedArtifactEntry::from_runtime_view(
+                    &snapshot_identity,
+                    view_name,
+                    runtime_view,
+                )
+                .expect("published artifact entry should package runtime view");
+                (view_name.clone(), entry)
+            })
+            .collect();
+        self.published_artifacts
+            .publish_generation(&generation, entries);
+        self.published_artifacts
+            .retain_generations(&self.shared_read_pins.retained_generation_ordinals());
+    }
 }

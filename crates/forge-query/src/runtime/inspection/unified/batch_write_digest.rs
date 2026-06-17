@@ -24,6 +24,7 @@ pub(super) struct ForgeQueryBatchWriteDigestInputs<'a> {
     pub graph_composition_evidence: Option<&'a ForgeQueryGraphCompositionEvidence>,
     pub batch_mutation_evidence: &'a ForgeQueryBatchMutationEvidence,
     pub commit_identities: &'a [ForgeQueryCommitIdentity],
+    pub journal_position_identities: &'a [ForgeQueryEvidenceIdentity],
     pub component_operations: &'a [ForgeQueryBatchWriteComponentInspection],
     pub graph_composition_resolution_map: &'a ForgeQueryGraphCompositionResolutionMap,
     pub touched_aspect_paths: &'a [String],
@@ -306,6 +307,10 @@ pub(super) fn build_batch_write_receipt_inspection_digest(
         .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("commit_identity"),
             commit_identities.iter(),
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("journal_position_identity"),
+            inputs.journal_position_identities.iter(),
         )
         .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("component_artifact_identity"),

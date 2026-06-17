@@ -158,7 +158,7 @@ pub use crate::integration_harness::public_bridge_hostile_certification::{
     compose_public_bridge_hostile_certification_digest,
     public_bridge_hostile_certification_evidence_label,
     public_bridge_hostile_published_artifact_component_digest,
-    PublicBridgeHostileCertificationComposeInput,
+    public_bridge_hostile_title_projection_artifacts, PublicBridgeHostileCertificationComposeInput,
 };
 pub use crate::intent_admission::{
     ForgeQueryIntentAdmissionSlopeLane, ForgeQueryIntentAdmissionWidthRunRow,

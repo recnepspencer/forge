@@ -7,7 +7,7 @@ use crate::memory_workspace::{
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
     ForgeQueryContinuityMutationEvidence, ForgeQueryIntentConsumerInspection,
-    ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
+    ForgeQueryJournalPosition, ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
     ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQuerySymbolicAspectResolutionEvidence,
     ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceEvidence,
@@ -28,6 +28,14 @@ impl ForgeQueryWriteReceipt {
 
     pub fn commit_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.commit_evidence_identity
+    }
+
+    pub fn committed_truth_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.committed_truth_identity
+    }
+
+    pub fn journal_position(&self) -> &ForgeQueryJournalPosition {
+        &self.journal_position
     }
 
     pub fn snapshot_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
@@ -262,6 +270,14 @@ impl ForgeQueryWriteReceipt {
     ) -> Self {
         let commit_evidence_identity =
             super::write_receipt_commit_evidence_identity(&commit_identity);
+        let committed_truth_identity = super::write_receipt_committed_truth_identity(
+            &ForgeQueryMutationReceipt::from_authoritative_parts(
+                commit_identity.clone(),
+                snapshot_identity.clone(),
+                Vec::new(),
+            ),
+        );
+        let journal_position = ForgeQueryJournalPosition::from_commit_identity(&commit_identity);
         let snapshot_evidence_identity =
             super::write_receipt_snapshot_evidence_identity(&snapshot_identity);
         Self {
@@ -271,6 +287,8 @@ impl ForgeQueryWriteReceipt {
                 Vec::new(),
             ),
             commit_evidence_identity,
+            committed_truth_identity,
+            journal_position,
             snapshot_evidence_identity,
             mutation_family: ForgeQueryMutationFamily::Update,
             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,

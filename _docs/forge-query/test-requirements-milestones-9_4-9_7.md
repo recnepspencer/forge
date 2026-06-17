@@ -898,6 +898,216 @@ be interpreted by host arrival order.
 
 ## Milestone 9.7 Named Certification Suites
 
+### 9.7. Generation Pinning Hot-Path Lock Posture Test
+
+Purpose
+
+Prove that shared-read generation pinning is a real runtime-owned substrate:
+committed-read context minting does not acquire hot-path locks, retired
+generations drain through explicit lifecycle accounting, and published artifact
+generations are retained only while their pinned read generations require them.
+
+Scenario
+
+- drive repeated shared-read context minting across sustained commit and
+  derived publication pressure
+- hold an old shared-read context across a newer commit and prove it continues
+  to resolve the old published artifact without observing a blend
+- drop old leases, advance ordinary publication, and prove both pin registry
+  and published-artifact generation residue drain through runtime diagnostics
+- perturb the release-compiled certification hot-path lock measurement and
+  prove Phase 12 posture reopens
+- verify the pinning inventory names every ordinary pin, release, retire, drain,
+  retain, resolve, and hot-path measurement operation
+
+Must verify
+
+- committed-read hot-path lock acquisitions remain exact-zero under the hostile
+  schedule
+- old pinned generations are explicitly retired but retained while their leases
+  exist
+- old published artifact generations remain resolvable for the pinned lifetime
+  and are dropped after ordinary generation retention advances
+- final runtime-owned counters show exact-zero orphaned generations and
+  exact-zero unretired pins
+- certification uses production runtime diagnostics and release-compiled
+  measurement hooks rather than `cfg(test)`-only counter fiction
+
+Required verification output
+
+- `shared_read_hot_path_counter_snapshot`
+- `shared_read_pin_lifecycle_diagnostic_digest`
+- `published_artifact_generation_retention_digest`
+- `shared_read_pinning_operation_inventory_digest`
+- `failure_digest`
+
+Pass condition
+
+Phase 12 closes only when generation pinning, explicit retirement, published
+artifact retention, hot-path lock measurement, and inventory completeness agree
+through runtime-owned diagnostics. Full sealed shared-read context boundary
+closure remains Phase 13.
+
+### 9.7. Shared Read Context And Pinning Boundary Closure Test
+
+Purpose
+
+Prove that `ForgeQuerySharedReadContext` is the sealed, basis-bound product
+surface for shared-read consumption and that the complete pinning boundary is
+closed before journal and certification phases build on it.
+
+Scenario
+
+- mint multiple shared-read contexts at the same generation and prove basis
+  inspection, published artifact identity, and consumed facts are identical
+- drive sustained commit and publication pressure while old legal contexts
+  continue to observe their pinned generation rather than rebinding
+- explicitly invalidate an old basis and prove the context fails with typed
+  stale-basis denial instead of resolving newer registry content
+- prove `ForgeQuerySharedReadContext` and published artifact handles satisfy
+  `Send + Sync` and resolve through `std::thread::scope` without wrappers
+- derive the shared-read pinning boundary closure posture from inventory,
+  hostile matrix, portability proof, stale-denial proof, and runtime counters
+- perturb each closure input and prove the posture no longer reports `Closed`
+
+Must verify
+
+- shared-read context basis inspection is typed and stable for the context's
+  legal lifetime
+- re-minting through the workspace is the only way to observe a newer committed
+  generation
+- stale contexts fail closed with `SharedReadStaleBasis` carrying the original
+  snapshot identity
+- full pinning-boundary inventory covers shared-read authority, artifact
+  consumption, published artifact retention, diagnostics, and pin registry
+  paths
+- exact-zero hot-path locks, orphaned generations, and unretired pins come from
+  runtime-owned counters after the hostile matrix
+- support/profile posture reports `Closed` only when all closure inputs are
+  green
+
+Required verification output
+
+- `shared_read_basis_digest`
+- `shared_read_artifact_equivalence_digest`
+- `shared_read_stale_basis_denial_digest`
+- `shared_read_send_sync_proof_digest`
+- `shared_read_pinning_boundary_inventory_digest`
+- `shared_read_pinning_boundary_counter_digest`
+- `shared_read_pinning_boundary_closure_digest`
+- `failure_digest`
+
+Pass condition
+
+Phase 13 closes only when the real shared-read context type is sealed,
+basis-bound, portable across scoped threads, stale-basis typed, inventory
+complete, and certified by exact-zero runtime residue counters. Later journal
+and certification phases may assume shared-read pinning is closed.
+
+### 9.7. Typed Journal Position Identity Boundary Test
+
+Purpose
+
+Prove that committed write receipts expose journal order as a sealed typed
+runtime artifact, not as a parsed convention from commit identity display text
+or mutation receipt formatting.
+
+Scenario
+
+- submit authoritative writes through the workspace submission lane and inspect
+  `ForgeQueryWriteReceipt::journal_position()`
+- execute a batch write and inspect `ForgeQueryBatchWriteReceipt::journal_positions()`
+- replay the same multi-write schedule in a fresh runtime and compare typed
+  journal-position evidence identities
+- derive certification from journal identity inventory scans plus schedule
+  evidence, then perturb each input and prove the posture opens
+
+Must verify
+
+- committed journal positions are minted from typed bridge commit payloads
+  rather than `commit_identity` strings, suffixes, digit runs, display text, or
+  test-only helpers
+- journal position identity is distinct from both commit identity and evidence
+  identity while remaining evidence-addressable
+- batch receipts carry typed journal positions in component order and include
+  journal-position identities in the batch digest basis
+- replay produces the same typed position sequence for the same authoritative
+  schedule
+- inventory scans cover minting, receipt carry, batch carry, and certification
+  paths with exact-zero forbidden parsing residue
+
+Required verification output
+
+- `journal_position_identity_digest`
+- `journal_position_schedule_digest`
+- `journal_identity_inventory_digest`
+- `journal_identity_certification_digest`
+- `failure_digest`
+
+Pass condition
+
+Phase 14 closes only when journal order is a runtime-carried typed artifact,
+authoritative submissions and batches expose it without string parsing, replay
+stability and collision checks are proven, and inventory certification opens on
+any sabotaged proof input.
+
+### 9.7. Consumer Journal Segment Replay Surface Test
+
+Purpose
+
+Prove that consumers replay typed journal segments through the runtime-owned
+workspace facade, and that replay reconstructs the same ordinary truth artifacts
+without exposing raw journal internals or introducing a second semantics path.
+
+Scenario
+
+- submit a downstream-shaped write workload through the public workspace surface
+- derive a typed journal segment identity from committed receipt positions
+- replay the segment through a typed `ForgeQueryJournalReplayRequest`
+- compare replay receipts, journal schedule, truth digest, published artifact
+  digest, and replay outcome digest against the committed lane
+- deny stale-basis, unknown segment, cross-scheme, and gapped replay requests
+  with typed errors and no journal residue
+- derive journal boundary posture from inventory, schedule, and replay evidence
+- sabotage gap evidence and truth evidence independently
+
+Must verify
+
+- the consumer replay surface accepts typed segment identity and returns ordinary
+  write receipts and replay outcome evidence
+- replay truth digest equals committed truth digest and includes receipt deltas,
+  expected position count, resolved position count, and gap count
+- published artifact digest and replay outcome digest are stable for identical
+  replay inputs
+- stale basis, unknown segment identity, cross-scheme identity, and journal gaps
+  fail through typed replay denial kinds
+- journal identity inventory covers replay, certification, support, and facade
+  paths that read or compare journal order
+- forbidden scans remain green for commit-identity parsing and string-derived
+  journal gap counting across the full journal boundary
+- journal boundary posture reports `Closed` only when inventory, schedule, and
+  replay proof are simultaneously green, and reports `Partial` when gap or truth
+  sabotage reopens the proof
+
+Required verification output
+
+- `journal_segment_identity_digest`
+- `journal_replay_outcome_digest`
+- `journal_replay_truth_digest`
+- `published_artifact_replay_digest`
+- `journal_identity_inventory_digest`
+- `journal_boundary_posture`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Phase 15 closes only when journal segment replay is a typed consumer facade
+operation, replay equivalence is proven from ordinary receipt/envelope
+artifacts, all adversarial replay denials are typed and residue-free, and the
+journal boundary posture can close only from green inventory plus green replay
+truth proof.
+
 ### 9.7. Temporal Async Query Certification Matrix Sufficiency Test
 
 Purpose
@@ -1086,7 +1296,7 @@ the new shared-read and submission lanes are explicit public support rows,
 parity holds against the decomposed authorities, and downstream code cannot
 reach past the facade.
 
-### 9.7. Concurrency Determinism Hostile Certification Matrix
+### 9.7. Real Concurrent Hostile Certification Matrix Test
 
 Purpose
 
@@ -1138,4 +1348,101 @@ Pass condition
 Milestone 9.7 closes only when the hostile certification artifact proves that
 all covered lanes compose into one deterministic replay-stable boundary with
 exact-zero residue and exact-zero reader-side reevaluation.
+
+### 9.7. Public-Bridge Reader-Lane Honesty Closure Test
+
+Purpose
+
+Prove that public-bridge hostile certification consumes published derived facts
+only through typed projection consumption and cannot silently fall back to
+direct materialization row access.
+
+Scenario
+
+- execute the public-bridge hostile certification schedule through both:
+  - common public runtime bootstrap
+  - builder public runtime bootstrap
+- consume every published derived artifact through the projection-consumption
+  reader lane and issue receipt-backed evidence for the consumed facts
+- inventory the public-bridge reader-lane helper for forbidden direct-read
+  shortcuts
+- sabotage the lane with the old row-spelunking pattern and require
+  certification rejection
+- compile-fail the public reader-lane certification boundary when a caller
+  attempts to access a binding shortcut
+
+Must verify
+
+- common and builder bootstrap paths produce identical certification artifacts
+- every consumed title is backed by a projection-consumption receipt digest
+- public-bridge certification reports exact-zero direct materialization reads
+- sabotage using `published_binding`, `materialization_by_name`, or `.rows()`
+  is localized and rejected
+- the public reader-lane certification type exposes no direct binding shortcut
+
+Required verification output
+
+- `public_bridge_hostile_certification_digest`
+- `projection_consumption_receipt_digest`
+- `published_artifact_digest`
+- `direct_materialization_read_count`
+- `sabotage_rejection_digest`
+- `compile_fail_boundary_digest`
+
+Pass condition
+
+Phase 17 closes only when public-bridge certification proves replay-stable
+published-artifact consumption through typed projection receipts and rejects
+every direct materialization row shortcut at the certification boundary.
+
+### 9.7. Derived Milestone Closure Posture Test
+
+Purpose
+
+Prove that Milestone 9.7 reports `Closed` only as a derived posture from
+phase-local closure artifacts, never from API presence, support-profile optimism,
+or a hard-coded milestone status.
+
+Scenario
+
+- aggregate the Phase 13 shared-read pinning closure artifact
+- aggregate the Phase 15 journal/replay boundary certification
+- aggregate the Phase 16 concurrent hostile matrix artifact
+- aggregate the Phase 17 public-bridge reader-lane honesty artifact
+- publish the Phase 18 support/profile row
+  `milestone-9.7-derived-closure-posture`
+- require `milestone-9.7-closeout.md`, `test-requirements.md`, and support
+  matrix publication to agree on the derived posture
+- sabotage each required phase-local posture independently and require the
+  milestone posture to reopen
+- remove a phase-local evidence digest and require the milestone posture to
+  reopen
+
+Must verify
+
+- all required phase-local closures are present and evidence-bearing
+- Milestone 9.7 `Closed` appears only when every required phase-local posture is
+  `Closed`
+- support/profile publication names Phase 18 and carries the derived closure
+  contract digest
+- support/profile publication does not hard-code `Closed` without supplied
+  phase-local proof artifacts
+- closeout docs enumerate defended exclusions instead of expanding Milestone
+  9.7 ownership
+
+Required verification output
+
+- `milestone_9_7_derived_closure_digest`
+- `phase_13_shared_read_pinning_closure_digest`
+- `phase_15_journal_inventory_digest`
+- `phase_16_concurrent_hostile_matrix_digest`
+- `phase_17_public_bridge_reader_lane_digest`
+- `support_profile_phase_18_row_digest`
+
+Pass condition
+
+Phase 18 closes only when milestone posture, support/profile publication,
+test-requirements rows, and closeout documentation all derive from the same
+phase-local evidence set and any missing, open, or digest-less required phase
+prevents Milestone 9.7 from reporting `Closed`.
 

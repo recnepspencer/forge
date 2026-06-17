@@ -293,6 +293,7 @@ fn deferred_authority_lane(family: ForgeQueryRuntimeFacadeFamily) -> ForgeQueryA
         ForgeQueryRuntimeFacadeFamily::BranchPreview => ForgeQueryAuthorityLane::PreviewTruth,
         ForgeQueryRuntimeFacadeFamily::Read
         | ForgeQueryRuntimeFacadeFamily::Live
+        | ForgeQueryRuntimeFacadeFamily::Replay
         | ForgeQueryRuntimeFacadeFamily::Write
         | ForgeQueryRuntimeFacadeFamily::Inspect => ForgeQueryAuthorityLane::AuthoritativeTruth,
     }

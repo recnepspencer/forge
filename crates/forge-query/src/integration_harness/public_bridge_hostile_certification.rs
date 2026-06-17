@@ -2,6 +2,17 @@ use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
+use crate::{
+    authoring::{
+        AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RawAuthoredQuery,
+        RawAuthoredResultShape, RootEntityKey,
+    },
+    authorized_projection::{
+        derive_authorized_projection, AuthorizedProjectionArtifact, PolicyAspectMask,
+        PolicyInfluenceSet,
+    },
+    canonicalization::CanonicalResultShapeArtifact,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PublicBridgeHostileCertificationComposeInput {
@@ -75,4 +86,29 @@ pub fn compose_public_bridge_hostile_certification_digest(
         )
         .field_shape(ForgeQueryEvidenceTag::new("title_three"), input.title_three)
         .seal()
+}
+
+pub fn public_bridge_hostile_title_projection_artifacts(
+) -> (CanonicalResultShapeArtifact, AuthorizedProjectionArtifact) {
+    let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("task").unwrap())
+        .project(AspectFieldSelector::new("title", "value").unwrap())
+        .build()
+        .unwrap();
+    let result_shape = RawAuthoredResultShape::detail_builder()
+        .field(AuthoredResultShapeField::new("title", "value", "title.value").unwrap())
+        .build()
+        .unwrap();
+    let canonical = GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap();
+    let authorized_projection = derive_authorized_projection(
+        canonical.query(),
+        canonical.result_shape(),
+        "policy:public-bridge-hostile-certification",
+        "schema:public-bridge-hostile-certification",
+        &PolicyAspectMask::allow_all(),
+        &PolicyInfluenceSet::none(),
+        8,
+        8,
+    )
+    .unwrap();
+    (canonical.result_shape().clone(), authorized_projection)
 }

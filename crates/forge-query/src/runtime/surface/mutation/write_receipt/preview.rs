@@ -6,8 +6,8 @@ use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
 };
 use crate::runtime::{
-    ForgeQueryAuthorityLane, ForgeQueryExistingTruthBindingEvidence, ForgeQueryMutationFamily,
-    ForgeQueryWriteReceipt,
+    ForgeQueryAuthorityLane, ForgeQueryExistingTruthBindingEvidence, ForgeQueryJournalPosition,
+    ForgeQueryMutationFamily, ForgeQueryWriteReceipt,
 };
 use crate::session_label::ForgeQuerySessionLabel;
 
@@ -30,9 +30,18 @@ impl ForgeQueryWriteReceipt {
         let commit_identity = ForgeQueryCommitIdentity::preview(preview_identity.clone());
         let commit_evidence_identity =
             super::write_receipt_commit_evidence_identity(&commit_identity);
+        let journal_position =
+            ForgeQueryJournalPosition::preview(preview_identity.clone(), sequence as u64);
         let snapshot_evidence_identity =
             super::write_receipt_snapshot_evidence_identity(&snapshot_identity);
         let delta = preview_receipt_delta(command, &preview_identity);
+        let inner = crate::memory_workspace::ForgeQueryMutationReceipt {
+            commit_identity,
+            snapshot_identity,
+            deltas: vec![delta.clone()],
+            bridge_authority: None,
+        };
+        let committed_truth_identity = super::write_receipt_committed_truth_identity(&inner);
         let target_entity_identity = preview_target_entity_identity(command, &delta);
         let target_collection = command.declared_collection();
         let naming_mutation_evidence = naming_mutation_evidence(
@@ -53,13 +62,10 @@ impl ForgeQueryWriteReceipt {
             target_collection.as_deref(),
         );
         Self {
-            inner: crate::memory_workspace::ForgeQueryMutationReceipt {
-                commit_identity,
-                snapshot_identity,
-                deltas: vec![delta.clone()],
-                bridge_authority: None,
-            },
+            inner,
             commit_evidence_identity,
+            committed_truth_identity,
+            journal_position,
             snapshot_evidence_identity,
             mutation_family: command.mutation_family(),
             authority_lane: ForgeQueryAuthorityLane::PreviewTruth,

@@ -1,3 +1,8 @@
+use crate::application::{
+    ForgeQueryMilestoneClosureStatus, ForgeQueryMilestoneNineSevenDerivedClosure,
+    ForgeQuerySharedReadPinningCertification,
+};
+
 use super::super::super::support::*;
 
 #[test]
@@ -183,7 +188,7 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     );
     assert_eq!(
         matrix.stable_row_count(),
-        contract.stable_family_count() + 4
+        contract.stable_family_count() + 6
     );
     assert_eq!(
         matrix.deferred_row_count(),
@@ -199,7 +204,7 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     );
     assert_eq!(
         matrix.fail_closed_row_count(),
-        matrix.deferred_row_count() + matrix.unsupported_row_count() + 4
+        matrix.deferred_row_count() + matrix.unsupported_row_count() + 6
     );
 
     let certification = matrix
@@ -225,6 +230,48 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     assert_eq!(
         certification.extension_rule(),
         "must-extend-target-binding-naming-continuity-causality-provenance-contract"
+    );
+
+    let shared_read_pinning = matrix
+        .row("shared-read-pinning-boundary-closure")
+        .expect("shared-read pinning boundary closure row must be explicit");
+    assert_eq!(
+        shared_read_pinning.support_contract_digest(),
+        Some(
+            ForgeQuerySharedReadPinningCertification::support_gate_required()
+                .closure()
+                .closure_digest()
+        )
+    );
+    assert_ne!(
+        ForgeQuerySharedReadPinningCertification::support_gate_required()
+            .closure()
+            .posture()
+            .as_str(),
+        "closed"
+    );
+
+    let milestone_nine_seven_closure = matrix
+        .row("milestone-9.7-derived-closure-posture")
+        .expect("milestone 9.7 derived closure row must be explicit");
+    let expected_closure =
+        ForgeQueryMilestoneNineSevenDerivedClosure::support_profile_publication_contract();
+    assert_eq!(
+        milestone_nine_seven_closure.support_contract_digest(),
+        Some(expected_closure.closure_digest())
+    );
+    assert_eq!(
+        expected_closure.status(),
+        ForgeQueryMilestoneClosureStatus::Partial
+    );
+    assert_eq!(
+        milestone_nine_seven_closure.owner_milestone(),
+        "Milestone 9.7 Phase 18"
+    );
+    assert!(milestone_nine_seven_closure.admission_fail_closed());
+    assert_eq!(
+        milestone_nine_seven_closure.extension_rule(),
+        "must-derive-milestone-closure-from-phase-local-postures"
     );
 
     let temporal = matrix

@@ -21,7 +21,7 @@ fn main() {
         tenant_schema_basis_digest: String::new(),
         source_family: ProjectionSourceFamily::QueryReadReceipt,
         source_posture: ProjectionContractSourcePosture::QueryOwnedReceiptSource,
-        source_identity: String::new(),
+        source_identity: String::new().into(),
         source_reference_identities: vec![impossible::<ProjectionSourceReferenceIdentity>()],
         fact_families: vec![impossible::<BoundProjectionFactFamily>()],
         support_posture: ProjectionContractSupportPosture::Admitted,

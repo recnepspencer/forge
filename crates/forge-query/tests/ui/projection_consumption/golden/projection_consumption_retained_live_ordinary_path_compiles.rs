@@ -1,15 +1,18 @@
 use forge_query::facade::{
-    AuthorizedProjectionArtifact, ForgeQueryDerivedArtifactBinding, ForgeQueryLiveArtifactBinding,
-    ProjectMaterializedFacts, ProjectionFactConsumptionPathError,
+    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ForgeQueryDerivedArtifactBinding,
+    ForgeQueryEvidenceIdentity, ForgeQueryLiveArtifactBinding, ProjectMaterializedFacts,
+    ProjectionFactConsumptionPathError,
 };
 
 fn retained_live_ordinary_path(
     retained: &ForgeQueryDerivedArtifactBinding,
     live: &ForgeQueryLiveArtifactBinding,
+    result_shape: &CanonicalResultShapeArtifact,
+    result_shape_identity: &ForgeQueryEvidenceIdentity,
     authorized_projection: &AuthorizedProjectionArtifact,
 ) -> Result<(usize, usize), ProjectionFactConsumptionPathError> {
     let retained_attempt = retained.consume_projection_facts(
-        "result-shape:test",
+        result_shape,
         authorized_projection,
         ProjectMaterializedFacts::declare()
             .view_local_identities()
@@ -17,7 +20,7 @@ fn retained_live_ordinary_path(
             .source_references(),
     )?;
     let live_attempt = live.consume_projection_facts(
-        "result-shape:test",
+        result_shape_identity,
         authorized_projection,
         ProjectMaterializedFacts::declare()
             .entity_identities()

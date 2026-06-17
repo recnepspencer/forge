@@ -9,6 +9,7 @@ keywords = ["query", "canonicalization", "facade", "typed"]
 categories = ["data-structures", "science"]
 
 [dependencies]
+arc-swap = "1"
 forge-foundational.workspace = true
 forge-proof.workspace = true
 forge-relational.workspace = true

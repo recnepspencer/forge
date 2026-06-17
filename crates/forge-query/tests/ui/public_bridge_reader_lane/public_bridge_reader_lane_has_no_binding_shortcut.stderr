@@ -1,0 +1,17 @@
+error[E0599]: no method named `published_binding` found for reference `&ForgeQueryPublicBridgePublishedProjectionReader<'_>` in the current scope
+ --> tests/ui/public_bridge_reader_lane/public_bridge_reader_lane_has_no_binding_shortcut.rs:4:20
+  |
+4 |     let _ = reader.published_binding();
+  |                    ^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryPublicBridgePublishedProjectionReader<'_>`
+
+error[E0599]: no method named `materialization_by_name` found for reference `&ForgeQueryPublicBridgePublishedProjectionReader<'_>` in the current scope
+ --> tests/ui/public_bridge_reader_lane/public_bridge_reader_lane_has_no_binding_shortcut.rs:5:20
+  |
+5 |     let _ = reader.materialization_by_name("view");
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryPublicBridgePublishedProjectionReader<'_>`
+
+error[E0599]: no method named `rows` found for reference `&ForgeQueryPublicBridgePublishedProjectionReader<'_>` in the current scope
+ --> tests/ui/public_bridge_reader_lane/public_bridge_reader_lane_has_no_binding_shortcut.rs:6:20
+  |
+6 |     let _ = reader.rows();
+  |                    ^^^^ method not found in `&ForgeQueryPublicBridgePublishedProjectionReader<'_>`

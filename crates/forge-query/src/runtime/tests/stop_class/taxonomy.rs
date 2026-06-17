@@ -21,6 +21,7 @@ fn runtime_stop_class_taxonomy_covers_representative_runtime_error_variants() {
             | ForgeQueryStopClass::RuntimeLookupFailed { .. }
             | ForgeQueryStopClass::MissingRuntimeArtifact { .. }
             | ForgeQueryStopClass::SharedReadStaleBasis { .. }
+            | ForgeQueryStopClass::JournalReplayDenied { .. }
             | ForgeQueryStopClass::RuntimeDeclarationFailed { .. }
             | ForgeQueryStopClass::PreviewOperationEffectDenied { .. }
             | ForgeQueryStopClass::SessionLabelCollision { .. }

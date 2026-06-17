@@ -255,6 +255,17 @@ pub(crate) use support::identity_boundary_inventory::{
 };
 #[cfg(test)]
 pub use support::scan_format_digest_residue_path_patterns;
+#[cfg(test)]
+pub(crate) use support::scan_shared_read_mint_forbidden_patterns;
+#[cfg(test)]
+pub(crate) use support::{
+    forge_query_journal_identity_inventory, scan_journal_identity_forbidden_patterns,
+    scan_journal_identity_required_pattern_failures,
+    scan_shared_read_pin_hot_path_forbidden_patterns,
+    scan_shared_read_pin_required_pattern_failures, scan_shared_read_pin_retire_forbidden_patterns,
+    shared_read_pinning_operation_inventory, ForgeQueryJournalIdentityOperationKind,
+    ForgeQuerySharedReadPinningOperationKind,
+};
 #[allow(unused_imports)]
 pub use support::{
     identity_boundary_hostile_matrix_artifact, identity_boundary_hostile_matrix_digest,
@@ -267,6 +278,7 @@ pub use support::{
     ForgeQueryFolkloreResidueStatus, ForgeQueryIdentityBoundaryClosure,
     ForgeQueryIdentityBoundaryHostileMatrixArtifact, ForgeQueryIdentityBoundaryHostileMatrixRow,
     ForgeQueryIdentityEvolutionSupportProfile, ForgeQueryMilestoneClosureStatus,
+    ForgeQueryMilestoneNineSevenDerivedClosure, ForgeQueryMilestoneNineSevenPhaseClosure,
     ForgeQueryQueryCompositionSupportProfile, ForgeQueryQueryContextSupportProfile,
     ForgeQuerySessionLabelBoundaryClosure, ForgeQueryStopClassBoundaryClosure,
     ForgeQuerySupportMatrix, ForgeQuerySupportReport, ForgeQuerySupportReportCounters,
@@ -277,6 +289,24 @@ pub use support::{
     MILESTONE_9_6_CERTIFICATION_GATE_PATHS, MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES,
     MILESTONE_NINE_SIX_REQUIRED_REJECTION_ROW_NAMES, MILESTONE_NINE_SIX_SUITE_NAME,
     SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
+};
+#[allow(unused_imports)]
+pub use support::{
+    ForgeQueryConcurrentHostileMatrixArtifact, ForgeQueryConcurrentHostileMatrixPosture,
+    ForgeQueryConcurrentHostileMatrixSabotage, ForgeQueryConcurrentHostileMatrixSabotageKind,
+    ForgeQueryJournalIdentityBoundaryPosture, ForgeQueryJournalIdentityCertification,
+    ForgeQueryJournalIdentityInventoryEvidence, ForgeQueryJournalIdentityScheduleEvidence,
+    ForgeQueryJournalReplayBoundaryCertification, ForgeQueryJournalReplaySurfaceEvidence,
+    ForgeQueryPublicBridgeForbiddenAccessFinding, ForgeQueryPublicBridgeForbiddenAccessPattern,
+    ForgeQueryPublicBridgeProjectionConsumptionEvidence,
+    ForgeQueryPublicBridgePublishedProjectionReader, ForgeQueryPublicBridgeReaderLaneCertification,
+    ForgeQueryPublicBridgeReaderLaneInventory, ForgeQueryPublicBridgeReaderLanePosture,
+    ForgeQueryPublicBridgeReaderLaneSabotage, ForgeQueryPublicBridgeReaderLaneSabotageKind,
+    ForgeQueryPublicBridgeReaderLaneSabotageOutcome, ForgeQuerySharedReadPinningBoundaryClosure,
+    ForgeQuerySharedReadPinningBoundaryPosture, ForgeQuerySharedReadPinningCertification,
+    ForgeQuerySharedReadPinningCounterEvidence, ForgeQuerySharedReadPinningHostileMatrixEvidence,
+    ForgeQuerySharedReadPinningInventoryEvidence, ForgeQuerySharedReadPortabilityEvidence,
+    ForgeQuerySharedReadStaleBasisDenialEvidence,
 };
 
 pub(crate) use declaration::forge_query_canonical_declaration;

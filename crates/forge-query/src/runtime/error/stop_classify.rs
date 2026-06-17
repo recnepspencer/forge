@@ -125,6 +125,9 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
         ForgeQueryRuntimeError::SharedReadStaleBasis { snapshot_identity } => {
             ForgeQueryStopClass::SharedReadStaleBasis { snapshot_identity }
         }
+        ForgeQueryRuntimeError::JournalReplayDenied(denial) => {
+            ForgeQueryStopClass::JournalReplayDenied { denial }
+        }
         ForgeQueryRuntimeError::MissingEffect(effect_name) => {
             ForgeQueryStopClass::MissingRuntimeArtifact {
                 kind: ForgeQueryRuntimeMissingArtifactKind::Effect,

@@ -247,6 +247,9 @@ impl ForgeQueryRuntimeBuilder {
             run_traces: BTreeMap::new(),
             derived_views: BTreeMap::new(),
             shared_read_pins: super::shared_read_pins::ForgeQuerySharedReadPinRegistry::default(),
+            published_artifacts:
+                super::published_artifacts::ForgeQueryPublishedArtifactRegistry::default(),
+            journal_replay: super::journal_replay::ForgeQueryJournalReplayRegistry::default(),
             derived_dependency_index: ForgeQueryComputedDependencyIndex::default(),
             effects: BTreeMap::new(),
             effect_index: ForgeQueryEffectIndex::default(),
