@@ -1,5 +1,5 @@
 use worth_spatial::facade::workload_vocabulary::{
-    WorkloadEvidenceGuardError, WorkloadEvidenceStage,
+    WorkloadEvidenceGuardError, WorkloadEvidenceLedgerError, WorkloadEvidenceStage,
 };
 
 use super::declaration::{
@@ -93,6 +93,7 @@ pub enum OperatorWorkloadError {
     QueryAdmissionFailed(String),
     MissingRequiredStage(WorkloadEvidenceStage),
     UnsupportedRequirement(crate::workload_composition::WorkloadStageRequirement),
+    EvidenceStageBindingFailed(WorkloadEvidenceLedgerError),
     EvidenceGuard(WorkloadEvidenceGuardError),
     SyntheticProjection,
     UnsupportedOperatorFamily {
@@ -122,6 +123,7 @@ impl OperatorWorkloadError {
                 "{} is not a valid operator workload requirement",
                 requirement.human_name()
             ),
+            Self::EvidenceStageBindingFailed(error) => error.human_reason(),
             Self::EvidenceGuard(error) => error.human_reason().to_string(),
             Self::SyntheticProjection => {
                 "operator workload requires projected entities and local-basis evidence".to_string()

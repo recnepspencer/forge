@@ -1,0 +1,14 @@
+error[E0599]: no function or associated item named `from_query_runtime` found for struct `PlanarBooleanSplitPersistentNamingQueryBasis` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_persistent_naming_query_basis_not_from_raw_strings.rs:4:59
+  |
+4 |     let _ = PlanarBooleanSplitPersistentNamingQueryBasis::from_query_runtime(
+  |                                                           ^^^^^^^^^^^^^^^^^^ function or associated item not found in `PlanarBooleanSplitPersistentNamingQueryBasis`
+  |
+note: if you're trying to build a new `PlanarBooleanSplitPersistentNamingQueryBasis`, consider using `PlanarBooleanSplitPersistentNamingQueryBasis::from_topology_query_artifacts` which returns `Result<PlanarBooleanSplitPersistentNamingQueryBasis, PlanarBooleanSplitPersistentNamingDenial>`
+ --> src/workload_platform/planar_boolean_edge_splitting/split_persistent_naming/input.rs
+  |
+  | /     pub fn from_topology_query_artifacts(
+  | |         topology_domain_handle: &TopologyCurrentHeadConfiguredDomainHandle,
+  | |         naming_attachment_report: &NamingAttachmentReport,
+  | |     ) -> Result<Self, PlanarBooleanSplitPersistentNamingDenial> {
+  | |_______________________________________________________________^

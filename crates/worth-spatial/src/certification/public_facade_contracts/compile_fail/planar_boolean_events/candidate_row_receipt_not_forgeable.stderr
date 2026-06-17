@@ -1,0 +1,15 @@
+error[E0451]: fields `left`, `right`, `broad_phase_reason`, `envelope_basis` and `candidate_identity` of struct `PlanarBooleanSegmentCandidateRowReceipt` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/candidate_row_receipt_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = PlanarBooleanSegmentCandidateRowReceipt {
+   |             --------------------------------------- in this type
+ 8 |         left: unavailable_segment(),
+   |         ^^^^ private field
+ 9 |         right: unavailable_segment(),
+   |         ^^^^^ private field
+10 |         broad_phase_reason: PlanarBooleanCandidateBroadPhaseReason::AabbEnvelopeOverlap,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+11 |         envelope_basis: unavailable_envelope(),
+   |         ^^^^^^^^^^^^^^ private field
+12 |         candidate_identity: String::from("forged"),
+   |         ^^^^^^^^^^^^^^^^^^ private field

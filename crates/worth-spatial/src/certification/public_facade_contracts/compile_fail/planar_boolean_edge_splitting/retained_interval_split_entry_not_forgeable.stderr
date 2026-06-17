@@ -1,0 +1,39 @@
+error[E0451]: fields `entry_identity`, `source_edge_identity`, `carrier_identity`, `candidate_identity`, `event_identity`, `interval_event_kind`, `admitted_parameter_range`, `source_interval_identity`, `source_parameter_range`, `source_sense`, `normalized_interval_identity`, `normalized_parameter_range`, `local_frame_identity`, `precision_basis_identity`, `participation_row_identity` and `event_group_identities` of struct `PlanarBooleanRetainedIntervalSplitEntry` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/retained_interval_split_entry_not_forgeable.rs:5:9
+   |
+ 4 |     let _ = PlanarBooleanRetainedIntervalSplitEntry {
+   |             --------------------------------------- in this type
+ 5 |         entry_identity: "entry".to_string(),
+   |         ^^^^^^^^^^^^^^ private field
+ 6 |         source_edge_identity: "source".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         carrier_identity: "carrier".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 8 |         candidate_identity: "candidate".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 9 |         event_identity: "event".to_string(),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         interval_event_kind:
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+11 |             worth_spatial::facade::planar_boolean_events::PlanarBooleanIntervalEventKind::PartialOverlap,
+12 |         admitted_parameter_range: [0.0, 1.0],
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         source_interval_identity: "source interval".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         source_parameter_range: [0.0, 1.0],
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         source_sense:
+   |         ^^^^^^^^^^^^ private field
+16 |             worth_spatial::facade::planar_boolean_events::PlanarBooleanSourceIntervalSense::Forward,
+17 |         normalized_interval_identity: "normalized interval".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         normalized_parameter_range: [0.0, 1.0],
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         local_frame_identity: "frame".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+20 |         precision_basis_identity: "precision".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |         participation_row_identity: "row".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+22 |         event_group_identities: vec![],
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field

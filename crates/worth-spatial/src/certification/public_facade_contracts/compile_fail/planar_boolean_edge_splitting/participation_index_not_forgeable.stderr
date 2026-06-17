@@ -1,0 +1,21 @@
+error[E0451]: fields `index_identity`, `event_ledger_identity`, `recovered_carrier_set_identity`, `rows`, `carrier_row_offsets`, `point_events_by_identity`, `interval_events_by_identity` and `counters` of struct `PlanarBooleanSplitEventParticipationIndex` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/participation_index_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = PlanarBooleanSplitEventParticipationIndex {
+   |             ----------------------------------------- in this type
+ 8 |         index_identity: String::from("forged"),
+   |         ^^^^^^^^^^^^^^ private field
+ 9 |         event_ledger_identity: String::from("synthetic ledger"),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         recovered_carrier_set_identity: String::from("synthetic recovered carriers"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         rows: Vec::<PlanarBooleanSplitEventParticipationRow>::new(),
+   |         ^^^^ private field
+12 |         carrier_row_offsets: unavailable_offsets(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+13 |         point_events_by_identity: unavailable_point_events(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         interval_events_by_identity: unavailable_interval_events(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         counters: PlanarBooleanSplitEventParticipationCounters::default(),
+   |         ^^^^^^^^ private field

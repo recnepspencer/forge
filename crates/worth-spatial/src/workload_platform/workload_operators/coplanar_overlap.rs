@@ -9,7 +9,9 @@ use crate::bindings::query_native_planar_segment_segment::CertifiedSegmentSegmen
 use crate::bindings::query_native_planar_signed_area::CertifiedSignedArea2DQueryDomain;
 use crate::bindings::query_native_planar_winding::CertifiedPolygonWinding2DQueryDomain;
 use crate::workload_platform::certification_context::WorkloadCertificationContext;
-use crate::workload_platform::evidence_ledger::{WorkloadEvidenceRow, WorkloadEvidenceStage};
+use crate::workload_platform::evidence_ledger::{
+    WorkloadEvidenceStage, WorkloadEvidenceStageLinkSet,
+};
 use crate::workload_platform::projected_overlap_faces::CoplanarOverlapExtractionBundle;
 
 use super::coplanar_overlap_extractions::{
@@ -19,27 +21,34 @@ use super::coplanar_overlap_receipt::CoplanarOverlapOperatorReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CoplanarOverlapWorkloadOperator {
-    consumed_evidence: Vec<WorkloadEvidenceRow>,
+    consumed_stage_links: WorkloadEvidenceStageLinkSet,
     overlap_extractions: Vec<CoplanarOverlapOperatorExtraction>,
-    context_identity: Option<String>,
-    context_projection_identity: Option<String>,
-    context_motion_identity: Option<String>,
-    extraction_bundle_context_identity: Option<String>,
-    extraction_bundle_projection_identity: Option<String>,
-    extraction_bundle_motion_identity: Option<String>,
+    context_binding: Option<OperatorCertificationContextBinding>,
+    extraction_bundle_binding: Option<OperatorExtractionBundleBinding>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct OperatorCertificationContextBinding {
+    context_identity: String,
+    projection_stage_identity: String,
+    transform_stage_identity: String,
+    motion_posture_identity: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct OperatorExtractionBundleBinding {
+    context_identity: String,
+    projection_stage_identity: String,
+    motion_posture_identity: String,
 }
 
 impl CoplanarOverlapWorkloadOperator {
-    pub fn from_consumed_evidence(consumed_evidence: &[WorkloadEvidenceRow]) -> Self {
+    pub fn from_stage_links(consumed_stage_links: &WorkloadEvidenceStageLinkSet) -> Self {
         Self {
-            consumed_evidence: consumed_evidence.to_vec(),
+            consumed_stage_links: consumed_stage_links.clone(),
             overlap_extractions: Vec::new(),
-            context_identity: None,
-            context_projection_identity: None,
-            context_motion_identity: None,
-            extraction_bundle_context_identity: None,
-            extraction_bundle_projection_identity: None,
-            extraction_bundle_motion_identity: None,
+            context_binding: None,
+            extraction_bundle_binding: None,
         }
     }
 
@@ -57,10 +66,15 @@ impl CoplanarOverlapWorkloadOperator {
         PXC: ForgeQueryDomainOperatingContext<PlanarPrecisionCertificationQueryDomain>,
         FC: ForgeQueryDomainOperatingContext<PlanarLocalFrameCertificateQueryDomain>,
     {
-        self.context_identity = Some(context.context_identity().to_string());
-        self.context_projection_identity = Some(context.projection_stage_identity().to_string());
-        self.context_motion_identity =
-            Some(context.movement_rotation_posture_identity().to_string());
+        self.context_binding = Some(OperatorCertificationContextBinding {
+            context_identity: context.context_identity().to_string(),
+            projection_stage_identity: context.projection_stage_identity().to_string(),
+            transform_stage_identity: context
+                .motion_binding()
+                .transform_stage_identity()
+                .to_string(),
+            motion_posture_identity: context.movement_rotation_posture_identity().to_string(),
+        });
         self
     }
 
@@ -70,53 +84,43 @@ impl CoplanarOverlapWorkloadOperator {
             .iter()
             .map(CoplanarOverlapOperatorExtraction::from_receipt)
             .collect();
-        self.extraction_bundle_context_identity = Some(bundle.context_identity().to_string());
-        self.extraction_bundle_projection_identity =
-            Some(bundle.projection_stage_identity().to_string());
-        self.extraction_bundle_motion_identity =
-            Some(bundle.movement_rotation_posture_identity().to_string());
+        self.extraction_bundle_binding = Some(OperatorExtractionBundleBinding {
+            context_identity: bundle.context_identity().to_string(),
+            projection_stage_identity: bundle.projection_stage_identity().to_string(),
+            motion_posture_identity: bundle.movement_rotation_posture_identity().to_string(),
+        });
         self
     }
 
     pub fn execute(self) -> Result<CoplanarOverlapOperatorReceipt, CoplanarOverlapOperatorDenial> {
         require_honest_stage(
-            &self.consumed_evidence,
+            &self.consumed_stage_links,
             RequiredOperatorEvidenceStage::Projection,
         )?;
         require_honest_stage(
-            &self.consumed_evidence,
+            &self.consumed_stage_links,
             RequiredOperatorEvidenceStage::Transform,
         )?;
         require_honest_stage(
-            &self.consumed_evidence,
+            &self.consumed_stage_links,
             RequiredOperatorEvidenceStage::RetainedReplay,
         )?;
         let projection = stage_identity(
-            &self.consumed_evidence,
+            &self.consumed_stage_links,
             RequiredOperatorEvidenceStage::Projection,
         )?;
         let transform = stage_identity(
-            &self.consumed_evidence,
+            &self.consumed_stage_links,
             RequiredOperatorEvidenceStage::Transform,
         )?;
         let retained_replay = stage_identity(
-            &self.consumed_evidence,
+            &self.consumed_stage_links,
             RequiredOperatorEvidenceStage::RetainedReplay,
         )?;
-        require_context_matches_evidence(
-            self.context_identity.as_deref(),
-            self.context_projection_identity.as_deref(),
-            self.context_motion_identity.as_deref(),
-            projection,
-            transform,
-        )?;
+        require_context_matches_evidence(self.context_binding.as_ref(), projection, transform)?;
         require_extraction_bundle_matches_context(
-            self.extraction_bundle_context_identity.as_deref(),
-            self.extraction_bundle_projection_identity.as_deref(),
-            self.extraction_bundle_motion_identity.as_deref(),
-            self.context_identity.as_deref(),
-            self.context_projection_identity.as_deref(),
-            self.context_motion_identity.as_deref(),
+            self.extraction_bundle_binding.as_ref(),
+            self.context_binding.as_ref(),
         )?;
         let extraction_summary = extraction_summary(&self.overlap_extractions)?;
         let operator_digest = operator_digest(
@@ -126,11 +130,14 @@ impl CoplanarOverlapWorkloadOperator {
             &extraction_summary.extraction_identities,
             &extraction_summary,
         );
+        let operator_input_count =
+            self.consumed_stage_links.links().len() + extraction_summary.receipt_count;
         Ok(CoplanarOverlapOperatorReceipt {
             operator_digest,
-            consumed_evidence_identities: consumed_identities(&self.consumed_evidence),
+            consumed_evidence_identities: consumed_identities(&self.consumed_stage_links),
+            consumed_stage_links: self.consumed_stage_links,
             overlap_extraction_identities: extraction_summary.extraction_identities,
-            operator_input_count: self.consumed_evidence.len() + extraction_summary.receipt_count,
+            operator_input_count,
             operator_receipt_count: 1,
             overlap_extraction_receipt_count: extraction_summary.receipt_count,
             overlap_candidate_pair_breadth: extraction_summary.candidate_pair_breadth,
@@ -165,14 +172,6 @@ impl RequiredOperatorEvidenceStage {
             Self::Projection => CoplanarOverlapOperatorDenial::MissingProjectedWorkload,
             Self::Transform => CoplanarOverlapOperatorDenial::MissingTransformWorkload,
             Self::RetainedReplay => CoplanarOverlapOperatorDenial::MissingRetainedReplayWorkload,
-        }
-    }
-
-    fn manual_denial(self) -> CoplanarOverlapOperatorDenial {
-        match self {
-            Self::Projection => CoplanarOverlapOperatorDenial::ManualProjectedWorkload,
-            Self::Transform => CoplanarOverlapOperatorDenial::ManualTransformWorkload,
-            Self::RetainedReplay => CoplanarOverlapOperatorDenial::ManualRetainedReplayWorkload,
         }
     }
 }
@@ -245,18 +244,16 @@ impl CoplanarOverlapOperatorDenial {
 }
 
 fn require_context_matches_evidence(
-    context_identity: Option<&str>,
-    context_projection_identity: Option<&str>,
-    context_motion_identity: Option<&str>,
+    context_binding: Option<&OperatorCertificationContextBinding>,
     projection_identity: &str,
     transform_identity: &str,
 ) -> Result<(), CoplanarOverlapOperatorDenial> {
-    if context_identity.is_none() {
+    let Some(context_binding) = context_binding else {
         return Err(CoplanarOverlapOperatorDenial::MissingCertificationContext);
-    }
-    if context_projection_identity != Some(projection_identity)
-        || context_motion_identity.is_none()
-        || transform_identity.is_empty()
+    };
+    if context_binding.projection_stage_identity != projection_identity
+        || context_binding.transform_stage_identity != transform_identity
+        || context_binding.motion_posture_identity.is_empty()
     {
         return Err(CoplanarOverlapOperatorDenial::MismatchedCertificationContext);
     }
@@ -264,20 +261,17 @@ fn require_context_matches_evidence(
 }
 
 fn require_extraction_bundle_matches_context(
-    bundle_context_identity: Option<&str>,
-    bundle_projection_identity: Option<&str>,
-    bundle_motion_identity: Option<&str>,
-    context_identity: Option<&str>,
-    context_projection_identity: Option<&str>,
-    context_motion_identity: Option<&str>,
+    bundle_binding: Option<&OperatorExtractionBundleBinding>,
+    context_binding: Option<&OperatorCertificationContextBinding>,
 ) -> Result<(), CoplanarOverlapOperatorDenial> {
-    if bundle_context_identity.is_none() {
+    let Some(bundle_binding) = bundle_binding else {
         return Ok(());
-    }
-    if bundle_context_identity == context_identity
-        && bundle_projection_identity == context_projection_identity
-        && bundle_motion_identity == context_motion_identity
-    {
+    };
+    if context_binding.is_some_and(|context_binding| {
+        bundle_binding.context_identity == context_binding.context_identity
+            && bundle_binding.projection_stage_identity == context_binding.projection_stage_identity
+            && bundle_binding.motion_posture_identity == context_binding.motion_posture_identity
+    }) {
         Ok(())
     } else {
         Err(CoplanarOverlapOperatorDenial::MismatchedOverlapExtractionBundle)
@@ -285,18 +279,13 @@ fn require_extraction_bundle_matches_context(
 }
 
 fn require_honest_stage(
-    consumed_evidence: &[WorkloadEvidenceRow],
+    consumed_stage_links: &WorkloadEvidenceStageLinkSet,
     required_stage: RequiredOperatorEvidenceStage,
 ) -> Result<(), CoplanarOverlapOperatorDenial> {
-    let stage = required_stage.evidence_stage();
-    let row = consumed_evidence
-        .iter()
-        .find(|row| row.stage() == stage)
+    let link = consumed_stage_links
+        .link_for_stage(required_stage.evidence_stage())
         .ok_or_else(|| required_stage.missing_denial())?;
-    if !row.is_receipt_backed() || !row.is_admitted() {
-        return Err(required_stage.manual_denial());
-    }
-    let counters = row.counters();
+    let counters = link.counters();
     match required_stage {
         RequiredOperatorEvidenceStage::Projection
             if counters.projected_entity_count() == 0 || counters.local_basis_part_count() == 0 =>
@@ -319,19 +308,19 @@ fn require_honest_stage(
 }
 
 fn stage_identity(
-    consumed_evidence: &[WorkloadEvidenceRow],
+    consumed_stage_links: &WorkloadEvidenceStageLinkSet,
     required_stage: RequiredOperatorEvidenceStage,
 ) -> Result<&str, CoplanarOverlapOperatorDenial> {
-    consumed_evidence
-        .iter()
-        .find(|row| row.stage() == required_stage.evidence_stage())
-        .map(WorkloadEvidenceRow::evidence_identity)
+    consumed_stage_links
+        .link_for_stage(required_stage.evidence_stage())
+        .map(|link| link.evidence_identity())
         .ok_or_else(|| required_stage.missing_denial())
 }
 
-fn consumed_identities(consumed_evidence: &[WorkloadEvidenceRow]) -> Vec<String> {
-    consumed_evidence
+fn consumed_identities(consumed_stage_links: &WorkloadEvidenceStageLinkSet) -> Vec<String> {
+    consumed_stage_links
+        .links()
         .iter()
-        .map(|row| format!("{:?}:{}", row.stage(), row.evidence_identity()))
+        .map(|link| link.evidence_identity().to_string())
         .collect()
 }

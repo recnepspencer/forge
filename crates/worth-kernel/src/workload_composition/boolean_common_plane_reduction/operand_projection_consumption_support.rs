@@ -105,6 +105,7 @@ pub(crate) enum OperandProjectionSupportError {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct CertifiedOperandProjection {
     projection_receipt: PlanarBooleanCommonPlaneOperandProjectionConsumptionReceipt,
+    projected_workload: ProjectedPlanarWorkload,
     source_operand_workload_identity: String,
 }
 
@@ -113,10 +114,12 @@ impl CertifiedOperandProjection {
         self,
     ) -> (
         PlanarBooleanCommonPlaneOperandProjectionConsumptionReceipt,
+        ProjectedPlanarWorkload,
         String,
     ) {
         (
             self.projection_receipt,
+            self.projected_workload,
             self.source_operand_workload_identity,
         )
     }
@@ -297,6 +300,7 @@ pub(crate) fn certify_projection_receipt(
             .response()
             .identity()
             .receipt_identity(),
+        projected_workload: expected_projection,
         projection_receipt,
     })
 }

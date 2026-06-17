@@ -15,6 +15,16 @@ const PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/pb_common_plane/shared_plane_identified_request_fields_private.rs",
 ];
 
+const PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/pb_events/event_extraction_request_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_events/event_extraction_request_rejects_identity_shortcut.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_events/event_extraction_request_rejects_receipt_only_shortcut.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_events/ledger_ctor_bypass.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_events/event_row_bypass.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_events/raw_pair_bypass.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_events/split_no_ledger.rs",
+];
+
 const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_prepare_helpers_demoted.rs",
@@ -51,6 +61,13 @@ const COMPILE_FAIL_FIXTURES: &[&str] = &[
     PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[3],
     PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[4],
     PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES[5],
+    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[0],
+    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[1],
+    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[2],
+    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[3],
+    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[4],
+    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[5],
+    PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[6],
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_fields_not_public.rs",
     PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE,
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_generic_ledger_substitution.rs",
@@ -60,6 +77,7 @@ const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_built_boolean_operand_pair_recipe_fields_not_public.rs",
     "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_workload_catalog_static_fixture_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_workload_catalog_rejects_raw_topology_rows_for_nmt.rs",
+    "src/certification/public_facade_contracts/compile_fail/workload_operator/operator_evidence_binding_fields_private.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_binding_and_anchoring_authoring_exports_demoted.rs",
     "src/certification/public_facade_contracts/compile_fail/results/public_canonical_artifact_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/results/public_prepared_result_constructor_not_exported.rs",
@@ -112,6 +130,13 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
 #[test]
 fn kernel_public_boundary_rejects_planar_boolean_common_plane_reduction_constructor_bypass() {
     for fixture in PLANAR_BOOLEAN_COMMON_PLANE_REDUCTION_FIXTURES {
+        assert_compile_fail_fixture(fixture);
+    }
+}
+
+#[test]
+fn kernel_public_boundary_rejects_planar_boolean_event_extraction_constructor_bypass() {
+    for fixture in PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES {
         assert_compile_fail_fixture(fixture);
     }
 }

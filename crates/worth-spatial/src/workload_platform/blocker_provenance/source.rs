@@ -4,6 +4,7 @@ pub enum WorkloadBlockerSourceKind {
     OpenTopology,
     PlanarBooleanEntryBasis,
     PlanarBooleanDeclaration,
+    PlanarBooleanEventExtraction,
 }
 
 impl WorkloadBlockerSourceKind {
@@ -13,6 +14,7 @@ impl WorkloadBlockerSourceKind {
             Self::OpenTopology => "open topology",
             Self::PlanarBooleanEntryBasis => "planar boolean entry basis",
             Self::PlanarBooleanDeclaration => "planar boolean declaration",
+            Self::PlanarBooleanEventExtraction => "planar boolean event extraction",
         }
     }
 }
@@ -24,6 +26,7 @@ pub enum WorkloadBlockerBoundaryKind {
     BooleanLanePolicy,
     BooleanSupportMatrix,
     BooleanEvidenceBoundary,
+    BooleanEventExtractionBoundary,
     BooleanExecutionBoundary,
 }
 
@@ -35,6 +38,7 @@ impl WorkloadBlockerBoundaryKind {
             Self::BooleanLanePolicy => "boolean lane policy",
             Self::BooleanSupportMatrix => "boolean support matrix",
             Self::BooleanEvidenceBoundary => "boolean evidence boundary",
+            Self::BooleanEventExtractionBoundary => "boolean event extraction boundary",
             Self::BooleanExecutionBoundary => "boolean execution boundary",
         }
     }

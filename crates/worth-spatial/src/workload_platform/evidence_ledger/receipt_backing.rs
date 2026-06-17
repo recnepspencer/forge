@@ -1,8 +1,8 @@
 use topology::facade::{TopologySeedReceipt, TopologyWorkloadReceipt};
 
 use super::{
-    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceSupport,
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageBinding,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 use crate::planar_contracts::planar_diagnostics::PlanarDiagnosticBundleReceipt;
 use crate::workload_platform::geometry_binding::GeometryBindingReceiptSet;
@@ -149,13 +149,17 @@ impl WorkloadEvidenceRow {
     }
 
     pub fn from_transform_receipt_set(receipt: &TransformReceiptSet) -> Self {
-        Self::receipt_backed(
+        Self::receipt_backed_with_stage_binding(
             WorkloadEvidenceStage::Transform,
             receipt.stage_identity().receipt_identity(),
             WorkloadEvidenceStageCounters::transform(
                 receipt.counters().transform_steps(),
                 receipt.counters().changed_coordinate_rows(),
                 receipt.counters().cancellation_steps(),
+            ),
+            WorkloadEvidenceStageBinding::new(
+                WorkloadEvidenceStage::Projection,
+                receipt.projected_workload_identity(),
             ),
         )
     }
@@ -169,12 +173,16 @@ impl WorkloadEvidenceRow {
     }
 
     pub fn from_replay_receipt_set(receipt: &ReplayReceiptSet) -> Self {
-        Self::receipt_backed(
+        Self::receipt_backed_with_stage_binding(
             WorkloadEvidenceStage::RetainedReplay,
             receipt.stage_identity().receipt_identity(),
             WorkloadEvidenceStageCounters::retained_replay(
                 receipt.counters().retained_artifact_rows(),
                 receipt.counters().replay_rows(),
+            ),
+            WorkloadEvidenceStageBinding::new(
+                WorkloadEvidenceStage::Transform,
+                receipt.transformed_workload_identity(),
             ),
         )
     }

@@ -1,0 +1,13 @@
+error[E0451]: fields `candidate`, `endpoint_posture`, `exact_endpoint_source_identity` and `exact_projected_endpoint_fact_identity` of struct `AdmittedPointSplitCandidate` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/admitted_point_split_candidate_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = AdmittedPointSplitCandidate {
+   |             --------------------------- in this type
+ 8 |         candidate: unavailable_candidate(),
+   |         ^^^^^^^^^ private field
+ 9 |         endpoint_posture: PlanarBooleanSplitPointEndpointPosture::Interior,
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         exact_endpoint_source_identity: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         exact_projected_endpoint_fact_identity: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

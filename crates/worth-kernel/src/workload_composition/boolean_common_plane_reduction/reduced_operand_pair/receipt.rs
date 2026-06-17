@@ -1,7 +1,14 @@
 use worth_spatial::facade::planar_boolean_common_plane::{
+    PlanarBooleanCommonPlaneOperandProjectionConsumptionReceipt,
+    PlanarBooleanCommonPlaneOperandSide,
     PlanarBooleanCommonPlaneReducedOperandPairOrderingContract,
     PlanarBooleanCommonPlaneReducedOperandPairReceipt,
 };
+use worth_spatial::facade::planar_boolean_events::{
+    PlanarBooleanSegmentCarrierOperandSource, PlanarBooleanSegmentCarrierSet,
+    PlanarBooleanSegmentCarrierSetDenial,
+};
+use worth_spatial::facade::projection_workload::ProjectedPlanarWorkload;
 
 use super::error::PlanarBooleanCommonPlaneReducedOperandPairAssemblyError;
 use super::identity::reduced_operand_pair_request_identity;
@@ -269,8 +276,60 @@ impl PlanarBooleanCommonPlaneReducedOperandPairRequest {
         self.reduced_pair_receipt.plane_agreement_identity()
     }
 
+    pub fn precision_agreement_identity(&self) -> &str {
+        self.operand_a_projected_request
+            .precision_agreement_identity()
+    }
+
     pub fn local_frame_selection_identity(&self) -> &str {
         self.reduced_pair_receipt.local_frame_selection_identity()
+    }
+
+    pub fn left_projection_identity(&self) -> &str {
+        self.reduced_pair_receipt.left_projection_identity()
+    }
+
+    pub fn right_projection_identity(&self) -> &str {
+        self.reduced_pair_receipt.right_projection_identity()
+    }
+
+    pub fn left_projection_receipt(
+        &self,
+    ) -> &PlanarBooleanCommonPlaneOperandProjectionConsumptionReceipt {
+        self.operand_a_projected_request.projection_receipt()
+    }
+
+    pub fn right_projection_receipt(
+        &self,
+    ) -> &PlanarBooleanCommonPlaneOperandProjectionConsumptionReceipt {
+        self.operand_b_projected_request.projection_receipt()
+    }
+
+    pub fn left_projected_workload(&self) -> &ProjectedPlanarWorkload {
+        self.operand_a_projected_request.projected_workload()
+    }
+
+    pub fn right_projected_workload(&self) -> &ProjectedPlanarWorkload {
+        self.operand_b_projected_request.projected_workload()
+    }
+
+    pub fn segment_carrier_set(
+        &self,
+    ) -> Result<PlanarBooleanSegmentCarrierSet, PlanarBooleanSegmentCarrierSetDenial> {
+        PlanarBooleanSegmentCarrierSet::from_projected_operands(
+            PlanarBooleanSegmentCarrierOperandSource::new(
+                PlanarBooleanCommonPlaneOperandSide::Left,
+                self.left_projected_workload(),
+                self.left_projection_receipt(),
+                self.precision_agreement_identity(),
+            ),
+            PlanarBooleanSegmentCarrierOperandSource::new(
+                PlanarBooleanCommonPlaneOperandSide::Right,
+                self.right_projected_workload(),
+                self.right_projection_receipt(),
+                self.precision_agreement_identity(),
+            ),
+        )
     }
 
     pub fn left_projection_stage_identity(&self) -> &str {

@@ -1,0 +1,27 @@
+error[E0451]: fields `split_request_identity`, `event_ledger_identity`, `downstream_consumption_identity`, `reduced_pair_identity`, `event_extraction_request_identity`, `segment_carrier_set_identity`, `segment_pair_enumeration_identity`, `candidate_index_consumption_gate_identity`, `candidate_index_product_identity`, `query_index_plan_digest` and `counters` of struct `PlanarBooleanEdgeSplitRequest` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/edge_split_request_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = PlanarBooleanEdgeSplitRequest {
+   |             ----------------------------- in this type
+ 7 |         split_request_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         event_ledger_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         downstream_consumption_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         reduced_pair_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         event_extraction_request_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         segment_carrier_set_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         segment_pair_enumeration_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         candidate_index_consumption_gate_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         candidate_index_product_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         query_index_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         counters: PlanarBooleanEdgeSplitRequestCounters::default(),
+   |         ^^^^^^^^ private field

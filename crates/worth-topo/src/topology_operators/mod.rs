@@ -2,6 +2,7 @@ pub(crate) mod authority_identity;
 pub(crate) mod application;
 mod declaration_entry;
 mod declared_mutation_sequence_builder;
+mod edge_split_blueprint;
 mod facade;
 mod local_rewrites;
 mod mutation_digest;
@@ -38,6 +39,12 @@ pub use declaration_entry::{
     TopologyWireSplitHalfEdgeMember,
 };
 pub(crate) use declared_mutation_sequence_builder::TopologyDeclaredMutationSequenceBuilder;
+pub use edge_split_blueprint::{
+    EdgeSplitBlueprintCloseout, EdgeSplitBlueprintCloseoutDenial, EdgeSplitOperatorBlueprint,
+    EdgeSplitOperatorClassification, EdgeSplitOperatorProofObligation, EdgeSplitOperatorRow,
+    EdgeSplitOperatorTruthAuthority, EdgeSplitRequiredQuerySurface,
+    EdgeSplitValidatorProofObligation, EdgeSplitValidatorRow, EdgeSplitValidatorRuntimeLane,
+};
 pub use facade::TopologyMutationApplicationMode;
 pub use mutation_digest::{TopologyMutationDigest, TopologyMutationSequenceDigest};
 pub(crate) use mutation_records::TopologyDeclaredMutationActionRef;

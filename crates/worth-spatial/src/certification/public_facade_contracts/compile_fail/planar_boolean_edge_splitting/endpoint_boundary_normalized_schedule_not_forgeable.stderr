@@ -1,0 +1,21 @@
+error[E0451]: fields `schedule_identity`, `normalized_schedule_identity`, `source_edge_identity`, `carrier_identity`, `fragment_cuts`, `endpoint_contact_decisions`, `retained_interval_entries` and `retained_interval_entry_identities` of struct `PlanarBooleanEndpointBoundaryNormalizedSplitSchedule` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/endpoint_boundary_normalized_schedule_not_forgeable.rs:5:9
+   |
+ 4 |     let _ = PlanarBooleanEndpointBoundaryNormalizedSplitSchedule {
+   |             ---------------------------------------------------- in this type
+ 5 |         schedule_identity: "forged".to_string(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 6 |         normalized_schedule_identity: "normalized".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         source_edge_identity: "source".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         carrier_identity: "carrier".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 9 |         fragment_cuts: Vec::new(),
+   |         ^^^^^^^^^^^^^ private field
+10 |         endpoint_contact_decisions: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         retained_interval_entries: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         retained_interval_entry_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

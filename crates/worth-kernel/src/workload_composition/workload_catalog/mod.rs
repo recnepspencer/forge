@@ -1,12 +1,14 @@
 mod boolean_operand_pair;
 mod built_recipe;
 mod catalog;
+mod catalog_constructors;
 mod error;
 mod grazing_basket_spec;
 mod open_class_triad;
 mod query;
 mod recipe_kind;
 mod recipe_pipeline;
+mod recipe_seed;
 mod recipe_transform;
 mod support_receipt;
 mod topology_construction_plan;

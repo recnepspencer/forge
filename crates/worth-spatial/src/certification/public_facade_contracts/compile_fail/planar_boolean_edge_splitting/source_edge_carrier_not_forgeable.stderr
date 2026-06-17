@@ -1,0 +1,33 @@
+error[E0451]: fields `recovered_carrier_identity`, `operand_side`, `source_face_identity`, `source_loop_identity`, `source_edge_identity`, `loop_role`, `carrier_identity`, `start_source_endpoint_identity`, `start_projected_endpoint_fact_identity`, `end_source_endpoint_identity`, `end_projected_endpoint_fact_identity`, `local_frame_identity`, `projection_stage_identity` and `precision_basis_identity` of struct `PlanarBooleanSplitSourceEdgeCarrier` are private
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/source_edge_carrier_not_forgeable.rs:7:9
+   |
+ 6 |     let _ = PlanarBooleanSplitSourceEdgeCarrier {
+   |             ----------------------------------- in this type
+ 7 |         recovered_carrier_identity: String::from("forged recovered carrier"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         operand_side: PlanarBooleanCommonPlaneOperandSide::Left,
+   |         ^^^^^^^^^^^^ private field
+ 9 |         source_face_identity: String::from("face"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+10 |         source_loop_identity: String::from("loop"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         source_edge_identity: String::from("edge"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+12 |         loop_role: PlanarBooleanLoopRole::OuterBoundary,
+   |         ^^^^^^^^^ private field
+13 |         carrier_identity: String::from("carrier"),
+   |         ^^^^^^^^^^^^^^^^ private field
+14 |         start_source_endpoint_identity: String::from("start"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         start_projected_endpoint_fact_identity: String::from("start projected"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         end_source_endpoint_identity: String::from("end"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         end_projected_endpoint_fact_identity: String::from("end projected"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         local_frame_identity: String::from("local frame"),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+19 |         projection_stage_identity: String::from("projection"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         precision_basis_identity: String::from("precision"),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field

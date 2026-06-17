@@ -1,0 +1,15 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_vertex_identity_set_not_forgeable.rs:6:50
+  |
+6 |       let _ = PlanarBooleanSplitVertexIdentitySet::new(
+  |                                                    ^^^ private associated function
+  |
+ ::: src/workload_platform/planar_boolean_edge_splitting/split_vertex_identity/vertex_set.rs
+  |
+  | /     pub(crate) fn new(
+  | |         split_vertex_identity_set_identity: String,
+  | |         interval_subdivision_schedule_set_identity: String,
+  | |         schedules: Vec<PlanarBooleanSplitVertexIdentitySchedule>,
+  | |         counters: PlanarBooleanSplitVertexIdentityCounters,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

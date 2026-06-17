@@ -16,9 +16,8 @@ use super::evidence_ledger_receipts::{
 };
 
 #[test]
-fn honesty_guards_reject_synthetic_replay_motion_and_fixture_arithmetic() {
+fn honesty_guard_rejects_label_only_motion() {
     let receipts = admitted_receipts();
-
     let label_only_motion = WorkloadEvidenceLedger::from_rows(receipt_backed_rows(&receipts))
         .expect("simple receipt-backed ledger should remain inspectable")
         .guards()
@@ -28,25 +27,34 @@ fn honesty_guards_reject_synthetic_replay_motion_and_fixture_arithmetic() {
         label_only_motion,
         WorkloadEvidenceGuardError::LabelOnlyMotion
     );
+}
 
-    let posture_only_motion =
-        WorkloadEvidenceLedger::from_rows(counter_backed_rows_with_transform(
-            "posture-only-transform-guard",
-            TransformSequence::new().reorient(TransformReorientation::preserves_handedness()),
-        ))
-        .expect("posture-only transform receipt rows should remain inspectable")
-        .guards()
-        .assert_transform_changed_geometry()
-        .expect_err("posture-only transform evidence must not prove moved coordinates");
-    assert_eq!(
-        posture_only_motion,
-        WorkloadEvidenceGuardError::LabelOnlyMotion
-    );
-    assert_eq!(
-        posture_only_motion.human_reason(),
-        "workload evidence guard requires coordinate-changing transform evidence"
-    );
+#[test]
+fn honesty_guard_rejects_posture_only_motion() {
+    super::run_stack_heavy_test(|| {
+        let posture_only_motion =
+            WorkloadEvidenceLedger::from_rows(counter_backed_rows_with_transform(
+                "posture-only-transform-guard",
+                TransformSequence::new().reorient(TransformReorientation::preserves_handedness()),
+            ))
+            .expect("posture-only transform receipt rows should remain inspectable")
+            .guards()
+            .assert_transform_changed_geometry()
+            .expect_err("posture-only transform evidence must not prove moved coordinates");
+        assert_eq!(
+            posture_only_motion,
+            WorkloadEvidenceGuardError::LabelOnlyMotion
+        );
+        assert_eq!(
+            posture_only_motion.human_reason(),
+            "workload evidence guard requires coordinate-changing transform evidence"
+        );
+    });
+}
 
+#[test]
+fn honesty_guard_rejects_synthetic_replay() {
+    let receipts = admitted_receipts();
     let synthetic_replay = WorkloadEvidenceLedger::from_rows(receipt_backed_rows(&receipts))
         .expect("simple receipt-backed ledger should remain inspectable")
         .guards()
@@ -56,7 +64,11 @@ fn honesty_guards_reject_synthetic_replay_motion_and_fixture_arithmetic() {
         synthetic_replay,
         WorkloadEvidenceGuardError::SyntheticReplay
     );
+}
 
+#[test]
+fn honesty_guard_rejects_fixture_arithmetic() {
+    let receipts = admitted_receipts();
     let mut fixture_rows = receipt_backed_rows(&receipts);
     fixture_rows[3] =
         WorkloadEvidenceRow::new(WorkloadEvidenceStage::Projection, "4 projected rows");
@@ -69,7 +81,11 @@ fn honesty_guards_reject_synthetic_replay_motion_and_fixture_arithmetic() {
         fixture_arithmetic,
         WorkloadEvidenceGuardError::FixtureArithmeticAsTruth(WorkloadEvidenceStage::Projection)
     );
+}
 
+#[test]
+fn honesty_guard_rejects_unsupported_complete_ledger() {
+    let receipts = admitted_receipts();
     let unsupported = unsupported_surface_support_row("ledger-unsupported-freeform");
     let mut unsupported_rows = receipt_backed_rows(&receipts);
     unsupported_rows[2] = unsupported;

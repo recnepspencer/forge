@@ -5,6 +5,7 @@ pub struct WorkloadEvidenceRow {
     backing: WorkloadEvidenceBacking,
     support: WorkloadEvidenceSupport,
     counters: WorkloadEvidenceStageCounters,
+    upstream_stage_binding: Option<WorkloadEvidenceStageBinding>,
 }
 
 impl WorkloadEvidenceRow {
@@ -15,6 +16,7 @@ impl WorkloadEvidenceRow {
             backing: WorkloadEvidenceBacking::Manual,
             support: WorkloadEvidenceSupport::Manual,
             counters: WorkloadEvidenceStageCounters::default(),
+            upstream_stage_binding: None,
         }
     }
 
@@ -29,6 +31,7 @@ impl WorkloadEvidenceRow {
             backing: WorkloadEvidenceBacking::Receipt,
             support: WorkloadEvidenceSupport::Admitted,
             counters,
+            upstream_stage_binding: None,
         }
     }
 
@@ -44,6 +47,23 @@ impl WorkloadEvidenceRow {
             backing: WorkloadEvidenceBacking::Receipt,
             support,
             counters,
+            upstream_stage_binding: None,
+        }
+    }
+
+    pub(crate) fn receipt_backed_with_stage_binding(
+        stage: WorkloadEvidenceStage,
+        evidence_identity: impl Into<String>,
+        counters: WorkloadEvidenceStageCounters,
+        upstream_stage_binding: WorkloadEvidenceStageBinding,
+    ) -> Self {
+        Self {
+            stage,
+            evidence_identity: evidence_identity.into(),
+            backing: WorkloadEvidenceBacking::Receipt,
+            support: WorkloadEvidenceSupport::Admitted,
+            counters,
+            upstream_stage_binding: Some(upstream_stage_binding),
         }
     }
 
@@ -61,6 +81,10 @@ impl WorkloadEvidenceRow {
 
     pub fn counters(&self) -> WorkloadEvidenceStageCounters {
         self.counters
+    }
+
+    pub fn upstream_stage_binding(&self) -> Option<&WorkloadEvidenceStageBinding> {
+        self.upstream_stage_binding.as_ref()
     }
 
     pub fn support(&self) -> WorkloadEvidenceSupport {
@@ -97,5 +121,31 @@ pub enum WorkloadEvidenceSupport {
     Unsupported,
     Blocked,
     Manual,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkloadEvidenceStageBinding {
+    upstream_stage: WorkloadEvidenceStage,
+    upstream_evidence_identity: String,
+}
+
+impl WorkloadEvidenceStageBinding {
+    pub(crate) fn new(
+        upstream_stage: WorkloadEvidenceStage,
+        upstream_evidence_identity: impl Into<String>,
+    ) -> Self {
+        Self {
+            upstream_stage,
+            upstream_evidence_identity: upstream_evidence_identity.into(),
+        }
+    }
+
+    pub fn upstream_stage(&self) -> WorkloadEvidenceStage {
+        self.upstream_stage
+    }
+
+    pub fn upstream_evidence_identity(&self) -> &str {
+        &self.upstream_evidence_identity
+    }
 }
 use super::{BooleanEvidenceReceipt, WorkloadEvidenceStage, WorkloadEvidenceStageCounters};

@@ -11,8 +11,8 @@ use super::{
     PlanarBooleanCommonPlanePrecisionAgreedRequest,
     PlanarBooleanCommonPlaneReducedOperandPairRequest,
     PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest, PlanarBooleanDeclarationReceipt,
-    PlanarBooleanOutcomeKind, PlanarBooleanOutcomeReceipt, PlanarBooleanSupportPosture,
-    PlanarBooleanSupportReceipt,
+    PlanarBooleanEventExtractionRequest, PlanarBooleanOutcomeKind, PlanarBooleanOutcomeReceipt,
+    PlanarBooleanSupportPosture, PlanarBooleanSupportReceipt,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -261,6 +261,24 @@ impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneReducedOperandPairReques
 
     fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
         WorkloadEvidenceStageCounters::boolean_reduced_operand_pair()
+    }
+}
+
+impl BooleanEvidenceReceipt for PlanarBooleanEventExtractionRequest {
+    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+        BooleanEvidenceStageKind::EventExtractionRequest
+    }
+
+    fn evidence_identity(&self) -> &str {
+        self.event_extraction_request_identity()
+    }
+
+    fn evidence_support(&self) -> WorkloadEvidenceSupport {
+        WorkloadEvidenceSupport::Admitted
+    }
+
+    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+        WorkloadEvidenceStageCounters::boolean_event_extraction_request()
     }
 }
 

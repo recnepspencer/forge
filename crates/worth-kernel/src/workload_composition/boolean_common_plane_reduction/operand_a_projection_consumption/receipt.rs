@@ -1,4 +1,5 @@
 use worth_spatial::facade::planar_boolean_common_plane::PlanarBooleanCommonPlaneOperandProjectionConsumptionReceipt;
+use worth_spatial::facade::projection_workload::ProjectedPlanarWorkload;
 
 use super::error::PlanarBooleanCommonPlaneOperandAProjectionConsumptionError;
 use super::identity::operand_a_projected_request_identity;
@@ -14,6 +15,7 @@ use crate::workload_composition::{
 pub struct PlanarBooleanCommonPlaneOperandAProjectedRequest {
     local_frame_selected_request: PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
     projection_receipt: PlanarBooleanCommonPlaneOperandProjectionConsumptionReceipt,
+    projected_workload: ProjectedPlanarWorkload,
     source_operand_workload_identity: String,
     operand_a_projection_identity: String,
 }
@@ -22,7 +24,7 @@ impl PlanarBooleanCommonPlaneOperandAProjectedRequest {
     pub fn from_local_frame_selected_request(
         local_frame_selected_request: PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
     ) -> Result<Self, PlanarBooleanCommonPlaneOperandAProjectionConsumptionError> {
-        let (projection_receipt, source_operand_workload_identity) =
+        let (projection_receipt, projected_workload, source_operand_workload_identity) =
             certify_projection_from_selected_frame(
                 &local_frame_selected_request,
                 OperandProjectionRole::OperandA,
@@ -32,6 +34,7 @@ impl PlanarBooleanCommonPlaneOperandAProjectedRequest {
         Self::from_certified_parts(
             local_frame_selected_request,
             projection_receipt,
+            projected_workload,
             source_operand_workload_identity,
         )
     }
@@ -40,16 +43,18 @@ impl PlanarBooleanCommonPlaneOperandAProjectedRequest {
         local_frame_selected_request: PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
         projection_receipt: PlanarBooleanCommonPlaneOperandProjectionConsumptionReceipt,
     ) -> Result<Self, PlanarBooleanCommonPlaneOperandAProjectionConsumptionError> {
-        let (projection_receipt, source_operand_workload_identity) = certify_projection_receipt(
-            &local_frame_selected_request,
-            OperandProjectionRole::OperandA,
-            projection_receipt,
-        )
-        .map_err(PlanarBooleanCommonPlaneOperandAProjectionConsumptionError::from)?
-        .into_parts();
+        let (projection_receipt, projected_workload, source_operand_workload_identity) =
+            certify_projection_receipt(
+                &local_frame_selected_request,
+                OperandProjectionRole::OperandA,
+                projection_receipt,
+            )
+            .map_err(PlanarBooleanCommonPlaneOperandAProjectionConsumptionError::from)?
+            .into_parts();
         Self::from_certified_parts(
             local_frame_selected_request,
             projection_receipt,
+            projected_workload,
             source_operand_workload_identity,
         )
     }
@@ -116,6 +121,10 @@ impl PlanarBooleanCommonPlaneOperandAProjectedRequest {
         &self.projection_receipt
     }
 
+    pub fn projected_workload(&self) -> &ProjectedPlanarWorkload {
+        &self.projected_workload
+    }
+
     pub fn local_frame_selected_request(
         &self,
     ) -> &PlanarBooleanCommonPlaneLocalFrameSelectedRequest {
@@ -127,12 +136,14 @@ impl PlanarBooleanCommonPlaneOperandAProjectedRequest {
     fn from_certified_parts(
         local_frame_selected_request: PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
         projection_receipt: PlanarBooleanCommonPlaneOperandProjectionConsumptionReceipt,
+        projected_workload: ProjectedPlanarWorkload,
         source_operand_workload_identity: String,
     ) -> Result<Self, PlanarBooleanCommonPlaneOperandAProjectionConsumptionError> {
         let request = Self {
             source_operand_workload_identity,
             local_frame_selected_request,
             projection_receipt,
+            projected_workload,
             operand_a_projection_identity: String::new(),
         };
         let operand_a_projection_identity = operand_a_projected_request_identity(&request);

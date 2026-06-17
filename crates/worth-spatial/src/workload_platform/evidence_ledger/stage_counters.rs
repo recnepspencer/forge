@@ -1,4 +1,6 @@
-use super::WorkloadEvidenceStage;
+mod event_ledger;
+mod receipt_stage_lookup;
+mod segment_pair_enumeration;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorkloadEvidenceStageCounters {
@@ -26,6 +28,24 @@ pub struct WorkloadEvidenceStageCounters {
     boolean_operand_a_projection_consumption_count: usize,
     boolean_operand_b_projection_consumption_count: usize,
     boolean_reduced_operand_pair_count: usize,
+    boolean_event_extraction_request_count: usize,
+    boolean_segment_pair_enumeration_count: usize,
+    boolean_segment_pair_left_segment_count: usize,
+    boolean_segment_pair_right_segment_count: usize,
+    boolean_segment_pair_expected_breadth: usize,
+    boolean_segment_pair_emitted_breadth: usize,
+    boolean_segment_pair_skipped_count: usize,
+    boolean_segment_pair_query_index_candidate_count: usize,
+    boolean_segment_pair_query_index_culled_count: usize,
+    boolean_segment_pair_envelope_expanded_count: usize,
+    boolean_segment_pair_broad_phase_comparison_count: usize,
+    boolean_segment_pair_degenerate_skip_count: usize,
+    boolean_segment_pair_fallback_used_count: usize,
+    boolean_event_ledger_count: usize,
+    boolean_event_ledger_point_event_count: usize,
+    boolean_event_ledger_interval_event_count: usize,
+    boolean_event_ledger_group_count: usize,
+    boolean_event_ledger_relation_diagnostic_count: usize,
     boolean_split_count: usize,
     boolean_classify_count: usize,
     boolean_assemble_count: usize,
@@ -182,6 +202,13 @@ impl WorkloadEvidenceStageCounters {
         }
     }
 
+    pub fn boolean_event_extraction_request() -> Self {
+        Self {
+            boolean_event_extraction_request_count: 1,
+            ..Self::default()
+        }
+    }
+
     pub fn boolean_split() -> Self {
         Self {
             boolean_split_count: 1,
@@ -306,6 +333,10 @@ impl WorkloadEvidenceStageCounters {
         self.boolean_reduced_operand_pair_count
     }
 
+    pub fn boolean_event_extraction_request_count(self) -> usize {
+        self.boolean_event_extraction_request_count
+    }
+
     pub fn boolean_split_count(self) -> usize {
         self.boolean_split_count
     }
@@ -355,57 +386,14 @@ impl WorkloadEvidenceStageCounters {
             + self.boolean_operand_a_projection_consumption_count
             + self.boolean_operand_b_projection_consumption_count
             + self.boolean_reduced_operand_pair_count
+            + self.boolean_event_extraction_request_count
+            + self.boolean_segment_pair_enumeration_count
+            + self.boolean_event_ledger_count
             + self.boolean_split_count
             + self.boolean_classify_count
             + self.boolean_assemble_count
             + self.boolean_cleanup_count
             + self.diagnostic_count
             + self.user_outcome_count
-    }
-
-    pub fn has_receipt_backed_counter_for_stage(self, stage: WorkloadEvidenceStage) -> bool {
-        self.receipt_backed_counter_for_stage(stage) > 0
-    }
-
-    fn receipt_backed_counter_for_stage(self, stage: WorkloadEvidenceStage) -> usize {
-        match stage {
-            WorkloadEvidenceStage::Topology => self.topology_entity_count,
-            WorkloadEvidenceStage::GeometryBinding => self.binding_target_count,
-            WorkloadEvidenceStage::SurfaceSupport => self.surface_support_count,
-            WorkloadEvidenceStage::Projection => self.projected_entity_count,
-            WorkloadEvidenceStage::Transform => self.transform_step_count,
-            WorkloadEvidenceStage::RetainedReplay => self.retained_artifact_count,
-            WorkloadEvidenceStage::Diagnostics => self.diagnostic_count,
-            WorkloadEvidenceStage::Response => self.user_outcome_count,
-            WorkloadEvidenceStage::Operator => self.operator_receipt_count,
-            WorkloadEvidenceStage::BooleanDeclarationEntry => self.boolean_declaration_count,
-            WorkloadEvidenceStage::BooleanRoutePlan => self.boolean_route_count,
-            WorkloadEvidenceStage::BooleanOperandPairConstruction => {
-                self.boolean_operand_pair_count
-            }
-            WorkloadEvidenceStage::BooleanBlockerProvenance => self.boolean_blocker_count,
-            WorkloadEvidenceStage::BooleanPrecisionAgreement => {
-                self.boolean_precision_agreement_count
-            }
-            WorkloadEvidenceStage::BooleanSharedPlaneIdentity => {
-                self.boolean_shared_plane_identity_count
-            }
-            WorkloadEvidenceStage::BooleanLocalFrameSelection => {
-                self.boolean_local_frame_selection_count
-            }
-            WorkloadEvidenceStage::BooleanOperandAProjectionConsumption => {
-                self.boolean_operand_a_projection_consumption_count
-            }
-            WorkloadEvidenceStage::BooleanOperandBProjectionConsumption => {
-                self.boolean_operand_b_projection_consumption_count
-            }
-            WorkloadEvidenceStage::BooleanReducedOperandPair => {
-                self.boolean_reduced_operand_pair_count
-            }
-            WorkloadEvidenceStage::BooleanSplit => self.boolean_split_count,
-            WorkloadEvidenceStage::BooleanClassify => self.boolean_classify_count,
-            WorkloadEvidenceStage::BooleanAssemble => self.boolean_assemble_count,
-            WorkloadEvidenceStage::BooleanCleanup => self.boolean_cleanup_count,
-        }
     }
 }

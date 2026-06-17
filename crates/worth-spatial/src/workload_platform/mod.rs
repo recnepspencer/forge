@@ -14,6 +14,8 @@ pub(crate) mod nmt_radial_fan;
 pub(crate) mod open_class_triad_parity;
 pub(crate) mod open_planar_posture;
 pub(crate) mod planar_boolean_common_plane;
+pub(crate) mod planar_boolean_edge_splitting;
+pub(crate) mod planar_boolean_events;
 pub(crate) mod projected_overlap_faces;
 pub(crate) mod projection_fact_parity;
 pub(crate) mod projection_policy_choice;

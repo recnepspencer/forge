@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanDuplicateSplitCutKey`
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/duplicate_split_cut_key_not_public.rs:1:5
+  |
+1 | use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanDuplicateSplitCutKey;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PlanarBooleanDuplicateSplitCutKey` in `facade::planar_boolean_edge_splitting`

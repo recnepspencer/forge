@@ -1,7 +1,4 @@
-use super::boolean_operand_pair::WorkloadCatalogBooleanOperandPairRecipe;
 use super::error::WorkloadCatalogError;
-use super::grazing_basket_spec::GrazingBasketStackSpec;
-use super::open_class_triad::OpenClassTriadCatalogRecipe;
 use super::recipe_kind::{
     RetainedReplayRecipe, TransformRecipe, WorkloadCatalogRecipeKind,
     WorkloadCatalogSupportPosture, WorkloadTopologyBreadth,
@@ -13,153 +10,12 @@ use super::support_receipt::{
 };
 use super::topology_construction_plan::WorkloadCatalogTopologyConstructionPlan;
 use super::{BuiltCleanFailCatalogRecipe, BuiltWorkloadCatalogRecipe};
-use topology::facade::{
-    NmtTopologyConstructionReceipt, OpenLayerStackSpec, OpenRadialFanSpec, OpenSheetPatchSpec,
-    OpenWireChainSpec, TopologySeed,
-};
+use topology::facade::{NmtTopologyConstructionReceipt, TopologySeed};
+use worth_spatial::facade::workload_binding::PlanarLoopBoundaryCatalogProfile;
 
 pub const HIGH_VALENCE_VERTEX_MAX_ADMITTED_VALENCE: usize = 128;
 
 pub struct WorkloadCatalog;
-
-impl WorkloadCatalog {
-    pub fn cube() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::Cube)
-    }
-
-    pub fn tetrahedron() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::Tetrahedron)
-    }
-
-    pub fn single_face_loop() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::SingleFaceLoop)
-    }
-
-    pub fn planar_boolean_clean_planar_body_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
-        WorkloadCatalogBooleanOperandPairRecipe::new(
-            WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair,
-        )
-    }
-
-    pub fn planar_boolean_mismatched_posture_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
-        WorkloadCatalogBooleanOperandPairRecipe::new(
-            WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair,
-        )
-    }
-
-    pub fn planar_boolean_coplanar_overlap_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
-        WorkloadCatalogBooleanOperandPairRecipe::new(
-            WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair,
-        )
-    }
-
-    pub fn planar_boolean_thin_feature_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
-        WorkloadCatalogBooleanOperandPairRecipe::new(
-            WorkloadCatalogRecipeKind::BooleanThinFeaturePair,
-        )
-    }
-
-    pub fn planar_boolean_high_valence_contact_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
-        WorkloadCatalogBooleanOperandPairRecipe::new(
-            WorkloadCatalogRecipeKind::BooleanHighValenceContactPair,
-        )
-    }
-
-    pub fn planar_boolean_dirty_clean_fail_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
-        WorkloadCatalogBooleanOperandPairRecipe::new(
-            WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair,
-        )
-    }
-
-    pub fn planar_boolean_open_unbounded_denial_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
-        WorkloadCatalogBooleanOperandPairRecipe::new(
-            WorkloadCatalogRecipeKind::BooleanOpenUnboundedDenialPair,
-        )
-    }
-
-    pub fn coplanar_overlap_storm() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::CoplanarOverlapStorm)
-    }
-
-    pub fn thin_feature_wall() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::ThinFeatureWall)
-    }
-
-    pub fn dirty_self_intersecting_loop() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::DirtySelfIntersectingLoop)
-    }
-
-    pub fn high_valence_vertex() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::HighValenceVertex)
-    }
-
-    pub fn mixed_surface_kill_box() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::MixedSurfaceKillBox)
-            .with_topology_construction_plan(WorkloadCatalogTopologyConstructionPlan::OpenSheet(
-                OpenSheetPatchSpec::new(),
-            ))
-    }
-
-    pub fn open_wire() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::OpenWire)
-            .with_topology_construction_plan(WorkloadCatalogTopologyConstructionPlan::OpenWire(
-                OpenWireChainSpec::new(),
-            ))
-    }
-
-    pub fn open_sheet() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::OpenSheet)
-            .with_topology_construction_plan(WorkloadCatalogTopologyConstructionPlan::OpenSheet(
-                OpenSheetPatchSpec::new(),
-            ))
-    }
-
-    pub fn open_shell_nmt_edge_fan(incident_faces: usize) -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::OpenShellNmtEdgeFan)
-            .with_topology_construction_plan(
-                WorkloadCatalogTopologyConstructionPlan::OpenRadialFan(
-                    OpenRadialFanSpec::new().incident_faces(incident_faces),
-                ),
-            )
-    }
-
-    pub fn open_layer_stack(spec: OpenLayerStackSpec) -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::OpenLayerStack)
-            .with_topology_construction_plan(
-                WorkloadCatalogTopologyConstructionPlan::OpenLayerStack(spec),
-            )
-    }
-
-    pub fn grazing_open_shell_basket_stack(spec: GrazingBasketStackSpec) -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::GrazingBasketStack)
-            .with_topology_construction_plan(
-                WorkloadCatalogTopologyConstructionPlan::OpenLayerStack(
-                    spec.into_open_layer_stack_spec(),
-                ),
-            )
-    }
-
-    pub fn open_class_triad(incident_faces: usize) -> OpenClassTriadCatalogRecipe {
-        OpenClassTriadCatalogRecipe::new(incident_faces)
-    }
-
-    pub fn transform_cycle() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::TransformCycle)
-    }
-
-    pub fn retained_cancellation_chain() -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::RetainedCancellationChain)
-    }
-
-    pub fn from_topology_construction(
-        construction: NmtTopologyConstructionReceipt,
-    ) -> WorkloadCatalogRecipe {
-        WorkloadCatalogRecipe::new(WorkloadCatalogRecipeKind::NmtTopologyConstruction)
-            .with_topology_construction_plan(WorkloadCatalogTopologyConstructionPlan::Receipt(
-                construction,
-            ))
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkloadCatalogRecipe {
@@ -168,17 +24,19 @@ pub struct WorkloadCatalogRecipe {
     transform_recipe: Option<TransformRecipe>,
     retained_replay_recipe: Option<RetainedReplayRecipe>,
     topology_breadth: WorkloadTopologyBreadth,
+    planar_loop_boundary_profile: PlanarLoopBoundaryCatalogProfile,
     topology_construction_plan: Option<WorkloadCatalogTopologyConstructionPlan>,
 }
 
 impl WorkloadCatalogRecipe {
-    fn new(kind: WorkloadCatalogRecipeKind) -> Self {
+    pub(super) fn new(kind: WorkloadCatalogRecipeKind) -> Self {
         Self {
             kind,
             declaration: kind.default_declaration().to_string(),
             transform_recipe: None,
             retained_replay_recipe: None,
             topology_breadth: WorkloadTopologyBreadth::Default,
+            planar_loop_boundary_profile: PlanarLoopBoundaryCatalogProfile::Default,
             topology_construction_plan: None,
         }
     }
@@ -198,12 +56,20 @@ impl WorkloadCatalogRecipe {
         self
     }
 
+    pub fn with_planar_loop_boundary_profile(
+        mut self,
+        profile: PlanarLoopBoundaryCatalogProfile,
+    ) -> Self {
+        self.planar_loop_boundary_profile = profile;
+        self
+    }
+
     pub fn with_retained_replay_artifacts(mut self) -> Self {
         self.retained_replay_recipe = Some(RetainedReplayRecipe::RetainedCancellationChain);
         self
     }
 
-    fn with_topology_construction_plan(
+    pub(super) fn with_topology_construction_plan(
         mut self,
         plan: WorkloadCatalogTopologyConstructionPlan,
     ) -> Self {
@@ -234,6 +100,7 @@ impl WorkloadCatalogRecipe {
             self.retained_replay_recipe
                 .unwrap_or_else(|| self.kind.default_retained_replay_recipe()),
             self.topology_breadth,
+            self.planar_loop_boundary_profile,
             topology_construction,
         )?;
         let topology_neighborhood = workload_build.topology_neighborhood().cloned();
@@ -337,6 +204,13 @@ impl WorkloadCatalogRecipe {
 
     fn explicit_topology_breadth_denial(&self) -> Option<String> {
         match self.topology_breadth {
+            WorkloadTopologyBreadth::SingleFaceLoopEdges { edge_count }
+                if self.kind == WorkloadCatalogRecipeKind::SingleFaceLoop && edge_count < 3 =>
+            {
+                Some(format!(
+                    "single face loop workload recipes require at least 3 boundary edges; requested {edge_count}"
+                ))
+            }
             WorkloadTopologyBreadth::HighValenceVertex { valence }
                 if self.kind == WorkloadCatalogRecipeKind::HighValenceVertex
                     && !(3..=HIGH_VALENCE_VERTEX_MAX_ADMITTED_VALENCE).contains(&valence) =>

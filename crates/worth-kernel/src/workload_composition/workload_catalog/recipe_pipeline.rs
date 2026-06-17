@@ -1,6 +1,5 @@
 use topology::facade::{
-    NmtTopologyConstructionReceipt, TopologySeed, TopologySeedNeighborhoodReceipt,
-    TopologySeedReceipt, TopologySeedRecipe,
+    NmtTopologyConstructionReceipt, TopologySeedNeighborhoodReceipt, TopologySeedReceipt,
 };
 use worth_spatial::facade::projection_workload::{
     LocalFrameBasis, ProjectedPlanarWorkload, ProjectionReceiptSet, ProjectionWorkload,
@@ -16,7 +15,8 @@ use worth_spatial::facade::transform_workload::{
 };
 use worth_spatial::facade::workload_binding::{
     BoundGeometryWorkload, GeometryBindingReceiptSet, GeometryBindingWorkload,
-    PlanarEdgeCarrierSet, PlanarFaceCarrierSet, PlanarLoopCarrierSet,
+    PlanarEdgeCarrierSet, PlanarFaceCarrierSet, PlanarLoopBoundaryCatalogProfile,
+    PlanarLoopCarrierSet,
 };
 use worth_spatial::facade::workload_vocabulary::{
     DiagnosticWorkload, DiagnosticWorkloadReceipt, ResponseWorkload, ResponseWorkloadReceipt,
@@ -28,6 +28,7 @@ use super::error::WorkloadCatalogError;
 use super::recipe_kind::{
     RetainedReplayRecipe, TransformRecipe, WorkloadCatalogRecipeKind, WorkloadTopologyBreadth,
 };
+use super::recipe_seed::build_topology_seed;
 use crate::workload_composition::{WorthWorkload, WorthWorkloadParts};
 
 pub(crate) struct CatalogWorkloadBuild {
@@ -81,6 +82,7 @@ pub(crate) fn build_catalog_workload(
     transform_recipe: TransformRecipe,
     retained_replay_recipe: RetainedReplayRecipe,
     topology_breadth: WorkloadTopologyBreadth,
+    planar_loop_boundary_profile: PlanarLoopBoundaryCatalogProfile,
     topology_construction: Option<NmtTopologyConstructionReceipt>,
 ) -> Result<CatalogWorkloadBuild, WorkloadCatalogError> {
     let topology = build_topology_seed(
@@ -90,7 +92,7 @@ pub(crate) fn build_catalog_workload(
         topology_construction.as_ref(),
     )?;
     let topology_neighborhood = topology.neighborhood().cloned();
-    let bound_geometry = bind_seed_geometry(&topology, declaration)?;
+    let bound_geometry = bind_seed_geometry(&topology, declaration, planar_loop_boundary_profile)?;
     let bound_geometry_for_catalog = bound_geometry.clone();
     let geometry_receipts = bound_geometry.receipts().clone();
     let surface_support = certify_surface_support(bound_geometry, declaration)?;
@@ -152,101 +154,19 @@ pub(crate) fn build_catalog_workload(
     })
 }
 
-fn build_topology_seed(
-    recipe: WorkloadCatalogRecipeKind,
-    declaration: &str,
-    topology_breadth: WorkloadTopologyBreadth,
-    topology_construction: Option<&NmtTopologyConstructionReceipt>,
-) -> Result<TopologySeedReceipt, WorkloadCatalogError> {
-    if let Some(construction) = topology_construction {
-        if !recipe.consumes_nmt_topology_construction() {
-            return Err(WorkloadCatalogError::UnsupportedRecipe {
-                recipe,
-                reason: "NMT topology construction receipts can only enter catalog recipes that explicitly consume the generic NMT topology construction boundary".to_string(),
-            });
-        }
-        return Ok(construction.topology_seed_receipt().clone());
-    }
-    if recipe.consumes_nmt_topology_construction() {
-        return Err(WorkloadCatalogError::UnsupportedRecipe {
-            recipe,
-            reason: "NMT topology construction workloads require a production NmtTopologyConstructionReceipt before spatial binding".to_string(),
-        });
-    }
-
-    let seed = match topology_breadth {
-        WorkloadTopologyBreadth::Default => default_topology_seed(recipe),
-        WorkloadTopologyBreadth::MultiFaceShell { face_count }
-            if recipe == WorkloadCatalogRecipeKind::CoplanarOverlapStorm =>
-        {
-            TopologySeed::multi_face_shell(face_count)
-        }
-        WorkloadTopologyBreadth::HighValenceVertex { valence }
-            if recipe == WorkloadCatalogRecipeKind::HighValenceVertex =>
-        {
-            TopologySeed::high_valence_vertex_with_valence(valence)
-        }
-        WorkloadTopologyBreadth::MultiFaceShell { .. } => {
-            return Err(WorkloadCatalogError::UnsupportedRecipe {
-                recipe,
-                reason: "explicit multi-face shell breadth is only admitted for the coplanar overlap storm recipe".to_string(),
-            });
-        }
-        WorkloadTopologyBreadth::HighValenceVertex { .. } => {
-            return Err(WorkloadCatalogError::UnsupportedRecipe {
-                recipe,
-                reason: "explicit high-valence vertex breadth is only admitted for the high-valence vertex recipe".to_string(),
-            });
-        }
-    };
-    seed.with_declaration(format!("topology seed for {declaration}"))
-        .build()
-        .map_err(WorkloadCatalogError::from)
-}
-
-fn default_topology_seed(recipe: WorkloadCatalogRecipeKind) -> TopologySeedRecipe {
-    match recipe {
-        WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair
-        | WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair
-        | WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair
-        | WorkloadCatalogRecipeKind::BooleanThinFeaturePair
-        | WorkloadCatalogRecipeKind::BooleanHighValenceContactPair
-        | WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair
-        | WorkloadCatalogRecipeKind::BooleanOpenUnboundedDenialPair => unreachable!(
-            "boolean operand-pair recipes must build through the dedicated pair orchestrator"
-        ),
-        WorkloadCatalogRecipeKind::Cube
-        | WorkloadCatalogRecipeKind::MixedSurfaceKillBox
-        | WorkloadCatalogRecipeKind::TransformCycle
-        | WorkloadCatalogRecipeKind::RetainedCancellationChain => TopologySeed::cube(),
-        WorkloadCatalogRecipeKind::CoplanarOverlapStorm => TopologySeed::multi_face_shell(64),
-        WorkloadCatalogRecipeKind::Tetrahedron => TopologySeed::tetrahedron(),
-        WorkloadCatalogRecipeKind::SingleFaceLoop => TopologySeed::single_face_loop(4),
-        WorkloadCatalogRecipeKind::ThinFeatureWall => TopologySeed::single_face_loop(64),
-        WorkloadCatalogRecipeKind::HighValenceVertex => TopologySeed::high_valence_vertex(),
-        WorkloadCatalogRecipeKind::OpenWire
-        | WorkloadCatalogRecipeKind::OpenSheet
-        | WorkloadCatalogRecipeKind::OpenShellNmtEdgeFan
-        | WorkloadCatalogRecipeKind::OpenLayerStack
-        | WorkloadCatalogRecipeKind::GrazingBasketStack
-        | WorkloadCatalogRecipeKind::NmtTopologyConstruction => unreachable!(
-            "NMT topology construction catalog recipes are handled before default seed selection"
-        ),
-        WorkloadCatalogRecipeKind::DirtySelfIntersectingLoop => {
-            TopologySeed::self_intersecting_loop()
-        }
-    }
-}
-
 fn bind_seed_geometry(
     topology: &TopologySeedReceipt,
     declaration: &str,
+    planar_loop_boundary_profile: PlanarLoopBoundaryCatalogProfile,
 ) -> Result<BoundGeometryWorkload, WorkloadCatalogError> {
     GeometryBindingWorkload::for_topology_seed(topology)
         .declared(format!("bind catalog geometry for {declaration}"))
         .with_planar_faces(PlanarFaceCarrierSet::for_seed_faces(topology))
         .with_planar_edges(PlanarEdgeCarrierSet::for_seed_edges(topology))
-        .with_planar_loops(PlanarLoopCarrierSet::for_seed_loops(topology))
+        .with_planar_loops(PlanarLoopCarrierSet::for_seed_loops_with_profile(
+            topology,
+            planar_loop_boundary_profile,
+        ))
         .admit()
         .map_err(WorkloadCatalogError::from)
 }

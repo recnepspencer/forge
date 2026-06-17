@@ -4,6 +4,8 @@ pub enum WorkloadCatalogRecipeKind {
     Tetrahedron,
     SingleFaceLoop,
     BooleanCleanPlanarBodyPair,
+    BooleanEventCarrierCleanPlanarBodyPair,
+    BooleanEventExtractionMetabossPair,
     BooleanMismatchedPosturePair,
     BooleanCoplanarOverlapPair,
     BooleanThinFeaturePair,
@@ -32,6 +34,12 @@ impl WorkloadCatalogRecipeKind {
             Self::Tetrahedron => "worth.catalog.tetrahedron",
             Self::SingleFaceLoop => "worth.catalog.single_face_loop",
             Self::BooleanCleanPlanarBodyPair => "worth.catalog.boolean_clean_planar_body_pair",
+            Self::BooleanEventCarrierCleanPlanarBodyPair => {
+                "worth.catalog.boolean_event_carrier_clean_planar_body_pair"
+            }
+            Self::BooleanEventExtractionMetabossPair => {
+                "worth.catalog.boolean_event_extraction_metaboss_pair"
+            }
             Self::BooleanMismatchedPosturePair => "worth.catalog.boolean_mismatched_posture_pair",
             Self::BooleanCoplanarOverlapPair => "worth.catalog.boolean_coplanar_overlap_pair",
             Self::BooleanThinFeaturePair => "worth.catalog.boolean_thin_feature_pair",
@@ -64,6 +72,12 @@ impl WorkloadCatalogRecipeKind {
             Self::Tetrahedron => "tetrahedron workload recipe",
             Self::SingleFaceLoop => "single face loop workload recipe",
             Self::BooleanCleanPlanarBodyPair => "boolean clean planar body pair recipe",
+            Self::BooleanEventCarrierCleanPlanarBodyPair => {
+                "boolean event-carrier clean planar body pair recipe"
+            }
+            Self::BooleanEventExtractionMetabossPair => {
+                "boolean event-extraction metaboss operand pair recipe"
+            }
             Self::BooleanMismatchedPosturePair => "boolean mismatched posture pair recipe",
             Self::BooleanCoplanarOverlapPair => "boolean coplanar overlap pair recipe",
             Self::BooleanThinFeaturePair => "boolean thin feature pair recipe",
@@ -92,6 +106,12 @@ impl WorkloadCatalogRecipeKind {
             Self::Tetrahedron => "catalog tetrahedron workload",
             Self::SingleFaceLoop => "catalog single face loop workload",
             Self::BooleanCleanPlanarBodyPair => "catalog boolean clean planar body pair",
+            Self::BooleanEventCarrierCleanPlanarBodyPair => {
+                "catalog boolean event-carrier clean planar body pair"
+            }
+            Self::BooleanEventExtractionMetabossPair => {
+                "catalog boolean event-extraction metaboss operand pair"
+            }
             Self::BooleanMismatchedPosturePair => "catalog boolean mismatched posture pair",
             Self::BooleanCoplanarOverlapPair => "catalog boolean coplanar overlap pair",
             Self::BooleanThinFeaturePair => "catalog boolean thin feature pair",
@@ -157,6 +177,7 @@ pub enum TransformRecipe {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorkloadTopologyBreadth {
     Default,
+    SingleFaceLoopEdges { edge_count: usize },
     MultiFaceShell { face_count: usize },
     HighValenceVertex { valence: usize },
 }
