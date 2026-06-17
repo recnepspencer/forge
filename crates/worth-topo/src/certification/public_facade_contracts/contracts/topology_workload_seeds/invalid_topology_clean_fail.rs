@@ -1,10 +1,5 @@
 use std::collections::BTreeSet;
 
-use topology::facade::{
-    TopologySeed, TopologySeedCleanFailClass, TopologySeedCleanFailReasonCode,
-    TopologySeedCleanFailStage, TopologySeedKind, TopologySeedTopologyPosture,
-};
-
 #[test]
 fn topology_workload_seeds_fail_closed_for_invalid_topology() {
     let short_loop = TopologySeed::single_face_loop(2).build().unwrap_err();
@@ -215,7 +210,7 @@ fn assert_human_readable_reason(reason: &str) {
 }
 
 fn topology_shape_signature(
-    counters: topology::facade::TopologySeedCounters,
+    counters: TopologySeedCounters,
 ) -> (usize, usize, usize, usize, usize, usize) {
     (
         counters.shell_count(),

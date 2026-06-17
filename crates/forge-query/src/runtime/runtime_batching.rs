@@ -1,3 +1,5 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryContinuityMutationIntent,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationFamily, ForgeQueryMutationMetadata,
@@ -10,14 +12,14 @@ use crate::runtime::{
 pub(crate) struct BatchCommandSummary {
     mutation_family: ForgeQueryMutationFamily,
     declared_collection: Option<String>,
-    declared_entity_identity: Option<String>,
+    declared_entity_identity: Option<ForgeQueryEntityIdentity>,
     existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
     verified_existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
     symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
     naming_intent: Option<ForgeQueryNamingMutationIntent>,
     continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
     declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
-    declared_aspect_value_digest: Option<String>,
+    declared_aspect_value_digest: Option<ForgeQueryEvidenceIdentity>,
     symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
     symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
     mutation_metadata: ForgeQueryMutationMetadata,
@@ -27,14 +29,14 @@ impl BatchCommandSummary {
     pub(crate) fn new(
         mutation_family: ForgeQueryMutationFamily,
         declared_collection: Option<String>,
-        declared_entity_identity: Option<String>,
+        declared_entity_identity: Option<ForgeQueryEntityIdentity>,
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         verified_existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
         declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
-        declared_aspect_value_digest: Option<String>,
+        declared_aspect_value_digest: Option<ForgeQueryEvidenceIdentity>,
         symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
         symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
         mutation_metadata: ForgeQueryMutationMetadata,
@@ -72,7 +74,7 @@ impl BatchCommandSummary {
         self.declared_collection.clone()
     }
 
-    pub(crate) fn declared_entity_identity(&self) -> Option<String> {
+    pub(crate) fn declared_entity_identity(&self) -> Option<ForgeQueryEntityIdentity> {
         self.declared_entity_identity.clone()
     }
 
@@ -102,7 +104,7 @@ impl BatchCommandSummary {
         self.declared_aspect_operations.clone()
     }
 
-    pub(crate) fn declared_aspect_value_digest(&self) -> Option<String> {
+    pub(crate) fn declared_aspect_value_digest(&self) -> Option<ForgeQueryEvidenceIdentity> {
         self.declared_aspect_value_digest.clone()
     }
 

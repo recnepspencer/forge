@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use forge_signal::facade::{AspectMask, NodeId};
+use forge_signal::facade::{Aspect, AspectMask, NodeId};
 
 /// Kernel-level semantic aspects currently exposed through `forge-signal`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,11 +16,16 @@ pub enum FeatureAspect {
 
 impl FeatureAspect {
     /// Convert one semantic feature aspect into its signal bit.
-    pub const fn bit(self) -> u8 {
+    pub const fn index(self) -> u8 {
         match self {
-            Self::Topology => 1 << 0,
-            Self::Geometry => 1 << 1,
+            Self::Topology => 0,
+            Self::Geometry => 1,
         }
+    }
+
+    /// Convert this semantic feature aspect into the signal aspect handle.
+    pub const fn signal_aspect(self) -> Aspect {
+        Aspect::new(self.index())
     }
 }
 
@@ -41,7 +46,7 @@ impl FeatureDependency {
     pub const fn topology(node_id: NodeId) -> Self {
         Self::new(
             node_id,
-            AspectMask::from_bits(FeatureAspect::Topology.bit()),
+            AspectMask::from_aspect(FeatureAspect::Topology.signal_aspect()),
         )
     }
 
@@ -49,7 +54,7 @@ impl FeatureDependency {
     pub const fn geometry(node_id: NodeId) -> Self {
         Self::new(
             node_id,
-            AspectMask::from_bits(FeatureAspect::Geometry.bit()),
+            AspectMask::from_aspect(FeatureAspect::Geometry.signal_aspect()),
         )
     }
 
@@ -57,7 +62,9 @@ impl FeatureDependency {
     pub const fn topology_and_geometry(node_id: NodeId) -> Self {
         Self::new(
             node_id,
-            AspectMask::from_bits(FeatureAspect::Topology.bit() | FeatureAspect::Geometry.bit()),
+            AspectMask::from_aspect(FeatureAspect::Topology.signal_aspect()).union(
+                AspectMask::from_aspect(FeatureAspect::Geometry.signal_aspect()),
+            ),
         )
     }
 

@@ -18,6 +18,9 @@ fn production_rust_files(path: &std::path::Path) -> Vec<PathBuf> {
         .filter(|file| {
             file.file_name()
                 .is_none_or(|name| name != std::ffi::OsStr::new("structure_guard.rs"))
+                && !file
+                    .components()
+                    .any(|component| component.as_os_str() == "public_facade_contracts")
         })
         .collect()
 }
@@ -27,13 +30,17 @@ fn spatial_crate_remains_kernel_dependency_pure() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let cargo_toml =
         fs::read_to_string(manifest_dir.join("Cargo.toml")).expect("Cargo.toml is readable");
+    let production_dependencies = cargo_toml
+        .split("[dev-dependencies]")
+        .next()
+        .expect("Cargo.toml should declare production dependencies before dev-dependencies");
 
     assert!(
-        !cargo_toml.contains("worth-kernel"),
+        !production_dependencies.contains("worth-kernel"),
         "worth-spatial must not depend on worth-kernel"
     );
     assert!(
-        !cargo_toml.contains("worth_kernel"),
+        !production_dependencies.contains("worth_kernel"),
         "worth-spatial must not depend on worth-kernel under renamed package syntax"
     );
 

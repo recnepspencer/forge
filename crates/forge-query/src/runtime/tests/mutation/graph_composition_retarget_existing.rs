@@ -53,7 +53,7 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-next",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-next").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 seed.deltas()[0].entity_identity.clone(),
             )
             .expect("existing relation target should build")
@@ -70,14 +70,9 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
             })?;
             graph.retarget_existing(binding, |relation| {
                 relation
-                    .naming_rebind_target(
-                        "attachment:loop-next",
-                        "authority:loop-b",
-                        "authority:loop-c",
+                    .naming_rebind_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("attachment:loop-next").expect("naming attachment authority label")).expect("naming attachment identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_prior_authority(crate::runtime::ForgeQueryNamingPriorAuthorityLabel::new("authority:loop-b").expect("naming prior authority label")).expect("naming prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_target_authority(crate::runtime::ForgeQueryNamingTargetAuthorityLabel::new("authority:loop-c").expect("naming target authority label")).expect("naming target authority identity"),
                     )
-                    .continuity_rebind_existing_target(
-                        "authority:rel-next",
-                        "authority:rel-next-successor",
+                    .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:rel-next").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:rel-next-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                     )
                     .aspect("target.id", "loop-c")
             })?;
@@ -153,10 +148,17 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
 
 #[test]
 fn compose_graph_supports_verified_existing_target_retarget_lifecycle() {
-    let binding = ForgeQueryExistingRelationTarget::new("authority:rel-next", "TaskRelation:1")
-        .expect("existing relation target should build")
-        .in_target_collection("TaskRelation")
-        .expect("existing relation target collection should build");
+    let binding = ForgeQueryExistingRelationTarget::new(
+        crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(
+            crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-next")
+                .expect("existing-truth authority label"),
+        )
+        .expect("existing-truth authority identity"),
+        test_entity_identity("TaskRelation:1"),
+    )
+    .expect("existing relation target should build")
+    .in_target_collection("TaskRelation")
+    .expect("existing relation target collection should build");
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(binding)
         .expect("relation binding should build");
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
@@ -180,14 +182,9 @@ fn compose_graph_supports_verified_existing_target_retarget_lifecycle() {
                 },
                 |update| {
                     update
-                        .naming_rebind_target(
-                            "attachment:loop-next",
-                            "authority:loop-b",
-                            "authority:loop-c",
+                        .naming_rebind_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("attachment:loop-next").expect("naming attachment authority label")).expect("naming attachment identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_prior_authority(crate::runtime::ForgeQueryNamingPriorAuthorityLabel::new("authority:loop-b").expect("naming prior authority label")).expect("naming prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_target_authority(crate::runtime::ForgeQueryNamingTargetAuthorityLabel::new("authority:loop-c").expect("naming target authority label")).expect("naming target authority identity"),
                         )
-                        .continuity_rebind_existing_target(
-                            "authority:rel-next",
-                            "authority:rel-next-successor",
+                        .continuity_rebind_existing_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:rel-next").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:rel-next-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
                         .aspect("target.id", "loop-c")
                 },

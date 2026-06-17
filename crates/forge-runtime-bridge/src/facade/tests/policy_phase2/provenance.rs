@@ -10,7 +10,7 @@ use crate::facade::{
 fn runtime_policy_provenance_is_stable_for_same_inputs() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:preview-stable"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:preview-stable"),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Standard,
@@ -40,7 +40,7 @@ fn policy_contract_digest_changes_when_resolution_entries_change() {
     let development = runtime(BridgeRuntimePolicy::development());
     let restrictive = runtime(BridgeRuntimePolicy::operational());
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:preview-digest-variance"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:preview-digest-variance"),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Standard,
@@ -67,7 +67,7 @@ fn policy_provenance_digest_changes_when_resolution_entries_change() {
     let development = runtime(BridgeRuntimePolicy::development());
     let operational = runtime(BridgeRuntimePolicy::operational());
     let declaration = BridgePolicyDeclaration::new(
-        BridgePolicyDeclarationIdentity::new("policy:provenance-digest-variance"),
+        BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:provenance-digest-variance"),
         BridgeRequestKind::Preview,
         BridgeExecutionPolicyClass::Optimized,
         BridgeDiagnosticsTier::Exhaustive,
@@ -99,7 +99,7 @@ fn runtime_summarizes_policy_provenance_report_rows_with_semantic_equivalence() 
     let left = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:preview-equivalent-left"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:preview-equivalent-left"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Minimal,
@@ -110,7 +110,7 @@ fn runtime_summarizes_policy_provenance_report_rows_with_semantic_equivalence() 
     let right = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:preview-equivalent-right"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:preview-equivalent-right"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Minimal,

@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use super::identity::{compose_transition_rule_digest, compose_transition_rules_digest};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionDeferredNeighborFamily {
@@ -67,18 +67,7 @@ impl ProjectionConsumptionTransitionRule {
         detail: &'static str,
         deferred_neighbor: Option<ProjectionConsumptionDeferredNeighborFamily>,
     ) -> Self {
-        let rule_digest = hash_parts(&[
-            "projection_consumption_transition_rule_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("posture:{}", posture.as_str()),
-            format!("detail:{detail}"),
-            format!(
-                "neighbor:{}",
-                deferred_neighbor
-                    .map(|neighbor| neighbor.as_str())
-                    .unwrap_or("none")
-            ),
-        ]);
+        let rule_digest = compose_transition_rule_digest(kind, posture, detail, deferred_neighbor);
         Self {
             kind,
             posture,
@@ -149,13 +138,10 @@ impl ProjectionConsumptionTransitionRules {
                 Some(ProjectionConsumptionDeferredNeighborFamily::PortableReceiptExport),
             ),
         ];
-        let rules_digest = hash_parts(
-            &std::iter::once("projection_consumption_transition_rules_v1".to_string())
-                .chain(
-                    rules
-                        .iter()
-                        .map(|rule| format!("rule:{}", rule.rule_digest())),
-                )
+        let rules_digest = compose_transition_rules_digest(
+            &rules
+                .iter()
+                .map(|rule| rule.rule_digest().to_string())
                 .collect::<Vec<_>>(),
         );
         Self {

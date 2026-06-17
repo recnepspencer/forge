@@ -16,7 +16,7 @@ warning: unused variable: `observation_receipt`
   |
   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
 
-error[E0451]: fields `observation_receipt`, `inspection_reason`, `lower_runtime_evidence_family_count`, `missing_reference_posture`, `anchor_digest` and `counters` of struct `CausalObservationAnchor` are private
+error[E0451]: fields `observation_receipt`, `inspection_reason`, `lower_runtime_evidence_family_count`, `missing_reference_posture`, `anchor_digest` and `counters` of struct `forge_query::facade::CausalObservationAnchor` are private
   --> tests/ui/causal_observation_anchor_constructor_private.rs:13:9
    |
 12 |     let _ = CausalObservationAnchor {

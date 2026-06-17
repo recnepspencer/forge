@@ -53,4 +53,4 @@ error: cannot construct `forge_query::facade::policy::AdmittedBasisCapability` w
 20 |           capability_digest: String::new(),
    |           -------------------------------- private field
    |
-   = note: ...and other private fields `scope_label`, `visibility`, `lifecycle_posture`, `lower_runtime_evidence_placeholders` and `permitted_lanes` that were not provided
+   = note: ...and other private fields `scope_subject`, `scope_label`, `visibility`, `lifecycle_posture`, `lower_runtime_evidence_placeholders` and `permitted_lanes` that were not provided

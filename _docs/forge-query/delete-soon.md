@@ -1,5 +1,0 @@
-The mutation audit still does not satisfy the 5.5 bar that says to audit every existing write/update/delete-shaped public Query operation. In mutation_audit.rs (line 59) it hard-codes only 7 rows, but the actual public workspace mutation façade is much broader in workspace.rs (line 226): write, insert, update, update_existing, assert_existing, delete, delete_with, delete_existing, delete_existing_with, batch, and more are still public surfaces. The new test then locks that narrowed scope in by asserting exactly 7 rows in inventory.rs (line 389). So this is still a representative subset, not a closure audit.
-
-
-
-The basis/projection representative certification is still weaker than before. The new rows in representative_families.rs (line 75) now hash fixture-local intent-admission artifacts, but the test in representative.rs (line 53) no longer proves parity against certify_basis_lifecycle() and certify_projection_consumption_closeout_core(). It only checks authority-surface strings and non-empty digests. That means the proof no longer establishes that the new intent-admission closure remains aligned with the authoritative basis/projection certification bundles.

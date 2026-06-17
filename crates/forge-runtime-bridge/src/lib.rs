@@ -38,7 +38,7 @@
 //!         .with_truth_branch_head_source(branch_heads)
 //!         .with_compute_sink(compute_sink)
 //!         .register_mapping(BridgeMappingRegistration::new(
-//!             BridgeMappingId::new("pricing:steel"),
+//!             BridgeMappingId::admit_bridge_owned("pricing:steel"),
 //!             TruthPatchScope::for_entity_field(
 //!                 MappingSelector::exact("component:steel"),
 //!                 AspectKey::new("cost").expect("valid aspect key"),
@@ -48,12 +48,12 @@
 //!                 AspectKey::new("cost").expect("valid aspect key"),
 //!                 ScalarAspectType::String,
 //!             ),
-//!             SignalInvalidationScope::new("price:bicycle"),
+//!             SignalInvalidationScope::admit_bridge_owned("price:bicycle"),
 //!             CoarseRoutingMode::Direct,
 //!         ))
 //!         .build()?;
 //!
-//!     let route = bridge.route(TruthCommitIdentity::new("commit:steel-main"))?;
+//!     let route = bridge.route(crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-main"))?;
 //!     let evaluation = bridge.evaluate_current(route.target())?;
 //!     let diagnostics = bridge.diagnostics().explain_last();
 //!
@@ -76,10 +76,12 @@ mod error;
 pub mod facade;
 mod historical;
 mod identity;
+mod identity_authority;
 mod input;
 mod mapping;
 mod merge;
 mod policy;
+mod relational_identity;
 mod routing;
 mod snapshot;
 mod source;
@@ -92,6 +94,8 @@ mod writeback;
 
 #[cfg(test)]
 mod harness;
+#[cfg(test)]
+mod truth_identity_fixtures;
 
 #[cfg(test)]
 mod tests {}

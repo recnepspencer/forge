@@ -14,6 +14,9 @@ use crate::domain_capabilities::{
     ForgeQueryRequestedSupportContribution, ForgeQueryRequestedWorkflowContribution,
     ForgeQuerySupportContributionAuthoring,
 };
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
     ForgeQueryLowerRuntimeBoundaryExecutionReceipt, ForgeQueryLowerRuntimeCapabilityEligibility,
@@ -98,20 +101,47 @@ pub(super) fn lower_runtime_envelope(
         ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
         ForgeQueryLowerRuntimeAuthorityOwner::Query,
         "signal-invalidation-routing",
-        target_digest,
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "certification-report-target",
+        )
+        .field_value(ForgeQueryEvidenceTag::new("test_target"), target_digest)
+        .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(request, "detail");
-    let route = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, target_digest);
-    let boundary = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
-        &route,
-        format!("retained:{target_digest}"),
+    let detail_identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_value(ForgeQueryEvidenceTag::new("test_detail"), "detail")
+            .seal();
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+        request,
+        &detail_identity,
     );
+    let route = ForgeQueryLowerRuntimeRoutePlan::new(
+        eligibility,
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "certification-report-route",
+            &detail_identity,
+        ),
+    );
+    let retained_evidence =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "domain-capability-certification-report",
+            &ForgeQueryEvidenceIdentity::compose(
+                ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("certification_report_target"),
+                target_digest,
+            )
+            .seal(),
+        );
+    let boundary =
+        ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&route, &retained_evidence);
 
     ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
         ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
         &route,
         &boundary,
-        &format!("retained:{target_digest}"),
+        &retained_evidence,
     )
 }
 
@@ -145,8 +175,8 @@ fn replay_gap_inputs() -> (CausalEvidenceReferenceSet, CausalInspectionTarget) {
         panic!("query-inspection-only replay evidence should resolve");
     };
     let target = causal_inspection_target(
-        observation.observation_target_digest(),
-        observation.result_shape_context_digest(),
+        observation.observation_target().clone(),
+        observation.result_shape_context().clone(),
     )
     .expect("observation-derived target should be valid");
 
@@ -228,7 +258,7 @@ pub(super) fn workflow_requested(
     crate::domain_capabilities::ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
         "worth.spatial.workflow.preview_mutation",
         "preview mutation planning should preserve canonical workflow semantics",
-        BridgePreviewSessionIdentity::new("preview-session:certification"),
+        BridgePreviewSessionIdentity::from_stable_name("preview-session:certification"),
     )
     .for_intent_declaration(declaration)
 }

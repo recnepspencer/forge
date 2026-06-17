@@ -293,7 +293,7 @@ fn live_relation_for_source(
     let source_binding = query_entity_binding(bindings, source_half_edge_id).ok()??;
     let targets = query_outgoing_relation_target_identities(
         bindings,
-        &source_binding.query_identity,
+        &source_binding.query_identity_label,
         relation_kind,
     )
     .ok()?;
@@ -309,7 +309,7 @@ fn live_relation_for_source(
             .flatten()
             .is_some_and(|binding| {
                 binding.kind == relation_kind
-                    && binding.source_query_identity == source_binding.query_identity
+                    && binding.source_query_identity == source_binding.query_identity_label
                     && binding.target_query_identity == targets[0]
             })
     });
@@ -341,14 +341,14 @@ fn same_loop(
     };
     let Ok(left_loops) = query_incoming_relation_source_identities(
         bindings,
-        &left_binding.query_identity,
+        &left_binding.query_identity_label,
         LoopOwnsHalfEdge,
     ) else {
         return false;
     };
     let Ok(right_loops) = query_incoming_relation_source_identities(
         bindings,
-        &right_binding.query_identity,
+        &right_binding.query_identity_label,
         LoopOwnsHalfEdge,
     ) else {
         return false;

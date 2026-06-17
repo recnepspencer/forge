@@ -79,19 +79,19 @@ where
     let payload = admitted.into_inner().into_parts().into_parts().0;
     let category = payload.category().as_str();
     let bound_target = payload.target();
-    if bound_target.binding_digest() != current_target.binding_digest() {
+    if bound_target.binding_identity() != current_target.binding_identity() {
         return match current_target.kind() {
             ForgeQueryDomainCapabilityTargetKind::LowerRuntimeBoundaryEnvelope => {
                 TransitionOutcome::Stale(ForgeQueryDomainCapabilityStale::new(
                     category,
-                    bound_target.target_digest(),
-                    current_target.target_digest(),
+                    bound_target.target_identity(),
+                    current_target.target_identity(),
                 ))
             }
             _ => TransitionOutcome::RebindRequired(ForgeQueryDomainCapabilityRebindRequired::new(
                 category,
-                bound_target.target_digest(),
-                current_target.target_digest(),
+                bound_target.target_identity(),
+                current_target.target_identity(),
             )),
         };
     }
@@ -114,7 +114,7 @@ where
         kind,
         contribution.category().as_str(),
         contribution.target().kind(),
-        contribution.request_digest(),
+        contribution.request_identity().clone(),
         message,
     )
 }

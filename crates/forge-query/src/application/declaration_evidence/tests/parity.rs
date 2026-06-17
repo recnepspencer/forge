@@ -114,7 +114,7 @@ fn legality_only_evidence_preserves_world_identity_and_world_sensitive_digest() 
     );
     assert_eq!(
         collaborative_evidence.handle_identity_digest(),
-        collaborative_world_basis.handle_identity_digest()
+        collaborative_world_basis.handle_identity_for_reporting()
     );
     assert_eq!(
         mirror_evidence.operating_context_identity_digest(),
@@ -122,7 +122,7 @@ fn legality_only_evidence_preserves_world_identity_and_world_sensitive_digest() 
     );
     assert_eq!(
         mirror_evidence.handle_identity_digest(),
-        mirror_world_basis.handle_identity_digest()
+        mirror_world_basis.handle_identity_for_reporting()
     );
     assert_ne!(
         digest_text(collaborative_evidence.attachment_bundle_digest()),

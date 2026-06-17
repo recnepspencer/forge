@@ -8,8 +8,9 @@ use super::{
     ForgeQueryRuntimeDeclarationInitializationAdapter,
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
-    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
+    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeWriteAuthorityAdapter,
 };
 use crate::runtime::ForgeQueryRuntimeSupportProfile;
 
@@ -19,6 +20,7 @@ pub struct ForgeQueryRuntimeBackendParts {
     pub(super) runtime_bridge: Option<RuntimeBridge>,
     pub(super) schema_adapter: Option<Box<dyn ForgeQueryRuntimeSchemaAdapter>>,
     pub(super) source_adapter: Option<Box<dyn ForgeQueryRuntimeSourceAdapter>>,
+    pub(super) snapshot_identity: Option<Box<dyn ForgeQueryRuntimeSnapshotIdentityAdapter>>,
     pub(super) existing_truth_verification:
         Option<Box<dyn ForgeQueryRuntimeExistingTruthVerificationAdapter>>,
     pub(super) write_authority: Option<Box<dyn ForgeQueryRuntimeWriteAuthorityAdapter>>,
@@ -43,6 +45,7 @@ impl ForgeQueryRuntimeBackendParts {
             && self.runtime_bridge.is_none()
             && self.schema_adapter.is_none()
             && self.source_adapter.is_none()
+            && self.snapshot_identity.is_none()
             && self.existing_truth_verification.is_none()
             && self.write_authority.is_none()
             && self.signal_sink.is_none()
@@ -87,6 +90,14 @@ impl ForgeQueryRuntimeBackendParts {
         adapter: impl ForgeQueryRuntimeSourceAdapter + 'static,
     ) -> Self {
         self.source_adapter = Some(Box::new(adapter));
+        self
+    }
+
+    pub fn snapshot_identity(
+        mut self,
+        adapter: impl ForgeQueryRuntimeSnapshotIdentityAdapter + 'static,
+    ) -> Self {
+        self.snapshot_identity = Some(Box::new(adapter));
         self
     }
 

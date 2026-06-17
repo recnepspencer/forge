@@ -29,7 +29,7 @@ pub(in crate::builder::tests) fn native_prior_field_slice(
     );
 
     crate::continuity::PriorSubscriptionSlice::new(
-        crate::routing::BridgeSubscriptionSliceIdentity::new("slice:test"),
+        crate::routing::BridgeSubscriptionSliceIdentity::admit_bridge_owned("slice:test"),
         &slice,
     )
 }

@@ -57,7 +57,7 @@ impl BridgeRetainedDeliveryResumeBasis {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
             retained_delivery_resume_basis_identity:
-                BridgeSubscriptionRetainedDeliveryResumeBasisIdentity::new(format!(
+                BridgeSubscriptionRetainedDeliveryResumeBasisIdentity::admit_bridge_owned(format!(
                     "bridge-retained-delivery-resume-basis-id:sha256:{digest:x}"
                 )),
             bundle_identity: Arc::from(

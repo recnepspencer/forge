@@ -7,7 +7,9 @@ use crate::application::{
 };
 use crate::basis_lifecycle::BasisFamily;
 use crate::binding_pipeline::ForgeQueryBindingLinkedArtifacts;
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use crate::continuation_pipeline::artifacts::ForgeQueryPreparedContinuationSignalPosture;
 use crate::continuation_pipeline::ForgeQueryPreparedContinuation;
@@ -92,8 +94,14 @@ pub(super) fn linked_from_subject<
 
     let mut linked = ForgeQueryBindingLinkedArtifacts::new()
         .with_declaration_digest(envelope.declaration_digest())
-        .with_receipt_digest(canonical_digest_token(envelope.receipt_digest()))
-        .with_envelope_digest(canonical_digest_token(envelope.envelope_digest()));
+        .with_receipt_digest(canonical_derived_digest_identity(
+            "declaration-receipt",
+            envelope.receipt_digest(),
+        ))
+        .with_envelope_digest(canonical_derived_digest_identity(
+            "declaration-envelope",
+            envelope.envelope_digest(),
+        ));
     if let Some(progression_digest) = envelope.progression_digest() {
         linked = linked.with_progression_digest(progression_digest);
     }
@@ -111,8 +119,14 @@ pub(super) fn linked_from_prepared<
 ) -> ForgeQueryBindingLinkedArtifacts {
     let mut linked = ForgeQueryBindingLinkedArtifacts::new()
         .with_declaration_digest(prepared.declaration_digest())
-        .with_receipt_digest(canonical_digest_token(prepared.receipt_digest()))
-        .with_envelope_digest(canonical_digest_token(prepared.envelope_digest()));
+        .with_receipt_digest(canonical_derived_digest_identity(
+            "declaration-receipt",
+            prepared.receipt_digest(),
+        ))
+        .with_envelope_digest(canonical_derived_digest_identity(
+            "declaration-envelope",
+            prepared.envelope_digest(),
+        ));
     if let Some(progression_digest) = prepared.progression_digest() {
         linked = linked.with_progression_digest(progression_digest);
     }
@@ -218,35 +232,82 @@ pub(super) fn prepared_digest<
     signal_truth: &ResolvedSignalContinuationTruth,
     bridge_routing: &crate::application::ForgeQueryDeclarationBridgeRouting<D, I>,
 ) -> String {
-    hash_parts(&[
-        "forge_query_prepared_continuation_v1".to_string(),
-        handle.handle_identity_digest().to_string(),
-        handle.operating_context_identity_digest().to_string(),
-        format!("bridge_mode:{}", bridge_request.mode().as_str()),
-        format!("truth_context:{}", bridge_request.truth_context().as_str()),
-        format!("required_contract:{required_contract:?}"),
-        format!("signal_posture:{:?}", signal_truth.posture),
-        format!(
-            "signal_basis_families:{}",
-            signal_truth
-                .basis_families
-                .iter()
-                .map(BasisFamily::as_str)
-                .collect::<Vec<_>>()
-                .join("|")
-        ),
-        format!("signal_digest:{:?}", signal_truth.digest),
-        format!(
-            "future_projection:{}",
-            bridge_routing.future_projection().projection_digest()
-        ),
-        format!(
-            "basis_lifecycle_support:{}",
-            bridge_routing.basis_lifecycle_support_digest()
-        ),
-        format!("bridge_routing:{}", bridge_routing.bridge_routing_digest()),
-        format!("linked:{linked:?}"),
-    ])
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::ContinuationPreparedDigest)
+        .field_value(
+            ForgeQueryEvidenceTag::new("handle"),
+            handle.handle_identity_digest(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("operating_context"),
+            handle.operating_context_identity_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("bridge_mode"),
+            bridge_request.mode().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("truth_context"),
+            bridge_request.truth_context().as_str(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("required_aspects"),
+            required_contract.required().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("preserved_aspects"),
+            required_contract.preserved().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("published_aspects"),
+            required_contract.published().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("masked_aspects"),
+            required_contract.masked().iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("incompatible_aspects"),
+            required_contract.incompatible().iter().map(String::as_str),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("signal_posture"),
+            signal_truth.posture.as_str(),
+        )
+        .optional_shape(
+            ForgeQueryEvidenceTag::new("signal_execution_family"),
+            signal_truth.execution_family.map(|family| family.as_str()),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("signal_basis_families"),
+            signal_truth.basis_families.iter().map(BasisFamily::as_str),
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("signal_digest"),
+            signal_truth.digest.as_deref(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("signal_reason"),
+            signal_truth.reason,
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("future_projection"),
+            bridge_routing.future_projection().projection_digest(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("basis_lifecycle_support"),
+            bridge_routing.basis_lifecycle_support_digest(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("bridge_routing"),
+            bridge_routing.bridge_routing_digest(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("linked_artifacts"),
+            linked_artifacts_identity(linked),
+        )
+        .seal()
+        .as_str()
+        .to_string()
 }
 
 pub(super) fn transcript_digest(
@@ -255,21 +316,73 @@ pub(super) fn transcript_digest(
     linked: &ForgeQueryBindingLinkedArtifacts,
     outcome: &str,
 ) -> String {
-    hash_parts(&[
-        "forge_query_continuation_pipeline_v1".to_string(),
-        kind.to_string(),
-        family.to_string(),
-        format!("outcome:{outcome}"),
-        format!("linked:{linked:?}"),
-    ])
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::ContinuationExecutionTranscript)
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind)
+        .field_shape(ForgeQueryEvidenceTag::new("family"), family)
+        .field_shape(ForgeQueryEvidenceTag::new("outcome"), outcome)
+        .field_value(
+            ForgeQueryEvidenceTag::new("linked_artifacts"),
+            linked_artifacts_identity(linked),
+        )
+        .seal()
+        .as_str()
+        .to_string()
 }
 
-fn canonical_digest_token(digest: &forge_foundational::facade::CanonicalDerivedDigest) -> String {
-    let hex = digest
-        .value()
-        .bytes()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    format!("{}:{hex}", digest.metadata().algorithm().id().as_str())
+pub(super) fn linked_artifacts_identity(linked: &ForgeQueryBindingLinkedArtifacts) -> String {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::ContinuationLinkedArtifacts)
+        .optional_value(
+            ForgeQueryEvidenceTag::new("declaration"),
+            linked.declaration_digest(),
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("progression"),
+            linked.progression_digest(),
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("route_plan"),
+            linked.route_plan_digest(),
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("receipt"),
+            linked.receipt_digest(),
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("envelope"),
+            linked.envelope_digest(),
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("orchestration"),
+            linked.orchestration_digest(),
+        )
+        .seal()
+        .as_str()
+        .to_string()
+}
+
+fn canonical_derived_digest_identity(
+    role: &'static str,
+    digest: &forge_foundational::facade::CanonicalDerivedDigest,
+) -> String {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::ContinuationLinkedArtifacts)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("algorithm"),
+            digest.metadata().algorithm().id().as_str(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("bytes"),
+            digest.value().bytes().iter().map(|byte| hex_byte(*byte)),
+        )
+        .seal()
+        .as_str()
+        .to_string()
+}
+
+fn hex_byte(byte: u8) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(2);
+    encoded.push(HEX[(byte >> 4) as usize] as char);
+    encoded.push(HEX[(byte & 0x0f) as usize] as char);
+    encoded
 }

@@ -286,6 +286,7 @@ match effect_inspection {
 match binding_inspection {
     ForgeQueryInspection::PreviewBinding(binding) => {
         assert_eq!(binding.label(), preview_label.display());
+        assert_eq!(binding.session_label(), &preview_label);
         assert_eq!(binding.effect_policy().as_str(), "redirected");
     }
     other => panic!("expected preview binding inspection, got {other:?}"),
@@ -294,6 +295,7 @@ match binding_inspection {
 match outcome_inspection {
     ForgeQueryInspection::PreviewOutcome(outcome) => {
         assert!(outcome.discarded());
+        assert_eq!(outcome.session_label(), &preview_label);
         assert_eq!(outcome.promoted_write_count(), 0);
     }
     other => panic!("expected preview outcome inspection, got {other:?}"),
@@ -309,6 +311,14 @@ What is derived:
 - computed rollup state
 - effect routing evidence
 - preview-local binding and closeout evidence
+
+For preview inspection specifically, keep the distinction straight:
+
+- `label()` is the rendered DX string
+- `session_label()` is the typed `ForgeQuerySessionLabel` artifact
+
+Use the typed artifact when identity, replay linkage, or collision posture
+matters.
 
 What gets retained:
 

@@ -1,6 +1,12 @@
 use std::collections::HashMap;
 
-use crate::identity::hash_parts;
+use super::identity::{
+    compose_causal_admission_counters_identity, compose_causal_admission_receipt_identity,
+    compose_causal_decision_trace_identity, compose_causal_decision_trace_row_identity,
+    CausalInspectionAdmissionCountersIdentity, CausalInspectionAdmissionDecisionIdentity,
+    CausalInspectionAdmissionReceiptIdentity, CausalInspectionAdmissionSubjectIdentity,
+    CausalInspectionDecisionTraceIdentity, CausalInspectionDecisionTraceRowIdentity,
+};
 
 use super::admission_decision::{
     CausalInspectionAdmissionDecision, CausalInspectionAdmissionDecisionKind,
@@ -14,7 +20,7 @@ pub struct CausalDecisionTraceRow {
     decision: CausalInspectionAdmissionDecisionKind,
     authority: String,
     reason: String,
-    row_digest: String,
+    row_identity: CausalInspectionDecisionTraceRowIdentity,
 }
 
 impl CausalDecisionTraceRow {
@@ -25,22 +31,21 @@ impl CausalDecisionTraceRow {
         authority: &'static str,
         reason: &'static str,
     ) -> Self {
-        let row_digest = hash_parts(&[
-            "causal_decision_trace_row_v1".to_string(),
-            format!("key:{key}"),
-            format!("span:{span}"),
-            format!("decision:{}", decision.as_str()),
-            format!("authority:{authority}"),
-            format!("reason:{reason}"),
-        ]);
-        Self {
+        let mut row = Self {
             key: key.to_string(),
             span: span.to_string(),
             decision,
             authority: authority.to_string(),
             reason: reason.to_string(),
-            row_digest,
-        }
+            row_identity: CausalInspectionDecisionTraceRowIdentity::from(
+                crate::ForgeQueryEvidenceIdentity::compose(
+                    crate::ForgeQueryEvidenceScope::CausalInspectionDecisionTraceRow,
+                )
+                .seal(),
+            ),
+        };
+        row.row_identity = compose_causal_decision_trace_row_identity(&row);
+        row
     }
 
     pub fn key(&self) -> &str {
@@ -63,8 +68,12 @@ impl CausalDecisionTraceRow {
         &self.reason
     }
 
-    pub fn row_digest(&self) -> &str {
-        &self.row_digest
+    pub fn row_for_reporting(&self) -> &str {
+        self.row_identity.as_str()
+    }
+
+    pub(super) fn evidence_identity(&self) -> &crate::ForgeQueryEvidenceIdentity {
+        self.row_identity.evidence_identity()
     }
 }
 
@@ -72,7 +81,7 @@ impl CausalDecisionTraceRow {
 pub struct CausalDecisionTraceIndex {
     rows: Vec<CausalDecisionTraceRow>,
     lookup: HashMap<String, usize>,
-    trace_digest: String,
+    trace_identity: CausalInspectionDecisionTraceIdentity,
 }
 
 impl CausalDecisionTraceIndex {
@@ -82,20 +91,18 @@ impl CausalDecisionTraceIndex {
             .enumerate()
             .map(|(index, row)| (row.key().to_string(), index))
             .collect();
-        let row_part = rows
-            .iter()
-            .map(CausalDecisionTraceRow::row_digest)
-            .collect::<Vec<_>>()
-            .join("|");
-        let trace_digest = hash_parts(&[
-            "causal_decision_trace_index_v1".to_string(),
-            format!("rows:{row_part}"),
-        ]);
-        Self {
+        let mut trace = Self {
             rows,
             lookup,
-            trace_digest,
-        }
+            trace_identity: CausalInspectionDecisionTraceIdentity::from(
+                crate::ForgeQueryEvidenceIdentity::compose(
+                    crate::ForgeQueryEvidenceScope::CausalInspectionDecisionTraceIndex,
+                )
+                .seal(),
+            ),
+        };
+        trace.trace_identity = compose_causal_decision_trace_identity(trace.rows());
+        trace
     }
 
     pub fn rows(&self) -> &[CausalDecisionTraceRow] {
@@ -106,8 +113,12 @@ impl CausalDecisionTraceIndex {
         self.lookup.get(key).and_then(|index| self.rows.get(*index))
     }
 
-    pub fn trace_digest(&self) -> &str {
-        &self.trace_digest
+    pub fn trace_for_reporting(&self) -> &str {
+        self.trace_identity.as_str()
+    }
+
+    pub(super) fn trace_identity(&self) -> &CausalInspectionDecisionTraceIdentity {
+        &self.trace_identity
     }
 }
 
@@ -123,7 +134,7 @@ pub struct CausalInspectionAdmissionCounters {
     causal_decision_trace_lookup_count: usize,
     causal_decision_trace_index_hit_count: usize,
     bridge_causal_envelope_request_count: usize,
-    counter_snapshot: String,
+    counter_identity: CausalInspectionAdmissionCountersIdentity,
 }
 
 impl CausalInspectionAdmissionCounters {
@@ -139,20 +150,7 @@ impl CausalInspectionAdmissionCounters {
             .iter()
             .filter(|row| trace.row_for_key(row.key()).is_some())
             .count();
-        let counter_snapshot = hash_parts(&[
-            "causal_inspection_admission_counters_v1".to_string(),
-            "causal_inspection_proof_transition_count:1".to_string(),
-            "causal_inspection_proof_outcome_count:1".to_string(),
-            "causal_inspection_proof_readmission_count:0".to_string(),
-            "causal_inspection_request_count:1".to_string(),
-            "causal_inspection_admission_count:1".to_string(),
-            format!("causal_inspection_advisory_count:{advisory_count}"),
-            format!("causal_inspection_denial_count:{denial_count}"),
-            format!("causal_decision_trace_lookup_count:{trace_lookup_count}"),
-            format!("causal_decision_trace_index_hit_count:{trace_hit_count}"),
-            "bridge_causal_envelope_request_count:0".to_string(),
-        ]);
-        Self {
+        let mut counters = Self {
             causal_inspection_proof_transition_count: 1,
             causal_inspection_proof_outcome_count: 1,
             causal_inspection_proof_readmission_count: 0,
@@ -163,8 +161,15 @@ impl CausalInspectionAdmissionCounters {
             causal_decision_trace_lookup_count: trace_lookup_count,
             causal_decision_trace_index_hit_count: trace_hit_count,
             bridge_causal_envelope_request_count: 0,
-            counter_snapshot,
-        }
+            counter_identity: CausalInspectionAdmissionCountersIdentity::from(
+                crate::ForgeQueryEvidenceIdentity::compose(
+                    crate::ForgeQueryEvidenceScope::CausalInspectionAdmissionCounters,
+                )
+                .seal(),
+            ),
+        };
+        counters.counter_identity = compose_causal_admission_counters_identity(&counters);
+        counters
     }
 
     pub fn causal_inspection_proof_transition_count(&self) -> usize {
@@ -208,17 +213,21 @@ impl CausalInspectionAdmissionCounters {
     }
 
     pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
+        self.counter_identity.as_str()
+    }
+
+    pub(super) fn counter_identity(&self) -> &CausalInspectionAdmissionCountersIdentity {
+        &self.counter_identity
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalInspectionAdmissionReceipt {
-    receipt_digest: String,
-    subject_digest: String,
-    decision_digest: String,
-    decision_trace_index_digest: String,
-    counter_snapshot: String,
+    receipt_identity: CausalInspectionAdmissionReceiptIdentity,
+    subject_identity: CausalInspectionAdmissionSubjectIdentity,
+    decision_identity: CausalInspectionAdmissionDecisionIdentity,
+    decision_trace_identity: CausalInspectionDecisionTraceIdentity,
+    counter_identity: CausalInspectionAdmissionCountersIdentity,
 }
 
 impl CausalInspectionAdmissionReceipt {
@@ -228,39 +237,63 @@ impl CausalInspectionAdmissionReceipt {
         trace: &CausalDecisionTraceIndex,
         counters: &CausalInspectionAdmissionCounters,
     ) -> Self {
-        let receipt_digest = hash_parts(&[
-            "causal_inspection_admission_receipt_v1".to_string(),
-            format!("subject:{}", subject.subject_digest()),
-            format!("decision:{}", decision.decision_digest()),
-            format!("trace:{}", trace.trace_digest()),
-            format!("counters:{}", counters.counter_snapshot()),
-        ]);
-        Self {
-            receipt_digest,
-            subject_digest: subject.subject_digest().to_string(),
-            decision_digest: decision.decision_digest().to_string(),
-            decision_trace_index_digest: trace.trace_digest().to_string(),
-            counter_snapshot: counters.counter_snapshot().to_string(),
-        }
+        let mut receipt = Self {
+            receipt_identity: CausalInspectionAdmissionReceiptIdentity::from(
+                crate::ForgeQueryEvidenceIdentity::compose(
+                    crate::ForgeQueryEvidenceScope::CausalInspectionAdmissionReceipt,
+                )
+                .seal(),
+            ),
+            subject_identity: subject.subject_identity().clone(),
+            decision_identity: decision.decision_identity().clone(),
+            decision_trace_identity: trace.trace_identity().clone(),
+            counter_identity: counters.counter_identity().clone(),
+        };
+        receipt.receipt_identity = compose_causal_admission_receipt_identity(&receipt);
+        receipt
     }
 
     pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+        self.receipt_identity.as_str()
     }
 
-    pub fn subject_digest(&self) -> &str {
-        &self.subject_digest
+    pub fn subject_for_reporting(&self) -> &str {
+        self.subject_identity.as_str()
     }
 
-    pub fn decision_digest(&self) -> &str {
-        &self.decision_digest
+    pub fn decision_for_reporting(&self) -> &str {
+        self.decision_identity.as_str()
     }
 
-    pub fn decision_trace_index_digest(&self) -> &str {
-        &self.decision_trace_index_digest
+    pub fn decision_trace_index_for_reporting(&self) -> &str {
+        self.decision_trace_identity.as_str()
+    }
+
+    pub fn counter_snapshot_for_reporting(&self) -> &str {
+        self.counter_identity.as_str()
     }
 
     pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
+        self.counter_snapshot_for_reporting()
+    }
+
+    pub(super) fn receipt_identity(&self) -> &CausalInspectionAdmissionReceiptIdentity {
+        &self.receipt_identity
+    }
+
+    pub(super) fn subject_identity(&self) -> &CausalInspectionAdmissionSubjectIdentity {
+        &self.subject_identity
+    }
+
+    pub(super) fn decision_identity(&self) -> &CausalInspectionAdmissionDecisionIdentity {
+        &self.decision_identity
+    }
+
+    pub(super) fn decision_trace_identity(&self) -> &CausalInspectionDecisionTraceIdentity {
+        &self.decision_trace_identity
+    }
+
+    pub(super) fn counter_identity(&self) -> &CausalInspectionAdmissionCountersIdentity {
+        &self.counter_identity
     }
 }

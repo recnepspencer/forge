@@ -1,3 +1,4 @@
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 #[cfg(test)]
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
@@ -17,7 +18,7 @@ pub struct ForgeQueryRuntimePublicApiTranscriptEvidence {
     delivery_residue_count: usize,
     authority_lane_digest: String,
     meaningful_assertion_count: usize,
-    transcript_digest: String,
+    transcript_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimePublicApiTranscriptEvidence {
@@ -53,42 +54,42 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             !support_gated_neighbor_denial_digests.is_empty(),
             "runtime public API transcript evidence must prove at least one support-gated neighbor denial"
         );
-        let transcript_digest = forge_query_evidence_identity(
+        let transcript_identity = forge_query_evidence_identity(
             ForgeQueryEvidenceScope::RuntimePublicApiTranscriptEvidence,
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("transcript_family"),
             transcript_family.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("support_contract_digest"),
             support_contract_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("state_digest"),
             state_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("live_surface_digest"),
             live_surface_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("computed_surface_digest"),
             computed_surface_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("effect_surface_digest"),
             effect_surface_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("intent_receipt_digest"),
             intent_receipt_digest.clone(),
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("inspection_digest"),
             inspection_digest.clone(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             ForgeQueryEvidenceTag::new("support_gated_neighbor_denial_digest"),
             support_gated_neighbor_denial_digests
                 .iter()
@@ -98,7 +99,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             ForgeQueryEvidenceTag::new("delivery_residue_count"),
             delivery_residue_count,
         )
-        .field_identity(
+        .field_value(
             ForgeQueryEvidenceTag::new("authority_lane_digest"),
             authority_lane_digest.clone(),
         )
@@ -106,9 +107,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             ForgeQueryEvidenceTag::new("meaningful_assertion_count"),
             meaningful_assertion_count,
         )
-        .seal()
-        .as_str()
-        .to_string();
+        .seal();
         Self {
             transcript_family,
             support_contract_digest,
@@ -122,7 +121,7 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
             delivery_residue_count,
             authority_lane_digest,
             meaningful_assertion_count,
-            transcript_digest,
+            transcript_identity,
         }
     }
 
@@ -175,6 +174,10 @@ impl ForgeQueryRuntimePublicApiTranscriptEvidence {
     }
 
     pub fn transcript_digest(&self) -> &str {
-        &self.transcript_digest
+        self.transcript_identity.as_str()
+    }
+
+    pub fn transcript_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.transcript_identity
     }
 }

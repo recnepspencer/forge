@@ -5,8 +5,8 @@ use crate::facade::{
     BridgeMappingRegistration, BridgePolicyRejectionKind, BridgePolicyRejectionStage,
     BridgeProducerMetadata, BridgeRuntimePolicy, BridgeTruthViewPolicyResolution,
     CoarseRoutingMode, MappingSelector, SignalInvalidationScope, SnapshotReadRecord,
-    SnapshotReadRequest, TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity,
-    TruthPatchScope, TruthSnapshotIdentity,
+    SnapshotReadRequest, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
+    TruthSnapshotIdentity,
 };
 use crate::harness::fixtures::{
     BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink,
@@ -16,13 +16,16 @@ use crate::harness::fixtures::{
 fn runtime_with_policy(policy: BridgeRuntimePolicy) -> crate::facade::RuntimeBridge {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid policy fixture field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     crate::facade::RuntimeBridgeBuilder::new()
         .with_relational_source(source.clone())
         .with_truth_branch_head_source(source)
@@ -37,18 +40,21 @@ fn fixture_with_policy(policy: BridgeRuntimePolicy) -> BridgeHarnessFixture {
     BridgeHarnessFixture::new(vec![registration()])
         .with_policy(policy)
         .with_committed_patch(committed_patch(
-            TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             forge_foundational::facade::FieldKey::new("name".to_owned())
                 .expect("valid policy fixture field key"),
         ))
-        .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"))
+        .with_snapshot(snapshot(
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            "alice",
+        ))
 }
 
 fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-name"),
+        BridgeMappingId::admit_bridge_owned("profile-name"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
@@ -59,7 +65,7 @@ fn registration() -> BridgeMappingRegistration {
             forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal.profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile"),
         CoarseRoutingMode::Direct,
     )
 }
@@ -76,7 +82,7 @@ fn committed_patch(
             commit_identity,
             patch_identity,
             snapshot_identity,
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
         ),
         vec![BridgeCommittedPatchItem::with_target(
             "user",
@@ -143,7 +149,7 @@ fn provenance_certification_retains_typed_policy_route_and_counter_evidence() {
         &policy_matrix.rows()[0],
         PolicyCertificationRow::Admitted(row)
             if row.declaration_identity()
-                == &crate::facade::BridgePolicyDeclarationIdentity::new(
+                == &crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
                     "policy-cert:deterministic-authoritative",
                 )
     ));
@@ -151,7 +157,7 @@ fn provenance_certification_retains_typed_policy_route_and_counter_evidence() {
         &policy_matrix.rows()[1],
         PolicyCertificationRow::Admitted(row)
             if row.declaration_identity()
-                == &crate::facade::BridgePolicyDeclarationIdentity::new(
+                == &crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
                     "policy-cert:optimized-preview",
                 )
     ));
@@ -210,7 +216,7 @@ fn rejection_certification_retains_typed_rejection_rows_and_zero_authority_escap
             if row.failure_kind() == BridgePolicyRejectionKind::UnsupportedExecutionMode
                 && row.stage() == BridgePolicyRejectionStage::Validation
                 && row.declaration_identity()
-                    == &crate::facade::BridgePolicyDeclarationIdentity::new(
+                    == &crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
                         "policy-cert:rejection-optimized-authoritative",
                     )
     ));
@@ -220,7 +226,7 @@ fn rejection_certification_retains_typed_rejection_rows_and_zero_authority_escap
             if row.failure_kind() == BridgePolicyRejectionKind::ReplayPolicyConflict
                 && row.stage() == BridgePolicyRejectionStage::Admission
                 && row.declaration_identity()
-                    == &crate::facade::BridgePolicyDeclarationIdentity::new(
+                    == &crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
                         "policy-cert:rejection-replay-conflict",
                     )
     ));

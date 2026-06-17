@@ -32,7 +32,7 @@ impl ForgeServerDirectDeliveryContract {
             "forge-server-direct-delivery-contract-v1|handoff:{handoff_digest}|lease:{}|request:{}|contract:{}",
             lease_declaration.canonical_digest(),
             request.canonical_digest(),
-            downstream_delivery_contract.contract_digest(),
+            downstream_delivery_contract.contract_for_reporting(),
         );
         Self {
             support_posture,

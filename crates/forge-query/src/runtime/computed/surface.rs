@@ -3,19 +3,28 @@ use super::*;
 use crate::runtime::retained_rows::decode_single_retained_row;
 use crate::runtime::ForgeQueryRuntimeError;
 
-use crate::identity::hash_parts;
-use crate::memory_workspace::ForgeQueryEntity;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
+};
 use serde::de::DeserializeOwned;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedViewMaterialization {
     rows: Vec<Value>,
+    published: bool,
 }
 
 impl Default for ForgeQueryDerivedViewMaterialization {
     fn default() -> Self {
-        Self { rows: Vec::new() }
+        Self {
+            rows: Vec::new(),
+            published: false,
+        }
     }
 }
 
@@ -72,16 +81,23 @@ impl ForgeQueryDerivedViewMaterialization {
         &self.rows
     }
 
+    pub fn is_published(&self) -> bool {
+        self.published
+    }
+
     pub fn replace_rows(&mut self, rows: impl IntoIterator<Item = Value>) {
         self.rows = rows.into_iter().collect();
+        self.published = true;
     }
 
     pub fn push_row(&mut self, row: Value) {
         self.rows.push(row);
+        self.published = true;
     }
 
     pub fn retain_rows(&mut self, mut predicate: impl FnMut(&Value) -> bool) {
         self.rows.retain(|row| predicate(row));
+        self.published = true;
     }
 }
 
@@ -125,66 +141,74 @@ impl ForgeQueryComputedInspectionEvidence {
             .iter()
             .filter(|patch| patch.is_refresh_fallback())
             .count();
-        let declaration_digest = hash_parts(&[
-            "forge_query_computed_definition_inspection_v1".to_string(),
-            format!("name:{}", view.declaration.name()),
-            format!("authority:{}", ForgeQueryAuthorityLane::DerivedRuntimeState),
-            format!("incremental:{incremental_delivery}"),
-            format!("live:{}", upstream_live_views.join("|")),
-            format!("derived:{}", upstream_derived_views.join("|")),
-            format!("dependencies:{}", dependency_aspects.join("|")),
-            format!("produces:{}", produced_aspects.join("|")),
-        ]);
-        let dependency_digest = hash_parts(&[
-            "forge_query_computed_dependency_inspection_v1".to_string(),
-            format!("name:{}", view.declaration.name()),
-            format!("live:{}", upstream_live_views.join("|")),
-            format!("derived:{}", upstream_derived_views.join("|")),
-            format!("dependencies:{}", dependency_aspects.join("|")),
-        ]);
-        let produced_aspect_digest = hash_parts(&[
-            "forge_query_computed_produced_aspect_inspection_v1".to_string(),
-            format!("name:{}", view.declaration.name()),
-            format!("authority:{}", ForgeQueryAuthorityLane::DerivedRuntimeState),
-            format!("produces:{}", produced_aspects.join("|")),
-        ]);
-        let mut materialization_parts = vec![
-            "forge_query_computed_materialization_inspection_v1".to_string(),
-            format!("name:{}", view.declaration.name()),
-            format!("rows:{materialized_row_count}"),
-        ];
-        materialization_parts.extend(
-            view.materialization
-                .rows()
-                .iter()
-                .map(|row| serde_json::to_string(row).unwrap_or_else(|_| row.to_string())),
+        let declaration_identity = computed_definition_inspection_identity(
+            view.declaration.name(),
+            incremental_delivery,
+            &upstream_live_views,
+            &upstream_derived_views,
+            &dependency_aspects,
+            &produced_aspects,
         );
-        let materialization_digest = hash_parts(&materialization_parts);
-        let mut pending_patch_parts = vec![
-            "forge_query_computed_pending_patch_inspection_v1".to_string(),
-            format!("name:{}", view.declaration.name()),
-            format!("pending:{pending_patch_count}"),
-            format!("incremental:{pending_incremental_patch_count}"),
-            format!("refresh:{pending_refresh_fallback_count}"),
-        ];
-        pending_patch_parts.extend(view.patches.iter().map(|patch| {
-            format!(
-                "{}:{}:{}:{}",
-                patch.note(),
-                patch.authority_lane(),
-                patch.commit_identity(),
-                patch.aspect_paths().join("|")
-            )
-        }));
-        let pending_patch_digest = hash_parts(&pending_patch_parts);
-        let inspection_digest = hash_parts(&[
-            "forge_query_computed_inspection_v1".to_string(),
-            declaration_digest.clone(),
-            dependency_digest.clone(),
-            produced_aspect_digest.clone(),
-            materialization_digest.clone(),
-            pending_patch_digest.clone(),
-        ]);
+        let declaration_digest = declaration_identity.reporting_projection().to_string();
+        let dependency_identity = computed_dependency_inspection_identity(
+            view.declaration.name(),
+            &upstream_live_views,
+            &upstream_derived_views,
+            &dependency_aspects,
+        );
+        let dependency_digest = dependency_identity.reporting_projection().to_string();
+        let produced_aspect_identity = computed_produced_aspect_inspection_identity(
+            view.declaration.name(),
+            &produced_aspects,
+        );
+        let produced_aspect_digest = produced_aspect_identity.reporting_projection().to_string();
+        let materialization_identity = computed_materialization_inspection_identity(
+            view.declaration.name(),
+            materialized_row_count,
+            view.materialization.rows(),
+        );
+        let materialization_digest = materialization_identity.reporting_projection().to_string();
+        let patch_identities: Vec<ForgeQueryEvidenceIdentity> = view
+            .patches
+            .iter()
+            .map(|patch| derived_patch_inspection_identity(view.declaration.name(), patch))
+            .collect();
+        let pending_patch_identity = computed_pending_patch_inspection_identity(
+            view.declaration.name(),
+            pending_patch_count,
+            pending_incremental_patch_count,
+            pending_refresh_fallback_count,
+            &patch_identities,
+        );
+        let pending_patch_digest = pending_patch_identity.reporting_projection().to_string();
+        let inspection_identity =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "forge_query_computed_inspection_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("declaration"),
+                    &declaration_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("dependency"),
+                    &dependency_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("produced_aspects"),
+                    &produced_aspect_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("materialization"),
+                    &materialization_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("pending_patches"),
+                    &pending_patch_identity,
+                )
+                .seal();
+        let inspection_digest = inspection_identity.reporting_projection().to_string();
         Self {
             name: view.declaration.name().to_string(),
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
@@ -258,12 +282,60 @@ impl ForgeQueryComputedInspectionEvidence {
         &self.dependency_digest
     }
 
+    pub fn dependency_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_computed_dependency_inspection_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("name"), &self.name)
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("live"),
+                self.upstream_live_views.iter().map(String::as_str),
+            )
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("derived"),
+                self.upstream_derived_views.iter().map(String::as_str),
+            )
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("dependencies"),
+                self.dependency_aspects.iter().map(String::as_str),
+            )
+            .seal()
+    }
+
     pub fn produced_aspect_digest(&self) -> &str {
         &self.produced_aspect_digest
     }
 
     pub fn materialization_digest(&self) -> &str {
         &self.materialization_digest
+    }
+
+    pub fn materialization_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_computed_materialization_inspection_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("name"), &self.name)
+            .field_usize(
+                ForgeQueryEvidenceTag::new("rows"),
+                self.materialized_row_count,
+            )
+            .field_usize(
+                ForgeQueryEvidenceTag::new("pending_patches"),
+                self.pending_patch_count,
+            )
+            .field_usize(
+                ForgeQueryEvidenceTag::new("pending_incremental_patches"),
+                self.pending_incremental_patch_count,
+            )
+            .field_usize(
+                ForgeQueryEvidenceTag::new("pending_refresh_fallbacks"),
+                self.pending_refresh_fallback_count,
+            )
+            .seal()
     }
 
     pub fn pending_patch_digest(&self) -> &str {
@@ -303,9 +375,9 @@ pub enum ForgeQueryDerivedPatchFamily {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedPatch {
     view_name: String,
-    commit_identity: String,
+    commit_identity: ForgeQueryCommitIdentity,
     authority_lane: ForgeQueryAuthorityLane,
-    entity_identity: Option<String>,
+    entity_identity: Option<ForgeQueryEntityIdentity>,
     aspect_paths: Vec<String>,
     family: ForgeQueryDerivedPatchFamily,
     payload: Value,
@@ -315,16 +387,16 @@ pub struct ForgeQueryDerivedPatch {
 impl ForgeQueryDerivedPatch {
     pub fn incremental(
         view_name: impl Into<String>,
-        commit_identity: impl Into<String>,
-        entity_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
+        entity_identity: ForgeQueryEntityIdentity,
         aspect_paths: impl IntoIterator<Item = String>,
         payload: Value,
     ) -> Self {
         Self {
             view_name: view_name.into(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
-            entity_identity: Some(entity_identity.into()),
+            entity_identity: Some(entity_identity),
             aspect_paths: aspect_paths.into_iter().collect(),
             family: ForgeQueryDerivedPatchFamily::Incremental,
             payload,
@@ -334,12 +406,12 @@ impl ForgeQueryDerivedPatch {
 
     pub fn whole_refresh_fallback(
         view_name: impl Into<String>,
-        commit_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
         reason: impl Into<String>,
     ) -> Self {
         Self {
             view_name: view_name.into(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
             entity_identity: None,
             aspect_paths: Vec::new(),
@@ -351,14 +423,14 @@ impl ForgeQueryDerivedPatch {
 
     pub fn whole_refresh_materialized(
         view_name: impl Into<String>,
-        commit_identity: impl Into<String>,
+        commit_identity: ForgeQueryCommitIdentity,
         aspect_paths: impl IntoIterator<Item = String>,
         payload: Value,
         reason: impl Into<String>,
     ) -> Self {
         Self {
             view_name: view_name.into(),
-            commit_identity: commit_identity.into(),
+            commit_identity,
             authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
             entity_identity: None,
             aspect_paths: aspect_paths.into_iter().collect(),
@@ -372,12 +444,22 @@ impl ForgeQueryDerivedPatch {
         match self.family {
             ForgeQueryDerivedPatchFamily::Incremental => format!(
                 "incremental:{}:{}",
-                self.commit_identity,
-                self.entity_identity.as_deref().unwrap_or("unknown")
+                self.commit_identity
+                    .evidence_identity()
+                    .reporting_projection(),
+                self.entity_identity
+                    .as_ref()
+                    .map(|identity| identity
+                        .evidence_identity()
+                        .reporting_projection()
+                        .to_string())
+                    .unwrap_or_else(|| "unknown".to_string())
             ),
             ForgeQueryDerivedPatchFamily::RefreshFallback => format!(
                 "whole-refresh-fallback:{}:{}",
-                self.commit_identity,
+                self.commit_identity
+                    .evidence_identity()
+                    .reporting_projection(),
                 self.reason.as_deref().unwrap_or("unspecified")
             ),
         }
@@ -395,7 +477,7 @@ impl ForgeQueryDerivedPatch {
         &self.view_name
     }
 
-    pub fn commit_identity(&self) -> &str {
+    pub fn commit_identity(&self) -> &ForgeQueryCommitIdentity {
         &self.commit_identity
     }
 
@@ -407,8 +489,11 @@ impl ForgeQueryDerivedPatch {
         self.authority_lane
     }
 
-    pub(in crate::runtime) fn bind_commit_identity(&mut self, commit_identity: impl Into<String>) {
-        self.commit_identity = commit_identity.into();
+    pub(in crate::runtime) fn bind_commit_identity(
+        &mut self,
+        commit_identity: ForgeQueryCommitIdentity,
+    ) {
+        self.commit_identity = commit_identity;
     }
 
     pub(in crate::runtime) fn to_mutation_delta(
@@ -417,14 +502,196 @@ impl ForgeQueryDerivedPatch {
     ) -> ForgeQueryMutationDelta {
         ForgeQueryMutationDelta {
             collection: format!("derived:{upstream_view}"),
-            entity_identity: self
-                .entity_identity
-                .clone()
-                .unwrap_or_else(|| upstream_view.to_string()),
+            entity_identity: self.entity_identity.clone().unwrap_or_else(|| {
+                crate::memory_workspace::admit_authored_entity_label(upstream_view)
+            }),
             kind: ForgeQueryMutationKind::Updated,
             aspect_paths: self.aspect_paths.clone(),
         }
     }
+}
+
+fn computed_definition_inspection_identity(
+    name: &str,
+    incremental_delivery: bool,
+    upstream_live_views: &[String],
+    upstream_derived_views: &[String],
+    dependency_aspects: &[String],
+    produced_aspects: &[String],
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_computed_definition_inspection_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("name"), name)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority"),
+            "derived_runtime_state",
+        )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("incremental"),
+            incremental_delivery,
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("live"),
+            upstream_live_views.iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("derived"),
+            upstream_derived_views.iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("dependencies"),
+            dependency_aspects.iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("produces"),
+            produced_aspects.iter().map(String::as_str),
+        )
+        .seal()
+}
+
+fn computed_dependency_inspection_identity(
+    name: &str,
+    upstream_live_views: &[String],
+    upstream_derived_views: &[String],
+    dependency_aspects: &[String],
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_computed_dependency_inspection_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("name"), name)
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("live"),
+            upstream_live_views.iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("derived"),
+            upstream_derived_views.iter().map(String::as_str),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("dependencies"),
+            dependency_aspects.iter().map(String::as_str),
+        )
+        .seal()
+}
+
+fn computed_produced_aspect_inspection_identity(
+    name: &str,
+    produced_aspects: &[String],
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_computed_produced_aspect_inspection_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("name"), name)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority"),
+            "derived_runtime_state",
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("produces"),
+            produced_aspects.iter().map(String::as_str),
+        )
+        .seal()
+}
+
+fn computed_materialization_inspection_identity(
+    name: &str,
+    materialized_row_count: usize,
+    rows: &[Value],
+) -> ForgeQueryEvidenceIdentity {
+    let row_shapes: Vec<String> = rows
+        .iter()
+        .map(|row| serde_json::to_string(row).unwrap_or_else(|_| row.to_string()))
+        .collect();
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_computed_materialization_inspection_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("name"), name)
+        .field_usize(ForgeQueryEvidenceTag::new("rows"), materialized_row_count)
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("materialized_rows"),
+            row_shapes.iter().map(String::as_str),
+        )
+        .seal()
+}
+
+fn computed_pending_patch_inspection_identity(
+    name: &str,
+    pending_patch_count: usize,
+    pending_incremental_patch_count: usize,
+    pending_refresh_fallback_count: usize,
+    patch_identities: &[ForgeQueryEvidenceIdentity],
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_computed_pending_patch_inspection_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("name"), name)
+        .field_usize(ForgeQueryEvidenceTag::new("pending"), pending_patch_count)
+        .field_usize(
+            ForgeQueryEvidenceTag::new("incremental"),
+            pending_incremental_patch_count,
+        )
+        .field_usize(
+            ForgeQueryEvidenceTag::new("refresh"),
+            pending_refresh_fallback_count,
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("patches"),
+            patch_identities.iter(),
+        )
+        .seal()
+}
+
+fn derived_patch_inspection_identity(
+    view_name: &str,
+    patch: &ForgeQueryDerivedPatch,
+) -> ForgeQueryEvidenceIdentity {
+    let family = match patch.family {
+        ForgeQueryDerivedPatchFamily::Incremental => "incremental",
+        ForgeQueryDerivedPatchFamily::RefreshFallback => "refresh_fallback",
+    };
+    let mut encoder =
+        forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_computed_patch_inspection_v1",
+            )
+            .field_shape(ForgeQueryEvidenceTag::new("view_name"), view_name)
+            .field_shape(ForgeQueryEvidenceTag::new("family"), family)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("authority_lane"),
+                "derived_runtime_state",
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("commit"),
+                &patch.commit_identity.evidence_identity(),
+            );
+    if let Some(entity) = &patch.entity_identity {
+        encoder = encoder.field_evidence_identity(
+            ForgeQueryEvidenceTag::new("entity"),
+            &entity.evidence_identity(),
+        );
+    }
+    if let Some(reason) = patch.reason.as_deref() {
+        encoder = encoder.field_shape(ForgeQueryEvidenceTag::new("reason"), reason);
+    }
+    if !patch.aspect_paths.is_empty() {
+        encoder = encoder.field_value_sequence(
+            ForgeQueryEvidenceTag::new("aspect_paths"),
+            patch.aspect_paths.iter().map(String::as_str),
+        );
+    }
+    encoder.seal()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -172,9 +172,10 @@ impl BridgeSubscriptionResumeAdmission {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            resume_admission_identity: BridgeSubscriptionResumeAdmissionIdentity::new(format!(
-                "bridge-subscription-resume-admission-id:sha256:{digest:x}"
-            )),
+            resume_admission_identity:
+                BridgeSubscriptionResumeAdmissionIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-resume-admission-id:sha256:{digest:x}"
+                )),
             checkpoint_identity: checkpoint.checkpoint_identity().clone(),
             active_subscription_identity: checkpoint.active_subscription_identity().clone(),
             admitted_subscription_identity: checkpoint.admitted_subscription_identity().clone(),
@@ -261,34 +262,37 @@ impl BridgeSubscriptionResumeAdmission {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            resume_admission_identity: BridgeSubscriptionResumeAdmissionIdentity::new(format!(
-                "bridge-subscription-resume-admission-id:sha256:{digest:x}"
-            )),
-            checkpoint_identity: BridgeSubscriptionCheckpointIdentity::new(
+            resume_admission_identity:
+                BridgeSubscriptionResumeAdmissionIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-resume-admission-id:sha256:{digest:x}"
+                )),
+            checkpoint_identity: BridgeSubscriptionCheckpointIdentity::admit_bridge_owned(
                 retained_basis.checkpoint_identity().to_owned(),
             ),
-            active_subscription_identity: BridgeActiveSubscriptionIdentity::new(
+            active_subscription_identity: BridgeActiveSubscriptionIdentity::admit_bridge_owned(
                 retained_basis.active_subscription_identity().to_owned(),
             ),
-            admitted_subscription_identity: BridgeAdmittedSubscriptionIdentity::new(
+            admitted_subscription_identity: BridgeAdmittedSubscriptionIdentity::admit_bridge_owned(
                 retained_basis.admitted_subscription_identity().to_owned(),
             ),
-            basis_identity: BridgeSubscriptionBasisIdentity::new(
+            basis_identity: BridgeSubscriptionBasisIdentity::admit_bridge_owned(
                 retained_basis.basis_identity().to_owned(),
             ),
-            delivery_family_identity: BridgeSubscriptionDeliveryFamilyIdentity::new(
+            delivery_family_identity: BridgeSubscriptionDeliveryFamilyIdentity::admit_bridge_owned(
                 retained_basis.delivery_family_identity().to_owned(),
             ),
-            delivery_window_identity: BridgeSubscriptionDeliveryWindowIdentity::new(
+            delivery_window_identity: BridgeSubscriptionDeliveryWindowIdentity::admit_bridge_owned(
                 retained_basis.delivery_window_identity().to_owned(),
             ),
             delivery_window_sequence: retained_basis.delivery_window_sequence(),
-            cost_profile_identity: BridgeSubscriptionDeliveryCostProfileIdentity::new(
-                retained_basis.cost_profile_identity().to_owned(),
-            ),
-            consumer_contract_identity: BridgeSubscriptionConsumerContractIdentity::new(
-                retained_basis.consumer_contract_identity().to_owned(),
-            ),
+            cost_profile_identity:
+                BridgeSubscriptionDeliveryCostProfileIdentity::admit_bridge_owned(
+                    retained_basis.cost_profile_identity().to_owned(),
+                ),
+            consumer_contract_identity:
+                BridgeSubscriptionConsumerContractIdentity::admit_bridge_owned(
+                    retained_basis.consumer_contract_identity().to_owned(),
+                ),
             acknowledged_canonical_sequence: retained_basis.acknowledged_canonical_sequence(),
             expected_next_canonical_sequence: retained_basis.expected_next_canonical_sequence(),
             acknowledged_prefix_digest: Arc::from(

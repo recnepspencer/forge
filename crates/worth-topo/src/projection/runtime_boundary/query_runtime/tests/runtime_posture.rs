@@ -3,7 +3,9 @@ use crate::projection::runtime_boundary::query_runtime::{
     TopologyRuntimePostureStatus, TopologyRuntimeSupport,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
-use forge_query::facade::{ForgeQueryBranchOptions, ForgeQueryIntentDeclaration};
+use forge_query::facade::{
+    ForgeQueryBranchOptions, ForgeQueryIntentDeclaration, ForgeQuerySessionLabel,
+};
 use serde_json::json;
 
 #[test]
@@ -74,12 +76,14 @@ fn current_head_runtime_admits_preview_and_branch_sessions() {
         topology_runtime(adapters, ".runtime-posture.branch-preview").expect("workspace");
 
     let preview = workspace
-        .preview("topology-preview")
+        .preview(ForgeQuerySessionLabel::scoped_strs("topology", ["preview"]).expect("label"))
         .expect("preview session");
-    assert_eq!(preview.basis_admission().label(), "topology-preview");
+    assert_eq!(preview.basis_admission().label(), "topology.preview");
 
-    let branch = workspace.branch("topology-branch").expect("branch session");
-    assert_eq!(branch.basis_admission().label(), "topology-branch");
+    let branch = workspace
+        .branch(ForgeQuerySessionLabel::scoped_strs("topology", ["branch"]).expect("label"))
+        .expect("branch session");
+    assert_eq!(branch.basis_admission().label(), "topology.branch");
 }
 
 #[test]
@@ -104,7 +108,7 @@ fn current_head_runtime_admits_branch_sessions_but_denies_branch_local_intent_st
 
     let mut branch = workspace
         .branch_with_options(
-            "topology-branch-intent",
+            ForgeQuerySessionLabel::scoped_strs("topology", ["branch-intent"]).expect("label"),
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .expect("branch session should be admitted");

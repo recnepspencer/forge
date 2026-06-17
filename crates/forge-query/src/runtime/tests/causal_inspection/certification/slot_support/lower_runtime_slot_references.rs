@@ -1,6 +1,6 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner,
-    BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary, BridgeRoute,
+    BridgeCausalEvidenceReferenceIdentity, BridgeIdentityEvidence, BridgeRoute,
     TruthCommitIdentity,
 };
 
@@ -13,127 +13,116 @@ pub(super) fn bridge_request_with_lower_runtime_slot_references(
     retained_evidence: &super::RetainedLowerRuntimeSlotEvidence,
     commit_identity: &TruthCommitIdentity,
 ) -> BridgeCausalEnvelopeAssemblyRequest {
-    let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-        admitted.admitted_inspection_digest(),
-        admitted.subject().anchor_digest(),
-    )
-    .expect("query admission summary should be valid");
+    let summary = crate::runtime::tests::causal_inspection::bridge_admitted_summary(admitted);
+    let commit_id = commit_identity
+        .relational_commit_id()
+        .expect("causal lower-runtime references must carry relational commit authority");
     BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         summary,
         vec![
             query_reference(
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    admitted.subject().query_observation_digest(),
+                    admitted
+                        .subject()
+                        .query_observation_bridge_evidence_identity(),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.route_identity().as_str(),
+                    routed.route_identity().bridge_admission_evidence(),
                 )
                 .expect("route evidence reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeHistoricalEvaluation,
-                    retained_evidence
-                        .historical_evaluation_record_identity
-                        .as_str(),
+                    bridge_evidence(&retained_evidence.historical_evaluation_record_identity),
                 )
                 .expect("historical evaluation reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgePreviewExecution,
-                    retained_evidence.preview_execution_record_identity.as_str(),
+                    bridge_evidence(&retained_evidence.preview_execution_record_identity),
                 )
                 .expect("preview execution reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgePreviewDiscard,
-                    retained_evidence.preview_discard_record_identity.as_str(),
+                    bridge_evidence(&retained_evidence.preview_discard_record_identity),
                 )
                 .expect("preview discard reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeSourceMaterialization,
-                    retained_evidence
-                        .source_materialization_record_identity
-                        .as_str(),
+                    bridge_evidence(&retained_evidence.source_materialization_record_identity),
                 )
                 .expect("source materialization reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeStructuralRemap,
-                    retained_evidence.structural_remap_record_identity.as_str(),
+                    bridge_evidence(&retained_evidence.structural_remap_record_identity),
                 )
                 .expect("structural remap reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeStreamReplay,
-                    retained_evidence.stream_replay_record_identity.as_str(),
+                    bridge_evidence(&retained_evidence.stream_replay_record_identity),
                 )
                 .expect("stream replay reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeWritebackAdmission,
-                    retained_evidence
-                        .writeback_admission_record_identity
-                        .as_str(),
+                    bridge_evidence(&retained_evidence.writeback_admission_record_identity),
                 )
                 .expect("writeback admission reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeWritebackMapperEnvelope,
-                    retained_evidence
-                        .writeback_mapper_envelope_identity
-                        .as_str(),
+                    bridge_evidence(&retained_evidence.writeback_mapper_envelope_identity),
                 )
                 .expect("writeback mapper envelope reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeWritebackMappedFamilyInput,
-                    retained_evidence
-                        .writeback_mapped_family_input_identity
-                        .as_str(),
+                    bridge_evidence(&retained_evidence.writeback_mapped_family_input_identity),
                 )
                 .expect("writeback mapped input reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeWritebackMapper,
-                    retained_evidence.writeback_mapper_record_identity.as_str(),
+                    bridge_evidence(&retained_evidence.writeback_mapper_record_identity),
                 )
                 .expect("writeback mapper reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeWritebackExecution,
-                    retained_evidence
-                        .writeback_execution_record_identity
-                        .as_str(),
+                    bridge_evidence(&retained_evidence.writeback_execution_record_identity),
                 )
                 .expect("writeback execution reference identity should be valid"),
             ),
             bridge_reference(
                 BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
                     BridgeCausalEvidenceFamily::BridgeWritebackReplay,
-                    retained_evidence.writeback_replay_record_identity.as_str(),
+                    bridge_evidence(&retained_evidence.writeback_replay_record_identity),
                 )
                 .expect("writeback replay reference identity should be valid"),
             ),
             external_reference(
                 BridgeCausalEvidenceOwner::Relational,
-                BridgeCausalEvidenceReferenceIdentity::relational_authority(format!(
-                    "relational-authority:{commit_identity}"
+                BridgeCausalEvidenceReferenceIdentity::relational_authority(bridge_evidence(
+                    format!("relational-authority:commit-{commit_id}"),
                 ))
                 .expect("relational authority reference identity should be valid"),
             ),
@@ -141,7 +130,7 @@ pub(super) fn bridge_request_with_lower_runtime_slot_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalInvalidation,
-                    format!("signal-invalidation:{commit_identity}"),
+                    bridge_evidence(format!("signal-invalidation:commit-{commit_id}")),
                 )
                 .expect("signal invalidation reference identity should be valid"),
             ),
@@ -149,7 +138,7 @@ pub(super) fn bridge_request_with_lower_runtime_slot_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalEvaluation,
-                    format!("signal-evaluation:{commit_identity}"),
+                    bridge_evidence(format!("signal-evaluation:commit-{commit_id}")),
                 )
                 .expect("signal evaluation reference identity should be valid"),
             ),
@@ -157,7 +146,7 @@ pub(super) fn bridge_request_with_lower_runtime_slot_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalForensicAvailability,
-                    format!("signal-forensic:{commit_identity}"),
+                    bridge_evidence(format!("signal-forensic:commit-{commit_id}")),
                 )
                 .expect("signal forensic reference identity should be valid"),
             ),
@@ -165,7 +154,7 @@ pub(super) fn bridge_request_with_lower_runtime_slot_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalReplayCursor,
-                    format!("signal-replay-cursor:{commit_identity}"),
+                    bridge_evidence(format!("signal-replay-cursor:commit-{commit_id}")),
                 )
                 .expect("signal replay cursor reference identity should be valid"),
             ),
@@ -173,7 +162,7 @@ pub(super) fn bridge_request_with_lower_runtime_slot_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalLineage,
-                    format!("signal-lineage:{commit_identity}"),
+                    bridge_evidence(format!("signal-lineage:commit-{commit_id}")),
                 )
                 .expect("signal lineage reference identity should be valid"),
             ),
@@ -181,11 +170,15 @@ pub(super) fn bridge_request_with_lower_runtime_slot_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalProvenance,
-                    format!("signal-provenance:{commit_identity}"),
+                    bridge_evidence(format!("signal-provenance:commit-{commit_id}")),
                 )
                 .expect("signal provenance reference identity should be valid"),
             ),
         ],
     )
     .expect("bridge request should be valid")
+}
+
+fn bridge_evidence(value: impl AsRef<str>) -> BridgeIdentityEvidence {
+    crate::runtime::tests::causal_inspection::bridge_external_evidence(value)
 }

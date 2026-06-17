@@ -8,15 +8,35 @@ pub(in super::super) fn assert_canonical_evidence_identity_token(token: impl AsR
     );
 }
 
+#[allow(dead_code)]
+pub(in super::super) fn assert_phase_one_surface_has_no_digest_folklore(source: &str) {
+    for forbidden in [
+        "hash_parts(",
+        "digest_owned_parts(",
+        ".join(\"|\")",
+        "format!(\"{}|",
+        "format!(\"{:?}\"",
+        "format!(\"{:?}|",
+        "format!(\"{:#?}\"",
+        "format!(\"{:#?}|",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "phase-1-covered surface must not retain digest folklore pattern {forbidden}"
+        );
+    }
+}
+
 pub(in super::super) fn compose_basis_admission_identity(
     scope: crate::ForgeQueryEvidenceScope,
     label: &ForgeQuerySessionLabel,
     effect_policy: ForgeQueryEffectPolicy,
     authority_lane: ForgeQueryAuthorityLane,
-    evidence: impl IntoIterator<Item = &'static str>,
+    evidence: impl IntoIterator<Item = impl Into<String>>,
 ) -> crate::ForgeQueryEvidenceIdentity {
+    let evidence_rows = ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(evidence);
     crate::ForgeQueryEvidenceIdentity::compose(scope)
-        .field_identity(
+        .field_value(
             crate::ForgeQueryEvidenceTag::new("session_label_identity"),
             label.identity_digest().as_str(),
         )
@@ -28,19 +48,22 @@ pub(in super::super) fn compose_basis_admission_identity(
             crate::ForgeQueryEvidenceTag::new("authority_lane"),
             authority_lane.as_str(),
         )
-        .field_identity_sequence(crate::ForgeQueryEvidenceTag::new("evidence"), evidence)
+        .field_value_sequence(
+            crate::ForgeQueryEvidenceTag::new("basis_evidence"),
+            evidence_rows.iter().map(|row| row.row_digest().as_str()),
+        )
         .seal()
 }
 
 pub(in super::super) fn compose_receipt_identity(
     scope: crate::ForgeQueryEvidenceScope,
-    admission_digest: impl AsRef<str>,
+    admission_identity: &crate::ForgeQueryEvidenceIdentity,
     posture: &str,
 ) -> crate::ForgeQueryEvidenceIdentity {
     crate::ForgeQueryEvidenceIdentity::compose(scope)
-        .field_identity(
-            crate::ForgeQueryEvidenceTag::new("admission_digest"),
-            admission_digest,
+        .field_evidence_identity(
+            crate::ForgeQueryEvidenceTag::new("admission_identity"),
+            admission_identity,
         )
         .field_shape(crate::ForgeQueryEvidenceTag::new("posture"), posture)
         .seal()
@@ -79,7 +102,7 @@ pub(in super::super) fn compose_denial_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("returned_strategy_descriptor_digest"),
             evidence.returned_strategy_descriptor_digest(),
         )
-        .field_identity(
+        .field_value(
             crate::ForgeQueryEvidenceTag::new("canonical_input_digest"),
             evidence.canonical_input_digest(),
         )
@@ -101,13 +124,13 @@ pub(in super::super) fn compose_denial_evidence_identity(
             crate::ForgeQueryEvidenceTag::new("attempt_digest"),
             evidence.attempt_digest(),
         )
-        .field_identity_sequence(
+        .field_value_sequence(
             crate::ForgeQueryEvidenceTag::new("invariant_evidence"),
             evidence.invariant_evidence().iter().map(String::as_str),
         )
-        .optional_identity(
-            crate::ForgeQueryEvidenceTag::new("snapshot_token"),
-            evidence.snapshot_token(),
+        .optional_evidence_identity(
+            crate::ForgeQueryEvidenceTag::new("snapshot_identity"),
+            evidence.snapshot_evidence_identity().as_ref(),
         )
         .optional_identity(
             crate::ForgeQueryEvidenceTag::new("execution_provenance"),

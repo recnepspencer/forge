@@ -1,5 +1,6 @@
 use super::*;
-use crate::facade::{TruthCommitIdentity, TruthPatchIdentity};
+use crate::input::envelope::BridgeCommittedPatchEnvelope;
+use crate::truth_identity_fixtures::{truth_branch, truth_commit, truth_patch, truth_snapshot};
 
 #[test]
 fn runtime_rejects_replay_record_validation_when_window_basis_changes() {
@@ -24,20 +25,7 @@ fn runtime_rejects_replay_record_validation_when_window_basis_changes() {
     let original_window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-            ],
+            vec![stream_envelope(1, 1), stream_envelope(2, 2)],
         )
         .expect("original window should plan");
     let checkpoint = runtime.publish_consumer_checkpoint(
@@ -49,15 +37,7 @@ fn runtime_rejects_replay_record_validation_when_window_basis_changes() {
         .canonicalize_stream_replay_record(&contract, &original_window, &checkpoint)
         .expect("replay record should canonicalize");
     let changed_window = runtime
-        .plan_change_stream_window(
-            &contract,
-            vec![canonical_envelope(
-                TruthBranchIdentity::new("main"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
-            )],
-        )
+        .plan_change_stream_window(&contract, vec![stream_envelope(1, 1)])
         .expect("changed window should plan");
     let changed_checkpoint = runtime.publish_consumer_checkpoint(
         &contract,
@@ -101,33 +81,12 @@ fn runtime_classifies_width_sensitive_backpressure_without_changing_window_truth
         .resolve_change_stream_consumer_contract(&protocol)
         .expect("stream contract should resolve");
     let narrow_window = runtime
-        .plan_change_stream_window(
-            &contract,
-            vec![canonical_envelope(
-                TruthBranchIdentity::new("main"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
-            )],
-        )
+        .plan_change_stream_window(&contract, vec![stream_envelope(1, 1)])
         .expect("narrow window should plan");
     let burst_window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-            ],
+            vec![stream_envelope(1, 1), stream_envelope(2, 2)],
         )
         .expect("burst window should plan");
 
@@ -193,39 +152,13 @@ fn runtime_stream_identities_are_invariant_across_diagnostics_tiers() {
     let standard_window = runtime
         .plan_change_stream_window(
             &standard_contract,
-            vec![
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-            ],
+            vec![stream_envelope(1, 1), stream_envelope(2, 2)],
         )
         .expect("standard window should plan");
     let exhaustive_window = runtime
         .plan_change_stream_window(
             &exhaustive_contract,
-            vec![
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-            ],
+            vec![stream_envelope(1, 1), stream_envelope(2, 2)],
         )
         .expect("exhaustive window should plan");
 
@@ -304,39 +237,13 @@ fn legal_coalescing_changes_window_shape_without_changing_member_meaning() {
     let left = runtime
         .plan_change_stream_window(
             &narrow_contract,
-            vec![
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-            ],
+            vec![stream_envelope(1, 1), stream_envelope(2, 2)],
         )
         .expect("narrow window should plan");
     let right = runtime
         .plan_change_stream_window(
             &coalesced_contract,
-            vec![
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-                canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-            ],
+            vec![stream_envelope(1, 1), stream_envelope(2, 2)],
         )
         .expect("coalesced window should plan");
 
@@ -355,6 +262,15 @@ fn legal_coalescing_changes_window_shape_without_changing_member_meaning() {
     assert_ne!(left.coalescing_family(), right.coalescing_family());
     assert_eq!(left.counters().stream_coalesced_window_count(), 0);
     assert_eq!(right.counters().stream_coalesced_window_count(), 1);
+}
+
+fn stream_envelope(commit_position: u64, patch_position: u64) -> BridgeCommittedPatchEnvelope {
+    canonical_envelope(
+        truth_branch("main"),
+        truth_commit(commit_position),
+        truth_patch(patch_position),
+        truth_snapshot(1, 1),
+    )
 }
 
 #[test]

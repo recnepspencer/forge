@@ -1,62 +1,31 @@
-error: cannot construct `QuerySubscriptionSupportSubject` with struct literal syntax due to private fields
-  --> tests/ui/subscription_support_subject_constructor_private.rs:6:13
+error[E0560]: struct `QuerySubscriptionSupportSubject` has no field named `declaration_digest`
+ --> tests/ui/subscription_support_subject_constructor_private.rs:9:9
+  |
+9 |         declaration_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^ `QuerySubscriptionSupportSubject` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionSupportSubject` has no field named `admission_digest`
+  --> tests/ui/subscription_support_subject_constructor_private.rs:10:9
    |
- 6 |     let _ = QuerySubscriptionSupportSubject {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 7 |         support_class: QuerySubscriptionSupportClass::Declaration,
-   |         --------------------------------------------------------- private field
- 8 |         family: QuerySubscriptionFamily::DetailExact,
-   |         -------------------------------------------- private field
- 9 |         declaration_digest: String::new(),
-   |         --------------------------------- private field
 10 |         admission_digest: None,
-   |         ---------------------- private field
+   |         ^^^^^^^^^^^^^^^^ `QuerySubscriptionSupportSubject` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionSupportSubject` has no field named `source_digest`
+  --> tests/ui/subscription_support_subject_constructor_private.rs:11:9
+   |
 11 |         source_digest: String::new(),
-   |         ---------------------------- private field
+   |         ^^^^^^^^^^^^^ `QuerySubscriptionSupportSubject` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionSupportSubject` has no field named `digest`
+  --> tests/ui/subscription_support_subject_constructor_private.rs:12:9
+   |
 12 |         digest: String::new(),
-   |         --------------------- private field
+   |         ^^^^^^ `QuerySubscriptionSupportSubject` does not have this field
    |
-   = note: ...and other private field `future_selection` that was not provided
-help: you might have meant to use an associated function to build this type
-   |
- 6 -     let _ = QuerySubscriptionSupportSubject {
- 7 -         support_class: QuerySubscriptionSupportClass::Declaration,
- 8 -         family: QuerySubscriptionFamily::DetailExact,
- 9 -         declaration_digest: String::new(),
-10 -         admission_digest: None,
-11 -         source_digest: String::new(),
-12 -         digest: String::new(),
-13 -     };
- 6 +     let _ = QuerySubscriptionSupportSubject::new(_, _, _, _, _, _);
-   |
- 6 -     let _ = QuerySubscriptionSupportSubject {
- 7 -         support_class: QuerySubscriptionSupportClass::Declaration,
- 8 -         family: QuerySubscriptionFamily::DetailExact,
- 9 -         declaration_digest: String::new(),
-10 -         admission_digest: None,
-11 -         source_digest: String::new(),
-12 -         digest: String::new(),
-13 -     };
- 6 +     let _ = QuerySubscriptionSupportSubject::declaration(_);
-   |
- 6 -     let _ = QuerySubscriptionSupportSubject {
- 7 -         support_class: QuerySubscriptionSupportClass::Declaration,
- 8 -         family: QuerySubscriptionFamily::DetailExact,
- 9 -         declaration_digest: String::new(),
-10 -         admission_digest: None,
-11 -         source_digest: String::new(),
-12 -         digest: String::new(),
-13 -     };
- 6 +     let _ = QuerySubscriptionSupportSubject::activation(_, _);
-   |
- 6 -     let _ = QuerySubscriptionSupportSubject {
- 7 -         support_class: QuerySubscriptionSupportClass::Declaration,
- 8 -         family: QuerySubscriptionFamily::DetailExact,
- 9 -         declaration_digest: String::new(),
-10 -         admission_digest: None,
-11 -         source_digest: String::new(),
-12 -         digest: String::new(),
-13 -     };
- 6 +     let _ = QuerySubscriptionSupportSubject::active_lifecycle(_, _);
-   |
-   = and 4 other candidates
+   = note: all struct fields are already assigned

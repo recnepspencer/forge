@@ -1,72 +1,57 @@
-error: cannot construct `ForgeQueryWriteReceiptInspection` with struct literal syntax due to private fields
-  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:7:13
+error[E0308]: mismatched types
+ --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:9:26
+  |
+9 |         commit_identity: String::new(),
+  |                          ^^^^^^^^^^^^^ expected `ForgeQueryCommitIdentity`, found `String`
+
+error[E0560]: struct `ForgeQueryWriteReceiptInspection` has no field named `snapshot_token`
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:10:9
    |
- 7 |       let _ = ForgeQueryWriteReceiptInspection {
-   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 8 |           authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |           ----------------------------------------------------------- private field
- 9 |           commit_identity: String::new(),
-   |           ------------------------------ private field
-10 |           snapshot_token: String::new(),
-   |           ----------------------------- private field
-11 | /         canonical_artifact: ForgeQueryInspectedArtifact {
-12 | |             family: String::new(),
-13 | |             identity: String::new(),
-14 | |             basis: String::new(),
-15 | |         },
-   | |_________- private field
-16 | /         workflow_artifact: ForgeQueryInspectedArtifact {
-17 | |             family: String::new(),
-18 | |             identity: String::new(),
-19 | |             basis: String::new(),
-20 | |         },
-   | |_________- private field
-21 | /         bridge_authority_artifact: ForgeQueryInspectedArtifact {
-22 | |             family: String::new(),
-23 | |             identity: String::new(),
-24 | |             basis: String::new(),
-25 | |         },
-   | |_________- private field
-26 | /         runtime_evidence: ForgeQueryRuntimeInspectionEvidence {
-27 | |             artifact_family: String::new(),
-28 | |             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-29 | |             evidence: Vec::new(),
-30 | |         },
-   | |_________- private field
-31 |           live_patch_artifacts: Vec::new(),
-   |           -------------------------------- private field
-32 |           inspection_digest: String::new(),
-   |           -------------------------------- private field
+10 |         snapshot_token: String::new(),
+   |         ^^^^^^^^^^^^^^ `ForgeQueryWriteReceiptInspection` does not have this field
    |
-   = note: ...and other private fields that were not provided
-help: you might have meant to use the `new` associated function
+   = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:13:23
    |
- 7 -     let _ = ForgeQueryWriteReceiptInspection {
- 8 -         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
- 9 -         commit_identity: String::new(),
-10 -         snapshot_token: String::new(),
-11 -         canonical_artifact: ForgeQueryInspectedArtifact {
-12 -             family: String::new(),
-13 -             identity: String::new(),
-14 -             basis: String::new(),
-15 -         },
-16 -         workflow_artifact: ForgeQueryInspectedArtifact {
-17 -             family: String::new(),
-18 -             identity: String::new(),
-19 -             basis: String::new(),
-20 -         },
-21 -         bridge_authority_artifact: ForgeQueryInspectedArtifact {
-22 -             family: String::new(),
-23 -             identity: String::new(),
-24 -             basis: String::new(),
-25 -         },
-26 -         runtime_evidence: ForgeQueryRuntimeInspectionEvidence {
-27 -             artifact_family: String::new(),
-28 -             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-29 -             evidence: Vec::new(),
-30 -         },
-31 -         live_patch_artifacts: Vec::new(),
-32 -         inspection_digest: String::new(),
-33 -     };
- 7 +     let _ = ForgeQueryWriteReceiptInspection::new(_, _);
+13 |             identity: String::new(),
+   |                       ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:14:20
    |
+14 |             basis: String::new(),
+   |                    ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:18:23
+   |
+18 |             identity: String::new(),
+   |                       ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:19:20
+   |
+19 |             basis: String::new(),
+   |                    ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:23:23
+   |
+23 |             identity: String::new(),
+   |                       ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:24:20
+   |
+24 |             basis: String::new(),
+   |                    ^^^^^^^^^^^^^ expected `ForgeQueryEvidenceIdentity`, found `String`
+
+error[E0560]: struct `ForgeQueryWriteReceiptInspection` has no field named `inspection_digest`
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:32:9
+   |
+32 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `ForgeQueryWriteReceiptInspection` does not have this field
+   |
+   = note: all struct fields are already assigned

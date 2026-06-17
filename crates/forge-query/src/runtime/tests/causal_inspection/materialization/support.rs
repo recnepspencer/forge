@@ -1,11 +1,10 @@
 use forge_runtime_bridge::facade::{
-    AspectKeySelector, BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner,
-    BridgeCausalEvidenceReference, BridgeCausalEvidenceReferenceIdentity,
-    BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId,
-    BridgeMappingRegistration, BridgeRouteIdentity, BridgeSignalInvalidationDelivery,
-    BridgeSnapshotReadError, BridgeSourceAdapter, BridgeSourceCapability,
-    BridgeSourceCapabilitySet, BridgeTruthViewSelector, CoarseRoutingMode, InvalidationSink,
-    MappingSelector, RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
+    AspectKeySelector, BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem,
+    BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration,
+    BridgeSignalInvalidationDelivery, BridgeSnapshotReadError, BridgeSourceAdapter,
+    BridgeSourceCapability, BridgeSourceCapabilitySet, BridgeTruthViewSelector, CoarseRoutingMode,
+    InvalidationSink, MappingSelector, RelationalBridgeSnapshotIdentityParts,
+    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
     RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
     SourceDeclaration, SourceDeclarationIdentity, StructuralFingerprintEquivalenceContract,
@@ -18,7 +17,7 @@ use forge_runtime_bridge::facade::{
     TruthWritebackReceipt, TruthWritebackRequest,
 };
 
-use super::super::super::super::*;
+pub(in crate::runtime::tests::causal_inspection) use super::references::*;
 
 struct MaterializationSource;
 
@@ -30,9 +29,9 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for MaterializationSourc
         Ok(BridgeCommittedPatchEnvelope::new(
             forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
                 request.commit_identity().clone(),
-                TruthPatchIdentity::new(format!("patch-{}", request.commit_identity())),
-                TruthSnapshotIdentity::new("snapshot-causal-materialization"),
-                TruthBranchIdentity::new("analysis"),
+                materialization_patch_identity_for_commit(request.commit_identity()),
+                causal_materialization_snapshot_identity(),
+                causal_materialization_branch_identity(),
             ),
             vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
@@ -56,9 +55,11 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for MaterializationSourc
 impl SnapshotReadSource for MaterializationSource {
     fn open_snapshot(
         &self,
-        _identity: &TruthSnapshotIdentity,
+        identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        Ok(Box::new(MaterializationSnapshotReader))
+        Ok(Box::new(MaterializationSnapshotReader::new(
+            identity.clone(),
+        )))
     }
 }
 
@@ -69,9 +70,9 @@ impl TruthBranchHeadSource for MaterializationSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(BridgeCommittedPatchEnvelope::new(
             forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
-                TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-                TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-                TruthSnapshotIdentity::new("snapshot-causal-materialization"),
+                materialization_head_commit_identity_for_branch(branch_identity),
+                materialization_patch_identity_for_branch(branch_identity),
+                causal_materialization_snapshot_identity(),
                 branch_identity.clone(),
             ),
             vec![BridgeCommittedPatchItem::with_target(
@@ -93,6 +94,77 @@ impl TruthBranchHeadSource for MaterializationSource {
     }
 }
 
+fn materialization_patch_identity_for_commit(
+    commit_identity: &TruthCommitIdentity,
+) -> TruthPatchIdentity {
+    commit_identity
+        .relational_commit_id()
+        .map(TruthPatchIdentity::from_relational_patch_position)
+        .unwrap_or_else(|| TruthPatchIdentity::from_relational_patch_position(1))
+}
+
+fn materialization_head_commit_identity_for_branch(
+    branch_identity: &TruthBranchIdentity,
+) -> TruthCommitIdentity {
+    branch_identity
+        .relational_branch_id()
+        .map(|branch_id| {
+            TruthCommitIdentity::from_relational_commit_id(stable_causal_position(
+                "branch-head",
+                branch_id,
+            ))
+        })
+        .unwrap_or_else(|| TruthCommitIdentity::from_relational_commit_id(1))
+}
+
+fn materialization_patch_identity_for_branch(
+    branch_identity: &TruthBranchIdentity,
+) -> TruthPatchIdentity {
+    branch_identity
+        .relational_branch_id()
+        .map(|branch_id| {
+            TruthPatchIdentity::from_relational_patch_position(stable_causal_position(
+                "branch-head-patch",
+                branch_id,
+            ))
+        })
+        .unwrap_or_else(|| TruthPatchIdentity::from_relational_patch_position(1))
+}
+
+pub(in crate::runtime::tests::causal_inspection) fn causal_materialization_branch_identity(
+) -> TruthBranchIdentity {
+    TruthBranchIdentity::from_relational_branch_id("analysis")
+}
+
+pub(in crate::runtime::tests::causal_inspection) fn causal_truth_analysis_branch_identity(
+) -> TruthBranchIdentity {
+    TruthBranchIdentity::from_relational_branch_id("truth:analysis")
+}
+
+pub(in crate::runtime::tests::causal_inspection) fn causal_materialization_commit_identity(
+) -> TruthCommitIdentity {
+    TruthCommitIdentity::from_relational_commit_id(1)
+}
+
+pub(in crate::runtime::tests::causal_inspection) fn causal_materialization_snapshot_identity(
+) -> TruthSnapshotIdentity {
+    TruthSnapshotIdentity::from_relational_snapshot(RelationalBridgeSnapshotIdentityParts::new(
+        1, 1,
+    ))
+}
+
+pub(in crate::runtime::tests::causal_inspection) fn stable_causal_position(
+    namespace: impl AsRef<str>,
+    evidence: impl AsRef<str>,
+) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in namespace.as_ref().bytes().chain(evidence.as_ref().bytes()) {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211_u64);
+    }
+    acc
+}
+
 impl BridgeSourceAdapter for MaterializationSource {
     fn declared_capabilities(&self) -> BridgeSourceCapabilitySet {
         BridgeSourceCapabilitySet::new(vec![
@@ -107,22 +179,25 @@ impl BridgeSourceAdapter for MaterializationSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-causal-materialization" {
-            Ok(Box::new(MaterializationSnapshotReader))
-        } else {
-            Err(RelationalBridgeSourceError::new(format!(
-                "unknown snapshot `{}`",
-                identity.as_str()
-            )))
-        }
+        Ok(Box::new(MaterializationSnapshotReader::new(
+            identity.clone(),
+        )))
     }
 }
 
-struct MaterializationSnapshotReader;
+struct MaterializationSnapshotReader {
+    snapshot_identity: TruthSnapshotIdentity,
+}
+
+impl MaterializationSnapshotReader {
+    fn new(snapshot_identity: TruthSnapshotIdentity) -> Self {
+        Self { snapshot_identity }
+    }
+}
 
 impl TruthSnapshotReader for MaterializationSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-causal-materialization")
+        self.snapshot_identity.clone()
     }
 
     fn read_packet(
@@ -130,7 +205,7 @@ impl TruthSnapshotReader for MaterializationSnapshotReader {
         request: &SnapshotReadPacket,
     ) -> Result<SnapshotReadPacketResult, BridgeSnapshotReadError> {
         Ok(SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-causal-materialization"),
+            self.snapshot_identity.clone(),
             request
                 .reads()
                 .iter()
@@ -183,8 +258,8 @@ pub(in crate::runtime::tests::causal_inspection) fn bridge_runtime() -> RuntimeB
         .register_source(registered_source(
             "source:causal-materialization-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                causal_materialization_branch_identity(),
+                causal_materialization_commit_identity(),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -197,12 +272,12 @@ pub(in crate::runtime::tests::causal_inspection) fn bridge_runtime() -> RuntimeB
             "structural:causal-materialization-snapshot",
             StructuralFingerprintFamily::TopologyFingerprint,
             StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-causal-materialization"),
+                causal_materialization_branch_identity(),
+                causal_materialization_snapshot_identity(),
             )),
         ))
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping:causal-materialization"),
+            BridgeMappingId::from_stable_name("mapping:causal-materialization"),
             TruthPatchScope::new(
                 MappingSelector::exact("entity-1"),
                 AspectKeySelector::exact(
@@ -219,7 +294,7 @@ pub(in crate::runtime::tests::causal_inspection) fn bridge_runtime() -> RuntimeB
                     .expect("valid native snapshot aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal:profile"),
+            SignalInvalidationScope::from_stable_name("signal:profile"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -232,7 +307,7 @@ pub(in crate::runtime::tests::causal_inspection) fn registered_source(
     capabilities: Vec<BridgeSourceCapability>,
 ) -> SourceDeclaration {
     SourceDeclaration::new(
-        SourceDeclarationIdentity::new(id),
+        SourceDeclarationIdentity::from_stable_name(id),
         selector,
         BridgeSourceCapabilitySet::new(capabilities),
     )
@@ -244,10 +319,10 @@ pub(in crate::runtime::tests::causal_inspection) fn registered_structural(
     truth_view_basis: StructuralTruthViewBasis,
 ) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::advisory_remap(
-        StructuralIdentityDeclarationIdentity::new(id),
-        StructuralSchemaIdentity::new("schema:causal-materialization"),
+        StructuralIdentityDeclarationIdentity::from_stable_name(id),
+        StructuralSchemaIdentity::from_stable_name("schema:causal-materialization"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:causal-materialization"),
+            StructuralSchemaIdentity::from_stable_name("schema:causal-materialization"),
             family,
             "causal-materialization-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -256,146 +331,4 @@ pub(in crate::runtime::tests::causal_inspection) fn registered_structural(
         ),
         truth_view_basis,
     )
-}
-
-pub(in crate::runtime::tests::causal_inspection) fn bridge_reference(
-    identity: BridgeCausalEvidenceReferenceIdentity,
-) -> BridgeCausalEvidenceReference {
-    let family = identity.family();
-    BridgeCausalEvidenceReference::new(BridgeCausalEvidenceOwner::RuntimeBridge, family, identity)
-        .expect("bridge causal reference should be valid")
-}
-
-pub(in crate::runtime::tests::causal_inspection) fn external_reference(
-    owner: BridgeCausalEvidenceOwner,
-    identity: BridgeCausalEvidenceReferenceIdentity,
-) -> BridgeCausalEvidenceReference {
-    BridgeCausalEvidenceReference::new(owner, identity.family(), identity)
-        .expect("external causal reference should be valid")
-}
-
-pub(in crate::runtime::tests::causal_inspection) fn query_reference(
-    identity: BridgeCausalEvidenceReferenceIdentity,
-) -> BridgeCausalEvidenceReference {
-    BridgeCausalEvidenceReference::new(
-        BridgeCausalEvidenceOwner::Query,
-        BridgeCausalEvidenceFamily::QueryObservation,
-        identity,
-    )
-    .expect("query causal reference should be valid")
-}
-
-pub(in crate::runtime::tests::causal_inspection) fn changed_reference_set(
-    route_identity: &BridgeRouteIdentity,
-) -> CausalEvidenceReferenceSet {
-    let anchor = anchor_causal_observation(
-        QueryObservationReceipt::fixture(
-            CausalObservationOutcome::Changed,
-            vec![
-                CausalObservationEvidenceIdentity::new(
-                    CausalEvidenceFamily::QueryInspection,
-                    "query-inspection:phase5",
-                ),
-                CausalObservationEvidenceIdentity::new(
-                    CausalEvidenceFamily::BridgeRoute,
-                    route_identity.as_str(),
-                ),
-            ],
-        ),
-        CausalInspectionReason::ChangedResult,
-    )
-    .expect("changed receipt should anchor");
-    let CausalEvidenceReferenceResolution::Resolved { reference_set, .. } =
-        resolve_causal_evidence_references(
-            anchor,
-            &[
-                CausalEvidenceFamily::QueryInspection,
-                CausalEvidenceFamily::BridgeRoute,
-            ],
-        )
-    else {
-        panic!("changed references should resolve");
-    };
-    reference_set
-}
-
-pub(in crate::runtime::tests::causal_inspection) fn replay_reference_set_with_signal_cursor(
-    route_identity: &BridgeRouteIdentity,
-    signal_replay_cursor_identity: &str,
-) -> CausalEvidenceReferenceSet {
-    let anchor = anchor_causal_observation(
-        QueryObservationReceipt::fixture(
-            CausalObservationOutcome::Replayed,
-            vec![
-                CausalObservationEvidenceIdentity::new(
-                    CausalEvidenceFamily::QueryInspection,
-                    "query-inspection:replay-materialization",
-                ),
-                CausalObservationEvidenceIdentity::new(
-                    CausalEvidenceFamily::BridgeRoute,
-                    route_identity.as_str(),
-                ),
-                CausalObservationEvidenceIdentity::new(
-                    CausalEvidenceFamily::SignalReplayCursor,
-                    signal_replay_cursor_identity,
-                ),
-            ],
-        ),
-        CausalInspectionReason::HistoricalReplayResult,
-    )
-    .expect("replay receipt should anchor");
-    let CausalEvidenceReferenceResolution::Resolved { reference_set, .. } =
-        resolve_causal_evidence_references(
-            anchor,
-            &[
-                CausalEvidenceFamily::QueryInspection,
-                CausalEvidenceFamily::BridgeRoute,
-                CausalEvidenceFamily::SignalReplayCursor,
-            ],
-        )
-    else {
-        panic!("replay references should resolve");
-    };
-    reference_set
-}
-
-pub(in crate::runtime::tests::causal_inspection) fn request_for(
-    reference_set: CausalEvidenceReferenceSet,
-    richness: CausalInspectionRichness,
-) -> CausalInspectionRequest {
-    let receipt = reference_set.anchor().observation_receipt();
-    let target = causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
-    )
-    .expect("target should match receipt");
-    request_causal_inspection(
-        reference_set,
-        target,
-        CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation,
-        richness,
-        &[CausalEvidenceFamily::BridgeRoute],
-    )
-    .expect("causal inspection request should be admitted to admission boundary")
-}
-
-pub(in crate::runtime::tests::causal_inspection) fn request_for_families(
-    reference_set: CausalEvidenceReferenceSet,
-    richness: CausalInspectionRichness,
-    requested_evidence_families: &[CausalEvidenceFamily],
-) -> CausalInspectionRequest {
-    let receipt = reference_set.anchor().observation_receipt();
-    let target = causal_inspection_target(
-        receipt.observation_target_digest(),
-        receipt.result_shape_context_digest(),
-    )
-    .expect("target should match receipt");
-    request_causal_inspection(
-        reference_set,
-        target,
-        CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation,
-        richness,
-        requested_evidence_families,
-    )
-    .expect("causal inspection request should be admitted to admission boundary")
 }

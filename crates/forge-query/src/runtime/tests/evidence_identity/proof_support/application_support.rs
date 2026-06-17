@@ -4,89 +4,98 @@ pub(in super::super) fn compose_support_report_identity(
     crate::ForgeQueryEvidenceIdentity::compose(
         crate::ForgeQueryEvidenceScope::ApplicationSupportReport,
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("support_matrix_digest"),
         report.support_matrix().support_matrix_digest(),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("validated_config_digest"),
         report.validated_config_digest(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("admitted_capability_count"),
-        report.admitted_capability_count().to_string(),
+        report.admitted_capability_count(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("deferred_capability_count"),
-        report.deferred_capability_count().to_string(),
+        report.deferred_capability_count(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("unsupported_capability_count"),
-        report.unsupported_capability_count().to_string(),
+        report.unsupported_capability_count(),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("admitted_capability_family"),
         report
             .admitted_capability_families()
             .iter()
             .map(crate::application::ForgeQueryCapabilityFamily::as_str),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("deferred_capability_family"),
         report
             .deferred_capability_families()
             .iter()
             .map(crate::application::ForgeQueryCapabilityFamily::as_str),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("unsupported_capability_family"),
         report
             .unsupported_capability_families()
             .iter()
             .map(crate::application::ForgeQueryCapabilityFamily::as_str),
     )
-    .field_identity_sequence(
+    .field_value_sequence(
         crate::ForgeQueryEvidenceTag::new("section_posture_digest"),
         report
             .section_postures()
             .iter()
             .map(crate::application::ForgeQuerySupportSectionPosture::posture_digest),
     )
-    .optional_identity(
+    .optional_value(
         crate::ForgeQueryEvidenceTag::new("query_composition_profile_digest"),
         report
             .query_composition_support_profile()
             .map(crate::application::ForgeQueryQueryCompositionSupportProfile::profile_digest),
     )
-    .optional_identity(
+    .optional_value(
         crate::ForgeQueryEvidenceTag::new("query_context_profile_digest"),
         report
             .query_context_support_profile()
             .map(crate::application::ForgeQueryQueryContextSupportProfile::profile_digest),
     )
-    .optional_identity(
+    .optional_value(
         crate::ForgeQueryEvidenceTag::new("identity_evolution_profile_digest"),
         report
             .identity_evolution_support_profile()
             .map(crate::application::ForgeQueryIdentityEvolutionSupportProfile::profile_digest),
     )
-    .field_identity(
+    .field_value(
         crate::ForgeQueryEvidenceTag::new("identity_boundary_closure_digest"),
         report.identity_boundary_closure().closure_digest(),
     )
-    .field_value(
+    .field_usize(
         crate::ForgeQueryEvidenceTag::new("support_report_generation_count"),
-        report
-            .counters()
-            .support_report_generation_count()
-            .to_string(),
+        report.counters().support_report_generation_count(),
     )
     .seal()
 }
 
-pub(in super::super) fn assert_phase_two_surface_has_no_hash_parts(source: &str) {
-    assert!(
-        !source.contains("hash_parts("),
-        "phase-2-covered surface must not retain hash_parts folklore"
-    );
+#[allow(dead_code)]
+pub(in super::super) fn assert_phase_two_surface_has_no_digest_folklore(source: &str) {
+    for forbidden in [
+        "hash_parts(",
+        "digest_owned_parts(",
+        ".join(\"|\")",
+        "format!(\"{}|",
+        "format!(\"{:?}\"",
+        "format!(\"{:?}|",
+        "format!(\"{:#?}\"",
+        "format!(\"{:#?}|",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "phase-2-covered surface must not retain digest folklore pattern {forbidden}"
+        );
+    }
 }

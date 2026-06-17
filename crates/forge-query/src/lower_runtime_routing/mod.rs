@@ -71,11 +71,14 @@ pub use inventory::{
     ForgeQueryLowerRuntimeGapRegistryRow, ForgeQueryLowerRuntimeRouteKind,
     ForgeQueryLowerRuntimeSeamKey,
 };
-pub use plans::ForgeQueryLowerRuntimeRoutePlan;
-pub use protocol::ForgeQueryLowerRuntimeCapabilityRequest;
+pub use plans::{ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeRouteSubjectIdentity};
+pub use protocol::{
+    ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeSubjectIdentity,
+};
+pub(crate) use receipts::forge_query_lower_runtime_retained_evidence_identity;
 pub use receipts::{
     ForgeQueryLowerRuntimeBoundaryExecutionKind, ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
-    ForgeQueryLowerRuntimeReadmissionReceipt,
+    ForgeQueryLowerRuntimeReadmissionReceipt, ForgeQueryLowerRuntimeRetainedEvidenceIdentity,
 };
 pub use sources::ForgeQueryLowerRuntimeBoundaryEnvelopeSource;
 pub use support::{

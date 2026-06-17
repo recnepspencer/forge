@@ -1,7 +1,6 @@
-use crate::identity::hash_parts;
-
 use super::eligibility::{DeferredProjectionConsumptionReason, ProjectionConsumptionWarningKind};
 use super::facts::ProjectionFactKind;
+use super::identity::compose_support_row_digest;
 use super::source::{
     ProjectionConsumptionSource, ProjectionSourceCapabilityProfile,
     ProjectionSourceExecutionPosture, ProjectionSourceFamily,
@@ -97,12 +96,12 @@ pub fn discover_projection_consumption_support(
             ProjectionConsumptionSupportRow {
                 source_family: source.family(),
                 fact_kind,
-                support_digest: hash_parts(&[
-                    format!("source:{}", source.family().as_str()),
-                    format!("fact:{}", fact_kind.as_str()),
-                    format!("posture:{}", posture.as_str()),
-                    format!("detail:{}", posture.detail_key()),
-                ]),
+                support_digest: compose_support_row_digest(
+                    source.family(),
+                    fact_kind,
+                    &posture,
+                    posture.detail_key(),
+                ),
                 posture,
             }
         })

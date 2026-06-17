@@ -164,7 +164,7 @@ fn direct_context_preserves_typed_remask_parity_across_state_and_inspection() {
     );
     assert_eq!(
         state.direct_context().basis_digest(),
-        Some(state.runtime_state().basis_digest())
+        Some(state.runtime_state().basis_for_reporting())
     );
     assert_eq!(
         state.direct_context().remask_posture().remask_digest(),
@@ -183,7 +183,10 @@ fn direct_context_preserves_typed_remask_parity_across_state_and_inspection() {
         ForgeQueryInspection::LiveView(live) => {
             assert_eq!(
                 inspection.direct_context().basis_digest(),
-                Some(live.basis_binding_digest())
+                Some(
+                    live.basis_binding_identity()
+                        .terminal_projection_for_reporting()
+                )
             );
         }
         other => panic!("expected live inspection, got {other:?}"),

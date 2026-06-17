@@ -1,6 +1,5 @@
 use serde_json::Value;
 
-use crate::identity::hash_parts;
 use crate::memory_workspace::ForgeQueryMutationReceipt;
 
 use super::{
@@ -17,8 +16,11 @@ mod effect_triggered;
 mod execution;
 mod failure;
 mod preview;
+mod preview_receipt_identity;
 mod provenance;
+mod provenance_identity;
 mod receipt;
+mod receipt_identity;
 
 pub(crate) use admission::{
     admit_authoritative_intent_declaration, admit_authoritative_intent_execution,

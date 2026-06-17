@@ -11,6 +11,7 @@ fn remasked_runtime(projection: ForgeQueryRuntimeRemaskProjection) -> ForgeQuery
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(RemaskingSubscriptionActivation { projection })

@@ -147,7 +147,7 @@ impl ForgeServerForgeNativeDirectFacade {
                     self.admission.request_context(),
                     &support_posture,
                     &response_envelope,
-                    Some(runtime_state.basis_digest()),
+                    Some(runtime_state.basis_for_reporting()),
                     ForgeServerDirectRemaskPosture::from_state_snapshot(&runtime_state),
                 );
                 TransitionOutcome::Success(ForgeServerDirectState::new(
@@ -186,10 +186,15 @@ impl ForgeServerForgeNativeDirectFacade {
                     .responses
                     .shape_with_defaults(ForgeServerResponseInput::query_handoff_success(handoff));
                 let (basis_digest, remask_posture) = match inspection_result.inspection() {
-                    ForgeQueryInspection::LiveView(live) => (
-                        Some(live.basis_binding_digest()),
-                        ForgeServerDirectRemaskPosture::from_live_inspection(live),
-                    ),
+                    ForgeQueryInspection::LiveView(live) => {
+                        let basis = live
+                            .basis_binding_identity()
+                            .terminal_projection_for_reporting();
+                        (
+                            Some(basis),
+                            ForgeServerDirectRemaskPosture::from_live_inspection(live),
+                        )
+                    }
                     _ => (None, ForgeServerDirectRemaskPosture::visible()),
                 };
                 let direct_context = ForgeServerDirectContextArtifact::new(

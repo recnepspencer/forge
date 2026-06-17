@@ -301,7 +301,7 @@ impl StructuralFingerprint {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            fingerprint_identity: StructuralFingerprintIdentity::new(format!(
+            fingerprint_identity: StructuralFingerprintIdentity::admit_bridge_owned(format!(
                 "structural-fingerprint:sha256:{digest:x}"
             )),
             family: equivalence.fingerprint_family(),

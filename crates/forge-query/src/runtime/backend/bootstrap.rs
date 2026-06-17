@@ -8,8 +8,9 @@ use super::{
     ForgeQueryRuntimeDeclarationInitializationAdapter,
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
-    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
+    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeWriteAuthorityAdapter,
 };
 
 pub(in crate::runtime) struct BridgeBackedRuntimeBootstrap {
@@ -17,6 +18,7 @@ pub(in crate::runtime) struct BridgeBackedRuntimeBootstrap {
     pub(super) runtime_bridge: RuntimeBridge,
     pub(super) schema_adapter: Box<dyn ForgeQueryRuntimeSchemaAdapter>,
     pub(super) source_adapter: Box<dyn ForgeQueryRuntimeSourceAdapter>,
+    pub(super) snapshot_identity: Option<Box<dyn ForgeQueryRuntimeSnapshotIdentityAdapter>>,
     pub(super) existing_truth_verification:
         Option<Box<dyn ForgeQueryRuntimeExistingTruthVerificationAdapter>>,
     pub(super) write_authority: Box<dyn ForgeQueryRuntimeWriteAuthorityAdapter>,
@@ -44,6 +46,9 @@ impl BridgeBackedRuntimeBootstrap {
         let source_adapter = parts
             .source_adapter
             .ok_or(ForgeQueryRuntimeError::MissingSourceAdapter)?;
+        let snapshot_identity = parts
+            .snapshot_identity
+            .ok_or(ForgeQueryRuntimeError::MissingSnapshotIdentityAdapter)?;
         let existing_truth_verification = parts.existing_truth_verification;
         let write_authority = parts
             .write_authority
@@ -64,7 +69,7 @@ impl BridgeBackedRuntimeBootstrap {
         let intent_authority = parts.intent_authority;
         let support_profile = parts.support_profile.unwrap_or_else(|| {
             ForgeQueryRuntimeSupportProfile::bridge_backed(
-                subscription_activation.support_evidence(),
+                subscription_activation.support_evidence_for_reporting(),
                 "preview-basis-admission",
                 "inspector-evidence-adapter",
             )
@@ -79,6 +84,7 @@ impl BridgeBackedRuntimeBootstrap {
             runtime_bridge,
             schema_adapter,
             source_adapter,
+            snapshot_identity: Some(snapshot_identity),
             existing_truth_verification,
             write_authority,
             signal_sink,

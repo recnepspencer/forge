@@ -88,7 +88,7 @@ fn workflow_and_plan_bound_evidence_fail_closed() {
         .expect("workflow mismatch should be a composition error");
     assert_eq!(
         workflow_error.failure_class(),
-        ForgeQueryDeclarationEntryContributionCompositionFailureClass::CategoryNotComposableForRetainedSeam
+        ForgeQueryDeclarationEntryContributionCompositionFailureClass::TargetDigestMismatch
     );
 
     let readiness_error = match handle.try_declaration_entry_readiness::<Input<BridgeSignalFamily>>(

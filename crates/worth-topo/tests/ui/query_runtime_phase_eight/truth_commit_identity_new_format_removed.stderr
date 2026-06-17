@@ -1,0 +1,28 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/query_runtime_phase_eight/truth_commit_identity_new_format_removed.rs:4:40
+  |
+4 |       let _commit = TruthCommitIdentity::new("commit-7");
+  |                                          ^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/forge-runtime-bridge/src/identity.rs
+  |
+  | /     pub(crate) fn new(
+  | |         identity: BridgeTruthAuthorityIdentity<Arc<str>, BridgeEvidenceReferenceIdentityKind>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+ --> tests/ui/query_runtime_phase_eight/truth_commit_identity_new_format_removed.rs:4:44
+  |
+4 |     let _commit = TruthCommitIdentity::new("commit-7");
+  |                   ------------------------ ^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&str`
+  |                   |
+  |                   arguments to this function are incorrect
+  |
+  = note: expected struct `forge_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<Arc<str>, BridgeTruthAuthority, BridgeEvidenceReferenceIdentityKind>`
+          found reference `&'static str`
+note: associated function defined here
+ --> $WORKSPACE/crates/forge-runtime-bridge/src/identity.rs
+  |
+  |     pub(crate) fn new(
+  |                   ^^^

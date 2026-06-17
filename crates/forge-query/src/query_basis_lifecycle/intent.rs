@@ -1,4 +1,8 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+
+use super::RawBasisIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BasisOperationLaneRequest {
@@ -54,26 +58,26 @@ impl RawFutureBasisNeighborFamily {
 pub enum RawBasisSelector {
     CurrentHead,
     BranchHead {
-        branch_identity: String,
+        branch_identity: RawBasisIdentity,
     },
     BranchSnapshot {
-        branch_identity: String,
-        snapshot_identity: String,
+        branch_identity: RawBasisIdentity,
+        snapshot_identity: RawBasisIdentity,
     },
     RuntimeSnapshot {
-        snapshot_identity: String,
+        snapshot_identity: RawBasisIdentity,
     },
     HistoricalSnapshot {
-        snapshot_identity: String,
+        snapshot_identity: RawBasisIdentity,
     },
     HistoricalCommit {
-        commit_identity: String,
+        commit_identity: RawBasisIdentity,
     },
     Preview {
-        preview_identity: String,
+        preview_identity: RawBasisIdentity,
     },
     PreviewDerivedHistorical {
-        preview_identity: String,
+        preview_identity: RawBasisIdentity,
     },
     FutureNeighbor {
         family: RawFutureBasisNeighborFamily,
@@ -132,7 +136,7 @@ impl RawBasisIntent {
     }
 
     pub fn branch_head(
-        branch_identity: impl Into<String>,
+        branch_identity: impl Into<RawBasisIdentity>,
         operation_lane: BasisOperationLaneRequest,
     ) -> Self {
         Self::new(
@@ -145,7 +149,7 @@ impl RawBasisIntent {
     }
 
     pub fn historical_snapshot(
-        snapshot_identity: impl Into<String>,
+        snapshot_identity: impl Into<RawBasisIdentity>,
         operation_lane: BasisOperationLaneRequest,
     ) -> Self {
         Self::new(
@@ -158,7 +162,7 @@ impl RawBasisIntent {
     }
 
     pub fn historical_commit(
-        commit_identity: impl Into<String>,
+        commit_identity: impl Into<RawBasisIdentity>,
         operation_lane: BasisOperationLaneRequest,
     ) -> Self {
         Self::new(
@@ -171,7 +175,7 @@ impl RawBasisIntent {
     }
 
     pub fn preview_derived_historical(
-        preview_identity: impl Into<String>,
+        preview_identity: impl Into<RawBasisIdentity>,
         operation_lane: BasisOperationLaneRequest,
     ) -> Self {
         Self::new(
@@ -184,7 +188,7 @@ impl RawBasisIntent {
     }
 
     pub fn preview(
-        preview_identity: impl Into<String>,
+        preview_identity: impl Into<RawBasisIdentity>,
         operation_lane: BasisOperationLaneRequest,
     ) -> Self {
         Self::new(
@@ -197,7 +201,7 @@ impl RawBasisIntent {
     }
 
     pub fn runtime_snapshot(
-        snapshot_identity: impl Into<String>,
+        snapshot_identity: impl Into<RawBasisIdentity>,
         operation_lane: BasisOperationLaneRequest,
     ) -> Self {
         Self::new(
@@ -210,8 +214,8 @@ impl RawBasisIntent {
     }
 
     pub fn branch_snapshot(
-        branch_identity: impl Into<String>,
-        snapshot_identity: impl Into<String>,
+        branch_identity: impl Into<RawBasisIdentity>,
+        snapshot_identity: impl Into<RawBasisIdentity>,
         operation_lane: BasisOperationLaneRequest,
     ) -> Self {
         Self::new(
@@ -306,47 +310,70 @@ impl RawBasisIntent {
     }
 
     fn compute_raw_digest(&self) -> String {
-        let mut parts = vec![
-            format!("selector:{}", self.selector.as_str()),
-            format!("operation_lane:{}", self.operation_lane.as_str()),
-            format!("source_path:{}", self.source_path.as_str()),
-        ];
+        let mut encoder = forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("selector"),
+                self.selector.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("operation_lane"),
+                self.operation_lane.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("source_path"),
+                self.source_path.as_str(),
+            );
         match &self.selector {
             RawBasisSelector::CurrentHead => {}
             RawBasisSelector::BranchHead { branch_identity } => {
-                parts.push(format!("branch_identity:{branch_identity}"));
+                encoder =
+                    branch_identity.encode(encoder, ForgeQueryEvidenceTag::new("branch_identity"));
             }
             RawBasisSelector::BranchSnapshot {
                 branch_identity,
                 snapshot_identity,
             } => {
-                parts.push(format!("branch_identity:{branch_identity}"));
-                parts.push(format!("snapshot_identity:{snapshot_identity}"));
+                encoder =
+                    branch_identity.encode(encoder, ForgeQueryEvidenceTag::new("branch_identity"));
+                encoder = snapshot_identity
+                    .encode(encoder, ForgeQueryEvidenceTag::new("snapshot_identity"));
             }
             RawBasisSelector::RuntimeSnapshot { snapshot_identity }
             | RawBasisSelector::HistoricalSnapshot { snapshot_identity } => {
-                parts.push(format!("snapshot_identity:{snapshot_identity}"));
+                encoder = snapshot_identity
+                    .encode(encoder, ForgeQueryEvidenceTag::new("snapshot_identity"));
             }
             RawBasisSelector::HistoricalCommit { commit_identity } => {
-                parts.push(format!("commit_identity:{commit_identity}"));
+                encoder =
+                    commit_identity.encode(encoder, ForgeQueryEvidenceTag::new("commit_identity"));
             }
             RawBasisSelector::Preview { preview_identity }
             | RawBasisSelector::PreviewDerivedHistorical { preview_identity } => {
-                parts.push(format!("preview_identity:{preview_identity}"));
+                encoder = preview_identity
+                    .encode(encoder, ForgeQueryEvidenceTag::new("preview_identity"));
             }
             RawBasisSelector::FutureNeighbor { family } => {
-                parts.push(format!("future_neighbor:{}", family.as_str()));
+                encoder = encoder.field_shape(
+                    ForgeQueryEvidenceTag::new("future_neighbor"),
+                    family.as_str(),
+                );
             }
         }
-        if let Some(tenant_scope) = &self.tenant_scope {
-            parts.push(format!("tenant_scope:{tenant_scope}"));
-        }
-        if let Some(policy_scope) = &self.policy_scope {
-            parts.push(format!("policy_scope:{policy_scope}"));
-        }
-        if let Some(schema_scope) = &self.schema_scope {
-            parts.push(format!("schema_scope:{schema_scope}"));
-        }
-        hash_parts(&parts)
+        encoder
+            .optional_value(
+                ForgeQueryEvidenceTag::new("tenant_scope"),
+                self.tenant_scope.as_deref(),
+            )
+            .optional_value(
+                ForgeQueryEvidenceTag::new("policy_scope"),
+                self.policy_scope.as_deref(),
+            )
+            .optional_value(
+                ForgeQueryEvidenceTag::new("schema_scope"),
+                self.schema_scope.as_deref(),
+            )
+            .seal()
+            .as_str()
+            .to_string()
     }
 }

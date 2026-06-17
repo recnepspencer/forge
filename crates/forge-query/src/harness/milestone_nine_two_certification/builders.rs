@@ -37,6 +37,18 @@ use crate::subscription::{
 };
 use crate::view_shape_live::LiveViewShapeFamily;
 
+fn continuation_harness_identity(label: &str) -> crate::ForgeQueryEvidenceIdentity {
+    crate::ForgeQueryEvidenceIdentity::compose(
+        crate::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+    )
+    .field_shape(
+        crate::ForgeQueryEvidenceTag::new("identity_family"),
+        "subscription_continuation_harness_identity_v1",
+    )
+    .field_shape(crate::ForgeQueryEvidenceTag::new("label"), label)
+    .seal()
+}
+
 pub(super) fn canonical_rows() -> Vec<MilestoneNineTwoCertificationRow> {
     vec![
         row(
@@ -401,48 +413,66 @@ fn shipped_bundle(
     bundle: crate::subscription::SubscriptionLifecycleCertificationBundle,
 ) -> SubscriptionLifecycleCertificationBundle {
     SubscriptionLifecycleCertificationBundle {
-        query_digest: bundle.query_digest().to_string(),
-        subscription_family_digest: bundle.subscription_family_digest().to_string(),
-        subscription_declaration_digest: bundle.subscription_declaration_digest().to_string(),
-        subscription_equivalence_digest: bundle.subscription_equivalence_digest().to_string(),
-        active_lane_digest: bundle.active_lane_digest().to_string(),
-        active_lane_handle_digest: bundle.active_lane_handle_digest().to_string(),
-        active_lane_lookup_class_digest: bundle.active_lane_lookup_class_digest().to_string(),
-        subscription_budget_digest: bundle.subscription_budget_digest().to_string(),
+        query_digest: bundle.query_scope_projection().label().to_string(),
+        subscription_family_digest: bundle.subscription_family_projection().label().to_string(),
+        subscription_declaration_digest: bundle
+            .subscription_declaration_projection()
+            .label()
+            .to_string(),
+        subscription_equivalence_digest: bundle
+            .subscription_equivalence_projection()
+            .label()
+            .to_string(),
+        active_lane_digest: bundle.active_lane_projection().label().to_string(),
+        active_lane_handle_digest: bundle.active_lane_handle_projection().label().to_string(),
+        active_lane_lookup_class_digest: bundle
+            .active_lane_lookup_class_projection()
+            .label()
+            .to_string(),
+        subscription_budget_digest: bundle.subscription_budget_projection().label().to_string(),
         subscription_performance_receipt_digest: bundle
-            .subscription_performance_receipt_digest()
+            .subscription_performance_receipt_projection()
+            .label()
             .to_string(),
-        consumer_attachment_digest: bundle.consumer_attachment_digest().to_string(),
-        acknowledgement_frontier_digest: bundle.acknowledgement_frontier_digest().to_string(),
-        delivery_window_digest: bundle.delivery_window_digest().to_string(),
-        maintenance_delta_digest: bundle.maintenance_delta_digest().to_string(),
-        active_delivery_work_packet_digest: bundle.active_delivery_work_packet_digest().to_string(),
+        consumer_attachment_digest: bundle.consumer_attachment_projection().label().to_string(),
+        acknowledgement_frontier_digest: bundle
+            .acknowledgement_frontier_projection()
+            .label()
+            .to_string(),
+        delivery_window_digest: bundle.delivery_window_projection().label().to_string(),
+        maintenance_delta_digest: bundle.maintenance_delta_projection().label().to_string(),
+        active_delivery_work_packet_digest: bundle
+            .active_delivery_work_packet_projection()
+            .label()
+            .to_string(),
         active_delivery_density_posture_digest: bundle
-            .active_delivery_density_posture_digest()
+            .active_delivery_density_posture_projection()
+            .label()
             .to_string(),
-        allocation_posture_digest: bundle.allocation_posture_digest().to_string(),
-        delivery_batch_digest: bundle.delivery_batch_digest().to_string(),
-        patch_group_digest: bundle.patch_group_digest().to_string(),
-        delivery_receipt_digest: bundle.delivery_receipt_digest().to_string(),
-        continuation_digest: bundle.continuation_digest().to_string(),
-        preview_isolation_digest: bundle.preview_isolation_digest().to_string(),
-        preview_residue_digest: bundle.preview_residue_digest().to_string(),
-        policy_digest: bundle.policy_digest().to_string(),
-        tenant_basis_digest: bundle.tenant_basis_digest().to_string(),
-        relationship_proof_digest: bundle.relationship_proof_digest().to_string(),
-        view_shape_digest: bundle.view_shape_digest().to_string(),
-        basis_digest: bundle.basis_digest().to_string(),
-        bridge_declaration_digest: bundle.bridge_declaration_digest().to_string(),
-        signal_strategy_digest: bundle.signal_strategy_digest().to_string(),
+        allocation_posture_digest: bundle.allocation_posture_projection().label().to_string(),
+        delivery_batch_digest: bundle.delivery_batch_projection().label().to_string(),
+        patch_group_digest: bundle.patch_group_projection().label().to_string(),
+        delivery_receipt_digest: bundle.delivery_receipt_projection().label().to_string(),
+        continuation_digest: bundle.continuation_projection().label().to_string(),
+        preview_isolation_digest: bundle.preview_isolation_projection().label().to_string(),
+        preview_residue_digest: bundle.preview_residue_projection().label().to_string(),
+        policy_digest: bundle.policy_projection().label().to_string(),
+        tenant_basis_digest: bundle.tenant_basis_projection().label().to_string(),
+        relationship_proof_digest: bundle.relationship_proof_projection().label().to_string(),
+        view_shape_digest: bundle.view_shape_projection().label().to_string(),
+        basis_digest: bundle.basis_posture_projection().label().to_string(),
+        bridge_declaration_digest: bundle.bridge_declaration_projection().label().to_string(),
+        signal_strategy_digest: bundle.signal_strategy_projection().label().to_string(),
         failure_digest: "none".to_string(),
         lifecycle_denial_digest: "none".to_string(),
-        counter_snapshot: bundle.counter_snapshot().to_string(),
-        counter_evidence: bundle.counter_evidence().to_vec(),
+        counter_snapshot: bundle.counter_snapshot_projection().label().to_string(),
+        counter_evidence: Vec::new(),
         subscription_lifecycle_scale_slope_digest: bundle
-            .subscription_lifecycle_scale_slope_digest()
+            .subscription_lifecycle_scale_slope_projection()
+            .label()
             .to_string(),
         compile_fail_boundary_digest: compile_fail_boundary_digest(),
-        support_matrix_digest: bundle.support_matrix_digest().to_string(),
+        support_matrix_digest: bundle.support_matrix_projection().label().to_string(),
     }
 }
 
@@ -486,19 +516,24 @@ fn lifecycle_lane_with_delivery_profile(
         let evidence = admit_subscription_continuation_evidence(
             attachment.lane_digest().clone(),
             SubscriptionContinuationClass::IdentityRemap,
-            "employee:old",
-            "employee:new",
-            "basis:current",
-            "identity-authority",
+            continuation_harness_identity("employee:old"),
+            continuation_harness_identity("employee:new"),
+            continuation_harness_identity("basis:current"),
+            continuation_harness_identity("identity-authority"),
             ContinuationRemapWidth::measured(continuation_width),
         )
         .unwrap();
         let (window, report) =
             apply_active_subscription_continuation(&mut runtime, window, evidence).unwrap();
         let (delta, counters) = lower_subscription_continuation_report(&report);
-        (window, delta, Some(report), vec![counters.digest()])
+        (
+            window,
+            delta,
+            Some(report),
+            vec![counters.counter_projection().label().to_string()],
+        )
     } else {
-        let delta = QuerySubscriptionMaintenanceDelta::admitted(
+        let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
             delta_kind,
             attachment.lane_digest().clone(),
             affected_scope,
@@ -525,7 +560,7 @@ fn lifecycle_lane_with_delivery_profile(
         continuation_report,
         &[
             extra_counters,
-            vec![lowering_counters.digest()],
+            vec![lowering_counters.counter_projection().label().to_string()],
             scale_axis_evidence(patch_width, continuation_width),
         ]
         .concat(),
@@ -587,7 +622,7 @@ fn finish_delivery_lane(
         &active_admission,
         &active_lane_handle,
         &attachment,
-        evidence.delivery_batch.delivery_window_digest().to_string(),
+        evidence.delivery_batch.delivery_window_identity(),
         &delta,
         &lowering_report,
         &evidence.work_packet,
@@ -605,7 +640,7 @@ fn finish_delivery_lane(
     counter_parts.push(format!("ack:{}", evidence.ack_counter_digest));
     counter_parts.push(format!(
         "closeout:{}",
-        lifecycle_closeout.counters().digest()
+        lifecycle_closeout.counters().counter_projection().label()
     ));
     counter_parts.extend(extra_counter_digests.iter().cloned());
     bundle.counter_snapshot = digest_parts(&counter_parts);
@@ -663,30 +698,38 @@ fn deliver_to_attachment(
         allocation_posture,
     )
     .unwrap();
-    let work_packet_counter_digest = runtime.counters().digest();
+    let work_packet_counter_digest = runtime.counters().counter_projection().label().to_string();
     let performance_receipt_digest = work_packet
         .performance_receipt()
-        .performance_receipt_digest()
+        .performance_receipt_projection()
+        .label()
         .to_string();
-    let active_delivery_work_packet_digest = work_packet.work_packet_digest().to_string();
+    let active_delivery_work_packet_digest =
+        work_packet.work_packet_projection().label().to_string();
     let density_posture_digest =
         digest_parts(&[work_packet.density_posture().as_str().to_string()]);
     let maintenance_delta_digest = work_packet
         .maintenance_delta()
-        .maintenance_delta_digest()
+        .maintenance_delta_projection()
+        .label()
         .to_string();
     let batch = emit_query_delivery_batch(runtime, window, work_packet.clone()).unwrap();
-    let batch_counter_digest = batch.counters().digest();
-    let delivery_batch_digest = batch.delivery_batch_digest().to_string();
-    let delivery_window_digest = batch.delivery_window_digest().to_string();
-    let patch_group_digest = batch.patch_group().patch_group_digest().to_string();
-    let delivery_receipt_digest = batch.receipt().receipt_digest().to_string();
+    let batch_counter_digest = batch.counters().counter_projection().label().to_string();
+    let delivery_batch_digest = batch.delivery_batch_projection().label().to_string();
+    let delivery_window_digest = batch.delivery_window_projection().label().to_string();
+    let patch_group_digest = batch
+        .patch_group()
+        .patch_group_projection()
+        .label()
+        .to_string();
+    let delivery_receipt_digest = batch.receipt().receipt_projection().label().to_string();
     let acknowledgement =
         advance_subscription_acknowledgement(runtime, attachment, batch.receipt().clone()).unwrap();
-    let ack_counter_digest = runtime.counters().digest();
+    let ack_counter_digest = runtime.counters().counter_projection().label().to_string();
     let acknowledgement_frontier_digest = acknowledgement
         .acknowledgement_frontier()
-        .frontier_digest()
+        .frontier_projection()
+        .label()
         .to_string();
 
     DeliveryEvidence {
@@ -720,10 +763,10 @@ fn sharing_lane(
     );
     let admission = admit_active_subscription_lane(activation.clone(), active_budget()).unwrap();
     let handle = open_active_subscription_lane(&mut runtime, admission).unwrap();
-    let open_counter_digest = runtime.counters().digest();
+    let open_counter_digest = runtime.counters().counter_projection().label().to_string();
     let join_admission = admit_active_subscription_lane(activation, active_budget()).unwrap();
     let joined = join_active_subscription_lane(&mut runtime, &handle, join_admission).unwrap();
-    let join_counter_digest = runtime.counters().digest();
+    let join_counter_digest = runtime.counters().counter_projection().label().to_string();
     let first = attach_subscription_consumer(
         &mut runtime,
         &handle,
@@ -731,7 +774,8 @@ fn sharing_lane(
         attachment_budget(),
     )
     .unwrap();
-    let first_attachment_counter_digest = runtime.counters().digest();
+    let first_attachment_counter_digest =
+        runtime.counters().counter_projection().label().to_string();
     let second = attach_subscription_consumer(
         &mut runtime,
         &joined,
@@ -739,13 +783,14 @@ fn sharing_lane(
         attachment_budget(),
     )
     .unwrap();
-    let second_attachment_counter_digest = runtime.counters().digest();
+    let second_attachment_counter_digest =
+        runtime.counters().counter_projection().label().to_string();
     let first_window = open_query_delivery_window(&mut runtime, &first, delivery_budget()).unwrap();
-    let first_window_counter_digest = runtime.counters().digest();
+    let first_window_counter_digest = runtime.counters().counter_projection().label().to_string();
     let second_window =
         open_query_delivery_window(&mut runtime, &second, delivery_budget()).unwrap();
-    let second_window_counter_digest = runtime.counters().digest();
-    let first_delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let second_window_counter_digest = runtime.counters().counter_projection().label().to_string();
+    let first_delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         first.lane_digest().clone(),
         "shared-manager",
@@ -753,7 +798,7 @@ fn sharing_lane(
     );
     let (first_delta, first_lowering, first_lowering_counters) =
         lower_query_subscription_maintenance_delta(first_delta).unwrap();
-    let second_delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let second_delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         second.lane_digest().clone(),
         "shared-manager",
@@ -761,8 +806,8 @@ fn sharing_lane(
     );
     let (second_delta, second_lowering, second_lowering_counters) =
         lower_query_subscription_maintenance_delta(second_delta).unwrap();
-    let first_digest = first.attachment_digest().as_str().to_string();
-    let second_digest = second.attachment_digest().as_str().to_string();
+    let first_digest = first.attachment_projection().label().to_string();
+    let second_digest = second.attachment_projection().label().to_string();
     let first_evidence = deliver_to_attachment(
         &mut runtime,
         first,
@@ -801,10 +846,10 @@ fn sharing_lane(
         1,
         0,
     );
-    bundle.active_lane_digest = handle.lane_digest().as_str().to_string();
+    bundle.active_lane_digest = handle.lane_projection().label().to_string();
     bundle.active_lane_handle_digest = digest_parts(&[
-        format!("opened:{}", handle.lane_digest().as_str()),
-        format!("joined:{}", joined.lane_digest().as_str()),
+        format!("opened:{}", handle.lane_projection().label()),
+        format!("joined:{}", joined.lane_projection().label()),
         format!("same_lane:{}", handle.lane_digest() == joined.lane_digest()),
     ]);
     bundle.consumer_attachment_digest = digest_parts(&[first_digest, second_digest]);
@@ -847,8 +892,14 @@ fn sharing_lane(
         format!("second_attach:{second_attachment_counter_digest}"),
         format!("first_window:{first_window_counter_digest}"),
         format!("second_window:{second_window_counter_digest}"),
-        format!("first_lowering:{}", first_lowering_counters.digest()),
-        format!("second_lowering:{}", second_lowering_counters.digest()),
+        format!(
+            "first_lowering:{}",
+            first_lowering_counters.counter_projection().label()
+        ),
+        format!(
+            "second_lowering:{}",
+            second_lowering_counters.counter_projection().label()
+        ),
         format!("first_packet:{}", first_evidence.work_packet_counter_digest),
         format!(
             "second_packet:{}",
@@ -859,7 +910,7 @@ fn sharing_lane(
         format!("first_ack:{}", first_evidence.ack_counter_digest),
         format!("second_ack:{}", second_evidence.ack_counter_digest),
         bundle.counter_snapshot,
-        format!("shared_lane:{}", joined.lane_digest().as_str()),
+        format!("shared_lane:{}", joined.lane_projection().label()),
         "same_lane:true".to_string(),
         "consumer_local_delivery_count:2".to_string(),
     ];
@@ -893,7 +944,7 @@ fn preview_discard_lane() -> SubscriptionLifecycleCertificationBundle {
     )
     .unwrap();
     let window = open_query_delivery_window(&mut runtime, &attachment, delivery_budget()).unwrap();
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "preview",
@@ -948,7 +999,7 @@ fn preview_discard_lane() -> SubscriptionLifecycleCertificationBundle {
             &active_admission,
             &handle,
             &attachment,
-            evidence.delivery_batch.delivery_window_digest().to_string(),
+            evidence.delivery_batch.delivery_window_identity(),
             &delta,
             &lowering_report,
             &evidence.work_packet,
@@ -965,7 +1016,10 @@ fn preview_discard_lane() -> SubscriptionLifecycleCertificationBundle {
         .unwrap(),
     );
     let mut counter_evidence = bundle.counter_evidence.clone();
-    counter_evidence.push(format!("lowering:{}", lowering_counters.digest()));
+    counter_evidence.push(format!(
+        "lowering:{}",
+        lowering_counters.counter_projection().label()
+    ));
     counter_evidence.extend([
         "authoritative_routing_residue:0".to_string(),
         "authoritative_checkpoint_residue:0".to_string(),
@@ -1003,7 +1057,7 @@ fn preview_promotion_lane() -> SubscriptionLifecycleCertificationBundle {
     )
     .unwrap();
     let window = open_query_delivery_window(&mut runtime, &attachment, delivery_budget()).unwrap();
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "preview-promotion",
@@ -1064,7 +1118,7 @@ fn preview_promotion_lane() -> SubscriptionLifecycleCertificationBundle {
             &active_admission,
             &handle,
             &attachment,
-            evidence.delivery_batch.delivery_window_digest().to_string(),
+            evidence.delivery_batch.delivery_window_identity(),
             &delta,
             &lowering_report,
             &evidence.work_packet,
@@ -1081,7 +1135,10 @@ fn preview_promotion_lane() -> SubscriptionLifecycleCertificationBundle {
         .unwrap(),
     );
     let mut counter_evidence = bundle.counter_evidence.clone();
-    counter_evidence.push(format!("lowering:{}", lowering_counters.digest()));
+    counter_evidence.push(format!(
+        "lowering:{}",
+        lowering_counters.counter_projection().label()
+    ));
     bundle.counter_snapshot = digest_parts(&counter_evidence);
     bundle.counter_evidence = counter_evidence;
     bundle
@@ -1099,8 +1156,8 @@ fn masked_sharing_rejection() -> MilestoneNineTwoRejectionBundle {
     rejection(
         MilestoneNineTwoFailureClass::ActiveLifecycleDenied,
         error.denial_kind().as_str(),
-        error.source_digest(),
-        error.counters().digest(),
+        error.source_projection().label(),
+        error.counters().counter_projection().label().to_string(),
     )
 }
 
@@ -1109,8 +1166,8 @@ fn raw_cdc_rejection() -> MilestoneNineTwoRejectionBundle {
     rejection(
         MilestoneNineTwoFailureClass::DeliveryDenied,
         error.denial_kind().as_str(),
-        error.source_digest(),
-        error.counters().digest(),
+        error.source_projection().label(),
+        error.counters().counter_projection().label().to_string(),
     )
 }
 
@@ -1119,8 +1176,8 @@ fn raw_bridge_rejection() -> MilestoneNineTwoRejectionBundle {
     rejection(
         MilestoneNineTwoFailureClass::DeliveryDenied,
         error.denial_kind().as_str(),
-        error.source_digest(),
-        error.counters().digest(),
+        error.source_projection().label(),
+        error.counters().counter_projection().label().to_string(),
     )
 }
 
@@ -1137,8 +1194,8 @@ fn preview_sharing_rejection() -> MilestoneNineTwoRejectionBundle {
     rejection(
         MilestoneNineTwoFailureClass::PreviewIsolationDenied,
         error.denial_kind().as_str(),
-        error.source_digest(),
-        error.counters().digest(),
+        error.source_projection().label(),
+        error.counters().counter_projection().label().to_string(),
     )
 }
 
@@ -1164,15 +1221,15 @@ fn preview_residue_rejection() -> MilestoneNineTwoRejectionBundle {
     rejection(
         MilestoneNineTwoFailureClass::PreviewIsolationDenied,
         error.denial_kind().as_str(),
-        error.source_digest(),
-        error.counters().digest(),
+        error.source_projection().label(),
+        error.counters().counter_projection().label().to_string(),
     )
 }
 
 fn dense_refresh_rejection() -> MilestoneNineTwoRejectionBundle {
     let mut runtime = ActiveSubscriptionRuntime::new();
     let (_, attachment) = active_attachment(&mut runtime);
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "dense",
@@ -1197,8 +1254,8 @@ fn dense_refresh_rejection() -> MilestoneNineTwoRejectionBundle {
     rejection(
         MilestoneNineTwoFailureClass::DeliveryDenied,
         error.denial_kind().as_str(),
-        error.source_digest(),
-        error.counters().digest(),
+        error.source_projection().label(),
+        error.counters().counter_projection().label().to_string(),
     )
 }
 
@@ -1216,8 +1273,8 @@ fn store_backed_restart_rejection() -> MilestoneNineTwoRejectionBundle {
     rejection(
         MilestoneNineTwoFailureClass::ActiveLifecycleDenied,
         error.denial_kind().as_str(),
-        error.source_digest(),
-        error.counters().digest(),
+        error.source_projection().label(),
+        error.counters().counter_projection().label().to_string(),
     )
 }
 

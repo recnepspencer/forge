@@ -1,3 +1,4 @@
+use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::program::ForgeQueryDerivedView;
 use crate::runtime::tests::support::stateful_bridge_task_runtime as build_stateful_bridge_task_runtime;
 use crate::runtime::{
@@ -15,11 +16,16 @@ impl ForgeQueryDerivedViewMaintainer for CertificationTitleListMaintainer {
         delta: &crate::memory_workspace::ForgeQueryMutationDelta,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> ForgeQueryDerivedPatch {
-        let row = Value::String(delta.entity_identity.clone());
+        let row = Value::String(
+            delta
+                .entity_identity
+                .terminal_projection_for_reporting()
+                .to_string(),
+        );
         materialization.push_row(row.clone());
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "aspect-api-cert-derived-commit",
+            crate::memory_workspace::admit_external_commit_label("aspect-api-cert-derived-commit"),
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()

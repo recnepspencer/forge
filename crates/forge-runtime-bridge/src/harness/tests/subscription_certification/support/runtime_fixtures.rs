@@ -11,7 +11,6 @@ use crate::mapping::{
     BridgeMappingId, BridgeMappingRegistration, CoarseRoutingMode, MappingSelector,
     SignalInvalidationScope, SubscriptionSliceKind, TruthPatchScope,
 };
-use crate::snapshot::TruthSnapshotIdentity;
 
 use super::source_fixtures::{
     profile_aspect_key, profile_name_field_key, StaticSink, StaticSource,
@@ -95,7 +94,9 @@ pub(crate) fn activation_ready_for(
     let admitted = runtime
         .admit_subscription(
             declaration,
-            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+            BridgeSubscriptionBasisRequest::snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            ),
         )
         .expect("subscription admission should succeed");
     runtime.prepare_subscription_activation(&admitted)
@@ -128,7 +129,7 @@ pub(crate) fn active_subscription_for(
 
 fn profile_name_mapping() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("mapping"),
+        BridgeMappingId::admit_bridge_owned("mapping"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("entity-1"),
             profile_aspect_key(),
@@ -138,7 +139,7 @@ fn profile_name_mapping() -> BridgeMappingRegistration {
             profile_aspect_key(),
             forge_foundational::facade::ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal:profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal:profile"),
         CoarseRoutingMode::Direct,
     )
 }

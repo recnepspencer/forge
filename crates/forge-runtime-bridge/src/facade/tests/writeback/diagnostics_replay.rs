@@ -5,7 +5,7 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::development());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:replay-mismatch"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:replay-mismatch"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "replay-mismatch",
@@ -16,10 +16,10 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
     let original_effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:replay-mismatch"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:replay-mismatch"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:replay-mismatch:original"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:replay-mismatch:original"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "replay-mismatch:original",
@@ -28,10 +28,10 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
     let drifted_effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:replay-mismatch"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:replay-mismatch"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:replay-mismatch:drifted"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:replay-mismatch:drifted"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "replay-mismatch:drifted",
@@ -41,14 +41,18 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
         &original_effect,
         &lowered_policy,
         &truth_state_basis(&original_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:replay-mismatch:original"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:replay-mismatch:original",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let drifted_idempotence = runtime.classify_writeback_idempotence(
         &drifted_effect,
         &lowered_policy,
         &truth_state_basis(&drifted_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:replay-mismatch:drifted"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:replay-mismatch:drifted",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -159,7 +163,9 @@ fn runtime_accepts_replayed_writeback_bundle_when_only_diagnostics_detail_differ
     let standard_contract = standard_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:replay-semantic-standard"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:replay-semantic-standard",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "replay-semantic",
@@ -170,7 +176,9 @@ fn runtime_accepts_replayed_writeback_bundle_when_only_diagnostics_detail_differ
     let exhaustive_contract = exhaustive_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:replay-semantic-exhaustive"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:replay-semantic-exhaustive",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "replay-semantic",
@@ -182,10 +190,10 @@ fn runtime_accepts_replayed_writeback_bundle_when_only_diagnostics_detail_differ
     let standard_effect = standard_runtime.lower_writeback_effect(
         &standard_contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:replay-semantic"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:replay-semantic"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:replay-semantic"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:replay-semantic"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "replay-semantic",
@@ -194,10 +202,10 @@ fn runtime_accepts_replayed_writeback_bundle_when_only_diagnostics_detail_differ
     let exhaustive_effect = exhaustive_runtime.lower_writeback_effect(
         &exhaustive_contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:replay-semantic"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:replay-semantic"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:replay-semantic"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:replay-semantic"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "replay-semantic",
@@ -207,14 +215,14 @@ fn runtime_accepts_replayed_writeback_bundle_when_only_diagnostics_detail_differ
         &standard_effect,
         &standard_lowered_policy,
         &truth_state_basis(&standard_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:replay-semantic"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:replay-semantic"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let exhaustive_idempotence = exhaustive_runtime.classify_writeback_idempotence(
         &exhaustive_effect,
         &exhaustive_lowered_policy,
         &truth_state_basis(&exhaustive_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:replay-semantic"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:replay-semantic"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let standard_outcome = execute_native_commit_outcome(

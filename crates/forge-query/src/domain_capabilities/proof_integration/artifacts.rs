@@ -3,18 +3,6 @@ use forge_proof::{
     ProofSetAuthorizedBy,
 };
 
-use crate::domain_capabilities::payloads::{
-    ForgeQueryAdmissionContributionPayload, ForgeQueryAftermathContributionPayload,
-    ForgeQueryContinuityContributionPayload, ForgeQueryDomainCapabilityPayload,
-    ForgeQueryExplanationContributionPayload, ForgeQueryInvariantCapabilityContributionPayload,
-    ForgeQuerySupportContributionPayload, ForgeQueryWorkflowContributionPayload,
-};
-use crate::domain_capabilities::targets::{
-    ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
-    ForgeQueryDomainCapabilityTargetBinding, ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
-};
-use crate::identity::hash_parts;
-
 use super::phases::{
     ContributionAdmittedPhase, ContributionEligiblePhase, ContributionMaterializationReadyPhase,
     ContributionRequestedPhase,
@@ -25,6 +13,18 @@ use super::proofs::{
     AdmittedContributionProof, DomainCapabilityContributionAuthority, EligibleContributionProof,
     MaterializationReadyContributionProof, RequestedContributionProof,
 };
+use crate::domain_capabilities::identity::domain_capability_scope_encoder;
+use crate::domain_capabilities::payloads::{
+    ForgeQueryAdmissionContributionPayload, ForgeQueryAftermathContributionPayload,
+    ForgeQueryContinuityContributionPayload, ForgeQueryDomainCapabilityPayload,
+    ForgeQueryExplanationContributionPayload, ForgeQueryInvariantCapabilityContributionPayload,
+    ForgeQuerySupportContributionPayload, ForgeQueryWorkflowContributionPayload,
+};
+use crate::domain_capabilities::targets::{
+    ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
+    ForgeQueryDomainCapabilityTargetBinding, ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
+};
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 
 type DomainCapabilityBasis = FreshnessScopedBasis<CurrentValidity, AssumptionBasis<String>>;
 
@@ -103,7 +103,7 @@ where
 {
     target: T,
     payload: P,
-    request_digest: String,
+    request_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl<P, T> ForgeQueryDomainCapabilityContribution<P, T>
@@ -123,23 +123,44 @@ where
         &self.payload
     }
 
+    pub fn request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.request_identity
+    }
+
     pub fn request_digest(&self) -> &str {
-        &self.request_digest
+        self.request_identity.as_str()
     }
 
     fn new(target: T, payload: P) -> Self {
-        let request_digest = hash_parts(&[
-            "forge_query_domain_capability_request_v1".to_string(),
-            format!("category:{}", payload.category().as_str()),
-            format!("target:{}", target.binding_digest()),
-            format!("payload:{}", payload.payload_digest()),
-        ]);
+        let request_identity = compose_domain_capability_request_identity(&target, &payload);
         Self {
             target,
             payload,
-            request_digest,
+            request_identity,
         }
     }
+}
+
+fn compose_domain_capability_request_identity<P, T>(
+    target: &T,
+    payload: &P,
+) -> ForgeQueryEvidenceIdentity
+where
+    P: ForgeQueryDomainCapabilityPayload,
+    T: ForgeQueryDomainCapabilityTargetBinding,
+{
+    let binding_identity = target.binding_identity();
+    domain_capability_scope_encoder("forge_query_domain_capability_request_v1")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("category"),
+            payload.category().as_str(),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("payload"),
+            payload.payload_identity(),
+        )
+        .seal()
 }
 
 type RequestedContributionArtifact<P, T> = Artifact<
@@ -214,7 +235,7 @@ macro_rules! impl_wrapper_accessors {
     };
 }
 
-fn phase_digest<Phase, P, T, S>(
+fn phase_identity<Phase, P, T, S>(
     phase: &'static str,
     artifact: &Artifact<
         Phase,
@@ -222,17 +243,42 @@ fn phase_digest<Phase, P, T, S>(
         S,
         DomainCapabilityBasis,
     >,
-) -> String
+) -> ForgeQueryEvidenceIdentity
 where
     P: ForgeQueryDomainCapabilityPayload,
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
-    hash_parts(&[
-        "forge_query_domain_capability_phase_digest_v1".to_string(),
-        format!("phase:{phase}"),
-        format!("request:{}", artifact.payload().request_digest()),
-        format!("basis:{}", contribution_basis(artifact)),
-    ])
+    domain_capability_scope_encoder("forge_query_domain_capability_phase_v1")
+        .field_shape(ForgeQueryEvidenceTag::new("phase"), phase)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("request"),
+            artifact.payload().request_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("basis"),
+            &contribution_basis_identity(artifact),
+        )
+        .seal()
+}
+
+pub(crate) fn contribution_basis_identity<Phase, P, T, S>(
+    artifact: &Artifact<
+        Phase,
+        ForgeQueryDomainCapabilityContribution<P, T>,
+        S,
+        DomainCapabilityBasis,
+    >,
+) -> ForgeQueryEvidenceIdentity
+where
+    P: ForgeQueryDomainCapabilityPayload,
+    T: ForgeQueryDomainCapabilityTargetBinding,
+{
+    domain_capability_scope_encoder("forge_query_domain_capability_basis_v1")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("assumption"),
+            contribution_basis(artifact).as_str(),
+        )
+        .seal()
 }
 
 impl_wrapper_accessors!(
@@ -257,8 +303,12 @@ where
     P: ForgeQueryDomainCapabilityPayload,
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
-    pub fn requested_digest(&self) -> String {
-        phase_digest("requested", &self.0)
+    pub fn requested_identity(&self) -> ForgeQueryEvidenceIdentity {
+        phase_identity("requested", &self.0)
+    }
+
+    pub fn requested_for_reporting(&self) -> String {
+        self.requested_identity().as_str().to_string()
     }
 }
 
@@ -267,8 +317,12 @@ where
     P: ForgeQueryDomainCapabilityPayload,
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
-    pub fn eligibility_digest(&self) -> String {
-        phase_digest("eligible", &self.0)
+    pub fn eligibility_identity(&self) -> ForgeQueryEvidenceIdentity {
+        phase_identity("eligible", &self.0)
+    }
+
+    pub fn eligibility_for_reporting(&self) -> String {
+        self.eligibility_identity().as_str().to_string()
     }
 }
 
@@ -277,8 +331,12 @@ where
     P: ForgeQueryDomainCapabilityPayload,
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
-    pub fn admitted_digest(&self) -> String {
-        phase_digest("admitted", &self.0)
+    pub fn admitted_identity(&self) -> ForgeQueryEvidenceIdentity {
+        phase_identity("admitted", &self.0)
+    }
+
+    pub fn admitted_for_reporting(&self) -> String {
+        self.admitted_identity().as_str().to_string()
     }
 }
 
@@ -287,8 +345,12 @@ where
     P: ForgeQueryDomainCapabilityPayload,
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
-    pub fn materialization_ready_digest(&self) -> String {
-        phase_digest("materialization-ready", &self.0)
+    pub fn materialization_ready_identity(&self) -> ForgeQueryEvidenceIdentity {
+        phase_identity("materialization-ready", &self.0)
+    }
+
+    pub fn materialization_ready_for_reporting(&self) -> String {
+        self.materialization_ready_identity().as_str().to_string()
     }
 }
 
@@ -394,7 +456,7 @@ where
     T: ForgeQueryDomainCapabilityTargetBinding,
     (P, T): AllowedContributionBinding<P, T>,
 {
-    let binding_basis = target.binding_digest().to_string();
+    let binding_basis = target.binding_identity().as_str().to_string();
     ForgeQueryRequestedDomainCapabilityContribution(remint_with_phase(
         ForgeQueryDomainCapabilityContribution::new(target, payload),
         binding_basis,

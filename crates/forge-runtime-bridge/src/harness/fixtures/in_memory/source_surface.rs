@@ -1,8 +1,8 @@
 #[derive(Debug, Clone, Default)]
 struct InMemoryRelationalState {
-    committed_patches: BTreeMap<String, BridgeCommittedPatchEnvelope>,
-    branch_heads: BTreeMap<String, String>,
-    snapshots: BTreeMap<String, SnapshotFixture>,
+    committed_patches: BTreeMap<crate::facade::TruthCommitIdentity, BridgeCommittedPatchEnvelope>,
+    branch_heads: BTreeMap<crate::facade::TruthBranchIdentity, crate::facade::TruthCommitIdentity>,
+    snapshots: BTreeMap<TruthSnapshotIdentity, SnapshotFixture>,
     continuity_authorities: BTreeMap<String, BridgeHistoricalLineageAuthority>,
 }
 
@@ -16,10 +16,10 @@ impl InMemoryRelationalBridgeSource {
         let mut state = self.state.write().expect("bridge source lock poisoned");
         state
             .committed_patches
-            .insert(patch.commit_identity().as_str().to_string(), patch.clone());
+            .insert(patch.commit_identity().clone(), patch.clone());
         state.branch_heads.insert(
-            patch.branch_identity().as_str().to_string(),
-            patch.commit_identity().as_str().to_string(),
+            patch.branch_identity().clone(),
+            patch.commit_identity().clone(),
         );
     }
 
@@ -32,10 +32,7 @@ impl InMemoryRelationalBridgeSource {
             .write()
             .expect("bridge source lock poisoned")
             .branch_heads
-            .insert(
-                branch_identity.as_str().to_string(),
-                commit_identity.as_str().to_string(),
-            );
+            .insert(branch_identity.clone(), commit_identity.clone());
     }
 
     pub fn insert_snapshot(&self, snapshot: SnapshotFixture) {
@@ -43,7 +40,7 @@ impl InMemoryRelationalBridgeSource {
             .write()
             .expect("bridge source lock poisoned")
             .snapshots
-            .insert(snapshot.identity().as_str().to_string(), snapshot);
+            .insert(snapshot.identity().clone(), snapshot);
     }
 
     pub fn insert_continuity_authority(
@@ -68,12 +65,12 @@ impl CommittedPatchSource for InMemoryRelationalBridgeSource {
             .read()
             .expect("bridge source lock poisoned")
             .committed_patches
-            .get(request.commit_identity().as_str())
+            .get(request.commit_identity())
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
                     "no committed patch registered for `{}`",
-                    request.commit_identity()
+                    request.commit_identity().as_str()
                 ))
             })
     }
@@ -89,7 +86,7 @@ impl SnapshotReadSource for InMemoryRelationalBridgeSource {
             .read()
             .expect("bridge source lock poisoned")
             .snapshots
-            .get(identity.as_str())
+            .get(identity)
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -107,15 +104,12 @@ impl TruthBranchHeadSource for InMemoryRelationalBridgeSource {
         branch_identity: &crate::facade::TruthBranchIdentity,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let state = self.state.read().expect("bridge source lock poisoned");
-        let commit_identity = state
-            .branch_heads
-            .get(branch_identity.as_str())
-            .ok_or_else(|| {
-                RelationalBridgeSourceError::new(format!(
-                    "no branch head registered for `{}`",
-                    branch_identity.as_str()
-                ))
-            })?;
+        let commit_identity = state.branch_heads.get(branch_identity).ok_or_else(|| {
+            RelationalBridgeSourceError::new(format!(
+                "no branch head registered for `{}`",
+                branch_identity.as_str()
+            ))
+        })?;
         state
             .committed_patches
             .get(commit_identity)
@@ -123,7 +117,7 @@ impl TruthBranchHeadSource for InMemoryRelationalBridgeSource {
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
                     "branch head `{}` for `{}` had no registered committed patch envelope",
-                    commit_identity,
+                    commit_identity.as_str(),
                     branch_identity.as_str()
                 ))
             })

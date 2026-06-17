@@ -18,10 +18,10 @@ pub use declaration_entry::ForgeQueryDeclarationEntryProgressionError;
 pub(crate) use route_plan::checked_route_plan_from_progressed_with_profile;
 
 use super::operating_context::ForgeQueryDomainOperatingContext;
+use super::{compose_admitted_configured_domain_handle_identity, ForgeQueryAdmittedWorldBasis};
 use crate::application::{
-    ForgeQueryAdmittedWorldBasis, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDomainEntryMarker, ForgeQueryDomainEntrySupportSnapshot,
-    ForgeQueryDomainOperatingRequirement,
+    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainEntrySupportSnapshot, ForgeQueryDomainOperatingRequirement,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -107,9 +107,9 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             self.domain_key(),
             self.display_name(),
             self.operating_context_identity_digest.clone(),
-            self.handle_identity_digest.clone(),
+            compose_admitted_configured_domain_handle_identity(self),
             self.support_snapshot.snapshot_digest().to_string(),
-            basis_lifecycle_support.report_digest().to_string(),
+            basis_lifecycle_support.report_identity(),
         )
     }
 }

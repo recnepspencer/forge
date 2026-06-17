@@ -7,7 +7,10 @@ use forge_runtime_bridge::facade::{
     BridgeAsyncForwardCausalityReceipt,
 };
 
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 use super::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeLiveSubscriptionState, ForgeQueryRuntimeStateKind,
@@ -69,18 +72,18 @@ impl std::fmt::Display for ForgeQueryRuntimeAsyncResultStateKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ForgeQueryRuntimeAsyncResultProjection {
     Pending {
-        causality_digest: String,
+        causality_identity: ForgeQueryEvidenceIdentity,
     },
     CompletionState {
         state: BridgeAsyncCompletionState,
-        causality_digest: String,
+        causality_identity: ForgeQueryEvidenceIdentity,
     },
     ForwardCausality {
         class: BridgeAsyncForwardCausalityClass,
-        causality_digest: String,
+        causality_identity: ForgeQueryEvidenceIdentity,
     },
     Supersession {
-        causality_digest: String,
+        causality_identity: ForgeQueryEvidenceIdentity,
     },
 }
 
@@ -124,16 +127,20 @@ impl ForgeQueryRuntimeAsyncResultProjection {
         }
     }
 
-    fn causality_digest(&self) -> &str {
+    fn causality_identity(&self) -> &ForgeQueryEvidenceIdentity {
         match self {
-            Self::Pending { causality_digest }
+            Self::Pending {
+                causality_identity, ..
+            }
             | Self::CompletionState {
-                causality_digest, ..
+                causality_identity, ..
             }
             | Self::ForwardCausality {
-                causality_digest, ..
+                causality_identity, ..
             }
-            | Self::Supersession { causality_digest } => causality_digest,
+            | Self::Supersession {
+                causality_identity, ..
+            } => causality_identity,
         }
     }
 
@@ -141,7 +148,9 @@ impl ForgeQueryRuntimeAsyncResultProjection {
     pub(crate) fn from_completion_receipt(receipt: &BridgeAsyncCompletionReceipt) -> Self {
         Self::CompletionState {
             state: receipt.state(),
-            causality_digest: receipt.digest().to_string(),
+            causality_identity: runtime_async_causality_identity(
+                &bridge_async_causality_source_identity(receipt.completion_identity()),
+            ),
         }
     }
 
@@ -151,7 +160,9 @@ impl ForgeQueryRuntimeAsyncResultProjection {
     ) -> Self {
         Self::CompletionState {
             state: receipt.state(),
-            causality_digest: receipt.digest().to_string(),
+            causality_identity: runtime_async_causality_identity(
+                &bridge_async_causality_source_identity(receipt.denial_identity()),
+            ),
         }
     }
 
@@ -161,7 +172,9 @@ impl ForgeQueryRuntimeAsyncResultProjection {
     ) -> Self {
         Self::ForwardCausality {
             class: receipt.class(),
-            causality_digest: receipt.digest().to_string(),
+            causality_identity: runtime_async_causality_identity(
+                &bridge_async_causality_source_identity(receipt.causality_identity()),
+            ),
         }
     }
 
@@ -170,42 +183,52 @@ impl ForgeQueryRuntimeAsyncResultProjection {
         receipt: &BridgeAsyncCompletionSupersessionReceipt,
     ) -> Self {
         Self::Supersession {
-            causality_digest: receipt.digest().to_string(),
+            causality_identity: runtime_async_causality_identity(
+                &bridge_async_causality_source_identity(receipt.supersession_identity()),
+            ),
         }
     }
 
-    pub(crate) fn pending(causality_digest: &str) -> Self {
+    pub(crate) fn pending(causality_label: &str) -> Self {
         Self::Pending {
-            causality_digest: causality_digest.to_string(),
+            causality_identity: runtime_async_causality_identity(
+                &runtime_async_causality_label_identity(causality_label),
+            ),
         }
     }
 
     #[cfg(test)]
     pub(crate) fn completion_state(
         state: BridgeAsyncCompletionState,
-        causality_digest: &str,
+        causality_label: &str,
     ) -> Self {
         Self::CompletionState {
             state,
-            causality_digest: causality_digest.to_string(),
+            causality_identity: runtime_async_causality_identity(
+                &runtime_async_causality_label_identity(causality_label),
+            ),
         }
     }
 
     #[cfg(test)]
     pub(crate) fn forward_causality(
         class: BridgeAsyncForwardCausalityClass,
-        causality_digest: &str,
+        causality_label: &str,
     ) -> Self {
         Self::ForwardCausality {
             class,
-            causality_digest: causality_digest.to_string(),
+            causality_identity: runtime_async_causality_identity(
+                &runtime_async_causality_label_identity(causality_label),
+            ),
         }
     }
 
     #[cfg(test)]
-    pub(crate) fn supersession(causality_digest: &str) -> Self {
+    pub(crate) fn supersession(causality_label: &str) -> Self {
         Self::Supersession {
-            causality_digest: causality_digest.to_string(),
+            causality_identity: runtime_async_causality_identity(
+                &runtime_async_causality_label_identity(causality_label),
+            ),
         }
     }
 }
@@ -213,35 +236,34 @@ impl ForgeQueryRuntimeAsyncResultProjection {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeAsyncResultState {
     kind: ForgeQueryRuntimeAsyncResultStateKind,
-    causality_digest: String,
-    basis_digest: String,
-    generation_digest: String,
-    result_state_digest: String,
+    causality_identity: ForgeQueryEvidenceIdentity,
+    basis_identity: ForgeQueryEvidenceIdentity,
+    checkpoint_identity: ForgeQueryEvidenceIdentity,
+    result_state_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimeAsyncResultState {
     pub fn new(
         kind: ForgeQueryRuntimeAsyncResultStateKind,
-        causality_digest: impl Into<String>,
-        basis_digest: impl Into<String>,
-        generation_digest: impl Into<String>,
+        causality_identity: &ForgeQueryEvidenceIdentity,
+        basis_identity: &ForgeQueryEvidenceIdentity,
+        checkpoint_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
-        let causality_digest = causality_digest.into();
-        let basis_digest = basis_digest.into();
-        let generation_digest = generation_digest.into();
-        let result_state_digest = hash_parts(&[
-            "forge_query_runtime_async_result_state_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("causality:{causality_digest}"),
-            format!("basis:{basis_digest}"),
-            format!("generation:{generation_digest}"),
-        ]);
+        let causality_identity = causality_identity.clone();
+        let basis_identity = basis_identity.clone();
+        let checkpoint_identity = checkpoint_identity.clone();
+        let result_state_identity = runtime_async_result_state_identity(
+            kind,
+            &causality_identity,
+            &basis_identity,
+            &checkpoint_identity,
+        );
         Self {
             kind,
-            causality_digest,
-            basis_digest,
-            generation_digest,
-            result_state_digest,
+            causality_identity,
+            basis_identity,
+            checkpoint_identity,
+            result_state_identity,
         }
     }
 
@@ -249,43 +271,129 @@ impl ForgeQueryRuntimeAsyncResultState {
         self.kind
     }
 
-    pub fn causality_digest(&self) -> &str {
-        &self.causality_digest
+    pub fn causality_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.causality_identity
     }
 
-    pub fn basis_digest(&self) -> &str {
-        &self.basis_digest
+    pub fn causality_for_reporting(&self) -> &str {
+        self.causality_identity.as_str()
     }
 
-    pub fn generation_digest(&self) -> &str {
-        &self.generation_digest
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
     }
 
-    pub fn result_state_digest(&self) -> &str {
-        &self.result_state_digest
+    pub fn basis_for_reporting(&self) -> &str {
+        self.basis_identity.as_str()
     }
+
+    pub fn checkpoint_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.checkpoint_identity
+    }
+
+    pub fn checkpoint_for_reporting(&self) -> &str {
+        self.checkpoint_identity.as_str()
+    }
+
+    pub fn result_state_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.result_state_identity
+    }
+
+    pub fn result_state_for_reporting(&self) -> &str {
+        self.result_state_identity.as_str()
+    }
+}
+
+fn bridge_async_causality_source_identity(bridge_identity: &str) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_bridge_async_causality_source_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("bridge_identity"),
+            bridge_identity,
+        )
+        .seal()
+}
+
+fn runtime_async_causality_label_identity(label: &str) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_runtime_async_causality_label_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("label"), label)
+        .seal()
+}
+
+pub(crate) fn runtime_async_causality_identity(
+    causality_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_runtime_async_causality_v1",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("causality"), causality_identity)
+        .seal()
+}
+
+fn runtime_async_result_state_identity(
+    kind: ForgeQueryRuntimeAsyncResultStateKind,
+    causality_identity: &ForgeQueryEvidenceIdentity,
+    basis_identity: &ForgeQueryEvidenceIdentity,
+    checkpoint_identity: &ForgeQueryEvidenceIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_runtime_async_result_state_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("causality"), causality_identity)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("basis"), basis_identity)
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("checkpoint"),
+            checkpoint_identity,
+        )
+        .seal()
+}
+
+pub(crate) fn runtime_async_causality_from_label(label: &str) -> ForgeQueryEvidenceIdentity {
+    runtime_async_causality_identity(&runtime_async_causality_label_identity(label))
+}
+
+pub(crate) fn runtime_async_checkpoint_label_identity(label: &str) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_runtime_async_checkpoint_label_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("label"), label)
+        .seal()
 }
 
 pub(crate) fn project_live_async_result_state(
     live_subscriptions: &mut BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>,
     view_name: &str,
     projection: &ForgeQueryRuntimeAsyncResultProjection,
-    basis_digest: &str,
-    generation_digest: &str,
+    basis_identity: &ForgeQueryEvidenceIdentity,
+    checkpoint_identity: &ForgeQueryEvidenceIdentity,
 ) -> Result<ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeError> {
     let state = live_subscriptions
         .get_mut(view_name)
         .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))?;
-    let expected_basis = state.installation.basis_binding_digest();
-    let expected_generation = state.active_lane_handle.checkpoint_identity_digest();
+    let expected_basis = state.installation.basis_binding_identity();
+    let expected_checkpoint = state.active_lane_handle.checkpoint_identity();
     let kind = projection.kind();
-    if basis_digest != expected_basis && !kind.permits_basis_or_generation_drift() {
+    if basis_identity != expected_basis && !kind.permits_basis_or_generation_drift() {
         return Err(async_result_state_error(
             view_name,
             "PreviewBasisMismatchRequiresTypedState",
         ));
     }
-    if generation_digest != expected_generation && !kind.permits_basis_or_generation_drift() {
+    if checkpoint_identity != expected_checkpoint && !kind.permits_basis_or_generation_drift() {
         return Err(async_result_state_error(
             view_name,
             "GenerationDriftRequiresTypedState",
@@ -294,9 +402,9 @@ pub(crate) fn project_live_async_result_state(
 
     let async_result_state = ForgeQueryRuntimeAsyncResultState::new(
         kind,
-        projection.causality_digest(),
-        basis_digest,
-        generation_digest,
+        projection.causality_identity(),
+        basis_identity,
+        checkpoint_identity,
     );
     state.async_result_state = Some(async_result_state.clone());
     Ok(async_result_state)
@@ -315,15 +423,15 @@ impl super::ForgeQueryRuntime {
         &mut self,
         view_name: &str,
         projection: &ForgeQueryRuntimeAsyncResultProjection,
-        basis_digest: &str,
-        generation_digest: &str,
+        basis_identity: &ForgeQueryEvidenceIdentity,
+        checkpoint_identity: &ForgeQueryEvidenceIdentity,
     ) -> Result<ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeError> {
         project_live_async_result_state(
             &mut self.live_subscriptions,
             view_name,
             projection,
-            basis_digest,
-            generation_digest,
+            basis_identity,
+            checkpoint_identity,
         )
     }
 }

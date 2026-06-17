@@ -15,10 +15,10 @@ use crate::workflow::{
 use super::super::scenarios::{
     branch_mutation_basis, preview_closeout_basis, preview_workflow_binding,
     raw_mutation_effect_with_binding, runtime_workflow_binding,
-    runtime_workflow_binding_with_snapshot, workflow_request,
+    runtime_workflow_binding_for_branch, workflow_request,
 };
 use super::super::support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
     test_bridge_with_writeback_authority,
 };
 use super::super::EffectLifecycleSeededCertificationBundle;
@@ -152,7 +152,7 @@ pub(super) fn host_override_denial_row() -> EffectLifecyclePhase4CertificationRo
         EffectLifecyclePhase4LaneOutcome::Denied,
         basis.family(),
         EffectFamily::Mutation,
-        denial.denial_digest().to_string(),
+        denial.denial_for_reporting().to_string(),
         denial.message().to_string(),
         denial.counters().clone(),
     )
@@ -170,7 +170,10 @@ pub(super) fn stale_after_admission_row() -> EffectLifecyclePhase4CertificationR
         .expect("branch-a should exist");
     let basis = EffectAuthoringBasis::from(branch_mutation_basis("branch-a"));
     let raw = raw_mutation_effect_with_binding(
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         "stale-after-admission".to_string(),
     );
@@ -194,7 +197,7 @@ pub(super) fn stale_after_admission_row() -> EffectLifecyclePhase4CertificationR
         EffectLifecyclePhase4LaneOutcome::Denied,
         basis.family(),
         EffectFamily::Mutation,
-        denial.denial_digest().to_string(),
+        denial.denial_for_reporting().to_string(),
         denial.message().to_string(),
         denial.counters().clone(),
     )
@@ -216,9 +219,10 @@ pub(super) fn stale_after_lowering_row() -> EffectLifecyclePhase4CertificationRo
             normalize_raw_effect_intent(
                 &basis,
                 raw_mutation_effect_with_binding(
-                    runtime_workflow_binding_with_snapshot(&branch_snapshot_token(
-                        &runtime, "branch-a",
-                    )),
+                    runtime_workflow_binding_for_branch(
+                        branch_snapshot_identity(&runtime, "branch-a"),
+                        "branch-a",
+                    ),
                     entity_id,
                     "stale-after-lowering".to_string(),
                 ),
@@ -244,7 +248,7 @@ pub(super) fn stale_after_lowering_row() -> EffectLifecyclePhase4CertificationRo
         EffectLifecyclePhase4LaneOutcome::Denied,
         basis.family(),
         EffectFamily::Mutation,
-        denial.denial_digest().to_string(),
+        denial.denial_for_reporting().to_string(),
         denial.message().to_string(),
         denial.counters().clone(),
     )

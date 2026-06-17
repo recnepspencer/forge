@@ -265,7 +265,12 @@ impl ForgeQueryMutationSurfaceReport {
         let mut parts = vec![
             "forge_query_mutation_surface_report_v1".to_string(),
             format!("posture:{}", backend_posture.as_str()),
-            format!("support_matrix:{}", support_matrix.matrix_digest()),
+            format!(
+                "support_matrix:{}",
+                support_matrix
+                    .matrix_digest()
+                    .terminal_projection_for_reporting()
+            ),
             format!("naming_contract:{}", naming_contract.contract_digest()),
             format!("preferred:{preferred_stable_count}"),
             format!("lower_level:{lower_level_stable_count}"),
@@ -275,7 +280,10 @@ impl ForgeQueryMutationSurfaceReport {
         let report_digest = hash_parts(&parts);
         Self {
             backend_posture,
-            support_matrix_digest: support_matrix.matrix_digest().to_string(),
+            support_matrix_digest: support_matrix
+                .matrix_digest()
+                .terminal_projection_for_reporting()
+                .to_string(),
             naming_contract_digest: naming_contract.contract_digest().to_string(),
             rows,
             preferred_stable_count,

@@ -3,6 +3,8 @@ mod bridge;
 mod builder_bootstrap;
 mod common_bootstrap;
 mod external_row;
+#[allow(dead_code)]
+mod hostile_certification;
 mod profiles;
 mod state;
 
@@ -16,8 +18,9 @@ use serde_json::Value;
 
 use self::adapters::{
     PublicExistingTruthVerificationAdapter, PublicInspectorEvidenceAdapter,
-    PublicPreviewBasisAdapter, PublicSchemaAdapter, PublicSignalSinkAdapter, PublicSourceAdapter,
-    PublicSubscriptionActivationAdapter, PublicWriteAuthorityAdapter,
+    PublicPreviewBasisAdapter, PublicSchemaAdapter, PublicSignalSinkAdapter,
+    PublicSnapshotIdentityAdapter, PublicSourceAdapter, PublicSubscriptionActivationAdapter,
+    PublicWriteAuthorityAdapter,
 };
 use self::state::PublicBridgeRuntimeState;
 
@@ -28,6 +31,10 @@ pub use self::profiles::public_graph_support_profile;
 pub use common_bootstrap::{
     public_bridge_runtime_bootstrap_invocation_count,
     reset_public_bridge_runtime_bootstrap_invocations,
+};
+#[allow(unused_imports)]
+pub use hostile_certification::{
+    certify_public_bridge_hostile_schedule, PublicBridgeHostileCertificationArtifact,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

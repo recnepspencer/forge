@@ -152,12 +152,12 @@ fn grouped_contributions_from_admitted_declaration_match_direct_grouped_path_ide
         reusable.members()[1].0.member_contribution_count()
     );
     assert_eq!(
-        direct.members()[0].1.composition_digest(),
-        reusable.members()[0].1.composition_digest()
+        direct.members()[0].1.composition_for_reporting(),
+        reusable.members()[0].1.composition_for_reporting()
     );
     assert_eq!(
-        direct.members()[1].1.composition_digest(),
-        reusable.members()[1].1.composition_digest()
+        direct.members()[1].1.composition_for_reporting(),
+        reusable.members()[1].1.composition_for_reporting()
     );
 }
 

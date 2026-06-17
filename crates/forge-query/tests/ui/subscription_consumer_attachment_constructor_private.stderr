@@ -9,28 +9,18 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: cannot construct `SubscriptionConsumerAttachment` with struct literal syntax due to private fields
-  --> tests/ui/subscription_consumer_attachment_constructor_private.rs:4:23
-   |
- 4 |     let _attachment = SubscriptionConsumerAttachment {
-   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 5 |         attachment_digest: todo!(),
-   |         -------------------------- private field
- 6 |         lane_digest: todo!(),
-   |         -------------------- private field
- 7 |         consumer_digest: String::new(),
-   |         ------------------------------ private field
- 8 |         delivery_cursor_digest: String::new(),
-   |         ------------------------------------- private field
- 9 |         attachment_index: 0,
-   |         ------------------- private field
-10 |         acknowledgement_frontier: todo!(),
-   |         --------------------------------- private field
-11 |         next_delivery_sequence: todo!(),
-   |         ------------------------------- private field
-12 |         backpressure_policy: todo!(),
-   |         ---------------------------- private field
-13 |         fanout_report: todo!(),
-   |         ---------------------- private field
-   |
-   = note: ...and other private fields `future_selection`, `basis_binding_digest`, `checkpoint_identity_digest` and `performance_receipt` that were not provided
+error[E0560]: struct `SubscriptionConsumerAttachment` has no field named `consumer_digest`
+ --> tests/ui/subscription_consumer_attachment_constructor_private.rs:7:9
+  |
+7 |         consumer_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^ `SubscriptionConsumerAttachment` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `SubscriptionConsumerAttachment` has no field named `delivery_cursor_digest`
+ --> tests/ui/subscription_consumer_attachment_constructor_private.rs:8:9
+  |
+8 |         delivery_cursor_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^ `SubscriptionConsumerAttachment` does not have this field
+  |
+  = note: all struct fields are already assigned

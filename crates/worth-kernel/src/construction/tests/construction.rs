@@ -1,7 +1,9 @@
 use super::super::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
 use super::super::artifact::build_canonical_primitive_construction_artifact;
 use super::super::intent::PrimitiveConstructionIntent;
-use super::super::request::{PrimitiveConstructionFamily, PRIMITIVE_CONSTRUCTION_FAMILIES};
+use super::super::request::{
+    PrimitiveConstructionFamily, PrimitiveConstructionPhaseError, PRIMITIVE_CONSTRUCTION_FAMILIES,
+};
 use super::super::result::prepare_primitive_construction_result;
 use super::super::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
@@ -75,10 +77,26 @@ fn out_of_class_phase_three_requests_fail_typed_and_locally() {
     let shell_error = prepare_primitive_construction_admitted_artifact(&shell_request)
         .expect_err("shell-with-hole should reject");
 
-    assert!(wire_error.to_string().contains("invalid wire_body request"));
-    assert!(shell_error
-        .to_string()
-        .contains("invalid shell_with_hole request"));
+    match wire_error {
+        PrimitiveConstructionPhaseError::InvalidRequest { family, reason } => {
+            assert_eq!(family, PrimitiveConstructionFamily::WireBody);
+            assert_eq!(
+                reason,
+                "polygonal construction families require at least three edges"
+            );
+        }
+        other => panic!("expected invalid wire_body request, got {other:?}"),
+    }
+    match shell_error {
+        PrimitiveConstructionPhaseError::InvalidRequest { family, reason } => {
+            assert_eq!(family, PrimitiveConstructionFamily::ShellWithHole);
+            assert_eq!(
+                reason,
+                "shell-with-hole requires at least one inner hole loop"
+            );
+        }
+        other => panic!("expected invalid shell_with_hole request, got {other:?}"),
+    }
 }
 
 #[test]

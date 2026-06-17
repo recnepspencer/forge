@@ -1,13 +1,23 @@
 mod authority_artifacts;
+mod bridge_artifact_identity;
 mod bridge_backed_verification_profile;
+mod denial;
 mod facade_families;
 mod graph_composition;
 mod profile;
 
 pub use authority_artifacts::{
-    ForgeQueryBranchBasisAdmission, ForgeQueryPreviewBasisAdmission,
-    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryBranchBasisAdmission,
+    ForgeQueryContinuityPriorAuthorityLabel, ForgeQueryContinuitySuccessorAuthorityLabel,
+    ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryMutationAuthorityIdentity,
+    ForgeQueryMutationEvidenceDigest, ForgeQueryMutationSymbolIdentity,
+    ForgeQueryMutationTargetCollectionIdentity, ForgeQueryNamingAttachmentAuthorityLabel,
+    ForgeQueryNamingPriorAuthorityLabel, ForgeQueryNamingTargetAuthorityLabel,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeInspectionEvidence,
 };
+pub use bridge_artifact_identity::ForgeQueryBridgeMutationArtifactIdentity;
+pub use denial::ForgeQueryRuntimeSupportDenial;
 pub use facade_families::{
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
     ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeFamilyTeachingPosture,
@@ -21,4 +31,4 @@ pub use graph_composition::{
     ForgeQueryGraphCompositionExtensionHookBoundary,
     ForgeQueryGraphCompositionExtensionHookSupportRow,
 };
-pub use profile::{ForgeQueryRuntimeSupportDenial, ForgeQueryRuntimeSupportProfile};
+pub use profile::ForgeQueryRuntimeSupportProfile;

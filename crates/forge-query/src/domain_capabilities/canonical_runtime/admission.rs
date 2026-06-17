@@ -64,7 +64,7 @@ pub fn materialize_runtime_admission_decision(
         ForgeQueryAdmissionContributionPosture::SupportOnly => {
             TransitionOutcome::Denied(unsupported_decision_posture_denial(
                 payload.posture(),
-                domain_contribution.request_digest(),
+                domain_contribution.request_identity().clone(),
             ))
         }
     }
@@ -107,7 +107,7 @@ pub fn materialize_runtime_admission_support_traceability_row(
     if payload.posture() != ForgeQueryAdmissionContributionPosture::SupportOnly {
         return TransitionOutcome::Denied(unsupported_support_posture_denial(
             payload.posture(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     }
 
@@ -116,8 +116,14 @@ pub fn materialize_runtime_admission_support_traceability_row(
             "admission_local_support",
             family.as_str(),
             entrypoint.as_str(),
-            format!("{}:{}", payload.semantic_code(), payload.detail()),
-            Some(domain_contribution.target().binding_digest().to_string()),
+            support_detail_label(payload.semantic_code(), payload.detail()),
+            Some(
+                domain_contribution
+                    .target()
+                    .binding_identity()
+                    .as_str()
+                    .to_string(),
+            ),
             Some(request_digest.to_string()),
             Some(eligibility_digest.to_string()),
             Some(decision_digest.to_string()),
@@ -125,15 +131,28 @@ pub fn materialize_runtime_admission_support_traceability_row(
     )
 }
 
+fn support_detail_label(semantic_code: &str, detail: &str) -> String {
+    let mut label = String::with_capacity(
+        semantic_code
+            .len()
+            .saturating_add(1)
+            .saturating_add(detail.len()),
+    );
+    label.push_str(semantic_code);
+    label.push(':');
+    label.push_str(detail);
+    label
+}
+
 fn unsupported_decision_posture_denial(
     posture: ForgeQueryAdmissionContributionPosture,
-    request_digest: &str,
+    request_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
         "admission",
         crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
-        request_digest,
+        request_identity,
         format!(
             "admission runtime decision materialization only supports advisory and violation postures; got `{}`",
             posture.as_str()
@@ -143,13 +162,13 @@ fn unsupported_decision_posture_denial(
 
 fn unsupported_support_posture_denial(
     posture: ForgeQueryAdmissionContributionPosture,
-    request_digest: &str,
+    request_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
         "admission",
         crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
-        request_digest,
+        request_identity,
         format!(
             "admission support traceability materialization only supports support-only posture; got `{}`",
             posture.as_str()

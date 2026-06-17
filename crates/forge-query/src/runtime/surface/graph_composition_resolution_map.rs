@@ -1,4 +1,6 @@
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{
+    ForgeQueryMutationSymbolIdentity, ForgeQueryMutationTargetCollectionIdentity,
     ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
     ForgeQueryWriteReceipt,
 };
@@ -7,9 +9,9 @@ use crate::runtime::{
 pub struct ForgeQueryGraphCompositionResolutionEntry {
     component_index: usize,
     aspect_path: Option<String>,
-    symbol: String,
-    resolved_entity_identity: String,
-    target_collection: Option<String>,
+    symbol: ForgeQueryMutationSymbolIdentity,
+    resolved_entity_identity: ForgeQueryEntityIdentity,
+    target_collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
 }
 
 impl ForgeQueryGraphCompositionResolutionEntry {
@@ -20,9 +22,9 @@ impl ForgeQueryGraphCompositionResolutionEntry {
         Self {
             component_index,
             aspect_path: None,
-            symbol: evidence.symbol().to_string(),
-            resolved_entity_identity: evidence.resolved_entity_identity().to_string(),
-            target_collection: evidence.target_collection().map(str::to_string),
+            symbol: evidence.symbol().clone(),
+            resolved_entity_identity: evidence.resolved_entity_identity().clone(),
+            target_collection: evidence.target_collection().cloned(),
         }
     }
 
@@ -33,9 +35,9 @@ impl ForgeQueryGraphCompositionResolutionEntry {
         Self {
             component_index,
             aspect_path: Some(evidence.aspect_path().to_string()),
-            symbol: evidence.symbol().to_string(),
-            resolved_entity_identity: evidence.resolved_entity_identity().to_string(),
-            target_collection: evidence.target_collection().map(str::to_string),
+            symbol: evidence.symbol().clone(),
+            resolved_entity_identity: evidence.resolved_entity_identity().clone(),
+            target_collection: evidence.target_collection().cloned(),
         }
     }
 
@@ -47,16 +49,16 @@ impl ForgeQueryGraphCompositionResolutionEntry {
         self.aspect_path.as_deref()
     }
 
-    pub fn symbol(&self) -> &str {
+    pub fn symbol(&self) -> &ForgeQueryMutationSymbolIdentity {
         &self.symbol
     }
 
-    pub fn resolved_entity_identity(&self) -> &str {
+    pub fn resolved_entity_identity(&self) -> &ForgeQueryEntityIdentity {
         &self.resolved_entity_identity
     }
 
-    pub fn target_collection(&self) -> Option<&str> {
-        self.target_collection.as_deref()
+    pub fn target_collection(&self) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.target_collection.as_ref()
     }
 }
 

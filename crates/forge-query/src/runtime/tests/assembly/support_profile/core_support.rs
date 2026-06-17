@@ -3,15 +3,7 @@ use super::super::super::support::*;
 #[test]
 fn runtime_support_profiles_expose_facade_family_posture() {
     let primary_runtime = stateful_bridge_task_runtime();
-    let bridge_runtime = ForgeQueryRuntime::builder()
-        .runtime_bridge(test_bridge())
-        .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
-        .write_authority(TestWriteAuthority)
-        .signal_sink(TestSignalSink)
-        .subscription_activation(TestSubscriptionActivation)
-        .preview_basis(TestPreviewBasis)
-        .inspector_evidence(TestInspectorEvidence)
+    let bridge_runtime = complete_backend_from_parts_builder()
         .build_backend_from_parts()
         .build()
         .expect("complete backend parts should build");
@@ -20,6 +12,8 @@ fn runtime_support_profiles_expose_facade_family_posture() {
         ForgeQueryRuntimeFacadeFamily::Read,
         ForgeQueryRuntimeFacadeFamily::Live,
         ForgeQueryRuntimeFacadeFamily::Computed,
+        ForgeQueryRuntimeFacadeFamily::SharedRead,
+        ForgeQueryRuntimeFacadeFamily::Submission,
         ForgeQueryRuntimeFacadeFamily::Effect,
         ForgeQueryRuntimeFacadeFamily::BranchPreview,
         ForgeQueryRuntimeFacadeFamily::Write,

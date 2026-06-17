@@ -1,4 +1,5 @@
 use super::*;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 
 impl ForgeQueryRuntime {
     pub fn read_live<T>(&mut self, view: &ForgeQueryLiveView<T>) -> Vec<ForgeQueryEntity> {
@@ -118,8 +119,8 @@ impl ForgeQueryRuntime {
             .collect()
     }
 
-    pub fn snapshot_token(&self) -> String {
-        self.backend.snapshot_token()
+    pub fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        self.backend.current_snapshot_identity()
     }
 
     pub fn install_program(
@@ -170,13 +171,13 @@ impl ForgeQueryRuntime {
                 }
                 ForgeQueryProgramEffect::Write(command) => {
                     let receipt = self.write(command)?;
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::WriteTemplate(template) => {
                     let command = template.bind(&bound_inputs)?;
                     let receipt = self.write(command)?;
-                    trace.record_write_receipt(receipt.commit_identity().to_string());
+                    trace.record_write_receipt(receipt.commit_identity().clone());
                     write_receipts.push(receipt);
                 }
                 ForgeQueryProgramEffect::ReadLive { view_name } => {
@@ -204,7 +205,7 @@ impl ForgeQueryRuntime {
                         trace.record_patch_artifact(format!(
                             "query-delivery:{}:{}",
                             batch.view_name(),
-                            batch.delivery_batch_digest()
+                            batch.delivery_batch_for_reporting()
                         ));
                     }
                     patch_batches.push(ForgeQueryPatchBatch {

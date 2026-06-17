@@ -7,6 +7,7 @@ impl PublicBridgeRuntimeHarness {
         }
     }
 
+    #[allow(dead_code)]
     pub fn bridge_backed_runtime(&self) -> ForgeQueryRuntime {
         self.bridge_backed_runtime_with_support(public_graph_support_profile())
     }
@@ -25,6 +26,7 @@ impl PublicBridgeRuntimeHarness {
                 self.state.clone(),
             ))
             .write_authority(PublicWriteAuthorityAdapter::new(self.state.clone()))
+            .snapshot_identity(PublicSnapshotIdentityAdapter::new(self.state.clone()))
             .signal_sink(PublicSignalSinkAdapter)
             .subscription_activation(PublicSubscriptionActivationAdapter)
             .preview_basis(PublicPreviewBasisAdapter)

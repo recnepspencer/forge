@@ -1,8 +1,9 @@
 pub use crate::application::{
-    CapabilityAdmissionDecision, CapabilityAdmissionError, CapabilityAdmissionFailureClass,
-    ConfigurationAdmissionError, ConfigurationAdmissionFailureClass,
-    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryAdmittedDeclarationProgression,
-    ForgeQueryAdmittedWorldBasis, ForgeQueryApplicationFacade, ForgeQueryAsyncDeclarationClause,
+    worth_ui_query_binding_evidence_identity, CapabilityAdmissionDecision,
+    CapabilityAdmissionError, CapabilityAdmissionFailureClass, ConfigurationAdmissionError,
+    ConfigurationAdmissionFailureClass, ForgeQueryAdmittedConfiguredDomainHandle,
+    ForgeQueryAdmittedDeclarationProgression, ForgeQueryAdmittedWorldBasis,
+    ForgeQueryApplicationFacade, ForgeQueryAsyncDeclarationClause,
     ForgeQueryAsyncDeclarationDenial, ForgeQueryAsyncDeclarationSupport,
     ForgeQueryAsyncFailurePosture, ForgeQueryAsyncLegalityDenialKind,
     ForgeQueryAsyncLoadingPosture, ForgeQueryAsyncRequestIdentityPart, ForgeQueryAsyncSourceFamily,

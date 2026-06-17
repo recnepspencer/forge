@@ -128,9 +128,9 @@ impl AdmittedHistoricalTemporalReplayBasis {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
             historical_temporal_replay_basis_identity:
-                BridgeSubscriptionHistoricalTemporalReplayBasisIdentity::new(format!(
-                    "bridge-historical-temporal-replay-basis-id:sha256:{digest:x}"
-                )),
+                BridgeSubscriptionHistoricalTemporalReplayBasisIdentity::admit_bridge_owned(
+                    format!("bridge-historical-temporal-replay-basis-id:sha256:{digest:x}"),
+                ),
             temporal_admission: temporal_admission.clone(),
             historical_truth_basis: historical_truth_basis.clone(),
             retained_previous_values,
@@ -190,9 +190,11 @@ impl BridgeHistoricalTemporalSubscriptionReplayRequest {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             historical_temporal_replay_request_identity:
-                BridgeSubscriptionHistoricalTemporalReplayRequestIdentity::new(format!(
+                BridgeSubscriptionHistoricalTemporalReplayRequestIdentity::admit_bridge_owned(
+                    format!(
                     "bridge-historical-temporal-subscription-replay-request-id:sha256:{digest:x}"
-                )),
+                ),
+                ),
             replay_basis: replay_basis.clone(),
             counters: BridgeSubscriptionCounters::from_historical_temporal_replay_basis_admission(),
             canonical_basis,
@@ -249,7 +251,7 @@ impl BridgeHistoricalTemporalReadiness {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             historical_temporal_readiness_identity:
-                BridgeSubscriptionHistoricalTemporalReadinessIdentity::new(format!(
+                BridgeSubscriptionHistoricalTemporalReadinessIdentity::admit_bridge_owned(format!(
                     "bridge-historical-temporal-readiness-id:sha256:{digest:x}"
                 )),
             replay_request: replay_request.clone(),

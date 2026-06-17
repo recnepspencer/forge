@@ -14,6 +14,7 @@ mod active_runtime;
 mod admission;
 mod admission_budget;
 mod admission_diagnostics;
+mod admission_diagnostics_accessors;
 mod admission_error;
 mod attachment;
 mod attachment_budget;
@@ -22,20 +23,25 @@ mod attachment_dimensions;
 mod attachment_error;
 mod attachment_request;
 mod basis_request;
+mod basis_request_accessors;
 mod bridge_family;
 mod bridge_lowering;
 mod bridge_lowering_budget;
 mod bridge_lowering_error;
 mod bridge_parity;
+mod bridge_parity_accessors;
 mod bridge_slice;
 mod budget;
 mod certification;
+mod certification_accessors;
 mod closeout;
 mod construction_source;
 mod continuation;
 mod continuation_error;
 mod counters;
+mod counters_accessors;
 mod declaration;
+mod declaration_accessors;
 mod declaration_digest;
 mod declaration_error;
 mod delivery;
@@ -45,18 +51,26 @@ mod delivery_denials;
 mod delivery_density;
 mod delivery_dimensions;
 mod delivery_error;
+mod delivery_spine_accessors;
 mod delivery_window;
 mod delivery_work_packet;
 mod diagnostic;
 mod dimensions;
 mod equivalence;
+mod equivalence_accessors;
 mod error;
+mod evidence_identities;
+mod evidence_projection;
 mod family;
 mod fanout;
 mod future_selection;
+mod future_selection_accessors;
+mod identity_authority;
 mod input;
+mod input_accessors;
 #[cfg(test)]
 mod input_test_support;
+mod lane_attachment_accessors;
 mod maintenance_delta;
 mod patch_group;
 mod performance_receipt;
@@ -71,9 +85,21 @@ mod scale;
 mod selection;
 mod selection_future;
 mod signal_strategy;
+mod signal_strategy_accessors;
 mod slice;
 mod slice_budget;
+mod subscription_error_accessors;
 mod support;
+mod terminal_projection_label;
+mod validation_evidence;
+
+pub use identity_authority::{
+    forge_query_subscription_phase_seven_compile_fail_targets,
+    forge_query_subscription_phase_seven_golden_paths,
+    ForgeQuerySubscriptionPhaseSevenCompileFailTarget, ForgeQuerySubscriptionPhaseSevenGoldenPath,
+    FORGE_QUERY_SUBSCRIPTION_PHASE_SEVEN_COMPILE_FAIL_TARGET_COUNT,
+    FORGE_QUERY_SUBSCRIPTION_PHASE_SEVEN_GOLDEN_PATH_COUNT,
+};
 
 pub use acknowledgement::{
     QueryDeliveryBatchReceipt, QueryDeliverySequence, SubscriptionAcknowledgementFrontier,
@@ -162,12 +188,12 @@ pub use continuation::{
 pub use continuation_error::{SubscriptionContinuationDenialKind, SubscriptionContinuationError};
 pub use counters::QuerySubscriptionDeclarationCounters;
 pub use declaration::{declare_query_subscription, QuerySubscriptionDeclarationArtifact};
-pub use declaration_digest::QuerySubscriptionDeclarationDigest;
 pub use declaration_error::{
     QuerySubscriptionDeclarationDenial, QuerySubscriptionDeclarationDenialKind,
 };
 pub use delivery::QuerySubscriptionDeliveryIntent;
 pub use delivery_budget::QueryDeliveryWindowBudget;
+pub(crate) use delivery_cause::delivery_cause_evidence_label_identity;
 #[allow(unused_imports)]
 pub use delivery_cause::{QuerySubscriptionDeliveryCause, QuerySubscriptionDeliveryCauseKind};
 pub use delivery_denials::{deny_raw_bridge_invalidation_delivery, deny_raw_cdc_delivery_fallback};
@@ -195,7 +221,7 @@ pub use diagnostic::{
     QuerySubscriptionDiagnosticTrace,
 };
 pub use dimensions::QuerySubscriptionAdmissionDimensions;
-pub use equivalence::{QuerySubscriptionEquivalenceBasis, QuerySubscriptionMeaningDigest};
+pub use equivalence::QuerySubscriptionEquivalenceBasis;
 pub use error::{
     QuerySubscriptionFamilySelectionError, QuerySubscriptionFamilySelectionFailureClass,
 };
@@ -266,6 +292,13 @@ pub use support::{
     QuerySubscriptionSupportReportDenialKind, QuerySubscriptionSupportReportError,
     QuerySubscriptionSupportSubject, SubscriptionFamilyCapabilityDigest, SupportLookupReceipt,
     SupportResolutionPosture,
+};
+pub use terminal_projection_label::TerminalProjectionLabel;
+pub(crate) use validation_evidence::{
+    validation_evidence_identity_label, validation_evidence_pair,
+    validation_evidence_projection_pair, validation_label_list_evidence_identity,
+    validation_role_evidence_identity, validation_shape_role_evidence_identity,
+    validation_u64_role_evidence_identity, validation_usize_role_evidence_identity,
 };
 
 #[cfg(test)]

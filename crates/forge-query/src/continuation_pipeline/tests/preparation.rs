@@ -8,6 +8,7 @@ use crate::continuation_pipeline::{
     ForgeQueryPreparedContinuationBasisKind, ForgeQueryPreparedContinuationFamily,
     ForgeQueryPreparedContinuationOutcome,
 };
+use crate::ForgeQueryEvidenceScope;
 
 use super::support::{
     admitted_handle, context_request, envelope, historical_truth_view_request,
@@ -226,15 +227,25 @@ fn preparation_keeps_current_historical_and_preview_truth_distinct() {
             .basis_witness()
             .basis_identity_digest()
     );
+    let preview_witness = preview.execution_readmission().basis_witness();
+    let preview_source_basis = preview_witness
+        .source_basis_identity()
+        .expect("preview continuation should retain source basis identity");
+    let preview_lower_runtime_binding = preview_witness
+        .expected_lower_runtime_binding_identity()
+        .expect("preview continuation should retain lower-runtime binding identity");
     assert_eq!(
-        preview
-            .execution_readmission()
-            .basis_witness()
-            .source_basis_identity_digest(),
-        preview
-            .execution_readmission()
-            .basis_witness()
-            .expected_lower_runtime_binding_digest()
+        preview_source_basis.scope(),
+        ForgeQueryEvidenceScope::ContinuationReadmissionSourceBasis
+    );
+    assert_eq!(
+        preview_lower_runtime_binding.scope(),
+        ForgeQueryEvidenceScope::ContinuationReadmissionLowerRuntimeBinding
+    );
+    assert_ne!(
+        preview_source_basis.as_str(),
+        preview_lower_runtime_binding.as_str(),
+        "source-basis identity and lower-runtime binding identity must stay typed as distinct roles"
     );
     assert_ne!(current.prepared_digest(), historical.prepared_digest());
     assert_ne!(current.prepared_digest(), preview.prepared_digest());

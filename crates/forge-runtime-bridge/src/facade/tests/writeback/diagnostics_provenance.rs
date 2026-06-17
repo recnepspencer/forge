@@ -11,7 +11,9 @@ fn writeback_diagnostics_tier_variation_preserves_replay_meaning() {
     let standard_contract = standard_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:diagnostics-tier-standard"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:diagnostics-tier-standard",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "diagnostics-tier",
@@ -22,7 +24,9 @@ fn writeback_diagnostics_tier_variation_preserves_replay_meaning() {
     let exhaustive_contract = exhaustive_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:diagnostics-tier-exhaustive"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:diagnostics-tier-exhaustive",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "diagnostics-tier",
@@ -34,10 +38,10 @@ fn writeback_diagnostics_tier_variation_preserves_replay_meaning() {
     let standard_effect = standard_runtime.lower_writeback_effect(
         &standard_contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:diagnostics-tier"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:diagnostics-tier"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:diagnostics-tier"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:diagnostics-tier"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "diagnostics-tier",
@@ -46,10 +50,10 @@ fn writeback_diagnostics_tier_variation_preserves_replay_meaning() {
     let exhaustive_effect = exhaustive_runtime.lower_writeback_effect(
         &exhaustive_contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:diagnostics-tier"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:diagnostics-tier"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:diagnostics-tier"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:diagnostics-tier"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "diagnostics-tier",
@@ -60,14 +64,14 @@ fn writeback_diagnostics_tier_variation_preserves_replay_meaning() {
         &standard_effect,
         &standard_lowered_policy,
         &truth_state_basis(&standard_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:diagnostics-tier"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:diagnostics-tier"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let exhaustive_idempotence = exhaustive_runtime.classify_writeback_idempotence(
         &exhaustive_effect,
         &exhaustive_lowered_policy,
         &truth_state_basis(&exhaustive_effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:diagnostics-tier"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:diagnostics-tier"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -142,7 +146,9 @@ fn writeback_feedback_provenance_is_diagnostics_invariant_for_semantically_equal
     let standard_contract = standard_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:feedback-provenance-standard"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:feedback-provenance-standard",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "feedback-provenance",
@@ -153,7 +159,9 @@ fn writeback_feedback_provenance_is_diagnostics_invariant_for_semantically_equal
     let exhaustive_contract = exhaustive_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:feedback-provenance-exhaustive"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:feedback-provenance-exhaustive",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "feedback-provenance",
@@ -165,10 +173,10 @@ fn writeback_feedback_provenance_is_diagnostics_invariant_for_semantically_equal
     let standard_effect = standard_runtime.lower_writeback_effect(
         &standard_contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:feedback-provenance"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:feedback-provenance"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:feedback-provenance"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:feedback-provenance"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "feedback-provenance",
@@ -177,10 +185,10 @@ fn writeback_feedback_provenance_is_diagnostics_invariant_for_semantically_equal
     let exhaustive_effect = exhaustive_runtime.lower_writeback_effect(
         &exhaustive_contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:feedback-provenance"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:feedback-provenance"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:feedback-provenance"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:feedback-provenance"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "feedback-provenance",

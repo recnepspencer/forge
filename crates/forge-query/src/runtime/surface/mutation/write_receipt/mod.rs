@@ -2,6 +2,7 @@ use crate::memory_workspace::ForgeQueryMutationReceipt;
 use crate::runtime::mutation::ForgeQueryMutationMetadata;
 
 use super::{ForgeQueryMutationFamily, ForgeQueryWriteCommand};
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
     ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent,
@@ -18,6 +19,9 @@ mod accessors;
 mod helpers;
 mod preview;
 
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
+};
 use helpers::{
     assertion_evidence, continuity_mutation_evidence, naming_mutation_evidence,
     symbolic_target_reference_evidence, target_evidence_from_receipt,
@@ -26,6 +30,8 @@ use helpers::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryWriteReceipt {
     pub(super) inner: ForgeQueryMutationReceipt,
+    pub(super) commit_evidence_identity: ForgeQueryEvidenceIdentity,
+    pub(super) snapshot_evidence_identity: ForgeQueryEvidenceIdentity,
     pub(super) mutation_family: ForgeQueryMutationFamily,
     pub(super) authority_lane: ForgeQueryAuthorityLane,
     pub(super) basis_lane: ForgeQueryAuthorityLane,
@@ -40,11 +46,11 @@ pub struct ForgeQueryWriteReceipt {
     pub(super) causality_evidence: Option<ForgeQueryMutationCausalityEvidence>,
     pub(super) provenance_evidence: Option<ForgeQueryMutationProvenanceEvidence>,
     pub(super) declared_collection: Option<String>,
-    pub(super) declared_entity_identity: Option<String>,
+    pub(super) declared_entity_identity: Option<ForgeQueryEntityIdentity>,
     pub(super) target_collection: Option<String>,
-    pub(super) target_entity_identity: Option<String>,
+    pub(super) target_entity_identity: Option<ForgeQueryEntityIdentity>,
     pub(super) declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
-    pub(super) declared_aspect_value_digest: Option<String>,
+    pub(super) declared_aspect_value_digest: Option<ForgeQueryEvidenceIdentity>,
     pub(super) mutation_metadata: ForgeQueryMutationMetadata,
     pub(super) affected_live_view_ids: Vec<String>,
     pub(super) affected_derived_view_ids: Vec<String>,
@@ -65,7 +71,7 @@ impl ForgeQueryWriteReceipt {
         inner: ForgeQueryMutationReceipt,
         mutation_family: ForgeQueryMutationFamily,
         declared_collection: Option<String>,
-        declared_entity_identity: Option<String>,
+        declared_entity_identity: Option<ForgeQueryEntityIdentity>,
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
@@ -73,9 +79,9 @@ impl ForgeQueryWriteReceipt {
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
         target_collection: Option<String>,
-        target_entity_identity: Option<String>,
+        target_entity_identity: Option<ForgeQueryEntityIdentity>,
         declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
-        declared_aspect_value_digest: Option<String>,
+        declared_aspect_value_digest: Option<ForgeQueryEvidenceIdentity>,
         mutation_metadata: ForgeQueryMutationMetadata,
         affected_live_view_ids: Vec<String>,
         affected_derived_view_ids: Vec<String>,
@@ -90,6 +96,10 @@ impl ForgeQueryWriteReceipt {
         decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
         execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
     ) -> Self {
+        let commit_evidence_identity =
+            write_receipt_commit_evidence_identity(&inner.commit_identity);
+        let snapshot_evidence_identity =
+            write_receipt_snapshot_evidence_identity(&inner.snapshot_identity);
         let target_evidence = target_evidence_from_receipt(
             mutation_family,
             declared_collection.clone(),
@@ -105,23 +115,23 @@ impl ForgeQueryWriteReceipt {
             .bridge_authority
             .as_ref()
             .map(ForgeQueryMutationProvenanceEvidence::from_bridge);
-        let existing_truth_binding_evidence = inner
-            .bridge_authority
+        let existing_truth_binding_evidence = existing_truth_binding
             .as_ref()
-            .and_then(|bundle| bundle.existing_truth_binding())
-            .map(ForgeQueryExistingTruthBindingEvidence::from_bridge)
+            .map(ForgeQueryExistingTruthBindingEvidence::from_binding)
             .or_else(|| {
-                existing_truth_binding
+                inner
+                    .bridge_authority
                     .as_ref()
-                    .map(ForgeQueryExistingTruthBindingEvidence::from_binding)
+                    .and_then(|bundle| bundle.existing_truth_binding())
+                    .map(ForgeQueryExistingTruthBindingEvidence::from_bridge)
             });
         let existing_truth_assertion_evidence = assertion_evidence(
             mutation_family,
             existing_truth_binding.as_ref(),
             existing_truth_assertion.as_ref(),
             &declared_aspect_operations,
-            declared_aspect_value_digest.as_deref(),
-            &inner.snapshot_token,
+            declared_aspect_value_digest.as_ref(),
+            &inner.snapshot_identity,
         );
         let symbolic_target_reference_evidence = symbolic_target_reference_evidence(
             mutation_family,
@@ -130,7 +140,7 @@ impl ForgeQueryWriteReceipt {
                 .as_ref()
                 .and_then(|bundle| bundle.symbolic_target_reference()),
             symbolic_target_reference.as_ref(),
-            target_entity_identity.as_deref(),
+            target_entity_identity.as_ref(),
         );
         let naming_mutation_evidence = naming_mutation_evidence(
             inner
@@ -138,7 +148,7 @@ impl ForgeQueryWriteReceipt {
                 .as_ref()
                 .and_then(|bundle| bundle.naming_mutation()),
             naming_intent.as_ref(),
-            target_entity_identity.as_deref(),
+            target_entity_identity.as_ref(),
             target_collection.as_deref(),
         );
         let continuity_mutation_evidence = continuity_mutation_evidence(
@@ -148,11 +158,13 @@ impl ForgeQueryWriteReceipt {
                 .and_then(|bundle| bundle.continuity_mutation()),
             continuity_intent.as_ref(),
             existing_truth_binding.as_ref(),
-            target_entity_identity.as_deref(),
+            target_entity_identity.as_ref(),
             target_collection.as_deref(),
         );
         Self {
             inner,
+            commit_evidence_identity,
+            snapshot_evidence_identity,
             mutation_family,
             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
             basis_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
@@ -192,7 +204,7 @@ impl ForgeQueryWriteReceipt {
         mutation_family: ForgeQueryMutationFamily,
         basis_lane: ForgeQueryAuthorityLane,
         declared_collection: Option<String>,
-        declared_entity_identity: Option<String>,
+        declared_entity_identity: Option<ForgeQueryEntityIdentity>,
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
@@ -200,13 +212,17 @@ impl ForgeQueryWriteReceipt {
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
         target_collection: Option<String>,
-        target_entity_identity: Option<String>,
+        target_entity_identity: Option<ForgeQueryEntityIdentity>,
         declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
-        declared_aspect_value_digest: Option<String>,
+        declared_aspect_value_digest: Option<ForgeQueryEvidenceIdentity>,
         mutation_metadata: ForgeQueryMutationMetadata,
         affected_live_view_ids: Vec<String>,
         authority_lane: ForgeQueryAuthorityLane,
     ) -> Self {
+        let commit_evidence_identity =
+            write_receipt_commit_evidence_identity(&inner.commit_identity);
+        let snapshot_evidence_identity =
+            write_receipt_snapshot_evidence_identity(&inner.snapshot_identity);
         let target_evidence = target_evidence_from_receipt(
             mutation_family,
             declared_collection.clone(),
@@ -222,23 +238,23 @@ impl ForgeQueryWriteReceipt {
             .bridge_authority
             .as_ref()
             .map(ForgeQueryMutationProvenanceEvidence::from_bridge);
-        let existing_truth_binding_evidence = inner
-            .bridge_authority
+        let existing_truth_binding_evidence = existing_truth_binding
             .as_ref()
-            .and_then(|bundle| bundle.existing_truth_binding())
-            .map(ForgeQueryExistingTruthBindingEvidence::from_bridge)
+            .map(ForgeQueryExistingTruthBindingEvidence::from_binding)
             .or_else(|| {
-                existing_truth_binding
+                inner
+                    .bridge_authority
                     .as_ref()
-                    .map(ForgeQueryExistingTruthBindingEvidence::from_binding)
+                    .and_then(|bundle| bundle.existing_truth_binding())
+                    .map(ForgeQueryExistingTruthBindingEvidence::from_bridge)
             });
         let existing_truth_assertion_evidence = assertion_evidence(
             mutation_family,
             existing_truth_binding.as_ref(),
             existing_truth_assertion.as_ref(),
             &declared_aspect_operations,
-            declared_aspect_value_digest.as_deref(),
-            &inner.snapshot_token,
+            declared_aspect_value_digest.as_ref(),
+            &inner.snapshot_identity,
         );
         let symbolic_target_reference_evidence = symbolic_target_reference_evidence(
             mutation_family,
@@ -247,7 +263,7 @@ impl ForgeQueryWriteReceipt {
                 .as_ref()
                 .and_then(|bundle| bundle.symbolic_target_reference()),
             symbolic_target_reference.as_ref(),
-            target_entity_identity.as_deref(),
+            target_entity_identity.as_ref(),
         );
         let naming_mutation_evidence = naming_mutation_evidence(
             inner
@@ -255,7 +271,7 @@ impl ForgeQueryWriteReceipt {
                 .as_ref()
                 .and_then(|bundle| bundle.naming_mutation()),
             naming_intent.as_ref(),
-            target_entity_identity.as_deref(),
+            target_entity_identity.as_ref(),
             target_collection.as_deref(),
         );
         let continuity_mutation_evidence = continuity_mutation_evidence(
@@ -265,11 +281,13 @@ impl ForgeQueryWriteReceipt {
                 .and_then(|bundle| bundle.continuity_mutation()),
             continuity_intent.as_ref(),
             existing_truth_binding.as_ref(),
-            target_entity_identity.as_deref(),
+            target_entity_identity.as_ref(),
             target_collection.as_deref(),
         );
         Self {
             inner,
+            commit_evidence_identity,
+            snapshot_evidence_identity,
             mutation_family,
             authority_lane,
             basis_lane,
@@ -303,4 +321,16 @@ impl ForgeQueryWriteReceipt {
             execution_provenance: None,
         }
     }
+}
+
+fn write_receipt_commit_evidence_identity(
+    commit_identity: &ForgeQueryCommitIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    commit_identity.evidence_identity()
+}
+
+fn write_receipt_snapshot_evidence_identity(
+    snapshot_identity: &ForgeQuerySnapshotIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    snapshot_identity.evidence_identity()
 }

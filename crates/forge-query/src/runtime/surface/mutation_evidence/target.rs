@@ -22,19 +22,21 @@ impl std::fmt::Display for ForgeQueryMutationTargetClass {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryMutationTargetDescriptor {
     target_class: ForgeQueryMutationTargetClass,
-    collection: Option<String>,
-    entity_identity: Option<String>,
+    collection: Option<ForgeQueryMutationTargetCollectionIdentity>,
+    entity_identity: Option<ForgeQueryEntityIdentity>,
 }
 
 impl ForgeQueryMutationTargetDescriptor {
     pub(in crate::runtime) fn new(
         target_class: ForgeQueryMutationTargetClass,
         collection: Option<String>,
-        entity_identity: Option<String>,
+        entity_identity: Option<ForgeQueryEntityIdentity>,
     ) -> Self {
         Self {
             target_class,
-            collection,
+            collection: collection.map(|collection| {
+                ForgeQueryMutationTargetCollectionIdentity::new("mutation-target", collection)
+            }),
             entity_identity,
         }
     }
@@ -43,12 +45,12 @@ impl ForgeQueryMutationTargetDescriptor {
         self.target_class
     }
 
-    pub fn collection(&self) -> Option<&str> {
-        self.collection.as_deref()
+    pub fn collection(&self) -> Option<&ForgeQueryMutationTargetCollectionIdentity> {
+        self.collection.as_ref()
     }
 
-    pub fn entity_identity(&self) -> Option<&str> {
-        self.entity_identity.as_deref()
+    pub fn entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
+        self.entity_identity.as_ref()
     }
 }
 
@@ -78,12 +80,14 @@ impl ForgeQueryMutationTargetEvidence {
     pub(crate) fn test_only(
         target_class: ForgeQueryMutationTargetClass,
         collection: Option<&str>,
-        entity_identity: Option<&str>,
+        entity_identity: Option<ForgeQueryEntityIdentity>,
     ) -> Self {
         let descriptor = ForgeQueryMutationTargetDescriptor {
             target_class,
-            collection: collection.map(str::to_string),
-            entity_identity: entity_identity.map(str::to_string),
+            collection: collection.map(|collection| {
+                ForgeQueryMutationTargetCollectionIdentity::new("mutation-target", collection)
+            }),
+            entity_identity,
         };
         Self {
             declared: descriptor.clone(),
@@ -91,3 +95,5 @@ impl ForgeQueryMutationTargetEvidence {
         }
     }
 }
+use crate::memory_workspace::ForgeQueryEntityIdentity;
+use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;

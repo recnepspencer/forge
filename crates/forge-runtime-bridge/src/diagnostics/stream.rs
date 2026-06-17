@@ -62,7 +62,9 @@ pub struct BridgeStreamCheckpointExplanation {
 impl BridgeStreamCheckpointExplanation {
     pub(crate) fn from_checkpoint(checkpoint: &ConsumerCheckpointToken) -> Self {
         Self {
-            checkpoint_token_identity: checkpoint.checkpoint_token_identity().to_owned(),
+            checkpoint_token_identity: checkpoint
+                .checkpoint_token_identity_for_reporting()
+                .to_owned(),
             consumer_contract_identity: checkpoint.consumer_contract_identity().as_str().to_owned(),
             stream_protocol_identity: checkpoint.stream_protocol_identity().as_str().to_owned(),
             checkpoint_frontier_kind: checkpoint.checkpoint_frontier_kind(),
@@ -131,7 +133,7 @@ impl BridgeStreamReplayExplanation {
             replay_record_identity: record.replay_record_identity().as_str().to_owned(),
             consumer_contract_identity: record.consumer_contract_identity().as_str().to_owned(),
             stream_window_identity: record.stream_window_identity().as_str().to_owned(),
-            checkpoint_token_identity: record.checkpoint_token_identity().to_owned(),
+            checkpoint_token_identity: record.checkpoint_token_identity_for_reporting().to_owned(),
             replay_basis_digest: record.replay_basis_digest().to_owned(),
             protocol_semantics_version: record.protocol_semantics_version().to_owned(),
         }

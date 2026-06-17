@@ -70,7 +70,7 @@ impl ForgeQueryRuntimePublicSupportMatrixRow {
                     ForgeQueryEvidenceTag::new("admission_fail_closed"),
                     admission_fail_closed,
                 )
-                .optional_identity(
+                .optional_value(
                     ForgeQueryEvidenceTag::new("support_contract_digest"),
                     support_contract_digest.as_deref(),
                 )
@@ -223,7 +223,7 @@ impl ForgeQueryRuntimePublicSupportMatrix {
                 ForgeQueryRuntimeDownstreamDeliveryContract::from_backend_posture(
                     contract.backend_posture(),
                 )
-                .contract_digest()
+                .contract_for_reporting()
                 .to_string(),
             ),
         ));
@@ -274,7 +274,7 @@ impl ForgeQueryRuntimePublicSupportMatrix {
                     ForgeQueryEvidenceTag::new("parallel_api_forbidden_row_count"),
                     parallel_api_forbidden_row_count,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("row_digest"),
                     rows.iter().map(|row| row.row_digest().as_str()),
                 )

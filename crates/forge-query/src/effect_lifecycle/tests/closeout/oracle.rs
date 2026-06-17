@@ -3,19 +3,23 @@ use forge_runtime_bridge::facade::BridgeWritebackOutcomeClass;
 use serde_json::json;
 
 use crate::effect_lifecycle::{
-    effect_batch, scope_admitted_effect_plan, BridgeExecutionOracle, EffectAuthoringBasis,
-    EffectExecutionAuthority, EffectExecutionOracleErrorKind,
-    EffectExecutionOracleVerificationKind, RelationalExecutionOracle,
+    bridge_observation_execution_receipt_subject_identity,
+    bridge_observation_execution_record_subject_identity,
+    bridge_observation_outcome_subject_identity, bridge_observation_receipt_subject_identity,
+    bridge_observation_request_subject_identity, effect_batch, scope_admitted_effect_plan,
+    BridgeExecutionOracle, EffectAuthoringBasis, EffectExecutionAuthority,
+    EffectExecutionOracleErrorKind, EffectExecutionOracleVerificationKind,
+    RelationalExecutionOracle,
 };
 
 use super::execution_support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
-    runtime_snapshot_token, test_bridge_with_writeback_authority,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
+    runtime_snapshot_identity, test_bridge_with_writeback_authority,
 };
 use super::support::{
     admitted_branch_merge_effect, admitted_mutation_effect_for_entity_with_binding,
     admitted_tenant_writeback_effect, branch_mutation_basis, raw_mutation_effect_with_binding,
-    runtime_workflow_binding_with_snapshot,
+    runtime_workflow_binding_for_branch, runtime_workflow_binding_with_snapshot,
 };
 
 #[test]
@@ -30,7 +34,10 @@ fn mutation_execution_verifies_against_independent_relational_runtime_state() {
         )
         .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "oracle-plan" }),
     ))
@@ -49,7 +56,7 @@ fn mutation_execution_verifies_against_independent_relational_runtime_state() {
         EffectExecutionOracleVerificationKind::Mutation
     );
     assert_eq!(verification.component_count(), 1);
-    assert!(verification.relational_oracle_digest().is_some());
+    assert!(verification.relational_oracle_for_reporting().is_some());
 }
 
 #[test]
@@ -84,7 +91,7 @@ fn merge_execution_verifies_against_independent_relational_runtime_state() {
         EffectExecutionOracleVerificationKind::Merge
     );
     assert_eq!(verification.component_count(), 1);
-    assert!(verification.relational_oracle_digest().is_some());
+    assert!(verification.relational_oracle_for_reporting().is_some());
 }
 
 #[test]
@@ -128,7 +135,7 @@ fn writeback_execution_verifies_against_independent_bridge_authority_record() {
         outcome.authoritative_artifact_digest(),
         receipt.authoritative_artifact_digest()
     );
-    assert!(verification.bridge_oracle_digest().is_some());
+    assert!(verification.bridge_oracle_for_reporting().is_some());
 }
 
 #[test]
@@ -143,7 +150,7 @@ fn mutation_batch_verifies_against_independent_relational_runtime_state() {
             &BranchId("main".to_string()),
         )
         .expect("branch-a should exist");
-    let binding = runtime_workflow_binding_with_snapshot(&runtime_snapshot_token(&runtime));
+    let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
 
     let executed = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
@@ -172,7 +179,7 @@ fn mutation_batch_verifies_against_independent_relational_runtime_state() {
         EffectExecutionOracleVerificationKind::MutationBatch
     );
     assert_eq!(verification.component_count(), 2);
-    assert!(verification.relational_oracle_digest().is_some());
+    assert!(verification.relational_oracle_for_reporting().is_some());
 }
 
 #[test]
@@ -187,7 +194,10 @@ fn relational_oracle_rejects_independent_commit_mismatch() {
         )
         .expect("branch-a should exist");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+        runtime_workflow_binding_for_branch(
+            branch_snapshot_identity(&runtime, "branch-a"),
+            "branch-a",
+        ),
         entity_id,
         json!({ "name": "oracle-plan" }),
     ))
@@ -227,11 +237,11 @@ fn bridge_oracle_rejects_independent_receipt_mismatch() {
 
     let denial = executed
         .verify_against_bridge_oracle(&BridgeExecutionOracle::new(
-            "bridge-record:qa",
-            outcome.digest(),
+            bridge_observation_execution_record_subject_identity("bridge-record:qa"),
+            bridge_observation_outcome_subject_identity(outcome.digest()),
             outcome.outcome_class(),
-            receipt.request_digest(),
-            "bridge-receipt-mismatch",
+            bridge_observation_request_subject_identity(receipt.request_digest()),
+            bridge_observation_receipt_subject_identity("bridge-receipt-mismatch"),
         ))
         .expect_err("mismatched bridge oracle should deny");
 
@@ -243,13 +253,17 @@ fn bridge_oracle_rejects_independent_receipt_mismatch() {
     let execution_receipt_denial = executed
         .verify_against_bridge_oracle(
             &BridgeExecutionOracle::new(
-                "bridge-record:qa",
-                outcome.digest(),
+                bridge_observation_execution_record_subject_identity("bridge-record:qa"),
+                bridge_observation_outcome_subject_identity(outcome.digest()),
                 outcome.outcome_class(),
-                receipt.request_digest(),
-                receipt.digest(),
+                bridge_observation_request_subject_identity(receipt.request_digest()),
+                bridge_observation_receipt_subject_identity(receipt.digest()),
             )
-            .with_execution_receipt_digest("bridge-execution-receipt-mismatch"),
+            .with_execution_receipt_subject_identity(
+                bridge_observation_execution_receipt_subject_identity(
+                    "bridge-execution-receipt-mismatch",
+                ),
+            ),
         )
         .expect_err("mismatched bridge execution receipt should deny");
 

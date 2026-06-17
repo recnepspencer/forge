@@ -3,8 +3,7 @@ use crate::facade::{
     BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
     BridgePreviewSessionIdentity, BridgeRequestKind, BridgeSignalBranchIdentity,
     BridgeSourceCapability, BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
-    BridgeSpeculativeBranchBindingIdentity, BridgeTruthViewSelector, TruthBranchIdentity,
-    TruthSnapshotIdentity,
+    BridgeSpeculativeBranchBindingIdentity, BridgeTruthViewSelector,
 };
 
 #[test]
@@ -28,17 +27,17 @@ fn bridge_speculation_promotion_truth_is_invariant_across_diagnostics_tiers() {
         .expect("forensic speculation runtime should build");
 
     let baseline_decl = BridgePreviewSessionDeclaration::new(
-        BridgePreviewSessionDeclarationIdentity::new("cert:preview-declaration"),
+        BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("cert:preview-declaration"),
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
-            BridgeSpeculativeBranchBindingIdentity::new("cert:binding"),
-            TruthBranchIdentity::new("main"),
-            BridgeSignalBranchIdentity::new("signal:cert"),
+            BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("cert:binding"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            BridgeSignalBranchIdentity::admit_bridge_owned("signal:cert"),
         ),
         crate::facade::BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot:cert"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:cert"),
             ),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -51,13 +50,13 @@ fn bridge_speculation_promotion_truth_is_invariant_across_diagnostics_tiers() {
 
     let baseline_admitted = baseline_runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("cert:preview-session"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("cert:preview-session"),
             baseline_decl,
         )
         .expect("baseline declaration should admit");
     let forensic_admitted = forensic_runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("cert:preview-session"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("cert:preview-session"),
             forensic_decl,
         )
         .expect("forensic declaration should admit");
@@ -78,10 +77,14 @@ fn bridge_speculation_promotion_truth_is_invariant_across_diagnostics_tiers() {
         .expect("forensic promotion should succeed");
 
     let baseline_replay = baseline_runtime
-        .replay_preview_bundle(&BridgePreviewSessionIdentity::new("cert:preview-session"))
+        .replay_preview_bundle(&BridgePreviewSessionIdentity::admit_bridge_owned(
+            "cert:preview-session",
+        ))
         .expect("baseline replay should succeed");
     let forensic_replay = forensic_runtime
-        .replay_preview_bundle(&BridgePreviewSessionIdentity::new("cert:preview-session"))
+        .replay_preview_bundle(&BridgePreviewSessionIdentity::admit_bridge_owned(
+            "cert:preview-session",
+        ))
         .expect("forensic replay should succeed");
 
     assert_eq!(baseline_execution.digest(), forensic_execution.digest());

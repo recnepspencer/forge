@@ -1,5 +1,12 @@
 mod digest;
 
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity,
+};
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
     ForgeQueryContinuityMutationEvidence, ForgeQueryExistingTruthAssertionEvidence,
@@ -25,20 +32,20 @@ pub struct ForgeQueryWriteReceiptInspection {
     causality_evidence: Option<ForgeQueryMutationCausalityEvidence>,
     provenance_evidence: Option<ForgeQueryMutationProvenanceEvidence>,
     declared_collection: Option<String>,
-    declared_entity_identity: Option<String>,
+    declared_entity_identity: Option<ForgeQueryEntityIdentity>,
     target_collection: Option<String>,
-    target_entity_identity: Option<String>,
-    commit_identity: String,
-    snapshot_token: String,
+    target_entity_identity: Option<ForgeQueryEntityIdentity>,
+    commit_identity: ForgeQueryCommitIdentity,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
     canonical_artifact: ForgeQueryInspectedArtifact,
     workflow_artifact: ForgeQueryInspectedArtifact,
     bridge_authority_artifact: ForgeQueryInspectedArtifact,
     runtime_evidence: ForgeQueryRuntimeInspectionEvidence,
-    live_patch_artifacts: Vec<String>,
+    live_patch_artifacts: Vec<ForgeQueryEvidenceIdentity>,
     declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
-    declared_aspect_value_digest: Option<String>,
+    declared_aspect_value_digest: Option<ForgeQueryEvidenceIdentity>,
     mutation_metadata: ForgeQueryMutationMetadata,
-    inspection_digest: String,
+    inspection_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryWriteReceiptInspection {
@@ -48,27 +55,37 @@ impl ForgeQueryWriteReceiptInspection {
     ) -> Self {
         let canonical_artifact = ForgeQueryInspectedArtifact::new(
             "canonical",
-            receipt.commit_identity(),
-            receipt.snapshot_token(),
+            receipt.commit_evidence_identity().clone(),
+            receipt.snapshot_evidence_identity().clone(),
         );
         let workflow_artifact = ForgeQueryInspectedArtifact::new(
             "workflow",
-            receipt.commit_identity(),
-            receipt.snapshot_token(),
+            receipt.commit_evidence_identity().clone(),
+            receipt.snapshot_evidence_identity().clone(),
         );
         let bridge_authority_artifact = ForgeQueryInspectedArtifact::new(
             "bridge-authority",
-            receipt.commit_identity(),
-            receipt.snapshot_token(),
+            receipt.commit_evidence_identity().clone(),
+            receipt.snapshot_evidence_identity().clone(),
         );
         let live_patch_artifacts = receipt
             .deltas()
             .iter()
-            .map(|delta| format!("{}:{}", delta.collection, delta.entity_identity))
+            .map(|delta| {
+                forge_query_evidence_identity(
+                    ForgeQueryEvidenceScope::WriteReceiptInspectionArtifact,
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("role"), "live-patch-artifact")
+                .field_value(ForgeQueryEvidenceTag::new("collection"), &delta.collection)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("entity_identity"),
+                    &delta.entity_identity.evidence_identity(),
+                )
+                .seal()
+            })
             .collect::<Vec<_>>();
         let declared_aspect_operations = receipt.declared_aspect_operations().to_vec();
-        let declared_aspect_value_digest =
-            receipt.declared_aspect_value_digest().map(str::to_string);
+        let declared_aspect_value_digest = receipt.declared_aspect_value_identity().cloned();
         let mutation_metadata = receipt.mutation_metadata().clone();
         let target_evidence = receipt.target_evidence().clone();
         let existing_truth_assertion_evidence =
@@ -80,7 +97,7 @@ impl ForgeQueryWriteReceiptInspection {
         let continuity_mutation_evidence = receipt.continuity_mutation_evidence().cloned();
         let causality_evidence = receipt.causality_evidence().cloned();
         let provenance_evidence = receipt.provenance_evidence().cloned();
-        let inspection_digest = build_write_receipt_inspection_digest(
+        let inspection_identity = build_write_receipt_inspection_digest(
             receipt,
             &target_evidence,
             existing_truth_assertion_evidence.as_ref(),
@@ -92,7 +109,7 @@ impl ForgeQueryWriteReceiptInspection {
             provenance_evidence.as_ref(),
             &runtime_evidence,
             &declared_aspect_operations,
-            declared_aspect_value_digest.as_deref(),
+            declared_aspect_value_digest.as_ref(),
             &mutation_metadata,
             &live_patch_artifacts,
         );
@@ -109,11 +126,11 @@ impl ForgeQueryWriteReceiptInspection {
             causality_evidence,
             provenance_evidence,
             declared_collection: receipt.declared_collection().map(str::to_string),
-            declared_entity_identity: receipt.declared_entity_identity().map(str::to_string),
+            declared_entity_identity: receipt.declared_entity_identity().cloned(),
             target_collection: receipt.target_collection().map(str::to_string),
-            target_entity_identity: receipt.target_entity_identity().map(str::to_string),
-            commit_identity: receipt.commit_identity().to_string(),
-            snapshot_token: receipt.snapshot_token().to_string(),
+            target_entity_identity: receipt.target_entity_identity().cloned(),
+            commit_identity: receipt.commit_identity().clone(),
+            snapshot_identity: receipt.snapshot_identity().clone(),
             canonical_artifact,
             workflow_artifact,
             bridge_authority_artifact,
@@ -122,7 +139,7 @@ impl ForgeQueryWriteReceiptInspection {
             declared_aspect_operations,
             declared_aspect_value_digest,
             mutation_metadata,
-            inspection_digest,
+            inspection_identity,
         }
     }
 
@@ -196,24 +213,24 @@ impl ForgeQueryWriteReceiptInspection {
         self.declared_collection.as_deref()
     }
 
-    pub fn declared_entity_identity(&self) -> Option<&str> {
-        self.declared_entity_identity.as_deref()
+    pub fn declared_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
+        self.declared_entity_identity.as_ref()
     }
 
     pub fn target_collection(&self) -> Option<&str> {
         self.target_collection.as_deref()
     }
 
-    pub fn target_entity_identity(&self) -> Option<&str> {
-        self.target_entity_identity.as_deref()
+    pub fn target_entity_identity(&self) -> Option<&ForgeQueryEntityIdentity> {
+        self.target_entity_identity.as_ref()
     }
 
-    pub fn commit_identity(&self) -> &str {
+    pub fn commit_identity(&self) -> &ForgeQueryCommitIdentity {
         &self.commit_identity
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
     }
 
     pub fn canonical_artifact(&self) -> &ForgeQueryInspectedArtifact {
@@ -232,7 +249,7 @@ impl ForgeQueryWriteReceiptInspection {
         &self.runtime_evidence
     }
 
-    pub fn live_patch_artifacts(&self) -> &[String] {
+    pub fn live_patch_artifacts(&self) -> &[ForgeQueryEvidenceIdentity] {
         &self.live_patch_artifacts
     }
 
@@ -241,7 +258,9 @@ impl ForgeQueryWriteReceiptInspection {
     }
 
     pub fn declared_aspect_value_digest(&self) -> Option<&str> {
-        self.declared_aspect_value_digest.as_deref()
+        self.declared_aspect_value_digest
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
     }
 
     pub fn mutation_metadata(&self) -> &ForgeQueryMutationMetadata {
@@ -249,6 +268,10 @@ impl ForgeQueryWriteReceiptInspection {
     }
 
     pub fn inspection_digest(&self) -> &str {
-        &self.inspection_digest
+        self.inspection_identity.as_str()
+    }
+
+    pub fn inspection_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.inspection_identity
     }
 }

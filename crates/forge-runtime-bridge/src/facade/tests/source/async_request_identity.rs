@@ -8,8 +8,6 @@ use crate::facade::{
     BridgeAsyncRequestAdmissionRequest, BridgeAsyncRequestIdentityRejectionKind,
     BridgeAsyncRequestSubscriptionInstance, BridgeAsyncRequestTruthViewBasis,
 };
-use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
-use crate::snapshot::TruthSnapshotIdentity;
 use forge_signal::facade::NodeId;
 
 #[test]
@@ -20,18 +18,18 @@ fn equivalent_request_response_requests_admit_identically_across_equivalent_runt
         &first_runtime,
         NodeId::new(11, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let second = admit_request_response_identity(
         &second_runtime,
         NodeId::new(88, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
 
@@ -52,18 +50,18 @@ fn repeated_request_response_admissions_on_one_runtime_change_request_identity()
         &runtime,
         NodeId::new(23, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let second = admit_request_response_identity(
         &runtime,
         NodeId::new(23, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
 
@@ -87,18 +85,18 @@ fn truth_basis_drift_changes_request_response_identity() {
         &runtime,
         NodeId::new(19, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let right = admit_request_response_identity(
         &runtime,
         NodeId::new(19, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-b"),
-            TruthSnapshotIdentity::new("snapshot-b"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         ),
     );
 
@@ -110,17 +108,21 @@ fn truth_basis_drift_changes_request_response_identity() {
 fn equivalent_subscription_backed_requests_require_and_preserve_subscription_instance_identity() {
     let first_runtime = runtime(BridgeRuntimePolicy::development());
     let second_runtime = runtime(BridgeRuntimePolicy::development());
-    let first_ready =
-        activation_ready_for_snapshot(&first_runtime, TruthSnapshotIdentity::new("snapshot-a"));
-    let second_ready =
-        activation_ready_for_snapshot(&second_runtime, TruthSnapshotIdentity::new("snapshot-a"));
+    let first_ready = activation_ready_for_snapshot(
+        &first_runtime,
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+    );
+    let second_ready = activation_ready_for_snapshot(
+        &second_runtime,
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+    );
     let first = admit_subscription_backed_identity(
         &first_runtime,
         NodeId::new(41, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeAsyncRequestSubscriptionInstance::authoritative(&first_ready),
     )
@@ -129,9 +131,9 @@ fn equivalent_subscription_backed_requests_require_and_preserve_subscription_ins
         &second_runtime,
         NodeId::new(105, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeAsyncRequestSubscriptionInstance::authoritative(&second_ready),
     )
@@ -155,16 +157,21 @@ fn equivalent_subscription_backed_requests_require_and_preserve_subscription_ins
 #[test]
 fn subscription_instance_drift_changes_subscription_backed_identity() {
     let runtime = runtime(BridgeRuntimePolicy::development());
-    let first_ready =
-        activation_ready_for_snapshot(&runtime, TruthSnapshotIdentity::new("snapshot-a"));
-    let second_ready = activation_ready_for_branch_head(&runtime, TruthBranchIdentity::new("main"));
+    let first_ready = activation_ready_for_snapshot(
+        &runtime,
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+    );
+    let second_ready = activation_ready_for_branch_head(
+        &runtime,
+        crate::truth_identity_fixtures::truth_branch_fixture("main"),
+    );
     let first = admit_subscription_backed_identity(
         &runtime,
         NodeId::new(61, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeAsyncRequestSubscriptionInstance::authoritative(&first_ready),
     )
@@ -173,9 +180,9 @@ fn subscription_instance_drift_changes_subscription_backed_identity() {
         &runtime,
         NodeId::new(61, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         BridgeAsyncRequestSubscriptionInstance::authoritative(&second_ready),
     )
@@ -198,8 +205,10 @@ fn subscription_instance_drift_changes_subscription_backed_identity() {
 fn preview_truth_basis_must_match_preview_subscription_instance() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let preview_active = preview_active_subscription(&runtime, "phase6-preview");
-    let authoritative_ready =
-        activation_ready_for_snapshot(&runtime, TruthSnapshotIdentity::new("snapshot-a"));
+    let authoritative_ready = activation_ready_for_snapshot(
+        &runtime,
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+    );
     let rejection = admit_subscription_backed_identity(
         &runtime,
         NodeId::new(81, 0),
@@ -229,9 +238,9 @@ fn request_identity_runtime_rejects_cross_thread_admission() {
         &runtime,
         NodeId::new(91, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
     );
     let runtime_for_thread = runtime.clone();
@@ -246,9 +255,9 @@ fn request_identity_runtime_rejects_cross_thread_admission() {
         let binding = runtime_for_thread.bind_async_request_basis(
             &lowered,
             BridgeAsyncRequestTruthViewBasis::authoritative(
-                TruthBranchIdentity::new("truth-main"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
         );
         let request = BridgeAsyncRequestAdmissionRequest::request_response(&lowered, &binding)

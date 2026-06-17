@@ -10,14 +10,14 @@ fn equivalent_stale_completion_localizations_seal_equal_offline_bundles() {
     let first_runtime = runtime(BridgeRuntimePolicy::development());
     let second_runtime = runtime(BridgeRuntimePolicy::development());
     let original_basis = BridgeAsyncRequestTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-main"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let current_basis = BridgeAsyncRequestTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-main"),
-        TruthCommitIdentity::new("commit-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
     );
 
     let (first_denied, first_displacing) =
@@ -54,9 +54,9 @@ fn equivalent_stale_completion_localizations_seal_equal_offline_bundles() {
             BridgeAsyncCompletionSupersessionClassificationRequest::request_response(
                 &second_denied,
                 BridgeAsyncRequestTruthViewBasis::authoritative(
-                    TruthBranchIdentity::new("truth-main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthSnapshotIdentity::new("snapshot-b"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                 ),
             )
             .with_displacing_request_identity(&second_displacing),
@@ -195,8 +195,8 @@ fn resume_basis_rejection_localizes_without_live_diagnostics_handle() {
     );
     let async_request = admitted_async_request_identity(
         &runtime,
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         809,
     );
     let retained = retained_subscription_resume_basis(
@@ -244,14 +244,14 @@ fn resume_basis_rejection_localizes_without_live_diagnostics_handle() {
 fn mixed_cause_denial_localizes_as_ordering_replay_drift() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let original_basis = BridgeAsyncRequestTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-main"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let current_basis = BridgeAsyncRequestTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-main"),
-        TruthCommitIdentity::new("commit-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
     );
     let (denied, displacing_request) = denied_request_response_completion_with_displacing_identity(
         &runtime,

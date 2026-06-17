@@ -1,5 +1,6 @@
 use serde_json::Value;
 
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::mutation::{
     command_declared_aspect_operations, command_declared_aspect_paths,
     ForgeQueryContinuityMutationIntent, ForgeQueryMutationMetadata, ForgeQueryNamingMutationIntent,
@@ -22,12 +23,12 @@ pub enum ForgeQueryWriteCommand {
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
     },
     UpdateAspect {
-        entity_identity: String,
+        entity_identity: ForgeQueryEntityIdentity,
         aspect_path: String,
         value: Value,
     },
     UpdateAspects {
-        entity_identity: String,
+        entity_identity: ForgeQueryEntityIdentity,
         aspects: Vec<ForgeQueryAspectValue>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
@@ -74,7 +75,7 @@ pub enum ForgeQueryWriteCommand {
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
     },
     DeleteAspects {
-        entity_identity: String,
+        entity_identity: ForgeQueryEntityIdentity,
         declared_collection: Option<String>,
         touched_aspect_paths: Vec<String>,
         metadata: ForgeQueryMutationMetadata,
@@ -93,7 +94,7 @@ pub enum ForgeQueryWriteCommand {
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
     },
     Delete {
-        entity_identity: String,
+        entity_identity: ForgeQueryEntityIdentity,
     },
 }
 
@@ -162,11 +163,7 @@ impl ForgeQueryWriteCommand {
         }
     }
 
-    pub fn declared_entity_identity(&self) -> Option<String> {
-        self.declared_entity_identity_ref().map(str::to_string)
-    }
-
-    pub fn declared_entity_identity_ref(&self) -> Option<&str> {
+    pub fn declared_entity_identity(&self) -> Option<ForgeQueryEntityIdentity> {
         match self {
             Self::UpdateAspect {
                 entity_identity, ..
@@ -177,13 +174,37 @@ impl ForgeQueryWriteCommand {
             | Self::DeleteAspects {
                 entity_identity, ..
             }
-            | Self::Delete { entity_identity } => Some(entity_identity.as_str()),
+            | Self::Delete { entity_identity } => Some(entity_identity.clone()),
             Self::VerifyThenUpdateExistingAspects { binding, .. }
             | Self::VerifyThenDeleteExistingAspects { binding, .. }
             | Self::AssertExistingAspects { binding, .. }
             | Self::VerifyExistingAspects { binding, .. } => {
-                Some(binding.resolved_target_identity())
+                Some(binding.resolved_entity_artifact_identity())
             }
+            Self::UpdateSymbolicAspects { .. }
+            | Self::DeleteSymbolicAspects { .. }
+            | Self::UpdateExistingAspects { .. }
+            | Self::DeleteExistingAspects { .. }
+            | Self::InsertAspects { .. } => None,
+        }
+    }
+
+    pub fn declared_entity_identity_ref(&self) -> Option<&ForgeQueryEntityIdentity> {
+        match self {
+            Self::UpdateAspect {
+                entity_identity, ..
+            }
+            | Self::UpdateAspects {
+                entity_identity, ..
+            }
+            | Self::DeleteAspects {
+                entity_identity, ..
+            }
+            | Self::Delete { entity_identity } => Some(entity_identity),
+            Self::VerifyThenUpdateExistingAspects { .. }
+            | Self::VerifyThenDeleteExistingAspects { .. }
+            | Self::AssertExistingAspects { .. }
+            | Self::VerifyExistingAspects { .. } => None,
             Self::UpdateSymbolicAspects { .. }
             | Self::DeleteSymbolicAspects { .. }
             | Self::UpdateExistingAspects { .. }

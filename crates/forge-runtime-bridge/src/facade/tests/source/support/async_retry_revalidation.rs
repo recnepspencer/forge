@@ -132,8 +132,12 @@ pub(crate) fn cancellation_retry_rejection_for_cross_declaration(
         runtime,
         newer_node,
         truth_basis,
-        BridgeAsyncSourceDeclarationIdentity::new("bridge-async:request-response-other"),
-        BridgeAsyncSourceLegacyDeclarationIdentity::new("source:legacy-request-response-other"),
+        BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(
+            "bridge-async:request-response-other",
+        ),
+        BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(
+            "source:legacy-request-response-other",
+        ),
     );
     runtime
         .admit_async_retry_lineage_after_cancellation(
@@ -155,8 +159,12 @@ fn admit_retryable_request_response_identity(
         runtime,
         node,
         truth_basis,
-        BridgeAsyncSourceDeclarationIdentity::new("bridge-async:request-response-retryable"),
-        BridgeAsyncSourceLegacyDeclarationIdentity::new("source:legacy-request-response-retryable"),
+        BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(
+            "bridge-async:request-response-retryable",
+        ),
+        BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(
+            "source:legacy-request-response-retryable",
+        ),
     )
 }
 
@@ -199,10 +207,10 @@ fn admit_retryable_timeout_request_response_identity(
                 .validate_async_source_declaration(retryable_request_response_draft(
                     node,
                     Some(timeout_ms),
-                    BridgeAsyncSourceDeclarationIdentity::new(
+                    BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(
                         "bridge-async:request-response-retryable",
                     ),
-                    BridgeAsyncSourceLegacyDeclarationIdentity::new(
+                    BridgeAsyncSourceLegacyDeclarationIdentity::admit_bridge_owned(
                         "source:legacy-request-response-retryable",
                     ),
                 ))

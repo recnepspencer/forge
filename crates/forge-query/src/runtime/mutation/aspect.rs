@@ -4,7 +4,8 @@ use serde::Serialize;
 use serde_json::Value;
 
 use super::ForgeQueryMutationMetadata;
-use crate::memory_workspace::ForgeQueryWorkspaceError;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::memory_workspace::{ForgeQueryEntityIdentity, ForgeQueryWorkspaceError};
 use crate::runtime::{
     ForgeQueryContinuityMutationIntent, ForgeQueryNamingMutationIntent, ForgeQueryRuntimeError,
     ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
@@ -99,6 +100,13 @@ impl ForgeQueryAspectValue {
             value,
             clears_existing_value: false,
         })
+    }
+
+    pub(crate) fn new_set_evidence_identity(
+        aspect_path: impl Into<String>,
+        identity: &ForgeQueryEvidenceIdentity,
+    ) -> Result<Self, ForgeQueryWorkspaceError> {
+        Self::new_set(aspect_path, identity.as_str())
     }
 
     pub fn new_clear(aspect_path: impl Into<String>) -> Result<Self, ForgeQueryWorkspaceError> {
@@ -307,7 +315,7 @@ impl ForgeQueryAspectMutationBuilder {
 
     pub fn build_update(
         self,
-        entity_identity: impl Into<String>,
+        entity_identity: ForgeQueryEntityIdentity,
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
@@ -319,12 +327,6 @@ impl ForgeQueryAspectMutationBuilder {
             ..
         } = self;
         reject_symbolic_aspect_references(&symbolic_aspect_references, "update-family authoring")?;
-        let entity_identity = entity_identity.into();
-        if entity_identity.trim().is_empty() {
-            return Err(ForgeQueryRuntimeError::Workspace(
-                ForgeQueryWorkspaceError::new("entity identity may not be empty"),
-            ));
-        }
         Ok(ForgeQueryWriteCommand::UpdateAspects {
             entity_identity,
             aspects: finish_aspects(aspects, error)?,

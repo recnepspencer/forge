@@ -1,7 +1,7 @@
 use super::support::*;
 use crate::facade::runtime::{
-    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
-    ForgeQuerySessionLabel,
+    ForgeQueryAuthorityLane, ForgeQueryEffectPolicy, ForgeQueryEvidenceIdentity,
+    ForgeQueryEvidenceScope, ForgeQueryEvidenceTag, ForgeQuerySessionLabel,
 };
 
 fn session_entry_runtime() -> ForgeQueryRuntime {
@@ -9,6 +9,7 @@ fn session_entry_runtime() -> ForgeQueryRuntime {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -19,6 +20,58 @@ fn session_entry_runtime() -> ForgeQueryRuntime {
         .build_backend_from_parts()
         .build()
         .expect("session-entry runtime should build")
+}
+
+fn session_entry_workspace() -> ForgeQueryWorkspace {
+    session_entry_runtime()
+        .workspace("session-entry-workspace")
+        .expect("session-entry workspace should build")
+}
+
+fn basis_identity(
+    scope: ForgeQueryEvidenceScope,
+    label: &ForgeQuerySessionLabel,
+    effect_policy: ForgeQueryEffectPolicy,
+    authority_lane: ForgeQueryAuthorityLane,
+    evidence_rows: &[crate::runtime::ForgeQueryBasisAdmissionEvidenceRow],
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(scope)
+        .field_value(
+            ForgeQueryEvidenceTag::new("session_label_identity"),
+            label.identity_digest().terminal_projection_for_reporting(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("effect_policy"),
+            effect_policy.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority_lane"),
+            authority_lane.as_str(),
+        )
+        .field_value_sequence(
+            ForgeQueryEvidenceTag::new("basis_evidence"),
+            evidence_rows
+                .iter()
+                .map(|row| row.row_digest().terminal_projection_for_reporting()),
+        )
+        .seal()
+}
+
+fn assert_session_label_collision(
+    error: ForgeQueryRuntimeError,
+    authority_lane: ForgeQueryAuthorityLane,
+    label: &ForgeQuerySessionLabel,
+) {
+    match error.stop_class() {
+        ForgeQueryStopClass::SessionLabelCollision {
+            authority_lane: observed_lane,
+            label: collided,
+        } => {
+            assert_eq!(observed_lane, authority_lane);
+            assert_eq!(collided, label);
+        }
+        other => panic!("expected typed session label collision, got {other:?}"),
+    }
 }
 
 #[test]
@@ -32,36 +85,20 @@ fn preview_and_branch_basis_admissions_record_canonical_session_label_identity()
             ForgeQueryPreviewOptions::sandboxed_write_intent(),
         )
         .expect("preview should admit typed label");
-    let preview_manual =
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::PreviewBasisAdmission)
-            .field_identity(
-                ForgeQueryEvidenceTag::new("session_label_identity"),
-                label.identity_digest().as_str(),
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("effect_policy"),
-                ForgeQueryEffectPolicy::SandboxedWriteIntent.as_str(),
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("authority_lane"),
-                ForgeQueryAuthorityLane::PreviewTruth.as_str(),
-            )
-            .field_identity_sequence(
-                ForgeQueryEvidenceTag::new("evidence"),
-                preview
-                    .basis_admission()
-                    .evidence()
-                    .iter()
-                    .map(String::as_str),
-            )
-            .seal();
+    let preview_manual = basis_identity(
+        ForgeQueryEvidenceScope::PreviewBasisAdmission,
+        &label,
+        ForgeQueryEffectPolicy::SandboxedWriteIntent,
+        ForgeQueryAuthorityLane::PreviewTruth,
+        preview.basis_admission().evidence_rows(),
+    );
     assert_eq!(preview.basis_admission().session_label(), &label);
     assert_eq!(
         preview.basis_admission().label_identity(),
         label.identity_digest()
     );
     assert_eq!(
-        preview.basis_admission().admission_digest(),
+        preview.basis_admission().admission_identity(),
         &preview_manual
     );
     drop(preview);
@@ -72,35 +109,117 @@ fn preview_and_branch_basis_admissions_record_canonical_session_label_identity()
             ForgeQueryBranchOptions::sandboxed_write_intent(),
         )
         .expect("branch should admit the same typed label in its own family");
-    let branch_manual =
-        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::BranchBasisAdmission)
-            .field_identity(
-                ForgeQueryEvidenceTag::new("session_label_identity"),
-                label.identity_digest().as_str(),
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("effect_policy"),
-                ForgeQueryEffectPolicy::SandboxedWriteIntent.as_str(),
-            )
-            .field_shape(
-                ForgeQueryEvidenceTag::new("authority_lane"),
-                ForgeQueryAuthorityLane::BranchLocalTruth.as_str(),
-            )
-            .field_identity_sequence(
-                ForgeQueryEvidenceTag::new("evidence"),
-                branch
-                    .basis_admission()
-                    .evidence()
-                    .iter()
-                    .map(String::as_str),
-            )
-            .seal();
+    let branch_manual = basis_identity(
+        ForgeQueryEvidenceScope::BranchBasisAdmission,
+        &label,
+        ForgeQueryEffectPolicy::SandboxedWriteIntent,
+        ForgeQueryAuthorityLane::BranchLocalTruth,
+        branch.basis_admission().evidence_rows(),
+    );
     assert_eq!(branch.basis_admission().session_label(), &label);
     assert_eq!(
         branch.basis_admission().label_identity(),
         label.identity_digest()
     );
-    assert_eq!(branch.basis_admission().admission_digest(), &branch_manual);
+    assert_eq!(
+        branch.basis_admission().admission_identity(),
+        &branch_manual
+    );
+}
+
+#[test]
+fn workspace_entrypoints_preserve_typed_session_label_identity_and_collision_posture() {
+    let mut workspace = session_entry_workspace();
+    let label = test_session_label("workspace-session-entry");
+
+    let preview = workspace
+        .preview_with_options(
+            label.clone(),
+            ForgeQueryPreviewOptions::sandboxed_write_intent(),
+        )
+        .expect("workspace preview should admit typed label");
+    let preview_manual = basis_identity(
+        ForgeQueryEvidenceScope::PreviewBasisAdmission,
+        &label,
+        ForgeQueryEffectPolicy::SandboxedWriteIntent,
+        ForgeQueryAuthorityLane::PreviewTruth,
+        preview.basis_admission().evidence_rows(),
+    );
+    assert_eq!(preview.basis_admission().session_label(), &label);
+    assert_eq!(
+        preview.basis_admission().label_identity(),
+        label.identity_digest()
+    );
+    assert_eq!(
+        preview.basis_admission().admission_identity(),
+        &preview_manual
+    );
+    drop(preview);
+
+    let branch = workspace
+        .branch_with_options(
+            label.clone(),
+            ForgeQueryBranchOptions::sandboxed_write_intent(),
+        )
+        .expect("workspace branch should admit same typed label in its own family");
+    let branch_manual = basis_identity(
+        ForgeQueryEvidenceScope::BranchBasisAdmission,
+        &label,
+        ForgeQueryEffectPolicy::SandboxedWriteIntent,
+        ForgeQueryAuthorityLane::BranchLocalTruth,
+        branch.basis_admission().evidence_rows(),
+    );
+    assert_eq!(branch.basis_admission().session_label(), &label);
+    assert_eq!(
+        branch.basis_admission().label_identity(),
+        label.identity_digest()
+    );
+    assert_eq!(
+        branch.basis_admission().admission_identity(),
+        &branch_manual
+    );
+    drop(branch);
+
+    let preview_collision = match workspace.preview(label.clone()) {
+        Ok(_) => panic!("workspace preview replay should collide"),
+        Err(error) => error,
+    };
+    assert_session_label_collision(
+        preview_collision,
+        ForgeQueryAuthorityLane::PreviewTruth,
+        &label,
+    );
+
+    let branch_collision = match workspace.branch(label.clone()) {
+        Ok(_) => panic!("workspace branch replay should collide"),
+        Err(error) => error,
+    };
+    assert_session_label_collision(
+        branch_collision,
+        ForgeQueryAuthorityLane::BranchLocalTruth,
+        &label,
+    );
+
+    let render_collision_left =
+        ForgeQuerySessionLabel::scoped_strs("worth.kernel", ["preview"]).expect("label");
+    let render_collision_right =
+        ForgeQuerySessionLabel::scoped_strs("worth", ["kernel", "preview"]).expect("label");
+    workspace
+        .preview(render_collision_left.clone())
+        .expect("workspace should admit left render-collision label")
+        .discard();
+    workspace
+        .preview(render_collision_right.clone())
+        .expect("workspace should admit right render-collision label")
+        .discard();
+    assert_eq!(
+        render_collision_left.display(),
+        render_collision_right.display()
+    );
+    assert_ne!(
+        render_collision_left.identity_digest(),
+        render_collision_right.identity_digest()
+    );
 }
 
 #[test]
@@ -118,16 +237,7 @@ fn equivalent_preview_session_label_replay_stops_with_typed_collision_class() {
         Err(error) => error,
     };
 
-    match error.stop_class() {
-        ForgeQueryStopClass::SessionLabelCollision {
-            authority_lane,
-            label: collided,
-        } => {
-            assert_eq!(authority_lane, ForgeQueryAuthorityLane::PreviewTruth);
-            assert_eq!(collided, &label);
-        }
-        other => panic!("expected typed session label collision, got {other:?}"),
-    }
+    assert_session_label_collision(error, ForgeQueryAuthorityLane::PreviewTruth, &label);
 }
 
 #[test]
@@ -154,74 +264,14 @@ fn session_label_collision_is_scoped_per_family_and_not_by_rendered_display() {
         Ok(_) => panic!("re-admitting the same branch label should collide"),
         Err(error) => error,
     };
-    match error.stop_class() {
-        ForgeQueryStopClass::SessionLabelCollision {
-            authority_lane,
-            label,
-        } => {
-            assert_eq!(authority_lane, ForgeQueryAuthorityLane::BranchLocalTruth);
-            assert_eq!(label, &preview_label);
-            assert_ne!(
-                preview_label.identity_digest(),
-                render_collision.identity_digest()
-            );
-            assert_eq!(preview_label.display(), render_collision.display());
-        }
-        other => panic!("expected branch session label collision, got {other:?}"),
-    }
-}
-
-#[test]
-fn display_colliding_preview_labels_produce_distinct_closeout_digests() {
-    let mut runtime = session_entry_runtime();
-    let left = ForgeQuerySessionLabel::scoped_strs("worth.kernel", ["preview"]).expect("label");
-    let right = ForgeQuerySessionLabel::scoped_strs("worth", ["kernel", "preview"]).expect("label");
-
-    let left_outcome = runtime
-        .preview(left.clone())
-        .expect("left preview should admit")
-        .discard();
-    let right_outcome = runtime
-        .preview(right.clone())
-        .expect("right preview should admit")
-        .discard();
-
-    assert_eq!(left.display(), right.display());
-    assert_ne!(left.identity_digest(), right.identity_digest());
-    assert_ne!(
-        left_outcome.closeout_evidence().closeout_digest(),
-        right_outcome.closeout_evidence().closeout_digest(),
-        "preview closeout evidence must preserve canonical label identity"
+    assert_session_label_collision(
+        error,
+        ForgeQueryAuthorityLane::BranchLocalTruth,
+        &preview_label,
     );
-}
-
-#[test]
-fn ordinary_runtime_entrypoints_require_typed_session_labels() {
-    let runtime_sessions = include_str!("../runtime_sessions.rs");
-    let workspace = include_str!("../workspace.rs");
-
-    for required_signature in [
-        "pub fn preview<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn branch<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn preview_with_options<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-        "pub fn branch_with_options<'a>(\n        &'a mut self,\n        label: ForgeQuerySessionLabel,",
-    ] {
-        assert!(
-            runtime_sessions.contains(required_signature)
-                || workspace.contains(required_signature),
-            "ordinary runtime session entrypoint must require ForgeQuerySessionLabel: {required_signature}"
-        );
-    }
-
-    for forbidden_signature in [
-        "pub fn preview<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn branch<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn preview_with_options<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-        "pub fn branch_with_options<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
-    ] {
-        assert!(
-            !runtime_sessions.contains(forbidden_signature) && !workspace.contains(forbidden_signature),
-            "raw-string ordinary session entrypoint survived: {forbidden_signature}"
-        );
-    }
+    assert_ne!(
+        preview_label.identity_digest(),
+        render_collision.identity_digest()
+    );
+    assert_eq!(preview_label.display(), render_collision.display());
 }

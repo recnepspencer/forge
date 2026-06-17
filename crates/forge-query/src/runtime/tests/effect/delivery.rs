@@ -163,7 +163,12 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
     assert_eq!(deliveries[0].aspect_paths(), &["title.summary".to_string()]);
     assert_eq!(
         runtime.read_derived(&titles),
-        vec![Value::String(write.deltas()[0].entity_identity.clone())]
+        vec![Value::String(
+            write.deltas()[0]
+                .entity_identity
+                .terminal_projection_for_reporting()
+                .to_string()
+        )]
     );
 }
 
@@ -189,7 +194,7 @@ fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
         ))
         .expect("computed-triggered effect should declare");
 
-    runtime
+    let first_write = runtime
         .write(insert_command(
             "Task",
             [
@@ -205,10 +210,7 @@ fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
 
     let unrelated = runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
-            entity_identity: runtime.read_derived(&titles)[0]
-                .as_str()
-                .expect("computed row should be an entity id")
-                .to_string(),
+            entity_identity: first_write.deltas()[0].entity_identity.clone(),
             aspect_path: "identity.id".to_string(),
             value: Value::String("irrelevant".to_string()),
         })

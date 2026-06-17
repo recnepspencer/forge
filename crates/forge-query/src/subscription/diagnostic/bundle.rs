@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 
 use super::super::admission::QuerySubscriptionAdmissionArtifact;
 use super::super::admission_error::QuerySubscriptionAdmissionError;
@@ -12,11 +12,18 @@ use super::super::continuation::SubscriptionContinuationReport;
 use super::super::declaration::QuerySubscriptionDeclarationArtifact;
 use super::super::declaration_error::QuerySubscriptionDeclarationDenial;
 use super::super::error::QuerySubscriptionFamilySelectionError;
+use super::super::evidence_identities::{
+    diagnostic_admitted_bundle_identity, diagnostic_assembly_receipt_identity,
+    diagnostic_bundle_width_identity, diagnostic_counters_identity,
+    diagnostic_denied_bundle_identity, diagnostic_failure_identity,
+    diagnostic_semantic_labels_identity, typed_identity_drift,
+};
 use super::super::preview_isolation::PreviewSubscriptionIsolationArtifact;
 use super::super::support::{
     QuerySubscriptionSupportPosture, QuerySubscriptionSupportReport,
     QuerySubscriptionSupportReportError,
 };
+use super::super::validation_evidence::validation_evidence_identity_label;
 use super::context::QuerySubscriptionDiagnosticSelectionContext;
 use super::stage::{QuerySubscriptionDiagnosticOutcome, QuerySubscriptionDiagnosticStage};
 use super::trace::QuerySubscriptionDiagnosticTrace;
@@ -43,7 +50,7 @@ pub struct QuerySubscriptionDiagnosticBundleWidth {
     stage_evidence_count: usize,
     failure_evidence_count: usize,
     hostile_row_reference_count: usize,
-    digest: String,
+    bundle_width_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionDiagnosticBundleWidth {
@@ -52,17 +59,16 @@ impl QuerySubscriptionDiagnosticBundleWidth {
         failure_evidence_count: usize,
         hostile_row_reference_count: usize,
     ) -> Self {
-        let digest = hash_parts(&[
-            "query_subscription_diagnostic_bundle_width_v1".to_string(),
-            format!("stage_evidence_count:{stage_evidence_count}"),
-            format!("failure_evidence_count:{failure_evidence_count}"),
-            format!("hostile_row_reference_count:{hostile_row_reference_count}"),
-        ]);
+        let bundle_width_identity = diagnostic_bundle_width_identity(
+            stage_evidence_count,
+            failure_evidence_count,
+            hostile_row_reference_count,
+        );
         Self {
             stage_evidence_count,
             failure_evidence_count,
             hostile_row_reference_count,
-            digest,
+            bundle_width_identity,
         }
     }
 
@@ -78,8 +84,8 @@ impl QuerySubscriptionDiagnosticBundleWidth {
         self.hostile_row_reference_count
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn bundle_width_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bundle_width_identity
     }
 }
 
@@ -93,26 +99,14 @@ pub struct QuerySubscriptionDiagnosticCounters {
 }
 
 impl QuerySubscriptionDiagnosticCounters {
-    pub fn digest(&self) -> String {
-        hash_parts(&[
-            format!(
-                "diagnostic_trace_emission:{}",
-                self.diagnostic_trace_emission_count
-            ),
-            format!(
-                "diagnostic_bundle_emission:{}",
-                self.diagnostic_bundle_emission_count
-            ),
-            format!(
-                "diagnostic_denied_bundle_emission:{}",
-                self.denied_bundle_emission_count
-            ),
-            format!(
-                "diagnostic_missing_stage_denial:{}",
-                self.diagnostic_missing_stage_denial_count
-            ),
-            format!("diagnostic_bundle_width:{}", self.diagnostic_bundle_width),
-        ])
+    pub fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        diagnostic_counters_identity(
+            self.diagnostic_trace_emission_count,
+            self.diagnostic_bundle_emission_count,
+            self.denied_bundle_emission_count,
+            self.diagnostic_missing_stage_denial_count,
+            self.diagnostic_bundle_width,
+        )
     }
 
     pub fn diagnostic_trace_emission_count(&self) -> u64 {
@@ -169,7 +163,7 @@ pub struct DiagnosticAssemblyReceipt {
     semantic_label_carry_forward_count: usize,
     stage_rederivation_count: usize,
     bundle_width: QuerySubscriptionDiagnosticBundleWidth,
-    digest: String,
+    assembly_receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl DiagnosticAssemblyReceipt {
@@ -180,21 +174,20 @@ impl DiagnosticAssemblyReceipt {
         stage_rederivation_count: usize,
         bundle_width: QuerySubscriptionDiagnosticBundleWidth,
     ) -> Self {
-        let digest = hash_parts(&[
-            "query_subscription_diagnostic_assembly_receipt_v1".to_string(),
-            bundle_assembly_posture.as_str().to_string(),
-            format!("stage_evidence_composition_count:{stage_evidence_composition_count}"),
-            format!("semantic_label_carry_forward_count:{semantic_label_carry_forward_count}"),
-            format!("stage_rederivation_count:{stage_rederivation_count}"),
-            format!("bundle_width:{}", bundle_width.digest()),
-        ]);
+        let assembly_receipt_identity = diagnostic_assembly_receipt_identity(
+            bundle_assembly_posture.as_str(),
+            stage_evidence_composition_count,
+            semantic_label_carry_forward_count,
+            stage_rederivation_count,
+            bundle_width.bundle_width_identity(),
+        );
         Self {
             bundle_assembly_posture,
             stage_evidence_composition_count,
             semantic_label_carry_forward_count,
             stage_rederivation_count,
             bundle_width,
-            digest,
+            assembly_receipt_identity,
         }
     }
 
@@ -218,8 +211,8 @@ impl DiagnosticAssemblyReceipt {
         &self.bundle_width
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn assembly_receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.assembly_receipt_identity
     }
 }
 
@@ -233,7 +226,7 @@ pub struct QuerySubscriptionDiagnosticSemanticLabels {
     signal_strategy_class_label: String,
     support_posture_label: String,
     denial_or_coverage_class_label: String,
-    digest: String,
+    labels_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionDiagnosticSemanticLabels {
@@ -247,23 +240,16 @@ impl QuerySubscriptionDiagnosticSemanticLabels {
         support_posture_label: String,
         denial_or_coverage_class_label: String,
     ) -> Self {
-        let mut digest_parts = vec![
-            "query_subscription_diagnostic_semantic_labels_v1".to_string(),
-            format!("query_family:{query_family_label}"),
-            format!("declaration_family:{declaration_family_label}"),
-            format!("bridge_family:{bridge_family_label}"),
-            format!("basis_posture:{basis_posture_label}"),
-            format!("signal_strategy_class:{signal_strategy_class_label}"),
-            format!("support_posture:{support_posture_label}"),
-            format!("denial_or_coverage_class:{denial_or_coverage_class_label}"),
-        ];
-        digest_parts.extend(
-            bridge_slice_labels
-                .iter()
-                .enumerate()
-                .map(|(index, label)| format!("bridge_slice:{index}:{label}")),
+        let labels_identity = diagnostic_semantic_labels_identity(
+            &query_family_label,
+            &declaration_family_label,
+            &bridge_family_label,
+            &bridge_slice_labels,
+            &basis_posture_label,
+            &signal_strategy_class_label,
+            &support_posture_label,
+            &denial_or_coverage_class_label,
         );
-        let digest = hash_parts(&digest_parts);
         Self {
             query_family_label,
             declaration_family_label,
@@ -273,7 +259,7 @@ impl QuerySubscriptionDiagnosticSemanticLabels {
             signal_strategy_class_label,
             support_posture_label,
             denial_or_coverage_class_label,
-            digest,
+            labels_identity,
         }
     }
 
@@ -309,8 +295,8 @@ impl QuerySubscriptionDiagnosticSemanticLabels {
         &self.denial_or_coverage_class_label
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
+    pub fn labels_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.labels_identity
     }
 }
 
@@ -345,7 +331,7 @@ impl QuerySubscriptionDiagnosticBundleErrorKind {
 pub struct QuerySubscriptionDiagnosticBundleError {
     error_kind: QuerySubscriptionDiagnosticBundleErrorKind,
     message: &'static str,
-    failure_digest: String,
+    failure_identity: ForgeQueryEvidenceIdentity,
     counters: QuerySubscriptionDiagnosticCounters,
 }
 
@@ -355,20 +341,39 @@ impl QuerySubscriptionDiagnosticBundleError {
         message: &'static str,
         evidence_parts: &[String],
     ) -> Self {
-        let mut parts = vec![
-            "query_subscription_diagnostic_bundle_error_v1".to_string(),
-            error_kind.as_str().to_string(),
-            message.to_string(),
-        ];
-        parts.extend(evidence_parts.iter().cloned());
+        let counters = QuerySubscriptionDiagnosticCounters {
+            diagnostic_missing_stage_denial_count: 1,
+            ..Default::default()
+        };
+        let failure_identity = ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("identity_family"),
+            "query_subscription_diagnostic_bundle_error_v1",
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("error_kind"),
+            error_kind.as_str(),
+        )
+        .field_shape(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("message"),
+            message,
+        )
+        .field_evidence_identity(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("counters"),
+            &counters.evidence_identity(),
+        )
+        .field_value_sequence(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("evidence"),
+            evidence_parts.iter().map(String::as_str),
+        )
+        .seal();
         Self {
             error_kind,
             message,
-            failure_digest: hash_parts(&parts),
-            counters: QuerySubscriptionDiagnosticCounters {
-                diagnostic_missing_stage_denial_count: 1,
-                ..Default::default()
-            },
+            failure_identity,
+            counters,
         }
     }
 
@@ -380,8 +385,8 @@ impl QuerySubscriptionDiagnosticBundleError {
         self.message
     }
 
-    pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+    pub fn failure_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.failure_identity
     }
 
     pub fn counters(&self) -> &QuerySubscriptionDiagnosticCounters {
@@ -394,26 +399,28 @@ pub struct QuerySubscriptionDiagnosticFailure {
     stage: QuerySubscriptionDiagnosticStage,
     outcome: QuerySubscriptionDiagnosticOutcome,
     reason: String,
-    source_digest: String,
-    counter_digest: String,
-    failure_digest: String,
+    source_identity: ForgeQueryEvidenceIdentity,
+    counter_identity: ForgeQueryEvidenceIdentity,
+    failure_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionDiagnosticFailure {
     fn new(
         stage: QuerySubscriptionDiagnosticStage,
         reason: impl Into<String>,
-        source_digest: impl Into<String>,
-        counter_digest: impl Into<String>,
-        failure_digest: impl Into<String>,
+        source_identity: ForgeQueryEvidenceIdentity,
+        counter_identity: ForgeQueryEvidenceIdentity,
+        failure_kind: &str,
+        diagnostic_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
+        let failure_identity = diagnostic_failure_identity(failure_kind, diagnostic_identity);
         Self {
             stage,
             outcome: QuerySubscriptionDiagnosticOutcome::Denied,
             reason: reason.into(),
-            source_digest: source_digest.into(),
-            counter_digest: counter_digest.into(),
-            failure_digest: failure_digest.into(),
+            source_identity,
+            counter_identity,
+            failure_identity,
         }
     }
 
@@ -421,13 +428,10 @@ impl QuerySubscriptionDiagnosticFailure {
         Self::new(
             *error.diagnostic().stage(),
             error.message(),
-            error.diagnostic().source_digest(),
-            error.diagnostic().counter_digest(),
-            hash_parts(&[
-                "query_subscription_diagnostic_failure_v1".to_string(),
-                error.failure_class().as_str().to_string(),
-                error.diagnostic().digest().to_string(),
-            ]),
+            error.diagnostic().source_identity().clone(),
+            error.counters().evidence_identity(),
+            error.failure_class().as_str(),
+            error.diagnostic().evidence_identity(),
         )
     }
 
@@ -435,13 +439,10 @@ impl QuerySubscriptionDiagnosticFailure {
         Self::new(
             *error.diagnostic().stage(),
             error.message(),
-            error.diagnostic().source_digest(),
-            error.diagnostic().counter_digest(),
-            hash_parts(&[
-                "query_subscription_diagnostic_failure_v1".to_string(),
-                error.denial_kind().as_str().to_string(),
-                error.diagnostic().digest().to_string(),
-            ]),
+            error.diagnostic().source_identity().clone(),
+            error.counters().evidence_identity(),
+            error.denial_kind().as_str(),
+            error.diagnostic().evidence_identity(),
         )
     }
 
@@ -449,13 +450,10 @@ impl QuerySubscriptionDiagnosticFailure {
         Self::new(
             *error.diagnostic().stage(),
             error.message(),
-            error.diagnostic().source_digest(),
-            error.diagnostic().counter_digest(),
-            hash_parts(&[
-                "query_subscription_diagnostic_failure_v1".to_string(),
-                error.denial_kind().as_str().to_string(),
-                error.diagnostic().digest().to_string(),
-            ]),
+            error.diagnostic().source_identity().clone(),
+            error.counters().evidence_identity(),
+            error.denial_kind().as_str(),
+            error.diagnostic().evidence_identity(),
         )
     }
 
@@ -463,13 +461,10 @@ impl QuerySubscriptionDiagnosticFailure {
         Self::new(
             *error.pipeline_diagnostic().stage(),
             error.message(),
-            error.pipeline_diagnostic().source_digest(),
-            error.pipeline_diagnostic().counter_digest(),
-            hash_parts(&[
-                "query_subscription_diagnostic_failure_v1".to_string(),
-                error.denial_kind().as_str().to_string(),
-                error.pipeline_diagnostic().digest().to_string(),
-            ]),
+            error.pipeline_diagnostic().source_identity().clone(),
+            error.counters().evidence_identity(),
+            error.denial_kind().as_str(),
+            error.pipeline_diagnostic().evidence_identity(),
         )
     }
 
@@ -477,21 +472,24 @@ impl QuerySubscriptionDiagnosticFailure {
         Self::new(
             QuerySubscriptionDiagnosticStage::SupportReporting,
             error.message(),
-            error.failure_digest(),
-            error.failure_digest(),
-            error.failure_digest(),
+            error.failure_identity().clone(),
+            error.failure_identity().clone(),
+            error.denial_kind().as_str(),
+            error.failure_identity(),
         )
     }
 
     pub fn from_lifecycle_certification_error(
         error: &SubscriptionLifecycleCertificationError,
     ) -> Self {
+        let failure_identity = error.failure_identity().clone();
         Self::new(
             QuerySubscriptionDiagnosticStage::Certification,
             error.message(),
-            error.failure_digest(),
-            error.failure_digest(),
-            error.failure_digest(),
+            failure_identity.clone(),
+            failure_identity.clone(),
+            "lifecycle_certification",
+            &failure_identity,
         )
     }
 
@@ -507,16 +505,16 @@ impl QuerySubscriptionDiagnosticFailure {
         &self.reason
     }
 
-    pub fn source_digest(&self) -> &str {
-        &self.source_digest
+    pub fn source_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.source_identity
     }
 
-    pub fn counter_digest(&self) -> &str {
-        &self.counter_digest
+    pub fn counter_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.counter_identity
     }
 
-    pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
+    pub fn failure_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.failure_identity
     }
 }
 
@@ -526,9 +524,8 @@ pub struct QuerySubscriptionDeniedDiagnosticBundle {
     semantic_labels: QuerySubscriptionDiagnosticSemanticLabels,
     failure: QuerySubscriptionDiagnosticFailure,
     omitted_stages: Vec<QuerySubscriptionDiagnosticStage>,
-    support_report_digest: Option<String>,
-    counter_snapshot: String,
-    bundle_digest: String,
+    pub(in crate::subscription) support_report_identity: Option<ForgeQueryEvidenceIdentity>,
+    pub(in crate::subscription) bundle_identity: ForgeQueryEvidenceIdentity,
     counters: QuerySubscriptionDiagnosticCounters,
 }
 
@@ -549,16 +546,12 @@ impl QuerySubscriptionDeniedDiagnosticBundle {
         &self.omitted_stages
     }
 
-    pub fn support_report_digest(&self) -> Option<&str> {
-        self.support_report_digest.as_deref()
+    pub fn support_report_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.support_report_identity.as_ref()
     }
 
-    pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
-    }
-
-    pub fn bundle_digest(&self) -> &str {
-        &self.bundle_digest
+    pub fn bundle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bundle_identity
     }
 
     pub fn counters(&self) -> &QuerySubscriptionDiagnosticCounters {
@@ -570,13 +563,12 @@ impl QuerySubscriptionDeniedDiagnosticBundle {
 pub struct QuerySubscriptionAdmittedDiagnosticBundle {
     trace: QuerySubscriptionDiagnosticTrace,
     semantic_labels: QuerySubscriptionDiagnosticSemanticLabels,
-    support_report_digest: String,
-    lifecycle_certification_digest: String,
-    continuation_digest: Option<String>,
-    preview_isolation_digest: Option<String>,
-    lifecycle_closeout_digest: Option<String>,
-    counter_snapshot: String,
-    bundle_digest: String,
+    pub(in crate::subscription) support_report_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) lifecycle_certification_identity: ForgeQueryEvidenceIdentity,
+    pub(in crate::subscription) continuation_identity: Option<ForgeQueryEvidenceIdentity>,
+    pub(in crate::subscription) preview_isolation_identity: Option<ForgeQueryEvidenceIdentity>,
+    pub(in crate::subscription) lifecycle_closeout_identity: Option<ForgeQueryEvidenceIdentity>,
+    pub(in crate::subscription) bundle_identity: ForgeQueryEvidenceIdentity,
     counters: QuerySubscriptionDiagnosticCounters,
 }
 
@@ -589,32 +581,28 @@ impl QuerySubscriptionAdmittedDiagnosticBundle {
         &self.semantic_labels
     }
 
-    pub fn support_report_digest(&self) -> &str {
-        &self.support_report_digest
+    pub fn support_report_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.support_report_identity
     }
 
-    pub fn lifecycle_certification_digest(&self) -> &str {
-        &self.lifecycle_certification_digest
+    pub fn lifecycle_certification_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lifecycle_certification_identity
     }
 
-    pub fn continuation_digest(&self) -> Option<&str> {
-        self.continuation_digest.as_deref()
+    pub fn continuation_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.continuation_identity.as_ref()
     }
 
-    pub fn preview_isolation_digest(&self) -> Option<&str> {
-        self.preview_isolation_digest.as_deref()
+    pub fn preview_isolation_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.preview_isolation_identity.as_ref()
     }
 
-    pub fn lifecycle_closeout_digest(&self) -> Option<&str> {
-        self.lifecycle_closeout_digest.as_deref()
+    pub fn lifecycle_closeout_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.lifecycle_closeout_identity.as_ref()
     }
 
-    pub fn counter_snapshot(&self) -> &str {
-        &self.counter_snapshot
-    }
-
-    pub fn bundle_digest(&self) -> &str {
-        &self.bundle_digest
+    pub fn bundle_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bundle_identity
     }
 
     pub fn counters(&self) -> &QuerySubscriptionDiagnosticCounters {
@@ -681,51 +669,30 @@ pub fn bundle_admitted_query_subscription_diagnostics(
         trace.counters().diagnostic_trace_emission_count(),
         bundle_width.stage_evidence_count() as u64,
     );
-    let counter_snapshot = counters.digest();
-    let bundle_digest = hash_parts(&[
-        "query_subscription_admitted_diagnostic_bundle_v1".to_string(),
-        format!("trace:{}", trace.trace_digest()),
-        format!("labels:{}", semantic_labels.digest()),
-        format!("support:{}", support.report_digest()),
-        format!(
-            "lifecycle_certification:{}",
-            lifecycle.certification_bundle_digest()
-        ),
-        format!("receipt:{}", receipt.digest()),
-        format!("counters:{counter_snapshot}"),
-        format!("admission:{}", admission.admission_digest()),
-        format!(
-            "continuation:{}",
-            continuation
-                .map(|value| value.report_digest())
-                .unwrap_or("none")
-        ),
-        format!(
-            "preview:{}",
-            preview
-                .map(|value| value.isolation_digest())
-                .unwrap_or("none")
-        ),
-        format!(
-            "closeout:{}",
-            lifecycle_closeout
-                .map(|value| value.closeout_digest())
-                .unwrap_or("none")
-        ),
-    ]);
+    let bundle_identity = diagnostic_admitted_bundle_identity(
+        trace.trace_identity(),
+        semantic_labels.labels_identity(),
+        support.report_identity(),
+        lifecycle.certification_bundle_identity(),
+        receipt.assembly_receipt_identity(),
+        &counters.evidence_identity(),
+        admission.evidence_identity(),
+        continuation.map(|value| value.evidence_identity()),
+        preview.map(|value| value.isolation_identity()),
+        lifecycle_closeout.map(|value| value.evidence_identity()),
+    );
 
     Ok((
         QuerySubscriptionAdmittedDiagnosticBundle {
             trace,
             semantic_labels,
-            support_report_digest: support.report_digest().to_string(),
-            lifecycle_certification_digest: lifecycle.certification_bundle_digest().to_string(),
-            continuation_digest: continuation.map(|value| value.report_digest().to_string()),
-            preview_isolation_digest: preview.map(|value| value.isolation_digest().to_string()),
-            lifecycle_closeout_digest: lifecycle_closeout
-                .map(|value| value.closeout_digest().to_string()),
-            counter_snapshot,
-            bundle_digest,
+            support_report_identity: support.report_identity().clone(),
+            lifecycle_certification_identity: lifecycle.certification_bundle_identity().clone(),
+            continuation_identity: continuation.map(|value| value.evidence_identity().clone()),
+            preview_isolation_identity: preview.map(|value| value.isolation_identity().clone()),
+            lifecycle_closeout_identity: lifecycle_closeout
+                .map(|value| value.evidence_identity().clone()),
+            bundle_identity,
             counters,
         },
         receipt,
@@ -750,7 +717,7 @@ pub fn bundle_denied_query_subscription_diagnostics(
     validate_denied_selection_context(
         selection_context,
         failure.stage(),
-        failure.source_digest(),
+        &failure,
         declaration.is_some() || lowering.is_some() || admission.is_some() || support.is_some(),
     )?;
     if let Some(declaration) = declaration {
@@ -797,19 +764,14 @@ pub fn bundle_denied_query_subscription_diagnostics(
         trace.counters().diagnostic_trace_emission_count(),
         (bundle_width.stage_evidence_count() + bundle_width.failure_evidence_count()) as u64,
     );
-    let counter_snapshot = counters.digest();
-    let bundle_digest = hash_parts(&[
-        "query_subscription_denied_diagnostic_bundle_v1".to_string(),
-        format!("trace:{}", trace.trace_digest()),
-        format!("labels:{}", semantic_labels.digest()),
-        format!("failure:{}", failure.failure_digest()),
-        format!("receipt:{}", receipt.digest()),
-        format!("counters:{counter_snapshot}"),
-        format!(
-            "support:{}",
-            support.map(|value| value.report_digest()).unwrap_or("none")
-        ),
-    ]);
+    let bundle_identity = diagnostic_denied_bundle_identity(
+        trace.trace_identity(),
+        semantic_labels.labels_identity(),
+        failure.failure_identity(),
+        receipt.assembly_receipt_identity(),
+        &counters.evidence_identity(),
+        support.map(|value| value.report_identity()),
+    );
 
     Ok((
         QuerySubscriptionDeniedDiagnosticBundle {
@@ -817,9 +779,8 @@ pub fn bundle_denied_query_subscription_diagnostics(
             semantic_labels,
             failure,
             omitted_stages,
-            support_report_digest: support.map(|value| value.report_digest().to_string()),
-            counter_snapshot,
-            bundle_digest,
+            support_report_identity: support.map(|value| value.report_identity().clone()),
+            bundle_identity,
             counters,
         },
         receipt,
@@ -847,13 +808,16 @@ fn validate_declaration_and_lowering(
     declaration: &QuerySubscriptionDeclarationArtifact,
     lowering: &BridgeSubscriptionLoweringPlan,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
-    if lowering.query_declaration_digest() != declaration.declaration_digest().as_str() {
+    if typed_identity_drift(
+        lowering.query_declaration_identity(),
+        declaration.declaration_identity(),
+    ) {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
             "diagnostic bundle assembly requires bridge lowering to bind the same declaration artifact",
             &[
-                format!("declaration:{}", declaration.declaration_digest().as_str()),
-                format!("lowering:{}", lowering.query_declaration_digest()),
+                format!("declaration:{}", declaration.declaration_projection().label()),
+                format!("lowering:{}", lowering.query_declaration_projection().label()),
             ],
         ));
     }
@@ -864,13 +828,16 @@ fn validate_declaration_and_admission(
     declaration: &QuerySubscriptionDeclarationArtifact,
     admission: &QuerySubscriptionAdmissionArtifact,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
-    if admission.query_declaration_digest() != declaration.declaration_digest().as_str() {
+    if typed_identity_drift(
+        admission.query_declaration_identity(),
+        declaration.declaration_identity(),
+    ) {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
             "diagnostic bundle assembly requires admission and declaration to preserve the same canonical declaration digest",
             &[
-                format!("declaration:{}", declaration.declaration_digest().as_str()),
-                format!("admission:{}", admission.query_declaration_digest()),
+                format!("declaration:{}", declaration.declaration_projection().label()),
+                format!("admission:{}", admission.query_declaration_projection().label()),
             ],
         ));
     }
@@ -881,15 +848,18 @@ fn validate_declaration_and_support(
     declaration: &QuerySubscriptionDeclarationArtifact,
     support: &QuerySubscriptionSupportReport,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
-    if support.support_subject().declaration_digest() != declaration.declaration_digest().as_str() {
+    if typed_identity_drift(
+        support.support_subject().declaration_identity(),
+        declaration.declaration_identity(),
+    ) {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::SupportSourceMismatch,
             "diagnostic bundle assembly requires support reporting to bind the same declaration artifact",
             &[
-                format!("declaration:{}", declaration.declaration_digest().as_str()),
+                format!("declaration:{}", declaration.declaration_projection().label()),
                 format!(
                     "support_declaration:{}",
-                    support.support_subject().declaration_digest()
+                    support.support_subject().declaration_projection().label()
                 ),
             ],
         ));
@@ -902,20 +872,27 @@ fn validate_admitted_sources(
     lowering: &BridgeSubscriptionLoweringPlan,
     lifecycle: &SubscriptionLifecycleCertificationBundle,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
-    if lifecycle.subscription_declaration_digest() != declaration.declaration_digest().as_str()
-        || lifecycle.bridge_declaration_digest() != lowering.bridge_declaration_digest()
-    {
+    if typed_identity_drift(
+        lifecycle.subscription_declaration_identity(),
+        declaration.declaration_identity(),
+    ) || typed_identity_drift(
+        lifecycle.bridge_declaration_identity(),
+        lowering.bridge_declaration_identity(),
+    ) {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             QuerySubscriptionDiagnosticBundleErrorKind::LifecycleSourceMismatch,
             "diagnostic bundle assembly requires lifecycle certification to preserve declaration and bridge lowering identity",
             &[
-                format!("declaration:{}", declaration.declaration_digest().as_str()),
+                format!("declaration:{}", declaration.declaration_projection().label()),
                 format!(
                     "lifecycle_declaration:{}",
-                    lifecycle.subscription_declaration_digest()
+                    lifecycle.subscription_declaration_projection().label()
                 ),
-                format!("bridge:{}", lowering.bridge_declaration_digest()),
-                format!("lifecycle_bridge:{}", lifecycle.bridge_declaration_digest()),
+                format!("bridge:{}", lowering.bridge_declaration_projection().label()),
+                format!(
+                    "lifecycle_bridge:{}",
+                    lifecycle.bridge_declaration_projection().label()
+                ),
             ],
         ));
     }
@@ -978,63 +955,63 @@ fn validate_admitted_trace_sources(
     validate_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::FamilySelection,
-        selection.equivalence_basis().digest().as_str(),
+        selection.equivalence_basis().evidence_identity(),
         "admitted diagnostic bundle assembly requires family-selection trace evidence for the supplied canonical family selection",
         QuerySubscriptionDiagnosticBundleErrorKind::MissingRequiredStage,
     )?;
     validate_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::Declaration,
-        declaration.declaration_digest().as_str(),
+        declaration.declaration_identity(),
         "admitted diagnostic bundle assembly requires declaration trace evidence for the supplied canonical declaration artifact",
         QuerySubscriptionDiagnosticBundleErrorKind::DeclarationSourceMismatch,
     )?;
     validate_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::BridgeFamilyLowering,
-        lowering.bridge_declaration_digest(),
+        lowering.bridge_declaration_identity(),
         "admitted diagnostic bundle assembly requires bridge-lowering trace evidence for the supplied bridge declaration artifact",
         QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
     )?;
     validate_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::RuntimeBackedAdmission,
-        admission.admission_digest(),
+        admission.evidence_identity(),
         "admitted diagnostic bundle assembly requires runtime-admission trace evidence for the supplied admission artifact",
         QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
     )?;
     validate_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::SupportReporting,
-        support.report_digest(),
+        support.report_identity(),
         "admitted diagnostic bundle assembly requires support-reporting trace evidence for the supplied support report",
         QuerySubscriptionDiagnosticBundleErrorKind::SupportSourceMismatch,
     )?;
     validate_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::Certification,
-        lifecycle.certification_bundle_digest(),
+        lifecycle.certification_bundle_identity(),
         "admitted diagnostic bundle assembly requires lifecycle-certification trace evidence for the supplied certification bundle",
         QuerySubscriptionDiagnosticBundleErrorKind::LifecycleSourceMismatch,
     )?;
     validate_optional_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::Continuation,
-        continuation.map(|value| value.report_digest()),
+        continuation.map(|value| value.evidence_identity()),
         "admitted diagnostic bundle assembly may only carry continuation trace evidence when the supplied continuation artifact is present",
         QuerySubscriptionDiagnosticBundleErrorKind::MissingRequiredStage,
     )?;
     validate_optional_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::PreviewIsolation,
-        preview.map(|value| value.isolation_digest()),
+        preview.map(|value| value.isolation_identity()),
         "admitted diagnostic bundle assembly may only carry preview-isolation trace evidence when the supplied preview artifact is present",
         QuerySubscriptionDiagnosticBundleErrorKind::MissingRequiredStage,
     )?;
     validate_optional_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::LifecycleCloseout,
-        lifecycle_closeout.map(|value| value.closeout_digest()),
+        lifecycle_closeout.map(|value| value.evidence_identity()),
         "admitted diagnostic bundle assembly may only carry lifecycle-closeout trace evidence when the supplied closeout artifact is present",
         QuerySubscriptionDiagnosticBundleErrorKind::MissingRequiredStage,
     )?;
@@ -1050,6 +1027,9 @@ fn validate_denied_trace_sources(
     support: Option<&QuerySubscriptionSupportReport>,
     failure: &QuerySubscriptionDiagnosticFailure,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
+    let selection_source_identity = selection_context.source_identity();
+    let failure_source_identity = failure.source_identity();
+
     validate_trace_stage_source(
         trace,
         if selection_context.is_selection_denied() {
@@ -1058,9 +1038,9 @@ fn validate_denied_trace_sources(
             QuerySubscriptionDiagnosticStage::FamilySelection
         },
         if selection_context.is_selection_denied() {
-            failure.source_digest()
+            failure_source_identity
         } else {
-            selection_context.source_digest()
+            &selection_source_identity
         },
         "denied diagnostic bundle assembly requires trace family-selection evidence for the supplied selection context",
         QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
@@ -1075,9 +1055,9 @@ fn validate_denied_trace_sources(
                 QuerySubscriptionDiagnosticStage::Declaration
                     | QuerySubscriptionDiagnosticStage::DeliveryIntent
             ) {
-                failure.source_digest()
+                failure_source_identity
             } else {
-                declaration.declaration_digest().as_str()
+                declaration.declaration_identity()
             },
             "denied diagnostic bundle assembly requires declaration trace evidence aligned with the supplied declaration or declaration-stage failure",
             QuerySubscriptionDiagnosticBundleErrorKind::DeclarationSourceMismatch,
@@ -1091,7 +1071,7 @@ fn validate_denied_trace_sources(
                 QuerySubscriptionDiagnosticStage::Declaration
                     | QuerySubscriptionDiagnosticStage::DeliveryIntent
             ) {
-                Some(failure.source_digest())
+                Some(failure_source_identity)
             } else {
                 None
             },
@@ -1110,9 +1090,9 @@ fn validate_denied_trace_sources(
                     | QuerySubscriptionDiagnosticStage::BridgeSliceLowering
                     | QuerySubscriptionDiagnosticStage::BasisBinding
             ) {
-                failure.source_digest()
+                failure_source_identity
             } else {
-                lowering.bridge_declaration_digest()
+                lowering.bridge_declaration_identity()
             },
             "denied diagnostic bundle assembly requires bridge-lowering trace evidence aligned with the supplied lowering artifact or bridge-stage failure",
             QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
@@ -1127,7 +1107,7 @@ fn validate_denied_trace_sources(
                     | QuerySubscriptionDiagnosticStage::BridgeSliceLowering
                     | QuerySubscriptionDiagnosticStage::BasisBinding
             ) {
-                Some(failure.source_digest())
+                Some(failure_source_identity)
             } else {
                 None
             },
@@ -1148,9 +1128,9 @@ fn validate_denied_trace_sources(
                     | QuerySubscriptionDiagnosticStage::ActiveLifecycleAllocation
                     | QuerySubscriptionDiagnosticStage::ActivationReadiness
             ) {
-                failure.source_digest()
+                failure_source_identity
             } else {
-                admission.admission_digest()
+                admission.evidence_identity()
             },
             "denied diagnostic bundle assembly requires runtime-admission trace evidence aligned with the supplied admission artifact or admission-stage failure",
             QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
@@ -1167,7 +1147,7 @@ fn validate_denied_trace_sources(
                     | QuerySubscriptionDiagnosticStage::ActiveLifecycleAllocation
                     | QuerySubscriptionDiagnosticStage::ActivationReadiness
             ) {
-                Some(failure.source_digest())
+                Some(failure_source_identity)
             } else {
                 None
             },
@@ -1180,9 +1160,9 @@ fn validate_denied_trace_sources(
         trace,
         QuerySubscriptionDiagnosticStage::SupportReporting,
         if *failure.stage() == QuerySubscriptionDiagnosticStage::SupportReporting {
-            Some(failure.source_digest())
+            Some(failure_source_identity)
         } else {
-            support.map(|value| value.report_digest())
+            support.map(|value| value.report_identity())
         },
         "denied diagnostic bundle assembly may only carry support-reporting trace evidence when the supplied support report is present",
         QuerySubscriptionDiagnosticBundleErrorKind::SupportSourceMismatch,
@@ -1193,7 +1173,7 @@ fn validate_denied_trace_sources(
 fn validate_trace_stage_source(
     trace: &QuerySubscriptionDiagnosticTrace,
     stage: QuerySubscriptionDiagnosticStage,
-    expected_source_digest: &str,
+    expected_source_identity: &ForgeQueryEvidenceIdentity,
     message: &'static str,
     error_kind: QuerySubscriptionDiagnosticBundleErrorKind,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
@@ -1208,14 +1188,20 @@ fn validate_trace_stage_source(
         )
     })?;
 
-    if stage_trace.source_digest() != expected_source_digest {
+    if typed_identity_drift(stage_trace.source_identity(), expected_source_identity) {
         return Err(QuerySubscriptionDiagnosticBundleError::new(
             error_kind,
             message,
             &[
                 format!("stage:{}", stage.as_str()),
-                format!("trace_source:{}", stage_trace.source_digest()),
-                format!("expected_source:{expected_source_digest}"),
+                format!(
+                    "trace_source:{}",
+                    validation_evidence_identity_label(stage_trace.source_identity())
+                ),
+                format!(
+                    "expected_source:{}",
+                    validation_evidence_identity_label(expected_source_identity)
+                ),
             ],
         ));
     }
@@ -1226,20 +1212,26 @@ fn validate_trace_stage_source(
 fn validate_optional_trace_stage_source(
     trace: &QuerySubscriptionDiagnosticTrace,
     stage: QuerySubscriptionDiagnosticStage,
-    expected_source_digest: Option<&str>,
+    expected_source_identity: Option<&ForgeQueryEvidenceIdentity>,
     message: &'static str,
     error_kind: QuerySubscriptionDiagnosticBundleErrorKind,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
-    match (trace_stage(trace, stage), expected_source_digest) {
-        (Some(stage_trace), Some(expected_source_digest)) => {
-            if stage_trace.source_digest() != expected_source_digest {
+    match (trace_stage(trace, stage), expected_source_identity) {
+        (Some(stage_trace), Some(expected_source_identity)) => {
+            if typed_identity_drift(stage_trace.source_identity(), expected_source_identity) {
                 return Err(QuerySubscriptionDiagnosticBundleError::new(
                     error_kind,
                     message,
                     &[
                         format!("stage:{}", stage.as_str()),
-                        format!("trace_source:{}", stage_trace.source_digest()),
-                        format!("expected_source:{expected_source_digest}"),
+                        format!(
+                            "trace_source:{}",
+                            validation_evidence_identity_label(stage_trace.source_identity())
+                        ),
+                        format!(
+                            "expected_source:{}",
+                            validation_evidence_identity_label(expected_source_identity)
+                        ),
                     ],
                 ));
             }
@@ -1393,7 +1385,7 @@ fn semantic_label_count(labels: &QuerySubscriptionDiagnosticSemanticLabels) -> u
 fn validate_denied_selection_context(
     selection_context: &QuerySubscriptionDiagnosticSelectionContext,
     failure_stage: &QuerySubscriptionDiagnosticStage,
-    failure_source_digest: &str,
+    failure: &QuerySubscriptionDiagnosticFailure,
     carries_later_artifacts: bool,
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
     if selection_context.is_selection_denied() {
@@ -1402,18 +1394,27 @@ fn validate_denied_selection_context(
                 QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
                 "diagnostic bundle assembly may only use a selection-denied context for family-selection failures",
                 &[
-                    format!("selection_context:{}", selection_context.digest()),
+                    format!("selection_context:{}", selection_context.context_projection().label()),
                     format!("failure_stage:{}", failure_stage.as_str()),
                 ],
             ));
         }
-        if selection_context.source_digest() != failure_source_digest {
+        if typed_identity_drift(
+            &selection_context.source_identity(),
+            failure.source_identity(),
+        ) {
             return Err(QuerySubscriptionDiagnosticBundleError::new(
                 QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
                 "diagnostic bundle assembly requires the selection-denied context and failure to bind the same canonical source digest",
                 &[
-                    format!("selection_source:{}", selection_context.source_digest()),
-                    format!("failure_source:{failure_source_digest}"),
+                    format!(
+                        "selection_source:{}",
+                        validation_evidence_identity_label(&selection_context.source_identity())
+                    ),
+                    format!(
+                        "failure_source:{}",
+                        validation_evidence_identity_label(failure.source_identity())
+                    ),
                 ],
             ));
         }
@@ -1422,7 +1423,7 @@ fn validate_denied_selection_context(
                 QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
                 "diagnostic bundle assembly may not attach declaration, lowering, or support artifacts after family-selection denial",
                 &[
-                    format!("selection_context:{}", selection_context.digest()),
+                    format!("selection_context:{}", selection_context.context_projection().label()),
                     format!("failure_stage:{}", failure_stage.as_str()),
                 ],
             ));

@@ -40,7 +40,7 @@ impl BridgeWritebackMapperWitness {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            witness_identity: BridgeWritebackMapperWitnessIdentity::new(format!(
+            witness_identity: BridgeWritebackMapperWitnessIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-mapper-witness:sha256:{digest:x}"
             )),
             mapper_envelope_digest: Arc::from(mapped_input.mapper_envelope_digest().to_owned()),
@@ -71,7 +71,7 @@ impl BridgeWritebackMapperWitness {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            witness_identity: BridgeWritebackMapperWitnessIdentity::new(format!(
+            witness_identity: BridgeWritebackMapperWitnessIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-mapper-witness:sha256:{digest:x}"
             )),
             mapper_envelope_digest: Arc::from(effect.mapper_envelope_digest().to_owned()),

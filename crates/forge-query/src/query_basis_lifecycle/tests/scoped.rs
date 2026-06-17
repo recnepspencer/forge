@@ -8,7 +8,7 @@ use super::{
 #[test]
 fn scoped_observation_common_path_preserves_advisory_preview_posture() {
     let scoped = scope_observation_basis_intent(RawBasisIntent::preview(
-        "preview:session-1",
+        super::test_preview_identity("preview:session-1"),
         BasisOperationLaneRequest::Observation,
     ))
     .expect("preview observation should scope through advisory observation");
@@ -28,7 +28,7 @@ fn scoped_observation_common_path_preserves_advisory_preview_posture() {
 #[test]
 fn scoped_inspection_common_path_accepts_advisory_preview_lane() {
     let scoped = scope_inspection_basis_intent(RawBasisIntent::preview(
-        "preview:session-2",
+        super::test_preview_identity("preview:session-2"),
         BasisOperationLaneRequest::Inspection,
     ))
     .expect("preview inspection should scope through advisory inspection");
@@ -42,7 +42,7 @@ fn scoped_inspection_common_path_accepts_advisory_preview_lane() {
 #[test]
 fn scoped_mutation_preparation_common_path_requires_admitted_capability() {
     let scoped = scope_mutation_preparation_basis_intent(RawBasisIntent::branch_head(
-        "branch:main",
+        super::test_branch_identity("branch:main"),
         BasisOperationLaneRequest::MutationPreparation,
     ))
     .expect("branch-head mutation preparation should scope from admitted capability");
@@ -57,7 +57,7 @@ fn scoped_mutation_preparation_common_path_requires_admitted_capability() {
 #[test]
 fn scoped_certification_common_path_denies_preview_advisory_capability() {
     let denial = scope_certification_basis_intent(RawBasisIntent::preview_derived_historical(
-        "preview:session-3",
+        super::test_preview_identity("preview:session-3"),
         BasisOperationLaneRequest::Certification,
     ))
     .expect_err("advisory certification capability should not scope into certification use");

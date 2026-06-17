@@ -1,8 +1,7 @@
 use super::{
     registered_source, runtime, BridgeMappingId, BridgeMappingRegistration, BridgeRuntimePolicy,
     BridgeTruthViewSelector, CoarseRoutingMode, MappingSelector, RuntimeBridge,
-    SignalInvalidationScope, StaticSink, StaticSource, StaticSourceAdapter, TruthBranchIdentity,
-    TruthPatchScope, TruthSnapshotIdentity,
+    SignalInvalidationScope, StaticSink, StaticSource, StaticSourceAdapter, TruthPatchScope,
 };
 use crate::facade::BridgeSpeculativeSessionRequest;
 use crate::speculation::{
@@ -14,17 +13,17 @@ use crate::speculation::{
 
 fn preview_declaration() -> BridgePreviewSessionDeclaration {
     BridgePreviewSessionDeclaration::new(
-        BridgePreviewSessionDeclarationIdentity::new("preview:analysis"),
+        BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("preview:analysis"),
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
-            BridgeSpeculativeBranchBindingIdentity::new("binding:analysis"),
-            TruthBranchIdentity::new("truth:analysis"),
-            BridgeSignalBranchIdentity::new("signal:analysis"),
+            BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("binding:analysis"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth:analysis"),
+            BridgeSignalBranchIdentity::admit_bridge_owned("signal:analysis"),
         ),
         BridgePreviewSessionBasis::new(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("truth:analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("truth:analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             crate::facade::BridgeSourceCapabilitySet::new(vec![
                 crate::facade::BridgeSourceCapability::SnapshotRead,
@@ -46,8 +45,8 @@ fn standard_builder_aliases_build_runtime() {
         .register_source(registered_source(
             "source:analysis-snapshot",
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             vec![
                 crate::facade::BridgeSourceCapability::SnapshotRead,
@@ -55,7 +54,7 @@ fn standard_builder_aliases_build_runtime() {
             ],
         ))
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping"),
+            BridgeMappingId::admit_bridge_owned("mapping"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("entity-1"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -68,7 +67,7 @@ fn standard_builder_aliases_build_runtime() {
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal:profile"),
+            SignalInvalidationScope::admit_bridge_owned("signal:profile"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -82,23 +81,31 @@ fn standard_route_flows_from_commit_string_to_evaluation_target() {
     let runtime = runtime(BridgeRuntimePolicy::default());
 
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new("commit-std"))
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
+            "commit-std",
+        ))
         .expect("standard route should succeed");
     let evaluation = runtime
         .evaluate_current(routed.target())
         .expect("evaluation target should prepare current evaluation");
 
-    assert_eq!(
-        routed.result().result_summary().source_commit().as_str(),
-        "commit-std"
+    assert!(
+        crate::truth_identity_fixtures::truth_commit_fixture_matches(
+            routed.result().result_summary().source_commit(),
+            "commit-std"
+        )
     );
-    assert_eq!(
-        routed.result().receipt().snapshot_identity().as_str(),
-        "snapshot-a"
+    assert!(
+        crate::truth_identity_fixtures::truth_snapshot_fixture_matches(
+            routed.result().receipt().snapshot_identity(),
+            "snapshot-a"
+        )
     );
-    assert_eq!(
-        evaluation.snapshot().snapshot_identity().as_str(),
-        "snapshot-a"
+    assert!(
+        crate::truth_identity_fixtures::truth_snapshot_fixture_matches(
+            evaluation.snapshot().snapshot_identity(),
+            "snapshot-a"
+        )
     );
     assert_eq!(runtime.diagnostics().route_records().len(), 1);
     assert!(matches!(
@@ -116,19 +123,22 @@ fn standard_truth_view_evaluation_flows_from_branch_head_request() {
     let evaluation = runtime
         .evaluate(
             crate::facade::BridgeTruthViewEvaluationRequest::for_branch_head(
-                TruthBranchIdentity::new("analysis"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
             ),
         )
         .expect("branch-head evaluation should succeed");
 
-    assert_eq!(evaluation.snapshot_identity().as_str(), "snapshot-a");
-    assert_eq!(
-        evaluation
-            .record()
-            .decision_log()
-            .snapshot_identity()
-            .as_str(),
-        "snapshot-a"
+    assert!(
+        crate::truth_identity_fixtures::truth_snapshot_fixture_matches(
+            evaluation.snapshot_identity(),
+            "snapshot-a"
+        )
+    );
+    assert!(
+        crate::truth_identity_fixtures::truth_snapshot_fixture_matches(
+            evaluation.record().decision_log().snapshot_identity(),
+            "snapshot-a"
+        )
     );
     assert_eq!(
         runtime
@@ -166,7 +176,7 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
 
     let comparison = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
-            BridgePreviewSessionIdentity::new("preview-session:std-compare"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:std-compare"),
             preview_declaration(),
             3,
             1,
@@ -177,20 +187,22 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
 
     assert_eq!(
         comparison
-            .main_evaluation_request(TruthBranchIdentity::new("main"))
+            .main_evaluation_request(crate::truth_identity_fixtures::truth_branch_fixture("main"))
             .selector(),
-        &crate::facade::BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("main"))
+        &crate::facade::BridgeTruthViewSelector::branch_head(
+            crate::truth_identity_fixtures::truth_branch_fixture("main")
+        )
     );
     assert_eq!(
         comparison.speculative_evaluation_request().selector(),
-        &crate::facade::BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new(
-            "truth:analysis"
-        ))
+        &crate::facade::BridgeTruthViewSelector::branch_head(
+            crate::truth_identity_fixtures::truth_branch_fixture("truth:analysis")
+        )
     );
 
     let discarded = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
-            BridgePreviewSessionIdentity::new("preview-session:std-discard"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:std-discard"),
             preview_declaration(),
             3,
             1,
@@ -211,7 +223,7 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
 
     let promoted = runtime
         .speculate(BridgeSpeculativeSessionRequest::new(
-            BridgePreviewSessionIdentity::new("preview-session:std-promote"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:std-promote"),
             preview_declaration(),
             3,
             1,
@@ -229,7 +241,7 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
     assert_eq!(runtime.diagnostics().preview_discard_records().len(), 1);
     assert_eq!(runtime.diagnostics().preview_promotion_records().len(), 1);
     let promoted_session_identity =
-        BridgePreviewSessionIdentity::new("preview-session:std-promote");
+        BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:std-promote");
     assert!(matches!(
         runtime
             .diagnostics()

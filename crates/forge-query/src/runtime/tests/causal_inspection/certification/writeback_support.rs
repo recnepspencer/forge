@@ -1,13 +1,17 @@
 use forge_runtime_bridge::facade::{
-    BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgePolicyDeclaration,
-    BridgePolicyDeclarationIdentity, BridgeRequestKind, BridgeRouteIdentity,
-    BridgeWritebackAuthoritativeStateBasis, BridgeWritebackCausalityIdentity,
+    BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgeIdentityEvidence,
+    BridgePolicyDeclaration, BridgePolicyDeclarationIdentity, BridgeRequestKind,
+    BridgeRouteIdentity, BridgeWritebackAuthoritativeStateBasis, BridgeWritebackCausalityIdentity,
     BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass,
     BridgeWritebackEffectIdentity, BridgeWritebackEffectIntent, BridgeWritebackFamilyKind,
     BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
     BridgeWritebackNativeCausalityInputs, BridgeWritebackStrategyClass,
-    LoweredBridgeExecutionPolicy, RuntimeBridge, TruthCommitIdentity, TruthSnapshotIdentity,
+    LoweredBridgeExecutionPolicy, RelationalBridgeSnapshotIdentityParts, RuntimeBridge,
+    TruthCommitIdentity, TruthSnapshotIdentity,
 };
+
+use super::super::materialization::stable_causal_position;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 pub(super) struct RetainedWritebackRecordIdentities {
     pub(super) admission_record_identity: String,
@@ -20,27 +24,34 @@ pub(super) struct RetainedWritebackRecordIdentities {
 
 pub(super) fn retain_writeback_record_identities(
     runtime: &RuntimeBridge,
-    suffix: &str,
+    commit_identity: &TruthCommitIdentity,
 ) -> RetainedWritebackRecordIdentities {
+    let commit_id = commit_identity
+        .relational_commit_id()
+        .expect("causal writeback fixture must carry relational commit authority");
+    let suffix = format!("commit-{commit_id}");
     let lowered_policy = lowered_writeback_policy(runtime);
     let contract = runtime
-        .admit_writeback_declaration(writeback_declaration(suffix), &lowered_policy)
+        .admit_writeback_declaration(writeback_declaration(&suffix), &lowered_policy)
         .expect("writeback declaration should admit");
     let admission = runtime
         .diagnostics()
         .last_writeback_admission_record()
         .expect("writeback admission record should be retained");
     let causality = BridgeWritebackNativeCausalityInputs::new(
-        BridgeWritebackCausalityIdentity::new(format!("causality:slot:{suffix}")),
-        TruthCommitIdentity::new(format!("query-trigger:{suffix}")),
-        BridgeRouteIdentity::new("query-route:slot"),
-        TruthSnapshotIdentity::new("query-evaluation:slot"),
-        TruthSnapshotIdentity::new("query-truth-view:slot"),
+        BridgeWritebackCausalityIdentity::from_bridge_evidence(&bridge_test_evidence(
+            "causality",
+            &format!("slot:{suffix}"),
+        )),
+        TruthCommitIdentity::from_relational_commit_id(commit_id + 20_000),
+        BridgeRouteIdentity::from_bridge_evidence(&bridge_test_evidence("route", "slot")),
+        writeback_snapshot_identity("query-evaluation", commit_id),
+        writeback_snapshot_identity("query-truth-view", commit_id),
     );
     let mapped_input = runtime.map_writeback_family_input(
         &contract,
         &causality,
-        writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, suffix),
+        writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, &suffix),
     );
     let mapper_envelope = runtime
         .diagnostics()
@@ -49,15 +60,21 @@ pub(super) fn retain_writeback_record_identities(
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new(format!("effect:slot:{suffix}")),
-        writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, suffix),
+        BridgeWritebackEffectIdentity::from_bridge_evidence(&bridge_test_evidence(
+            "effect",
+            &format!("slot:{suffix}"),
+        )),
+        writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, &suffix),
     );
     let authoritative_state_basis = BridgeWritebackAuthoritativeStateBasis::from_effect(&effect);
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
         &authoritative_state_basis,
-        BridgeWritebackIdempotenceIdentity::new(format!("idempotence:slot:{suffix}")),
+        BridgeWritebackIdempotenceIdentity::from_bridge_evidence(&bridge_test_evidence(
+            "idempotence",
+            &format!("slot:{suffix}"),
+        )),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let (outcome, _) = runtime
@@ -75,7 +92,10 @@ pub(super) fn retain_writeback_record_identities(
     let drifted_effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new(format!("effect:slot:{suffix}:drifted")),
+        BridgeWritebackEffectIdentity::from_bridge_evidence(&bridge_test_evidence(
+            "effect",
+            &format!("slot:{suffix}:drifted"),
+        )),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             &format!("{suffix}:drifted"),
@@ -87,7 +107,10 @@ pub(super) fn retain_writeback_record_identities(
         &drifted_effect,
         &lowered_policy,
         &drifted_authoritative_state_basis,
-        BridgeWritebackIdempotenceIdentity::new(format!("idempotence:slot:{suffix}:drifted")),
+        BridgeWritebackIdempotenceIdentity::from_bridge_evidence(&bridge_test_evidence(
+            "idempotence",
+            &format!("slot:{suffix}:drifted"),
+        )),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let drifted_bundle =
@@ -101,13 +124,44 @@ pub(super) fn retain_writeback_record_identities(
         .expect("writeback replay record should be retained");
 
     RetainedWritebackRecordIdentities {
-        admission_record_identity: admission.record_identity().as_str().to_string(),
-        mapper_envelope_identity: mapper_envelope.envelope_identity().as_str().to_string(),
-        mapped_family_input_identity: mapped_input.mapped_input_identity().as_str().to_string(),
-        mapper_record_identity: mapper_record.record_identity().as_str().to_string(),
-        execution_record_identity: execution.record_identity().as_str().to_string(),
-        replay_record_identity: replay.record_identity().as_str().to_string(),
+        admission_record_identity: admission
+            .record_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
+            .to_string(),
+        mapper_envelope_identity: mapper_envelope
+            .envelope_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
+            .to_string(),
+        mapped_family_input_identity: mapped_input
+            .mapped_input_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
+            .to_string(),
+        mapper_record_identity: mapper_record
+            .record_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
+            .to_string(),
+        execution_record_identity: execution
+            .record_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
+            .to_string(),
+        replay_record_identity: replay
+            .record_identity()
+            .bridge_admission_evidence()
+            .terminal_projection_for_reporting()
+            .to_string(),
     }
+}
+
+fn writeback_snapshot_identity(namespace: &str, commit_id: u64) -> TruthSnapshotIdentity {
+    TruthSnapshotIdentity::from_relational_snapshot(RelationalBridgeSnapshotIdentityParts::new(
+        stable_causal_position(namespace, commit_id.to_string()),
+        commit_id,
+    ))
 }
 
 fn writeback_effect_intent(
@@ -126,7 +180,10 @@ fn writeback_effect_intent(
 fn lowered_writeback_policy(runtime: &RuntimeBridge) -> LoweredBridgeExecutionPolicy {
     let contract = runtime
         .admit_policy_declaration(BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:slot-writeback"),
+            BridgePolicyDeclarationIdentity::from_bridge_evidence(&bridge_test_evidence(
+                "policy",
+                "slot-writeback",
+            )),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -139,11 +196,22 @@ fn lowered_writeback_policy(runtime: &RuntimeBridge) -> LoweredBridgeExecutionPo
 
 fn writeback_declaration(suffix: &str) -> BridgeWritebackDeclaration {
     BridgeWritebackDeclaration::writeback_capable(
-        BridgeWritebackDeclarationIdentity::new(format!("writeback:slot:{suffix}")),
+        BridgeWritebackDeclarationIdentity::from_bridge_evidence(&bridge_test_evidence(
+            "writeback",
+            &format!("slot:{suffix}"),
+        )),
         BridgeRequestKind::Authoritative,
         BridgeWritebackFamilyKind::ProjectedStateDiff,
         BridgeWritebackEffectClass::ProjectedStateDiff,
         BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     )
+}
+
+fn bridge_test_evidence(role: &'static str, value: &str) -> BridgeIdentityEvidence {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeBridgeWritebackAuthority)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+        .field_value(ForgeQueryEvidenceTag::new("value"), value)
+        .seal()
+        .bridge_external_identity_evidence()
 }

@@ -191,7 +191,9 @@ fn lowered_policy(
 ) -> Result<crate::facade::LoweredBridgeExecutionPolicy, BridgeHarnessError> {
     let contract = runtime_bridge
         .admit_policy_declaration(crate::facade::BridgePolicyDeclaration::new(
-            crate::facade::BridgePolicyDeclarationIdentity::new("harness:writeback-policy"),
+            crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
+                "harness:writeback-policy",
+            ),
             crate::facade::BridgeRequestKind::Authoritative,
             crate::facade::BridgeExecutionPolicyClass::DeterministicCanonical,
             crate::facade::BridgeDiagnosticsTier::Standard,
@@ -307,11 +309,11 @@ fn writeback_causality_basis(
     truth_view_basis: impl Into<String>,
 ) -> crate::facade::BridgeWritebackNativeCausalityInputs {
     crate::facade::BridgeWritebackNativeCausalityInputs::new(
-        crate::facade::BridgeWritebackCausalityIdentity::new(identity.into()),
-        crate::facade::TruthCommitIdentity::new(truth_trigger_basis.into()),
-        crate::facade::BridgeRouteIdentity::new(route_basis.into()),
-        crate::facade::TruthSnapshotIdentity::new(evaluation_basis.into()),
-        crate::facade::TruthSnapshotIdentity::new(truth_view_basis.into()),
+        crate::facade::BridgeWritebackCausalityIdentity::admit_bridge_owned(identity.into()),
+        crate::truth_identity_fixtures::truth_commit_fixture(truth_trigger_basis.into()),
+        crate::facade::BridgeRouteIdentity::admit_bridge_owned(route_basis.into()),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(evaluation_basis.into()),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(truth_view_basis.into()),
     )
 }
 

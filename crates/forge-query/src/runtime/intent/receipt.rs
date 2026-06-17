@@ -1,9 +1,13 @@
 use super::*;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::intent_admission::{
     ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAuthoritativeIntentExecutionBinding,
     ForgeQueryEffectTriggeredIntentExecutionBinding, ForgeQueryIntentDecisionTraceEnvelope,
 };
+use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
 use crate::runtime::ForgeQueryIntentConsumerInspection;
+
+use super::receipt_identity::authoritative_intent_receipt_identity;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentReceipt {
@@ -17,8 +21,10 @@ pub struct ForgeQueryIntentReceipt {
     invariant_evidence: Vec<String>,
     source_lane: ForgeQueryIntentSourceLane,
     target_lane: ForgeQueryAuthorityLane,
-    commit_identity: String,
-    snapshot_token: String,
+    commit_identity: ForgeQueryCommitIdentity,
+    commit_evidence_identity: ForgeQueryEvidenceIdentity,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    snapshot_evidence_identity: ForgeQueryEvidenceIdentity,
     affected_live_view_ids: Vec<String>,
     affected_derived_view_ids: Vec<String>,
     considered_computed_view_count: usize,
@@ -31,7 +37,7 @@ pub struct ForgeQueryIntentReceipt {
     refresh_fallback: bool,
     execution_provenance: ForgeQueryIntentExecutionProvenance,
     decision_trace_envelope: ForgeQueryIntentDecisionTraceEnvelope,
-    receipt_digest: String,
+    receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryIntentReceipt {
@@ -44,7 +50,7 @@ impl ForgeQueryIntentReceipt {
         let execution_provenance = ForgeQueryIntentExecutionProvenance::for_authoritative_binding(
             binding,
             execution.outcome_digest(),
-            write_receipt.snapshot_token(),
+            write_receipt.snapshot_evidence_identity(),
         );
         let handoff = ForgeQueryAdmittedIntentExecutionHandoff::from(binding.handoff().clone());
         let decision_trace_envelope =
@@ -67,7 +73,7 @@ impl ForgeQueryIntentReceipt {
         let execution_provenance = ForgeQueryIntentExecutionProvenance::for_effect_binding(
             binding,
             execution.outcome_digest(),
-            write_receipt.snapshot_token(),
+            write_receipt.snapshot_evidence_identity(),
         );
         let handoff = ForgeQueryAdmittedIntentExecutionHandoff::from(binding.handoff().clone());
         let decision_trace_envelope =
@@ -90,8 +96,10 @@ impl ForgeQueryIntentReceipt {
     ) -> Self {
         let affected_live_view_ids = write_receipt.affected_live_view_ids().to_vec();
         let affected_derived_view_ids = write_receipt.affected_derived_view_ids().to_vec();
-        let commit_identity = write_receipt.commit_identity().to_string();
-        let snapshot_token = write_receipt.snapshot_token().to_string();
+        let commit_identity = write_receipt.commit_identity().clone();
+        let commit_evidence_identity = write_receipt.commit_evidence_identity().clone();
+        let snapshot_identity = write_receipt.snapshot_identity().clone();
+        let snapshot_evidence_identity = write_receipt.snapshot_evidence_identity().clone();
         let considered_computed_view_count = write_receipt.considered_computed_view_count();
         let considered_effect_count = write_receipt.considered_effect_count();
         let delivered_effect_count = write_receipt.delivered_effect_count();
@@ -101,68 +109,13 @@ impl ForgeQueryIntentReceipt {
             write_receipt.meaningful_effect_suppression_count();
         let effect_expression_failure_count = write_receipt.effect_expression_failure_count();
         let refresh_fallback = write_receipt.refresh_fallback();
-        let invariant_evidence_digest_part = execution.invariant_evidence().join("|");
-        let receipt_digest = hash_parts(&[
-            "forge_query_intent_receipt_v1".to_string(),
-            format!("intent:{}", declaration.name()),
-            format!("execution-kind:{}", execution.execution_kind().as_str()),
-            format!("strategy:{}", execution.strategy_identity()),
-            format!("version:{}", execution.strategy_version()),
-            format!("descriptor:{}", execution.strategy_descriptor_digest()),
-            format!("input:{}", execution.canonical_input_digest()),
-            format!("outcome:{}", execution.outcome_digest()),
-            format!("invariants:{invariant_evidence_digest_part}"),
-            format!("source:{}", declaration.source_lane().as_str()),
-            format!("target:{}", declaration.target_lane()),
-            format!(
-                "effect-trigger:{}",
-                declaration
-                    .effect_trigger()
-                    .map(|trigger| trigger.digest())
-                    .unwrap_or("none")
-            ),
-            format!("commit:{commit_identity}"),
-            format!("snapshot:{snapshot_token}"),
-            format!("live:{}", affected_live_view_ids.join("|")),
-            format!("derived:{}", affected_derived_view_ids.join("|")),
-            format!("computed-considered:{considered_computed_view_count}"),
-            format!("effects-considered:{considered_effect_count}"),
-            format!("effects-delivered:{delivered_effect_count}"),
-            format!("pending-write-intents:{pending_write_intent_count}"),
-            format!("effects-suppressed:{suppressed_effect_count}"),
-            format!("meaningful-suppressions:{meaningful_effect_suppression_count}"),
-            format!("effect-expression-failures:{effect_expression_failure_count}"),
-            format!("refresh-fallback:{refresh_fallback}"),
-            format!(
-                "admission-family:{}",
-                execution_provenance.family().as_str()
-            ),
-            format!(
-                "covered-entrypoint:{}",
-                execution_provenance.entrypoint().as_str()
-            ),
-            format!(
-                "execution-seam:{}",
-                execution_provenance.execution_seam().as_str()
-            ),
-            format!(
-                "admission-decision:{}",
-                execution_provenance.admission_decision_digest()
-            ),
-            format!(
-                "execution-handoff:{}",
-                execution_provenance.execution_handoff_digest()
-            ),
-            format!(
-                "execution-binding:{}",
-                execution_provenance.execution_binding_digest()
-            ),
-            format!(
-                "execution-provenance:{}",
-                execution_provenance.execution_provenance_chain_digest()
-            ),
-            format!("decision-trace:{}", decision_trace_envelope.trace_digest()),
-        ]);
+        let receipt_identity = authoritative_intent_receipt_identity(
+            declaration,
+            &execution,
+            write_receipt,
+            &execution_provenance,
+            &decision_trace_envelope,
+        );
         Self {
             intent_name: declaration.name().to_string(),
             execution_kind: execution.execution_kind,
@@ -175,7 +128,9 @@ impl ForgeQueryIntentReceipt {
             source_lane: declaration.source_lane(),
             target_lane: declaration.target_lane(),
             commit_identity,
-            snapshot_token,
+            commit_evidence_identity,
+            snapshot_identity,
+            snapshot_evidence_identity,
             affected_live_view_ids,
             affected_derived_view_ids,
             considered_computed_view_count,
@@ -188,7 +143,7 @@ impl ForgeQueryIntentReceipt {
             refresh_fallback,
             execution_provenance,
             decision_trace_envelope,
-            receipt_digest,
+            receipt_identity,
         }
     }
 
@@ -241,12 +196,20 @@ impl ForgeQueryIntentReceipt {
         self.target_lane
     }
 
-    pub fn commit_identity(&self) -> &str {
+    pub fn commit_identity(&self) -> &ForgeQueryCommitIdentity {
         &self.commit_identity
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn commit_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.commit_evidence_identity
+    }
+
+    pub fn snapshot_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.snapshot_evidence_identity
     }
 
     pub fn affected_live_view_ids(&self) -> &[String] {
@@ -331,6 +294,10 @@ impl ForgeQueryIntentReceipt {
     }
 
     pub fn receipt_digest(&self) -> &str {
-        &self.receipt_digest
+        self.receipt_identity.as_str()
+    }
+
+    pub fn receipt_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.receipt_identity
     }
 }

@@ -42,9 +42,10 @@ impl BridgeAsyncWritebackCausalityTransferReceipt {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            receipt_identity: BridgeAsyncWritebackCausalityTransferReceiptIdentity::new(format!(
-                "bridge-async-writeback-causality-transfer-id:sha256:{digest:x}"
-            )),
+            receipt_identity:
+                BridgeAsyncWritebackCausalityTransferReceiptIdentity::admit_bridge_owned(format!(
+                    "bridge-async-writeback-causality-transfer-id:sha256:{digest:x}"
+                )),
             writeback_family: family,
             completion_identity: Arc::from(completion_identity.to_owned()),
             request_identity: Arc::from(request_identity.to_owned()),
@@ -100,7 +101,7 @@ pub(crate) fn committed_receipt_identity(
         )
         .as_bytes(),
     );
-    BridgeAsyncWritebackReceiptIdentity::new(format!(
+    BridgeAsyncWritebackReceiptIdentity::admit_bridge_owned(format!(
         "bridge-async-committed-writeback-id:sha256:{digest:x}"
     ))
 }
@@ -113,7 +114,7 @@ pub(crate) fn noop_receipt_identity(
         format!("bridge-async-noop-writeback|completion={completion_identity}|class={class:?}")
             .as_bytes(),
     );
-    BridgeAsyncWritebackNoopReceipt::new(format!(
+    BridgeAsyncWritebackNoopReceipt::admit_bridge_owned(format!(
         "bridge-async-noop-writeback-id:sha256:{digest:x}"
     ))
 }
@@ -126,7 +127,7 @@ pub(crate) fn rejected_receipt_identity(
         format!("bridge-async-rejected-writeback|completion={completion_identity}|class={class:?}")
             .as_bytes(),
     );
-    BridgeAsyncWritebackRejectedReceipt::new(format!(
+    BridgeAsyncWritebackRejectedReceipt::admit_bridge_owned(format!(
         "bridge-async-rejected-writeback-id:sha256:{digest:x}"
     ))
 }

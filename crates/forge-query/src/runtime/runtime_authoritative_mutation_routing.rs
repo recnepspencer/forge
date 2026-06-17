@@ -1,4 +1,6 @@
 use super::*;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 
 impl ForgeQueryRuntime {
     pub(super) fn route_authoritative_mutation_receipt(
@@ -6,7 +8,7 @@ impl ForgeQueryRuntime {
         receipt: ForgeQueryMutationReceipt,
         mutation_family: ForgeQueryMutationFamily,
         declared_collection: Option<String>,
-        declared_entity_identity: Option<String>,
+        declared_entity_identity: Option<ForgeQueryEntityIdentity>,
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
@@ -14,7 +16,7 @@ impl ForgeQueryRuntime {
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
         declared_aspect_operations: Vec<crate::runtime::ForgeQueryAspectMutationOperation>,
-        declared_aspect_value_digest: Option<String>,
+        declared_aspect_value_digest: Option<ForgeQueryEvidenceIdentity>,
         mutation_metadata: ForgeQueryMutationMetadata,
         decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
         execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
@@ -23,9 +25,10 @@ impl ForgeQueryRuntime {
             classify_receipt_mutation_summary(&receipt);
         if let Some(binding) = existing_truth_binding.as_ref() {
             target_collection = binding.target_collection().map(str::to_string);
-            target_entity_identity = Some(binding.resolved_target_identity().to_string());
+            target_entity_identity = Some(binding.resolved_entity_artifact_identity());
         }
         let summary = self.route_authoritative_mutation_summary(&receipt, &mutation_metadata)?;
+        self.capture_shared_read_generation(receipt.snapshot_identity.clone());
         Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
             receipt,
             mutation_family,

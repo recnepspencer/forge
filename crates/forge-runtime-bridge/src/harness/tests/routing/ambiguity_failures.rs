@@ -17,7 +17,7 @@ fn ambiguous_slice_registration_fails_explicitly() {
         .with_signal_sink(RecordingSignalBridgeSink::default())
         .register_mapping(registration())
         .register_aspect_mapping(BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("entity-wide"),
+            BridgeAspectRegistrationId::admit_bridge_owned("entity-wide"),
             TruthPatchScope::new(
                 MappingSelector::exact("user"),
                 crate::facade::AspectKeySelector::exact(
@@ -36,7 +36,7 @@ fn ambiguous_slice_registration_fails_explicitly() {
             SliceWideningPolicy::Disallow,
         ))
         .register_aspect_mapping(BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("aspect-wide"),
+            BridgeAspectRegistrationId::admit_bridge_owned("aspect-wide"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
                 forge_foundational::facade::AspectKey::new("profile")

@@ -35,11 +35,11 @@ pub(crate) fn emit_mixed_cause_live_subscription_delivery(
         ForgeQueryRuntimeMixedCauseDelivery::from_bridge(ordering, delivery_window);
     let delivery_cause = QuerySubscriptionDeliveryCause::classified(
         mixed_cause_delivery.primary_delivery_cause_kind(),
-        mixed_cause_delivery.ordering_digest(),
+        mixed_cause_delivery.ordering_identity(),
     );
     let patch_group = QueryPatchGroup::new(
         QueryPatchGroupKind::MixedCauseDeliveryGroup,
-        mixed_cause_delivery.mixed_cause_digest(),
+        mixed_cause_delivery.mixed_cause_identity(),
         delivery_window.ordered_causes().len().max(1) as u64,
     );
     let window = open_query_delivery_window(
@@ -57,21 +57,8 @@ pub(crate) fn emit_mixed_cause_live_subscription_delivery(
     )
     .map_err(|error| mixed_cause_delivery_error(view_name, error))?;
     let delivery_receipt = batch.receipt().clone();
-    let runtime_batch = ForgeQueryRuntimeDeliveryBatch {
-        view_name: view_name.to_string(),
-        authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-        delivery_batch_digest: batch.delivery_batch_digest().to_string(),
-        delivery_window_digest: batch.delivery_window_digest().to_string(),
-        consumer_attachment_digest: batch.attachment_digest().as_str().to_string(),
-        sequence: batch.sequence().get(),
-        delivery_cause_kind: batch.delivery_cause_kind(),
-        delivery_cause_digest: batch.delivery_cause().delivery_cause_digest().to_string(),
-        has_relational_patch: batch.has_relational_patch(),
-        patch_group_kind: batch.patch_group().kind(),
-        patch_group_digest: batch.patch_group().patch_group_digest().to_string(),
-        patch_group_width: batch.patch_group().width(),
-        mixed_cause_delivery,
-    };
+    let mut runtime_batch = ForgeQueryRuntimeDeliveryBatch::from_query_delivery(view_name, &batch);
+    runtime_batch.mixed_cause_delivery = mixed_cause_delivery;
     state.last_delivery = Some(ForgeQueryRuntimeRetainedDelivery::from_batch(
         &runtime_batch,
     ));

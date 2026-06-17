@@ -197,8 +197,8 @@ mod tests {
     fn merge_history_declaration_is_canonical_for_same_inputs() {
         let mapping = BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1");
         let parent_order = BridgeMergeParentOrderProof::new(vec![
-            crate::facade::TruthCommitIdentity::new("parent-a"),
-            crate::facade::TruthCommitIdentity::new("parent-b"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
         ]);
         let authority = BridgeMergeAuthorityBasis::new(
             BridgeMergeAuthorityBasisKind::OrderedMergeCommit,
@@ -209,13 +209,13 @@ mod tests {
         );
 
         let left = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:ordered-history"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:ordered-history"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             mapping.clone(),
             authority.clone(),
         );
         let right = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:ordered-history"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:ordered-history"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             mapping,
             authority,
@@ -229,8 +229,8 @@ mod tests {
         assert_eq!(
             left.authority_basis().parent_order_proof().parents(),
             &[
-                crate::facade::TruthCommitIdentity::new("parent-a"),
-                crate::facade::TruthCommitIdentity::new("parent-b")
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-b")
             ]
         );
     }
@@ -238,7 +238,7 @@ mod tests {
     #[test]
     fn merge_history_declaration_carries_stage_inputs_in_digest() {
         let declaration = MergeHistoryDeclaration::new(
-            MergeHistoryDeclarationIdentity::new("merge:ordered-history"),
+            MergeHistoryDeclarationIdentity::admit_bridge_owned("merge:ordered-history"),
             BridgeMergeConsumptionClass::AspectReconciliationMerge,
             BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
             BridgeMergeAuthorityBasis::new(
@@ -247,8 +247,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    crate::facade::TruthCommitIdentity::new("parent-a"),
-                    crate::facade::TruthCommitIdentity::new("parent-b"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
                 ]),
             ),
         )

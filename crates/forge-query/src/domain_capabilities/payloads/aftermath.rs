@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::{
+    compose_fact_request_entry_digest, domain_capability_scope_encoder,
+};
+use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use crate::projection_consumption::{
     ProjectMaterializedFacts, ProjectionConsumptionBindingContext, ProjectionConsumptionSource,
 };
@@ -37,6 +40,105 @@ impl ForgeQueryAftermathContributionPosture {
     }
 }
 
+fn aftermath_source_identity(source: &ProjectionConsumptionSource) -> ForgeQueryEvidenceIdentity {
+    let mut identity = domain_capability_scope_encoder("forge_query_aftermath_source_v1")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("source_family"),
+            source.family().as_str(),
+        );
+    identity = match source.source_identity_handle().evidence_identity() {
+        Some(source_identity) => {
+            identity.field_evidence_identity(ForgeQueryEvidenceTag::new("source"), source_identity)
+        }
+        None => identity.field_shape(
+            ForgeQueryEvidenceTag::new("source_label"),
+            source.source_identity(),
+        ),
+    };
+    identity.seal()
+}
+
+fn aftermath_binding_identity(
+    binding: &ProjectionConsumptionBindingContext,
+) -> ForgeQueryEvidenceIdentity {
+    domain_capability_scope_encoder("forge_query_aftermath_binding_v1")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("result_shape"),
+            binding.result_shape_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authorized_projection_query"),
+            binding.authorized_projection_query_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authorized_projection_result_shape"),
+            binding.authorized_projection_result_shape_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authorized_projection"),
+            binding.authorized_projection_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("narrowed_result_shape"),
+            binding.narrowed_result_shape_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("policy"),
+            binding.policy_digest(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("tenant_schema_basis"),
+            binding.tenant_schema_basis_digest(),
+        )
+        .seal()
+}
+
+fn compose_aftermath_runtime_semantics_identity(
+    runtime_semantics: &ForgeQueryAftermathRuntimeSemantics,
+) -> ForgeQueryEvidenceIdentity {
+    let requested = runtime_semantics
+        .requested_facts()
+        .requested()
+        .map(compose_fact_request_entry_digest)
+        .collect::<Vec<_>>();
+    domain_capability_scope_encoder("forge_query_domain_capability_aftermath_runtime_semantics_v2")
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("source"),
+            &aftermath_source_identity(runtime_semantics.source()),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("binding"),
+            &aftermath_binding_identity(runtime_semantics.binding()),
+        )
+        .field_value_sequence(ForgeQueryEvidenceTag::new("requested"), &requested)
+        .seal()
+}
+
+fn compose_aftermath_payload_identity(
+    posture: ForgeQueryAftermathContributionPosture,
+    semantic_code: &str,
+    detail: &str,
+    runtime_semantics: Option<&ForgeQueryAftermathRuntimeSemantics>,
+) -> ForgeQueryEvidenceIdentity {
+    let mut identity = domain_capability_scope_encoder("forge_query_domain_capability_payload_v3")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("category"),
+            ForgeQueryDomainCapabilityCategory::ConsequenceAftermath.as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("posture"), posture.as_str())
+        .field_shape(ForgeQueryEvidenceTag::new("semantic_code"), semantic_code)
+        .field_shape(ForgeQueryEvidenceTag::new("detail"), detail);
+    identity = match runtime_semantics {
+        Some(runtime) => {
+            let runtime_identity = runtime.semantics_identity();
+            identity
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("runtime"), &runtime_identity)
+        }
+        None => identity.field_shape(ForgeQueryEvidenceTag::new("runtime"), "none"),
+    };
+    identity.seal()
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryAftermathRuntimeSemantics {
     source: ProjectionConsumptionSource,
@@ -69,28 +171,8 @@ impl ForgeQueryAftermathRuntimeSemantics {
         &self.requested_facts
     }
 
-    fn digest_fragment(&self) -> String {
-        let requested = self
-            .requested_facts
-            .requested()
-            .map(|request| match request.field_key() {
-                Some(field) => format!("{}:{field}", request.kind().as_str()),
-                None => request.kind().as_str().to_string(),
-            })
-            .collect::<Vec<_>>()
-            .join("|");
-        hash_parts(&[
-            "forge_query_domain_capability_aftermath_runtime_semantics_v1".to_string(),
-            format!("source-family:{}", self.source.family().as_str()),
-            format!("source-identity:{}", self.source.source_identity()),
-            format!("result-shape:{}", self.binding.result_shape_digest()),
-            format!(
-                "authorized-projection:{}",
-                self.binding.authorized_projection_identity()
-            ),
-            format!("policy:{}", self.binding.policy_digest()),
-            format!("requested:{requested}"),
-        ])
+    pub(in crate::domain_capabilities) fn semantics_identity(&self) -> ForgeQueryEvidenceIdentity {
+        compose_aftermath_runtime_semantics_identity(self)
     }
 }
 
@@ -100,7 +182,7 @@ pub struct ForgeQueryAftermathContributionPayload {
     semantic_code: String,
     detail: String,
     runtime_semantics: Option<ForgeQueryAftermathRuntimeSemantics>,
-    payload_digest: String,
+    payload_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryAftermathContributionPayload {
@@ -120,27 +202,18 @@ impl ForgeQueryAftermathContributionPayload {
     ) -> Self {
         let semantic_code = semantic_code.into();
         let detail = detail.into();
-        let runtime_digest = runtime_semantics.as_ref().map_or_else(
-            || "none".to_string(),
-            ForgeQueryAftermathRuntimeSemantics::digest_fragment,
+        let payload_identity = compose_aftermath_payload_identity(
+            posture,
+            &semantic_code,
+            &detail,
+            runtime_semantics.as_ref(),
         );
-        let payload_digest = hash_parts(&[
-            "forge_query_domain_capability_payload_v2".to_string(),
-            format!(
-                "category:{}",
-                ForgeQueryDomainCapabilityCategory::ConsequenceAftermath.as_str()
-            ),
-            format!("posture:{}", posture.as_str()),
-            format!("semantic_code:{semantic_code}"),
-            format!("detail:{detail}"),
-            format!("runtime:{runtime_digest}"),
-        ]);
         Self {
             posture,
             semantic_code,
             detail,
             runtime_semantics,
-            payload_digest,
+            payload_identity,
         }
     }
 
@@ -165,7 +238,15 @@ impl ForgeQueryAftermathContributionPayload {
     }
 
     pub fn payload_digest(&self) -> &str {
-        &self.payload_digest
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_for_reporting(&self) -> &str {
+        self.payload_identity.as_str()
+    }
+
+    pub fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }
 
@@ -194,5 +275,9 @@ impl ForgeQueryDomainCapabilityPayload for ForgeQueryAftermathContributionPayloa
 
     fn payload_digest(&self) -> &str {
         self.payload_digest()
+    }
+
+    fn payload_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.payload_identity
     }
 }

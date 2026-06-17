@@ -9,8 +9,10 @@ pub trait ForgeQueryLowerRuntimeBoundaryEnvelopeSource: sealed::Sealed {
 
     fn lower_runtime_boundary_source_kind(&self) -> &'static str;
 
-    fn lower_runtime_boundary_source_digest(&self) -> &str {
-        self.lower_runtime_boundary_envelope().envelope_digest()
+    fn lower_runtime_boundary_source_identity(
+        &self,
+    ) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        self.lower_runtime_boundary_envelope().envelope_identity()
     }
 }
 

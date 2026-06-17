@@ -1,0 +1,69 @@
+use super::*;
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryMutationDelta,
+    ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQuerySnapshotIdentity,
+};
+use forge_runtime_bridge::facade::BridgeMutationAuthorityBundle;
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
+
+pub(in crate::runtime::tests) fn test_mutation_receipt(
+    commit_identity: ForgeQueryCommitIdentity,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    collection: impl Into<String>,
+    entity_identity: ForgeQueryEntityIdentity,
+    kind: ForgeQueryMutationKind,
+    aspect_paths: Vec<String>,
+) -> ForgeQueryMutationReceipt {
+    ForgeQueryMutationReceipt::from_authoritative_parts(
+        commit_identity,
+        snapshot_identity,
+        vec![ForgeQueryMutationDelta::new(
+            collection,
+            entity_identity,
+            kind,
+            aspect_paths,
+        )],
+    )
+}
+
+pub(in crate::runtime::tests) fn test_mutation_receipt_with_bridge_authority(
+    commit_identity: ForgeQueryCommitIdentity,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+    collection: impl Into<String>,
+    entity_identity: ForgeQueryEntityIdentity,
+    kind: ForgeQueryMutationKind,
+    aspect_paths: Vec<String>,
+    bridge_authority: BridgeMutationAuthorityBundle,
+) -> ForgeQueryMutationReceipt {
+    ForgeQueryMutationReceipt::from_bridge_authoritative_parts(
+        commit_identity,
+        snapshot_identity,
+        vec![ForgeQueryMutationDelta::new(
+            collection,
+            entity_identity,
+            kind,
+            aspect_paths,
+        )],
+        bridge_authority,
+    )
+}
+
+pub(in crate::runtime::tests) fn test_relational_snapshot_identity(
+    branch_id: u64,
+    snapshot_id: u64,
+) -> ForgeQuerySnapshotIdentity {
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(branch_id, snapshot_id),
+    )
+}
+
+pub(in crate::runtime::tests) fn test_empty_mutation_receipt(
+    commit_identity: ForgeQueryCommitIdentity,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
+) -> ForgeQueryMutationReceipt {
+    ForgeQueryMutationReceipt::from_authoritative_parts(
+        commit_identity,
+        snapshot_identity,
+        Vec::new(),
+    )
+}

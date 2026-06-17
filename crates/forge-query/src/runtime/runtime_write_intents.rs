@@ -102,7 +102,7 @@ impl ForgeQueryRuntime {
             family: binding.family(),
             entrypoint: binding.entrypoint(),
             execution_seam: binding.execution_seam(),
-            request_detail: review_request_detail(handoff.command()).to_string(),
+            request_detail: review_request_detail(handoff.command()),
             request_digest: handoff.request_digest().to_string(),
             eligibility_trace: handoff.eligibility_trace().clone(),
             decision_digest: handoff.decision_digest().to_string(),
@@ -117,9 +117,15 @@ impl ForgeQueryRuntime {
     }
 }
 
-fn review_request_detail(command: &ForgeQueryWriteCommand) -> &str {
+fn review_request_detail(command: &ForgeQueryWriteCommand) -> String {
     match command.declared_entity_identity_ref() {
-        Some(identity) => identity,
-        None => command.declared_collection_ref().unwrap_or("scalar-write"),
+        Some(identity) => identity
+            .evidence_identity()
+            .reporting_projection()
+            .to_string(),
+        None => command
+            .declared_collection_ref()
+            .unwrap_or("scalar-write")
+            .to_string(),
     }
 }

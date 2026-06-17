@@ -87,7 +87,7 @@ fn future_projection_survives_route_plan_to_bridge_routing_without_drift() {
         route_plan
             .progressed_declaration()
             .retained_world_basis()
-            .basis_lifecycle_support_digest(),
+            .basis_lifecycle_support_for_reporting(),
         temporal.basis_lifecycle_support_digest()
     );
 }

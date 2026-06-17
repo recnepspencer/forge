@@ -71,7 +71,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
     let changed_effect = runtime_bridge.lower_writeback_effect(
         contract,
         replayed_causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-feedback-effect:changed",
         ),
         writeback_effect_intent(
@@ -83,7 +83,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
         &changed_effect,
         lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&changed_effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-feedback-idempotence:changed",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -116,7 +116,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
         effect,
         lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-feedback-idempotence:replayed",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,

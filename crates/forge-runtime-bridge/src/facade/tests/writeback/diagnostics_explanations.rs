@@ -5,7 +5,9 @@ fn writeback_diagnostics_explanations_are_artifact_derived_and_stable() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::development());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:diagnostics-artifact-derived"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+            "writeback:diagnostics-artifact-derived",
+        ),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "diagnostics-artifact-derived",
@@ -16,10 +18,12 @@ fn writeback_diagnostics_explanations_are_artifact_derived_and_stable() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:diagnostics-artifact-derived"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned(
+                "causality:diagnostics-artifact-derived",
+            ),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:diagnostics-artifact-derived"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:diagnostics-artifact-derived"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "diagnostics-artifact-derived",
@@ -29,7 +33,9 @@ fn writeback_diagnostics_explanations_are_artifact_derived_and_stable() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:diagnostics-artifact-derived"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:diagnostics-artifact-derived",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let loop_prevention = runtime.classify_writeback_loop_prevention(&effect, &idempotence, None);

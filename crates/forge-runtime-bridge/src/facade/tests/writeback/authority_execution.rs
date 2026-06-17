@@ -5,7 +5,7 @@ fn runtime_executes_writeback_through_bound_authority() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        BridgeWritebackDeclarationIdentity::new("writeback:authority-execution"),
+        BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:authority-execution"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         "authority-execution",
@@ -16,10 +16,10 @@ fn runtime_executes_writeback_through_bound_authority() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:authority-execution"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:authority-execution"),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:authority-execution"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:authority-execution"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "authoritative-upsert",
@@ -29,7 +29,7 @@ fn runtime_executes_writeback_through_bound_authority() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:authority-execution"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:authority-execution"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -60,7 +60,9 @@ fn runtime_records_native_writeback_execution_record_on_success() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:execution-record-success"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:execution-record-success",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "execution-record-success",
@@ -71,10 +73,12 @@ fn runtime_records_native_writeback_execution_record_on_success() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:execution-record-success"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned(
+                "causality:execution-record-success",
+            ),
             "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:execution-record-success"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:execution-record-success"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "execution-record-success",
@@ -84,7 +88,9 @@ fn runtime_records_native_writeback_execution_record_on_success() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:execution-record-success"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:execution-record-success",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -138,7 +144,9 @@ fn writeback_mutation_authority_bundle_preserves_causality_and_provenance() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:mutation-authority-bundle"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:mutation-authority-bundle",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "mutation-authority-bundle",
@@ -147,13 +155,13 @@ fn writeback_mutation_authority_bundle_preserves_causality_and_provenance() {
         )
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:mutation-authority-bundle"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:mutation-authority-bundle"),
         "mutation-authority-bundle",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:mutation-authority-bundle"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:mutation-authority-bundle"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "mutation-authority-bundle",
@@ -164,7 +172,9 @@ fn writeback_mutation_authority_bundle_preserves_causality_and_provenance() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:mutation-authority-bundle"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:mutation-authority-bundle",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -235,7 +245,9 @@ fn writeback_mutation_provenance_bundle_preserves_rejection_class() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new("writeback:mutation-authority-rejection"),
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                    "writeback:mutation-authority-rejection",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
                 "mutation-authority-rejection",
@@ -244,13 +256,15 @@ fn writeback_mutation_provenance_bundle_preserves_rejection_class() {
         )
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        BridgeWritebackCausalityIdentity::new("causality:mutation-authority-rejection"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
+            "causality:mutation-authority-rejection",
+        ),
         "mutation-authority-rejection",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
-        BridgeWritebackEffectIdentity::new("effect:mutation-authority-rejection"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:mutation-authority-rejection"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "mutation-authority-rejection",
@@ -261,7 +275,9 @@ fn writeback_mutation_provenance_bundle_preserves_rejection_class() {
         &effect,
         &lowered_policy,
         &truth_state_basis(&effect),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:mutation-authority-rejection"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:mutation-authority-rejection",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 

@@ -832,6 +832,7 @@ dependencies = [
  "forge-foundational",
  "forge-proof",
  "forge-query",
+ "forge-runtime-bridge",
  "serde",
  "serde_json",
  "sha2",

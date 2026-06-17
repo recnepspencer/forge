@@ -28,7 +28,7 @@ impl BridgeWritebackStrategyBasis {
         let strategy_class = declaration
             .strategy_class()
             .expect("writeback strategy basis requires explicit strategy class");
-        let strategy_identity = BridgeWritebackStrategyIdentity::new(format!(
+        let strategy_identity = BridgeWritebackStrategyIdentity::admit_bridge_owned(format!(
             "bridge-writeback-strategy:{}",
             declaration.declaration_identity().as_str()
         ));

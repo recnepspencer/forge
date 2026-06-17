@@ -6,43 +6,43 @@ use super::{
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CausalInspectionArtifactDecisionTrace<'a> {
-    query_decision_digest: &'a str,
-    bridge_envelope_digest: Option<&'a str>,
-    bridge_denial_digest: Option<&'a str>,
+    query_decision_for_reporting: &'a str,
+    bridge_envelope_for_reporting: Option<&'a str>,
+    bridge_denial_for_reporting: Option<&'a str>,
 }
 
 impl<'a> CausalInspectionArtifactDecisionTrace<'a> {
-    pub fn query_decision_digest(&self) -> &'a str {
-        self.query_decision_digest
+    pub fn query_decision_for_reporting(&self) -> &'a str {
+        self.query_decision_for_reporting
     }
 
-    pub fn bridge_envelope_digest(&self) -> Option<&'a str> {
-        self.bridge_envelope_digest
+    pub fn bridge_envelope_for_reporting(&self) -> Option<&'a str> {
+        self.bridge_envelope_for_reporting
     }
 
-    pub fn bridge_denial_digest(&self) -> Option<&'a str> {
-        self.bridge_denial_digest
+    pub fn bridge_denial_for_reporting(&self) -> Option<&'a str> {
+        self.bridge_denial_for_reporting
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CausalInspectionArtifactIntegrity<'a> {
-    artifact_digest: &'a str,
-    causal_identity_digest: &'a str,
-    bridge_readmission_proof_digest: Option<&'a str>,
+    artifact_for_reporting: &'a str,
+    causal_identity_for_reporting: &'a str,
+    bridge_readmission_proof_for_reporting: Option<&'a str>,
 }
 
 impl<'a> CausalInspectionArtifactIntegrity<'a> {
-    pub fn artifact_digest(&self) -> &'a str {
-        self.artifact_digest
+    pub fn artifact_for_reporting(&self) -> &'a str {
+        self.artifact_for_reporting
     }
 
-    pub fn causal_identity_digest(&self) -> &'a str {
-        self.causal_identity_digest
+    pub fn causal_identity_for_reporting(&self) -> &'a str {
+        self.causal_identity_for_reporting
     }
 
-    pub fn bridge_readmission_proof_digest(&self) -> Option<&'a str> {
-        self.bridge_readmission_proof_digest
+    pub fn bridge_readmission_proof_for_reporting(&self) -> Option<&'a str> {
+        self.bridge_readmission_proof_for_reporting
     }
 }
 
@@ -62,19 +62,19 @@ impl QueryCausalInspectionArtifact {
     pub fn decision_trace(&self) -> CausalInspectionArtifactDecisionTrace<'_> {
         match self {
             Self::Admitted(artifact) => CausalInspectionArtifactDecisionTrace {
-                query_decision_digest: artifact.query_admission_digest(),
-                bridge_envelope_digest: Some(artifact.bridge_envelope_digest()),
-                bridge_denial_digest: None,
+                query_decision_for_reporting: artifact.query_admission_for_reporting(),
+                bridge_envelope_for_reporting: Some(artifact.bridge_envelope_for_reporting()),
+                bridge_denial_for_reporting: None,
             },
             Self::Advisory(artifact) => CausalInspectionArtifactDecisionTrace {
-                query_decision_digest: artifact.query_advisory_digest(),
-                bridge_envelope_digest: Some(artifact.bridge_envelope_digest()),
-                bridge_denial_digest: None,
+                query_decision_for_reporting: artifact.query_advisory_for_reporting(),
+                bridge_envelope_for_reporting: Some(artifact.bridge_envelope_for_reporting()),
+                bridge_denial_for_reporting: None,
             },
             Self::Denied(artifact) => CausalInspectionArtifactDecisionTrace {
-                query_decision_digest: artifact.query_denial_digest(),
-                bridge_envelope_digest: None,
-                bridge_denial_digest: artifact.bridge_denial_digest(),
+                query_decision_for_reporting: artifact.query_denial_for_reporting(),
+                bridge_envelope_for_reporting: None,
+                bridge_denial_for_reporting: artifact.bridge_denial_for_reporting(),
             },
         }
     }
@@ -93,9 +93,9 @@ impl QueryCausalInspectionArtifact {
 
     pub fn integrity(&self) -> CausalInspectionArtifactIntegrity<'_> {
         CausalInspectionArtifactIntegrity {
-            artifact_digest: self.artifact_digest(),
-            causal_identity_digest: self.causal_identity_digest(),
-            bridge_readmission_proof_digest: self.bridge_readmission_proof_digest(),
+            artifact_for_reporting: self.artifact_for_reporting(),
+            causal_identity_for_reporting: self.causal_identity_for_reporting(),
+            bridge_readmission_proof_for_reporting: self.bridge_readmission_proof_for_reporting(),
         }
     }
 

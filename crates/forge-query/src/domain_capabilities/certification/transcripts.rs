@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::domain_capabilities::identity::{
+    compose_golden_transcript_digest, compose_target_dx_digest,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDomainCapabilityGoldenTranscript {
@@ -97,21 +99,11 @@ pub fn forge_query_domain_capability_golden_transcripts(
 }
 
 pub fn forge_query_domain_capability_target_dx_digest() -> String {
-    hash_parts(
-        &GOLDEN_TRANSCRIPTS
-            .iter()
-            .map(|row| format!("{}|{}", row.label(), row.dx_focus()))
-            .collect::<Vec<_>>(),
-    )
+    compose_target_dx_digest(forge_query_domain_capability_golden_transcripts())
 }
 
 pub fn forge_query_domain_capability_golden_transcript_digest() -> String {
-    hash_parts(
-        &GOLDEN_TRANSCRIPTS
-            .iter()
-            .map(|row| format!("{}|{}", row.label(), row.path()))
-            .collect::<Vec<_>>(),
-    )
+    compose_golden_transcript_digest(forge_query_domain_capability_golden_transcripts())
 }
 
 #[cfg(test)]

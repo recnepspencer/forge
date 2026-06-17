@@ -32,7 +32,8 @@ pub(crate) fn plan_ingested_patch(
     let mut entries = eligible.entries().to_vec();
     entries.sort_by(canonical_route_entry_order);
     let route_basis = route_digest_basis(envelope, mapping_context, &entries);
-    let route_identity = BridgeRouteIdentity::new(digest_string("route", &route_basis));
+    let route_identity =
+        BridgeRouteIdentity::admit_bridge_owned(digest_string("route", &route_basis));
 
     let invalidation_targets = canonical_invalidation_targets(&entries);
     let subscription_slices = canonical_subscription_slices(&entries);

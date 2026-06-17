@@ -1,4 +1,5 @@
 use super::super::support::*;
+use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 
 #[test]
 fn unsupported_facade_family_stop_class_preserves_denied_family_and_reason() {
@@ -30,11 +31,71 @@ fn unsupported_facade_family_stop_class_preserves_denied_family_and_reason() {
 }
 
 #[test]
+fn graph_domain_invariant_stop_class_preserves_hook_and_invariant_families() {
+    let graph_domain_denial = ForgeQueryGraphCompositionDomainInvariantDenial::from_contributed(
+        "graph.family",
+        "first graph domain invariant wording",
+        ForgeQueryGraphCompositionDomainInvariantSummary::from_parts(
+            vec!["Task".to_string()],
+            vec!["task_symbol".to_string()],
+            vec!["same_batch_entity_relation_identity_edges".to_string()],
+            vec!["mixed_existing_target_followup_mutation".to_string()],
+            graph_domain_fixture_digest("program"),
+            graph_domain_fixture_digest("breadth"),
+            "components=1".to_string(),
+        ),
+    );
+    let reworded = ForgeQueryGraphCompositionDomainInvariantDenial::from_contributed(
+        "graph.family",
+        "second graph domain invariant wording",
+        graph_domain_denial.domain_invariant_summary().clone(),
+    );
+    let first_digest = graph_domain_denial.denial_digest().to_string();
+    let second_digest = reworded.denial_digest().to_string();
+    let first_error =
+        ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(graph_domain_denial);
+    let second_error = ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(reworded);
+
+    for error in [&first_error, &second_error] {
+        match error.stop_class() {
+            ForgeQueryStopClass::GraphCompositionDomainInvariantDenied { denial } => {
+                assert_eq!(denial.hook_family(), "domain_invariant_pack_hook");
+                assert_eq!(denial.invariant_family(), "graph.family");
+            }
+            other => panic!("expected graph domain invariant stop class, got {other:?}"),
+        }
+    }
+    assert_ne!(first_error.to_string(), second_error.to_string());
+    assert_eq!(
+        first_digest, second_digest,
+        "graph domain invariant denial digest must not change when only message text changes"
+    );
+}
+
+fn graph_domain_fixture_digest(
+    role: &'static str,
+) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+    crate::evidence_identity::forge_query_evidence_identity(
+        crate::evidence_identity::ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest,
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("role"),
+        "payload-graph-domain-fixture",
+    )
+    .field_shape(
+        crate::evidence_identity::ForgeQueryEvidenceTag::new("fixture"),
+        role,
+    )
+    .seal()
+}
+
+#[test]
 fn preview_promotion_stop_class_preserves_kind_and_evidence() {
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(DenyingWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -79,7 +140,8 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
         let mut runtime = ForgeQueryRuntime::builder()
             .runtime_bridge(test_bridge())
             .schema_adapter(TestSchemaAdapter)
-            .source_adapter(DriftingSnapshotSourceAdapter::default())
+            .source_adapter(TestSourceAdapter::default())
+            .snapshot_identity(DriftingSnapshotIdentityAdapter::default())
             .write_authority(TestWriteAuthority)
             .signal_sink(TestSignalSink)
             .subscription_activation(TestSubscriptionActivation)
@@ -124,6 +186,7 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
             .runtime_bridge(test_bridge())
             .schema_adapter(TestSchemaAdapter)
             .source_adapter(TestSourceAdapter::default())
+            .snapshot_identity(TestSnapshotIdentityAdapter)
             .write_authority(CountingWriteAuthority {
                 attempted_writes: attempted_writes.clone(),
             })
@@ -198,7 +261,7 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
                     ),
                     "async:preview-stop-class-mismatch",
                 ),
-                "basis:drifted",
+                &runtime_async_checkpoint_label_identity("basis:drifted"),
                 &generation_digest,
             )
             .expect("preview mismatch should remain typed");
@@ -247,12 +310,36 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
 }
 
 #[test]
+fn preview_operation_effect_denial_stop_class_preserves_typed_label_identity() {
+    let label = test_session_label("preview.operation.effect.denied");
+    let error = ForgeQueryRuntimeError::PreviewOperationEffectDenied {
+        label: label.clone(),
+        stage: "effect-admission",
+        message: "preview effect denied".to_string(),
+    };
+
+    match error.stop_class() {
+        ForgeQueryStopClass::PreviewOperationEffectDenied {
+            label: classified_label,
+            stage,
+            message,
+        } => {
+            assert_eq!(classified_label.identity_digest(), label.identity_digest());
+            assert_eq!(stage, "effect-admission");
+            assert_eq!(message, "preview effect denied");
+        }
+        other => panic!("expected preview operation effect stop class, got {other:?}"),
+    }
+}
+
+#[test]
 fn intent_commit_stop_class_preserves_stage_and_evidence() {
     let attempted = std::rc::Rc::new(std::cell::Cell::new(0));
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)

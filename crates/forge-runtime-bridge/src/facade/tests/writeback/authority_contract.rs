@@ -5,7 +5,7 @@ fn admitted_writeback_execution_contract_emits_proof_receipt() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::development());
     let request = crate::facade::BridgeAdmittedWritebackExecutionRequest::new(
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:writeback-contract"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:writeback-contract"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -13,21 +13,21 @@ fn admitted_writeback_execution_contract_emits_proof_receipt() {
             true,
         ),
         writeback_declaration(
-            BridgeWritebackDeclarationIdentity::new("writeback:execution-contract"),
+            BridgeWritebackDeclarationIdentity::admit_bridge_owned("writeback:execution-contract"),
             BridgeRequestKind::Authoritative,
             BridgeWritebackRequestMode::WritebackCapable,
             "execution-contract",
         ),
         causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:execution-contract"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned("causality:execution-contract"),
             "execution-contract",
         ),
-        BridgeWritebackEffectIdentity::new("effect:execution-contract"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:execution-contract"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "execution-contract",
         ),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:execution-contract"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned("idempotence:execution-contract"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -116,7 +116,9 @@ fn admitted_writeback_execution_contract_rejects_mismatched_authority_receipt() 
     );
     let first_request = crate::facade::BridgeAdmittedWritebackExecutionRequest::new(
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:writeback-contract-mismatch:first"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned(
+                "policy:writeback-contract-mismatch:first",
+            ),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -124,21 +126,29 @@ fn admitted_writeback_execution_contract_rejects_mismatched_authority_receipt() 
             true,
         ),
         writeback_declaration(
-            BridgeWritebackDeclarationIdentity::new("writeback:execution-contract-mismatch"),
+            BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                "writeback:execution-contract-mismatch",
+            ),
             BridgeRequestKind::Authoritative,
             BridgeWritebackRequestMode::WritebackCapable,
             "execution-contract-mismatch",
         ),
         causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:execution-contract-mismatch:first"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned(
+                "causality:execution-contract-mismatch:first",
+            ),
             "execution-contract-mismatch:first",
         ),
-        BridgeWritebackEffectIdentity::new("effect:execution-contract-mismatch:first"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "effect:execution-contract-mismatch:first",
+        ),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "execution-contract-mismatch:first",
         ),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:execution-contract-mismatch:first"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:execution-contract-mismatch:first",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     runtime
@@ -147,7 +157,9 @@ fn admitted_writeback_execution_contract_rejects_mismatched_authority_receipt() 
 
     let request = crate::facade::BridgeAdmittedWritebackExecutionRequest::new(
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:writeback-contract-mismatch"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned(
+                "policy:writeback-contract-mismatch",
+            ),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -155,21 +167,27 @@ fn admitted_writeback_execution_contract_rejects_mismatched_authority_receipt() 
             true,
         ),
         writeback_declaration(
-            BridgeWritebackDeclarationIdentity::new("writeback:execution-contract-mismatch"),
+            BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+                "writeback:execution-contract-mismatch",
+            ),
             BridgeRequestKind::Authoritative,
             BridgeWritebackRequestMode::WritebackCapable,
             "execution-contract-mismatch",
         ),
         causality_basis(
-            BridgeWritebackCausalityIdentity::new("causality:execution-contract-mismatch"),
+            BridgeWritebackCausalityIdentity::admit_bridge_owned(
+                "causality:execution-contract-mismatch",
+            ),
             "execution-contract-mismatch",
         ),
-        BridgeWritebackEffectIdentity::new("effect:execution-contract-mismatch"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned("effect:execution-contract-mismatch"),
         writeback_effect_intent(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             "execution-contract-mismatch",
         ),
-        BridgeWritebackIdempotenceIdentity::new("idempotence:execution-contract-mismatch"),
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
+            "idempotence:execution-contract-mismatch",
+        ),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 

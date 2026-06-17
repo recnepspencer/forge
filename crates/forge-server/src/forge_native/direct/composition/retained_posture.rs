@@ -24,7 +24,10 @@ impl ForgeServerDirectRetainedPosture {
         let canonical_digest = format!(
             "forge-server-direct-retained-posture-v1|declaration:{}|state:{}|context:{}",
             declaration_snapshot.declaration_digest(),
-            state.runtime_state().state_digest(),
+            state
+                .runtime_state()
+                .state_digest()
+                .terminal_projection_for_reporting(),
             state.direct_context().canonical_digest(),
         );
         let async_result_state = state.async_result_state();

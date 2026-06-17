@@ -234,9 +234,10 @@ impl BridgeSubscriptionPreviewPromotionRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            promotion_record_identity: BridgeSubscriptionPreviewPromotionRecordIdentity::new(
-                format!("bridge-subscription-preview-promotion-record-id:sha256:{digest:x}"),
-            ),
+            promotion_record_identity:
+                BridgeSubscriptionPreviewPromotionRecordIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-preview-promotion-record-id:sha256:{digest:x}"
+                )),
             outcome_class,
             preview_active_subscription_identity: preview_active
                 .preview_active_subscription_identity()

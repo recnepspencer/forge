@@ -12,6 +12,7 @@ use crate::facade::{
     QueryContextFamily, ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
 use crate::harness::fixtures::preview_bridge::active_preview_artifacts;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::{
     ForgeQueryReadDenialKind, ForgeQueryReadExecutionEngine, ForgeQueryReadFamily,
     ForgeQueryRuntimeError, ForgeQueryWorkspace,
@@ -92,8 +93,10 @@ fn execute_read_family_in_basis_context_materializes_runtime_rows_for_bound_hist
         .workspace("runtime.read-composition.family-bound-historical-basis-context")
         .expect("read-backed runtime should open a workspace");
     let family = identity_read_family(&mut workspace, "bound-historical-context-family");
+    let snapshot_identity = workspace.snapshot_identity();
+    let snapshot_evidence_identity = snapshot_identity.evidence_identity();
     let context =
-        retained_historical_context_for_family(&family, workspace.snapshot_token().as_str());
+        retained_historical_context_for_family(&family, snapshot_evidence_identity.as_str());
 
     let result = workspace
         .execute_read_family_in_basis_context(&family, &context)
@@ -309,7 +312,11 @@ fn preview_derived_context_for_family(
         admit_preview_workflow_foundation(&binding).expect("preview foundation should admit");
     let binding = bind_query_basis_context(
         QueryBasisContextRequest::preview_derived_historical(
-            foundation.preview_session_identity().as_str(),
+            foundation
+                .preview_session_identity()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting()
+                .to_string(),
         ),
         QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
     )
@@ -327,7 +334,7 @@ fn runtime_preflight_for_family(
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        snapshot_token.to_string(),
+        crate::memory_workspace::admit_external_snapshot_label(snapshot_token).evidence_identity(),
         family.read_graph().schema_basis().clone(),
         lineage_class,
     );
@@ -357,7 +364,7 @@ fn assert_context_materialized_rows(
     }));
     assert!(rows
         .iter()
-        .all(|row| row.identity().starts_with("query-context:")));
+        .all(|row| row.identity().relational_record_parts().is_none()));
 }
 
 fn assert_runtime_materialized_rows(rows: &[crate::facade::ForgeQueryEntity]) {
@@ -368,7 +375,9 @@ fn assert_runtime_materialized_rows(rows: &[crate::facade::ForgeQueryEntity]) {
     assert!(rows
         .iter()
         .any(|row| row.external_row().get("read").is_some()));
-    assert!(rows
-        .iter()
-        .all(|row| !row.identity().starts_with("query-context:")));
+    assert!(rows.iter().all(|row| !row
+        .identity()
+        .evidence_identity()
+        .as_str()
+        .starts_with("query-context:")));
 }

@@ -40,7 +40,9 @@ impl ForgeServerCompatibilityState {
             basis_request.canonical_digest(),
             validator.canonical_digest(),
             cache_policy.canonical_digest(),
-            runtime_state.state_digest(),
+            runtime_state
+                .state_digest()
+                .terminal_projection_for_reporting(),
         );
         Self {
             support_posture,

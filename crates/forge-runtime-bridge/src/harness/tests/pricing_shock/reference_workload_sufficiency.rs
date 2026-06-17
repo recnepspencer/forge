@@ -4,7 +4,7 @@ use super::support::*;
 fn pricing_shock_end_to_end_temporal_async_reference_workload_is_sufficient() {
     let pricing_skin = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-reference-workload-skin"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-reference-workload-skin"),
     );
     let sufficiency =
         capture_pricing_reference_workload_sufficiency(BridgeRuntimePolicy::development());

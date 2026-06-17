@@ -25,7 +25,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
-use forge_signal::facade::adapters::TraceSummary;
+use forge_signal::facade::core::TraceSummary;
 use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
 use forge_signal::facade::{
     Aspect, AspectMask, AspectVersion, DependencyEdge, EvaluationContext, NodeId, SignalError,
@@ -494,7 +494,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                     .map_err(|_| SignalError::internal("pending traces lock poisoned"))?
                     .insert(id, summary);
 
-                let prior_version = graph_ref.get_entry(id)?.get_aspect_version();
+                let prior_version = graph_ref.node_aspect_version(id)?;
                 let next_version = Self::version_for_output(
                     committed_envelopes.get(&id),
                     &envelope,

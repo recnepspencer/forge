@@ -7,8 +7,8 @@ fn runtime_plans_registered_source_packet_set() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -42,8 +42,8 @@ fn runtime_materializes_registered_source_packet_set() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -63,9 +63,11 @@ fn runtime_materializes_registered_source_packet_set() {
 
     assert_eq!(materialized.planned_packet_set().digest(), planned.digest());
     assert_eq!(materialized.observations().len(), 1);
-    assert_eq!(
-        materialized.first().snapshot_identity().as_str(),
-        "snapshot-a"
+    assert!(
+        crate::truth_identity_fixtures::truth_snapshot_fixture_matches(
+            materialized.first().snapshot_identity(),
+            "snapshot-a"
+        )
     );
     assert_eq!(materialized.planned_packet_set().packet_count(), 1);
     assert_eq!(materialized.planned_packet_set().packet_member_count(), 0);
@@ -79,8 +81,8 @@ fn runtime_canonicalizes_registered_source_materialization_record() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -103,7 +105,12 @@ fn runtime_canonicalizes_registered_source_materialization_record() {
         "source:analysis-history"
     );
     assert_eq!(record.snapshot_identities().len(), 1);
-    assert_eq!(record.snapshot_identities()[0].as_str(), "snapshot-a");
+    assert!(
+        crate::truth_identity_fixtures::truth_snapshot_fixture_matches(
+            &record.snapshot_identities()[0],
+            "snapshot-a"
+        )
+    );
     assert_eq!(
         record.source_capability_digest(),
         contract.required_capabilities().digest()
@@ -126,8 +133,8 @@ fn runtime_canonicalizes_registered_source_packet_set_record() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -174,8 +181,8 @@ fn runtime_replays_multi_packet_source_materialization_record() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -242,8 +249,8 @@ fn runtime_lowers_identical_registered_source_requests_to_identical_records() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -282,8 +289,8 @@ fn runtime_retains_source_materialization_record_in_diagnostics() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -310,7 +317,7 @@ fn runtime_retains_source_materialization_record_in_diagnostics() {
     assert_eq!(
         runtime
             .diagnostics()
-            .source_materialization_record_for_identity(record.record_identity().as_str())
+            .source_materialization_record_for_identity(record.record_identity())
             .expect("record should be queryable by identity"),
         record
     );
@@ -323,8 +330,8 @@ fn runtime_replays_registered_source_materialization_record() {
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,

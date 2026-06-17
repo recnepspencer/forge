@@ -1,5 +1,4 @@
 use forge_proof::TransitionOutcome;
-use forge_runtime_bridge::facade::BridgePreviewSessionDeclarationIdentity;
 
 use crate::domain_capabilities::denials::{
     ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
@@ -15,7 +14,6 @@ use crate::domain_capabilities::targets::{
 use crate::domain_capabilities::{
     ForgeQueryDomainCapabilityTransitionOutcome, ForgeQueryMaterializationReadyWorkflowContribution,
 };
-use crate::identity::{hash_parts, CanonicalQueryDigest, ValidatedQueryDigest};
 use crate::preview::{
     admit_contributed_preview_workflow_foundation,
     materialize_contributed_preview_workflow_foundation_artifact,
@@ -23,6 +21,12 @@ use crate::preview::{
     PreviewWorkflowFoundationRequest,
 };
 
+use super::preview_identity::{
+    canonical_query_digest_from_identity, preview_canonical_query_identity,
+    preview_declaration_digest_identity, preview_declaration_identity,
+    preview_validated_query_identity, sealed_preview_declaration_bridge_identity,
+    validated_query_digest_from_identity,
+};
 use super::semantics::{
     inconsistent_workflow_runtime_semantics_denial, missing_workflow_runtime_semantics_denial,
     workflow_runtime_semantics_match_posture, workflow_source_label,
@@ -93,7 +97,7 @@ pub(super) fn admit_validated_preview_workflow_foundation<T>(
 where
     T: ForgeQueryWorkflowPreviewMaterializationTarget,
 {
-    let (artifact, target_kind, request_digest) =
+    let (artifact, target_kind, request_identity) =
         prepare_validated_preview_workflow_foundation(contribution, runtime_semantics)?;
     match admit_contributed_preview_workflow_foundation(artifact) {
         Ok(foundation) => Ok(foundation),
@@ -103,7 +107,7 @@ where
                 ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                 "workflow-preview",
                 target_kind,
-                &request_digest,
+                request_identity,
                 format!(
                     "preview workflow foundation admission denied with `{:?}`: {}",
                     failure_class,
@@ -129,7 +133,7 @@ where
             operation_label,
             payload,
             target.kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     };
     if !workflow_runtime_semantics_match_posture(payload.posture(), runtime_semantics) {
@@ -138,7 +142,7 @@ where
             payload,
             runtime_semantics,
             target.kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     }
 
@@ -152,7 +156,7 @@ fn prepare_validated_preview_workflow_foundation<T>(
     (
         PreviewWorkflowFoundationArtifact,
         crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
-        String,
+        crate::ForgeQueryEvidenceIdentity,
     ),
     ForgeQueryDomainCapabilityProgressionDenial,
 >
@@ -168,46 +172,49 @@ where
         return Err(unsupported_preview_binding_denial(
             payload,
             target.kind(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     };
 
     let source_label = workflow_source_label(target, payload);
     let request_family = preview_request_family(payload.posture());
     let request_family_label = request_family.as_str();
-    let binding_digest = target.binding_digest().to_string();
-    let canonical_query_digest = CanonicalQueryDigest::from_parts(&[
-        "forge_query_domain_preview_query_v1".to_string(),
-        format!("source:{source_label}"),
-        format!("binding:{binding_digest}"),
-        format!("preview_session:{}", preview_session_identity.as_str()),
-        format!("evaluation:{}", evaluation_class.as_str()),
-        format!("request_family:{request_family_label}"),
-    ]);
-    let validated_query_digest = ValidatedQueryDigest::from_parts(&[
-        "forge_query_domain_preview_validated_query_v1".to_string(),
-        format!("canonical:{}", canonical_query_digest.as_str()),
-    ]);
-    let declaration_identity = BridgePreviewSessionDeclarationIdentity::new(format!(
-        "domain-preview-declaration:{}:{}:{}",
-        payload.semantic_code(),
-        binding_digest,
+    let binding_identity = target.binding_identity();
+    let request_identity = domain_contribution.request_identity();
+    let canonical_query_identity = preview_canonical_query_identity(
+        &source_label,
+        &binding_identity,
+        request_identity,
+        &preview_session_identity,
+        &evaluation_class,
         request_family_label,
-    ));
-    let declaration_digest = hash_parts(&[
-        "forge_query_domain_preview_declaration_v1".to_string(),
-        format!("identity:{}", declaration_identity.as_str()),
-        format!("canonical:{}", canonical_query_digest.as_str()),
-        format!("validated:{}", validated_query_digest.as_str()),
-    ]);
+    );
+    let validated_query_identity = preview_validated_query_identity(&canonical_query_identity);
+    let canonical_query_digest = canonical_query_digest_from_identity(&canonical_query_identity);
+    let validated_query_digest = validated_query_digest_from_identity(&validated_query_identity);
+    let preview_declaration_identity = preview_declaration_identity(
+        payload,
+        &binding_identity,
+        request_identity,
+        &preview_session_identity,
+        &evaluation_class,
+        request_family_label,
+    );
+    let declaration_identity =
+        sealed_preview_declaration_bridge_identity(&preview_declaration_identity);
+    let declaration_digest_identity = preview_declaration_digest_identity(
+        &preview_declaration_identity,
+        &canonical_query_digest,
+        &validated_query_digest,
+    );
     let artifact = materialize_contributed_preview_workflow_foundation_artifact(
-        binding_digest,
+        binding_identity,
         canonical_query_digest,
         validated_query_digest,
         request_family,
         preview_session_identity.clone(),
         declaration_identity,
-        declaration_digest,
+        declaration_digest_identity,
         preview_evaluation_class(evaluation_class),
         0,
     );
@@ -215,7 +222,7 @@ where
     Ok((
         artifact,
         target.kind(),
-        domain_contribution.request_digest().to_string(),
+        domain_contribution.request_identity().clone(),
     ))
 }
 
@@ -252,13 +259,13 @@ fn preview_evaluation_class(
 fn unsupported_preview_binding_denial(
     payload: &ForgeQueryWorkflowContributionPayload,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
-    request_digest: &str,
+    request_identity: crate::ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
         "workflow-preview",
         target_kind,
-        request_digest,
+        request_identity,
         format!(
             "preview workflow artifact materialization only supports preview-bound workflow semantics; got `{}`",
             payload.posture().as_str()

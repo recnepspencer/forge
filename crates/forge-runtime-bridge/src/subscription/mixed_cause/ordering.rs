@@ -155,9 +155,9 @@ impl BridgeMixedCauseOrdering {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            ordering_identity: BridgeSubscriptionMixedCauseOrderingIdentity::new(format!(
-                "bridge-mixed-cause-ordering-id:sha256:{digest:x}"
-            )),
+            ordering_identity: BridgeSubscriptionMixedCauseOrderingIdentity::admit_bridge_owned(
+                format!("bridge-mixed-cause-ordering-id:sha256:{digest:x}"),
+            ),
             lane_kind: request.lane_kind(),
             ordered,
             suppressed,
@@ -209,9 +209,10 @@ impl BridgeOrderedMixedCause {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            ordered_cause_identity: BridgeSubscriptionMixedCauseOrderedCauseIdentity::new(format!(
-                "bridge-ordered-mixed-cause-id:sha256:{digest:x}"
-            )),
+            ordered_cause_identity:
+                BridgeSubscriptionMixedCauseOrderedCauseIdentity::admit_bridge_owned(format!(
+                    "bridge-ordered-mixed-cause-id:sha256:{digest:x}"
+                )),
             family_kind: candidate.family_kind,
             source_identity: candidate.source_identity,
             source_digest: candidate.source_digest,
@@ -221,6 +222,10 @@ impl BridgeOrderedMixedCause {
             canonical_basis,
             digest: Arc::from(format!("bridge-ordered-mixed-cause:sha256:{digest:x}")),
         }
+    }
+
+    pub fn ordered_cause_identity(&self) -> &BridgeSubscriptionMixedCauseOrderedCauseIdentity {
+        &self.ordered_cause_identity
     }
 
     pub fn family_kind(&self) -> BridgeMixedCauseOrderFamilyKind {
@@ -261,9 +266,10 @@ impl BridgeSuppressedMixedCause {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            suppressed_cause_identity: BridgeSubscriptionMixedCauseSuppressedCauseIdentity::new(
-                format!("bridge-suppressed-mixed-cause-id:sha256:{digest:x}"),
-            ),
+            suppressed_cause_identity:
+                BridgeSubscriptionMixedCauseSuppressedCauseIdentity::admit_bridge_owned(format!(
+                    "bridge-suppressed-mixed-cause-id:sha256:{digest:x}"
+                )),
             family_kind: candidate.family_kind,
             source_identity: candidate.source_identity,
             source_digest: candidate.source_digest,
@@ -274,6 +280,12 @@ impl BridgeSuppressedMixedCause {
             canonical_basis,
             digest: Arc::from(format!("bridge-suppressed-mixed-cause:sha256:{digest:x}")),
         }
+    }
+
+    pub fn suppressed_cause_identity(
+        &self,
+    ) -> &BridgeSubscriptionMixedCauseSuppressedCauseIdentity {
+        &self.suppressed_cause_identity
     }
 
     pub fn suppressed_kind(&self) -> BridgeMixedCauseSuppressedKind {
@@ -313,9 +325,10 @@ impl BridgeDeniedMixedCause {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            denied_cause_identity: BridgeSubscriptionMixedCauseDeniedCauseIdentity::new(format!(
-                "bridge-denied-mixed-cause-id:sha256:{digest:x}"
-            )),
+            denied_cause_identity:
+                BridgeSubscriptionMixedCauseDeniedCauseIdentity::admit_bridge_owned(format!(
+                    "bridge-denied-mixed-cause-id:sha256:{digest:x}"
+                )),
             family_kind: candidate.family_kind,
             source_identity: candidate.source_identity,
             source_digest: candidate.source_digest,
@@ -325,6 +338,10 @@ impl BridgeDeniedMixedCause {
             canonical_basis,
             digest: Arc::from(format!("bridge-denied-mixed-cause:sha256:{digest:x}")),
         }
+    }
+
+    pub fn denied_cause_identity(&self) -> &BridgeSubscriptionMixedCauseDeniedCauseIdentity {
+        &self.denied_cause_identity
     }
 
     pub fn denied_kind(&self) -> BridgeMixedCauseDeniedKind {

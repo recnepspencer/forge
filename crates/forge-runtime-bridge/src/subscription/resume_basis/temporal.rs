@@ -56,7 +56,7 @@ impl BridgeRetainedTemporalResumeBasis {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             retained_temporal_resume_basis_identity:
-                BridgeSubscriptionRetainedTemporalResumeBasisIdentity::new(format!(
+                BridgeSubscriptionRetainedTemporalResumeBasisIdentity::admit_bridge_owned(format!(
                     "bridge-retained-temporal-resume-basis-id:sha256:{digest:x}"
                 )),
             temporal_basis_identity: Arc::from(

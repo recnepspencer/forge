@@ -133,7 +133,7 @@ pub(crate) fn resolve_single_face_two_face_shell_split_program(
         .flatten()?;
     let incoming_shell_ids = query_incoming_relation_ids(
         bindings,
-        &face_binding.query_identity,
+        &face_binding.query_identity_label,
         schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
     )
     .ok()?;
@@ -156,7 +156,7 @@ pub(crate) fn resolve_single_face_two_face_shell_split_program(
         .flatten()?;
     let incoming_region_ids = query_incoming_relation_ids(
         bindings,
-        &retained_shell_binding.query_identity,
+        &retained_shell_binding.query_identity_label,
         schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell,
     )
     .ok()?;
@@ -179,7 +179,7 @@ pub(crate) fn resolve_single_face_two_face_shell_split_program(
     }
     let outgoing_face_targets = query_outgoing_relation_target_identities(
         bindings,
-        &retained_shell_binding.query_identity,
+        &retained_shell_binding.query_identity_label,
         schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
     )
     .ok()?;

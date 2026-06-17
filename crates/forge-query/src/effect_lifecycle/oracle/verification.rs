@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::{BridgeExecutionOracle, RelationalExecutionOracle};
 
@@ -10,54 +10,97 @@ pub enum EffectExecutionOracleVerificationKind {
     MutationBatch,
 }
 
+impl EffectExecutionOracleVerificationKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Mutation => "mutation",
+            Self::Merge => "merge",
+            Self::Writeback => "writeback",
+            Self::MutationBatch => "mutation_batch",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectExecutionOracleVerification {
     verification_kind: EffectExecutionOracleVerificationKind,
-    execution_subject_digest: String,
-    relational_oracle_digest: Option<String>,
-    bridge_oracle_digest: Option<String>,
-    verification_digest: String,
+    execution_subject_identity: ForgeQueryEvidenceIdentity,
+    relational_oracle_identity: Option<ForgeQueryEvidenceIdentity>,
+    bridge_oracle_identity: Option<ForgeQueryEvidenceIdentity>,
+    verification_identity: ForgeQueryEvidenceIdentity,
     component_count: usize,
 }
 
 impl EffectExecutionOracleVerification {
     pub(crate) fn relational(
         verification_kind: EffectExecutionOracleVerificationKind,
-        execution_subject_digest: &str,
+        execution_subject_identity: &ForgeQueryEvidenceIdentity,
         oracle: &RelationalExecutionOracle,
         component_count: usize,
     ) -> Self {
-        let verification_digest = hash_parts(&[
-            "effect_execution_oracle_verification_v1".to_string(),
-            format!("kind:{verification_kind:?}"),
-            format!("subject:{execution_subject_digest}"),
-            format!("relational_oracle:{}", oracle.relational_oracle_digest()),
-            format!("components:{component_count}"),
-        ]);
+        let verification_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_execution_oracle_verification_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("kind"),
+                    verification_kind.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("execution_subject"),
+                    execution_subject_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("relational_oracle"),
+                    oracle.relational_oracle_identity(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("component_count"),
+                    component_count,
+                )
+                .seal();
         Self {
             verification_kind,
-            execution_subject_digest: execution_subject_digest.to_string(),
-            relational_oracle_digest: Some(oracle.relational_oracle_digest().to_string()),
-            bridge_oracle_digest: None,
-            verification_digest,
+            execution_subject_identity: execution_subject_identity.clone(),
+            relational_oracle_identity: Some(oracle.relational_oracle_identity().clone()),
+            bridge_oracle_identity: None,
+            verification_identity,
             component_count,
         }
     }
 
-    pub(crate) fn bridge(execution_subject_digest: &str, oracle: &BridgeExecutionOracle) -> Self {
-        let verification_digest = hash_parts(&[
-            "effect_execution_oracle_verification_v1".to_string(),
-            "kind:Writeback".to_string(),
-            format!("subject:{execution_subject_digest}"),
-            format!("bridge_oracle:{}", oracle.bridge_oracle_digest()),
-            "components:1".to_string(),
-        ]);
+    pub(crate) fn bridge(
+        execution_subject_identity: &ForgeQueryEvidenceIdentity,
+        oracle: &BridgeExecutionOracle,
+    ) -> Self {
+        let verification_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_execution_oracle_verification_v1",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("kind"),
+                    EffectExecutionOracleVerificationKind::Writeback.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("execution_subject"),
+                    execution_subject_identity,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("bridge_oracle"),
+                    oracle.bridge_oracle_identity(),
+                )
+                .field_usize(ForgeQueryEvidenceTag::new("component_count"), 1)
+                .seal();
         Self {
             verification_kind: EffectExecutionOracleVerificationKind::Writeback,
-            execution_subject_digest: execution_subject_digest.to_string(),
-            relational_oracle_digest: None,
-            bridge_oracle_digest: Some(oracle.bridge_oracle_digest().to_string()),
-            verification_digest,
+            execution_subject_identity: execution_subject_identity.clone(),
+            relational_oracle_identity: None,
+            bridge_oracle_identity: Some(oracle.bridge_oracle_identity().clone()),
+            verification_identity,
             component_count: 1,
         }
     }
@@ -66,20 +109,40 @@ impl EffectExecutionOracleVerification {
         self.verification_kind
     }
 
-    pub fn execution_subject_digest(&self) -> &str {
-        &self.execution_subject_digest
+    pub fn execution_subject_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.execution_subject_identity
     }
 
-    pub fn relational_oracle_digest(&self) -> Option<&str> {
-        self.relational_oracle_digest.as_deref()
+    pub fn execution_subject_for_reporting(&self) -> &str {
+        self.execution_subject_identity.as_str()
     }
 
-    pub fn bridge_oracle_digest(&self) -> Option<&str> {
-        self.bridge_oracle_digest.as_deref()
+    pub fn relational_oracle_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.relational_oracle_identity.as_ref()
     }
 
-    pub fn verification_digest(&self) -> &str {
-        &self.verification_digest
+    pub fn relational_oracle_for_reporting(&self) -> Option<&str> {
+        self.relational_oracle_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn bridge_oracle_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.bridge_oracle_identity.as_ref()
+    }
+
+    pub fn bridge_oracle_for_reporting(&self) -> Option<&str> {
+        self.bridge_oracle_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn verification_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.verification_identity
+    }
+
+    pub fn verification_for_reporting(&self) -> &str {
+        self.verification_identity.as_str()
     }
 
     pub fn component_count(&self) -> usize {

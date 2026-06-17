@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use serde_json::Value;
 
 use super::read_composition_hooks::{
@@ -185,8 +186,8 @@ impl ForgeQueryWorkspace {
             let result = self.runtime.execute_live_read_by_name(target.view_name())?;
             reads.insert(target.view_name().to_string(), result);
         }
-        let snapshot_token = live_bundle_snapshot_token(&reads)?;
-        Ok(ForgeQueryLiveArtifactBundle::new(snapshot_token, reads))
+        let snapshot_identity = live_bundle_snapshot_identity(&reads)?;
+        Ok(ForgeQueryLiveArtifactBundle::new(snapshot_identity, reads))
     }
 
     pub fn observe<T>(&mut self, view: &super::ForgeQueryLiveView<T>) -> ForgeQueryPatchBatch {
@@ -242,39 +243,54 @@ impl ForgeQueryWorkspace {
         Ok(self
             .runtime
             .inspect_live_view_name_installation(view_name)?
-            .basis_binding_digest()
+            .basis_binding_projection()
+            .label()
             .to_string())
     }
 }
 
-fn live_bundle_snapshot_token(
+fn live_bundle_snapshot_identity(
     reads: &BTreeMap<String, ForgeQueryLiveReadResult>,
-) -> Result<String, ForgeQueryRuntimeError> {
-    let snapshot_tokens = reads
+) -> Result<ForgeQuerySnapshotIdentity, ForgeQueryRuntimeError> {
+    let snapshot_identities = reads
         .iter()
         .map(|(view_name, result)| {
             (
                 view_name.clone(),
-                result.receipt().snapshot_token().to_string(),
+                result.receipt().snapshot_identity().clone(),
             )
         })
         .collect::<Vec<_>>();
-    let distinct_snapshot_tokens = snapshot_tokens
+    let distinct_snapshot_identities = snapshot_identities
         .iter()
-        .map(|(_, snapshot_token)| snapshot_token.clone())
+        .map(|(_, snapshot_identity)| {
+            snapshot_identity
+                .evidence_identity()
+                .terminal_projection_for_reporting()
+                .to_string()
+        })
         .collect::<BTreeSet<_>>();
-    match snapshot_tokens.as_slice() {
-        [] => Ok(String::new()),
-        [(_, snapshot_token)] if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_token.clone()),
-        _ if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_tokens[0].1.clone()),
+    match snapshot_identities.as_slice() {
+        [] => Ok(ForgeQuerySnapshotIdentity::empty_relational_state()),
+        [(_, snapshot_identity)] if distinct_snapshot_identities.len() == 1 => {
+            Ok(snapshot_identity.clone())
+        }
+        _ if distinct_snapshot_identities.len() == 1 => Ok(snapshot_identities[0].1.clone()),
         _ => Err(ForgeQueryRuntimeError::ReadCompositionDenied(
             super::ForgeQueryReadDenial::new(
                 super::ForgeQueryReadDenialKind::ExecutionDenied,
                 format!(
-                    "live artifact bundle materialized multiple snapshot tokens: {}",
-                    snapshot_tokens
+                    "live artifact bundle materialized multiple snapshot identities: {}",
+                    snapshot_identities
                         .iter()
-                        .map(|(view_name, snapshot_token)| format!("{view_name}:{snapshot_token}"))
+                        .map(|(view_name, snapshot_identity)| {
+                            format!(
+                                "{view_name}:{}",
+                                snapshot_identity
+                                    .evidence_identity()
+                                    .terminal_projection_for_reporting()
+                            )
+                        })
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),

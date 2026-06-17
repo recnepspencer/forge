@@ -3,20 +3,26 @@
 use forge_query::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryEntity, ForgeQueryIntentDeclaration,
     ForgeQueryIntentExecution, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
-    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime, ForgeQueryRuntimeBackend,
-    ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
+    ForgeQueryRuntimeBackend, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSchemaAdapter,
     ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeSupportProfile,
-    ForgeQueryWorkspace, ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity, ForgeQueryWorkspace,
+    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
     LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
     SubscriptionActivationReceipt,
 };
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
+
+#[path = "runtime_mutation_support.rs"]
+mod runtime_mutation_support;
+
 use forge_server::{
     ForgeServerDirectDeclarationSourceKind, ForgeServerQueryWorkspaceBindingError,
     ForgeServerQueryWorkspaceBindingRequest, ForgeServerQueryWorkspaceBindingTarget,
     ForgeServerQueryWorkspaceProvider,
 };
+use runtime_mutation_support::{test_mutation_receipt, TestSubscriptionActivation};
 use serde_json::json;
 use std::collections::BTreeSet;
 use std::sync::{
@@ -294,7 +300,11 @@ impl ForgeQueryRuntimeBackend for TestQueryRuntimeBackend {
         }
 
         vec![ForgeQueryEntity::from_external_projection(
-            "user-1",
+            forge_query::facade::admit_authored_entity_token(
+                forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
+                    "user-1",
+                )),
+            ),
             json!({
                 "identity": { "id": "user-1" },
                 "profile": { "display_name": "Ada Forge" }
@@ -310,8 +320,10 @@ impl ForgeQueryRuntimeBackend for TestQueryRuntimeBackend {
         Vec::new()
     }
 
-    fn snapshot_token(&self) -> String {
-        "query-handoff-phase-test-snapshot".to_string()
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        )
     }
 
     fn install_live_subscription(
@@ -326,7 +338,7 @@ impl ForgeQueryRuntimeBackend for TestQueryRuntimeBackend {
 
     fn admit_preview_basis(
         &self,
-        _label: &str,
+        _label: &ForgeQuerySessionLabel,
         _effect_policy: forge_query::facade::ForgeQueryEffectPolicy,
         _authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
@@ -344,43 +356,6 @@ impl ForgeQueryRuntimeBackend for TestQueryRuntimeBackend {
             receipt.authority_lane(),
             ["query-handoff-phase-test-inspector"],
         ))
-    }
-}
-
-fn test_mutation_receipt(
-    command: &ForgeQueryWriteCommand,
-    ordinal: usize,
-) -> ForgeQueryMutationReceipt {
-    ForgeQueryMutationReceipt {
-        commit_identity: format!("query-handoff-phase-test-commit-{ordinal}"),
-        snapshot_token: format!("query-handoff-phase-test-snapshot-{ordinal}"),
-        deltas: vec![ForgeQueryMutationDelta {
-            collection: mutation_collection(command),
-            entity_identity: mutation_entity_identity(command, ordinal),
-            kind: mutation_kind(command),
-            aspect_paths: command.declared_aspect_paths(),
-        }],
-        bridge_authority: None,
-    }
-}
-
-fn mutation_collection(command: &ForgeQueryWriteCommand) -> String {
-    command
-        .declared_collection()
-        .unwrap_or_else(|| "Task".to_string())
-}
-
-fn mutation_entity_identity(command: &ForgeQueryWriteCommand, ordinal: usize) -> String {
-    command
-        .declared_entity_identity()
-        .unwrap_or_else(|| format!("query-handoff-phase-test-entity-{ordinal}"))
-}
-
-fn mutation_kind(command: &ForgeQueryWriteCommand) -> ForgeQueryMutationKind {
-    match command.mutation_family().as_str() {
-        "insert" => ForgeQueryMutationKind::Created,
-        "delete" => ForgeQueryMutationKind::Deleted,
-        _ => ForgeQueryMutationKind::Updated,
     }
 }
 
@@ -426,23 +401,5 @@ impl ForgeQueryRuntimeSchemaAdapter for TestSchemaAdapter {
     ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, ForgeQueryWorkspaceError> {
         let admission = self.build_live_view_declaration_admission_receipt(name, request);
         Ok(self.build_live_view_declaration_boundary_receipt(name, request, admission))
-    }
-}
-
-struct TestSubscriptionActivation;
-
-impl ForgeQueryRuntimeSubscriptionActivationAdapter for TestSubscriptionActivation {
-    fn support_evidence(&self) -> String {
-        "forge-server-query-handoff-test-support".to_string()
-    }
-
-    fn admit_activation(
-        &mut self,
-        view_name: &str,
-        activation: &SubscriptionActivationInput,
-    ) -> Result<forge_query::facade::SubscriptionActivationBoundaryReceipt, ForgeQueryWorkspaceError>
-    {
-        let receipt = self.build_subscription_activation_receipt(view_name, activation);
-        Ok(self.build_subscription_activation_boundary_receipt(view_name, activation, receipt))
     }
 }

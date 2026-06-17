@@ -14,7 +14,7 @@ fn retained_delivery_seed_binds_window_sequence_and_member_truth() {
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            BridgeSubscriptionDeliveryContentDigest::new("content:same"),
+            BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned("content:same"),
         ),
     );
     let second_sequence = sealed_window_with_member(
@@ -26,7 +26,7 @@ fn retained_delivery_seed_binds_window_sequence_and_member_truth() {
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            BridgeSubscriptionDeliveryContentDigest::new("content:same"),
+            BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned("content:same"),
         ),
     );
     let second_truth = sealed_window_with_member(
@@ -38,7 +38,7 @@ fn retained_delivery_seed_binds_window_sequence_and_member_truth() {
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            BridgeSubscriptionDeliveryContentDigest::new("content:different"),
+            BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned("content:different"),
         ),
     );
 

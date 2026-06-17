@@ -134,16 +134,15 @@ where
     let request = ForgeQueryContributionComposedIntentRequestDescriptor::new(
         order_index,
         category_family,
-        requested.payload().request_digest(),
+        requested.payload().request_identity().clone(),
+        requested.payload().target().binding_identity(),
         requested.payload().payload().semantic_code(),
         requested.payload().payload().detail(),
-        ForgeQueryBindingTargetWitness::target_digest(requested.payload().target()),
-        ForgeQueryBindingTargetWitness::binding_digest(requested.payload().target()),
         declaration_aspect_record,
     );
     let evaluation = ForgeQueryContributionComposedIntentStageResult::succeeded(
         "contribution request evaluated",
-        Some(requested.requested_digest()),
+        Some(requested.requested_identity()),
     );
     let eligible = match evaluate_requested_domain_capability_contribution(requested) {
         TransitionOutcome::Success(value) => value,
@@ -158,8 +157,8 @@ where
                 request,
                 format!(
                     "target {} no longer matches current {}",
-                    value.bound_target_digest(),
-                    value.current_target_digest()
+                    value.bound_target_for_reporting(),
+                    value.current_target_for_reporting()
                 ),
             )
         }
@@ -168,8 +167,8 @@ where
                 request,
                 format!(
                     "target {} requires rebind to {}",
-                    value.bound_target_digest(),
-                    value.current_target_digest()
+                    value.bound_target_for_reporting(),
+                    value.current_target_for_reporting()
                 ),
             )
         }
@@ -180,7 +179,7 @@ where
     };
     let _eligibility = ForgeQueryContributionComposedIntentStageResult::succeeded(
         "contribution request is eligible for admission",
-        Some(eligible.eligibility_digest()),
+        Some(eligible.eligibility_identity()),
     );
     let admitted = match admit_eligible_domain_capability_contribution(eligible) {
         TransitionOutcome::Success(value) => value,
@@ -200,8 +199,8 @@ where
                 evaluation,
                 ForgeQueryContributionComposedIntentStageResult::stale(format!(
                     "target {} no longer matches current {}",
-                    value.bound_target_digest(),
-                    value.current_target_digest()
+                    value.bound_target_for_reporting(),
+                    value.current_target_for_reporting()
                 )),
                 ForgeQueryContributionComposedIntentStageResult::not_attempted(),
                 ForgeQueryContributionComposedIntentClassification::Stale,
@@ -214,8 +213,8 @@ where
                 evaluation,
                 ForgeQueryContributionComposedIntentStageResult::rebind_required(format!(
                     "target {} requires rebind to {}",
-                    value.bound_target_digest(),
-                    value.current_target_digest()
+                    value.bound_target_for_reporting(),
+                    value.current_target_for_reporting()
                 )),
                 ForgeQueryContributionComposedIntentStageResult::not_attempted(),
                 ForgeQueryContributionComposedIntentClassification::RebindRequired,
@@ -244,7 +243,7 @@ where
         request.request_digest().to_string(),
         None,
     );
-    let admitted_digest = admitted.admitted_digest();
+    let admitted_digest = admitted.admitted_identity();
     let admission_stage = ForgeQueryContributionComposedIntentStageResult::succeeded(
         "contribution admitted",
         Some(admitted_digest),
@@ -272,8 +271,8 @@ where
                     admission_stage,
                     ForgeQueryContributionComposedIntentStageResult::stale(format!(
                         "target {} no longer matches current {}",
-                        value.bound_target_digest(),
-                        value.current_target_digest()
+                        value.bound_target_for_reporting(),
+                        value.current_target_for_reporting()
                     )),
                     contribution,
                 )
@@ -285,8 +284,8 @@ where
                     admission_stage,
                     ForgeQueryContributionComposedIntentStageResult::rebind_required(format!(
                         "target {} requires rebind to {}",
-                        value.bound_target_digest(),
-                        value.current_target_digest()
+                        value.bound_target_for_reporting(),
+                        value.current_target_for_reporting()
                     )),
                     contribution,
                 )
@@ -302,11 +301,11 @@ where
             }
             TransitionOutcome::Deferred(never) => match never {},
         };
-        let ready_digest = ready.materialization_ready_digest().to_string();
+        let ready_identity = ready.materialization_ready_identity();
         return match materialize_domain_capability_summary(ready, profile) {
             Ok(value) => {
                 let summary = ForgeQueryContributionComposedSummary::new(
-                    ready_digest.clone(),
+                    ready_identity.as_str().to_string(),
                     value.outcome_kind(),
                     format!("{:?}", value.primary_code()),
                     value.required_row_count(),
@@ -326,7 +325,7 @@ where
                     admission_stage,
                     ForgeQueryContributionComposedIntentStageResult::succeeded(
                         "contribution summary materialized",
-                        Some(ready_digest),
+                        Some(ready_identity),
                     ),
                     ForgeQueryContributionComposedIntentClassification::Admitted,
                     Some(contribution),

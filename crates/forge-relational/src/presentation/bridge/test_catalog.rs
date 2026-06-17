@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
-use crate::history::data::CommitId;
+use crate::history::data::{BranchId, CommitId};
 use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use forge_runtime_bridge::facade::{
     BridgeCommittedPatchEnvelope, CommittedPatchSource, RelationalBridgeSourceError,
     RelationalCommittedPatchRequest, SnapshotReadPacket, SnapshotReadPacketResult,
     SnapshotReadRecord, SnapshotReadSource, TruthBranchHeadSource, TruthBranchIdentity,
-    TruthSnapshotIdentity, TruthSnapshotReader,
+    TruthCommitIdentity, TruthSnapshotIdentity, TruthSnapshotReader,
 };
 
 use super::patch_envelopes::publication_patch_to_bridge_envelope;
@@ -36,29 +36,25 @@ pub struct PublicationBridgeCatalog {
 
 #[derive(Debug, Default)]
 struct PublicationBridgeCatalogState {
-    committed_patches: BTreeMap<String, BridgeCommittedPatchEnvelope>,
-    snapshots: BTreeMap<String, PublicationBridgeSnapshot>,
+    committed_patches: BTreeMap<TruthCommitIdentity, BridgeCommittedPatchEnvelope>,
+    snapshots: BTreeMap<TruthSnapshotIdentity, PublicationBridgeSnapshot>,
 }
 
 impl PublicationBridgeCatalog {
     pub fn register_patch(
         &self,
         commit_id: CommitId,
-        branch_identity: impl Into<String>,
-        snapshot_identity: impl Into<String>,
+        branch_id: &BranchId,
+        snapshot_identity: TruthSnapshotIdentity,
         patch: &PublishedAuthoritativePatchEnvelope,
     ) {
-        let envelope = publication_patch_to_bridge_envelope(
-            commit_id,
-            branch_identity,
-            snapshot_identity,
-            patch,
-        );
+        let envelope =
+            publication_patch_to_bridge_envelope(commit_id, branch_id, snapshot_identity, patch);
         self.state
             .write()
             .expect("publication bridge catalog lock poisoned")
             .committed_patches
-            .insert(envelope.commit_identity().as_str().to_string(), envelope);
+            .insert(envelope.commit_identity().clone(), envelope);
     }
 
     pub fn register_snapshot(&self, snapshot: PublicationBridgeSnapshot) {
@@ -66,7 +62,7 @@ impl PublicationBridgeCatalog {
             .write()
             .expect("publication bridge catalog lock poisoned")
             .snapshots
-            .insert(snapshot.identity.as_str().to_string(), snapshot);
+            .insert(snapshot.identity.clone(), snapshot);
     }
 }
 
@@ -79,13 +75,12 @@ impl CommittedPatchSource for PublicationBridgeCatalog {
             .read()
             .expect("publication bridge catalog lock poisoned")
             .committed_patches
-            .get(request.commit_identity().as_str())
+            .get(request.commit_identity())
             .cloned()
             .ok_or_else(|| {
-                RelationalBridgeSourceError::new(format!(
-                    "no publication bridge patch registered for commit `{}`",
-                    request.commit_identity()
-                ))
+                RelationalBridgeSourceError::new(
+                    "no publication bridge patch registered for commit",
+                )
             })
     }
 }
@@ -100,13 +95,10 @@ impl SnapshotReadSource for PublicationBridgeCatalog {
             .read()
             .expect("publication bridge catalog lock poisoned")
             .snapshots
-            .get(identity.as_str())
+            .get(identity)
             .cloned()
             .ok_or_else(|| {
-                RelationalBridgeSourceError::new(format!(
-                    "no publication bridge snapshot registered for `{}`",
-                    identity.as_str()
-                ))
+                RelationalBridgeSourceError::new("no publication bridge snapshot registered")
             })?;
         Ok(Box::new(PublicationSnapshotReader { snapshot }))
     }
@@ -126,10 +118,7 @@ impl TruthBranchHeadSource for PublicationBridgeCatalog {
             .cloned()
             .last()
             .ok_or_else(|| {
-                RelationalBridgeSourceError::new(format!(
-                    "no publication bridge branch head registered for `{}`",
-                    branch_identity.as_str()
-                ))
+                RelationalBridgeSourceError::new("no publication bridge branch head registered")
             })
     }
 }

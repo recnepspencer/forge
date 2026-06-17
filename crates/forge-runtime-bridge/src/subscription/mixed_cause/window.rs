@@ -74,9 +74,10 @@ impl BridgeMixedCauseDeliveryWindowPlan {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            delivery_window_identity: BridgeSubscriptionMixedCauseDeliveryWindowIdentity::new(
-                format!("bridge-mixed-cause-delivery-window-id:sha256:{digest:x}"),
-            ),
+            delivery_window_identity:
+                BridgeSubscriptionMixedCauseDeliveryWindowIdentity::admit_bridge_owned(format!(
+                    "bridge-mixed-cause-delivery-window-id:sha256:{digest:x}"
+                )),
             ordering_identity: Arc::from(ordering.ordering_identity().as_str().to_owned()),
             lane_kind: ordering.lane_kind(),
             delivery_family,

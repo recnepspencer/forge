@@ -50,7 +50,7 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
 
     let update = workspace
         .update_aspects(
-            &entity_identity,
+            entity_identity.clone(),
             vec![
                 ForgeQueryAspectValue::new("title.value", json!("Updated task"))
                     .expect("title aspect"),
@@ -71,7 +71,7 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
     );
 
     let delete = workspace
-        .delete(&entity_identity)
+        .delete(entity_identity)
         .expect("delete should succeed");
     assert_eq!(delete.deltas[0].kind, ForgeQueryMutationKind::Deleted);
     assert!(workspace.entities().is_empty());

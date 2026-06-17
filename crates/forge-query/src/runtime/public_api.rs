@@ -1,5 +1,6 @@
 use crate::evidence_identity::{
-    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 
 use super::{
@@ -27,7 +28,7 @@ pub struct ForgeQueryRuntimePublicApiFamilyContract {
     extension_rule: String,
     parallel_api_forbidden: bool,
     admission_fail_closed: bool,
-    contract_digest: String,
+    contract_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimePublicApiFamilyContract {
@@ -42,7 +43,7 @@ impl ForgeQueryRuntimePublicApiFamilyContract {
         let extension_rule = row.extension_rule().to_string();
         let parallel_api_forbidden = row.parallel_api_forbidden();
         let admission_fail_closed = row.admission_fail_closed();
-        let contract_digest =
+        let contract_identity =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicApiFamilyContract)
                 .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
                 .field_shape(ForgeQueryEvidenceTag::new("status"), status.as_str())
@@ -58,26 +59,24 @@ impl ForgeQueryRuntimePublicApiFamilyContract {
                     ForgeQueryEvidenceTag::new("extension_rule"),
                     extension_rule.clone(),
                 )
-                .field_value(
+                .field_bool(
                     ForgeQueryEvidenceTag::new("parallel_api_forbidden"),
-                    parallel_api_forbidden.to_string(),
+                    parallel_api_forbidden,
                 )
-                .field_value(
+                .field_bool(
                     ForgeQueryEvidenceTag::new("admission_fail_closed"),
-                    admission_fail_closed.to_string(),
+                    admission_fail_closed,
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("authority_lanes"),
                     authority_lanes.iter().map(|lane| lane.as_str()),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("evidence"),
                     evidence.iter().map(String::as_str),
                 )
                 .optional_value(ForgeQueryEvidenceTag::new("reason"), reason.as_deref())
-                .seal()
-                .as_str()
-                .to_string();
+                .seal();
         Self {
             family,
             status,
@@ -89,7 +88,7 @@ impl ForgeQueryRuntimePublicApiFamilyContract {
             extension_rule,
             parallel_api_forbidden,
             admission_fail_closed,
-            contract_digest,
+            contract_identity,
         }
     }
 
@@ -138,7 +137,11 @@ impl ForgeQueryRuntimePublicApiFamilyContract {
     }
 
     pub fn contract_digest(&self) -> &str {
-        &self.contract_digest
+        self.contract_identity.as_str()
+    }
+
+    pub fn contract_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.contract_identity
     }
 }
 
@@ -149,7 +152,7 @@ pub struct ForgeQueryRuntimePublicApiContract {
     stable_family_count: usize,
     deferred_family_count: usize,
     unsupported_family_count: usize,
-    contract_digest: String,
+    contract_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimePublicApiContract {
@@ -170,40 +173,38 @@ impl ForgeQueryRuntimePublicApiContract {
             .iter()
             .filter(|family| family.status() == ForgeQueryRuntimeFamilySupportStatus::Unsupported)
             .count();
-        let contract_digest =
+        let contract_identity =
             forge_query_evidence_identity(ForgeQueryEvidenceScope::RuntimePublicApiContract)
                 .field_shape(
                     ForgeQueryEvidenceTag::new("backend_posture"),
                     profile.posture().as_str(),
                 )
-                .field_identity_sequence(
+                .field_value_sequence(
                     ForgeQueryEvidenceTag::new("family_contract_digest"),
                     families
                         .iter()
                         .map(ForgeQueryRuntimePublicApiFamilyContract::contract_digest),
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("stable_family_count"),
-                    stable_family_count.to_string(),
+                    stable_family_count,
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("deferred_family_count"),
-                    deferred_family_count.to_string(),
+                    deferred_family_count,
                 )
-                .field_value(
+                .field_usize(
                     ForgeQueryEvidenceTag::new("unsupported_family_count"),
-                    unsupported_family_count.to_string(),
+                    unsupported_family_count,
                 )
-                .seal()
-                .as_str()
-                .to_string();
+                .seal();
         Self {
             backend_posture: profile.posture(),
             families,
             stable_family_count,
             deferred_family_count,
             unsupported_family_count,
-            contract_digest,
+            contract_identity,
         }
     }
 
@@ -228,7 +229,11 @@ impl ForgeQueryRuntimePublicApiContract {
     }
 
     pub fn contract_digest(&self) -> &str {
-        &self.contract_digest
+        self.contract_identity.as_str()
+    }
+
+    pub fn contract_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.contract_identity
     }
 
     pub fn family(

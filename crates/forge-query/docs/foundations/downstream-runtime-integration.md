@@ -32,6 +32,14 @@ The public contract is:
 - use the support matrix and admission surfaces when a family may be deferred
   or unsupported
 
+Identity and denial contracts on the ordinary path are also explicit:
+
+- canonical machine identity comes from
+  `ForgeQueryEvidenceIdentity::compose(...)`, not caller-owned string digests
+- `error.stop_class()` is the machine lane for denial handling; messages are
+  presentation and may change wording without changing the contract
+- preview and branch entry use `ForgeQuerySessionLabel`, not raw strings
+
 ## Use These Surfaces
 
 ### Runtime front door

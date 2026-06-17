@@ -122,6 +122,14 @@ impl ForgeQueryRuntimeBuilder {
         self
     }
 
+    pub fn snapshot_identity(
+        mut self,
+        adapter: impl ForgeQueryRuntimeSnapshotIdentityAdapter + 'static,
+    ) -> Self {
+        self.backend_parts = self.backend_parts.snapshot_identity(adapter);
+        self
+    }
+
     pub fn existing_truth_verification(
         mut self,
         adapter: impl ForgeQueryRuntimeExistingTruthVerificationAdapter + 'static,
@@ -229,8 +237,8 @@ impl ForgeQueryRuntimeBuilder {
         Ok(ForgeQueryRuntime {
             backend,
             evidence_authority: ForgeQueryRuntimeEvidenceAuthority::new(),
-            preview_session_labels: BTreeMap::new(),
-            branch_session_labels: BTreeMap::new(),
+            preview_session_labels: BTreeSet::new(),
+            branch_session_labels: BTreeSet::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),
             live_subscriptions: BTreeMap::new(),
             materialized_read_views: BTreeMap::new(),
@@ -238,6 +246,7 @@ impl ForgeQueryRuntimeBuilder {
             installed_programs: BTreeMap::new(),
             run_traces: BTreeMap::new(),
             derived_views: BTreeMap::new(),
+            shared_read_pins: super::shared_read_pins::ForgeQuerySharedReadPinRegistry::default(),
             derived_dependency_index: ForgeQueryComputedDependencyIndex::default(),
             effects: BTreeMap::new(),
             effect_index: ForgeQueryEffectIndex::default(),

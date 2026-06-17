@@ -76,9 +76,12 @@ pub use lowering::{
 };
 pub use normalized::{EffectIntentDenial, EffectOperationInput, NormalizedEffectIntent};
 pub use oracle::{
-    BridgeExecutionOracle, EffectExecutionOracleError, EffectExecutionOracleErrorKind,
-    EffectExecutionOracleVerification, EffectExecutionOracleVerificationKind,
-    RelationalExecutionOracle,
+    bridge_observation_execution_receipt_subject_identity,
+    bridge_observation_execution_record_subject_identity,
+    bridge_observation_outcome_subject_identity, bridge_observation_receipt_subject_identity,
+    bridge_observation_request_subject_identity, BridgeExecutionOracle, EffectExecutionOracleError,
+    EffectExecutionOracleErrorKind, EffectExecutionOracleVerification,
+    EffectExecutionOracleVerificationKind, RelationalExecutionOracle,
 };
 pub use planning::{
     scope_admitted_effect_plan, AuthorityScopedEffectPlan, EffectArtifactPolicy,
@@ -105,6 +108,8 @@ pub use support_matrix::{
 pub use taxonomy::{
     DeniedEffectEligibilityKind, EffectAuthorityLane, EffectFamily, EffectIntentDenialKind,
 };
+
+pub(crate) use execution_relational_scalar::stable_branch_snapshot_id;
 
 #[cfg(test)]
 mod tests;

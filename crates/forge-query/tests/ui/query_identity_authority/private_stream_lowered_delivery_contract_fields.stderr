@@ -1,0 +1,18 @@
+warning: unreachable expression
+ --> tests/ui/private_stream_lowered_delivery_contract_fields.rs:6:26
+  |
+5 |         query_digest: todo!(),
+  |                       ------- any code following this expression is unreachable
+6 |         locality_digest: todo!(),
+  |                          ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0560]: struct `StreamLoweredDeliveryContract` has no field named `consumer_shape`
+ --> tests/ui/private_stream_lowered_delivery_contract_fields.rs:9:9
+  |
+9 |         consumer_shape: todo!(),
+  |         ^^^^^^^^^^^^^^ `StreamLoweredDeliveryContract` does not have this field
+  |
+  = note: all struct fields are already assigned

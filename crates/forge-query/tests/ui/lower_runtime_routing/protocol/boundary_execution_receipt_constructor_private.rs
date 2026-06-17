@@ -4,5 +4,5 @@ use forge_query::facade::runtime::{
 
 fn main() {
     let plan: ForgeQueryLowerRuntimeRoutePlan = todo!();
-    let _ = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&plan, "forged");
+    let _ = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&plan, todo!());
 }

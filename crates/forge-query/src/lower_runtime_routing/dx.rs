@@ -67,7 +67,9 @@ pub fn summarize_lower_runtime_boundary(
             envelope.route_kind().as_str(),
             envelope.support_posture().as_str(),
         ),
-        envelope.envelope_digest(),
+        envelope
+            .envelope_identity()
+            .terminal_projection_for_reporting(),
     )
 }
 
@@ -82,11 +84,17 @@ pub fn inspect_lower_runtime_boundary(
             "cost={} failure={} retained={} route={} evidence={}",
             envelope.route_cost_posture().as_str(),
             envelope.route_failure_topology().as_str(),
-            envelope.retained_evidence_digest(),
-            envelope.route_authority_digest(),
-            envelope.route_evidence_digest(),
+            envelope.retained_evidence_identity().as_str(),
+            envelope
+                .route_authority_identity()
+                .terminal_projection_for_reporting(),
+            envelope
+                .route_evidence_identity()
+                .terminal_projection_for_reporting(),
         ),
-        envelope.envelope_digest(),
+        envelope
+            .envelope_identity()
+            .terminal_projection_for_reporting(),
     )
 }
 
@@ -120,7 +128,7 @@ mod tests {
         ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
         ForgeQueryLowerRuntimeCapabilityEligibility, ForgeQueryLowerRuntimeCapabilityRequest,
         ForgeQueryLowerRuntimeReadmissionReceipt, ForgeQueryLowerRuntimeRouteKind,
-        ForgeQueryLowerRuntimeSeamKey,
+        ForgeQueryLowerRuntimeSeamKey, ForgeQueryLowerRuntimeSubjectIdentity,
     };
 
     #[test]
@@ -130,11 +138,40 @@ mod tests {
             ForgeQueryLowerRuntimeRouteKind::ReadmissionHandoff,
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "live-view-schema-admission",
-            "subject-3",
+            ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
+                .field_value(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("test_subject"),
+                    "subject-3",
+                )
+                .seal(),
         );
+        let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+        )
+        .field_value(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
+            "detail-3",
+        )
+        .seal();
         let eligibility =
-            ForgeQueryLowerRuntimeCapabilityEligibility::admitted(request, "detail-3");
-        let readmission = ForgeQueryLowerRuntimeReadmissionReceipt::new(eligibility, "evidence-3");
+            ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+                request,
+                &detail_identity,
+            );
+        let retained_evidence =
+            crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+                "dx-test",
+                &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+                    crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+                )
+                .field_value(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
+                    "evidence-3",
+                )
+                .seal(),
+            );
+        let readmission =
+            ForgeQueryLowerRuntimeReadmissionReceipt::new(eligibility, &retained_evidence);
         let boundary =
             ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_readmission_receipt(&readmission);
         let envelope = crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryEnvelope::from_readmission_receipt(
@@ -144,7 +181,12 @@ mod tests {
         );
         let summary = summarize_lower_runtime_boundary(&envelope);
 
-        assert_eq!(summary.summary_digest(), envelope.envelope_digest());
+        assert_eq!(
+            summary.summary_digest(),
+            envelope
+                .envelope_identity()
+                .terminal_projection_for_reporting()
+        );
         assert_eq!(
             summary.headline(),
             "Live view schema admission [query / readmission-handoff / admitted]"
@@ -158,26 +200,64 @@ mod tests {
             ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
             ForgeQueryLowerRuntimeAuthorityOwner::Query,
             "signal-invalidation-routing",
-            "subject-4",
+            ForgeQueryLowerRuntimeSubjectIdentity::compose("test-subject")
+                .field_value(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("test_subject"),
+                    "subject-4",
+                )
+                .seal(),
         );
+        let detail_identity = crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+            crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+        )
+        .field_value(
+            crate::evidence_identity::ForgeQueryEvidenceTag::new("test_detail"),
+            "detail-4",
+        )
+        .seal();
         let eligibility =
-            ForgeQueryLowerRuntimeCapabilityEligibility::admitted(request, "detail-4");
+            ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
+                request,
+                &detail_identity,
+            );
         let route = crate::lower_runtime_routing::ForgeQueryLowerRuntimeRoutePlan::new(
             eligibility,
-            "lane-4",
+            crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+                "lower-runtime-dx-route",
+                &detail_identity,
+            ),
         );
-        let boundary =
-            ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&route, "evidence-4");
+        let retained_evidence =
+            crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+                "dx-route-test",
+                &crate::evidence_identity::ForgeQueryEvidenceIdentity::compose(
+                    crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+                )
+                .field_value(
+                    crate::evidence_identity::ForgeQueryEvidenceTag::new("test_retained"),
+                    "evidence-4",
+                )
+                .seal(),
+            );
+        let boundary = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
+            &route,
+            &retained_evidence,
+        );
         let envelope =
             crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
                 ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
                 &route,
                 &boundary,
-                "evidence-4",
+                &retained_evidence,
             );
         let inspection = inspect_lower_runtime_boundary(&envelope);
 
-        assert_eq!(inspection.inspection_digest(), envelope.envelope_digest());
+        assert_eq!(
+            inspection.inspection_digest(),
+            envelope
+                .envelope_identity()
+                .terminal_projection_for_reporting()
+        );
         assert_eq!(
             inspection.headline(),
             "Signal invalidation routing [query / route-planning / admitted]"
@@ -188,9 +268,13 @@ mod tests {
                 "cost={} failure={} retained={} route={} evidence={}",
                 envelope.route_cost_posture().as_str(),
                 envelope.route_failure_topology().as_str(),
-                envelope.retained_evidence_digest(),
-                envelope.route_authority_digest(),
-                envelope.route_evidence_digest(),
+                envelope.retained_evidence_identity().as_str(),
+                envelope
+                    .route_authority_identity()
+                    .terminal_projection_for_reporting(),
+                envelope
+                    .route_evidence_identity()
+                    .terminal_projection_for_reporting(),
             )
         );
     }

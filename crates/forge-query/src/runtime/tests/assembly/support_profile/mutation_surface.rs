@@ -12,18 +12,10 @@ fn runtime_public_support_gate_keeps_support_gated_rows_fail_closed_for_ordinary
         ForgeQueryRuntimeFacadeFamily::AsyncResource,
         ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
     ] {
-        let admitted = workspace
-            .admit_public_api_family(family)
-            .expect("support-gated runtime-backed family should admit");
         let matrix_row = matrix
             .row_for_family(family)
             .expect("support-matrix row should exist");
 
-        assert_eq!(admitted.family(), family);
-        assert_eq!(
-            admitted.status(),
-            ForgeQueryRuntimeFamilySupportStatus::Supported
-        );
         assert_eq!(
             matrix_row.status(),
             ForgeQueryRuntimeFamilySupportStatus::Supported
@@ -35,6 +27,24 @@ fn runtime_public_support_gate_keeps_support_gated_rows_fail_closed_for_ordinary
             matrix_row.teaching_posture(),
             ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly
         );
+
+        let error = workspace
+            .admit_public_api_family(family)
+            .expect_err("support-gated runtime-backed family should fail closed at admission");
+        match error {
+            ForgeQueryRuntimeError::UnsupportedFacadeFamily(denial) => {
+                assert_eq!(denial.family(), family);
+                assert_eq!(
+                    denial.status(),
+                    ForgeQueryRuntimeFamilySupportStatus::Supported
+                );
+                assert_eq!(
+                    denial.teaching_posture(),
+                    Some(ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly)
+                );
+            }
+            other => panic!("expected support-gated admission denial, got {other:?}"),
+        }
     }
 }
 

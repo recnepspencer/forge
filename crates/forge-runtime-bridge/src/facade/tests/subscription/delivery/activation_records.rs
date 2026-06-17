@@ -126,7 +126,7 @@ fn delivery_window_identity_changes_with_canonical_member_truth() {
                     "slice:entity-1/profile/name",
                     "routing:fixture",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    BridgeSubscriptionDeliveryContentDigest::new("content:left"),
+                    BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned("content:left"),
                 ),
             ],
         )
@@ -139,7 +139,7 @@ fn delivery_window_identity_changes_with_canonical_member_truth() {
                     "slice:entity-1/profile/name",
                     "routing:fixture",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    BridgeSubscriptionDeliveryContentDigest::new("content:right"),
+                    BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned("content:right"),
                 ),
             ],
         )
@@ -180,7 +180,7 @@ fn delivery_window_identity_changes_with_occurrence_sequence() {
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            BridgeSubscriptionDeliveryContentDigest::new("content:same"),
+            BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned("content:same"),
         )
     };
     let left = runtime

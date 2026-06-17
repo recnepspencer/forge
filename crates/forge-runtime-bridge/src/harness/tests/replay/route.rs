@@ -1,5 +1,4 @@
 use super::*;
-use crate::facade::TruthSnapshotIdentity;
 
 #[test]
 fn bridge_replay_capture_exposes_last_route_record() {
@@ -8,20 +7,25 @@ fn bridge_replay_capture_exposes_last_route_record() {
         "bridge-replay",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("commit-a")
     .declare_observation("route")
     .compile();
     let request = ExecutionRequest::target(
         "deliver-commit-a",
-        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+        BridgeHarnessTargetId::committed_route(
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        ),
     );
     let profile = ExecutionProfile::development("development");
 
@@ -61,8 +65,14 @@ fn bridge_replay_capture_exposes_last_route_record() {
         .replay_canonical_record(&canonical_record)
         .expect("typed route replay should succeed from retained route record");
 
-    assert_eq!(typed_replay.source_commit().as_str(), "commit-a");
-    assert_eq!(typed_replay.source_snapshot().as_str(), "snapshot-a");
+    assert_eq!(
+        typed_replay.source_commit().as_str(),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a").as_str()
+    );
+    assert_eq!(
+        typed_replay.source_snapshot().as_str(),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a").as_str()
+    );
     assert_eq!(replay.requested_targets, request.targets);
 }
 
@@ -70,13 +80,16 @@ fn bridge_replay_capture_exposes_last_route_record() {
 fn bridge_replay_accepts_versioned_canonical_route_record() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -85,7 +98,7 @@ fn bridge_replay_accepts_versioned_canonical_route_record() {
 
     let route = runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("bridge should plan route before canonical replay capture");
     runtime
@@ -100,7 +113,10 @@ fn bridge_replay_accepts_versioned_canonical_route_record() {
         .replay_canonical_record(&canonical_record)
         .expect("bridge should replay a supported canonical route record");
 
-    assert_eq!(replay.source_commit().as_str(), "commit-a");
+    assert_eq!(
+        replay.source_commit().as_str(),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a").as_str()
+    );
     assert_eq!(
         canonical_record.schema_version(),
         crate::facade::BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V3
@@ -111,14 +127,14 @@ fn bridge_replay_accepts_versioned_canonical_route_record() {
 fn bridge_replay_preserves_canonical_route_outcome_for_delivered_patch() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = build_runtime_with_aspects(
@@ -132,7 +148,7 @@ fn bridge_replay_preserves_canonical_route_outcome_for_delivered_patch() {
         .deliver_invalidation(
             runtime
                 .plan_committed_patch(BridgeRouteRequest::for_commit(
-                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
                 ))
                 .expect("route should plan before replay parity certification"),
         )
@@ -176,14 +192,14 @@ fn bridge_replay_preserves_canonical_route_outcome_for_delivered_patch() {
 fn bridge_replay_rejects_subscription_slice_drift() {
     let original_source = InMemoryRelationalBridgeSource::default();
     original_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     original_source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let original_runtime = build_runtime_with_aspects(
@@ -195,7 +211,7 @@ fn bridge_replay_rejects_subscription_slice_drift() {
 
     let route = original_runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ))
         .expect("original route should plan before replay certification");
     original_runtime
@@ -208,14 +224,14 @@ fn bridge_replay_rejects_subscription_slice_drift() {
 
     let restarted_source = InMemoryRelationalBridgeSource::default();
     restarted_source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     restarted_source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let restarted_runtime = build_runtime_with_aspects(
@@ -261,20 +277,25 @@ fn bridge_replay_detects_route_drift_after_restart_shaped_truth_change() {
         "bridge-replay-restart-drift",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 forge_foundational::facade::FieldKey::new("name".to_owned())
                     .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("commit-a")
     .declare_observation("route")
     .compile();
     let request = ExecutionRequest::target(
         "deliver-commit-a",
-        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+        BridgeHarnessTargetId::committed_route(
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        ),
     );
     let profile = ExecutionProfile::development("development");
 
@@ -300,9 +321,9 @@ fn bridge_replay_detects_route_drift_after_restart_shaped_truth_change() {
         "bridge-replay-restart-drift-rehydrated",
         BridgeHarnessFixture::new(vec![registration()])
             .with_committed_patch(committed_patch_items(
-                crate::facade::TruthCommitIdentity::new("commit-a"),
-                crate::facade::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 vec![
                     crate::facade::BridgeCommittedPatchItem::with_target(
                         "user",
@@ -334,7 +355,10 @@ fn bridge_replay_detects_route_drift_after_restart_shaped_truth_change() {
                     ),
                 ],
             ))
-            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
+            .with_snapshot(snapshot(
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("commit-a")
     .declare_observation("route")

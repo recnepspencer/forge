@@ -43,7 +43,7 @@ impl LoweredBridgeExecutionPolicy {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            policy_identity: LoweredExecutionPolicyIdentity::new(format!(
+            policy_identity: LoweredExecutionPolicyIdentity::admit_bridge_owned(format!(
                 "lowered-bridge-execution-policy:sha256:{digest:x}"
             )),
             contract_identity: contract.contract_identity().clone(),

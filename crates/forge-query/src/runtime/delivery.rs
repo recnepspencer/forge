@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::memory_workspace::{ForgeQueryMutationKind, ForgeQueryMutationReceipt};
+use crate::runtime::ForgeQueryMutationTargetCollectionIdentity;
 use crate::subscription::{
     advance_subscription_acknowledgement, build_active_delivery_work_packet,
     emit_query_delivery_batch, lower_query_subscription_maintenance_delta,
@@ -43,24 +45,24 @@ pub(super) struct ForgeQueryRuntimeLiveSubscriptionState {
 pub struct ForgeQueryRuntimeDeliveryBatch {
     pub(super) view_name: String,
     pub(super) authority_lane: ForgeQueryAuthorityLane,
-    pub(super) delivery_batch_digest: String,
-    pub(super) delivery_window_digest: String,
-    pub(super) consumer_attachment_digest: String,
+    pub(super) delivery_batch_identity: ForgeQueryEvidenceIdentity,
+    pub(super) delivery_window_identity: ForgeQueryEvidenceIdentity,
+    pub(super) consumer_attachment_identity: ForgeQueryEvidenceIdentity,
     pub(super) sequence: u64,
     pub(super) delivery_cause_kind: QuerySubscriptionDeliveryCauseKind,
-    pub(super) delivery_cause_digest: String,
+    pub(super) delivery_cause_identity: ForgeQueryEvidenceIdentity,
     pub(super) has_relational_patch: bool,
     pub(super) patch_group_kind: QueryPatchGroupKind,
-    pub(super) patch_group_digest: String,
+    pub(super) patch_group_identity: ForgeQueryEvidenceIdentity,
     pub(super) patch_group_width: u64,
     pub(super) mixed_cause_delivery: ForgeQueryRuntimeMixedCauseDelivery,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ForgeQueryRuntimeRetainedDelivery {
-    delivery_batch_digest: String,
+    delivery_batch_identity: ForgeQueryEvidenceIdentity,
     delivery_cause_kind: QuerySubscriptionDeliveryCauseKind,
-    delivery_cause_digest: String,
+    delivery_cause_identity: ForgeQueryEvidenceIdentity,
     has_relational_patch: bool,
     sequence: u64,
     mixed_cause_delivery: ForgeQueryRuntimeMixedCauseDelivery,
@@ -71,24 +73,24 @@ impl ForgeQueryRuntimeDeliveryBatch {
         Self {
             view_name: view_name.to_string(),
             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-            delivery_batch_digest: batch.delivery_batch_digest().to_string(),
-            delivery_window_digest: batch.delivery_window_digest().to_string(),
-            consumer_attachment_digest: batch.attachment_digest().as_str().to_string(),
+            delivery_batch_identity: batch.evidence_identity().clone(),
+            delivery_window_identity: batch.delivery_window_identity().clone(),
+            consumer_attachment_identity: batch.attachment_digest().evidence_identity().clone(),
             sequence: batch.sequence().get(),
             delivery_cause_kind: batch.delivery_cause_kind(),
-            delivery_cause_digest: batch.delivery_cause().delivery_cause_digest().to_string(),
+            delivery_cause_identity: batch.delivery_cause().delivery_cause_identity().clone(),
             has_relational_patch: batch.has_relational_patch(),
             patch_group_kind: batch.patch_group().kind(),
-            patch_group_digest: batch.patch_group().patch_group_digest().to_string(),
+            patch_group_identity: batch.patch_group().patch_group_identity().clone(),
             patch_group_width: batch.patch_group().width(),
             mixed_cause_delivery: if batch.has_relational_patch() {
                 ForgeQueryRuntimeMixedCauseDelivery::atomic_relational_patch(
-                    batch.delivery_cause().delivery_cause_digest(),
+                    batch.delivery_cause().delivery_cause_identity(),
                 )
             } else {
                 ForgeQueryRuntimeMixedCauseDelivery::atomic_time_only(
                     batch.delivery_cause_kind(),
-                    batch.delivery_cause().delivery_cause_digest(),
+                    batch.delivery_cause().delivery_cause_identity(),
                 )
             },
         }
@@ -102,16 +104,28 @@ impl ForgeQueryRuntimeDeliveryBatch {
         self.authority_lane
     }
 
-    pub fn delivery_batch_digest(&self) -> &str {
-        &self.delivery_batch_digest
+    pub fn delivery_batch_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_batch_identity
     }
 
-    pub fn delivery_window_digest(&self) -> &str {
-        &self.delivery_window_digest
+    pub fn delivery_batch_for_reporting(&self) -> &str {
+        self.delivery_batch_identity.as_str()
     }
 
-    pub fn consumer_attachment_digest(&self) -> &str {
-        &self.consumer_attachment_digest
+    pub fn delivery_window_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_window_identity
+    }
+
+    pub fn delivery_window_for_reporting(&self) -> &str {
+        self.delivery_window_identity.as_str()
+    }
+
+    pub fn consumer_attachment_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.consumer_attachment_identity
+    }
+
+    pub fn consumer_attachment_for_reporting(&self) -> &str {
+        self.consumer_attachment_identity.as_str()
     }
 
     pub fn sequence(&self) -> u64 {
@@ -122,8 +136,12 @@ impl ForgeQueryRuntimeDeliveryBatch {
         self.delivery_cause_kind
     }
 
-    pub fn delivery_cause_digest(&self) -> &str {
-        &self.delivery_cause_digest
+    pub fn delivery_cause_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_cause_identity
+    }
+
+    pub fn delivery_cause_for_reporting(&self) -> &str {
+        self.delivery_cause_identity.as_str()
     }
 
     pub fn has_relational_patch(&self) -> bool {
@@ -134,8 +152,12 @@ impl ForgeQueryRuntimeDeliveryBatch {
         self.patch_group_kind
     }
 
-    pub fn patch_group_digest(&self) -> &str {
-        &self.patch_group_digest
+    pub fn patch_group_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.patch_group_identity
+    }
+
+    pub fn patch_group_for_reporting(&self) -> &str {
+        self.patch_group_identity.as_str()
     }
 
     pub fn patch_group_width(&self) -> u64 {
@@ -150,25 +172,33 @@ impl ForgeQueryRuntimeDeliveryBatch {
 impl ForgeQueryRuntimeRetainedDelivery {
     pub(super) fn from_batch(batch: &ForgeQueryRuntimeDeliveryBatch) -> Self {
         Self {
-            delivery_batch_digest: batch.delivery_batch_digest().to_string(),
+            delivery_batch_identity: batch.delivery_batch_identity().clone(),
             delivery_cause_kind: batch.delivery_cause_kind(),
-            delivery_cause_digest: batch.delivery_cause_digest().to_string(),
+            delivery_cause_identity: batch.delivery_cause_identity().clone(),
             has_relational_patch: batch.has_relational_patch(),
             sequence: batch.sequence(),
             mixed_cause_delivery: batch.mixed_cause_delivery().clone(),
         }
     }
 
-    pub(super) fn delivery_batch_digest(&self) -> &str {
-        &self.delivery_batch_digest
+    pub(super) fn delivery_batch_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_batch_identity
+    }
+
+    pub(super) fn delivery_batch_for_reporting(&self) -> &str {
+        self.delivery_batch_identity.as_str()
     }
 
     pub(super) fn delivery_cause_kind(&self) -> QuerySubscriptionDeliveryCauseKind {
         self.delivery_cause_kind
     }
 
-    pub(super) fn delivery_cause_digest(&self) -> &str {
-        &self.delivery_cause_digest
+    pub(super) fn delivery_cause_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_cause_identity
+    }
+
+    pub(super) fn delivery_cause_for_reporting(&self) -> &str {
+        self.delivery_cause_identity.as_str()
     }
 
     pub(super) fn has_relational_patch(&self) -> bool {
@@ -235,13 +265,18 @@ pub(super) fn route_live_subscription_delivery(
                 continue;
             };
             let patch_width = delta.aspect_paths.len().max(1) as u64;
-            let maintenance_delta = QuerySubscriptionMaintenanceDelta::admitted(
+            let commit_evidence = receipt.commit_identity.evidence_identity();
+            let entity_evidence = delta.entity_identity.evidence_identity();
+            let collection_identity = ForgeQueryMutationTargetCollectionIdentity::new(
+                "live-subscription-maintenance-delta",
+                &delta.collection,
+            );
+            let maintenance_delta = QuerySubscriptionMaintenanceDelta::admitted_with_typed_scope(
                 delta_kind,
                 state.active_lane_handle.lane_digest().clone(),
-                format!(
-                    "{}:{}:{}",
-                    receipt.commit_identity, delta.collection, delta.entity_identity
-                ),
+                &commit_evidence,
+                collection_identity.evidence_identity(),
+                &entity_evidence,
                 MaintenanceDeltaWidth::measured(patch_width),
             );
             let (maintenance_delta, lowering_report, _) =
@@ -249,7 +284,7 @@ pub(super) fn route_live_subscription_delivery(
                     ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                         view_name: view_name.clone(),
                         stage: "delivery-delta-lowering",
-                        message: format!("{error:?}"),
+                        message: error.message().to_string(),
                     }
                 })?;
             let window = open_query_delivery_window(
@@ -261,7 +296,7 @@ pub(super) fn route_live_subscription_delivery(
                 |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                     view_name: view_name.clone(),
                     stage: "delivery-window",
-                    message: format!("{error:?}"),
+                    message: error.message().to_string(),
                 },
             )?;
             let work_packet = build_active_delivery_work_packet(
@@ -282,7 +317,7 @@ pub(super) fn route_live_subscription_delivery(
                 |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                     view_name: view_name.clone(),
                     stage: "delivery-work-packet",
-                    message: format!("{error:?}"),
+                    message: error.message().to_string(),
                 },
             )?;
             let batch = emit_query_delivery_batch(active_subscriptions, window, work_packet)
@@ -290,7 +325,7 @@ pub(super) fn route_live_subscription_delivery(
                     |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                         view_name: view_name.clone(),
                         stage: "delivery-batch",
-                        message: format!("{error:?}"),
+                        message: error.message().to_string(),
                     },
                 )?;
             let delivery_receipt = batch.receipt().clone();
@@ -309,7 +344,7 @@ pub(super) fn route_live_subscription_delivery(
                 |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
                     view_name: view_name.clone(),
                     stage: "delivery-acknowledgement",
-                    message: format!("{error:?}"),
+                    message: error.message().to_string(),
                 },
             )?;
             affected.push(view_name.clone());

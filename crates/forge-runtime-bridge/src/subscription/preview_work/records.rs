@@ -51,9 +51,10 @@ impl BridgeSubscriptionPreviewWorkRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            preview_work_record_identity: BridgeSubscriptionPreviewWorkRecordIdentity::new(
-                format!("bridge-subscription-preview-work-record-id:sha256:{digest:x}"),
-            ),
+            preview_work_record_identity:
+                BridgeSubscriptionPreviewWorkRecordIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-preview-work-record-id:sha256:{digest:x}"
+                )),
             preview_active_subscription_identity: preview_active
                 .preview_active_subscription_identity()
                 .clone(),
@@ -150,9 +151,10 @@ impl BridgeSubscriptionPreviewWorkTrace {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            preview_work_trace_identity: BridgeSubscriptionPreviewWorkTraceIdentity::new(format!(
-                "bridge-subscription-preview-work-trace-id:sha256:{digest:x}"
-            )),
+            preview_work_trace_identity:
+                BridgeSubscriptionPreviewWorkTraceIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-preview-work-trace-id:sha256:{digest:x}"
+                )),
             preview_active_subscription_identity: preview_active
                 .preview_active_subscription_identity()
                 .clone(),

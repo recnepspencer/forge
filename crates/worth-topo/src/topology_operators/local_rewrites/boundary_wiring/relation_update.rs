@@ -1,6 +1,6 @@
 use forge_query::facade::{
     ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthTargetBinding,
-    ForgeQueryMutationBatchBuilder,
+    ForgeQueryMutationAuthorityIdentity, ForgeQueryMutationBatchBuilder,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::platform::entities::TopologyEntityKind;
@@ -13,6 +13,9 @@ use crate::topology_operators::application::bindings::{
 use crate::topology_operators::application::{
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
+use crate::topology_operators::authority_identity::{
+    continuity_successor_relation_authority, existing_relation_authority,
+};
 use crate::topology_operators::local_rewrites::boundary_wiring::adjacency_support::single_incoming_relation_source_identity;
 use crate::topology_operators::topology_relation_dependency_path;
 use crate::topology_operators::{LoopEndpointKind, LoopSuccessorKind};
@@ -21,8 +24,8 @@ use crate::topology_operators::{LoopEndpointKind, LoopSuccessorKind};
 pub(crate) struct ResolvedLoopSuccessorRewire {
     pub(crate) binding: ForgeQueryExistingTruthTargetBinding,
     pub(crate) relation_kind: TopologyRelationKind,
-    pub(crate) authoritative_identity: String,
-    pub(crate) successor_authoritative_identity: String,
+    pub(crate) authoritative_identity: ForgeQueryMutationAuthorityIdentity,
+    pub(crate) successor_authoritative_identity: ForgeQueryMutationAuthorityIdentity,
     pub(crate) source_query_identity: String,
     pub(crate) current_target_query_identity: String,
     pub(crate) updated_target_query_identity: String,
@@ -61,7 +64,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 },
             );
         }
-        if relation_binding.source_query_identity != source_half_edge_binding.query_identity {
+        if relation_binding.source_query_identity != source_half_edge_binding.query_identity_label {
             return Err(
                 TopologyMutationApplicationError::ExistingRelationSourceMismatch {
                     relation_id,
@@ -88,13 +91,13 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let source_loop_identity = single_incoming_relation_source_identity(
             bindings,
             half_edge_id,
-            &source_half_edge_binding.query_identity,
+            &source_half_edge_binding.query_identity_label,
             TopologyRelationKind::LoopOwnsHalfEdge,
         )?;
         let target_loop_identity = single_incoming_relation_source_identity(
             bindings,
             successor_half_edge_id,
-            &target_half_edge_binding.query_identity,
+            &target_half_edge_binding.query_identity_label,
             TopologyRelationKind::LoopOwnsHalfEdge,
         )?;
         if source_loop_identity != target_loop_identity {
@@ -108,7 +111,9 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 },
             );
         }
-        let authoritative_identity = format!("{relation_id:?}");
+        let authoritative_identity = existing_relation_authority(relation_id)?;
+        let successor_authoritative_identity =
+            continuity_successor_relation_authority(relation_id)?;
         let binding = self.workspace.bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
                 authoritative_identity.clone(),
@@ -119,11 +124,11 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         Ok(ResolvedLoopSuccessorRewire {
             binding,
             relation_kind,
-            authoritative_identity: authoritative_identity.clone(),
-            successor_authoritative_identity: format!("{authoritative_identity}:successor"),
-            source_query_identity: source_half_edge_binding.query_identity,
+            authoritative_identity,
+            successor_authoritative_identity,
+            source_query_identity: source_half_edge_binding.query_identity_label,
             current_target_query_identity: relation_binding.target_query_identity,
-            updated_target_query_identity: target_half_edge_binding.query_identity,
+            updated_target_query_identity: target_half_edge_binding.query_identity_label,
             dependency_path: topology_relation_dependency_path(
                 schema::facade::platform::relations::RelationKind::Topology(relation_kind),
             ),
@@ -210,7 +215,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 },
             );
         }
-        if relation_binding.source_query_identity != half_edge_binding.query_identity {
+        if relation_binding.source_query_identity != half_edge_binding.query_identity_label {
             return Err(
                 TopologyMutationApplicationError::ExistingRelationSourceMismatch {
                     relation_id,
@@ -232,15 +237,15 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         }
         let binding = self.workspace.bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
+                existing_relation_authority(relation_id)?,
                 relation_binding.query_identity,
             )?
             .in_target_collection("TopologyRelation")?,
         )?;
-        let source_query_identity = half_edge_binding.query_identity;
+        let source_query_identity = half_edge_binding.query_identity_label;
         let verified_source_query_identity = source_query_identity.clone();
         let current_target_query_identity = relation_binding.target_query_identity;
-        let updated_target_query_identity = vertex_binding.query_identity;
+        let updated_target_query_identity = vertex_binding.query_identity_label;
         let dependency_path = topology_relation_dependency_path(
             schema::facade::platform::relations::RelationKind::Topology(endpoint.relation_kind()),
         );

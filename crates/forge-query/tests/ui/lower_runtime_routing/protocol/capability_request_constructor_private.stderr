@@ -11,6 +11,17 @@ error[E0624]: associated function `new` is private
   | |         route_kind: ForgeQueryLowerRuntimeRouteKind,
   | |         authority_owner: ForgeQueryLowerRuntimeAuthorityOwner,
   | |         capability_label: impl Into<String>,
-  | |         subject_digest: impl Into<String>,
+  | |         subject_identity: ForgeQueryLowerRuntimeSubjectIdentity,
   | |     ) -> Self {
   | |_____________- private associated function defined here
+
+warning: unreachable call
+  --> tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs:7:13
+   |
+ 7 |     let _ = ForgeQueryLowerRuntimeCapabilityRequest::new(
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable call
+...
+12 |         todo!(),
+   |         ------- any code following this expression is unreachable
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

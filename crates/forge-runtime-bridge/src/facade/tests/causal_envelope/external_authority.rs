@@ -4,11 +4,13 @@ use super::*;
 fn causal_envelope_binds_exact_bridge_records_and_external_authority_references() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route(crate::facade::TruthCommitIdentity::new("commit-causal"))
+        .route(crate::truth_identity_fixtures::truth_commit_fixture(
+            "commit-causal",
+        ))
         .expect("route should succeed");
     let evaluation = runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::new("analysis"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
         ))
         .expect("evaluation should succeed");
     let route_record = runtime
@@ -21,15 +23,21 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
         .expect("historical record should be retained");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
-            "query-admission:changed",
-            "causal-anchor:changed",
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "query-admission:changed",
+            ),
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "causal-anchor:changed",
+            ),
         )
         .expect("query admission summary should be valid"),
         vec![
             external_reference(
                 BridgeCausalEvidenceOwner::Query,
                 BridgeCausalEvidenceReferenceIdentity::query_observation(
-                    "query-observation:changed",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "query-observation:changed",
+                    ),
                 )
                 .expect("query observation reference identity should be valid"),
             ),
@@ -38,7 +46,9 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
             external_reference(
                 BridgeCausalEvidenceOwner::Relational,
                 BridgeCausalEvidenceReferenceIdentity::relational_authority(
-                    "relational-authority:commit-causal",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "relational-authority:commit-causal",
+                    ),
                 )
                 .expect("relational reference identity should be valid"),
             ),
@@ -46,7 +56,9 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalInvalidation,
-                    "signal-invalidation:commit-causal",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "signal-invalidation:commit-causal",
+                    ),
                 )
                 .expect("signal reference identity should be valid"),
             ),
@@ -54,7 +66,9 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalEvaluation,
-                    "signal-evaluation:commit-causal",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "signal-evaluation:commit-causal",
+                    ),
                 )
                 .expect("signal reference identity should be valid"),
             ),
@@ -62,7 +76,9 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalForensicAvailability,
-                    "signal-forensic:commit-causal",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "signal-forensic:commit-causal",
+                    ),
                 )
                 .expect("signal reference identity should be valid"),
             ),
@@ -70,7 +86,9 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalReplayCursor,
-                    "signal-replay-cursor:commit-causal",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "signal-replay-cursor:commit-causal",
+                    ),
                 )
                 .expect("signal reference identity should be valid"),
             ),
@@ -78,7 +96,9 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalLineage,
-                    "signal-lineage:commit-causal",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "signal-lineage:commit-causal",
+                    ),
                 )
                 .expect("signal reference identity should be valid"),
             ),
@@ -86,7 +106,9 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
                 BridgeCausalEvidenceOwner::Signal,
                 BridgeCausalEvidenceReferenceIdentity::signal(
                     BridgeCausalEvidenceFamily::SignalProvenance,
-                    "signal-provenance:commit-causal",
+                    crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                        "signal-provenance:commit-causal",
+                    ),
                 )
                 .expect("signal reference identity should be valid"),
             ),
@@ -136,7 +158,7 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
     ] {
         assert_signal_reference_binding(&envelope, family, identity);
     }
-    assert!(!envelope.envelope_digest().is_empty());
+    assert!(!envelope.envelope_for_reporting().is_empty());
 }
 
 fn assert_retained_route_binding(
@@ -154,14 +176,12 @@ fn assert_retained_route_binding(
         BridgeCausalEvidenceBindingClass::RetainedBridgeRecord
     );
     assert_eq!(
-        route_binding.retained_record_digest(),
+        route_binding.retained_record_digest_for_reporting(),
         Some(
             expected_retained_route_digest(
                 route_record.route_identity().as_str(),
                 route_record.invalidation_identity().as_str(),
                 route_record.source_commit().as_str(),
-                route_record.planning_summary_digest(),
-                route_record.lowering_summary_digest(),
             )
             .as_str()
         )
@@ -179,7 +199,7 @@ fn assert_retained_historical_binding(
         historical_record.record_identity().as_str(),
     );
     assert_eq!(
-        historical_binding.retained_record_digest(),
+        historical_binding.retained_record_digest_for_reporting(),
         Some(
             expected_retained_historical_digest(
                 historical_record.record_identity().as_str(),
@@ -221,7 +241,9 @@ fn signal_replay_cursor_reference_denies_runtime_bridge_owner_mismatch() {
         BridgeCausalEvidenceFamily::SignalReplayCursor,
         BridgeCausalEvidenceReferenceIdentity::signal(
             BridgeCausalEvidenceFamily::SignalReplayCursor,
-            "signal-replay-cursor:wrong-owner",
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(
+                "signal-replay-cursor:wrong-owner",
+            ),
         )
         .expect("signal reference identity should be valid"),
     )

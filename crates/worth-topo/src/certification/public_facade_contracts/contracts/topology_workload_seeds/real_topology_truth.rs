@@ -1,5 +1,3 @@
-use topology::facade::{TopologySeed, TopologySeedKind, TopologySeedTopologyPosture};
-
 #[test]
 fn topology_workload_seeds_build_real_topology_truth() {
     let cases = [

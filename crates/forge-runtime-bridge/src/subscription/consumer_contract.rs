@@ -135,9 +135,10 @@ impl BridgeSubscriptionSharingEligibilityWitness {
     fn new(canonical_basis: Arc<str>) -> Self {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            sharing_eligibility_identity: BridgeSubscriptionSharingEligibilityIdentity::new(
-                format!("bridge-subscription-sharing-eligibility-id:sha256:{digest:x}"),
-            ),
+            sharing_eligibility_identity:
+                BridgeSubscriptionSharingEligibilityIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-sharing-eligibility-id:sha256:{digest:x}"
+                )),
             canonical_basis,
             digest: Arc::from(format!(
                 "bridge-subscription-sharing-eligibility:sha256:{digest:x}"
@@ -209,9 +210,10 @@ impl BridgeSubscriptionConsumerContract {
         let sharing_eligibility =
             BridgeSubscriptionSharingEligibilityWitness::new(canonical_basis.clone());
         Ok(Self {
-            consumer_contract_identity: BridgeSubscriptionConsumerContractIdentity::new(format!(
-                "bridge-subscription-consumer-contract-id:sha256:{digest:x}"
-            )),
+            consumer_contract_identity:
+                BridgeSubscriptionConsumerContractIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-consumer-contract-id:sha256:{digest:x}"
+                )),
             family,
             pacing_capability,
             backpressure_posture,

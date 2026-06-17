@@ -49,8 +49,8 @@ impl ValidatedSourceDeclaration {
 #[cfg(test)]
 mod tests {
     use super::ValidatedSourceDeclaration;
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::source::{
         AdmittedSourceRegistry, BridgeSourceCapability, BridgeSourceCapabilitySet,
         SourceDeclaration, SourceDeclarationIdentity,
@@ -59,10 +59,10 @@ mod tests {
     #[test]
     fn validated_source_declaration_is_canonical_for_same_inputs() {
         let declaration = SourceDeclaration::new(
-            SourceDeclarationIdentity::new("source:profile"),
+            SourceDeclarationIdentity::admit_bridge_owned("source:profile"),
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
         );

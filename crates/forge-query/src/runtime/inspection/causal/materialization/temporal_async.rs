@@ -1,10 +1,13 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 use super::super::admission::{
     AdmittedCausalInspection, AdvisoryCausalInspection, DeniedCausalInspection,
 };
 use super::super::inventory::CausalEvidenceFamily;
 use super::super::receipt_types::{CausalInspectionReason, CausalObservationOutcome};
+use forge_runtime_bridge::facade::BridgeCausalEvidenceFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QueryCausalTemporalAsyncExplanationKind {
@@ -40,7 +43,7 @@ pub struct QueryCausalTemporalAsyncExplanation {
     observation_outcome: CausalObservationOutcome,
     evidence_families: Vec<CausalEvidenceFamily>,
     offline_explainable: bool,
-    explanation_digest: String,
+    explanation_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QueryCausalTemporalAsyncExplanation {
@@ -48,34 +51,42 @@ impl QueryCausalTemporalAsyncExplanation {
         inspection_reason: CausalInspectionReason,
         observation_outcome: CausalObservationOutcome,
         evidence_families: &[CausalEvidenceFamily],
-        bridge_denial_family: Option<&str>,
+        bridge_denial_family: Option<BridgeCausalEvidenceFamily>,
     ) -> Self {
         let mut evidence_families = evidence_families.to_vec();
         evidence_families.sort();
         evidence_families.dedup();
         let flags = EvidenceFlags::from_families(&evidence_families, bridge_denial_family);
         let kind = classify_kind(inspection_reason, &flags);
-        let family_part = evidence_families
-            .iter()
-            .map(CausalEvidenceFamily::as_str)
-            .collect::<Vec<_>>()
-            .join("|");
         let offline_explainable = kind != QueryCausalTemporalAsyncExplanationKind::Generic;
-        let explanation_digest = hash_parts(&[
-            "query_causal_temporal_async_explanation_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("reason:{}", inspection_reason.as_str()),
-            format!("outcome:{}", observation_outcome.as_str()),
-            format!("families:{family_part}"),
-            format!("offline:{offline_explainable}"),
-        ]);
+        let explanation_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalInspectionArtifact)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "temporal-async-explanation",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("reason"),
+                    inspection_reason.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("outcome"),
+                    observation_outcome.as_str(),
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("family"),
+                    evidence_families.iter().map(CausalEvidenceFamily::as_str),
+                )
+                .field_bool(ForgeQueryEvidenceTag::new("offline"), offline_explainable)
+                .seal();
         Self {
             kind,
             inspection_reason,
             observation_outcome,
             evidence_families,
             offline_explainable,
-            explanation_digest,
+            explanation_identity,
         }
     }
 
@@ -100,7 +111,11 @@ impl QueryCausalTemporalAsyncExplanation {
     }
 
     pub fn explanation_digest(&self) -> &str {
-        &self.explanation_digest
+        self.explanation_identity.as_str()
+    }
+
+    pub fn explanation_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.explanation_identity
     }
 }
 
@@ -128,7 +143,7 @@ pub(in crate::runtime) fn project_advisory_temporal_async_explanation(
 
 pub(in crate::runtime) fn project_denied_temporal_async_explanation(
     inspection: &DeniedCausalInspection,
-    bridge_denial_family: Option<&str>,
+    bridge_denial_family: Option<BridgeCausalEvidenceFamily>,
 ) -> QueryCausalTemporalAsyncExplanation {
     QueryCausalTemporalAsyncExplanation::project(
         inspection.subject().inspection_reason(),
@@ -151,7 +166,7 @@ struct EvidenceFlags {
 impl EvidenceFlags {
     fn from_families(
         families: &[CausalEvidenceFamily],
-        bridge_denial_family: Option<&str>,
+        bridge_denial_family: Option<BridgeCausalEvidenceFamily>,
     ) -> Self {
         let has = |family| families.iter().any(|candidate| *candidate == family);
         Self {
@@ -162,7 +177,7 @@ impl EvidenceFlags {
                 || has(CausalEvidenceFamily::SignalReplayCursor),
             preview: has(CausalEvidenceFamily::BridgePreview),
             stale_failure: has(CausalEvidenceFamily::BridgeSourceFailure)
-                || bridge_denial_family == Some(CausalEvidenceFamily::BridgeSourceFailure.as_str()),
+                || bridge_denial_family == Some(BridgeCausalEvidenceFamily::BridgeSourceFailure),
             continuity: has(CausalEvidenceFamily::BridgeContinuity)
                 || has(CausalEvidenceFamily::BridgeStream)
                 || has(CausalEvidenceFamily::SignalReplayCursor),

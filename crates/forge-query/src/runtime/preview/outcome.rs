@@ -2,14 +2,18 @@ use super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryPreviewDiff {
-    pub(super) label: String,
+    pub(super) session_label: ForgeQuerySessionLabel,
     pub(super) write_count: usize,
     pub(super) changed_entity_count: usize,
 }
 
 impl ForgeQueryPreviewDiff {
     pub fn label(&self) -> &str {
-        &self.label
+        self.session_label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
+        &self.session_label
     }
 
     pub fn write_count(&self) -> usize {
@@ -23,7 +27,7 @@ impl ForgeQueryPreviewDiff {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryPreviewOutcome {
-    pub(super) label: String,
+    pub(super) session_label: ForgeQuerySessionLabel,
     pub(super) effect_policy: ForgeQueryEffectPolicy,
     pub(super) promoted: bool,
     pub(super) discarded: bool,
@@ -40,7 +44,11 @@ pub struct ForgeQueryPreviewOutcome {
 
 impl ForgeQueryPreviewOutcome {
     pub fn label(&self) -> &str {
-        &self.label
+        self.session_label.display()
+    }
+
+    pub fn session_label(&self) -> &ForgeQuerySessionLabel {
+        &self.session_label
     }
 
     pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {

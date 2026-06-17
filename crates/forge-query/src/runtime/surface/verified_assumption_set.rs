@@ -1,4 +1,8 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,9 +23,15 @@ impl ForgeQueryVerificationReadSetBreadth {
     ) -> Self {
         let distinct_asserted_aspect_path_count =
             asserted_aspect_paths.iter().collect::<BTreeSet<_>>().len();
-        let counter_snapshot = format!(
-            "target_bindings={target_binding_count};asserted_aspects={asserted_aspect_count};distinct_asserted_aspect_paths={distinct_asserted_aspect_path_count};cleared_assertions={cleared_assertion_count}"
-        );
+        let counter_snapshot = diagnostic_counter_snapshot(&[
+            ("target_bindings", target_binding_count),
+            ("asserted_aspects", asserted_aspect_count),
+            (
+                "distinct_asserted_aspect_paths",
+                distinct_asserted_aspect_path_count,
+            ),
+            ("cleared_assertions", cleared_assertion_count),
+        ]);
         Self {
             target_binding_count,
             asserted_aspect_count,
@@ -52,68 +62,114 @@ impl ForgeQueryVerificationReadSetBreadth {
     }
 }
 
+fn diagnostic_counter_snapshot(fields: &[(&str, usize)]) -> String {
+    let mut snapshot = String::new();
+    for (index, (label, value)) in fields.iter().enumerate() {
+        if index > 0 {
+            snapshot.push(';');
+        }
+        snapshot.push_str(label);
+        snapshot.push('=');
+        snapshot.push_str(&value.to_string());
+    }
+    snapshot
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryVerifiedAssumptionSet {
-    binding_digest: String,
+    binding_digest: ForgeQueryEvidenceIdentity,
     asserted_aspect_paths: Vec<String>,
-    assumption_snapshot_token: String,
-    assumption_snapshot_digest: String,
-    verified_precondition_digest: String,
+    assumption_snapshot_identity: ForgeQuerySnapshotIdentity,
+    assumption_snapshot_evidence_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
+    assumption_snapshot_digest: ForgeQueryEvidenceIdentity,
+    verified_precondition_digest: ForgeQueryEvidenceIdentity,
     verification_read_set_breadth: ForgeQueryVerificationReadSetBreadth,
-    verified_assumption_digest: String,
+    verified_assumption_digest: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryVerifiedAssumptionSet {
     pub(in crate::runtime) fn new(
-        binding_digest: impl Into<String>,
+        binding_digest: ForgeQueryEvidenceIdentity,
         asserted_aspect_paths: Vec<String>,
-        assumed_value_fragments: Vec<String>,
+        assumed_value_fragments: Vec<ForgeQueryEvidenceIdentity>,
         cleared_assertion_count: usize,
-        snapshot_token: &str,
+        snapshot_identity: ForgeQuerySnapshotIdentity,
     ) -> Self {
-        let binding_digest = binding_digest.into();
-        let assumption_snapshot_token = snapshot_token.to_string();
+        let assumption_snapshot_evidence_identity = snapshot_identity.evidence_identity();
         let verification_read_set_breadth = ForgeQueryVerificationReadSetBreadth::new(
             1,
             asserted_aspect_paths.len(),
             &asserted_aspect_paths,
             cleared_assertion_count,
         );
-        let assumption_snapshot_digest = hash_parts(&[
-            "forge_query_existing_truth_assumption_snapshot_v1".to_string(),
-            format!("binding:{binding_digest}"),
-            format!("snapshot:{assumption_snapshot_token}"),
-        ]);
-        let verified_precondition_digest = hash_parts(
-            &std::iter::once("forge_query_existing_truth_verified_precondition_v1".to_string())
-                .chain(std::iter::once(format!(
-                    "assumption-snapshot:{assumption_snapshot_digest}"
-                )))
-                .chain(assumed_value_fragments)
-                .collect::<Vec<_>>(),
-        );
-        let verified_assumption_digest = hash_parts(&[
-            "forge_query_existing_truth_verified_assumption_set_v1".to_string(),
-            format!("binding:{binding_digest}"),
-            format!("assumption-snapshot:{assumption_snapshot_digest}"),
-            format!("precondition:{verified_precondition_digest}"),
-            format!(
-                "paths:{}",
-                if asserted_aspect_paths.is_empty() {
-                    "none".to_string()
-                } else {
-                    asserted_aspect_paths.join("|")
-                }
-            ),
-            format!(
-                "read-set:{}",
-                verification_read_set_breadth.counter_snapshot()
-            ),
-        ]);
+        let assumption_snapshot_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "existing-truth-assumption-snapshot",
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_digest)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("snapshot"),
+                    &assumption_snapshot_evidence_identity,
+                )
+                .seal();
+        let verified_precondition_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "existing-truth-verified-precondition",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("assumption_snapshot"),
+                    &assumption_snapshot_digest,
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("assumed_value"),
+                    assumed_value_fragments.iter(),
+                )
+                .seal();
+        let verified_assumption_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("role"),
+                    "existing-truth-verified-assumption-set",
+                )
+                .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_digest)
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("assumption_snapshot"),
+                    &assumption_snapshot_digest,
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("precondition"),
+                    &verified_precondition_digest,
+                )
+                .field_value_sequence(
+                    ForgeQueryEvidenceTag::new("asserted_aspect_path"),
+                    asserted_aspect_paths.iter().map(String::as_str),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("target_binding_count"),
+                    verification_read_set_breadth.target_binding_count(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("asserted_aspect_count"),
+                    verification_read_set_breadth.asserted_aspect_count(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("distinct_asserted_aspect_path_count"),
+                    verification_read_set_breadth.distinct_asserted_aspect_path_count(),
+                )
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("cleared_assertion_count"),
+                    verification_read_set_breadth.cleared_assertion_count(),
+                )
+                .seal();
         Self {
             binding_digest,
             asserted_aspect_paths,
-            assumption_snapshot_token,
+            assumption_snapshot_identity: snapshot_identity,
+            assumption_snapshot_evidence_identity,
             assumption_snapshot_digest,
             verified_precondition_digest,
             verification_read_set_breadth,
@@ -122,6 +178,10 @@ impl ForgeQueryVerifiedAssumptionSet {
     }
 
     pub fn binding_digest(&self) -> &str {
+        self.binding_digest.as_str()
+    }
+
+    pub fn binding_evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.binding_digest
     }
 
@@ -130,14 +190,27 @@ impl ForgeQueryVerifiedAssumptionSet {
     }
 
     pub fn assumption_snapshot_token(&self) -> &str {
-        &self.assumption_snapshot_token
+        self.assumption_snapshot_evidence_identity
+            .reporting_projection()
+    }
+
+    pub fn assumption_snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.assumption_snapshot_identity
     }
 
     pub fn assumption_snapshot_digest(&self) -> &str {
+        self.assumption_snapshot_digest.as_str()
+    }
+
+    pub fn assumption_snapshot_evidence_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.assumption_snapshot_digest
     }
 
     pub fn verified_precondition_digest(&self) -> &str {
+        self.verified_precondition_digest.as_str()
+    }
+
+    pub fn verified_precondition_evidence_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.verified_precondition_digest
     }
 
@@ -146,6 +219,10 @@ impl ForgeQueryVerifiedAssumptionSet {
     }
 
     pub fn verified_assumption_digest(&self) -> &str {
+        self.verified_assumption_digest.as_str()
+    }
+
+    pub fn verified_assumption_evidence_digest(&self) -> &ForgeQueryEvidenceIdentity {
         &self.verified_assumption_digest
     }
 }

@@ -1,17 +1,22 @@
 use super::super::*;
-use super::authority::build_bridge_authority_bundle;
 use super::state::StatefulBridgeState;
 use super::verification::{probe_existing_truth, verify_existing_truth_assertion};
 use super::writes::{apply_command, external_row_text};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::runtime::backend::build_bridge_authority_bundle;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::declarative_live::DeclarativeLiveViewShape;
 use crate::memory_workspace::{
-    ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationDelta,
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryLivePatch,
+    ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQuerySnapshotIdentity,
 };
 use crate::subscription::SubscriptionActivationInput;
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
 type SharedState = Rc<RefCell<StatefulBridgeState>>;
 
@@ -35,6 +40,18 @@ impl StatefulBridgeRuntimeBackend {
 impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
     fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile {
         self.support_profile.clone()
+    }
+
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        let state = self.state.borrow();
+        ForgeQuerySnapshotIdentity::preview(
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::RuntimeStateSnapshot)
+                .field_usize(
+                    ForgeQueryEvidenceTag::new("stateful_bridge_snapshot_sequence"),
+                    state.next_snapshot_token,
+                )
+                .seal(),
+        )
     }
 
     fn admit_live_view_declaration(
@@ -73,60 +90,90 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                     .and_then(|binding| binding.target_collection().map(str::to_string))
             })
             .or_else(|| {
-                command
-                    .declared_entity_identity_ref()
-                    .and_then(|identity| state.collection_by_identity.get(identity).cloned())
+                command.declared_entity_identity_ref().and_then(|identity| {
+                    state
+                        .collection_by_identity
+                        .get(&identity.terminal_projection_for_reporting())
+                        .cloned()
+                })
             })
             .ok_or_else(|| {
                 ForgeQueryWorkspaceError::new("stateful bridge could not resolve collection")
             })?;
-        let entity_identity = match command.mutation_family() {
+        let (entity_identity, entity_identity_text) = match command.mutation_family() {
             ForgeQueryMutationFamily::Insert => {
                 state.next_entity_identity += 1;
-                format!("stateful-bridge-entity-{}", state.next_entity_identity)
+                let identity = ForgeQueryEntityIdentity::from_relational_record(
+                    RelationalBridgeRecordIdentityParts::entity(
+                        1,
+                        state.next_entity_identity as u64,
+                        0,
+                    ),
+                );
+                let identity_text = identity.terminal_projection_for_reporting();
+                (identity, identity_text)
             }
-            _ => command
-                .declared_entity_identity_ref()
-                .map(str::to_string)
-                .or_else(|| {
-                    command
-                        .existing_truth_binding()
-                        .map(|binding| binding.resolved_target_identity().to_string())
-                })
-                .or_else(|| {
-                    command.symbolic_target_reference().and_then(|reference| {
-                        state.identity_by_symbol.get(reference.symbol()).cloned()
+            _ => {
+                let identity = command
+                    .declared_entity_identity_ref()
+                    .cloned()
+                    .or_else(|| {
+                        command
+                            .existing_truth_binding()
+                            .map(|binding| binding.resolved_target_identity().clone())
                     })
-                })
-                .ok_or_else(|| {
-                    ForgeQueryWorkspaceError::new(
-                        "stateful bridge could not resolve target entity identity",
-                    )
-                })?,
+                    .or_else(|| {
+                        command.symbolic_target_reference().and_then(|reference| {
+                            state.identity_by_symbol.get(reference.symbol()).cloned()
+                        })
+                    })
+                    .ok_or_else(|| {
+                        ForgeQueryWorkspaceError::new(
+                            "stateful bridge could not resolve target entity identity",
+                        )
+                    })?;
+                let identity_text = command
+                    .symbolic_target_reference()
+                    .and_then(|reference| state.identity_text_by_symbol.get(reference.symbol()))
+                    .cloned()
+                    .unwrap_or_else(|| identity.terminal_projection_for_reporting());
+                (identity, identity_text)
+            }
         };
-        let mutation_kind = apply_command(&mut state, &command, &collection, &entity_identity)?;
+        let mutation_kind = apply_command(
+            &mut state,
+            &command,
+            &collection,
+            &entity_identity,
+            &entity_identity_text,
+        )?;
         state.next_commit_identity += 1;
         state.next_snapshot_token += 1;
-        let snapshot_token = format!("stateful-bridge-snapshot:{}", state.next_snapshot_token);
-        let bridge_authority = Some(build_bridge_authority_bundle(
+        let commit_identity =
+            ForgeQueryCommitIdentity::from_relational_commit_id(state.next_commit_identity as u64);
+        let snapshot_identity = ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts::new(
+                1,
+                state.next_snapshot_token as u64,
+            ),
+        );
+        let bridge_authority = build_bridge_authority_bundle(
             &state.bridge,
-            &snapshot_token,
+            &snapshot_identity,
             &command,
             &collection,
             &entity_identity,
             mutation_kind.clone(),
-        )?);
-        Ok(ForgeQueryMutationReceipt {
-            commit_identity: format!("stateful-bridge-commit-{}", state.next_commit_identity),
-            snapshot_token,
-            deltas: vec![ForgeQueryMutationDelta {
-                collection,
-                entity_identity,
-                kind: mutation_kind,
-                aspect_paths: command.declared_aspect_paths(),
-            }],
+        )?;
+        Ok(test_mutation_receipt_with_bridge_authority(
+            commit_identity,
+            snapshot_identity,
+            collection,
+            entity_identity,
+            mutation_kind,
+            command.declared_aspect_paths(),
             bridge_authority,
-        })
+        ))
     }
 
     fn write_batch(
@@ -154,16 +201,17 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                 ));
             }
         }
-        let Some(actual_collection) = state
-            .collection_by_identity
-            .get(binding.resolved_target_identity())
+        let resolved_target_identity = binding
+            .resolved_target_identity()
+            .terminal_projection_for_reporting();
+        let Some(actual_collection) = state.collection_by_identity.get(&resolved_target_identity)
         else {
             return Err(ForgeQueryExistingTruthBindingDenial::new(
                 binding,
                 ForgeQueryExistingTruthBindingDenialKind::ResolvedTargetMissing,
                 format!(
                     "resolved target `{}` is not present in authoritative truth",
-                    binding.resolved_target_identity()
+                    resolved_target_identity
                 ),
             ));
         };
@@ -174,7 +222,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
                     ForgeQueryExistingTruthBindingDenialKind::CollectionMismatch,
                     format!(
                         "resolved target `{}` belongs to collection `{actual_collection}`, not `{expected_collection}`",
-                        binding.resolved_target_identity()
+                        resolved_target_identity
                     ),
                 ));
             }
@@ -188,12 +236,9 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         aspects: &[ForgeQueryAspectValue],
     ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
     {
-        verify_existing_truth_assertion(
-            &self.state.borrow(),
-            binding,
-            aspects,
-            &self.snapshot_token(),
-        )
+        let state = self.state.borrow();
+        let snapshot_identity = self.current_snapshot_identity();
+        verify_existing_truth_assertion(&state, binding, aspects, snapshot_identity)
     }
 
     fn probe_existing_truth(
@@ -220,7 +265,16 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         };
         rows.iter()
             .map(|(identity, external_row)| {
-                ForgeQueryEntity::from_external_projection(identity.clone(), external_row.clone())
+                ForgeQueryEntity::from_external_projection(
+                    state
+                        .identity_by_storage_key
+                        .get(identity)
+                        .cloned()
+                        .unwrap_or_else(|| {
+                            crate::memory_workspace::admit_authored_entity_label(identity)
+                        }),
+                    external_row.clone(),
+                )
             })
             .collect()
     }
@@ -245,13 +299,6 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         affected.sort();
         affected.dedup();
         affected
-    }
-
-    fn snapshot_token(&self) -> String {
-        format!(
-            "stateful-bridge-snapshot:{}",
-            self.state.borrow().next_snapshot_token
-        )
     }
 
     fn install_live_subscription(

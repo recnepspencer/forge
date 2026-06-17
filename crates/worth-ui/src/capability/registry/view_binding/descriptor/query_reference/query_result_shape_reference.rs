@@ -19,7 +19,12 @@ impl QueryResultShapeReference {
     pub fn from_canonical_result_shape(artifact: &CanonicalResultShapeArtifact) -> Self {
         Self {
             family: artifact.family().clone(),
-            artifact_digest: Some(artifact.digest().as_str().to_string()),
+            artifact_digest: Some(
+                artifact
+                    .result_shape_identity()
+                    .terminal_projection_for_reporting()
+                    .to_string(),
+            ),
         }
     }
 
@@ -29,7 +34,12 @@ impl QueryResultShapeReference {
     ) -> Self {
         Self {
             family,
-            artifact_digest: Some(artifact.digest().as_str().to_string()),
+            artifact_digest: Some(
+                artifact
+                    .validated_result_shape_identity()
+                    .terminal_projection_for_reporting()
+                    .to_string(),
+            ),
         }
     }
 

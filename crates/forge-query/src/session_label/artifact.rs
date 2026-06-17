@@ -21,6 +21,20 @@ impl PartialEq for ForgeQuerySessionLabel {
 
 impl Eq for ForgeQuerySessionLabel {}
 
+impl PartialOrd for ForgeQuerySessionLabel {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ForgeQuerySessionLabel {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.namespace
+            .cmp(&other.namespace)
+            .then_with(|| self.name_segments.cmp(&other.name_segments))
+    }
+}
+
 impl std::hash::Hash for ForgeQuerySessionLabel {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.namespace.hash(state);

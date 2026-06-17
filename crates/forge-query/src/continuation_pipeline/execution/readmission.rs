@@ -6,12 +6,18 @@ use crate::application::{
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
 };
 use crate::basis_lifecycle::LowerRuntimeEvidenceAuthority;
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
+use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQuerySnapshotIdentity};
 
 use crate::continuation_pipeline::readmission::{
-    ForgeQueryPreparedContinuationAuthorityWitness, ForgeQueryPreparedContinuationBasisKind,
-    ForgeQueryPreparedContinuationBasisWitness, ForgeQueryPreparedContinuationDriftKind,
-    ForgeQueryPreparedContinuationExecutionReadmission,
+    continuation_readmission_basis_identity,
+    continuation_readmission_lower_runtime_binding_identity,
+    continuation_readmission_source_basis_identity, ForgeQueryPreparedContinuationAuthorityWitness,
+    ForgeQueryPreparedContinuationBasisKind, ForgeQueryPreparedContinuationBasisWitness,
+    ForgeQueryPreparedContinuationDriftKind, ForgeQueryPreparedContinuationExecutionReadmission,
     ForgeQueryPreparedContinuationFreshnessPosture,
 };
 use crate::continuation_pipeline::ForgeQueryPreparedContinuation;
@@ -19,8 +25,8 @@ use crate::continuation_pipeline::ForgeQueryPreparedContinuation;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ForgeQueryPreparedContinuationCurrentReadmissionEvidence {
     authority: LowerRuntimeEvidenceAuthority,
-    basis_identity_digest: String,
-    lower_runtime_binding_digest: Option<String>,
+    basis_identity: ForgeQueryEvidenceIdentity,
+    lower_runtime_binding_identity: Option<ForgeQueryEvidenceIdentity>,
     freshness_posture: ForgeQueryPreparedContinuationFreshnessPosture,
     drift_kind: Option<ForgeQueryPreparedContinuationDriftKind>,
     evidence_digest: String,
@@ -29,16 +35,16 @@ pub(crate) struct ForgeQueryPreparedContinuationCurrentReadmissionEvidence {
 impl ForgeQueryPreparedContinuationCurrentReadmissionEvidence {
     fn new(
         authority: LowerRuntimeEvidenceAuthority,
-        basis_identity_digest: String,
-        lower_runtime_binding_digest: Option<String>,
+        basis_identity: ForgeQueryEvidenceIdentity,
+        lower_runtime_binding_identity: Option<ForgeQueryEvidenceIdentity>,
         freshness_posture: ForgeQueryPreparedContinuationFreshnessPosture,
         drift_kind: Option<ForgeQueryPreparedContinuationDriftKind>,
         evidence_digest: String,
     ) -> Self {
         Self {
             authority,
-            basis_identity_digest,
-            lower_runtime_binding_digest,
+            basis_identity,
+            lower_runtime_binding_identity,
             freshness_posture,
             drift_kind,
             evidence_digest,
@@ -90,25 +96,40 @@ pub(crate) fn current_readmission_evidence_from_handle<
         .continuation_execution_readmission_observation(retained, handle.support_snapshot());
     ForgeQueryPreparedContinuationCurrentReadmissionEvidence::new(
         observation.authority(),
-        observation.basis_identity_digest().to_string(),
-        observation
-            .lower_runtime_binding_digest()
-            .map(str::to_string),
+        observation.basis_identity().clone(),
+        observation.lower_runtime_binding_identity().cloned(),
         observation.freshness_posture(),
         observation.drift_kind(),
-        hash_parts(&[
-            "forge_query_continuation_execution_readmission_v1".to_string(),
-            handle.handle_identity_digest().to_string(),
-            handle.support_snapshot().snapshot_digest().to_string(),
-            format!("basis:{}", observation.basis_identity_digest()),
-            format!(
-                "drift:{}",
-                observation
-                    .drift_kind()
-                    .map(|kind| kind.as_str())
-                    .unwrap_or("none")
-            ),
-        ]),
+        forge_query_evidence_identity(
+            ForgeQueryEvidenceScope::ContinuationExecutionReadmissionEvidence,
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("handle"),
+            handle.handle_identity_digest(),
+        )
+        .field_value(
+            ForgeQueryEvidenceTag::new("support_snapshot"),
+            handle.support_snapshot().snapshot_digest(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("basis"),
+            observation.basis_identity(),
+        )
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("lower_runtime_binding"),
+            observation.lower_runtime_binding_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("freshness"),
+            observation.freshness_posture().as_str(),
+        )
+        .optional_shape(
+            ForgeQueryEvidenceTag::new("drift"),
+            observation.drift_kind().map(|kind| kind.as_str()),
+        )
+        .seal()
+        .as_str()
+        .to_string(),
     )
 }
 
@@ -163,9 +184,9 @@ pub(crate) fn validate_execution_readmission<
 
     let retained = prepared.execution_readmission();
     let witness = retained.basis_witness();
-    if current.basis_identity_digest != witness.basis_identity_digest()
-        || current.lower_runtime_binding_digest.as_deref()
-            != witness.expected_lower_runtime_binding_digest()
+    if &current.basis_identity != witness.basis_identity()
+        || current.lower_runtime_binding_identity.as_ref()
+            != witness.expected_lower_runtime_binding_identity()
     {
         return Err(
             ForgeQueryPreparedContinuationExecutionReadmissionDenial::BasisMismatch(
@@ -199,10 +220,11 @@ fn basis_witness_from_binding(
 ) -> ForgeQueryPreparedContinuationBasisWitness {
     match binding {
         ForgeQueryDeclarationBridgeBinding::RuntimeRoute(request) => {
+            let commit_identity = bridge_commit_evidence_identity(request.commit_identity());
             ForgeQueryPreparedContinuationBasisWitness::new(
                 ForgeQueryPreparedContinuationBasisKind::Current,
-                request.commit_identity().to_string(),
-                Some(request.commit_identity().to_string()),
+                commit_identity.clone(),
+                Some(commit_identity),
                 None,
             )
         }
@@ -218,24 +240,23 @@ fn basis_witness_from_binding(
                     ForgeQueryPreparedContinuationBasisKind::PreviewDerived
                 }
             };
+            let selector_identity =
+                continuation_readmission_basis_identity(kind, request.selector().digest());
             ForgeQueryPreparedContinuationBasisWitness::new(
                 kind,
-                request.selector().digest().to_string(),
-                Some(request.selector().digest().to_string()),
+                selector_identity.clone(),
+                Some(continuation_readmission_lower_runtime_binding_identity(
+                    request.selector().digest(),
+                )),
                 request
                     .selector()
                     .snapshot_identity()
-                    .map(
-                        |identity: &forge_runtime_bridge::facade::TruthSnapshotIdentity| {
-                            identity.as_str().to_string()
-                        },
-                    )
+                    .map(bridge_snapshot_evidence_identity)
                     .or_else(|| {
-                        request.selector().commit_identity().map(
-                            |identity: &forge_runtime_bridge::facade::TruthCommitIdentity| {
-                                identity.as_str().to_string()
-                            },
-                        )
+                        request
+                            .selector()
+                            .commit_identity()
+                            .map(bridge_commit_evidence_identity)
                     }),
             )
         }
@@ -243,44 +264,79 @@ fn basis_witness_from_binding(
             let declaration = request.declaration();
             ForgeQueryPreparedContinuationBasisWitness::new(
                 ForgeQueryPreparedContinuationBasisKind::PreviewDerived,
-                declaration.digest().to_string(),
-                Some(declaration.truth_view_basis_digest().to_string()),
-                Some(declaration.truth_view_basis_digest().to_string()),
+                continuation_readmission_basis_identity(
+                    ForgeQueryPreparedContinuationBasisKind::PreviewDerived,
+                    declaration.digest(),
+                ),
+                Some(continuation_readmission_lower_runtime_binding_identity(
+                    declaration.truth_view_basis_digest(),
+                )),
+                Some(continuation_readmission_source_basis_identity(
+                    declaration.truth_view_basis_digest(),
+                )),
             )
         }
         ForgeQueryDeclarationBridgeBinding::PreviewPromotion(binding) => {
             ForgeQueryPreparedContinuationBasisWitness::new(
                 ForgeQueryPreparedContinuationBasisKind::PreviewDerived,
-                binding.promotion_continuation_digest().to_string(),
-                Some(binding.preview_basis_digest().to_string()),
-                Some(binding.declaration_digest().to_string()),
+                continuation_readmission_basis_identity(
+                    ForgeQueryPreparedContinuationBasisKind::PreviewDerived,
+                    binding.promotion_continuation_digest(),
+                ),
+                Some(continuation_readmission_lower_runtime_binding_identity(
+                    binding.preview_basis_digest(),
+                )),
+                Some(continuation_readmission_source_basis_identity(
+                    binding.declaration_digest(),
+                )),
             )
         }
         ForgeQueryDeclarationBridgeBinding::SubscriptionPreparation(request) => {
+            let basis_kind = basis_kind_for_truth_context(bridge_request.truth_context());
             ForgeQueryPreparedContinuationBasisWitness::new(
-                basis_kind_for_truth_context(bridge_request.truth_context()),
-                request.authority_digest().to_string(),
-                Some(request.authority_digest().to_string()),
+                basis_kind,
+                continuation_readmission_basis_identity(basis_kind, request.authority_digest()),
+                Some(continuation_readmission_lower_runtime_binding_identity(
+                    request.authority_digest(),
+                )),
                 request
                     .child_basis_digests()
                     .first()
-                    .map(|digest| digest.as_ref().to_string()),
+                    .map(|digest| continuation_readmission_source_basis_identity(digest.as_ref())),
             )
         }
         ForgeQueryDeclarationBridgeBinding::WritebackPreparation(request) => {
+            let basis_kind = basis_kind_for_truth_context(bridge_request.truth_context());
             ForgeQueryPreparedContinuationBasisWitness::new(
-                basis_kind_for_truth_context(bridge_request.truth_context()),
-                request.causality().digest().to_string(),
-                Some(
-                    request
-                        .declaration()
-                        .strategy_descriptor_digest()
-                        .to_string(),
-                ),
-                Some(request.effect_intent().digest().to_string()),
+                basis_kind,
+                continuation_readmission_basis_identity(basis_kind, request.causality().digest()),
+                Some(continuation_readmission_lower_runtime_binding_identity(
+                    request.declaration().strategy_descriptor_digest(),
+                )),
+                Some(continuation_readmission_source_basis_identity(
+                    request.effect_intent().digest(),
+                )),
             )
         }
     }
+}
+
+fn bridge_commit_evidence_identity(
+    identity: &forge_runtime_bridge::facade::TruthCommitIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    let commit_id = identity
+        .relational_commit_id()
+        .expect("continuation readmission commit identity must carry relational payload");
+    ForgeQueryCommitIdentity::from_relational_commit_id(commit_id).evidence_identity()
+}
+
+fn bridge_snapshot_evidence_identity(
+    identity: &forge_runtime_bridge::facade::TruthSnapshotIdentity,
+) -> ForgeQueryEvidenceIdentity {
+    let parts = identity
+        .relational_snapshot_parts()
+        .expect("continuation readmission snapshot identity must carry relational payload");
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(parts).evidence_identity()
 }
 
 fn authority_witness_from_binding(
@@ -349,10 +405,10 @@ pub(crate) fn drifted_observation_from_retained(
     ForgeQueryContinuationExecutionReadmissionObservation::new(
         authority
             .unwrap_or_else(|| lower_runtime_authority_from_witness(retained.authority_witness())),
-        basis_identity_digest.unwrap_or_else(|| witness.basis_identity_digest().to_string()),
-        witness
-            .expected_lower_runtime_binding_digest()
-            .map(str::to_string),
+        basis_identity_digest
+            .map(|identity| continuation_readmission_basis_identity(witness.kind(), identity))
+            .unwrap_or_else(|| witness.basis_identity().clone()),
+        witness.expected_lower_runtime_binding_identity().cloned(),
         freshness_posture,
         drift_kind,
     )

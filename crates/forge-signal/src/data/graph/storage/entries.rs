@@ -18,7 +18,7 @@ use crate::data::reuse::{PersistentCorrespondenceKind, ReuseBasis};
 use crate::data::trace::{
     CausalityMetadata, ColdArtifactRecord, ExecutionTraceStamp, RetainedDiagnosticArtifact,
     RuntimeArtifactFinalizeImage, RuntimeArtifactHot, RuntimeArtifactOperationalSummary,
-    RuntimeArtifactReuseBoundarySnapshot, RuntimeArtifactWarm,
+    RuntimeArtifactReuseBoundarySnapshot, RuntimeArtifactWarm, TraceSummary,
 };
 use crate::data::{aspect::AspectVersion, core_profile::StableHashValue, output::ChangedRegion};
 use std::ops::{Deref, DerefMut};
@@ -270,11 +270,24 @@ impl SignalGraph {
         Ok(self.warm_ref(id)?.eval_config.condition.clone())
     }
 
-    pub(crate) fn node_aspect_version(
+    pub fn node_aspect_version(
         &self,
         id: NodeId,
     ) -> Result<crate::data::aspect::AspectVersion, SignalError> {
         Ok(self.hot_ref(id)?.aspect_version_header.global())
+    }
+
+    pub fn set_trace_summary(
+        &mut self,
+        id: NodeId,
+        summary: Option<TraceSummary>,
+    ) -> Result<(), SignalError> {
+        let mut entry = self.get_entry_mut(id)?;
+        entry.set_retained_diagnostic_artifact(summary.map(|summary| RetainedDiagnosticArtifact {
+            labels: summary.labels,
+            ..RetainedDiagnosticArtifact::default()
+        }));
+        Ok(())
     }
 
     pub(crate) fn node_partitioned_aspect_version(

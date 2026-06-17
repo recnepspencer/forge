@@ -25,6 +25,7 @@ use crate::identity_evolution::{
     IdentityEvolutionSyntheticScenario, InspectorIdentityArtifact, InspectorIdentityClassification,
     LineageTraversalDescriptor,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::saved_query::{
     evaluate_saved_query_reuse, freeze_composed_saved_query, freeze_direct_saved_query,
     SavedQueryFreezeContext, SavedQueryPersistenceClaim, SavedQueryReuseDescriptor,
@@ -57,7 +58,8 @@ use forge_runtime_bridge::facade::{
     BridgeRuntimePolicy, BridgeSignalInvalidationDelivery, BridgeSnapshotReadError,
     BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
     BridgeTruthViewSelector, CoarseRoutingMode, CommittedPatchSource, InvalidationSink,
-    MappingSelector, RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
+    MappingSelector, RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
+    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
     RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
     SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity, TruthBranchHeadSource,
@@ -254,7 +256,8 @@ fn runtime_basis(
         ResolvedSnapshotIdentity::new(
             BasisAuthorityFamily::Runtime,
             None,
-            "snapshot-a",
+            ForgeQuerySnapshotIdentity::from_relational_snapshot(milestone_eight_snapshot_parts())
+                .evidence_identity(),
             schema_basis,
             SnapshotLineageClass::CurrentHead,
         ),
@@ -329,6 +332,68 @@ fn view_plan(
 
 type GroupedRowFixture = (String, String, String);
 
+fn milestone_eight_snapshot_parts() -> RelationalBridgeSnapshotIdentityParts {
+    RelationalBridgeSnapshotIdentityParts::new(1, 1)
+}
+
+fn milestone_eight_snapshot_identity() -> TruthSnapshotIdentity {
+    TruthSnapshotIdentity::from_relational_snapshot(milestone_eight_snapshot_parts())
+}
+
+fn milestone_eight_branch_identity() -> TruthBranchIdentity {
+    TruthBranchIdentity::from_relational_branch_id("analysis")
+}
+
+fn milestone_eight_record_parts(member_key: &str) -> RelationalBridgeRecordIdentityParts {
+    RelationalBridgeRecordIdentityParts::entity(
+        1,
+        milestone_eight_fixture_position("record", member_key),
+        1,
+    )
+}
+
+fn milestone_eight_head_commit_identity(
+    branch_identity: &TruthBranchIdentity,
+) -> TruthCommitIdentity {
+    let branch_id = branch_identity
+        .relational_branch_id()
+        .expect("milestone eight branch head fixture must carry relational branch authority");
+    TruthCommitIdentity::from_relational_commit_id(milestone_eight_fixture_position(
+        "branch-head",
+        branch_id,
+    ))
+}
+
+fn milestone_eight_patch_identity_for_commit(
+    commit_identity: &TruthCommitIdentity,
+) -> TruthPatchIdentity {
+    let commit_id = commit_identity
+        .relational_commit_id()
+        .expect("milestone eight patch fixture must carry relational commit authority");
+    TruthPatchIdentity::from_relational_patch_position(commit_id)
+}
+
+fn milestone_eight_patch_identity_for_branch(
+    branch_identity: &TruthBranchIdentity,
+) -> TruthPatchIdentity {
+    let branch_id = branch_identity
+        .relational_branch_id()
+        .expect("milestone eight branch patch fixture must carry relational branch authority");
+    TruthPatchIdentity::from_relational_patch_position(milestone_eight_fixture_position(
+        "branch-patch",
+        branch_id,
+    ))
+}
+
+fn milestone_eight_fixture_position(namespace: &str, evidence: &str) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in namespace.bytes().chain(evidence.bytes()) {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211_u64);
+    }
+    acc
+}
+
 #[derive(Clone)]
 struct StaticSource {
     rows: std::sync::Arc<Vec<GroupedRowFixture>>,
@@ -341,9 +406,9 @@ impl CommittedPatchSource for StaticSource {
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_grouped_patch_envelope(
             request.commit_identity().clone(),
-            TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("analysis"),
+            milestone_eight_patch_identity_for_commit(request.commit_identity()),
+            milestone_eight_snapshot_identity(),
+            milestone_eight_branch_identity(),
         ))
     }
 }
@@ -355,38 +420,26 @@ struct StaticSnapshotReader {
 
 impl TruthSnapshotReader for StaticSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        milestone_eight_snapshot_identity()
     }
 
     fn read_packet(
         &self,
         request: &SnapshotReadPacket,
     ) -> Result<SnapshotReadPacketResult, BridgeSnapshotReadError> {
-        let rows = self
-            .rows
-            .iter()
-            .map(|(member_key, display_name, lane)| {
-                (
-                    format!("result:{member_key}"),
-                    member_key,
-                    display_name,
-                    lane,
-                )
-            })
-            .collect::<Vec<_>>();
         Ok(SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            milestone_eight_snapshot_identity(),
             request
                 .reads()
                 .iter()
                 .map(|read| {
-                    let payload = rows
+                    let payload = self
+                        .rows
                         .iter()
-                        .find_map(|(entity_identity, member_key, display_name, lane)| {
-                            (read.entity_identity() == entity_identity.as_str()).then(|| match read
-                                .aspect_key()
-                                .as_str()
-                            {
+                        .find_map(|(member_key, display_name, lane)| {
+                            (read.relational_record_identity_parts()
+                                == Some(milestone_eight_record_parts(member_key)))
+                            .then(|| match read.aspect_key().as_str() {
                                 "identity.id" => AspectValue::String(member_key.as_str().into()),
                                 "profile.display_name" => {
                                     AspectValue::String(display_name.as_str().into())
@@ -408,15 +461,14 @@ impl SnapshotReadSource for StaticSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if identity.relational_snapshot_parts() == Some(milestone_eight_snapshot_parts()) {
             Ok(Box::new(StaticSnapshotReader {
                 rows: self.rows.clone(),
             }))
         } else {
-            Err(RelationalBridgeSourceError::new(format!(
-                "unknown snapshot `{}`",
-                identity.as_str()
-            )))
+            Err(RelationalBridgeSourceError::new(
+                "unknown snapshot identity",
+            ))
         }
     }
 }
@@ -427,9 +479,9 @@ impl TruthBranchHeadSource for StaticSource {
         branch_identity: &TruthBranchIdentity,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_grouped_patch_envelope(
-            TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-            TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            milestone_eight_head_commit_identity(branch_identity),
+            milestone_eight_patch_identity_for_branch(branch_identity),
+            milestone_eight_snapshot_identity(),
             branch_identity.clone(),
         ))
     }
@@ -452,15 +504,14 @@ impl BridgeSourceAdapter for StaticSourceAdapter {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if identity.relational_snapshot_parts() == Some(milestone_eight_snapshot_parts()) {
             Ok(Box::new(StaticSnapshotReader {
                 rows: self.rows.clone(),
             }))
         } else {
-            Err(RelationalBridgeSourceError::new(format!(
-                "unknown snapshot `{}`",
-                identity.as_str()
-            )))
+            Err(RelationalBridgeSourceError::new(
+                "unknown snapshot identity",
+            ))
         }
     }
 }
@@ -483,11 +534,11 @@ fn grouped_rows_packet(rows: &[GroupedRowFixture]) -> SnapshotReadPacket {
     SnapshotReadPacket::new(
         rows.iter()
             .flat_map(|(member_key, _, _)| {
-                let entity = format!("result:{member_key}");
+                let record_parts = milestone_eight_record_parts(member_key);
                 [
-                    string_snapshot_read(entity.clone(), "identity.id"),
-                    string_snapshot_read(entity.clone(), "profile.display_name"),
-                    string_snapshot_read(entity, "status.lane"),
+                    string_snapshot_read(record_parts, "identity.id"),
+                    string_snapshot_read(record_parts, "profile.display_name"),
+                    string_snapshot_read(record_parts, "status.lane"),
                 ]
             })
             .collect(),
@@ -499,7 +550,7 @@ fn grouped_rows_result(
     packet: &SnapshotReadPacket,
 ) -> SnapshotReadPacketResult {
     SnapshotReadPacketResult::new(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        milestone_eight_snapshot_identity(),
         packet
             .reads()
             .iter()
@@ -507,15 +558,15 @@ fn grouped_rows_result(
                 let value = rows
                     .iter()
                     .find_map(|(member_key, display_name, lane)| {
-                        (read.entity_identity() == format!("result:{member_key}")).then(|| {
-                            match read.aspect_key().as_str() {
-                                "identity.id" => AspectValue::String(member_key.as_str().into()),
-                                "profile.display_name" => {
-                                    AspectValue::String(display_name.as_str().into())
-                                }
-                                "status.lane" => AspectValue::String(lane.as_str().into()),
-                                _ => AspectValue::String("unknown".into()),
+                        (read.relational_record_identity_parts()
+                            == Some(milestone_eight_record_parts(member_key)))
+                        .then(|| match read.aspect_key().as_str() {
+                            "identity.id" => AspectValue::String(member_key.as_str().into()),
+                            "profile.display_name" => {
+                                AspectValue::String(display_name.as_str().into())
                             }
+                            "status.lane" => AspectValue::String(lane.as_str().into()),
+                            _ => AspectValue::String("unknown".into()),
                         })
                     })
                     .unwrap_or_else(|| AspectValue::String("unknown".into()));
@@ -535,14 +586,16 @@ fn grouped_runtime(rows: &[GroupedRowFixture]) -> RuntimeBridge {
         .with_signal_sink(StaticSink)
         .register_source(grouped_registered_source())
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping"),
+            BridgeMappingId::from_stable_name("mapping"),
             TruthPatchScope::new(
-                MappingSelector::exact("result:task-1"),
+                MappingSelector::exact(
+                    milestone_eight_record_parts("task-1").bridge_entity_identity(),
+                ),
                 AspectKeySelector::exact(aspect_key("status")),
                 TruthPatchTargetSelector::entity_field(field_key("lane")),
             ),
             SnapshotReadContract::scalar(aspect_key("status"), ScalarAspectType::String),
-            SignalInvalidationScope::new("signal:board"),
+            SignalInvalidationScope::from_stable_name("signal:board"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -551,10 +604,10 @@ fn grouped_runtime(rows: &[GroupedRowFixture]) -> RuntimeBridge {
 
 fn grouped_registered_source() -> SourceDeclaration {
     SourceDeclaration::new(
-        SourceDeclarationIdentity::new("source:grouped-board"),
+        SourceDeclarationIdentity::from_stable_name("source:grouped-board"),
         BridgeTruthViewSelector::branch_snapshot(
-            TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            milestone_eight_branch_identity(),
+            milestone_eight_snapshot_identity(),
         ),
         BridgeSourceCapabilitySet::new(vec![
             BridgeSourceCapability::SnapshotRead,
@@ -634,8 +687,8 @@ fn native_grouped_patch_envelope(
             snapshot_identity,
             branch_identity,
         ),
-        vec![BridgeCommittedPatchItem::with_target(
-            "result:task-1",
+        vec![BridgeCommittedPatchItem::with_relational_record_target(
+            milestone_eight_record_parts("task-1"),
             BridgeCommittedPatchTarget::entity_field_path(
                 AspectLocator::new(LocatorAuthority::Authoritative, aspect_key("status")),
                 CanonicalFieldPath::single(field_key("lane")),
@@ -646,11 +699,11 @@ fn native_grouped_patch_envelope(
 }
 
 fn string_snapshot_read(
-    entity: impl Into<std::sync::Arc<str>>,
+    record_parts: RelationalBridgeRecordIdentityParts,
     aspect: &str,
 ) -> SnapshotReadRequest {
-    SnapshotReadRequest::for_coarse(
-        entity,
+    SnapshotReadRequest::for_relational_record(
+        record_parts,
         SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
     )
 }
@@ -987,7 +1040,10 @@ fn grouped_execution_surface_bundle(
         grouped_execution.digest().to_string(),
         vec![
             format!("members:{}", grouped_execution.member_rows().len()),
-            format!("truth_view:{}", grouped_execution.truth_view_digest()),
+            format!(
+                "truth_view:{}",
+                grouped_execution.truth_view_evidence_identity().as_str()
+            ),
         ],
         grouped_execution.digest().to_string(),
         "support:none".to_string(),

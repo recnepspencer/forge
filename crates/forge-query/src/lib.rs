@@ -39,7 +39,9 @@ mod frontier_signal_adapter;
 mod grouped_authoring;
 mod historical;
 mod identity;
+mod identity_authority;
 mod identity_evolution;
+mod integration_harness;
 mod intent_admission;
 mod live;
 mod live_performance;
@@ -116,8 +118,7 @@ pub use contribution_composed_orchestration::{
 };
 pub use evidence_identity::{
     ForgeQueryEvidenceIdentity, ForgeQueryEvidenceIdentityComparisonError,
-    ForgeQueryEvidenceIdentityEncoder, ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope,
-    ForgeQueryEvidenceTag,
+    ForgeQueryEvidenceIdentityScheme, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
 };
 pub use family_helpers::{
     ForgeQueryFamilyHelpers, ForgeQueryGeometryActiveFaceSelectionHelperFamily,

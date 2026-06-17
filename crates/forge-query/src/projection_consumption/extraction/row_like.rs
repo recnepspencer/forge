@@ -9,11 +9,12 @@ use super::super::consumed::{
 };
 use super::super::contracts::{BoundProjectionFactFamily, MaterializedProjectionContract};
 use super::super::facts::ProjectionFactKind;
+use super::super::identity::compose_scoped_row_source_identity;
 use super::super::source::ProjectionSourceFamily;
 use super::aspect_value_projection::{
     project_aspect_value_for_consumption_json, project_validated_aspect_value_for_consumption_json,
 };
-use crate::memory_workspace::ForgeQueryEntity;
+use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryEntityIdentity};
 use crate::projection_consumption::ProjectionFactExtractionError;
 use crate::runtime::{ForgeQueryLiveReadResult, ForgeQueryReadResult};
 
@@ -116,6 +117,7 @@ where
         .map(|(row_identity, fields)| {
             (
                 row_identity.to_string(),
+                None,
                 fields.collect::<BTreeMap<&str, serde_json::Value>>(),
             )
         })
@@ -127,7 +129,10 @@ where
             field_map.get(field_key).ok_or_else(|| {
                 ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                     source_family: contract.source_family(),
-                    source_identity: format!("{}::{row_identity}", contract.source_identity()),
+                    source_identity: compose_scoped_row_source_identity(
+                        contract.source_identity(),
+                        &row_identity,
+                    ),
                     field_key: field_key.to_string(),
                     fact_kind,
                 }
@@ -146,7 +151,11 @@ fn extract_json_rows(
         .iter()
         .map(|row| {
             (
-                row.identity().to_string(),
+                row.identity()
+                    .evidence_identity()
+                    .reporting_projection()
+                    .to_string(),
+                Some(row.identity().clone()),
                 query_read_result_row_fields(contract, row),
             )
         })
@@ -158,7 +167,10 @@ fn extract_json_rows(
             row_fields.get(field_key).ok_or_else(|| {
                 ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                     source_family: contract.source_family(),
-                    source_identity: format!("{}::{row_identity}", contract.source_identity()),
+                    source_identity: compose_scoped_row_source_identity(
+                        contract.source_identity(),
+                        &row_identity,
+                    ),
                     field_key: field_key.to_string(),
                     fact_kind,
                 }
@@ -210,7 +222,7 @@ fn contract_declared_field_keys(contract: &MaterializedProjectionContract) -> BT
 
 fn extract_materialized_rows<RowData, Lookup>(
     contract: &MaterializedProjectionContract,
-    rows: &[(String, RowData)],
+    rows: &[(String, Option<ForgeQueryEntityIdentity>, RowData)],
     lookup: Lookup,
     row_identity_mode: RowIdentityExtractionMode,
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError>
@@ -248,13 +260,15 @@ where
     let mut display_fields = Vec::new();
     let mut derived_scalar_fields = Vec::new();
 
-    for (row_identity, row_data) in rows {
+    for (row_identity, typed_entity_identity, row_data) in rows {
         for fact_family in contract.fact_families() {
             match fact_family.kind() {
                 ProjectionFactKind::EntityIdentity => {
                     let entity_identity = match row_identity_mode {
                         RowIdentityExtractionMode::RowIdentityAsEntityIdentity => {
-                            row_identity.clone()
+                            typed_entity_identity.clone().unwrap_or_else(|| {
+                                crate::memory_workspace::admit_authored_entity_label(row_identity)
+                            })
                         }
                         RowIdentityExtractionMode::IdentityFieldBackedEntityIdentity => {
                             let value = lookup(
@@ -263,18 +277,20 @@ where
                                 "identity.id",
                                 ProjectionFactKind::EntityIdentity,
                             )?;
-                            value.as_str().map(str::to_string).ok_or_else(|| {
-                                ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
-                                    source_family: contract.source_family(),
-                                    source_identity: format!(
-                                        "{}::{row_identity}",
-                                        contract.source_identity()
-                                    ),
-                                    field_key: "identity.id".to_string(),
-                                    fact_kind: ProjectionFactKind::EntityIdentity,
-                                    expected_shape: "string",
-                                }
-                            })?
+                            crate::memory_workspace::admit_authored_entity_label(
+                                value.as_str().ok_or_else(|| {
+                                    ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
+                                        source_family: contract.source_family(),
+                                        source_identity: compose_scoped_row_source_identity(
+                                            contract.source_identity(),
+                                            row_identity.as_str(),
+                                        ),
+                                        field_key: "identity.id".to_string(),
+                                        fact_kind: ProjectionFactKind::EntityIdentity,
+                                        expected_shape: "string",
+                                    }
+                                })?,
+                            )
                         }
                     };
                     entity_identities.push(ConsumedEntityIdentityFact::new(
@@ -343,7 +359,7 @@ where
         contract.declaration_digest(),
         contract.contract_digest(),
         contract.source_family(),
-        contract.source_identity(),
+        contract.source_identity_handle().clone(),
         contract.support_posture().clone(),
         contract.materialized_fact_posture().cloned(),
         ProjectionFactExtractionCounters::new(

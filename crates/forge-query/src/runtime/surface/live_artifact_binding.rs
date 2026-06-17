@@ -1,4 +1,5 @@
 use crate::identity::hash_parts;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::ForgeQueryLiveView;
 use crate::runtime::ForgeQueryRuntimeError;
 
@@ -74,8 +75,8 @@ impl ForgeQueryLiveArtifactBinding {
         &self.binding_digest
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        self.bundle.snapshot_token()
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        self.bundle.snapshot_identity()
     }
 
     pub fn target_count(&self) -> usize {

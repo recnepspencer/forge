@@ -5,6 +5,7 @@ fn branch_intent_runtime(attempted: std::rc::Rc<std::cell::Cell<usize>>) -> Forg
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -38,7 +39,10 @@ fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
         ))
         .expect("sandboxed branch intent should be admitted");
 
-    assert_eq!(branch.label(), "branch local intent");
+    assert_eq!(
+        branch.label(),
+        test_session_label("branch local intent").display()
+    );
     assert_eq!(
         branch.basis_admission().authority_lane(),
         ForgeQueryAuthorityLane::BranchLocalTruth
@@ -59,9 +63,13 @@ fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
         ForgeQueryEffectPolicy::SandboxedWriteIntent
     );
     assert!(!receipt.basis_evidence().is_empty());
-    assert!(!receipt.basis_snapshot_token().is_empty());
-    assert!(!receipt.admission_digest().as_str().is_empty());
-    assert!(!receipt.receipt_digest().as_str().is_empty());
+    assert!(!receipt
+        .basis_snapshot_identity()
+        .evidence_identity()
+        .as_str()
+        .is_empty());
+    assert!(!receipt.admission_identity().as_str().is_empty());
+    assert!(!receipt.receipt_digest().is_empty());
     assert_eq!(branch.branch_intent_receipts(), [receipt.clone()]);
     assert_eq!(
         attempted.get(),
@@ -87,8 +95,8 @@ fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
     );
     assert!(!inspection.basis_digest().is_empty());
     assert_eq!(
-        inspection.basis_snapshot_token(),
-        receipt.basis_snapshot_token()
+        inspection.basis_snapshot_identity(),
+        receipt.basis_snapshot_identity()
     );
     assert!(!inspection.inspection_digest().is_empty());
 }
@@ -141,6 +149,7 @@ fn branch_local_intent_requires_intent_support_for_branch_lane() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)

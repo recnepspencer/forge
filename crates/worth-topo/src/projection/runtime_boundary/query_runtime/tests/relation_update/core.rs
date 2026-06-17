@@ -1,3 +1,5 @@
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
+use crate::topology_operators::authority_identity::existing_relation_authority;
 use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthAssertionMode};
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
@@ -60,8 +62,9 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                format!("{:?}", query_relation_id_from_row(relation)),
-                relation.identity().to_string(),
+                existing_relation_authority(query_relation_id_from_row(relation))
+                    .expect("relation authority"),
+                relation.identity().clone(),
             )
             .expect("non-empty relation binding identity")
             .in_target_collection("TopologyRelation")
@@ -159,13 +162,13 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
                 .is_some_and(|kind_name| kind_name == ".vertex")
-                && row.identity() != current_target_identity
+                && query_entity_identity_reporting_label(row.identity()) != current_target_identity
         })
         .map(query_entity_id_from_row)
         .expect("seeded sheet disk should provide an alternate vertex");
     let half_edge_id = entity_rows
         .iter()
-        .find(|row| row.identity() == source_identity)
+        .find(|row| query_entity_identity_reporting_label(row.identity()) == source_identity)
         .map(query_entity_id_from_row)
         .expect("relation source identity should resolve to a halfedge");
     let declaration = TopologyRewireLoopEndpointDeclaration::new(

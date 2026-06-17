@@ -10,7 +10,7 @@ use super::super::super::{
 };
 use super::support::{
     admitted, binding, binding_for_result_shape, read_result, read_result_shape,
-    relational_grouped_projection, relational_row_set,
+    relational_grouped_projection, relational_row_set, test_entity_identity,
 };
 use crate::runtime::{ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt, ForgeQueryReadResult};
 
@@ -35,10 +35,13 @@ fn read_result_extracts_identity_and_payload_fields_without_reopening_authority(
     let consumed = contract.extract_from_read_result(&result).unwrap();
 
     assert_eq!(consumed.entity_identities().len(), 2);
-    assert_eq!(consumed.entity_identities()[0].entity_identity(), "task-1");
+    assert_eq!(
+        consumed.entity_identities()[0].entity_identity(),
+        &test_entity_identity("task-1")
+    );
     assert_eq!(
         consumed.view_local_identities()[0].view_local_identity(),
-        "task-1"
+        test_entity_identity("task-1").terminal_projection_for_reporting()
     );
     assert_eq!(
         consumed.display_fields()[0].field_key(),

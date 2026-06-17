@@ -14,7 +14,7 @@ use super::super::report::{
 };
 use super::super::shared::{
     derived_validation_report_from_materialized, entity_id_from_query_identity,
-    first_source_identity_for_relation_kind, relation_id_from_query_identity, replay_checked,
+    first_source_identity_for_relation_kind, relation_id_from_query_identity_label, replay_checked,
     replay_checked_rejected,
 };
 use super::scenario_mutation_report_lowering::{
@@ -177,7 +177,7 @@ where
         .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
-        relation_id_from_query_identity(radial.source_radial_next_relation_identity())?,
+        relation_id_from_query_identity_label(radial.source_radial_next_relation_identity())?,
         source_half_edge_id,
         entity_id_from_query_identity(bowtie_adjacent_witness.target_half_edge_identity.as_str())?,
     );

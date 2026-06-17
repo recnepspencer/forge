@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
+use crate::identity_authority::{
+    project_query_subscription_evidence, QueryProjectionIdentity, QuerySubscriptionIdentityKind,
+};
 
 use super::admission_budget::QuerySubscriptionAdmissionBudget;
 use super::admission_diagnostics::{
@@ -11,17 +14,18 @@ use super::admission_error::{
 use super::bridge_lowering::BridgeSubscriptionLoweringPlan;
 use super::counters::QuerySubscriptionDeclarationCounters;
 use super::diagnostic::{QuerySubscriptionDiagnosticEvidence, QuerySubscriptionDiagnosticStage};
+use super::evidence_identities::admission_artifact_identity;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::support::QuerySubscriptionSupportProfile;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionAdmissionArtifact {
-    admission_digest: String,
-    query_declaration_digest: String,
-    bridge_declaration_digest: String,
+    admission_identity: ForgeQueryEvidenceIdentity,
+    query_declaration_identity: ForgeQueryEvidenceIdentity,
+    bridge_declaration_identity: ForgeQueryEvidenceIdentity,
     future_selection: QuerySubscriptionFutureSelection,
-    basis_binding_digest: String,
-    signal_strategy_digest: String,
+    basis_binding_identity: ForgeQueryEvidenceIdentity,
+    signal_strategy_identity: ForgeQueryEvidenceIdentity,
     admission_budget: QuerySubscriptionAdmissionBudget,
     diagnostics: QuerySubscriptionAdmissionDiagnostics,
     support_profile: QuerySubscriptionSupportProfile,
@@ -29,28 +33,78 @@ pub struct QuerySubscriptionAdmissionArtifact {
 }
 
 impl QuerySubscriptionAdmissionArtifact {
-    pub fn admission_digest(&self) -> &str {
-        &self.admission_digest
+    pub fn admission_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.admission_identity)
     }
 
-    pub fn query_declaration_digest(&self) -> &str {
-        &self.query_declaration_digest
+    pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admission_identity
     }
 
-    pub fn bridge_declaration_digest(&self) -> &str {
-        &self.bridge_declaration_digest
+    pub fn query_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.query_declaration_identity)
+    }
+
+    pub fn query_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.query_declaration_identity
+    }
+
+    pub fn bridge_declaration_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.bridge_declaration_identity)
+    }
+
+    pub fn bridge_declaration_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.bridge_declaration_identity
     }
 
     pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
         &self.future_selection
     }
 
-    pub fn basis_binding_digest(&self) -> &str {
-        &self.basis_binding_digest
+    pub fn basis_binding_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.basis_binding_identity)
     }
 
-    pub fn signal_strategy_digest(&self) -> &str {
-        &self.signal_strategy_digest
+    pub fn basis_binding_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_binding_identity
+    }
+
+    pub fn signal_strategy_projection(
+        &self,
+    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
+        project_query_subscription_evidence(&self.signal_strategy_identity)
+    }
+
+    pub fn signal_strategy_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.signal_strategy_identity
+    }
+
+    pub(crate) fn recomputed_evidence_identity(
+        &self,
+        counters_identity: &ForgeQueryEvidenceIdentity,
+    ) -> ForgeQueryEvidenceIdentity {
+        admission_artifact_identity(
+            self.query_declaration_identity(),
+            self.bridge_declaration_identity(),
+            self.basis_binding_identity(),
+            self.signal_strategy_identity(),
+            self.diagnostics().diagnostics_identity(),
+            self.support_profile().profile_identity(),
+            self.admission_budget().declaration_input_width_limit(),
+            self.admission_budget().bridge_plan_width_limit(),
+            self.admission_budget().basis_binding_width_limit(),
+            self.admission_budget().signal_strategy_width_limit(),
+            self.admission_budget().activation_input_width_limit(),
+            counters_identity,
+        )
     }
 
     pub fn admission_budget(&self) -> &QuerySubscriptionAdmissionBudget {
@@ -75,7 +129,7 @@ pub fn admit_query_subscription(
     admission_budget: QuerySubscriptionAdmissionBudget,
 ) -> Result<QuerySubscriptionAdmissionArtifact, QuerySubscriptionAdmissionError> {
     let mut counters = lowering.counters().clone();
-    let source_digest = lowering.bridge_declaration_digest();
+    let source_identity = lowering.bridge_declaration_identity();
 
     if exceeds_admission_budget(&admission_budget) {
         counters.admission_denial_count = 1;
@@ -84,7 +138,7 @@ pub fn admit_query_subscription(
             QuerySubscriptionAdmissionDenialKind::AdmissionBudgetExceeded,
             "subscription admission exceeds its explicit admission budget",
             QuerySubscriptionAdmissionDiagnosticStage::AdmissionBudget,
-            source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -97,7 +151,7 @@ pub fn admit_query_subscription(
             QuerySubscriptionAdmissionDenialKind::DurableReloadOverclaim,
             "durable subscription reload remains later-milestone debt",
             QuerySubscriptionAdmissionDiagnosticStage::DurableReloadOverclaim,
-            source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -109,7 +163,7 @@ pub fn admit_query_subscription(
             QuerySubscriptionAdmissionDenialKind::ActiveLifecycleAllocationForbidden,
             "Milestone 9.1 admission may not allocate active subscription lifecycle state",
             QuerySubscriptionAdmissionDiagnosticStage::ActiveLifecycleAllocation,
-            source_digest,
+            source_identity,
             counters,
         ));
     }
@@ -119,54 +173,35 @@ pub fn admit_query_subscription(
         QuerySubscriptionAdmissionDiagnosticStage::RuntimeBackedAdmission,
         QuerySubscriptionAdmissionDiagnosticOutcome::Admitted,
         "runtime-backed query subscription declaration admitted for activation handoff",
-        source_digest,
+        source_identity,
     );
-    let support_profile = QuerySubscriptionSupportProfile::admitted(source_digest);
-    let mut admission_digest_parts = vec![
-        "query_subscription_admission_artifact_v1".to_string(),
-        format!("query_declaration:{}", lowering.query_declaration_digest()),
-        format!(
-            "bridge_declaration:{}",
-            lowering.bridge_declaration_digest()
-        ),
-        format!("basis:{}", lowering.basis_request().digest()),
-        format!(
-            "signal_strategy:{}",
-            lowering.signal_strategy_request().digest()
-        ),
-        format!("diagnostics:{}", diagnostics.digest()),
-        format!("support:{}", support_profile.digest()),
-        format!(
-            "budget:declaration:{}",
-            admission_budget.declaration_input_width_limit()
-        ),
-        format!(
-            "budget:bridge:{}",
-            admission_budget.bridge_plan_width_limit()
-        ),
-        format!(
-            "budget:basis:{}",
-            admission_budget.basis_binding_width_limit()
-        ),
-        format!(
-            "budget:signal:{}",
-            admission_budget.signal_strategy_width_limit()
-        ),
-        format!(
-            "budget:activation:{}",
-            admission_budget.activation_input_width_limit()
-        ),
-    ];
-    admission_digest_parts.extend(admission_counter_digest_parts(&counters));
-    let admission_digest = hash_parts(&admission_digest_parts);
+    let support_profile =
+        QuerySubscriptionSupportProfile::admitted(lowering.bridge_declaration_identity());
+    let admission_identity = admission_artifact_identity(
+        lowering.query_declaration_identity(),
+        lowering.bridge_declaration_identity(),
+        lowering.basis_request().evidence_identity(),
+        lowering.signal_strategy_request().evidence_identity(),
+        diagnostics.diagnostics_identity(),
+        support_profile.profile_identity(),
+        admission_budget.declaration_input_width_limit(),
+        admission_budget.bridge_plan_width_limit(),
+        admission_budget.basis_binding_width_limit(),
+        admission_budget.signal_strategy_width_limit(),
+        admission_budget.activation_input_width_limit(),
+        &counters.evidence_identity(),
+    );
 
     Ok(QuerySubscriptionAdmissionArtifact {
-        admission_digest,
-        query_declaration_digest: lowering.query_declaration_digest().to_string(),
-        bridge_declaration_digest: lowering.bridge_declaration_digest().to_string(),
+        admission_identity,
+        query_declaration_identity: lowering.query_declaration_identity().clone(),
+        bridge_declaration_identity: lowering.bridge_declaration_identity().clone(),
         future_selection: lowering.future_selection().clone(),
-        basis_binding_digest: lowering.basis_request().digest().to_string(),
-        signal_strategy_digest: lowering.signal_strategy_request().digest().to_string(),
+        basis_binding_identity: lowering.basis_request().evidence_identity().clone(),
+        signal_strategy_identity: lowering
+            .signal_strategy_request()
+            .evidence_identity()
+            .clone(),
         admission_budget,
         diagnostics,
         support_profile,
@@ -178,22 +213,22 @@ fn admission_error(
     denial_kind: QuerySubscriptionAdmissionDenialKind,
     message: &'static str,
     stage: QuerySubscriptionAdmissionDiagnosticStage,
-    source_digest: &str,
+    source_identity: &ForgeQueryEvidenceIdentity,
     counters: QuerySubscriptionDeclarationCounters,
 ) -> QuerySubscriptionAdmissionError {
     let diagnostics = QuerySubscriptionAdmissionDiagnostics::new(
         stage,
         QuerySubscriptionAdmissionDiagnosticOutcome::Denied,
         message,
-        source_digest,
+        source_identity,
     );
     let pipeline_diagnostic = QuerySubscriptionDiagnosticEvidence::denied(
         admission_pipeline_stage(stage),
         message,
-        source_digest,
-        counters.digest(),
+        source_identity,
+        &counters.evidence_identity(),
     );
-    let support_profile = QuerySubscriptionSupportProfile::denied(source_digest);
+    let support_profile = QuerySubscriptionSupportProfile::denied(source_identity);
     QuerySubscriptionAdmissionError::new(
         denial_kind,
         message,
@@ -232,146 +267,4 @@ fn exceeds_admission_budget(budget: &QuerySubscriptionAdmissionBudget) -> bool {
         || budget.basis_binding_width_limit() < 1
         || budget.signal_strategy_width_limit() < 1
         || budget.activation_input_width_limit() < 1
-}
-
-fn admission_counter_digest_parts(counters: &QuerySubscriptionDeclarationCounters) -> Vec<String> {
-    vec![
-        format!(
-            "counter:family_selection:{}",
-            counters.family_selection_count()
-        ),
-        format!("counter:family_denial:{}", counters.family_denial_count()),
-        format!(
-            "counter:family_registry_lookup:{}",
-            counters.family_registry_lookup_count()
-        ),
-        format!(
-            "counter:view_family_registry_lookup:{}",
-            counters.view_family_registry_lookup_count()
-        ),
-        format!(
-            "counter:equivalence_digest_part:{}",
-            counters.equivalence_digest_part_count()
-        ),
-        format!(
-            "counter:admission_dimension_denial:{}",
-            counters.admission_dimension_denial_count()
-        ),
-        format!(
-            "counter:work_budget_denial:{}",
-            counters.work_budget_denial_count()
-        ),
-        format!(
-            "counter:unknown_cost_denial:{}",
-            counters.unknown_cost_denial_count()
-        ),
-        format!(
-            "counter:raw_cdc_fallback_denial:{}",
-            counters.raw_cdc_fallback_denial_count()
-        ),
-        format!(
-            "counter:host_observer_inference_denial:{}",
-            counters.host_observer_inference_denial_count()
-        ),
-        format!(
-            "counter:relationship_proof_drift_denial:{}",
-            counters.relationship_proof_drift_denial_count()
-        ),
-        format!("counter:declaration:{}", counters.declaration_count()),
-        format!(
-            "counter:declaration_denial:{}",
-            counters.declaration_denial_count()
-        ),
-        format!("counter:declared_slice:{}", counters.declared_slice_count()),
-        format!(
-            "counter:deduplicated_slice:{}",
-            counters.deduplicated_slice_count()
-        ),
-        format!(
-            "counter:slice_deduplication_input:{}",
-            counters.slice_deduplication_input_count()
-        ),
-        format!(
-            "counter:slice_sort_comparison:{}",
-            counters.slice_sort_comparison_count()
-        ),
-        format!(
-            "counter:masked_slice_denial:{}",
-            counters.masked_slice_denial_count()
-        ),
-        format!(
-            "counter:delivery_intent_denial:{}",
-            counters.delivery_intent_denial_count()
-        ),
-        format!(
-            "counter:declaration_digest_part:{}",
-            counters.declaration_digest_part_count()
-        ),
-        format!(
-            "counter:bridge_lowering:{}",
-            counters.bridge_lowering_count()
-        ),
-        format!(
-            "counter:bridge_family_denial:{}",
-            counters.bridge_family_denial_count()
-        ),
-        format!(
-            "counter:bridge_fallback_denial:{}",
-            counters.bridge_fallback_denial_count()
-        ),
-        format!(
-            "counter:bridge_family_registry_lookup:{}",
-            counters.bridge_family_registry_lookup_count()
-        ),
-        format!("counter:bridge_slice:{}", counters.bridge_slice_count()),
-        format!(
-            "counter:bridge_slice_denial:{}",
-            counters.bridge_slice_denial_count()
-        ),
-        format!(
-            "counter:bridge_slice_registry_lookup:{}",
-            counters.bridge_slice_registry_lookup_count()
-        ),
-        format!(
-            "counter:basis_binding_request:{}",
-            counters.basis_binding_request_count()
-        ),
-        format!(
-            "counter:basis_binding_denial:{}",
-            counters.basis_binding_denial_count()
-        ),
-        format!(
-            "counter:signal_strategy_request:{}",
-            counters.signal_strategy_request_count()
-        ),
-        format!("counter:admission:{}", counters.admission_count()),
-        format!(
-            "counter:admission_denial:{}",
-            counters.admission_denial_count()
-        ),
-        format!(
-            "counter:durable_overclaim_denial:{}",
-            counters.durable_overclaim_denial_count()
-        ),
-        format!(
-            "counter:activation_input:{}",
-            counters.activation_input_count()
-        ),
-        format!(
-            "counter:active_state_allocation_denial:{}",
-            counters.active_state_allocation_denial_count()
-        ),
-        format!(
-            "counter:declaration_time_checkpoint_denial:{}",
-            counters.declaration_time_checkpoint_denial_count()
-        ),
-        format!(
-            "counter:scratch_allocation:{}",
-            counters.scratch_allocation_count()
-        ),
-        format!(
-            "counter:forbidden_heap_allocation_denial:{}",
-            counters.forbidden_heap_allocation_denial_count()
-        ),
-    ]
 }

@@ -1,9 +1,13 @@
-use forge_foundational::facade::CanonicalDerivedDigest;
-
 use super::encoder::ForgeQueryEvidenceIdentityEncoder;
 use super::scheme::ForgeQueryEvidenceIdentityScheme;
 use super::scope::ForgeQueryEvidenceScope;
 use super::sealed::SealedForgeQueryEvidenceIdentity;
+use forge_foundational::facade::CanonicalDerivedDigest;
+use forge_runtime_bridge::facade::{
+    bridge_truth_digest_identity_evidence_from_external_token,
+    bridge_truth_external_identity_token, bridge_truth_projection_identity_from_external_token,
+    BridgeIdentityEvidence,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryEvidenceIdentityComparisonError {
@@ -22,8 +26,16 @@ pub struct ForgeQueryEvidenceIdentity {
 }
 
 impl ForgeQueryEvidenceIdentity {
-    pub fn compose(scope: ForgeQueryEvidenceScope) -> ForgeQueryEvidenceIdentityEncoder {
+    pub(crate) fn compose(scope: ForgeQueryEvidenceScope) -> ForgeQueryEvidenceIdentityEncoder {
         ForgeQueryEvidenceIdentityEncoder::new(scope, ForgeQueryEvidenceIdentityScheme::V1)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn compose_with_scheme(
+        scope: ForgeQueryEvidenceScope,
+        scheme: ForgeQueryEvidenceIdentityScheme,
+    ) -> ForgeQueryEvidenceIdentityEncoder {
+        ForgeQueryEvidenceIdentityEncoder::new(scope, scheme)
     }
 
     pub(crate) fn new(sealed: SealedForgeQueryEvidenceIdentity) -> Self {
@@ -43,8 +55,35 @@ impl ForgeQueryEvidenceIdentity {
         self.scheme
     }
 
-    pub fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &str {
         &self.digest_token
+    }
+
+    pub(crate) fn reporting_projection(&self) -> &str {
+        self.as_str()
+    }
+
+    pub fn terminal_projection_for_reporting(&self) -> &str {
+        self.reporting_projection()
+    }
+
+    pub(crate) fn bridge_evidence_identity(&self) -> BridgeIdentityEvidence {
+        let token = bridge_truth_external_identity_token(self.as_str());
+        let scope = bridge_truth_projection_identity_from_external_token(
+            token.clone(),
+            self.scope.as_str(),
+        );
+        let identity_token = bridge_truth_digest_identity_evidence_from_external_token(
+            token,
+            self.canonical_digest.clone(),
+        );
+        BridgeIdentityEvidence::from_query_evidence_identity(scope, identity_token)
+    }
+
+    pub(crate) fn bridge_external_identity_evidence(&self) -> BridgeIdentityEvidence {
+        BridgeIdentityEvidence::from_external_authority(bridge_truth_external_identity_token(
+            self.as_str(),
+        ))
     }
 
     pub fn eq_same_scheme(
@@ -80,17 +119,5 @@ impl ForgeQueryEvidenceIdentity {
     #[cfg(test)]
     pub(crate) fn canonical_digest(&self) -> &CanonicalDerivedDigest {
         &self.canonical_digest
-    }
-}
-
-impl std::fmt::Display for ForgeQueryEvidenceIdentity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-impl AsRef<str> for ForgeQueryEvidenceIdentity {
-    fn as_ref(&self) -> &str {
-        self.as_str()
     }
 }

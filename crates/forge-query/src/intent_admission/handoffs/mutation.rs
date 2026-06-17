@@ -1,4 +1,7 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 use crate::intent_admission::{
     ForgeQueryAuthoritativeMutationBatchExecutionPlan, ForgeQueryAuthoritativeMutationExecutionPlan,
 };
@@ -170,31 +173,72 @@ fn mutation_handoff_digest(
     entrypoint: ForgeQueryIntentAdmissionCoveredEntrypoint,
     execution_seam: ForgeQueryIntentAdmissionExecutionSeam,
     decision_digest: &str,
-    fingerprint: String,
+    fingerprint: ForgeQueryEvidenceIdentity,
 ) -> String {
-    hash_parts(&[
-        "forge_query_admitted_mutation_execution_handoff_v2".to_string(),
-        format!("family:{}", family.as_str()),
-        format!("entrypoint:{}", entrypoint.as_str()),
-        format!("execution-seam:{}", execution_seam.as_str()),
-        format!("decision:{decision_digest}"),
-        format!("fingerprint:{fingerprint}"),
-    ])
-}
-
-fn command_handoff_fingerprint(command: &ForgeQueryWriteCommand) -> String {
-    format!(
-        "{}:{}:{}",
-        command.mutation_family().as_str(),
-        command.declared_entity_identity_ref().unwrap_or("none"),
-        command.declared_collection_ref().unwrap_or("none"),
+    let decision_identity = forge_query_evidence_identity(
+        ForgeQueryEvidenceScope::AuthoritativeMutationExecutionHandoff,
     )
+    .field_shape(ForgeQueryEvidenceTag::new("role"), "decision-digest")
+    .field_value(ForgeQueryEvidenceTag::new("digest"), decision_digest)
+    .seal();
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationExecutionHandoff)
+        .field_shape(ForgeQueryEvidenceTag::new("family"), family.as_str())
+        .field_shape(
+            ForgeQueryEvidenceTag::new("entrypoint"),
+            entrypoint.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("execution_seam"),
+            execution_seam.as_str(),
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("decision"), &decision_identity)
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("fingerprint"), &fingerprint)
+        .seal()
+        .as_str()
+        .to_string()
 }
 
-fn batch_handoff_fingerprint(commands: &[ForgeQueryWriteCommand]) -> String {
-    commands
+fn command_handoff_fingerprint(command: &ForgeQueryWriteCommand) -> ForgeQueryEvidenceIdentity {
+    let declared_entity_identity = command
+        .declared_entity_identity_ref()
+        .map(|identity| identity.evidence_identity());
+    let declared_collection_identity = command.declared_collection_ref().map(|collection| {
+        crate::runtime::ForgeQueryMutationTargetCollectionIdentity::new(
+            "authoritative-mutation-handoff",
+            collection,
+        )
+    });
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationExecutionHandoff)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            command.mutation_family().as_str(),
+        )
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("declared_entity_identity"),
+            declared_entity_identity.as_ref(),
+        )
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("declared_collection"),
+            declared_collection_identity
+                .as_ref()
+                .map(crate::runtime::ForgeQueryMutationTargetCollectionIdentity::evidence_identity),
+        )
+        .seal()
+}
+
+fn batch_handoff_fingerprint(commands: &[ForgeQueryWriteCommand]) -> ForgeQueryEvidenceIdentity {
+    let command_fingerprints = commands
         .iter()
         .map(command_handoff_fingerprint)
-        .collect::<Vec<_>>()
-        .join("|")
+        .collect::<Vec<_>>();
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::AuthoritativeMutationExecutionHandoff)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("role"),
+            "batch-command-fingerprint",
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("command"),
+            command_fingerprints.iter(),
+        )
+        .seal()
 }

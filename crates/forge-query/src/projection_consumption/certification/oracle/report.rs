@@ -1,11 +1,14 @@
-use crate::identity::hash_parts;
-
 use super::super::fixtures::{
     control_row_set_lifecycle, grouped_worth_lifecycle, parity_row_set_lifecycle,
 };
 use super::comparison_terms::{
     grouped_worth_actual_digest, grouped_worth_expected_digest, row_set_control_actual_digest,
     row_set_control_expected_digest,
+};
+use crate::projection_consumption::identity::{
+    compose_digest_sequence, compose_oracle_comparison_row_digest,
+    compose_oracle_manifest_row_digest, compose_oracle_parity_lane_digest,
+    compose_oracle_report_digest,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -155,32 +158,28 @@ pub fn projection_consumption_oracle_report() -> ProjectionConsumptionOracleRepo
         ),
         comparison_row(
             ProjectionConsumptionOracleLane::ParityLane,
-            hash_parts(&[
-                control.declaration().declaration_digest().to_string(),
-                control.contract().contract_digest().to_string(),
-                control.facts().fact_set_digest().to_string(),
-                control.receipt().receipt_digest().to_string(),
-            ]),
-            hash_parts(&[
-                parity.declaration().declaration_digest().to_string(),
-                parity.contract().contract_digest().to_string(),
-                parity.facts().fact_set_digest().to_string(),
-                parity.receipt().receipt_digest().to_string(),
-            ]),
+            compose_oracle_parity_lane_digest(
+                control.declaration().declaration_digest(),
+                control.contract().contract_digest(),
+                control.facts().fact_set_digest(),
+                control.receipt().receipt_digest(),
+            ),
+            compose_oracle_parity_lane_digest(
+                parity.declaration().declaration_digest(),
+                parity.contract().contract_digest(),
+                parity.facts().fact_set_digest(),
+                parity.receipt().receipt_digest(),
+            ),
         ),
     ];
-    let manifest_digest = hash_parts(
-        &manifest_rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
+    let manifest_digest = compose_digest_sequence(
+        "projection_consumption_oracle_manifest_v1",
+        "row",
+        manifest_rows.iter().map(|row| row.row_digest().to_string()),
     );
-    let oracle_digest = hash_parts(
-        &comparison_rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .chain(std::iter::once(format!("manifest:{manifest_digest}")))
-            .collect::<Vec<_>>(),
+    let oracle_digest = compose_oracle_report_digest(
+        comparison_rows.iter().map(|row| row.row_digest()),
+        &manifest_digest,
     );
     ProjectionConsumptionOracleReport {
         manifest_rows,
@@ -198,18 +197,14 @@ fn manifest_row(
     forbidden_reused_production_helpers: Vec<&'static str>,
     comparison_digest_fields: Vec<&'static str>,
 ) -> ProjectionConsumptionOracleManifestRow {
-    let row_digest = hash_parts(&[
-        "projection_consumption_oracle_manifest_row_v1".to_string(),
-        format!("lane:{}", lane.as_str()),
-        format!("lane_name:{lane_name}"),
-        format!("owner:{oracle_owner_module}"),
-        format!("sources:{}", source_artifacts_consulted.join(",")),
-        format!(
-            "forbidden_helpers:{}",
-            forbidden_reused_production_helpers.join(",")
-        ),
-        format!("fields:{}", comparison_digest_fields.join(",")),
-    ]);
+    let row_digest = compose_oracle_manifest_row_digest(
+        lane.as_str(),
+        lane_name,
+        oracle_owner_module,
+        &source_artifacts_consulted,
+        &forbidden_reused_production_helpers,
+        &comparison_digest_fields,
+    );
     ProjectionConsumptionOracleManifestRow {
         lane,
         lane_name,
@@ -226,13 +221,12 @@ fn comparison_row(
     expected_digest: String,
     actual_digest: String,
 ) -> ProjectionConsumptionOracleComparisonRow {
-    let row_digest = hash_parts(&[
-        "projection_consumption_oracle_comparison_row_v1".to_string(),
-        format!("lane:{}", lane.as_str()),
-        format!("expected:{expected_digest}"),
-        format!("actual:{actual_digest}"),
-        format!("match:{}", expected_digest == actual_digest),
-    ]);
+    let row_digest = compose_oracle_comparison_row_digest(
+        lane.as_str(),
+        &expected_digest,
+        &actual_digest,
+        expected_digest == actual_digest,
+    );
     ProjectionConsumptionOracleComparisonRow {
         lane,
         expected_digest,

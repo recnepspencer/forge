@@ -33,7 +33,7 @@ fn replay_bundle_is_built_from_authority_outcome_artifact() {
 
     assert_eq!(
         replay.query_digest(),
-        declaration.binding().query_identity_digest()
+        declaration.binding().query_for_reporting()
     );
     assert_eq!(
         replay.authority_target_family(),

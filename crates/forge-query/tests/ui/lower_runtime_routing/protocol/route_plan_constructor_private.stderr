@@ -18,6 +18,20 @@ error[E0624]: associated function `new` is private
   |
   | /     pub(crate) fn new(
   | |         eligibility: ForgeQueryLowerRuntimeCapabilityEligibility,
-  | |         route_subject: impl Into<String>,
+  | |         route_subject: ForgeQueryLowerRuntimeRouteSubjectIdentity,
   | |     ) -> Self {
   | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+ --> tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs:7:63
+  |
+7 |     let _ = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, "forged-route");
+  |             ------------------------------------              ^^^^^^^^^^^^^^ expected `ForgeQueryLowerRuntimeRouteSubjectIdentity`, found `&str`
+  |             |
+  |             arguments to this function are incorrect
+  |
+note: associated function defined here
+ --> src/lower_runtime_routing/plans/mod.rs
+  |
+  |     pub(crate) fn new(
+  |                   ^^^

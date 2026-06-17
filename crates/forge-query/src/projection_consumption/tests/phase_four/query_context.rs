@@ -7,6 +7,7 @@ use super::support::{
     admitted, binding_for_result_shape, query_context_execution_current,
     query_context_execution_historical, query_context_execution_preview,
 };
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 
 #[test]
@@ -32,11 +33,13 @@ fn current_query_context_extracts_identity_and_row_bound_field_facts() {
 
     assert_eq!(
         consumed.entity_identities()[0].entity_identity(),
-        "query-context:runtime_current:0"
+        &crate::memory_workspace::admit_authored_entity_label(
+            consumed.entity_identities()[0].source_row_identity(),
+        )
     );
     assert_eq!(
         consumed.view_local_identities()[1].view_local_identity(),
-        "query-context:runtime_current:1"
+        consumed.view_local_identities()[1].source_row_identity(),
     );
     assert_eq!(
         consumed.display_fields()[0].value(),

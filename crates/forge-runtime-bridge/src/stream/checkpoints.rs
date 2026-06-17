@@ -9,7 +9,7 @@ use super::position::CanonicalStreamPosition;
 use super::protocol::{AdmittedConsumerContract, ConsumerContractIdentity, StreamProtocolIdentity};
 use super::window::PlannedChangeStreamWindow;
 
-type CheckpointTokenIdentity = BridgeIdentity<CheckpointTokenIdentityTag>;
+pub type CheckpointTokenIdentity = BridgeIdentity<CheckpointTokenIdentityTag>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum StreamCheckpointFrontierKind {
@@ -51,7 +51,7 @@ impl ConsumerCheckpointToken {
         );
         let digest = digest_string("consumer-checkpoint-token", &basis);
         Self {
-            checkpoint_token_identity: CheckpointTokenIdentity::new(digest),
+            checkpoint_token_identity: CheckpointTokenIdentity::admit_bridge_owned(digest),
             consumer_contract_identity: contract.consumer_contract_identity().clone(),
             stream_protocol_identity: contract.stream_protocol_identity().clone(),
             checkpoint_frontier_kind,
@@ -74,7 +74,11 @@ impl ConsumerCheckpointToken {
         }
     }
 
-    pub fn checkpoint_token_identity(&self) -> &str {
+    pub fn checkpoint_token_identity(&self) -> &CheckpointTokenIdentity {
+        &self.checkpoint_token_identity
+    }
+
+    pub fn checkpoint_token_identity_for_reporting(&self) -> &str {
         self.checkpoint_token_identity.as_str()
     }
 

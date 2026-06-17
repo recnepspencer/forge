@@ -10,6 +10,7 @@ use crate::facade::{
     TopologyRewireLoopEndpointDeclaration, TopologySpliceRadialAdjacencyDeclaration,
 };
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use crate::projection::{query_entity_id_from_row, query_relation_id_from_row};
 use forge_query::facade::ForgeQueryWorkspace;
 
@@ -149,13 +150,13 @@ pub(super) fn endpoint_rewire_fixture(
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
                 .is_some_and(|kind_name| kind_name == ".vertex")
-                && row.identity() != current_target_identity
+                && query_entity_identity_reporting_label(row.identity()) != current_target_identity
         })
         .map(|row| query_entity_id_from_row(row).expect("entity id should decode"))
         .expect("seeded disk should provide an alternate vertex");
     let half_edge_id = entity_rows
         .iter()
-        .find(|row| row.identity() == source_identity)
+        .find(|row| query_entity_identity_reporting_label(row.identity()) == source_identity)
         .map(|row| query_entity_id_from_row(row).expect("entity id should decode"))
         .expect("endpoint source identity should resolve to a half-edge");
     (
@@ -203,12 +204,12 @@ pub(super) fn radial_splice_fixture(
         .expect("seeded edge fan should provide an alternate same-edge half-edge");
     let half_edge_id = entity_rows
         .iter()
-        .find(|row| row.identity() == source_identity)
+        .find(|row| query_entity_identity_reporting_label(row.identity()) == source_identity)
         .map(|row| query_entity_id_from_row(row).expect("entity id should decode"))
         .expect("source identity should resolve to a half-edge");
     let alternate_half_edge_id = entity_rows
         .iter()
-        .find(|row| row.identity() == alternate_identity)
+        .find(|row| query_entity_identity_reporting_label(row.identity()) == alternate_identity)
         .map(|row| query_entity_id_from_row(row).expect("entity id should decode"))
         .expect("alternate identity should resolve to a half-edge");
     (

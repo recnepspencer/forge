@@ -8,7 +8,8 @@ use forge_runtime_bridge::facade::{
     BridgeMappingRegistration, BridgeRuntimePolicy, BridgeSignalInvalidationDelivery,
     BridgeSnapshotReadError, BridgeSourceAdapter, BridgeSourceCapability,
     BridgeSourceCapabilitySet, BridgeTruthViewSelector, CoarseRoutingMode, InvalidationSink,
-    MappingSelector, RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
+    MappingSelector, RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
+    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
     RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
     SourceDeclaration, SourceDeclarationIdentity, TruthBranchHeadSource, TruthBranchIdentity,
@@ -17,17 +18,17 @@ use forge_runtime_bridge::facade::{
 };
 use std::sync::Arc;
 
-type ProjectionBridgeRow = (String, String, String);
+type ProjectionBridgeRow = (RelationalBridgeRecordIdentityParts, String, String);
 
 pub(super) fn projection_bridge_runtime() -> RuntimeBridge {
     let rows = Arc::new(vec![
         (
-            "entity-1".to_string(),
+            RelationalBridgeRecordIdentityParts::entity(1, 1, 1),
             "task-1".to_string(),
             "todo".to_string(),
         ),
         (
-            "entity-2".to_string(),
+            RelationalBridgeRecordIdentityParts::entity(1, 2, 1),
             "task-2".to_string(),
             "doing".to_string(),
         ),
@@ -39,10 +40,10 @@ pub(super) fn projection_bridge_runtime() -> RuntimeBridge {
         .with_truth_branch_head_source(ProjectionBridgeSource { rows })
         .with_signal_sink(ProjectionBridgeSink)
         .register_source(SourceDeclaration::new(
-            SourceDeclarationIdentity::new("source:lower-runtime-certification"),
+            SourceDeclarationIdentity::from_stable_name("source:lower-runtime-certification"),
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::from_relational_branch_id("main"),
+                projection_snapshot_identity(),
             ),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -50,14 +51,14 @@ pub(super) fn projection_bridge_runtime() -> RuntimeBridge {
             ]),
         ))
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("projection-bridge-mapping"),
+            BridgeMappingId::from_stable_name("projection-bridge-mapping"),
             TruthPatchScope::new(
                 MappingSelector::exact("entity-1"),
                 AspectKeySelector::exact(aspect_key("status")),
                 TruthPatchTargetSelector::entity_field(field_key("lane")),
             ),
             SnapshotReadContract::scalar(aspect_key("status"), ScalarAspectType::String),
-            SignalInvalidationScope::new("signal:projection-bridge"),
+            SignalInvalidationScope::from_stable_name("signal:projection-bridge"),
             CoarseRoutingMode::Direct,
         ))
         .build()
@@ -76,9 +77,9 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for ProjectionBridgeSour
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_projection_patch_envelope(
             request.commit_identity().clone(),
-            TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            TruthPatchIdentity::from_relational_patch_position(79),
+            projection_snapshot_identity(),
+            TruthBranchIdentity::from_relational_branch_id("main"),
         ))
     }
 }
@@ -90,7 +91,7 @@ struct ProjectionBridgeSnapshotReader {
 
 impl TruthSnapshotReader for ProjectionBridgeSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot-a")
+        projection_snapshot_identity()
     }
 
     fn read_packet(
@@ -98,7 +99,7 @@ impl TruthSnapshotReader for ProjectionBridgeSnapshotReader {
         request: &SnapshotReadPacket,
     ) -> Result<SnapshotReadPacketResult, BridgeSnapshotReadError> {
         Ok(SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
+            projection_snapshot_identity(),
             request
                 .reads()
                 .iter()
@@ -106,17 +107,15 @@ impl TruthSnapshotReader for ProjectionBridgeSnapshotReader {
                     let payload = self
                         .rows
                         .iter()
-                        .find_map(|(entity_identity, identity_value, grouping_value)| {
-                            (read.entity_identity() == entity_identity.as_str()).then(|| match read
-                                .aspect_key()
-                                .as_str()
-                            {
-                                "identity.id" => {
-                                    AspectValue::String(identity_value.as_str().into())
-                                }
-                                "status" => AspectValue::String(grouping_value.as_str().into()),
-                                _ => AspectValue::String("unknown".into()),
-                            })
+                        .find_map(|(record_identity, identity_value, grouping_value)| {
+                            (read.relational_record_identity_parts() == Some(*record_identity))
+                                .then(|| match read.aspect_key().as_str() {
+                                    "identity.id" => {
+                                        AspectValue::String(identity_value.as_str().into())
+                                    }
+                                    "status" => AspectValue::String(grouping_value.as_str().into()),
+                                    _ => AspectValue::String("unknown".into()),
+                                })
                         })
                         .unwrap_or_else(|| AspectValue::String("unknown".into()));
                     SnapshotReadRecord::for_request(read, payload)
@@ -131,14 +130,14 @@ impl SnapshotReadSource for ProjectionBridgeSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        if identity.as_str() == "snapshot-a" {
+        if identity.relational_snapshot_parts().is_some() {
             Ok(Box::new(ProjectionBridgeSnapshotReader {
                 rows: self.rows.clone(),
             }))
         } else {
             Err(RelationalBridgeSourceError::new(format!(
-                "unknown snapshot `{}`",
-                identity.as_str()
+                "unknown snapshot `{:?}`",
+                identity
             )))
         }
     }
@@ -150,9 +149,9 @@ impl TruthBranchHeadSource for ProjectionBridgeSource {
         branch_identity: &TruthBranchIdentity,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         Ok(native_projection_patch_envelope(
-            TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-            TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthCommitIdentity::from_relational_commit_id(80),
+            TruthPatchIdentity::from_relational_patch_position(80),
+            projection_snapshot_identity(),
             branch_identity.clone(),
         ))
     }
@@ -212,6 +211,12 @@ fn aspect_key(value: &str) -> AspectKey {
 
 fn field_key(value: &str) -> FieldKey {
     FieldKey::new(value.to_owned()).expect("valid projection bridge field key")
+}
+
+fn projection_snapshot_identity() -> TruthSnapshotIdentity {
+    TruthSnapshotIdentity::from_relational_snapshot(RelationalBridgeSnapshotIdentityParts::new(
+        6, 2,
+    ))
 }
 
 struct ProjectionBridgeSink;

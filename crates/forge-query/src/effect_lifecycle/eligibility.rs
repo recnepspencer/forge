@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::workflow::QueryWorkflowDeclaration;
 
 use super::counters::EffectLifecycleCounters;
@@ -9,11 +11,11 @@ use super::taxonomy::DeniedEffectEligibilityKind;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectEligibilityDecisionTrace {
-    normalized_digest: String,
+    normalized_identity: ForgeQueryEvidenceIdentity,
     outcome: &'static str,
     message: &'static str,
     cause: &'static str,
-    trace_digest: String,
+    trace_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectEligibilityDecisionTrace {
@@ -23,23 +25,35 @@ impl EffectEligibilityDecisionTrace {
         message: &'static str,
         cause: &'static str,
     ) -> Self {
-        let trace_digest = hash_parts(&[
-            format!("normalized:{}", normalized.normalized_digest()),
-            format!("outcome:{outcome}"),
-            format!("message:{message}"),
-            format!("cause:{cause}"),
-        ]);
+        let trace_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_eligibility_decision_trace_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("normalized"),
+                    normalized.normalized_identity(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("outcome"), outcome)
+                .field_shape(ForgeQueryEvidenceTag::new("message"), message)
+                .field_shape(ForgeQueryEvidenceTag::new("cause"), cause)
+                .seal();
         Self {
-            normalized_digest: normalized.normalized_digest().to_string(),
+            normalized_identity: normalized.normalized_identity().clone(),
             outcome,
             message,
             cause,
-            trace_digest,
+            trace_identity,
         }
     }
 
-    pub fn normalized_digest(&self) -> &str {
-        &self.normalized_digest
+    pub fn normalized_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.normalized_identity
+    }
+
+    pub fn normalized_for_reporting(&self) -> &str {
+        self.normalized_identity.as_str()
     }
 
     pub fn outcome(&self) -> &'static str {
@@ -54,8 +68,12 @@ impl EffectEligibilityDecisionTrace {
         self.cause
     }
 
-    pub fn trace_digest(&self) -> &str {
-        &self.trace_digest
+    pub fn trace_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.trace_identity
+    }
+
+    pub fn trace_for_reporting(&self) -> &str {
+        self.trace_identity.as_str()
     }
 }
 
@@ -298,16 +316,16 @@ pub enum EffectEligibilityOutcome {
 pub struct AdmittedEffectIntent {
     normalized: NormalizedEffectIntent,
     workflow_declaration: QueryWorkflowDeclaration,
-    admitted_digest: String,
+    admitted_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl AdmittedEffectIntent {
     pub(crate) fn new(eligibility: EffectEligibility) -> Self {
-        let admitted_digest = eligibility.normalized.admitted_digest();
+        let admitted_identity = eligibility.normalized.admitted_identity();
         Self {
             normalized: eligibility.normalized,
             workflow_declaration: eligibility.workflow_declaration,
-            admitted_digest,
+            admitted_identity,
         }
     }
 
@@ -315,8 +333,12 @@ impl AdmittedEffectIntent {
         &self.normalized
     }
 
-    pub fn admitted_digest(&self) -> &str {
-        &self.admitted_digest
+    pub fn admitted_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.admitted_identity
+    }
+
+    pub fn admitted_for_reporting(&self) -> &str {
+        self.admitted_identity.as_str()
     }
 
     pub fn workflow_declaration(&self) -> &QueryWorkflowDeclaration {

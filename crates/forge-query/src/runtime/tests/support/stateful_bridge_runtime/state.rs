@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
 
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::tests::support::test_bridge_with_writeback_authority;
 
 pub(super) struct StatefulBridgeState {
@@ -10,7 +11,9 @@ pub(super) struct StatefulBridgeState {
     pub(super) installed_collections: BTreeSet<String>,
     pub(super) rows_by_collection: BTreeMap<String, BTreeMap<String, Value>>,
     pub(super) collection_by_identity: BTreeMap<String, String>,
-    pub(super) identity_by_symbol: BTreeMap<String, String>,
+    pub(super) identity_by_symbol: BTreeMap<String, ForgeQueryEntityIdentity>,
+    pub(super) identity_text_by_symbol: BTreeMap<String, String>,
+    pub(super) identity_by_storage_key: BTreeMap<String, ForgeQueryEntityIdentity>,
     pub(super) next_entity_identity: usize,
     pub(super) next_commit_identity: usize,
     pub(super) next_snapshot_token: usize,
@@ -25,6 +28,8 @@ impl StatefulBridgeState {
             rows_by_collection: BTreeMap::new(),
             collection_by_identity: BTreeMap::new(),
             identity_by_symbol: BTreeMap::new(),
+            identity_text_by_symbol: BTreeMap::new(),
+            identity_by_storage_key: BTreeMap::new(),
             next_entity_identity: 0,
             next_commit_identity: 0,
             next_snapshot_token: 0,

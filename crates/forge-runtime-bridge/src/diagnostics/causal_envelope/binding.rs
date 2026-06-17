@@ -1,8 +1,10 @@
-use std::sync::Arc;
-
 use super::authority::{BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner};
 use super::evidence_reference::BridgeCausalEvidenceReference;
-use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
+use super::{
+    compose_bridge_causal_envelope_evidence_identity,
+    digest_basis::BridgeCausalEnvelopeDigestArtifact, evidence_part, shape_part,
+};
+use crate::identity::BridgeIdentityEvidence;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeCausalEvidenceBindingClass {
@@ -15,20 +17,20 @@ pub struct BridgeCausalEvidenceBinding {
     owner: BridgeCausalEvidenceOwner,
     family: BridgeCausalEvidenceFamily,
     binding_class: BridgeCausalEvidenceBindingClass,
-    reference_identity: Arc<str>,
-    retained_record_digest: Option<Arc<str>>,
-    binding_digest: Arc<str>,
+    reference_identity: BridgeIdentityEvidence,
+    retained_record_identity: Option<BridgeIdentityEvidence>,
+    binding_identity: BridgeIdentityEvidence,
 }
 
 impl BridgeCausalEvidenceBinding {
     pub(super) fn retained(
         reference: &BridgeCausalEvidenceReference,
-        retained_record_digest: String,
+        retained_record_identity: BridgeIdentityEvidence,
     ) -> Self {
         Self::new(
             reference,
             BridgeCausalEvidenceBindingClass::RetainedBridgeRecord,
-            Some(Arc::from(retained_record_digest)),
+            Some(retained_record_identity),
         )
     }
 
@@ -43,25 +45,28 @@ impl BridgeCausalEvidenceBinding {
     fn new(
         reference: &BridgeCausalEvidenceReference,
         binding_class: BridgeCausalEvidenceBindingClass,
-        retained_record_digest: Option<Arc<str>>,
+        retained_record_identity: Option<BridgeIdentityEvidence>,
     ) -> Self {
-        let retained = retained_record_digest.as_deref().unwrap_or("external");
-        let binding_digest = causal_envelope_digest(
+        let external_retained_identity = external_retained_record_identity();
+        let retained_identity = retained_record_identity
+            .as_ref()
+            .unwrap_or(&external_retained_identity);
+        let binding_identity = compose_bridge_causal_envelope_evidence_identity(
             BridgeCausalEnvelopeDigestArtifact::EvidenceBinding,
             &[
-                reference.owner().as_str(),
-                reference.family().as_str(),
-                reference.reference_identity(),
-                retained,
+                shape_part(reference.owner().as_str()),
+                shape_part(reference.family().as_str()),
+                evidence_part(reference.reference_evidence_identity()),
+                evidence_part(retained_identity),
             ],
         );
         Self {
             owner: reference.owner(),
             family: reference.family(),
             binding_class,
-            reference_identity: Arc::from(reference.reference_identity()),
-            retained_record_digest,
-            binding_digest: Arc::from(binding_digest),
+            reference_identity: reference.reference_evidence_identity().clone(),
+            retained_record_identity,
+            binding_identity,
         }
     }
 
@@ -77,15 +82,32 @@ impl BridgeCausalEvidenceBinding {
         self.binding_class
     }
 
-    pub fn reference_identity(&self) -> &str {
-        self.reference_identity.as_ref()
+    pub fn reference_evidence_identity(&self) -> BridgeIdentityEvidence {
+        self.reference_identity.clone()
     }
 
-    pub fn retained_record_digest(&self) -> Option<&str> {
-        self.retained_record_digest.as_deref()
+    pub fn retained_record_evidence_identity(&self) -> Option<BridgeIdentityEvidence> {
+        self.retained_record_identity.clone()
     }
 
-    pub fn binding_digest(&self) -> &str {
-        self.binding_digest.as_ref()
+    pub fn retained_record_digest_for_reporting(&self) -> Option<&str> {
+        self.retained_record_identity
+            .as_ref()
+            .map(BridgeIdentityEvidence::as_str)
     }
+
+    pub fn binding_evidence_identity(&self) -> BridgeIdentityEvidence {
+        self.binding_identity.clone()
+    }
+
+    pub fn binding_digest_for_reporting(&self) -> &str {
+        self.binding_identity.as_str()
+    }
+}
+
+fn external_retained_record_identity() -> BridgeIdentityEvidence {
+    compose_bridge_causal_envelope_evidence_identity(
+        BridgeCausalEnvelopeDigestArtifact::EvidenceBinding,
+        &[shape_part("external-authority-reference")],
+    )
 }

@@ -10,17 +10,20 @@ use crate::domain_capabilities::{
     ForgeQueryCanonicalAftermathArtifact, ForgeQueryDomainCapabilityTransitionOutcome,
     ForgeQueryMaterializationReadyAftermathContribution,
 };
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::projection_consumption::{
     declare_projection_consumption, discover_projection_consumption_support,
     evaluate_projection_consumption_eligibility, AdmittedProjectionConsumption,
-    MaterializedProjectionContract, ProjectionConsumptionDeclaration,
-    ProjectionConsumptionEligibility, ProjectionConsumptionSupportReport,
+    DeferredProjectionConsumptionReason, MaterializedProjectionContract,
+    ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError,
+    ProjectionConsumptionDenialReason, ProjectionConsumptionEligibility,
+    ProjectionConsumptionSupportReport,
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryAftermathProjectionConsumptionReview {
     semantic_code: String,
-    request_digest: String,
+    request_identity: ForgeQueryEvidenceIdentity,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
     declaration: ProjectionConsumptionDeclaration,
     support_report: ProjectionConsumptionSupportReport,
@@ -32,8 +35,12 @@ impl ForgeQueryAftermathProjectionConsumptionReview {
         &self.semantic_code
     }
 
-    pub fn request_digest(&self) -> &str {
-        &self.request_digest
+    pub fn request_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.request_identity
+    }
+
+    pub fn request_for_reporting(&self) -> &str {
+        self.request_identity.as_str()
     }
 
     pub fn target_kind(&self) -> crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind {
@@ -106,7 +113,7 @@ pub fn materialize_projection_consumption_review(
     let Some(runtime_semantics) = payload.runtime_semantics() else {
         return TransitionOutcome::Denied(missing_runtime_semantics_denial(
             payload.semantic_code(),
-            domain_contribution.request_digest(),
+            domain_contribution.request_identity().clone(),
         ));
     };
 
@@ -121,11 +128,11 @@ pub fn materialize_projection_consumption_review(
                 ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                 "consequence-aftermath",
                 domain_contribution.target().kind(),
-                domain_contribution.request_digest(),
+                domain_contribution.request_identity().clone(),
                 format!(
-                    "projection consumption declaration denied for `{}` with `{:?}`",
+                    "projection consumption declaration denied for `{}` with `{}`",
                     payload.semantic_code(),
-                    error
+                    declaration_error_label(&error),
                 ),
             ));
         }
@@ -136,7 +143,7 @@ pub fn materialize_projection_consumption_review(
 
     TransitionOutcome::Success(ForgeQueryAftermathProjectionConsumptionReview {
         semantic_code: payload.semantic_code().to_string(),
-        request_digest: domain_contribution.request_digest().to_string(),
+        request_identity: domain_contribution.request_identity().clone(),
         target_kind: domain_contribution.target().kind(),
         declaration,
         support_report,
@@ -162,11 +169,11 @@ pub fn materialize_admitted_projection_consumption(
                     ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                     "consequence-aftermath",
                     review.target_kind(),
-                    review.request_digest(),
+                    review.request_identity().clone(),
                     format!(
-                        "projection consumption eligibility denied for `{}` with `{:?}`",
+                        "projection consumption eligibility denied for `{}` with `{}`",
                         review.semantic_code(),
-                        denied.reason()
+                        denial_reason_label(denied.reason()),
                     ),
                 ))
             }
@@ -175,11 +182,11 @@ pub fn materialize_admitted_projection_consumption(
                     ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                     "consequence-aftermath",
                     review.target_kind(),
-                    review.request_digest(),
+                    review.request_identity().clone(),
                     format!(
-                        "projection consumption eligibility deferred for `{}` with `{:?}`",
+                        "projection consumption eligibility deferred for `{}` with `{}`",
                         review.semantic_code(),
-                        deferred.reason()
+                        deferred_reason_label(deferred.reason()),
                     ),
                 ))
             }
@@ -188,12 +195,12 @@ pub fn materialize_admitted_projection_consumption(
                     ForgeQueryDomainCapabilityProgressionDenialKind::InconsistentCanonicalMaterializationSemantics,
                     "consequence-aftermath",
                     review.target_kind(),
-                    review.request_digest(),
+                    review.request_identity().clone(),
                     format!(
-                        "projection consumption source mismatch for `{}` with `{:?}` / `{:?}`",
+                        "projection consumption source mismatch for `{}` with `{}` / `{}`",
                         review.semantic_code(),
-                        mismatch.source_family(),
-                        mismatch.requested_fact_kind()
+                        mismatch.source_family().as_str(),
+                        mismatch.requested_fact_kind().as_str(),
                     ),
                 ))
             }
@@ -225,15 +232,51 @@ pub fn materialize_projection_consumption_contract(
 
 fn missing_runtime_semantics_denial(
     semantic_code: &str,
-    request_digest: &str,
+    request_identity: ForgeQueryEvidenceIdentity,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::MissingCanonicalMaterializationSemantics,
         "consequence-aftermath",
         crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
-        request_digest,
+        request_identity,
         format!(
             "projection consumption materialization requires runtime aftermath semantics for `{semantic_code}`"
         ),
     )
+}
+
+fn declaration_error_label(error: &ProjectionConsumptionDeclarationError) -> &'static str {
+    match error {
+        ProjectionConsumptionDeclarationError::NoRequestedFacts => "no-requested-facts",
+        ProjectionConsumptionDeclarationError::SourceAuthorizedProjectionQueryMismatch {
+            ..
+        } => "source-authorized-projection-query-mismatch",
+        ProjectionConsumptionDeclarationError::BindingAuthorizedProjectionResultShapeMismatch {
+            ..
+        } => "binding-authorized-projection-result-shape-mismatch",
+        ProjectionConsumptionDeclarationError::SourceBindingResultShapeMismatch { .. } => {
+            "source-binding-result-shape-mismatch"
+        }
+    }
+}
+
+fn denial_reason_label(reason: &ProjectionConsumptionDenialReason) -> String {
+    match reason {
+        ProjectionConsumptionDenialReason::FactFamilyNotVisible { field_key } => {
+            let mut label = String::from("fact-family-not-visible:");
+            label.push_str(field_key);
+            label
+        }
+    }
+}
+
+fn deferred_reason_label(reason: &DeferredProjectionConsumptionReason) -> &'static str {
+    match reason {
+        DeferredProjectionConsumptionReason::WriteReceiptContractBindingPending => {
+            "write-receipt-contract-binding-pending"
+        }
+        DeferredProjectionConsumptionReason::SourceFamilySupportPending => {
+            "source-family-support-pending"
+        }
+    }
 }

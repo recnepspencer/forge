@@ -7,7 +7,9 @@ pub(super) fn execute_replay_mismatch_certification(
 ) -> Result<WritebackHarnessExecution, BridgeHarnessError> {
     let lowered_policy_bundle = lowered_policy(runtime_bridge)?;
     let declaration = crate::facade::BridgeWritebackDeclaration::writeback_capable(
-        crate::facade::BridgeWritebackDeclarationIdentity::new("harness:writeback-replay-mismatch"),
+        crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
+            "harness:writeback-replay-mismatch",
+        ),
         crate::facade::BridgeRequestKind::Authoritative,
         crate::facade::BridgeWritebackFamilyKind::ProjectedStateDiff,
         crate::facade::BridgeWritebackEffectClass::ProjectedStateDiff,
@@ -31,7 +33,7 @@ pub(super) fn execute_replay_mismatch_certification(
     let expected_effect = runtime_bridge.lower_writeback_effect(
         &contract,
         &causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-replay-mismatch-effect:expected",
         ),
         writeback_effect_intent(
@@ -42,7 +44,7 @@ pub(super) fn execute_replay_mismatch_certification(
     let replayed_effect = runtime_bridge.lower_writeback_effect(
         &contract,
         &causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-replay-mismatch-effect:replayed",
         ),
         writeback_effect_intent(
@@ -54,7 +56,7 @@ pub(super) fn execute_replay_mismatch_certification(
         &expected_effect,
         &lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&expected_effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-replay-mismatch-idempotence:expected",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -63,7 +65,7 @@ pub(super) fn execute_replay_mismatch_certification(
         &replayed_effect,
         &lowered_policy_bundle,
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(&replayed_effect),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-replay-mismatch-idempotence:replayed",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
@@ -102,7 +104,7 @@ pub(super) fn execute_replay_mismatch_certification(
     let rebuilt_contract = rebuilt_runtime
         .admit_writeback_declaration(
             crate::facade::BridgeWritebackDeclaration::writeback_capable(
-                crate::facade::BridgeWritebackDeclarationIdentity::new(
+                crate::facade::BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "harness:writeback-replay-mismatch",
                 ),
                 crate::facade::BridgeRequestKind::Authoritative,
@@ -121,7 +123,7 @@ pub(super) fn execute_replay_mismatch_certification(
     let rebuilt_replayed_effect = rebuilt_runtime.lower_writeback_effect(
         &rebuilt_contract,
         &causality,
-        crate::facade::BridgeWritebackEffectIdentity::new(
+        crate::facade::BridgeWritebackEffectIdentity::admit_bridge_owned(
             "harness:writeback-replay-mismatch-effect:replayed",
         ),
         writeback_effect_intent(
@@ -135,7 +137,7 @@ pub(super) fn execute_replay_mismatch_certification(
         &crate::facade::BridgeWritebackAuthoritativeStateBasis::from_effect(
             &rebuilt_replayed_effect,
         ),
-        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+        crate::facade::BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "harness:writeback-replay-mismatch-idempotence:replayed",
         ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,

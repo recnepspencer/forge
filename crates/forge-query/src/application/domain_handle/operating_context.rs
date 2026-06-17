@@ -8,6 +8,7 @@ use crate::continuation_pipeline::{
     ForgeQueryPreparedContinuationExecutionReadmission,
     ForgeQueryPreparedContinuationFreshnessPosture,
 };
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::runtime::ForgeQueryRuntimeFacadeFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -44,8 +45,8 @@ impl std::fmt::Display for ForgeQueryDomainOperatingRequirement {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryContinuationExecutionReadmissionObservation {
     authority: LowerRuntimeEvidenceAuthority,
-    basis_identity_digest: String,
-    lower_runtime_binding_digest: Option<String>,
+    basis_identity: ForgeQueryEvidenceIdentity,
+    lower_runtime_binding_identity: Option<ForgeQueryEvidenceIdentity>,
     freshness_posture: ForgeQueryPreparedContinuationFreshnessPosture,
     drift_kind: Option<ForgeQueryPreparedContinuationDriftKind>,
 }
@@ -53,15 +54,15 @@ pub struct ForgeQueryContinuationExecutionReadmissionObservation {
 impl ForgeQueryContinuationExecutionReadmissionObservation {
     pub(crate) fn new(
         authority: LowerRuntimeEvidenceAuthority,
-        basis_identity_digest: String,
-        lower_runtime_binding_digest: Option<String>,
+        basis_identity: ForgeQueryEvidenceIdentity,
+        lower_runtime_binding_identity: Option<ForgeQueryEvidenceIdentity>,
         freshness_posture: ForgeQueryPreparedContinuationFreshnessPosture,
         drift_kind: Option<ForgeQueryPreparedContinuationDriftKind>,
     ) -> Self {
         Self {
             authority,
-            basis_identity_digest,
-            lower_runtime_binding_digest,
+            basis_identity,
+            lower_runtime_binding_identity,
             freshness_posture,
             drift_kind,
         }
@@ -71,10 +72,8 @@ impl ForgeQueryContinuationExecutionReadmissionObservation {
         let witness = retained.basis_witness();
         Self::new(
             lower_runtime_authority_from_witness(retained.authority_witness()),
-            witness.basis_identity_digest().to_string(),
-            witness
-                .expected_lower_runtime_binding_digest()
-                .map(str::to_string),
+            witness.basis_identity().clone(),
+            witness.expected_lower_runtime_binding_identity().cloned(),
             retained.freshness_posture(),
             retained.drift_kind(),
         )
@@ -85,11 +84,21 @@ impl ForgeQueryContinuationExecutionReadmissionObservation {
     }
 
     pub fn basis_identity_digest(&self) -> &str {
-        &self.basis_identity_digest
+        self.basis_identity.as_str()
+    }
+
+    pub fn basis_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.basis_identity
     }
 
     pub fn lower_runtime_binding_digest(&self) -> Option<&str> {
-        self.lower_runtime_binding_digest.as_deref()
+        self.lower_runtime_binding_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn lower_runtime_binding_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.lower_runtime_binding_identity.as_ref()
     }
 
     pub fn freshness_posture(&self) -> ForgeQueryPreparedContinuationFreshnessPosture {

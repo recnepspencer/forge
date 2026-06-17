@@ -133,14 +133,12 @@ mod tests {
     use crate::input::envelope::{
         BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
         BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeProducerMetadata,
-        TruthBranchIdentity, TruthPatchIdentity,
     };
     use crate::mapping::{
         BridgeAspectRegistration, BridgeAspectRegistrationId, FrozenAspectMappingRegistry,
         MappingSelector, SliceWideningPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
         TruthPatchScope,
     };
-    use crate::snapshot::TruthSnapshotIdentity;
 
     use super::{classify_truth_delta_surface, FineGrainedMatchStatus};
     use crate::routing::surfaces::{derive_normalized_truth_delta_surface_set, TruthDeltaSurface};
@@ -167,7 +165,7 @@ mod tests {
     fn classify_surface_as_matched_when_direct_registration_exists() {
         let surface = field_surface("user", "profile", "name");
         let registry = registry(vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("field"),
+            BridgeAspectRegistrationId::admit_bridge_owned("field"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -197,7 +195,7 @@ mod tests {
     fn classify_surface_as_widening_when_registration_admits_widening() {
         let surface = field_surface("user", "profile", "name");
         let registry = registry(vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("field-widening"),
+            BridgeAspectRegistrationId::admit_bridge_owned("field-widening"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -234,10 +232,10 @@ mod tests {
         let envelope = BridgeCommittedPatchEnvelope::new(
             BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
                 BridgeProducerMetadata::bridge_harness_fixture(),
-                crate::facade::TruthCommitIdentity::new("commit:routing-match"),
-                TruthPatchIdentity::new("patch:routing-match"),
-                TruthSnapshotIdentity::new("snapshot:routing-match"),
-                TruthBranchIdentity::new("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit:routing-match"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch:routing-match"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:routing-match"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
             ),
             vec![BridgeCommittedPatchItem::with_target(
                 entity_identity,

@@ -62,7 +62,7 @@ pub(super) fn construct_committed_patch_envelope(
         &canonical_items,
         normalized_patch_item_count,
     );
-    let digest = BridgeCommittedPatchDigest::new(committed_patch_digest_from_basis(
+    let digest = BridgeCommittedPatchDigest::admit_bridge_owned(committed_patch_digest_from_basis(
         &committed_patch_digest_basis,
     ));
     validate_identity("committed patch digest", digest.as_str())?;

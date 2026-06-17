@@ -204,7 +204,7 @@ pub(super) fn emitted_receipt(
         delivery_budget(patch_group_width, maintenance_delta_width),
     )
     .unwrap();
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         scope,

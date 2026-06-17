@@ -151,11 +151,7 @@ impl ForgeQueryRuntime {
         input_contract: String,
     ) -> Result<ForgeQueryRawIntentAdmissionRequest, ForgeQueryRuntimeError> {
         let declaration = ForgeQueryIntentDeclaration::strategy_commit(
-            format!(
-                "effect:{}:{}",
-                delivery.effect_name(),
-                delivery.commit_identity()
-            ),
+            format!("effect:{}", delivery.effect_name()),
             delivery.target().to_string(),
             strategy_version,
             input_contract,

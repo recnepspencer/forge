@@ -10,7 +10,10 @@ use crate::runtime::{
     ForgeQueryForbiddenFallbackSeam,
 };
 
-use super::support::{authorized_projection, live_binding, retained_binding};
+use super::support::{
+    authorized_projection, live_binding, retained_binding, shared_test_result_shape,
+    test_result_shape_artifact, test_result_shape_canonical_digest,
+};
 
 #[test]
 fn ordinary_projection_path_forbidden_fallback_audit_reports_exact_zero() {
@@ -53,8 +56,12 @@ fn retained_and_live_ordinary_consumption_path_stays_receipt_first_and_zero_reop
 
     let retained = retained_binding
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["profile.display_name"]),
+            &test_result_shape_artifact("result-shape:test"),
+            &authorized_projection(
+                "query:test",
+                &test_result_shape_canonical_digest("result-shape:test"),
+                &["profile.display_name"],
+            ),
             ProjectMaterializedFacts::declare()
                 .view_local_identities()
                 .display_field("profile.display_name")
@@ -63,8 +70,12 @@ fn retained_and_live_ordinary_consumption_path_stays_receipt_first_and_zero_reop
         .expect("retained ordinary projection path should succeed");
     let live = live_binding
         .consume_projection_facts(
-            "result-shape:test",
-            &authorized_projection("query:test", "result-shape:test", &["profile.display_name"]),
+            &shared_test_result_shape().identity,
+            &authorized_projection(
+                "query:test",
+                &shared_test_result_shape().digest,
+                &["profile.display_name"],
+            ),
             ProjectMaterializedFacts::declare()
                 .entity_identities()
                 .view_local_identities()

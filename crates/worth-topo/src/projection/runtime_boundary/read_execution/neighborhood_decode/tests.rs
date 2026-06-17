@@ -1,4 +1,5 @@
-use forge_query::facade::{ForgeQueryEntity, RelationName};
+use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity, RelationName};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 use serde_json::json;
 
 use super::{
@@ -9,13 +10,25 @@ fn relation(name: &str) -> RelationName {
     RelationName::new(name).expect("test relation names should be valid")
 }
 
+fn entity_identity(partition: u32, slot: u64, generation: u32) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        partition, slot, generation,
+    ))
+}
+
+fn entity_label(partition: u32, slot: u64, generation: u32) -> String {
+    format!("entity:{partition}:{slot}:{generation}")
+}
+
 fn row(
-    identity: &str,
+    partition: u32,
+    slot: u64,
+    generation: u32,
     relations: serde_json::Value,
     relation_ids: serde_json::Value,
 ) -> ForgeQueryEntity {
     ForgeQueryEntity::from_external_projection(
-        identity,
+        entity_identity(partition, slot, generation),
         json!({
             "relations": relations,
             "relation_identities": relation_ids,
@@ -25,18 +38,21 @@ fn row(
 
 #[test]
 fn shared_vertex_decode_fails_closed_when_edge_relation_is_missing() {
+    let anchor = entity_label(0, 1, 1);
     let rows = vec![row(
-        "he:1",
+        0,
+        1,
+        1,
         json!({
-            "starts_at_vertex": "v:1",
-            "ends_at_vertex": "v:2",
+            "starts_at_vertex": entity_label(0, 3, 1),
+            "ends_at_vertex": entity_label(0, 4, 1),
         }),
         json!({}),
     )];
 
     let error = decode_shared_vertex_neighborhood(
         &rows,
-        "he:1",
+        &anchor,
         &relation("uses_edge"),
         &[relation("starts_at_vertex"), relation("ends_at_vertex")],
         "shared-vertex neighborhood",
@@ -48,19 +64,24 @@ fn shared_vertex_decode_fails_closed_when_edge_relation_is_missing() {
 
 #[test]
 fn radial_decode_fails_closed_when_relation_record_id_is_missing() {
+    let anchor = entity_label(0, 1, 1);
     let rows = vec![
         row(
-            "he:1",
+            0,
+            1,
+            1,
             json!({
-                "uses_edge": "e:1",
-                "radial_next": "he:2",
+                "uses_edge": entity_label(0, 5, 1),
+                "radial_next": entity_label(0, 2, 1),
             }),
             json!({}),
         ),
         row(
-            "he:2",
+            0,
+            2,
+            1,
             json!({
-                "uses_edge": "e:1",
+                "uses_edge": entity_label(0, 5, 1),
             }),
             json!({}),
         ),
@@ -68,7 +89,7 @@ fn radial_decode_fails_closed_when_relation_record_id_is_missing() {
 
     let error = decode_radial_neighborhood(
         &rows,
-        "he:1",
+        &anchor,
         &relation("uses_edge"),
         &relation("radial_next"),
         "radial neighborhood",
@@ -82,10 +103,13 @@ fn radial_decode_fails_closed_when_relation_record_id_is_missing() {
 
 #[test]
 fn local_rewire_decode_fails_closed_when_previous_relation_is_missing() {
+    let anchor = entity_label(0, 1, 1);
     let rows = vec![row(
-        "he:1",
+        0,
+        1,
+        1,
         json!({
-            "next": "he:2",
+            "next": entity_label(0, 2, 1),
         }),
         json!({
             "next": "rel:next:1",
@@ -94,7 +118,7 @@ fn local_rewire_decode_fails_closed_when_previous_relation_is_missing() {
 
     let error = decode_local_rewire_neighborhood(
         &rows,
-        "he:1",
+        &anchor,
         1,
         &relation("next"),
         &relation("prev"),

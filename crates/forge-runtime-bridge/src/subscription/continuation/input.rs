@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use crate::identity::BridgeIdentityEvidence;
+
 use super::BridgeSubscriptionContinuationKind;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -74,6 +76,14 @@ impl BridgeSubscriptionContinuationCandidateInput {
             locality_key,
             vec![child_basis_digest.into()],
         )
+    }
+
+    pub fn branch_local_continue_from_evidence(
+        authority: &BridgeIdentityEvidence,
+        locality: &BridgeIdentityEvidence,
+        child_basis: &BridgeIdentityEvidence,
+    ) -> Self {
+        Self::branch_local_continue(authority.as_str(), locality.as_str(), child_basis.as_str())
     }
 
     pub fn rejected_unsupported(

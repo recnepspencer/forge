@@ -2,7 +2,10 @@ use crate::application::{
     ForgeQueryDeclarationEntryContributionCategoryFamily,
     ForgeQueryDeclarationEntryContributionEvidence,
 };
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
+};
 
 use super::intent_result::{
     ForgeQueryContributionComposedIntentClassification, ForgeQueryContributionComposedIntentResult,
@@ -33,7 +36,7 @@ pub struct ForgeQueryContributionComposedComposition {
     admitted_category_families: Vec<ForgeQueryDeclarationEntryContributionCategoryFamily>,
     rejected_category_families: Vec<ForgeQueryDeclarationEntryContributionCategoryFamily>,
     admitted_evidence: Vec<ForgeQueryDeclarationEntryContributionEvidence>,
-    composition_digest: String,
+    composition_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryContributionComposedComposition {
@@ -54,34 +57,13 @@ impl ForgeQueryContributionComposedComposition {
             .filter(|value| !value.is_admitted())
             .map(ForgeQueryContributionComposedIntentResult::category_family)
             .collect::<Vec<_>>();
-        let mut digest_parts = intent_results
-            .iter()
-            .map(|value| {
-                format!(
-                    "{}:{:?}:{}:{}:{:?}:{:?}",
-                    value.request_digest(),
-                    value.classification(),
-                    value.target_binding_digest(),
-                    value
-                        .materialization()
-                        .digest()
-                        .or_else(|| value.admission().digest())
-                        .or_else(|| value.evaluation().digest())
-                        .unwrap_or("none"),
-                    value.aspect_record().declaration_contract(),
-                    value.aspect_record().declaration_coverage(),
-                )
-            })
-            .collect::<Vec<_>>();
-        digest_parts.sort();
-        digest_parts.insert(0, format!("classification:{:?}", classification));
-        let composition_digest = hash_parts(&digest_parts);
+        let composition_identity = compose_composition_identity(classification, intent_results);
         Self {
             classification,
             admitted_category_families,
             rejected_category_families,
             admitted_evidence,
-            composition_digest,
+            composition_identity,
         }
     }
 
@@ -105,9 +87,89 @@ impl ForgeQueryContributionComposedComposition {
         &self.admitted_evidence
     }
 
-    pub fn composition_digest(&self) -> &str {
-        &self.composition_digest
+    pub fn composition_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.composition_identity
     }
+
+    pub fn composition_for_reporting(&self) -> &str {
+        self.composition_identity.as_str()
+    }
+}
+
+fn compose_intent_result_identity(
+    value: &ForgeQueryContributionComposedIntentResult,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_contribution_composed_intent_result_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("category_family"),
+            value.category_family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("classification"),
+            format!("{:?}", value.classification()),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("request"),
+            value.request_identity(),
+        )
+        .field_evidence_identity(
+            ForgeQueryEvidenceTag::new("binding"),
+            value.binding_identity(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("declaration_contract"),
+            format!("{:?}", value.aspect_record().declaration_contract()),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("declaration_coverage"),
+            format!("{:?}", value.aspect_record().declaration_coverage()),
+        )
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("evaluation"),
+            value.evaluation().stage_identity(),
+        )
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("admission"),
+            value.admission().stage_identity(),
+        )
+        .optional_evidence_identity(
+            ForgeQueryEvidenceTag::new("materialization"),
+            value
+                .materialization()
+                .stage_identity()
+                .or_else(|| value.admission().stage_identity())
+                .or_else(|| value.evaluation().stage_identity()),
+        )
+        .seal()
+}
+
+fn compose_composition_identity(
+    classification: ForgeQueryContributionComposedClassification,
+    intent_results: &[ForgeQueryContributionComposedIntentResult],
+) -> ForgeQueryEvidenceIdentity {
+    let mut intent_identities = intent_results
+        .iter()
+        .map(compose_intent_result_identity)
+        .collect::<Vec<_>>();
+    intent_identities.sort_by_key(|identity| identity.as_str().to_owned());
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::MutationEvidenceAggregateDigest)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_contribution_composed_composition_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("classification"),
+            format!("{classification:?}"),
+        )
+        .field_evidence_identity_sequence(
+            ForgeQueryEvidenceTag::new("intent_results"),
+            intent_identities.iter(),
+        )
+        .seal()
 }
 
 pub fn classify_intent_results(

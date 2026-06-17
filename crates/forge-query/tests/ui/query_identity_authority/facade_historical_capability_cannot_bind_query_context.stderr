@@ -1,0 +1,5 @@
+error[E0609]: no field `bind_basis_context` on type `&HistoricalEvaluationCapability`
+ --> tests/ui/facade_historical_capability_cannot_bind_query_context.rs:6:37
+  |
+6 |     let _ = historical.capability().bind_basis_context;
+  |                                     ^^^^^^^^^^^^^^^^^^ unknown field

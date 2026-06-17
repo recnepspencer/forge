@@ -1,9 +1,8 @@
-use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeRequestKind,
     BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
-    BridgeSpeculativeBranchBindingIdentity, TruthBranchIdentity,
+    BridgeSpeculativeBranchBindingIdentity,
 };
 
 use super::support::{build_runtime, registration};
@@ -11,17 +10,17 @@ use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBr
 
 fn preview_declaration() -> BridgePreviewSessionDeclaration {
     BridgePreviewSessionDeclaration::new(
-        BridgePreviewSessionDeclarationIdentity::new("harness:preview-declaration"),
+        BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("harness:preview-declaration"),
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
-            BridgeSpeculativeBranchBindingIdentity::new("harness:binding"),
-            TruthBranchIdentity::new("main"),
-            BridgeSignalBranchIdentity::new("signal:harness"),
+            BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("harness:binding"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            BridgeSignalBranchIdentity::admit_bridge_owned("signal:harness"),
         ),
         crate::facade::BridgePreviewSessionBasis::new(
             crate::facade::BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot:harness"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:harness"),
             ),
             crate::facade::BridgeSourceCapabilitySet::new(vec![
                 crate::facade::BridgeSourceCapability::SnapshotRead,
@@ -42,7 +41,7 @@ fn bridge_harness_speculation_records_are_queryable_across_execution_promotion_a
     );
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("harness:preview-session"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("harness:preview-session"),
             preview_declaration(),
         )
         .expect("preview declaration should admit");
@@ -52,11 +51,12 @@ fn bridge_harness_speculation_records_are_queryable_across_execution_promotion_a
         .promote_preview_session(active, &execution_record, &proof)
         .expect("promotion should succeed");
     let replay_bundle = runtime
-        .replay_preview_bundle(&BridgePreviewSessionIdentity::new(
+        .replay_preview_bundle(&BridgePreviewSessionIdentity::admit_bridge_owned(
             "harness:preview-session",
         ))
         .expect("replay bundle should exist");
-    let preview_session_identity = BridgePreviewSessionIdentity::new("harness:preview-session");
+    let preview_session_identity =
+        BridgePreviewSessionIdentity::admit_bridge_owned("harness:preview-session");
 
     let diagnostics = runtime.diagnostics();
     let handle = diagnostics.handle();
@@ -95,7 +95,7 @@ fn bridge_harness_speculation_discard_replay_remains_queryable() {
     );
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("harness:preview-discard"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("harness:preview-discard"),
             preview_declaration(),
         )
         .expect("preview declaration should admit");
@@ -111,7 +111,7 @@ fn bridge_harness_speculation_discard_replay_remains_queryable() {
         )
         .expect("discard should succeed");
     let replay_bundle = runtime
-        .replay_preview_bundle(&BridgePreviewSessionIdentity::new(
+        .replay_preview_bundle(&BridgePreviewSessionIdentity::admit_bridge_owned(
             "harness:preview-discard",
         ))
         .expect("discard replay bundle should exist");

@@ -7,7 +7,9 @@ use crate::domain_capabilities::denials::{
 use crate::domain_capabilities::{
     ForgeQueryDomainCapabilityTransitionOutcome, ForgeQueryMaterializationReadyWorkflowContribution,
 };
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::workflow::{
     lower_merge_workflow_declaration, lower_mutation_intent_declaration,
     lower_query_writeback_declaration, LoweredMergeWorkflowDeclaration,
@@ -29,8 +31,8 @@ where
     T: ForgeQueryWorkflowDeclarationMaterializationTarget,
 {
     let target_kind = contribution.payload().target().kind();
-    let target_digest = contribution.payload().target().target_digest().to_string();
-    let request_digest = contribution.payload().request_digest().to_string();
+    let target_identity = contribution.payload().target().target_identity().clone();
+    let request_identity = contribution.payload().request_identity().clone();
     let lowering = match extract_workflow_lowering_semantics(
         "mutation workflow lowering",
         contribution.payload(),
@@ -38,14 +40,14 @@ where
         Ok(lowering) => lowering.clone(),
         Err(denial) => return TransitionOutcome::Denied(denial),
     };
-    let (authority_binding_digest, input) = match lowering.mutation_parts() {
+    let (authority_binding_identity, input) = match lowering.mutation_parts() {
         Some(parts) => parts,
         None => {
             return TransitionOutcome::Denied(inconsistent_workflow_lowering_semantics_denial(
                 "mutation workflow lowering",
                 contribution.payload().payload(),
                 target_kind,
-                &request_digest,
+                request_identity,
             ))
         }
     };
@@ -60,14 +62,14 @@ where
         TransitionOutcome::Deferred(never) => match never {},
     };
 
-    lower_mutation_intent_declaration(&declaration, authority_binding_digest, input.clone())
+    lower_mutation_intent_declaration(&declaration, authority_binding_identity, input.clone())
         .map_or_else(
             |error| {
                 lowering_error_outcome(
                     "workflow-preview",
                     target_kind,
-                    &request_digest,
-                    &target_digest,
+                    request_identity,
+                    target_identity,
                     error,
                 )
             },
@@ -82,8 +84,8 @@ where
     T: ForgeQueryWorkflowDeclarationMaterializationTarget,
 {
     let target_kind = contribution.payload().target().kind();
-    let target_digest = contribution.payload().target().target_digest().to_string();
-    let request_digest = contribution.payload().request_digest().to_string();
+    let target_identity = contribution.payload().target().target_identity().clone();
+    let request_identity = contribution.payload().request_identity().clone();
     let lowering = match extract_workflow_lowering_semantics(
         "merge workflow lowering",
         contribution.payload(),
@@ -98,7 +100,7 @@ where
                 "merge workflow lowering",
                 contribution.payload().payload(),
                 target_kind,
-                &request_digest,
+                request_identity,
             ))
         }
     };
@@ -118,8 +120,8 @@ where
             lowering_error_outcome(
                 "workflow-preview",
                 target_kind,
-                &request_digest,
-                &target_digest,
+                request_identity,
+                target_identity,
                 error,
             )
         },
@@ -134,8 +136,8 @@ where
     T: ForgeQueryWorkflowDeclarationMaterializationTarget,
 {
     let target_kind = contribution.payload().target().kind();
-    let target_digest = contribution.payload().target().target_digest().to_string();
-    let request_digest = contribution.payload().request_digest().to_string();
+    let target_identity = contribution.payload().target().target_identity().clone();
+    let request_identity = contribution.payload().request_identity().clone();
     let lowering = match extract_workflow_lowering_semantics(
         "writeback workflow lowering",
         contribution.payload(),
@@ -150,7 +152,7 @@ where
                 "writeback workflow lowering",
                 contribution.payload().payload(),
                 target_kind,
-                &request_digest,
+                request_identity,
             ))
         }
     };
@@ -170,8 +172,8 @@ where
             lowering_error_outcome(
                 "workflow-preview",
                 target_kind,
-                &request_digest,
-                &target_digest,
+                request_identity,
+                target_identity,
                 error,
             )
         },
@@ -198,7 +200,7 @@ where
             operation_label,
             payload,
             contribution.target().kind(),
-            contribution.request_digest(),
+            contribution.request_identity().clone(),
         ));
     };
     let Some(lowering_semantics) = payload.lowering_semantics() else {
@@ -206,7 +208,7 @@ where
             operation_label,
             payload,
             contribution.target().kind(),
-            contribution.request_digest(),
+            contribution.request_identity().clone(),
         ));
     };
     if !workflow_lowering_semantics_match_runtime(runtime_semantics, lowering_semantics) {
@@ -214,7 +216,7 @@ where
             operation_label,
             payload,
             contribution.target().kind(),
-            contribution.request_digest(),
+            contribution.request_identity().clone(),
         ));
     }
     Ok(lowering_semantics)
@@ -223,46 +225,50 @@ where
 fn lowering_error_outcome<S>(
     category: &'static str,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
-    request_digest: &str,
-    target_digest: &str,
+    request_identity: ForgeQueryEvidenceIdentity,
+    target_identity: ForgeQueryEvidenceIdentity,
     error: WorkflowLoweringError,
 ) -> ForgeQueryDomainCapabilityTransitionOutcome<S> {
+    let posture_identity = workflow_lowering_posture_identity(&target_identity, &error);
     match error.staleness_class() {
-        WorkflowStalenessClass::StaleDenied => {
-            TransitionOutcome::Stale(ForgeQueryDomainCapabilityStale::new(
-                category,
-                target_digest,
-                lowering_posture_digest(target_digest, &error),
-            ))
-        }
+        WorkflowStalenessClass::StaleDenied => TransitionOutcome::Stale(
+            ForgeQueryDomainCapabilityStale::new(category, target_identity, posture_identity),
+        ),
         WorkflowStalenessClass::ExplicitRebindRequired => {
             TransitionOutcome::RebindRequired(ForgeQueryDomainCapabilityRebindRequired::new(
                 category,
-                target_digest,
-                lowering_posture_digest(target_digest, &error),
+                target_identity,
+                posture_identity,
             ))
         }
         WorkflowStalenessClass::ExactBasisPreserved
-        | WorkflowStalenessClass::AuthorityValidationRequired => TransitionOutcome::Denied(
-            lowering_error_denial(category, request_digest, target_kind, target_digest, error),
-        ),
+        | WorkflowStalenessClass::AuthorityValidationRequired => {
+            TransitionOutcome::Denied(lowering_error_denial(
+                category,
+                request_identity,
+                target_kind,
+                &target_identity,
+                error,
+            ))
+        }
     }
 }
 
 fn lowering_error_denial(
     category: &'static str,
-    request_digest: &str,
+    request_identity: ForgeQueryEvidenceIdentity,
     target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
-    target_digest: &str,
+    target_identity: &ForgeQueryEvidenceIdentity,
     error: WorkflowLoweringError,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
         ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
         category,
         target_kind,
-        request_digest,
+        request_identity,
         format!(
-            "workflow lowering denied at target `{target_digest}` with `{:?}` / `{:?}`: {}",
+            "workflow lowering denied at target `{}` with `{:?}` / `{:?}`: {}",
+            target_identity.as_str(),
             error.failure_class(),
             error.staleness_class(),
             error.message()
@@ -270,12 +276,24 @@ fn lowering_error_denial(
     )
 }
 
-fn lowering_posture_digest(target_digest: &str, error: &WorkflowLoweringError) -> String {
-    hash_parts(&[
-        "forge_query_domain_capability_workflow_lowering_posture_v1".to_string(),
-        format!("target:{target_digest}"),
-        format!("failure:{:?}", error.failure_class()),
-        format!("staleness:{}", error.staleness_class().as_str()),
-        format!("message:{}", error.message()),
-    ])
+fn workflow_lowering_posture_identity(
+    target_identity: &ForgeQueryEvidenceIdentity,
+    error: &WorkflowLoweringError,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "forge_query_domain_capability_workflow_lowering_posture_v1",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("target"), target_identity)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("failure"),
+            error.failure_class().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("staleness"),
+            error.staleness_class().as_str(),
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("message"), error.message())
+        .seal()
 }

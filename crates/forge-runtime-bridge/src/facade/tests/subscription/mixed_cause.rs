@@ -10,18 +10,16 @@ use crate::facade::{
     BridgeMixedCauseOrderingLaneKind, BridgeMixedCauseOrderingRequest,
     BridgeTemporalSubscriptionFamilyKind,
 };
-use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
-use crate::snapshot::TruthSnapshotIdentity;
 use forge_signal::facade::NodeId;
 
 #[test]
 fn runtime_orders_mixed_causes_canonically_across_shuffled_input_order() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
     );
     let truth_plus_time = authoritative_truth_plus_time_cause(&runtime, &truth_patch);
     let time_only = authoritative_time_only_cause(&runtime);
@@ -29,9 +27,9 @@ fn runtime_orders_mixed_causes_canonically_across_shuffled_input_order() {
         &runtime,
         NodeId::new(241, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         64,
     )
@@ -92,10 +90,10 @@ fn runtime_orders_mixed_causes_canonically_across_shuffled_input_order() {
 fn runtime_suppresses_duplicate_mixed_cause_digests_explicitly() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
     );
 
     let ordering = runtime.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
@@ -129,14 +127,14 @@ fn runtime_denies_preview_local_causes_in_authoritative_mixed_window() {
     let preview_basis = admitted_preview_basis_for_truth(
         &runtime,
         "mixed-preview",
-        TruthBranchIdentity::new("truth-preview"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-preview"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let preview_temporal_basis =
         admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-preview"),
-            TruthCommitIdentity::new("commit-preview"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-preview"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-preview"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ));
     let preview_temporal = runtime
         .admit_preview_temporal_subscription(
@@ -173,14 +171,14 @@ fn runtime_denies_preview_local_causes_in_authoritative_mixed_window() {
 fn runtime_denies_stale_async_causes_and_non_deliverable_lineage() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let original_basis = BridgeAsyncRequestTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-main"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     );
     let current_basis = BridgeAsyncRequestTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-main"),
-        TruthCommitIdentity::new("commit-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
     );
     let (denied, displacing_request) = denied_request_response_completion_with_displacing_identity(
         &runtime,
@@ -201,9 +199,9 @@ fn runtime_denies_stale_async_causes_and_non_deliverable_lineage() {
         &runtime,
         NodeId::new(243, 0),
         BridgeAsyncRequestTruthViewBasis::authoritative(
-            TruthBranchIdentity::new("truth-main"),
-            TruthCommitIdentity::new("commit-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         current_basis,
     );
@@ -240,10 +238,10 @@ fn runtime_denies_stale_async_causes_and_non_deliverable_lineage() {
 fn runtime_plans_delivery_window_from_ordered_mixed_causes_only() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
     );
     let ordering = runtime.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
         BridgeMixedCauseOrderingLaneKind::Authoritative,
@@ -275,9 +273,9 @@ fn authoritative_time_only_cause(
 ) -> crate::facade::BridgeTemporalCauseRecord {
     let admitted = admitted_detail_subscription_in_runtime(runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-main"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(
@@ -299,9 +297,9 @@ fn authoritative_truth_plus_time_cause(
 ) -> crate::facade::BridgeTemporalCauseRecord {
     let admitted = admitted_detail_subscription_in_runtime(runtime);
     let temporal_basis = admitted_temporal_basis(BridgeTemporalTruthViewBasis::authoritative(
-        TruthBranchIdentity::new("truth-main"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
     ));
     let temporal = runtime
         .admit_temporal_subscription(

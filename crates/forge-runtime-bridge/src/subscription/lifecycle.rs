@@ -44,7 +44,7 @@ impl BridgeSubscriptionLifecycleRecord {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            lifecycle_identity: BridgeSubscriptionLifecycleIdentity::new(format!(
+            lifecycle_identity: BridgeSubscriptionLifecycleIdentity::admit_bridge_owned(format!(
                 "bridge-subscription-lifecycle-id:sha256:{digest:x}"
             )),
             admitted_subscription_identity: admitted.admitted_subscription_identity().clone(),

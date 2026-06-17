@@ -17,7 +17,7 @@ fn registration(
 ) -> BridgeAspectRegistration {
     let snapshot_read_contract = declared_read_contract(truth_scope.aspect_selector());
     BridgeAspectRegistration::new(
-        BridgeAspectRegistrationId::new(id),
+        BridgeAspectRegistrationId::admit_bridge_owned(id),
         truth_scope,
         snapshot_read_contract,
         truth_surface_kind,

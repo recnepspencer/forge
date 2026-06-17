@@ -6,6 +6,7 @@ pub enum ForgeQueryRuntimeMissingComponent {
     RuntimeBridge,
     SchemaAdapter,
     SourceAdapter,
+    SnapshotIdentityAdapter,
     WriteAuthority,
     SignalSink,
     SubscriptionActivation,
@@ -36,7 +37,6 @@ pub enum ForgeQueryRuntimeDeclarationFailureKind {
     EffectDeclaration,
     LiveSubscriptionInstallation,
     InvariantRegistration,
-    PreviewOperationEffectDenied,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -89,9 +89,17 @@ pub enum ForgeQueryStopClass<'a> {
         kind: ForgeQueryRuntimeMissingArtifactKind,
         name: &'a str,
     },
+    SharedReadStaleBasis {
+        snapshot_identity: &'a crate::memory_workspace::ForgeQuerySnapshotIdentity,
+    },
     RuntimeDeclarationFailed {
         kind: ForgeQueryRuntimeDeclarationFailureKind,
         name: &'a str,
+        stage: &'static str,
+        message: &'a str,
+    },
+    PreviewOperationEffectDenied {
+        label: &'a ForgeQuerySessionLabel,
         stage: &'static str,
         message: &'a str,
     },
@@ -99,8 +107,11 @@ pub enum ForgeQueryStopClass<'a> {
         authority_lane: ForgeQueryAuthorityLane,
         label: &'a ForgeQuerySessionLabel,
     },
-    UnsupportedAuthority {
-        authority: &'a str,
+    UnsupportedAuthorityRequirement {
+        requirement: &'a ForgeQueryAuthorityRequirement,
+    },
+    ExistingTruthAssertionRequiresAuthorityLane {
+        required_lane: ForgeQueryAuthorityLane,
     },
     IntentCommitDenied {
         intent_name: &'a str,

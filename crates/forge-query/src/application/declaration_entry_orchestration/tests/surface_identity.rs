@@ -178,7 +178,7 @@ fn canonical_lowering_tracks_publication_identity_across_exposure_levels() {
     );
     assert_eq!(
         ordinary.plan.handle_identity_digest(),
-        world_basis.handle_identity_digest()
+        world_basis.handle_identity_for_reporting()
     );
     assert_eq!(
         ordinary.plan.operating_context_identity_digest(),

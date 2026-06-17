@@ -163,8 +163,8 @@ impl ReducedStructuralMatchSet {
 #[cfg(test)]
 mod tests {
     use super::ReducedStructuralMatchSet;
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+
+    use crate::snapshot::BridgeTruthViewSelector;
     use crate::structural::{
         AdmittedStructuralRegistry, PlannedStructuralMatchPacketSet, StructuralCandidateIdentity,
         StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
@@ -180,10 +180,10 @@ mod tests {
     ) -> crate::structural::AdmittedStructuralComparisonContract {
         let declaration = if mode_branch_compare {
             StructuralIdentityDeclaration::branch_comparison(
-                StructuralIdentityDeclarationIdentity::new("structural:compare"),
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:compare"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintEquivalenceContract::new(
-                    StructuralSchemaIdentity::new("schema:geometry"),
+                    StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                     StructuralFingerprintFamily::BranchComparisonFingerprint,
                     "branch-v1",
                     StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -192,21 +192,21 @@ mod tests {
                 ),
                 StructuralTruthViewBasis::explicit_branch_pair(
                     BridgeTruthViewSelector::branch_snapshot(
-                        TruthBranchIdentity::new("left"),
-                        TruthSnapshotIdentity::new("snapshot-left"),
+                        crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-left"),
                     ),
                     BridgeTruthViewSelector::branch_snapshot(
-                        TruthBranchIdentity::new("right"),
-                        TruthSnapshotIdentity::new("snapshot-right"),
+                        crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-right"),
                     ),
                 ),
             )
         } else {
             StructuralIdentityDeclaration::advisory_remap(
-                StructuralIdentityDeclarationIdentity::new("structural:remap"),
-                StructuralSchemaIdentity::new("schema:geometry"),
+                StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:remap"),
+                StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                 StructuralFingerprintEquivalenceContract::new(
-                    StructuralSchemaIdentity::new("schema:geometry"),
+                    StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
                     StructuralFingerprintFamily::TopologyFingerprint,
                     "topology-v1",
                     StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -215,8 +215,8 @@ mod tests {
                 ),
                 StructuralTruthViewBasis::explicit_snapshot(
                     BridgeTruthViewSelector::committed_snapshot(
-                        TruthBranchIdentity::new("main"),
-                        TruthSnapshotIdentity::new("snapshot-a"),
+                        crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                     ),
                 ),
             )
@@ -234,7 +234,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:a"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:a"),
                 StructuralMatchCandidateKind::ExactAdvisoryMatch,
             )],
         );
@@ -255,11 +255,11 @@ mod tests {
             None,
             vec![
                 StructuralMatchCandidate::new(
-                    StructuralCandidateIdentity::new("candidate:a"),
+                    StructuralCandidateIdentity::admit_bridge_owned("candidate:a"),
                     StructuralMatchCandidateKind::ExactAdvisoryMatch,
                 ),
                 StructuralMatchCandidate::new(
-                    StructuralCandidateIdentity::new("candidate:b"),
+                    StructuralCandidateIdentity::admit_bridge_owned("candidate:b"),
                     StructuralMatchCandidateKind::AdvisoryReuseCandidate,
                 ),
             ],
@@ -280,7 +280,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("candidate:lineage-divergence"),
+                StructuralCandidateIdentity::admit_bridge_owned("candidate:lineage-divergence"),
                 StructuralMatchCandidateKind::LineageStructuralDivergence,
             )],
         );
@@ -300,7 +300,7 @@ mod tests {
             None,
             None,
             vec![StructuralMatchCandidate::new(
-                StructuralCandidateIdentity::new("diff:a"),
+                StructuralCandidateIdentity::admit_bridge_owned("diff:a"),
                 StructuralMatchCandidateKind::BranchDiff,
             )],
         );

@@ -8,40 +8,26 @@ warning: unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error: cannot construct `SubscriptionContinuationEvidence` with struct literal syntax due to private fields
-  --> tests/ui/subscription_continuation_evidence_constructor_private.rs:4:21
+error[E0560]: struct `SubscriptionContinuationEvidence` has no field named `basis_digest`
+ --> tests/ui/subscription_continuation_evidence_constructor_private.rs:9:9
+  |
+9 |         basis_digest: String::new(),
+  |         ^^^^^^^^^^^^ `SubscriptionContinuationEvidence` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `SubscriptionContinuationEvidence` has no field named `authority_digest`
+  --> tests/ui/subscription_continuation_evidence_constructor_private.rs:10:9
    |
- 4 |     let _evidence = SubscriptionContinuationEvidence {
-   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 5 |         active_lane_digest: todo!(),
-   |         --------------------------- private field
- 6 |         continuation_class: SubscriptionContinuationClass::IdentityRemap,
-   |         ---------------------------------------------------------------- private field
- 7 |         source_identity_digest: String::new(),
-   |         ------------------------------------- private field
- 8 |         target_identity_digest: String::new(),
-   |         ------------------------------------- private field
- 9 |         basis_digest: String::new(),
-   |         --------------------------- private field
 10 |         authority_digest: String::new(),
-   |         ------------------------------- private field
-11 |         remap_width: todo!(),
-   |         -------------------- private field
+   |         ^^^^^^^^^^^^^^^^ `SubscriptionContinuationEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `SubscriptionContinuationEvidence` has no field named `continuation_digest`
+  --> tests/ui/subscription_continuation_evidence_constructor_private.rs:12:9
+   |
 12 |         continuation_digest: String::new(),
-   |         ---------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^^ `SubscriptionContinuationEvidence` does not have this field
    |
-   = note: ...and other private fields `future_selection` and `checkpoint_identity_digest` that were not provided
-help: you might have meant to use the `new` associated function
-   |
- 4 -     let _evidence = SubscriptionContinuationEvidence {
- 5 -         active_lane_digest: todo!(),
- 6 -         continuation_class: SubscriptionContinuationClass::IdentityRemap,
- 7 -         source_identity_digest: String::new(),
- 8 -         target_identity_digest: String::new(),
- 9 -         basis_digest: String::new(),
-10 -         authority_digest: String::new(),
-11 -         remap_width: todo!(),
-12 -         continuation_digest: String::new(),
-13 -     };
- 4 +     let _evidence = SubscriptionContinuationEvidence::new(_, _, _, _, _, _, _, _, _);
-   |
+   = note: all struct fields are already assigned

@@ -1,4 +1,3 @@
-use crate::facade::TruthSnapshotIdentity;
 use forge_harness::facade::{parity_suite, ExecutionProfile, ExecutionRequest};
 
 use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessTargetId};
@@ -40,21 +39,27 @@ fn assert_stream_target_exports_are_host_parity_safe(
 fn illegal_coalescing_boundary_fails_explicitly() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-b"),
-        crate::facade::TruthPatchIdentity::new("patch-b"),
-        TruthSnapshotIdentity::new("snapshot-b"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
-    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "alice"));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        "alice",
+    ));
+    source.insert_snapshot(snapshot(
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
+        "alice",
+    ));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -84,12 +89,12 @@ fn illegal_coalescing_boundary_fails_explicitly() {
             vec![
                 runtime
                     .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
-                        crate::facade::TruthCommitIdentity::new("commit-a"),
+                        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
                     ))
                     .expect("first envelope should ingest"),
                 runtime
                     .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
-                        crate::facade::TruthCommitIdentity::new("commit-b"),
+                        crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
                     ))
                     .expect("second envelope should ingest"),
             ],

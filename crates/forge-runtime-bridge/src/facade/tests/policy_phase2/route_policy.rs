@@ -12,7 +12,7 @@ fn runtime_projects_route_planning_policy_and_stamps_planned_route() {
     let (contract, lowered, provenance, replay_bundle) = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:route-planning"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:route-planning"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Standard,
@@ -25,7 +25,9 @@ fn runtime_projects_route_planning_policy_and_stamps_planned_route() {
         .expect("route policy projection should succeed");
     let planned = runtime
         .plan_committed_patch_with_route_policy(
-            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
+            BridgeRouteRequest::for_commit(crate::truth_identity_fixtures::truth_commit_fixture(
+                "commit-a",
+            )),
             &route_policy,
         )
         .expect("route planning under lowered policy should succeed");
@@ -51,7 +53,7 @@ fn runtime_rejects_divergent_route_planning_policy_from_more_permissive_runtime(
     let (_, lowered, _, _) = admitted_bundle(
         &permissive,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:replay-required-for-route"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:replay-required-for-route"),
             BridgeRequestKind::Authoritative,
             BridgeExecutionPolicyClass::DeterministicCanonical,
             BridgeDiagnosticsTier::Standard,
@@ -73,7 +75,7 @@ fn bulk_route_planning_policy_is_carried_by_every_planned_route() {
     let (_, lowered, _, _) = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:bulk-route-planning"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:bulk-route-planning"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Minimal,
@@ -86,10 +88,10 @@ fn bulk_route_planning_policy_is_carried_by_every_planned_route() {
         .expect("bulk route policy projection should succeed");
     let workload = BridgeBulkWorkloadRequest::new(vec![
         BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         )),
         BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         )),
     ]);
 
@@ -112,7 +114,7 @@ fn policy_scoped_route_round_trips_through_canonical_replay() {
     let (_, lowered, _, _) = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:route-replay-scope"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:route-replay-scope"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Standard,
@@ -127,9 +129,9 @@ fn policy_scoped_route_round_trips_through_canonical_replay() {
         .deliver_invalidation(
             runtime
                 .plan_committed_patch_with_route_policy(
-                    BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new(
-                        "commit-a",
-                    )),
+                    BridgeRouteRequest::for_commit(
+                        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    ),
                     &route_policy,
                 )
                 .expect("policy scoped route should plan"),
@@ -171,7 +173,7 @@ fn policy_scoped_route_without_route_artifacts_does_not_retain_canonical_record(
     let (_, lowered, _, _) = admitted_bundle(
         &runtime,
         BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new("policy:route-no-retention"),
+            BridgePolicyDeclarationIdentity::admit_bridge_owned("policy:route-no-retention"),
             BridgeRequestKind::Preview,
             BridgeExecutionPolicyClass::Optimized,
             BridgeDiagnosticsTier::Standard,
@@ -187,9 +189,9 @@ fn policy_scoped_route_without_route_artifacts_does_not_retain_canonical_record(
         .deliver_invalidation(
             runtime
                 .plan_committed_patch_with_route_policy(
-                    BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new(
-                        "commit-a",
-                    )),
+                    BridgeRouteRequest::for_commit(
+                        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    ),
                     &route_policy,
                 )
                 .expect("policy scoped route should plan"),

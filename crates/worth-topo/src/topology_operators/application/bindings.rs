@@ -1,3 +1,4 @@
+use forge_query::facade::ForgeQueryEntityIdentity;
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
@@ -7,13 +8,14 @@ use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingInde
 
 #[derive(Debug, Clone)]
 pub(crate) struct QueryEntityBinding {
-    pub(crate) query_identity: String,
+    pub(crate) query_identity: ForgeQueryEntityIdentity,
+    pub(crate) query_identity_label: String,
     pub(crate) kind: TopologyEntityKind,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct QueryRelationBinding {
-    pub(crate) query_identity: String,
+    pub(crate) query_identity: ForgeQueryEntityIdentity,
     pub(crate) kind: TopologyRelationKind,
     pub(crate) source_query_identity: String,
     pub(crate) target_query_identity: String,

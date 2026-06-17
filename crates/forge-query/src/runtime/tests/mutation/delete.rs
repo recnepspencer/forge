@@ -36,12 +36,12 @@ fn workspace_delete_receipt_preserves_family_target_and_inspection_posture() {
     assert_eq!(receipt.declared_collection(), None);
     assert_eq!(
         receipt.declared_entity_identity(),
-        Some(seed.deltas()[0].entity_identity.as_str())
+        Some(&seed.deltas()[0].entity_identity)
     );
     assert_eq!(receipt.target_collection(), Some("Task"));
     assert_eq!(
         receipt.target_entity_identity(),
-        Some(seed.deltas()[0].entity_identity.as_str())
+        Some(&seed.deltas()[0].entity_identity)
     );
     assert_eq!(
         receipt.target_evidence().declared().target_class(),
@@ -73,11 +73,11 @@ fn workspace_delete_receipt_preserves_family_target_and_inspection_posture() {
             assert_eq!(inspection.target_collection(), Some("Task"));
             assert_eq!(
                 inspection.target_entity_identity(),
-                Some(seed.deltas()[0].entity_identity.as_str())
+                Some(&seed.deltas()[0].entity_identity)
             );
             assert_eq!(
                 inspection.declared_entity_identity(),
-                Some(seed.deltas()[0].entity_identity.as_str())
+                Some(&seed.deltas()[0].entity_identity)
             );
             assert!(inspection.causality_evidence().is_some());
             assert!(inspection.provenance_evidence().is_some());

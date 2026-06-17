@@ -6,7 +6,10 @@ use crate::authorized_projection::{
     AuthorizedProjectionArtifact, AuthorizedProjectionCounters, MaskedProjectionArtifact,
     PolicyFieldInfluenceSet,
 };
-use crate::memory_workspace::ForgeQueryEntity;
+use crate::memory_workspace::{
+    ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
+    ForgeQuerySnapshotIdentity,
+};
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 use crate::runtime::{
     ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationFamily,
@@ -20,6 +23,7 @@ use forge_relational::facade::grouped_truth::{
     RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
     SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
     SnapshotReadRequest, TruthSnapshotIdentity,
 };
@@ -96,12 +100,14 @@ pub(crate) fn admitted(
 }
 
 pub(crate) fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
-    let entity_one_identity = string_snapshot_read("entity-1", "identity.id");
-    let entity_one_lane = string_snapshot_read("entity-1", "status.lane");
-    let entity_one_display = string_snapshot_read("entity-1", "profile.display_name");
-    let entity_two_identity = string_snapshot_read("entity-2", "identity.id");
-    let entity_two_lane = string_snapshot_read("entity-2", "status.lane");
-    let entity_two_display = string_snapshot_read("entity-2", "profile.display_name");
+    let entity_one = RelationalBridgeRecordIdentityParts::entity(1, 1, 1);
+    let entity_two = RelationalBridgeRecordIdentityParts::entity(1, 2, 1);
+    let entity_one_identity = relational_snapshot_read(entity_one, "identity.id");
+    let entity_one_lane = relational_snapshot_read(entity_one, "status.lane");
+    let entity_one_display = relational_snapshot_read(entity_one, "profile.display_name");
+    let entity_two_identity = relational_snapshot_read(entity_two, "identity.id");
+    let entity_two_lane = relational_snapshot_read(entity_two, "status.lane");
+    let entity_two_display = relational_snapshot_read(entity_two, "profile.display_name");
     let packet = SnapshotReadPacket::new(vec![
         entity_one_identity.clone(),
         entity_one_lane.clone(),
@@ -111,7 +117,7 @@ pub(crate) fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
         entity_two_display.clone(),
     ]);
     let result = SnapshotReadPacketResult::new(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        phase_four_truth_snapshot_identity("snapshot-a"),
         vec![
             SnapshotReadRecord::for_request(
                 &entity_one_identity,
@@ -154,8 +160,11 @@ fn aspect_value(value: AspectValue) -> AspectValue {
     encode_snapshot_aspect_read_value(&value)
 }
 
-fn string_snapshot_read(entity: &str, aspect: &str) -> SnapshotReadRequest {
-    SnapshotReadRequest::for_coarse(
+fn relational_snapshot_read(
+    entity: RelationalBridgeRecordIdentityParts,
+    aspect: &str,
+) -> SnapshotReadRequest {
+    SnapshotReadRequest::for_relational_record(
         entity,
         SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
     )
@@ -179,11 +188,11 @@ fn aspect_key(label: &str) -> AspectKey {
 
 pub(crate) fn write_receipt() -> ForgeQueryWriteReceipt {
     ForgeQueryWriteReceipt::test_only(
-        "commit:test",
-        "snapshot:test",
+        phase_four_commit_identity("commit:test"),
+        phase_four_snapshot_identity("snapshot:test"),
         ForgeQueryMutationTargetClass::Entity,
         Some("tasks"),
-        Some("task-1"),
+        Some(test_entity_identity("task-1")),
         Some("bridge-record:test"),
         Some("$same_batch_target"),
         Some(ForgeQueryContinuityMutationEvidence::test_only(
@@ -191,7 +200,7 @@ pub(crate) fn write_receipt() -> ForgeQueryWriteReceipt {
             ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor,
             "task-0",
             vec!["task-1".to_string()],
-            Some("task-1"),
+            Some(test_entity_identity("task-1")),
             Some("tasks"),
         )),
     )
@@ -199,11 +208,11 @@ pub(crate) fn write_receipt() -> ForgeQueryWriteReceipt {
 
 pub(crate) fn write_receipt_without_source_references() -> ForgeQueryWriteReceipt {
     ForgeQueryWriteReceipt::test_only(
-        "commit:test:no-source-ref",
-        "snapshot:test",
+        phase_four_commit_identity("commit:test:no-source-ref"),
+        phase_four_snapshot_identity("snapshot:test"),
         ForgeQueryMutationTargetClass::Entity,
         Some("tasks"),
-        Some("task-1"),
+        Some(test_entity_identity("task-1")),
         None,
         None,
         Some(ForgeQueryContinuityMutationEvidence::test_only(
@@ -211,7 +220,7 @@ pub(crate) fn write_receipt_without_source_references() -> ForgeQueryWriteReceip
             ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor,
             "task-0",
             vec!["task-1".to_string()],
-            Some("task-1"),
+            Some(test_entity_identity("task-1")),
             Some("tasks"),
         )),
     )
@@ -221,14 +230,14 @@ pub(crate) fn read_result() -> ForgeQueryReadResult {
     ForgeQueryReadResult::test_only(
         vec![
             ForgeQueryEntity::from_external_projection(
-                "task-1",
+                test_entity_identity("task-1"),
                 json!({
                     "profile": { "display_name": "Task One" },
                     "metrics": { "priority": 1 }
                 }),
             ),
             ForgeQueryEntity::from_external_projection(
-                "task-2",
+                test_entity_identity("task-2"),
                 json!({
                     "profile": { "display_name": "Task Two" },
                     "metrics": { "priority": 2 }
@@ -243,6 +252,40 @@ pub(crate) fn read_result() -> ForgeQueryReadResult {
             ForgeQueryReadExecutionEngine::QueryRuntimeCurrent,
         ),
     )
+}
+
+pub(crate) fn phase_four_commit_identity(label: &str) -> ForgeQueryCommitIdentity {
+    ForgeQueryCommitIdentity::from_relational_commit_id(phase_four_fixture_position(
+        "commit", label,
+    ))
+}
+
+pub(crate) fn phase_four_snapshot_identity(label: &str) -> ForgeQuerySnapshotIdentity {
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(phase_four_snapshot_parts(label))
+}
+
+pub(crate) fn phase_four_truth_snapshot_identity(label: &str) -> TruthSnapshotIdentity {
+    TruthSnapshotIdentity::from_relational_snapshot(phase_four_snapshot_parts(label))
+}
+
+fn phase_four_snapshot_parts(label: &str) -> RelationalBridgeSnapshotIdentityParts {
+    RelationalBridgeSnapshotIdentityParts::new(
+        phase_four_fixture_position("snapshot", label),
+        phase_four_fixture_position("snapshot-version", label),
+    )
+}
+
+fn phase_four_fixture_position(namespace: &str, evidence: &str) -> u64 {
+    let mut acc = 14_695_981_039_346_656_037_u64;
+    for byte in namespace.bytes().chain(evidence.bytes()) {
+        acc ^= u64::from(byte);
+        acc = acc.wrapping_mul(1_099_511_628_211_u64);
+    }
+    acc
+}
+
+pub(crate) fn test_entity_identity(identity: &str) -> ForgeQueryEntityIdentity {
+    crate::memory_workspace::admit_authored_entity_label(identity)
 }
 
 pub(crate) fn read_result_shape() -> crate::canonicalization::CanonicalResultShapeArtifact {

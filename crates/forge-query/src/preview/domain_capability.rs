@@ -4,59 +4,114 @@ use forge_runtime_bridge::facade::{
 };
 
 use crate::execution::ExecutionCounters;
-use crate::identity::{hash_parts, CanonicalQueryDigest, ValidatedQueryDigest};
+use crate::identity::{CanonicalQueryDigest, ValidatedQueryDigest};
 use crate::preview::{
     AdmittedPreviewWorkflowFoundation, PreviewBindingCounters, PreviewEvaluationClass,
     PreviewExecutionCounters, PreviewWorkflowFoundationArtifact, PreviewWorkflowFoundationError,
     PreviewWorkflowFoundationRequest,
 };
+use crate::workflow::{
+    workflow_canonical_query_digest_evidence, workflow_validated_query_digest_evidence,
+};
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 pub(crate) fn materialize_contributed_preview_workflow_foundation_artifact(
-    binding_digest: String,
+    binding_identity: ForgeQueryEvidenceIdentity,
     canonical_query_digest: CanonicalQueryDigest,
     validated_query_digest: ValidatedQueryDigest,
     request_family: PreviewWorkflowFoundationRequest,
     preview_session_identity: BridgePreviewSessionIdentity,
     declaration_identity: BridgePreviewSessionDeclarationIdentity,
-    declaration_digest: String,
+    declaration_digest_identity: ForgeQueryEvidenceIdentity,
     evaluation_class: PreviewEvaluationClass,
     shape_check_width: usize,
 ) -> PreviewWorkflowFoundationArtifact {
     let lifecycle_state_kind = BridgePreviewLifecycleStateKind::Active;
-    let execution_record_identity = PreviewExecutionRecordIdentity::new(format!(
-        "preview-execution-record:domain:{}",
-        hash_parts(&[
-            "forge_query_domain_preview_execution_record_v1".to_string(),
-            format!("binding:{binding_digest}"),
-            format!("canonical:{}", canonical_query_digest.as_str()),
-            format!("validated:{}", validated_query_digest.as_str()),
-            format!("request:{}", request_family.as_str()),
-            format!("preview_session:{}", preview_session_identity.as_str()),
-            format!("declaration:{}", declaration_identity.as_str()),
-            format!("evaluation:{}", evaluation_class.as_str()),
-        ])
-    ));
-    let digest = hash_parts(&[
-        format!("binding:{binding_digest}"),
-        format!("request:{}", request_family.as_str()),
-        format!("preview_session:{}", preview_session_identity.as_str()),
-        format!("declaration_identity:{}", declaration_identity.as_str()),
-        format!("declaration_digest:{declaration_digest}"),
-        format!("lifecycle:{lifecycle_state_kind:?}"),
-        format!("execution_record:{}", execution_record_identity.as_str()),
-        format!("evaluation_class:{}", evaluation_class.as_str()),
-        format!("shape_check_width:{shape_check_width}"),
-    ]);
+    let execution_record_identity_basis =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_domain_preview_execution_record_v1",
+            )
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("canonical"),
+                &workflow_canonical_query_digest_evidence(&canonical_query_digest),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("validated"),
+                &workflow_validated_query_digest_evidence(&validated_query_digest),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("request"),
+                request_family.as_str(),
+            )
+            .field_bridge_retained_evidence_identity(
+                ForgeQueryEvidenceTag::new("preview_session"),
+                &preview_session_identity.bridge_admission_evidence(),
+            )
+            .field_bridge_retained_evidence_identity(
+                ForgeQueryEvidenceTag::new("declaration"),
+                &declaration_identity.bridge_admission_evidence(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("evaluation"),
+                evaluation_class.as_str(),
+            )
+            .seal();
+    let execution_record_identity = PreviewExecutionRecordIdentity::from_bridge_evidence(
+        &execution_record_identity_basis.bridge_evidence_identity(),
+    );
+    let artifact_identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowContextBinding)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("identity_family"),
+                "forge_query_domain_preview_workflow_foundation_artifact_v1",
+            )
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("binding"), &binding_identity)
+            .field_shape(
+                ForgeQueryEvidenceTag::new("request"),
+                request_family.as_str(),
+            )
+            .field_bridge_retained_evidence_identity(
+                ForgeQueryEvidenceTag::new("preview_session"),
+                &preview_session_identity.bridge_admission_evidence(),
+            )
+            .field_bridge_retained_evidence_identity(
+                ForgeQueryEvidenceTag::new("declaration_identity"),
+                &declaration_identity.bridge_admission_evidence(),
+            )
+            .field_evidence_identity(
+                ForgeQueryEvidenceTag::new("declaration_digest"),
+                &declaration_digest_identity,
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("lifecycle"),
+                format!("{lifecycle_state_kind:?}"),
+            )
+            .field_bridge_retained_evidence_identity(
+                ForgeQueryEvidenceTag::new("execution_record"),
+                &execution_record_identity.bridge_admission_evidence(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("evaluation_class"),
+                evaluation_class.as_str(),
+            )
+            .field_shape(
+                ForgeQueryEvidenceTag::new("shape_check_width"),
+                shape_check_width.to_string(),
+            )
+            .seal();
 
     PreviewWorkflowFoundationArtifact {
-        digest,
-        binding_digest,
+        artifact_identity,
+        binding_identity,
         canonical_query_digest,
         validated_query_digest,
         request_family,
         preview_session_identity,
         declaration_identity,
-        declaration_digest,
+        declaration_digest_identity,
         lifecycle_state_kind,
         evaluation_class,
         execution_record_identity,

@@ -5,7 +5,7 @@ fn pricing_shock_showcase_artifact_explains_retained_commit_without_hidden_memor
     let scenario = generated_pricing_scenario();
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-showcase-artifact"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-showcase-artifact"),
     );
     let artifact = bundle.showcase_artifact_json();
     let shock_commit = bundle
@@ -16,7 +16,7 @@ fn pricing_shock_showcase_artifact_explains_retained_commit_without_hidden_memor
 
     assert_eq!(
         bundle.provenance.shock_commit,
-        TruthCommitIdentity::new("commit:rubber-shock")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:rubber-shock")
     );
     assert_eq!(bundle.provenance.shock_multiplier_per_mille, 4000);
     assert_eq!(bundle.fanout.second_delivery_target_count, 100);
@@ -121,7 +121,7 @@ fn pricing_shock_showcase_artifact_explains_retained_commit_without_hidden_memor
 fn pricing_shock_showcase_timeline_is_lineage_coherent() {
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-showcase-timeline"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-showcase-timeline"),
     );
     let artifact = bundle.showcase_artifact_json();
     let timeline = artifact["timeline"]
@@ -195,7 +195,7 @@ fn pricing_shock_showcase_timeline_is_lineage_coherent() {
 fn pricing_shock_showcase_trust_attack_matrix_is_bundle_derived() {
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-showcase-trust-derived"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-showcase-trust-derived"),
     );
     let artifact = bundle.showcase_artifact_json();
     let trust_attacks = artifact["trust_attack_matrix"]

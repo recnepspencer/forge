@@ -111,7 +111,7 @@ impl RuntimeBridge {
     ///     let _resumed = bridge.resume_stream_window_from_checkpoint(
     ///         contract,
     ///         envelopes,
-    ///         checkpoint.checkpoint_token_identity().as_ref(),
+    ///         checkpoint.checkpoint_token_identity(),
     ///     )?;
     ///     Ok(())
     /// }
@@ -120,8 +120,9 @@ impl RuntimeBridge {
         &self,
         contract: &AdmittedConsumerContract,
         envelopes: Vec<BridgeCommittedPatchEnvelope>,
-        checkpoint_identity: &str,
+        checkpoint_identity: &CheckpointTokenIdentity,
     ) -> Result<BridgeStreamResumeSummary, BridgeStreamError> {
+        let checkpoint_identity_label = checkpoint_identity.as_str();
         let checkpoint = self
             .diagnostics
             .stream_checkpoint_for_identity(checkpoint_identity)
@@ -129,7 +130,7 @@ impl RuntimeBridge {
                 BridgeStreamError::new(
                     BridgeStreamErrorKind::CheckpointTruncated,
                     format!(
-                        "The checkpoint `{checkpoint_identity}` is no longer retained by the bridge diagnostics store."
+                        "The checkpoint `{checkpoint_identity_label}` is no longer retained by the bridge diagnostics store."
                     ),
                 )
             })?;
@@ -141,7 +142,7 @@ impl RuntimeBridge {
             None => return Err(BridgeStreamError::new(
                 BridgeStreamErrorKind::CheckpointTruncated,
                 format!(
-                    "The checkpoint `{checkpoint_identity}` no longer retains its canonical replay record."
+                    "The checkpoint `{checkpoint_identity_label}` no longer retains its canonical replay record."
                 ),
             )),
         };

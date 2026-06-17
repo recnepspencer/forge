@@ -1,7 +1,9 @@
 mod matrix;
 mod profile;
+mod profile_accessors;
 mod report;
 mod subject;
+mod subject_accessors;
 
 pub use matrix::{QuerySubscriptionSupportMatrix, QuerySubscriptionSupportMatrixRow};
 pub use profile::{

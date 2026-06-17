@@ -2,10 +2,8 @@ use forge_foundational::facade::{AspectKey, FieldKey};
 
 use crate::input::envelope::{
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeProducerMetadata,
-    TruthBranchIdentity, TruthPatchIdentity,
 };
 use crate::mapping::TruthDeltaSurfaceKind;
-use crate::snapshot::TruthSnapshotIdentity;
 
 use super::{
     derive_normalized_truth_delta_surface_set, truth_delta_surface_count,
@@ -16,10 +14,10 @@ fn envelope(items: Vec<BridgeCommittedPatchItem>) -> BridgeCommittedPatchEnvelop
     BridgeCommittedPatchEnvelope::new(
         crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
             BridgeProducerMetadata::bridge_harness_fixture(),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
-            TruthPatchIdentity::new("patch-a"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
         ),
         items,
     )

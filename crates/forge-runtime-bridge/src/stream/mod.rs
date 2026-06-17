@@ -14,7 +14,9 @@ mod window;
 
 pub use audit::{StreamReplayAuditResult, StreamReplayAuditSummary};
 pub use backpressure::BackpressureDecisionRecord;
-pub use checkpoints::{ConsumerCheckpointToken, StreamCheckpointFrontierKind};
+pub use checkpoints::{
+    CheckpointTokenIdentity, ConsumerCheckpointToken, StreamCheckpointFrontierKind,
+};
 pub use counters::StreamProtocolCounters;
 pub use declaration::{
     ChangeStreamDeclaration, ChangeStreamDeclarationIdentity, StreamCheckpointPublicationMode,

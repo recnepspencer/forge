@@ -1,5 +1,6 @@
 use forge_query::facade::{
-    AuthorityScopedEffectPlan, EffectLifecycleCounters, LoweredEffectExecutionArtifact,
+    AuthorityScopedEffectPlan, EffectLifecycleCounters, ForgeQueryEvidenceIdentity,
+    ForgeQueryEvidenceScope, ForgeQueryEvidenceTag, LoweredEffectExecutionArtifact,
     LoweredEffectExecutionPlan,
 };
 
@@ -15,7 +16,11 @@ fn main() {
     let _ = LoweredEffectExecutionPlan {
         authority_scoped_plan: authority_scoped_plan(),
         artifact: artifact(),
-        lowered_effect_execution_plan_digest: String::new(),
+        lowered_effect_execution_plan_identity: ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::WorkflowMutationLowering,
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("identity_family"), "test")
+        .seal(),
         counters: EffectLifecycleCounters::default(),
     };
 }

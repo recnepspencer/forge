@@ -43,9 +43,10 @@ impl BridgeContinuityArtifact {
                 .join(","),
         );
         let remapped_digest = Sha256::digest(remapped_basis.as_bytes());
-        let remapped_subscription_slice_identity = BridgeSubscriptionSliceIdentity::new(format!(
-            "continuity-remapped-slices:sha256:{remapped_digest:x}"
-        ));
+        let remapped_subscription_slice_identity =
+            BridgeSubscriptionSliceIdentity::admit_bridge_owned(format!(
+                "continuity-remapped-slices:sha256:{remapped_digest:x}"
+            ));
 
         let artifact_basis = format!(
             "continuity-artifact|route={}|resolution={}|slice-identity={}",
@@ -62,7 +63,7 @@ impl BridgeContinuityArtifact {
 
         Self {
             route_identity: resolved.route_identity().clone(),
-            continuity_identity: BridgeContinuityIdentity::new(format!(
+            continuity_identity: BridgeContinuityIdentity::admit_bridge_owned(format!(
                 "continuity-artifact:sha256:{artifact_digest:x}"
             )),
             remapped_slices,

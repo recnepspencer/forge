@@ -134,9 +134,9 @@ impl BridgeAsyncCompletionSupersessionEvidence {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            supersession_identity: BridgeAsyncCompletionSupersessionIdentity::new(format!(
-                "bridge-async-completion-supersession-id:sha256:{digest:x}"
-            )),
+            supersession_identity: BridgeAsyncCompletionSupersessionIdentity::admit_bridge_owned(
+                format!("bridge-async-completion-supersession-id:sha256:{digest:x}"),
+            ),
             denied_completion_identity: Arc::from(denied_completion.denial_identity().to_owned()),
             original_truth_view_basis_digest: Arc::from(
                 request_identity

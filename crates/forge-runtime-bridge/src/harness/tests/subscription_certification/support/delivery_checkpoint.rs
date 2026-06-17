@@ -11,7 +11,9 @@ pub(crate) fn fixture_members(count: usize) -> Vec<BridgeSubscriptionDeliveryMem
                 "slice:entity-1/profile/name",
                 format!("routing:harness:{index}"),
                 BridgeSubscriptionDeliveryMemberClass::Update,
-                BridgeSubscriptionDeliveryContentDigest::new(format!("content:harness:{index}")),
+                BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned(format!(
+                    "content:harness:{index}"
+                )),
             )
         })
         .collect()

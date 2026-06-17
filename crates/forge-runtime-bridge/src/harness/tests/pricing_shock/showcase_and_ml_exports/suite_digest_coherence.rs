@@ -4,7 +4,7 @@ use super::super::support::*;
 fn pricing_shock_suite_artifacts_and_showcase_digests_are_semantically_coherent() {
     let bundle = capture_pricing_workload_certification_bundle(
         BridgeRuntimePolicy::development(),
-        BridgePreviewSessionIdentity::new("pricing:preview-suite-coherence"),
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-suite-coherence"),
     );
     let artifact = bundle.showcase_artifact_json();
     let export = bundle.ml_pipeline_export_json();

@@ -1,7 +1,4 @@
 use crate::facade::tests::{canonical_envelope, runtime};
-use crate::facade::{
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthSnapshotIdentity,
-};
 use crate::policy::BridgeRuntimePolicy;
 
 #[test]
@@ -29,16 +26,16 @@ fn runtime_canonicalizes_stream_replay_record_from_matching_checkpoint() {
             &contract,
             vec![
                 canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
                 canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ],
         )
@@ -114,10 +111,10 @@ fn runtime_rejects_checkpoint_reuse_across_different_contracts() {
         .plan_change_stream_window(
             &routing_contract,
             vec![canonical_envelope(
-                TruthBranchIdentity::new("main"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             )],
         )
         .expect("window should plan");

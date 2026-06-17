@@ -1,4 +1,4 @@
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectExecutionOracleErrorKind {
@@ -43,33 +43,39 @@ impl EffectExecutionOracleErrorKind {
 pub struct EffectExecutionOracleError {
     kind: EffectExecutionOracleErrorKind,
     message: String,
-    execution_subject_digest: String,
-    oracle_digest: Option<String>,
-    error_digest: String,
+    execution_subject_identity: ForgeQueryEvidenceIdentity,
+    oracle_identity: Option<ForgeQueryEvidenceIdentity>,
+    error_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl EffectExecutionOracleError {
     pub(crate) fn new(
         kind: EffectExecutionOracleErrorKind,
         message: impl Into<String>,
-        execution_subject_digest: impl Into<String>,
-        oracle_digest: Option<&str>,
+        execution_subject_identity: &ForgeQueryEvidenceIdentity,
+        oracle_identity: Option<&ForgeQueryEvidenceIdentity>,
     ) -> Self {
         let message = message.into();
-        let execution_subject_digest = execution_subject_digest.into();
-        let error_digest = hash_parts(&[
-            "effect_execution_oracle_error_v1".to_string(),
-            format!("kind:{}", kind.as_str()),
-            format!("subject:{execution_subject_digest}"),
-            format!("oracle:{}", oracle_digest.unwrap_or("none")),
-            format!("message:{message}"),
-        ]);
+        let error_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_execution_oracle_error_v1",
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), kind.as_str())
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("execution_subject"),
+                    execution_subject_identity,
+                )
+                .optional_evidence_identity(ForgeQueryEvidenceTag::new("oracle"), oracle_identity)
+                .field_shape(ForgeQueryEvidenceTag::new("message"), message.as_str())
+                .seal();
         Self {
             kind,
             message,
-            execution_subject_digest,
-            oracle_digest: oracle_digest.map(str::to_string),
-            error_digest,
+            execution_subject_identity: execution_subject_identity.clone(),
+            oracle_identity: oracle_identity.cloned(),
+            error_identity,
         }
     }
 
@@ -81,15 +87,39 @@ impl EffectExecutionOracleError {
         &self.message
     }
 
-    pub fn execution_subject_digest(&self) -> &str {
-        &self.execution_subject_digest
+    pub fn execution_subject_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.execution_subject_identity
     }
 
-    pub fn oracle_digest(&self) -> Option<&str> {
-        self.oracle_digest.as_deref()
+    pub fn execution_subject_for_reporting(&self) -> &str {
+        self.execution_subject_identity.as_str()
     }
 
-    pub fn error_digest(&self) -> &str {
-        &self.error_digest
+    pub fn oracle_identity(&self) -> Option<&ForgeQueryEvidenceIdentity> {
+        self.oracle_identity.as_ref()
     }
+
+    pub fn oracle_for_reporting(&self) -> Option<&str> {
+        self.oracle_identity
+            .as_ref()
+            .map(ForgeQueryEvidenceIdentity::as_str)
+    }
+
+    pub fn error_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.error_identity
+    }
+
+    pub fn error_for_reporting(&self) -> &str {
+        self.error_identity.as_str()
+    }
+}
+
+pub(crate) fn bridge_oracle_observation_subject() -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::EffectIntentReceipt)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "bridge_oracle_observation_subject_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("kind"), "last_writeback")
+        .seal()
 }

@@ -274,11 +274,11 @@ fn direct_product_flow_carries_retained_posture_and_typed_fact_receipts_without_
     assert_eq!(
         retained
             .async_result_state()
-            .map(|state| state.inner().result_state_digest()),
+            .map(|state| state.inner().result_state_for_reporting()),
         state
             .async_result_state()
             .as_ref()
-            .map(|state| state.inner().result_state_digest())
+            .map(|state| state.inner().result_state_for_reporting())
     );
     assert_eq!(
         retained

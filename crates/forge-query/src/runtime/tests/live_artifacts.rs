@@ -38,19 +38,19 @@ fn workspace_reads_live_artifact_binding_as_one_snapshot_coherent_named_pack() {
             .read(&entities)
             .expect("entity rows")
             .receipt()
-            .snapshot_token(),
+            .snapshot_identity(),
         binding
             .read(&names)
             .expect("name rows")
             .receipt()
-            .snapshot_token(),
+            .snapshot_identity(),
     );
     assert_eq!(
-        binding.snapshot_token(),
+        binding.snapshot_identity(),
         binding
             .read(&entities)
             .expect("entity rows")
             .receipt()
-            .snapshot_token(),
+            .snapshot_identity(),
     );
 }

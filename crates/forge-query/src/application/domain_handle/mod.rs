@@ -10,6 +10,7 @@ mod validation;
 pub use admitted_handle::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationEntryProgressionError,
 };
+pub(crate) use admitted_world_basis::compose_admitted_configured_domain_handle_identity;
 pub use admitted_world_basis::ForgeQueryAdmittedWorldBasis;
 pub use checked_outcome::{
     ForgeQueryConfiguredDomainHandleAdmissionError, ForgeQueryConfiguredDomainHandleChecked,

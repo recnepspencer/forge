@@ -2,8 +2,14 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
+use crate::topology_operators::authority_identity::{
+    existing_entity_authority, existing_relation_authority,
+};
 use crate::validation::reference_integrity::build_milestone_one_runtime;
-use forge_query::facade::ForgeQueryBridgeBackedVerificationSupportStatus;
+use forge_query::facade::{
+    ForgeQueryBridgeBackedVerificationSupportStatus, ForgeQueryEntityIdentity,
+};
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
 #[test]
 fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
@@ -18,7 +24,7 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
     let binding = workspace
         .bind_existing_entity(
             forge_query::facade::ForgeQueryExistingEntityTarget::new(
-                format!("{:?}", seeded.vertex),
+                existing_entity_authority(seeded.vertex).expect("entity authority"),
                 entity_identity(seeded.vertex),
             )
             .expect("existing entity target should build")
@@ -111,7 +117,7 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
     let binding = workspace
         .bind_existing_relation(
             forge_query::facade::ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
+                existing_relation_authority(relation_id).expect("relation authority"),
                 relation_identity(relation_id),
             )
             .expect("existing relation target should build")
@@ -170,7 +176,7 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
     let binding = workspace
         .bind_existing_relation(
             forge_query::facade::ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
+                existing_relation_authority(relation_id).expect("relation authority"),
                 relation_identity(relation_id),
             )
             .expect("existing relation target should build")
@@ -187,16 +193,22 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
         .expect("relation verified delete should execute");
 }
 
-fn entity_identity(entity: forge_relational::facade::identity::EntityId) -> String {
-    format!(
-        "entity:{}:{}:{}",
-        entity.partition_id.0, entity.local_slot.0, entity.generation.0
-    )
+fn entity_identity(
+    entity: forge_relational::facade::identity::EntityId,
+) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        entity.partition_id.0,
+        entity.local_slot.0,
+        entity.generation.0,
+    ))
 }
 
-fn relation_identity(relation: forge_relational::facade::identity::RelationId) -> String {
-    format!(
-        "relation:{}:{}:{}",
-        relation.partition_id.0, relation.local_slot.0, relation.generation.0
-    )
+fn relation_identity(
+    relation: forge_relational::facade::identity::RelationId,
+) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::relation(
+        relation.partition_id.0,
+        relation.local_slot.0,
+        relation.generation.0,
+    ))
 }

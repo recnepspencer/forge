@@ -104,13 +104,13 @@ pub(crate) fn runtime_backed_subscription_certification_summary(
         ),
     )
     .expect("runtime-backed detail family should open delivery window");
-    let delta = QuerySubscriptionMaintenanceDelta::admitted(
+    let delta = QuerySubscriptionMaintenanceDelta::admitted_with_scope_label(
         QuerySubscriptionMaintenanceDeltaKind::DetailFieldDelta,
         attachment.lane_digest().clone(),
         "affected-scope",
         MaintenanceDeltaWidth::measured(1),
     );
-    let delivery_window_digest = window.delivery_window_digest().to_string();
+    let delivery_window_digest = window.delivery_window_projection().label().to_string();
     let (delta, lowering_report, _) = lower_query_subscription_maintenance_delta(delta)
         .expect("runtime-backed detail family should lower maintenance delta");
     let work_packet = build_active_delivery_work_packet(
@@ -150,7 +150,7 @@ pub(crate) fn runtime_backed_subscription_certification_summary(
         &active_admission,
         &handle,
         &attachment,
-        delivery_window_digest,
+        delivery_batch.delivery_window_identity(),
         &delta,
         &lowering_report,
         &work_packet,
@@ -162,7 +162,11 @@ pub(crate) fn runtime_backed_subscription_certification_summary(
     )
     .expect("runtime-backed detail family should certify lifecycle");
     let support_report = report_query_subscription_support(
-        QuerySubscriptionSupportSubject::active_lifecycle(&declaration, &active_admission),
+        QuerySubscriptionSupportSubject::active_lifecycle(
+            &declaration,
+            &admission,
+            &active_admission,
+        ),
         QuerySubscriptionSupportEvidence::admission(&declaration, &admission)
             .expect("runtime-backed detail family should admit support evidence"),
     )
@@ -267,10 +271,13 @@ pub(crate) fn runtime_backed_subscription_certification_summary(
     RuntimeBackedSubscriptionCertificationSummary {
         certified_family_count: bundle.counters().certified_family_count(),
         hostile_row_coverage_count: bundle.counters().hostile_row_coverage_count(),
-        support_report_digest: bundle.support_report_digest().to_string(),
-        bridge_parity_digest: bundle.bridge_parity_digest().to_string(),
-        diagnostic_bundle_digest: bundle.diagnostic_bundle_digest().to_string(),
-        lifecycle_certification_digest: bundle.lifecycle_certification_digest().to_string(),
+        support_report_digest: bundle.support_report_projection().label().to_string(),
+        bridge_parity_digest: bundle.bridge_parity_projection().label().to_string(),
+        diagnostic_bundle_digest: bundle.diagnostic_bundle_projection().label().to_string(),
+        lifecycle_certification_digest: bundle
+            .lifecycle_certification_projection()
+            .label()
+            .to_string(),
         coverage_resolution_posture: receipt.coverage_resolution_posture().clone(),
     }
 }

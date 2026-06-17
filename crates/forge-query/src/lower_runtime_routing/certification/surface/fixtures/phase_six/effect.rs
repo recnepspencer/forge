@@ -10,7 +10,9 @@ use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectAuthoringBasis, EffectEligibilityOutcome,
     EffectExecutionAuthority, RawEffectIntent,
 };
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
     ForgeQueryLowerRuntimeBoundaryExecutionReceipt, ForgeQueryLowerRuntimeCapabilityEligibility,
@@ -18,30 +20,23 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeSeamKey,
 };
 use crate::workflow::{
-    synthetic_runtime_workflow_binding, MergeLoweringInput, MutationLoweringInput,
-    WorkflowAuthorityTargetFamily, WorkflowBudgetClass, WorkflowCostClass,
+    synthetic_runtime_workflow_binding_for_snapshot_identity, MergeLoweringInput,
+    MutationLoweringInput, WorkflowAuthorityTargetFamily, WorkflowBudgetClass, WorkflowCostClass,
     WorkflowDeclarationFamily, WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
 };
 
 use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts};
 use super::effect_support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    create_entity, exact_branch_snapshot_identity, relational_runtime_with_intent_strategy,
     test_bridge_with_writeback_authority,
 };
 
 pub(crate) fn representative_effect_relational_mutation_row() -> RepresentativeArtifacts {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should exist");
     let raw = RawEffectIntent::Mutation {
-        binding: runtime_workflow_binding_with_snapshot(&branch_snapshot_token(
-            &runtime, "branch-a",
+        binding: runtime_workflow_binding_for_snapshot_identity(exact_branch_snapshot_identity(
+            &runtime, "main",
         )),
         request: workflow_request(
             WorkflowDeclarationFamily::MutationLoweringNarrow,
@@ -54,7 +49,7 @@ pub(crate) fn representative_effect_relational_mutation_row() -> RepresentativeA
     };
     let executed = scope_admitted_effect_plan(admit_effect(
         raw,
-        EffectAuthoringBasis::from(branch_mutation_basis("branch-a")),
+        EffectAuthoringBasis::from(branch_mutation_basis("main")),
     ))
     .lower()
     .expect("relational mutation should lower")
@@ -64,16 +59,13 @@ pub(crate) fn representative_effect_relational_mutation_row() -> RepresentativeA
         ForgeQueryLowerRuntimeSeamKey::EffectBackedRelationalMutation,
         ForgeQueryLowerRuntimeAuthorityOwner::Relational,
         "Effect-backed relational mutation",
-        &[
-            "effect_relational_mutation_subject_v1".to_string(),
-            format!("execution:{}", executed.effect_execution_digest()),
-            format!("receipt:{}", executed.receipt().receipt_digest()),
-        ],
-        executed
-            .lowered()
-            .lowered_effect_execution_plan_digest()
-            .to_string(),
-        executed.receipt().receipt_digest().to_string(),
+        effect_execution_evidence_identity(
+            executed.effect_execution_for_reporting(),
+            executed
+                .lowered()
+                .lowered_effect_execution_plan_for_reporting(),
+            executed.receipt().receipt_for_reporting(),
+        ),
     )
 }
 
@@ -115,16 +107,13 @@ pub(crate) fn representative_effect_relational_merge_row() -> RepresentativeArti
         ForgeQueryLowerRuntimeSeamKey::EffectBackedRelationalMerge,
         ForgeQueryLowerRuntimeAuthorityOwner::Relational,
         "Effect-backed relational merge",
-        &[
-            "effect_relational_merge_subject_v1".to_string(),
-            format!("execution:{}", executed.effect_execution_digest()),
-            format!("receipt:{}", executed.receipt().receipt_digest()),
-        ],
-        executed
-            .lowered()
-            .lowered_effect_execution_plan_digest()
-            .to_string(),
-        executed.receipt().receipt_digest().to_string(),
+        effect_execution_evidence_identity(
+            executed.effect_execution_for_reporting(),
+            executed
+                .lowered()
+                .lowered_effect_execution_plan_for_reporting(),
+            executed.receipt().receipt_for_reporting(),
+        ),
     )
 }
 
@@ -150,16 +139,13 @@ pub(crate) fn representative_effect_bridge_writeback_row() -> RepresentativeArti
         ForgeQueryLowerRuntimeSeamKey::EffectBackedBridgeWriteback,
         ForgeQueryLowerRuntimeAuthorityOwner::RuntimeBridge,
         "Effect-backed bridge writeback",
-        &[
-            "effect_bridge_writeback_subject_v1".to_string(),
-            format!("execution:{}", executed.effect_execution_digest()),
-            format!("receipt:{}", executed.receipt().receipt_digest()),
-        ],
-        executed
-            .lowered()
-            .lowered_effect_execution_plan_digest()
-            .to_string(),
-        executed.receipt().receipt_digest().to_string(),
+        effect_execution_evidence_identity(
+            executed.effect_execution_for_reporting(),
+            executed
+                .lowered()
+                .lowered_effect_execution_plan_for_reporting(),
+            executed.receipt().receipt_for_reporting(),
+        ),
     )
 }
 
@@ -192,13 +178,19 @@ fn branch_mutation_basis(
 }
 
 fn runtime_workflow_binding() -> crate::workflow::WorkflowContextBinding {
-    runtime_workflow_binding_with_snapshot("snapshot-1")
+    synthetic_runtime_workflow_binding_for_snapshot_identity(
+        "lower-runtime-effect-phase-six",
+        crate::memory_workspace::admit_external_snapshot_label("snapshot-1"),
+    )
 }
 
-fn runtime_workflow_binding_with_snapshot(
-    snapshot_token: &str,
+fn runtime_workflow_binding_for_snapshot_identity(
+    snapshot_identity: crate::memory_workspace::ForgeQuerySnapshotIdentity,
 ) -> crate::workflow::WorkflowContextBinding {
-    synthetic_runtime_workflow_binding("lower-runtime-effect-phase-six", snapshot_token.to_string())
+    synthetic_runtime_workflow_binding_for_snapshot_identity(
+        "lower-runtime-effect-phase-six",
+        snapshot_identity,
+    )
 }
 
 fn workflow_request(
@@ -224,35 +216,63 @@ fn workflow_request(
     )
 }
 
+fn effect_execution_evidence_identity(
+    execution_digest: &str,
+    lowered_plan_digest: &str,
+    receipt_digest: &str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_value(ForgeQueryEvidenceTag::new("execution"), execution_digest)
+        .field_value(
+            ForgeQueryEvidenceTag::new("lowered_plan"),
+            lowered_plan_digest,
+        )
+        .field_value(ForgeQueryEvidenceTag::new("receipt"), receipt_digest)
+        .seal()
+}
+
 fn route_planned_row(
     seam_key: ForgeQueryLowerRuntimeSeamKey,
     owner: ForgeQueryLowerRuntimeAuthorityOwner,
     capability_label: &str,
-    subject_parts: &[String],
-    support_label: String,
-    retained_evidence_digest: String,
+    evidence: ForgeQueryEvidenceIdentity,
 ) -> RepresentativeArtifacts {
     let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
         seam_key,
         ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
         owner,
         capability_label,
-        hash_parts(subject_parts),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "phase-six-effect-route-subject",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("effect"), &evidence)
+        .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
         request.clone(),
-        retained_evidence_digest.clone(),
+        &evidence,
     );
-    let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(eligibility.clone(), support_label);
+    let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
+        eligibility.clone(),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "phase-six-effect-route",
+            &evidence,
+        ),
+    );
+    let retained_evidence_identity =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "phase-six-effect-route",
+            &evidence,
+        );
     let boundary_receipt = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
         &route_plan,
-        retained_evidence_digest.clone(),
+        &retained_evidence_identity,
     );
     let envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
         seam_key,
         &route_plan,
         &boundary_receipt,
-        &retained_evidence_digest,
+        &retained_evidence_identity,
     );
     RepresentativeArtifacts {
         seam_key,

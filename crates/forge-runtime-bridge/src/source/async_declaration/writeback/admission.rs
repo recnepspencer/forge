@@ -183,11 +183,11 @@ impl AdmittedBridgeAsyncWriteback {
             request.current_authoritative_truth_view_basis().digest(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let admission_identity = BridgeAsyncWritebackAdmissionIdentity::new(format!(
-            "bridge-async-writeback-admission-id:sha256:{digest:x}"
-        ));
+        let admission_identity = BridgeAsyncWritebackAdmissionIdentity::admit_bridge_owned(
+            format!("bridge-async-writeback-admission-id:sha256:{digest:x}"),
+        );
         let writeback_declaration = BridgeWritebackDeclaration::writeback_capable(
-            BridgeWritebackDeclarationIdentity::new(format!(
+            BridgeWritebackDeclarationIdentity::admit_bridge_owned(format!(
                 "bridge-async-writeback-declaration:{}",
                 admission_identity.as_str()
             )),
@@ -198,7 +198,7 @@ impl AdmittedBridgeAsyncWriteback {
             BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
         );
         let policy_declaration = BridgePolicyDeclaration::new(
-            BridgePolicyDeclarationIdentity::new(format!(
+            BridgePolicyDeclarationIdentity::admit_bridge_owned(format!(
                 "bridge-async-writeback-policy:{}",
                 admission_identity.as_str()
             )),

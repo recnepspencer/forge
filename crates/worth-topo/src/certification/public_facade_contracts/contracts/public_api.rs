@@ -294,8 +294,6 @@ include!("public_api_topology_operator_split_surface.rs");
 include!("public_api_edge_split_blueprint.rs");
 include!("public_api_edge_split_persistent_naming_blueprint.rs");
 
-#[path = "topology_workload_seeds/mod.rs"]
-mod public_api_topology_workload_seeds;
 
 fn _topology_projection_cleanup_closeout_contracts() {
     let _: fn() -> Result<TopologyQueryBoundaryCleanupCloseoutReport, TopologyCertificationError> =

@@ -28,6 +28,8 @@ crates/forge-kernel/src/proof/tests/pv_p0_1_tests.rs
 crates/forge-kernel/src/proof/tests/pv_p0_2_tests.rs
 crates/forge-kernel/src/proof/tests/pv_p3_6_tests.rs
 crates/forge-query/src/application/config.rs
+crates/forge-query/src/application/support/identity_boundary_inventory.rs
+crates/forge-query/src/application/support/identity_boundary_inventory_sources.rs
 crates/forge-query/src/application/tests.rs
 crates/forge-query/src/collection/mod.rs
 crates/forge-query/src/correspondence/resolution.rs
@@ -82,6 +84,7 @@ crates/forge-query/src/runtime/inspection/intent.rs
 crates/forge-query/src/runtime/inspection/preview.rs
 crates/forge-query/src/runtime/public_api.rs
 crates/forge-query/src/runtime/tests/computed.rs
+crates/forge-query/src/runtime/tests/identity_boundary/mod.rs
 crates/forge-query/src/runtime/tests/intent.rs
 crates/forge-query/src/runtime/tests/preview/execution.rs
 crates/forge-query/src/saved_query/reuse.rs

@@ -14,6 +14,7 @@ use crate::snapshot::{
     TruthSnapshotReader,
 };
 use crate::source::BridgeSourceCapabilitySet;
+use crate::truth_identity_fixtures::{truth_commit, truth_patch, truth_snapshot};
 use forge_foundational::facade::AspectKey;
 
 pub(in crate::builder::tests) struct TestSource;
@@ -45,15 +46,9 @@ impl TruthBranchHeadSource for TestSource {
     {
         BridgeCommittedPatchEnvelope::new(
             crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
-                crate::input::envelope::TruthCommitIdentity::new(format!(
-                    "head-{}",
-                    branch_identity.as_str()
-                )),
-                crate::input::envelope::TruthPatchIdentity::new(format!(
-                    "patch-{}",
-                    branch_identity.as_str()
-                )),
-                TruthSnapshotIdentity::new("snapshot"),
+                truth_commit(100),
+                truth_patch(100),
+                truth_snapshot(1, 1),
                 branch_identity.clone(),
             ),
             vec![
@@ -80,7 +75,7 @@ struct TestSnapshotReader;
 
 impl TruthSnapshotReader for TestSnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-        TruthSnapshotIdentity::new("snapshot")
+        truth_snapshot(1, 1)
     }
 
     fn read_packet(
@@ -114,8 +109,12 @@ impl ContinuityLineageSource for TestLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![BridgeHistoricalResolvedLineageIdentity::new("lineage:test")],
-            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:test")],
+            vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
+                "lineage:test",
+            )],
+            vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
+                "entity:test",
+            )],
             vec![],
         )
     }

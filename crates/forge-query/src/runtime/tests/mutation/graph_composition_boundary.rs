@@ -78,7 +78,10 @@ fn reconstructed_graph_composition_receipt_without_breadth_fails_closed() {
             graph.insert_relation("TaskEdge", |edge| {
                 edge.aspect("edge.kind", "depends_on")
                     .symbolic_entity_identity("edge.source_identity", &draft)
-                    .existing_entity_identity("edge.target_identity", "task-existing")
+                    .existing_entity_identity(
+                        "edge.target_identity",
+                        test_entity_identity("task-existing"),
+                    )
             })?;
             Ok(())
         })

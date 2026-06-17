@@ -24,10 +24,10 @@ pub(crate) fn shared_delivery_bundle_for_consumers(
         .expect("fanout plan should admit");
     let fanout_layout = runtime.build_subscription_fanout_layout(fanout_plan, family_kind);
     let truth_patch = committed_patch(
-        TruthBranchIdentity::new("truth-main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-        TruthCommitIdentity::new("commit-a"),
-        TruthPatchIdentity::new("patch-a"),
+        crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
     );
     let ordering =
         runtime.order_mixed_causes(&crate::facade::BridgeMixedCauseOrderingRequest::new(

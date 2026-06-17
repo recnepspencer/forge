@@ -8,6 +8,7 @@ use crate::lower_runtime_routing::{
 use crate::target_binding::{
     ForgeQueryBindingTarget, ForgeQueryBindingTargetKind, ForgeQueryBindingTargetSemantics,
 };
+use crate::ForgeQueryEvidenceIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDomainCapabilityTargetKind {
@@ -228,6 +229,14 @@ impl ForgeQueryDomainCapabilityTarget {
         self.shared.binding_digest()
     }
 
+    pub fn target_identity(&self) -> ForgeQueryEvidenceIdentity {
+        self.shared.target_identity()
+    }
+
+    pub fn binding_identity(&self) -> ForgeQueryEvidenceIdentity {
+        self.shared.binding_identity()
+    }
+
     pub fn semantics(&self) -> &ForgeQueryDomainCapabilityTargetSemantics {
         &self.semantics
     }
@@ -255,6 +264,14 @@ pub trait ForgeQueryDomainCapabilityTargetBinding: Clone {
 
     fn binding_digest(&self) -> &str {
         self.erased_target().binding_digest()
+    }
+
+    fn target_identity(&self) -> ForgeQueryEvidenceIdentity {
+        self.erased_target().target_identity()
+    }
+
+    fn binding_identity(&self) -> ForgeQueryEvidenceIdentity {
+        self.erased_target().binding_identity()
     }
 
     fn semantics(&self) -> &ForgeQueryDomainCapabilityTargetSemantics {

@@ -6,9 +6,12 @@ use forge_foundational::facade::{
     ProjectionMask,
 };
 
+use crate::relational_identity::{
+    RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts,
+};
 use crate::snapshot::{
     contract_validated_scalar_aspect_value, BridgeSnapshotReadError,
-    MaterializedTruthViewObservation, SnapshotReadTarget,
+    MaterializedTruthViewObservation, SnapshotReadRequest, SnapshotReadTarget,
 };
 
 mod digest_basis;
@@ -242,7 +245,7 @@ pub fn materialize_bridge_row_set(
         .iter()
         .zip(result.records().iter())
     {
-        let row_identity = Arc::from(read.entity_identity());
+        let row_identity = Arc::from(row_identity_for_read(read));
         let field_projection =
             BridgeMaterializedFieldProjection::from_snapshot_target(read.target());
         let field_identity = field_projection.field_identity().clone();
@@ -281,6 +284,25 @@ pub fn materialize_bridge_row_set(
         ),
         rows,
     })
+}
+
+fn row_identity_for_read(read: &SnapshotReadRequest) -> String {
+    read.relational_record_identity_parts()
+        .map(relational_row_identity_label)
+        .unwrap_or_else(|| read.entity_identity().to_string())
+}
+
+fn relational_row_identity_label(parts: RelationalBridgeRecordIdentityParts) -> String {
+    let kind = match parts.kind() {
+        RelationalBridgeRecordIdentityKind::Entity => "entity",
+        RelationalBridgeRecordIdentityKind::Relation => "relation",
+    };
+    format!(
+        "{kind}:{}:{}:{}",
+        parts.partition_id(),
+        parts.local_slot(),
+        parts.generation()
+    )
 }
 
 #[cfg(test)]

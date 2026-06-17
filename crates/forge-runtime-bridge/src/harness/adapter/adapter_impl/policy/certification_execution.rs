@@ -22,7 +22,7 @@ pub(super) fn execute_provenance_certification(
     let deterministic = admitted_policy_bundle(
         runtime_bridge,
         crate::facade::BridgePolicyDeclaration::new(
-            crate::facade::BridgePolicyDeclarationIdentity::new(
+            crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
                 "policy-cert:deterministic-authoritative",
             ),
             crate::facade::BridgeRequestKind::Authoritative,
@@ -35,7 +35,9 @@ pub(super) fn execute_provenance_certification(
     let optimized = admitted_policy_bundle(
         runtime_bridge,
         crate::facade::BridgePolicyDeclaration::new(
-            crate::facade::BridgePolicyDeclarationIdentity::new("policy-cert:optimized-preview"),
+            crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
+                "policy-cert:optimized-preview",
+            ),
             crate::facade::BridgeRequestKind::Preview,
             crate::facade::BridgeExecutionPolicyClass::Optimized,
             crate::facade::BridgeDiagnosticsTier::Exhaustive,
@@ -113,7 +115,7 @@ pub(super) fn execute_rejection_certification(
     runtime_bridge: &crate::facade::RuntimeBridge,
 ) -> Result<PolicyHarnessExecution, BridgeHarnessError> {
     let optimized_authoritative_declaration = crate::facade::BridgePolicyDeclaration::new(
-        crate::facade::BridgePolicyDeclarationIdentity::new(
+        crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
             "policy-cert:rejection-optimized-authoritative",
         ),
         crate::facade::BridgeRequestKind::Authoritative,
@@ -132,7 +134,7 @@ pub(super) fn execute_rejection_certification(
         .with_signal_sink(crate::harness::fixtures::RecordingSignalBridgeSink::default())
         .with_policy(crate::facade::BridgeRuntimePolicy::operational().with_replay_artifacts(false))
         .register_mapping(crate::facade::BridgeMappingRegistration::new(
-            crate::facade::BridgeMappingId::new("policy-cert-registration"),
+            crate::facade::BridgeMappingId::admit_bridge_owned("policy-cert-registration"),
             crate::facade::TruthPatchScope::for_entity_field(
                 crate::facade::MappingSelector::exact("user"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -145,7 +147,7 @@ pub(super) fn execute_rejection_certification(
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            crate::facade::SignalInvalidationScope::new("signal.policy"),
+            crate::facade::SignalInvalidationScope::admit_bridge_owned("signal.policy"),
             crate::facade::CoarseRoutingMode::Direct,
         ))
         .build()
@@ -155,7 +157,7 @@ pub(super) fn execute_rejection_certification(
             ))
         })?;
     let replay_conflict_declaration = crate::facade::BridgePolicyDeclaration::new(
-        crate::facade::BridgePolicyDeclarationIdentity::new(
+        crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
             "policy-cert:rejection-replay-conflict",
         ),
         crate::facade::BridgeRequestKind::Preview,
@@ -199,7 +201,9 @@ pub(super) fn execute_ambient_leak_certification(
     let preview_before = admitted_policy_bundle(
         runtime_bridge,
         crate::facade::BridgePolicyDeclaration::new(
-            crate::facade::BridgePolicyDeclarationIdentity::new("policy-cert:preview-before"),
+            crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
+                "policy-cert:preview-before",
+            ),
             crate::facade::BridgeRequestKind::Preview,
             crate::facade::BridgeExecutionPolicyClass::Optimized,
             crate::facade::BridgeDiagnosticsTier::Minimal,
@@ -210,7 +214,7 @@ pub(super) fn execute_ambient_leak_certification(
     let branch_local_resolution = runtime_bridge.resolve_truth_view_policy(
         &crate::facade::HistoricalEvaluationDeclaration::new(
             crate::facade::BridgeTruthViewSelector::branch_snapshot(
-                crate::facade::TruthBranchIdentity::new("analysis"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
                 first_snapshot_identity(fixture),
             ),
             crate::facade::BridgeReplayMode::Enabled,
@@ -221,7 +225,9 @@ pub(super) fn execute_ambient_leak_certification(
     let authoritative_middle = admitted_policy_bundle(
         runtime_bridge,
         crate::facade::BridgePolicyDeclaration::new(
-            crate::facade::BridgePolicyDeclarationIdentity::new("policy-cert:authoritative-middle"),
+            crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
+                "policy-cert:authoritative-middle",
+            ),
             crate::facade::BridgeRequestKind::Authoritative,
             crate::facade::BridgeExecutionPolicyClass::DeterministicCanonical,
             crate::facade::BridgeDiagnosticsTier::Standard,
@@ -232,7 +238,7 @@ pub(super) fn execute_ambient_leak_certification(
     let historical_resolution = runtime_bridge.resolve_truth_view_policy(
         &crate::facade::HistoricalEvaluationDeclaration::new(
             crate::facade::BridgeTruthViewSelector::branch_snapshot(
-                crate::facade::TruthBranchIdentity::new("history"),
+                crate::truth_identity_fixtures::truth_branch_fixture("history"),
                 first_snapshot_identity(fixture),
             ),
             crate::facade::BridgeReplayMode::Enabled,
@@ -243,7 +249,9 @@ pub(super) fn execute_ambient_leak_certification(
     let preview_after = admitted_policy_bundle(
         runtime_bridge,
         crate::facade::BridgePolicyDeclaration::new(
-            crate::facade::BridgePolicyDeclarationIdentity::new("policy-cert:preview-after"),
+            crate::facade::BridgePolicyDeclarationIdentity::admit_bridge_owned(
+                "policy-cert:preview-after",
+            ),
             crate::facade::BridgeRequestKind::Preview,
             crate::facade::BridgeExecutionPolicyClass::Optimized,
             crate::facade::BridgeDiagnosticsTier::Minimal,

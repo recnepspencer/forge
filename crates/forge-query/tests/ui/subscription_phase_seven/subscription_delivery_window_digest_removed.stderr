@@ -1,0 +1,21 @@
+warning: unreachable statement
+ --> tests/ui/subscription_phase_seven/subscription_delivery_window_digest_removed.rs:5:5
+  |
+4 |     let window: QueryDeliveryWindow = todo!();
+  |                                       ------- any code following this expression is unreachable
+5 |     let _ = window.delivery_window_digest();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `delivery_window_digest` found for struct `QueryDeliveryWindow` in the current scope
+ --> tests/ui/subscription_phase_seven/subscription_delivery_window_digest_removed.rs:5:20
+  |
+5 |     let _ = window.delivery_window_digest();
+  |                    ^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `delivery_window_width` with a similar name
+  |
+5 -     let _ = window.delivery_window_digest();
+5 +     let _ = window.delivery_window_width();
+  |

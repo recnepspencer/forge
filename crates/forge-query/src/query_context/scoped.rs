@@ -1,8 +1,9 @@
 use crate::query_basis_lifecycle::{
-    scope_materialization_basis_intent, scope_observation_basis_intent,
-    try_raw_basis_intent_from_query_context_request, BasisIntentDenial, BasisOperationLaneRequest,
-    BasisScopedAdmissionDenial, DeniedBasisCapability, NormalizedBasisFamily, RawBasisIntent,
-    ScopedMaterializationBasis, ScopedObservationBasis,
+    normalize_query_context_request, scope_materialization_basis_intent,
+    scope_observation_basis_intent, try_raw_basis_intent_from_query_context_request,
+    BasisIntentDenial, BasisOperationLaneRequest, BasisScopedAdmissionDenial,
+    DeniedBasisCapability, NormalizedBasisFamily, RawBasisIntent, ScopedMaterializationBasis,
+    ScopedObservationBasis,
 };
 
 use super::{
@@ -232,7 +233,8 @@ fn ensure_scoped_context_coherence(
         ));
     }
 
-    if observed_scope_label != expected_scope_label(context) {
+    let expected_scope_label = expected_scope_label(context);
+    if observed_scope_label != expected_scope_label.as_str() {
         return Err(QueryContextAdmissionError::new(
             super::QueryContextAdmissionFailureClass::BasisSubstitutionForbidden,
             "scoped query-context admission requires semantic basis-label parity across lifecycle and legacy adapters",
@@ -256,13 +258,28 @@ fn expected_normalized_family(family: &QueryContextFamily) -> &NormalizedBasisFa
     }
 }
 
-fn expected_scope_label(context: &AdmittedQueryBasisContext) -> &str {
+fn expected_scope_label(context: &AdmittedQueryBasisContext) -> String {
     match context.family() {
-        QueryContextFamily::CurrentBranchHead => "current_head",
+        QueryContextFamily::CurrentBranchHead => "current_head".to_string(),
         QueryContextFamily::BranchHead
         | QueryContextFamily::HistoricalSnapshot
         | QueryContextFamily::HistoricalCommit
         | QueryContextFamily::PreviewDerivedHistorical
-        | QueryContextFamily::DiffComparison => context.declared_basis_label(),
+        | QueryContextFamily::DiffComparison => expected_scoped_compatibility_scope_label(context)
+            .unwrap_or_else(|| context.declared_basis_label().to_string()),
     }
+}
+
+fn expected_scoped_compatibility_scope_label(
+    context: &AdmittedQueryBasisContext,
+) -> Option<String> {
+    let lane = match scoped_request_kind(context.family()) {
+        QueryContextScopedRequestKind::Observation => BasisOperationLaneRequest::Observation,
+        QueryContextScopedRequestKind::Materialization => {
+            BasisOperationLaneRequest::Materialization
+        }
+    };
+    normalize_query_context_request(context.binding().request(), lane)
+        .ok()
+        .map(|intent| intent.normalized_label().to_string())
 }

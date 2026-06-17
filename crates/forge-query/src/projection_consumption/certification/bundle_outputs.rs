@@ -1,4 +1,13 @@
-use crate::identity::hash_parts;
+use crate::projection_consumption::identity::{
+    compose_closeout_compile_fail_boundary_row_digest,
+    compose_closeout_dx_transcript_surface_row_digest,
+    compose_closeout_forbidden_fallback_surface_row_digest,
+    compose_closeout_oracle_surface_row_digest, compose_closeout_proof_shape_surface_row_digest,
+    compose_closeout_public_boundary_surface_row_digest,
+    compose_closeout_seeded_replay_surface_row_digest,
+    compose_closeout_support_matrix_surface_row_digest, compose_failure_digest_bundle,
+    compose_negative_dx_boundary_digest, compose_target_dx_digest,
+};
 
 use super::super::receipt_transitions::ProjectionConsumptionTransitionRules;
 use super::audits::{
@@ -37,15 +46,14 @@ pub fn assemble_closeout_bundle_outputs(
 ) -> ProjectionConsumptionBundleOutputs {
     let transition_rules = ProjectionConsumptionTransitionRules::current_phase_five_surface();
     let target_dx_digest = target_dx_digest();
-    let negative_dx_boundary_digest = hash_parts(&[
-        "projection_consumption_negative_dx_boundary_v1".to_string(),
-        public_boundary_audit.audit_digest().to_string(),
-        compile_fail_boundary_digest.clone(),
-    ]);
-    let failure_digest = hash_parts(&[
-        denied_masked_field_failure_digest(),
-        source_mismatch_failure_digest(),
-    ]);
+    let negative_dx_boundary_digest = compose_negative_dx_boundary_digest(
+        public_boundary_audit.audit_digest(),
+        &compile_fail_boundary_digest,
+    );
+    let failure_digest = compose_failure_digest_bundle(
+        &denied_masked_field_failure_digest(),
+        &source_mismatch_failure_digest(),
+    );
     let rows = vec![
         certification_row(
             ProjectionConsumptionCertificationLane::SupportMatrixSurface,
@@ -55,6 +63,11 @@ pub fn assemble_closeout_bundle_outputs(
                 support_matrix.matrix_digest(),
                 support_matrix.support_traceability_digest()
             ),
+            compose_closeout_support_matrix_surface_row_digest(
+                family_inventory.inventory_digest(),
+                support_matrix.matrix_digest(),
+                support_matrix.support_traceability_digest(),
+            ),
         ),
         certification_row(
             ProjectionConsumptionCertificationLane::PublicBoundarySurface,
@@ -62,6 +75,10 @@ pub fn assemble_closeout_bundle_outputs(
                 "public_surface:{}|negative_dx:{}",
                 public_boundary_audit.audit_digest(),
                 negative_dx_boundary_digest
+            ),
+            compose_closeout_public_boundary_surface_row_digest(
+                public_boundary_audit.audit_digest(),
+                negative_dx_boundary_digest.as_str(),
             ),
         ),
         certification_row(
@@ -71,6 +88,10 @@ pub fn assemble_closeout_bundle_outputs(
                 proof_shape_audit.proof_shape_digest(),
                 proof_shape_audit.phase_progression_digest()
             ),
+            compose_closeout_proof_shape_surface_row_digest(
+                proof_shape_audit.proof_shape_digest(),
+                proof_shape_audit.phase_progression_digest(),
+            ),
         ),
         certification_row(
             ProjectionConsumptionCertificationLane::ForbiddenFallbackSurface,
@@ -79,14 +100,23 @@ pub fn assemble_closeout_bundle_outputs(
                 forbidden_fallback_audit.audit_digest(),
                 forbidden_fallback_audit.total_occurrence_count()
             ),
+            compose_closeout_forbidden_fallback_surface_row_digest(
+                forbidden_fallback_audit.audit_digest(),
+                forbidden_fallback_audit.total_occurrence_count(),
+            ),
         ),
         certification_row(
             ProjectionConsumptionCertificationLane::DxTranscriptSurface,
             format!("target_dx:{target_dx_digest}|golden:{golden_transcript_digest}"),
+            compose_closeout_dx_transcript_surface_row_digest(
+                target_dx_digest.as_str(),
+                golden_transcript_digest.as_str(),
+            ),
         ),
         certification_row(
             ProjectionConsumptionCertificationLane::CompileFailBoundary,
             format!("compile_fail:{compile_fail_boundary_digest}"),
+            compose_closeout_compile_fail_boundary_row_digest(&compile_fail_boundary_digest),
         ),
         certification_row(
             ProjectionConsumptionCertificationLane::OracleSurface,
@@ -94,6 +124,10 @@ pub fn assemble_closeout_bundle_outputs(
                 "oracle:{}|manifest:{}",
                 oracle_report.oracle_digest(),
                 oracle_report.manifest_digest()
+            ),
+            compose_closeout_oracle_surface_row_digest(
+                oracle_report.oracle_digest(),
+                oracle_report.manifest_digest(),
             ),
         ),
         certification_row(
@@ -103,6 +137,11 @@ pub fn assemble_closeout_bundle_outputs(
                 seeded_report.seeded_sequence_digest(),
                 seeded_report.seed_replay_digest(),
                 seeded_report.seed_generator_class_digest()
+            ),
+            compose_closeout_seeded_replay_surface_row_digest(
+                seeded_report.seeded_sequence_digest(),
+                seeded_report.seed_replay_digest(),
+                seeded_report.seed_generator_class_digest(),
             ),
         ),
     ];
@@ -294,12 +333,8 @@ pub fn assemble_closeout_bundle_outputs(
 fn certification_row(
     lane: ProjectionConsumptionCertificationLane,
     evidence_detail: String,
+    row_digest: String,
 ) -> ProjectionConsumptionCertificationRow {
-    let row_digest = hash_parts(&[
-        "projection_consumption_certification_row_v1".to_string(),
-        format!("lane:{}", lane.as_str()),
-        format!("detail:{evidence_detail}"),
-    ]);
     ProjectionConsumptionCertificationRow {
         lane,
         evidence_detail,
@@ -308,13 +343,5 @@ fn certification_row(
 }
 
 fn target_dx_digest() -> String {
-    hash_parts(&[
-        "projection_consumption_target_dx_v1".to_string(),
-        "common_path_read_backed_consumption".to_string(),
-        "common_path_effect_backed_consumption".to_string(),
-        "support_discovery_before_consumption".to_string(),
-        "typed_denial_and_deferred_handling".to_string(),
-        "receipt_first_inspection_and_envelope_derivation".to_string(),
-        "retained_live_ordinary_projection_consumption".to_string(),
-    ])
+    compose_target_dx_digest()
 }

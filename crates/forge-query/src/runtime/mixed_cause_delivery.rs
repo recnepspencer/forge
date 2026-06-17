@@ -1,10 +1,18 @@
 use forge_runtime_bridge::facade::{
-    BridgeMixedCauseDeliveryWindowPlan, BridgeMixedCauseOrderFamilyKind, BridgeMixedCauseOrdering,
-    BridgeMixedCauseOrderingLaneKind,
+    BridgeDeniedMixedCause, BridgeMixedCauseDeliveryWindowPlan, BridgeMixedCauseOrderFamilyKind,
+    BridgeMixedCauseOrdering, BridgeMixedCauseOrderingLaneKind, BridgeOrderedMixedCause,
+    BridgeSuppressedMixedCause,
 };
 
-use crate::identity::hash_parts;
+use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
+
+use super::evidence_identities::{
+    runtime_mixed_cause_atomic_identity, runtime_mixed_cause_delivery_identity,
+    runtime_mixed_cause_delivery_window_identity, runtime_mixed_cause_denied_cause_identity,
+    runtime_mixed_cause_ordered_cause_identity, runtime_mixed_cause_ordering_identity,
+    runtime_mixed_cause_suppressed_cause_identity,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryRuntimeMixedCauseLaneKind {
@@ -90,29 +98,30 @@ impl ForgeQueryRuntimeMixedCauseMemberKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeMixedCauseDelivery {
-    ordering_digest: String,
-    delivery_window_digest: String,
+    ordering_identity: ForgeQueryEvidenceIdentity,
+    delivery_window_identity: ForgeQueryEvidenceIdentity,
     lane_kind: ForgeQueryRuntimeMixedCauseLaneKind,
     ordered_member_kinds: Vec<ForgeQueryRuntimeMixedCauseMemberKind>,
-    ordered_cause_digests: Vec<String>,
-    suppressed_cause_digests: Vec<String>,
-    denied_cause_digests: Vec<String>,
+    ordered_cause_identities: Vec<ForgeQueryEvidenceIdentity>,
+    suppressed_cause_identities: Vec<ForgeQueryEvidenceIdentity>,
+    denied_cause_identities: Vec<ForgeQueryEvidenceIdentity>,
     coalescing_kind: ForgeQueryRuntimeDeliveryCoalescingKind,
-    mixed_cause_digest: String,
+    mixed_cause_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl ForgeQueryRuntimeMixedCauseDelivery {
-    pub(crate) fn atomic_relational_patch(delivery_cause_digest: &str) -> Self {
+    pub(crate) fn atomic_relational_patch(
+        delivery_cause_identity: &ForgeQueryEvidenceIdentity,
+    ) -> Self {
         Self::atomic(
             ForgeQueryRuntimeMixedCauseMemberKind::TruthPatch,
-            delivery_cause_digest,
-            delivery_cause_digest,
+            delivery_cause_identity,
         )
     }
 
     pub(crate) fn atomic_time_only(
         delivery_cause_kind: QuerySubscriptionDeliveryCauseKind,
-        delivery_cause_digest: &str,
+        delivery_cause_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
         let member_kind = match delivery_cause_kind {
             QuerySubscriptionDeliveryCauseKind::FreshnessOnly
@@ -139,35 +148,30 @@ impl ForgeQueryRuntimeMixedCauseDelivery {
                 ForgeQueryRuntimeMixedCauseMemberKind::TemporalTimeOnly
             }
         };
-        Self::atomic(member_kind, delivery_cause_digest, delivery_cause_digest)
+        Self::atomic(member_kind, delivery_cause_identity)
     }
 
     fn atomic(
         member_kind: ForgeQueryRuntimeMixedCauseMemberKind,
-        ordering_digest: &str,
-        delivery_window_digest: &str,
+        delivery_cause_identity: &ForgeQueryEvidenceIdentity,
     ) -> Self {
-        let mixed_cause_digest = hash_parts(&[
-            "forge_query_runtime_mixed_cause_delivery_v1".to_string(),
-            "lane:authoritative".to_string(),
-            format!(
-                "coalescing:{}",
-                ForgeQueryRuntimeDeliveryCoalescingKind::Atomic.as_str()
-            ),
-            format!("ordered-kind:{}", member_kind.as_str()),
-            format!("ordered-digest:{ordering_digest}"),
-        ]);
-        Self {
-            ordering_digest: ordering_digest.to_string(),
-            delivery_window_digest: delivery_window_digest.to_string(),
+        let atomic_identity = runtime_mixed_cause_atomic_identity(delivery_cause_identity);
+        let mut delivery = Self {
+            ordering_identity: atomic_identity.clone(),
+            delivery_window_identity: atomic_identity,
             lane_kind: ForgeQueryRuntimeMixedCauseLaneKind::Authoritative,
             ordered_member_kinds: vec![member_kind],
-            ordered_cause_digests: vec![ordering_digest.to_string()],
-            suppressed_cause_digests: Vec::new(),
-            denied_cause_digests: Vec::new(),
+            ordered_cause_identities: vec![delivery_cause_identity.clone()],
+            suppressed_cause_identities: Vec::new(),
+            denied_cause_identities: Vec::new(),
             coalescing_kind: ForgeQueryRuntimeDeliveryCoalescingKind::Atomic,
-            mixed_cause_digest,
-        }
+            mixed_cause_identity: ForgeQueryEvidenceIdentity::compose(
+                crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+            )
+            .seal(),
+        };
+        delivery.mixed_cause_identity = runtime_mixed_cause_delivery_identity(&delivery);
+        delivery
     }
 
     pub(crate) fn from_bridge(
@@ -209,55 +213,61 @@ impl ForgeQueryRuntimeMixedCauseDelivery {
                 }
             })
             .collect::<Vec<_>>();
-        let ordered_cause_digests = delivery_window
+        let ordered_cause_identities = delivery_window
             .ordered_causes()
             .iter()
-            .map(|cause| cause.digest().to_string())
+            .map(runtime_mixed_cause_ordered_cause_identity)
             .collect::<Vec<_>>();
-        let suppressed_cause_digests = ordering
+        let suppressed_cause_identities = ordering
             .suppressed()
             .iter()
-            .map(|cause| cause.digest().to_string())
+            .map(runtime_mixed_cause_suppressed_cause_identity)
             .collect::<Vec<_>>();
-        let denied_cause_digests = ordering
+        let denied_cause_identities = ordering
             .denied()
             .iter()
-            .map(|cause| cause.digest().to_string())
+            .map(runtime_mixed_cause_denied_cause_identity)
             .collect::<Vec<_>>();
         let coalescing_kind = if ordered_member_kinds.len() > 1 {
             ForgeQueryRuntimeDeliveryCoalescingKind::Coalesced
         } else {
             ForgeQueryRuntimeDeliveryCoalescingKind::Atomic
         };
-        let mixed_cause_digest = hash_parts(&[
-            "forge_query_runtime_mixed_cause_delivery_v1".to_string(),
-            format!("ordering:{}", ordering.digest()),
-            format!("window:{}", delivery_window.digest()),
-            format!("lane:{}", lane_kind.as_str()),
-            format!("coalescing:{}", coalescing_kind.as_str()),
-            format!("ordered:{}", ordered_cause_digests.join(",")),
-            format!("suppressed:{}", suppressed_cause_digests.join(",")),
-            format!("denied:{}", denied_cause_digests.join(",")),
-        ]);
-        Self {
-            ordering_digest: ordering.digest().to_string(),
-            delivery_window_digest: delivery_window.digest().to_string(),
+        let ordering_identity = runtime_mixed_cause_ordering_identity(ordering);
+        let delivery_window_identity =
+            runtime_mixed_cause_delivery_window_identity(delivery_window, ordering);
+        let mut delivery = Self {
+            ordering_identity,
+            delivery_window_identity,
             lane_kind,
             ordered_member_kinds,
-            ordered_cause_digests,
-            suppressed_cause_digests,
-            denied_cause_digests,
+            ordered_cause_identities,
+            suppressed_cause_identities,
+            denied_cause_identities,
             coalescing_kind,
-            mixed_cause_digest,
-        }
+            mixed_cause_identity: ForgeQueryEvidenceIdentity::compose(
+                crate::evidence_identity::ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
+            )
+            .seal(),
+        };
+        delivery.mixed_cause_identity = runtime_mixed_cause_delivery_identity(&delivery);
+        delivery
     }
 
-    pub fn ordering_digest(&self) -> &str {
-        &self.ordering_digest
+    pub fn ordering_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.ordering_identity
     }
 
-    pub fn delivery_window_digest(&self) -> &str {
-        &self.delivery_window_digest
+    pub fn ordering_for_reporting(&self) -> &str {
+        self.ordering_identity.as_str()
+    }
+
+    pub fn delivery_window_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.delivery_window_identity
+    }
+
+    pub fn delivery_window_for_reporting(&self) -> &str {
+        self.delivery_window_identity.as_str()
     }
 
     pub fn lane_kind(&self) -> ForgeQueryRuntimeMixedCauseLaneKind {
@@ -268,24 +278,28 @@ impl ForgeQueryRuntimeMixedCauseDelivery {
         &self.ordered_member_kinds
     }
 
-    pub fn ordered_cause_digests(&self) -> &[String] {
-        &self.ordered_cause_digests
+    pub fn ordered_cause_identities(&self) -> &[ForgeQueryEvidenceIdentity] {
+        &self.ordered_cause_identities
     }
 
-    pub fn suppressed_cause_digests(&self) -> &[String] {
-        &self.suppressed_cause_digests
+    pub fn suppressed_cause_identities(&self) -> &[ForgeQueryEvidenceIdentity] {
+        &self.suppressed_cause_identities
     }
 
-    pub fn denied_cause_digests(&self) -> &[String] {
-        &self.denied_cause_digests
+    pub fn denied_cause_identities(&self) -> &[ForgeQueryEvidenceIdentity] {
+        &self.denied_cause_identities
     }
 
     pub fn coalescing_kind(&self) -> ForgeQueryRuntimeDeliveryCoalescingKind {
         self.coalescing_kind
     }
 
-    pub fn mixed_cause_digest(&self) -> &str {
-        &self.mixed_cause_digest
+    pub fn mixed_cause_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.mixed_cause_identity
+    }
+
+    pub fn mixed_cause_for_reporting(&self) -> &str {
+        self.mixed_cause_identity.as_str()
     }
 
     pub fn has_relational_patch(&self) -> bool {

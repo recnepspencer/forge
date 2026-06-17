@@ -42,7 +42,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
     let assert_binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-assert",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-assert").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 assert_seed.deltas()[0].entity_identity.clone(),
             )
             .expect("assert target should build")
@@ -53,7 +53,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
     let verify_binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-verify",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-assert").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 verify_seed.deltas()[0].entity_identity.clone(),
             )
             .expect("verify target should build")
@@ -64,7 +64,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
     let update_binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-update",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-assert").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 update_seed.deltas()[0].entity_identity.clone(),
             )
             .expect("update target should build")
@@ -77,7 +77,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
     let delete_binding = workspace
         .bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(
-                "authority:task-delete",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-assert").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 delete_seed.deltas()[0].entity_identity.clone(),
             )
             .expect("delete target should build")
@@ -99,9 +99,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
                     update_binding,
                     |task| task.aspect("title.value", "Update seed"),
                     |task| {
-                        task.continuity_rebind_merge_successor(
-                            "authority:task-update",
-                            "authority:task-update-merged",
+                        task.continuity_rebind_merge_successor(crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::ForgeQueryContinuityPriorAuthorityLabel::new("authority:task-update").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::ForgeQueryContinuitySuccessorAuthorityLabel::new("authority:task-update-merged").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
                         .aspect("title.value", "Update merged")
                     },
@@ -112,7 +110,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
                     |delete| {
                         delete
                             .touch("title.value")
-                            .naming_remove("persistent-name:delete", "authority:task-delete")
+                            .naming_remove(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("persistent-name:delete").expect("naming attachment authority label")).expect("naming attachment identity"), crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_prior_authority(crate::runtime::ForgeQueryNamingPriorAuthorityLabel::new("persistent-name:delete").expect("naming prior authority label")).expect("naming prior authority identity"))
                     },
                 )
                 .insert_symbolic("draft-task", "Task", |task| {
@@ -125,7 +123,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
                         .in_target_collection("Task")
                         .expect("symbolic collection should build"),
                     |task| {
-                        task.naming_attach_new_target("persistent-name:draft")
+                        task.naming_attach_new_target(crate::runtime::ForgeQueryMutationAuthorityIdentity::naming_attachment(crate::runtime::ForgeQueryNamingAttachmentAuthorityLabel::new("persistent-name:draft").expect("naming attachment authority label")).expect("naming attachment identity"))
                             .aspect("title.value", "Draft named")
                     },
                 )
@@ -147,26 +145,32 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
     let mode_digest = batch_evidence
         .aggregate_existing_truth_mode_digest()
         .expect("mixed batch should retain existing-truth mode digest")
+        .as_str()
         .to_string();
     let assertion_digest = batch_evidence
         .aggregate_existing_truth_assertion_digest()
         .expect("mixed batch should retain assertion digest")
+        .as_str()
         .to_string();
     let binding_digest = batch_evidence
         .aggregate_existing_truth_binding_digest()
         .expect("mixed batch should retain binding digest")
+        .as_str()
         .to_string();
     let symbolic_digest = batch_evidence
         .aggregate_symbolic_target_reference_digest()
         .expect("mixed batch should retain symbolic digest")
+        .as_str()
         .to_string();
     let naming_digest = batch_evidence
         .aggregate_naming_mutation_digest()
         .expect("mixed batch should retain naming digest")
+        .as_str()
         .to_string();
     let continuity_digest = batch_evidence
         .aggregate_continuity_mutation_digest()
         .expect("mixed batch should retain continuity digest")
+        .as_str()
         .to_string();
     let update_probe = workspace
         .probe_existing(update_probe_binding, ["title.value"])
@@ -188,27 +192,39 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
         ForgeQueryInspection::BatchWriteReceipt(inspection) => {
             let batch_evidence = inspection.batch_mutation_evidence();
             assert_eq!(
-                batch_evidence.aggregate_existing_truth_mode_digest(),
+                batch_evidence
+                    .aggregate_existing_truth_mode_digest()
+                    .map(|digest| digest.as_str()),
                 Some(mode_digest.as_str())
             );
             assert_eq!(
-                batch_evidence.aggregate_existing_truth_assertion_digest(),
+                batch_evidence
+                    .aggregate_existing_truth_assertion_digest()
+                    .map(|digest| digest.as_str()),
                 Some(assertion_digest.as_str())
             );
             assert_eq!(
-                batch_evidence.aggregate_existing_truth_binding_digest(),
+                batch_evidence
+                    .aggregate_existing_truth_binding_digest()
+                    .map(|digest| digest.as_str()),
                 Some(binding_digest.as_str())
             );
             assert_eq!(
-                batch_evidence.aggregate_symbolic_target_reference_digest(),
+                batch_evidence
+                    .aggregate_symbolic_target_reference_digest()
+                    .map(|digest| digest.as_str()),
                 Some(symbolic_digest.as_str())
             );
             assert_eq!(
-                batch_evidence.aggregate_naming_mutation_digest(),
+                batch_evidence
+                    .aggregate_naming_mutation_digest()
+                    .map(|digest| digest.as_str()),
                 Some(naming_digest.as_str())
             );
             assert_eq!(
-                batch_evidence.aggregate_continuity_mutation_digest(),
+                batch_evidence
+                    .aggregate_continuity_mutation_digest()
+                    .map(|digest| digest.as_str()),
                 Some(continuity_digest.as_str())
             );
             assert_eq!(
@@ -259,7 +275,8 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
                 inspection.component_operations()[2]
                     .continuity_mutation_evidence()
                     .expect("verified update should retain continuity evidence")
-                    .basis_binding_digest(),
+                    .basis_binding_digest()
+                    .map(|digest| digest.as_str()),
                 Some(update_binding_digest.as_str())
             );
             assert_eq!(
@@ -286,7 +303,7 @@ fn existing_truth_cluster_unsupported_backend_denials_remain_typed_and_distinct(
         .expect("workspace should open");
     let binding = workspace
         .bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new("authority:task-1", "Task:1")
+            ForgeQueryExistingEntityTarget::new(crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:task-assert").expect("existing-truth authority label")).expect("existing-truth authority identity"), test_entity_identity("Task:1"))
                 .expect("existing entity target should build")
                 .in_target_collection("Task")
                 .expect("existing entity target collection should build"),

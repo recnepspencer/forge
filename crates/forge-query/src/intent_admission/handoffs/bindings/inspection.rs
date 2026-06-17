@@ -1,5 +1,4 @@
-use crate::identity::hash_parts;
-
+use super::handoff_execution_binding_identity;
 use crate::intent_admission::{
     ForgeQueryDerivedInspectionExecutionHandoff, ForgeQueryDerivedMaterializationExecutionHandoff,
     ForgeQueryIntentAdmissionCoveredEntrypoint, ForgeQueryIntentAdmissionExecutionSeam,
@@ -20,10 +19,10 @@ pub struct ForgeQueryDerivedInspectionExecutionBinding {
 
 impl ForgeQueryDerivedMaterializationExecutionBinding {
     pub(crate) fn from_handoff(handoff: ForgeQueryDerivedMaterializationExecutionHandoff) -> Self {
-        let binding_digest = hash_parts(&[
-            "forge_query_derived_materialization_execution_binding_v1".to_string(),
-            format!("handoff:{}", handoff.handoff_digest()),
-        ]);
+        let binding_digest = handoff_execution_binding_identity(
+            "derived-materialization-execution",
+            handoff.handoff_digest(),
+        );
         Self {
             handoff,
             binding_digest,
@@ -57,10 +56,10 @@ impl ForgeQueryDerivedMaterializationExecutionBinding {
 
 impl ForgeQueryDerivedInspectionExecutionBinding {
     pub(crate) fn from_handoff(handoff: ForgeQueryDerivedInspectionExecutionHandoff) -> Self {
-        let binding_digest = hash_parts(&[
-            "forge_query_derived_inspection_execution_binding_v1".to_string(),
-            format!("handoff:{}", handoff.handoff_digest()),
-        ]);
+        let binding_digest = handoff_execution_binding_identity(
+            "derived-inspection-execution",
+            handoff.handoff_digest(),
+        );
         Self {
             handoff,
             binding_digest,

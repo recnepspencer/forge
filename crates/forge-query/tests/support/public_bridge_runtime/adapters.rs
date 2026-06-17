@@ -2,23 +2,29 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use forge_query::facade::{
-    DeclarativeLiveQueryRequest, ForgeQueryAspectValue, ForgeQueryEffectPolicy, ForgeQueryEntity,
-    ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthAssertionDenialKind,
-    ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthProbeDenialKind,
-    ForgeQueryExistingTruthProbeRequest, ForgeQueryExistingTruthTargetBinding, ForgeQueryLivePatch,
-    ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
-    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
+    runtime_subscription_support_evidence_identity, DeclarativeLiveQueryRequest,
+    ForgeQueryAspectValue, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryEffectPolicy,
+    ForgeQueryEntity, ForgeQueryEvidenceIdentity, ForgeQueryExistingTruthAssertionDenial,
+    ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryExistingTruthProbeDenial,
+    ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeRequest,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
-    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
-    ForgeQuerySessionLabel, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSnapshotIdentityAdapter,
+    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity,
+    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
     ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
     SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
     SubscriptionActivationInput, WriteAuthorityExecutionReceipt,
 };
+use forge_query::facade::{ForgeQueryCommitIdentity, ForgeQueryEntityIdentity};
 use forge_relational::facade::runtime::RelationalRuntime;
-use forge_runtime_bridge::facade::RuntimeBridge;
+use forge_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts, RuntimeBridge,
+};
 use serde_json::Value;
 
 use super::external_row::{apply_aspects_to_external_row, external_row_from_aspects};
@@ -86,26 +92,19 @@ impl ForgeQueryRuntimeSourceAdapter for PublicSourceAdapter {
     fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
         let state = self.state.borrow();
         let mut affected = receipt
-            .deltas
+            .deltas()
             .iter()
             .flat_map(|delta| {
                 state
                     .live_views
                     .iter()
-                    .filter(move |(_, collection)| *collection == &delta.collection)
+                    .filter(move |(_, collection)| *collection == delta.collection())
                     .map(|(name, _)| name.clone())
             })
             .collect::<Vec<_>>();
         affected.sort();
         affected.dedup();
         affected
-    }
-
-    fn snapshot_token(&self) -> String {
-        format!(
-            "public-bridge-snapshot:{}",
-            self.state.borrow().next_snapshot_token
-        )
     }
 }
 
@@ -146,15 +145,21 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for PublicWriteAuthorityAdapter {
         let entity_identity = match command.mutation_family() {
             forge_query::facade::ForgeQueryMutationFamily::Insert => {
                 state.next_entity_identity += 1;
-                format!("public-bridge-entity-{}", state.next_entity_identity)
+                ForgeQueryEntityIdentity::from_relational_record(
+                    RelationalBridgeRecordIdentityParts::entity(
+                        1,
+                        state.next_entity_identity as u64,
+                        0,
+                    ),
+                )
             }
             _ => command
                 .declared_entity_identity_ref()
-                .map(str::to_string)
+                .cloned()
                 .or_else(|| {
                     command
                         .existing_truth_binding()
-                        .map(|binding| binding.resolved_target_identity().to_string())
+                        .map(|binding| binding.resolved_target_identity().clone())
                 })
                 .or_else(|| {
                     command.symbolic_target_reference().and_then(|reference| {
@@ -170,17 +175,28 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for PublicWriteAuthorityAdapter {
         let mutation_kind = apply_command(&mut state, &command, &collection, &entity_identity)?;
         state.next_commit_identity += 1;
         state.next_snapshot_token += 1;
-        let receipt = ForgeQueryMutationReceipt {
-            commit_identity: format!("public-bridge-commit-{}", state.next_commit_identity),
-            snapshot_token: format!("public-bridge-snapshot-{}", state.next_snapshot_token),
-            deltas: vec![ForgeQueryMutationDelta {
+        let commit_identity =
+            ForgeQueryCommitIdentity::from_relational_commit_id(state.next_commit_identity as u64);
+        let snapshot_identity = public_snapshot_identity(state.next_snapshot_token as u64);
+        let bridge_authority = self.build_bridge_mutation_authority_bundle(
+            _bridge,
+            &snapshot_identity,
+            &command,
+            &collection,
+            &entity_identity,
+            mutation_kind.clone(),
+        )?;
+        let receipt = ForgeQueryMutationReceipt::from_bridge_authoritative_parts(
+            commit_identity,
+            snapshot_identity,
+            vec![ForgeQueryMutationDelta::new(
                 collection,
                 entity_identity,
-                kind: mutation_kind,
-                aspect_paths: command.declared_aspect_paths(),
-            }],
-            bridge_authority: None,
-        };
+                mutation_kind,
+                command.declared_aspect_paths(),
+            )],
+            bridge_authority,
+        );
         Ok(self.build_write_authority_execution_receipt(&command, receipt))
     }
 }
@@ -189,8 +205,9 @@ fn apply_command(
     state: &mut PublicBridgeRuntimeState,
     command: &ForgeQueryWriteCommand,
     collection: &str,
-    entity_identity: &str,
+    entity_identity: &ForgeQueryEntityIdentity,
 ) -> Result<ForgeQueryMutationKind, ForgeQueryWorkspaceError> {
+    let entity_identity_key = entity_identity.clone();
     match command.mutation_family() {
         forge_query::facade::ForgeQueryMutationFamily::Insert => {
             let external_row = external_row_from_aspects(command.aspect_values())?;
@@ -198,14 +215,14 @@ fn apply_command(
                 .rows_by_collection
                 .entry(collection.to_string())
                 .or_default()
-                .insert(entity_identity.to_string(), external_row);
+                .insert(entity_identity_key.clone(), external_row);
             state
                 .collection_by_identity
-                .insert(entity_identity.to_string(), collection.to_string());
+                .insert(entity_identity_key.clone(), collection.to_string());
             if let Some(reference) = command.symbolic_target_reference() {
                 state
                     .identity_by_symbol
-                    .insert(reference.symbol().to_string(), entity_identity.to_string());
+                    .insert(reference.symbol().to_string(), entity_identity.clone());
             }
             Ok(ForgeQueryMutationKind::Created)
         }
@@ -215,10 +232,10 @@ fn apply_command(
                 .rows_by_collection
                 .entry(collection.to_string())
                 .or_default()
-                .get_mut(entity_identity)
+                .get_mut(&entity_identity_key)
                 .ok_or_else(|| {
                     ForgeQueryWorkspaceError::new(format!(
-                        "public bridge update could not find `{entity_identity}` in `{collection}`"
+                        "public bridge update could not find `{entity_identity_key:?}` in `{collection}`"
                     ))
                 })?;
             apply_aspects_to_external_row(row, command.aspect_values())?;
@@ -226,15 +243,38 @@ fn apply_command(
         }
         forge_query::facade::ForgeQueryMutationFamily::Delete => {
             if let Some(rows) = state.rows_by_collection.get_mut(collection) {
-                rows.remove(entity_identity);
+                rows.remove(&entity_identity_key);
             }
-            state.collection_by_identity.remove(entity_identity);
-            state
-                .identity_by_symbol
-                .retain(|_, resolved_identity| resolved_identity != entity_identity);
+            state.collection_by_identity.remove(&entity_identity_key);
+            state.identity_by_symbol.retain(|_, resolved_identity| {
+                resolved_identity.evidence_identity() != entity_identity.evidence_identity()
+            });
             Ok(ForgeQueryMutationKind::Deleted)
         }
     }
+}
+
+pub(super) struct PublicSnapshotIdentityAdapter {
+    state: SharedRuntimeState,
+}
+
+impl PublicSnapshotIdentityAdapter {
+    pub(super) fn new(state: SharedRuntimeState) -> Self {
+        Self { state }
+    }
+}
+
+impl ForgeQueryRuntimeSnapshotIdentityAdapter for PublicSnapshotIdentityAdapter {
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        let state = self.state.borrow();
+        public_snapshot_identity(state.next_snapshot_token as u64)
+    }
+}
+
+fn public_snapshot_identity(position: u64) -> ForgeQuerySnapshotIdentity {
+    ForgeQuerySnapshotIdentity::from_relational_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(1, position),
+    )
 }
 
 pub(super) struct PublicExistingTruthVerificationAdapter {
@@ -254,7 +294,8 @@ impl forge_query::facade::ForgeQueryRuntimeExistingTruthVerificationAdapter
         &self,
         binding: &ForgeQueryExistingTruthTargetBinding,
         aspects: &[ForgeQueryAspectValue],
-    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial> {
+    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
+    {
         let state = self.state.borrow();
         for aspect in aspects {
             let key = existing_truth_key(binding, aspect.aspect_path());
@@ -279,7 +320,25 @@ impl forge_query::facade::ForgeQueryRuntimeExistingTruthVerificationAdapter
                 ));
             }
         }
-        Ok(())
+        ForgeQueryVerifiedExistingTruthAssertion::from_snapshot_identity(
+            binding,
+            aspects,
+            &ForgeQuerySnapshotIdentity::admit_external_token(
+                forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
+                    "public-bridge-existing-truth-snapshot",
+                )),
+            ),
+        )
+        .map_err(|error| {
+            ForgeQueryExistingTruthAssertionDenial::new(
+                binding,
+                ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
+                None,
+                None,
+                None,
+                error.to_string(),
+            )
+        })
     }
 
     fn probe_existing_truth(
@@ -322,16 +381,16 @@ impl ForgeQueryRuntimeSignalSinkAdapter for PublicSignalSinkAdapter {
         &mut self,
         receipt: &ForgeQueryMutationReceipt,
     ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
-        let routed = self.build_signal_invalidation_routing_receipt(receipt);
-        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routed))
+        let routed = self.build_signal_invalidation_routing_receipt(receipt)?;
+        self.build_signal_invalidation_boundary_receipt(receipt, routed)
     }
 }
 
 pub(super) struct PublicSubscriptionActivationAdapter;
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for PublicSubscriptionActivationAdapter {
-    fn support_evidence(&self) -> String {
-        "public-graph-subscription-activation".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("public-graph-subscription-activation")
     }
 
     fn admit_activation(
@@ -357,7 +416,7 @@ impl ForgeQueryRuntimePreviewBasisAdapter for PublicPreviewBasisAdapter {
             authority,
             label.clone(),
             effect_policy,
-            ["public-graph-preview-basis"],
+            ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(["public-graph-preview-basis"]),
         ))
     }
 }

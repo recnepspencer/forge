@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 use std::sync::{Arc, RwLock};
 
+use forge_query::facade::ForgeQueryEntityIdentity;
 use forge_relational::facade::identity::VersionId;
 use forge_relational::facade::publication::PublishedAuthoritativeRecordPatch;
 use forge_relational::facade::runtime::RelationalRuntime;
@@ -21,7 +22,7 @@ pub(super) enum LoweredPatchMatch {
         target_identity: String,
     },
     ExistingTargetIdentity {
-        resolved_target_identity: String,
+        resolved_target_identity: ForgeQueryEntityIdentity,
     },
 }
 
@@ -132,7 +133,7 @@ fn entity_matches_identity(
     identity: &str,
 ) -> bool {
     if identity.starts_with("entity:") {
-        return record_identity(&RecordRef::Entity(entity_id)) == identity;
+        return super::super::write_support::entity_identity_label(entity_id) == identity;
     }
     let Some(created_label) = identity.strip_prefix("created:") else {
         return false;

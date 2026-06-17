@@ -1,0 +1,66 @@
+error[E0432]: unresolved import `forge_query::facade::lower_preflight_to_serial_fallback_route`
+ --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:2:61
+  |
+2 |     canonicalize_request, execute_parallel_admission_route, lower_preflight_to_serial_fallback_route,
+  |                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `lower_preflight_to_serial_fallback_route` in `facade`
+
+error[E0308]: mismatched types
+  --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:27:42
+   |
+27 |     let canonical = canonicalize_request(&request).unwrap();
+   |                     -------------------- ^^^^^^^^ expected `AuthoredQueryBundleRequest`, found `&AuthoredQueryBundleRequest`
+   |                     |
+   |                     arguments to this function are incorrect
+   |
+note: function defined here
+  --> src/canonicalization/pipeline.rs
+   |
+   | pub fn canonicalize_request(
+   |        ^^^^^^^^^^^^^^^^^^^^
+help: consider removing the borrow
+   |
+27 -     let canonical = canonicalize_request(&request).unwrap();
+27 +     let canonical = canonicalize_request(request).unwrap();
+   |
+
+error[E0061]: this function takes 2 arguments but 1 argument was supplied
+  --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:28:21
+   |
+28 |     let validated = validate_canonical_bundle(&canonical).unwrap();
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^------------
+   |                                              ||
+   |                                              |expected `CanonicalQueryBundle`, found `&CanonicalQueryBundle`
+   |                                              argument #2 of type `QuerySchemaView` is missing
+   |
+note: function defined here
+  --> src/validation/pipeline.rs
+   |
+   | pub fn validate_canonical_bundle(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider removing the borrow
+   |
+28 -     let validated = validate_canonical_bundle(&canonical).unwrap();
+28 +     let validated = validate_canonical_bundle(canonical).unwrap();
+   |
+help: provide the argument
+   |
+28 -     let validated = validate_canonical_bundle(&canonical).unwrap();
+28 +     let validated = validate_canonical_bundle(/* CanonicalQueryBundle */, /* QuerySchemaView */).unwrap();
+   |
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:38:35
+   |
+38 |           ResolvedSnapshotIdentity::new(
+   |                                     ^^^ private associated function
+   |
+  ::: src/basis/mod.rs
+   |
+   | /     pub(crate) fn new(
+   | |         authority_family: BasisAuthorityFamily,
+   | |         workspace_scope: Option<String>,
+   | |         snapshot_token: impl Into<String>,
+   | |         schema_basis: SchemaBasisDigest,
+   | |         lineage_class: SnapshotLineageClass,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

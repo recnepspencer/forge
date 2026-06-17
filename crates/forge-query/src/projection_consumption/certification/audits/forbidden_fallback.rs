@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::projection_consumption::identity::{
+    compose_certification_row_digest, compose_forbidden_fallback_audit_digest,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionForbiddenFallbackSeam {
@@ -165,14 +167,9 @@ pub fn projection_consumption_forbidden_fallback_audit(
         .flat_map(rows_for_surface)
         .collect::<Vec<_>>();
     let total_occurrence_count = rows.iter().map(|row| row.occurrence_count()).sum();
-    let audit_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .chain(std::iter::once(format!(
-                "total_occurrence_count:{total_occurrence_count}"
-            )))
-            .collect::<Vec<_>>(),
+    let audit_digest = compose_forbidden_fallback_audit_digest(
+        rows.iter().map(|row| row.row_digest()),
+        total_occurrence_count,
     );
     ProjectionConsumptionForbiddenFallbackAudit {
         rows,
@@ -199,12 +196,15 @@ fn row(
         .source()
         .matches(forbidden_seam.needle())
         .count();
-    let row_digest = hash_parts(&[
-        "projection_consumption_forbidden_fallback_row_v1".to_string(),
-        format!("surface:{}", ordinary_surface.as_str()),
-        format!("seam:{}", forbidden_seam.as_str()),
-        format!("occurrences:{occurrence_count}"),
-    ]);
+    let occurrences = occurrence_count.to_string();
+    let row_digest = compose_certification_row_digest(
+        "projection_consumption_forbidden_fallback_row_v1",
+        &[
+            ("surface", ordinary_surface.as_str()),
+            ("seam", forbidden_seam.as_str()),
+            ("occurrences", occurrences.as_str()),
+        ],
+    );
     ProjectionConsumptionForbiddenFallbackAuditRow {
         ordinary_surface,
         forbidden_seam,

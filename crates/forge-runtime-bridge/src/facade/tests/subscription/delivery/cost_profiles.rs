@@ -111,31 +111,41 @@ fn delivery_window_rejects_member_count_over_cost_profile_before_projection() {
                     "slice:entity-1/profile/name",
                     "routing:fixture:1",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:1"),
+                    BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned(
+                        "content:fixture:1",
+                    ),
                 ),
                 BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                     "slice:entity-1/profile/name",
                     "routing:fixture:2",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:2"),
+                    BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned(
+                        "content:fixture:2",
+                    ),
                 ),
                 BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                     "slice:entity-1/profile/name",
                     "routing:fixture:3",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:3"),
+                    BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned(
+                        "content:fixture:3",
+                    ),
                 ),
                 BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                     "slice:entity-1/profile/name",
                     "routing:fixture:4",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:4"),
+                    BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned(
+                        "content:fixture:4",
+                    ),
                 ),
                 BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                     "slice:entity-1/profile/name",
                     "routing:fixture:5",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:5"),
+                    BridgeSubscriptionDeliveryContentDigest::admit_bridge_owned(
+                        "content:fixture:5",
+                    ),
                 ),
             ],
         )

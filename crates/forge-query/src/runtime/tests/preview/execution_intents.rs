@@ -1,4 +1,5 @@
 use super::super::support::*;
+use crate::ForgeQueryEvidenceScope;
 
 #[test]
 fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
@@ -7,6 +8,7 @@ fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -50,15 +52,15 @@ fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
             ForgeQueryEffectPolicy::SandboxedWriteIntent
         );
         assert!(!receipt.basis_evidence().is_empty());
-        assert!(!receipt.admission_digest().as_str().is_empty());
-        assert!(!receipt.receipt_digest().as_str().is_empty());
+        assert!(!receipt.admission_identity().as_str().is_empty());
+        assert!(!receipt.receipt_digest().is_empty());
         assert_eq!(preview.preview_intent_receipts(), [receipt.clone()]);
         assert!(preview.preview_execution_evidence().iter().any(|evidence| {
             evidence.kind() == ForgeQueryPreviewExecutionKind::PendingWriteIntent
                 && evidence.handle_name() == "preview-reconcile"
                 && evidence.source_lane() == ForgeQueryAuthorityLane::PendingWriteIntent
                 && evidence.preview_lane() == ForgeQueryAuthorityLane::PreviewTruth
-                && evidence.commit_identity() == receipt.receipt_digest().as_str()
+                && evidence.source_evidence_identity() == receipt.receipt_identity()
                 && evidence.aspect_paths() == ["strategy.intent.reconcile"]
         }));
         (receipt, preview.discard())
@@ -96,6 +98,30 @@ fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
     );
     assert!(!receipt_inspection.basis_digest().is_empty());
     assert!(!receipt_inspection.inspection_digest().is_empty());
+    assert_eq!(
+        receipt_inspection.basis_identity().scope(),
+        ForgeQueryEvidenceScope::PreviewIntentReceiptInspectionBasis
+    );
+    assert_eq!(
+        receipt_inspection.inspection_identity().scope(),
+        ForgeQueryEvidenceScope::PreviewIntentReceiptInspection
+    );
+    assert_eq!(
+        receipt_inspection.admission_digest(),
+        receipt.admission_digest()
+    );
+    assert_eq!(
+        receipt_inspection.admission_identity(),
+        receipt.admission_identity()
+    );
+    assert_eq!(
+        receipt_inspection.receipt_digest(),
+        receipt.receipt_digest()
+    );
+    assert_eq!(
+        receipt_inspection.receipt_identity(),
+        receipt.receipt_identity()
+    );
 
     let outcome_inspection = runtime
         .inspect_preview_outcome(&outcome)
@@ -115,6 +141,7 @@ fn derive_only_preview_intent_denies_before_authoritative_execution() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -171,6 +198,7 @@ fn preview_local_intent_requires_intent_support_for_preview_lane() {
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
+        .snapshot_identity(TestSnapshotIdentityAdapter)
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)

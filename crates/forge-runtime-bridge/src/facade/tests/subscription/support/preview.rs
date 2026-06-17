@@ -17,7 +17,9 @@ pub(crate) fn admitted_preview_basis_for_truth(
 ) -> crate::facade::BridgeSubscriptionPreviewBasisBinding {
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::new(format!("preview-session:{suffix}")),
+            crate::facade::BridgePreviewSessionIdentity::admit_bridge_owned(format!(
+                "preview-session:{suffix}"
+            )),
             subscription_preview_declaration_for_truth(
                 suffix,
                 truth_branch_identity,
@@ -43,7 +45,9 @@ pub(crate) fn preview_promotion_detail_subscription(
     let (runtime, ready) = activation_ready_detail_subscription();
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::new(format!("preview-session:{suffix}")),
+            crate::facade::BridgePreviewSessionIdentity::admit_bridge_owned(format!(
+                "preview-session:{suffix}"
+            )),
             subscription_preview_declaration(suffix),
         )
         .expect("preview session should admit");
@@ -115,7 +119,9 @@ pub(crate) fn preview_active_subscription_from_ready(
 ) {
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::new(format!("preview-session:{suffix}")),
+            crate::facade::BridgePreviewSessionIdentity::admit_bridge_owned(format!(
+                "preview-session:{suffix}"
+            )),
             subscription_preview_declaration(suffix),
         )
         .expect("preview session should admit");
@@ -147,8 +153,8 @@ pub(crate) fn subscription_preview_declaration(
 ) -> crate::facade::BridgePreviewSessionDeclaration {
     subscription_preview_declaration_for_truth(
         suffix,
-        TruthBranchIdentity::new(format!("truth-branch:{suffix}")),
-        crate::facade::TruthSnapshotIdentity::new(format!("snapshot:{suffix}")),
+        crate::truth_identity_fixtures::truth_branch_fixture(format!("truth-branch:{suffix}")),
+        crate::truth_identity_fixtures::truth_snapshot_fixture(format!("snapshot:{suffix}")),
     )
 }
 
@@ -159,16 +165,18 @@ pub(crate) fn subscription_preview_declaration_for_truth(
 ) -> crate::facade::BridgePreviewSessionDeclaration {
     let selector_branch_identity = truth_branch_identity.clone();
     crate::facade::BridgePreviewSessionDeclaration::new(
-        crate::facade::BridgePreviewSessionDeclarationIdentity::new(format!(
+        crate::facade::BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(format!(
             "preview-declaration:{suffix}"
         )),
         crate::facade::BridgeRequestKind::Preview,
         crate::facade::BridgeSpeculativeBranchBinding::new(
-            crate::facade::BridgeSpeculativeBranchBindingIdentity::new(format!(
+            crate::facade::BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(format!(
                 "preview-binding:{suffix}"
             )),
             truth_branch_identity,
-            crate::facade::BridgeSignalBranchIdentity::new(format!("signal-branch:{suffix}")),
+            crate::facade::BridgeSignalBranchIdentity::admit_bridge_owned(format!(
+                "signal-branch:{suffix}"
+            )),
         ),
         crate::facade::BridgePreviewSessionBasis::new(
             crate::facade::BridgeTruthViewSelector::branch_snapshot(

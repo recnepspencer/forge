@@ -1,6 +1,8 @@
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::frontier_signal_adapter::SignalFrontierSurfaceEvidence;
-use crate::identity::hash_parts;
 use crate::intent_admission::{certification_bridge, certification_runtime};
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
@@ -36,27 +38,22 @@ pub(crate) fn representative_causal_bridge_materialization_row() -> Representati
     let artifact = plan
         .materialize_with_bridge(&certification_bridge())
         .expect("causal bridge fixture should materialize inspection");
-    let retained = hash_parts(&[
-        artifact.artifact_digest().to_string(),
-        artifact
-            .bridge_envelope_digest()
-            .unwrap_or("none")
-            .to_string(),
-    ]);
+    let evidence =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_value(
+                ForgeQueryEvidenceTag::new("artifact"),
+                artifact.artifact_for_reporting(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("bridge_envelope"),
+                artifact.bridge_envelope_for_reporting().unwrap_or("none"),
+            )
+            .seal();
     route_planned_row(
         ForgeQueryLowerRuntimeSeamKey::CausalBridgeMaterialization,
         ForgeQueryLowerRuntimeAuthorityOwner::RuntimeBridge,
         "Causal bridge materialization",
-        &[
-            "causal_bridge_materialization_subject_v1".to_string(),
-            format!("artifact:{}", artifact.artifact_digest()),
-            format!(
-                "bridge-envelope:{}",
-                artifact.bridge_envelope_digest().unwrap_or("none")
-            ),
-        ],
-        "causal-bridge-materialization",
-        retained,
+        evidence,
     )
 }
 
@@ -129,26 +126,30 @@ pub(crate) fn representative_frontier_evidence_row() -> RepresentativeArtifacts 
     );
     let planned = SignalFrontierSurfaceEvidence::from_frontier_plan(&plan);
     let executed = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(&summary);
-    let retained = hash_parts(&[
-        planned.surface_digest().as_str().to_string(),
-        executed.surface_digest().as_str().to_string(),
-    ]);
+    let evidence =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+            .field_value(
+                ForgeQueryEvidenceTag::new("planned"),
+                planned.surface_digest().as_str(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("executed"),
+                executed.surface_digest().as_str(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("predicted_breadth"),
+                planned.predicted_breadth().to_string(),
+            )
+            .field_value(
+                ForgeQueryEvidenceTag::new("realized_breadth"),
+                executed.realized_breadth().unwrap_or_default().to_string(),
+            )
+            .seal();
     route_planned_row(
         ForgeQueryLowerRuntimeSeamKey::FrontierEvidenceIntake,
         ForgeQueryLowerRuntimeAuthorityOwner::Signal,
         "Frontier evidence intake",
-        &[
-            "frontier_evidence_route_subject_v1".to_string(),
-            format!("planned:{}", planned.surface_digest().as_str()),
-            format!("executed:{}", executed.surface_digest().as_str()),
-            format!("predicted_breadth:{}", planned.predicted_breadth()),
-            format!(
-                "realized_breadth:{}",
-                executed.realized_breadth().unwrap_or_default()
-            ),
-        ],
-        "frontier-signal-surface",
-        retained,
+        evidence,
     )
 }
 
@@ -156,31 +157,44 @@ fn route_planned_row(
     seam_key: ForgeQueryLowerRuntimeSeamKey,
     owner: ForgeQueryLowerRuntimeAuthorityOwner,
     capability_label: &str,
-    subject_parts: &[String],
-    support_label: &str,
-    retained_evidence_digest: String,
+    evidence: ForgeQueryEvidenceIdentity,
 ) -> RepresentativeArtifacts {
     let request = ForgeQueryLowerRuntimeCapabilityRequest::new(
         seam_key,
         ForgeQueryLowerRuntimeRouteKind::RoutePlanning,
         owner,
         capability_label,
-        hash_parts(subject_parts),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSubjectIdentity::compose(
+            "phase-six-causal-signal-route-subject",
+        )
+        .field_evidence_identity(ForgeQueryEvidenceTag::new("source"), &evidence)
+        .seal(),
     );
-    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted(
+    let eligibility = ForgeQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
         request.clone(),
-        retained_evidence_digest.clone(),
+        &evidence,
     );
-    let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(eligibility.clone(), support_label);
+    let route_plan = ForgeQueryLowerRuntimeRoutePlan::new(
+        eligibility.clone(),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
+            "phase-six-causal-signal-route",
+            &evidence,
+        ),
+    );
+    let retained_evidence_identity =
+        crate::lower_runtime_routing::forge_query_lower_runtime_retained_evidence_identity(
+            "phase-six-causal-signal-route",
+            &evidence,
+        );
     let boundary_receipt = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
         &route_plan,
-        retained_evidence_digest.clone(),
+        &retained_evidence_identity,
     );
     let envelope = ForgeQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
         seam_key,
         &route_plan,
         &boundary_receipt,
-        &retained_evidence_digest,
+        &retained_evidence_identity,
     );
     RepresentativeArtifacts {
         seam_key,

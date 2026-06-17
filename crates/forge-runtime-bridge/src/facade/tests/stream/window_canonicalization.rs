@@ -1,7 +1,4 @@
 use crate::facade::tests::{canonical_envelope, runtime};
-use crate::facade::{
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthSnapshotIdentity,
-};
 use crate::policy::BridgeRuntimePolicy;
 
 #[test]
@@ -29,16 +26,16 @@ fn runtime_lowers_identical_envelope_windows_canonically() {
             &contract,
             vec![
                 canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
                 canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ],
         )
@@ -48,16 +45,16 @@ fn runtime_lowers_identical_envelope_windows_canonically() {
             &contract,
             vec![
                 canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
                 canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
             ],
         )
@@ -97,16 +94,16 @@ fn runtime_rejects_coalesced_windows_across_snapshot_boundaries() {
             &contract,
             vec![
                 canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-a"),
-                    TruthPatchIdentity::new("patch-a"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
                 ),
                 canonical_envelope(
-                    TruthBranchIdentity::new("main"),
-                    TruthCommitIdentity::new("commit-b"),
-                    TruthPatchIdentity::new("patch-b"),
-                    TruthSnapshotIdentity::new("snapshot-b"),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-b"),
+                    crate::truth_identity_fixtures::truth_patch_fixture("patch-b"),
+                    crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-b"),
                 ),
             ],
         )
@@ -140,10 +137,10 @@ fn runtime_classifies_stable_no_pressure_backpressure_record() {
         .plan_change_stream_window(
             &contract,
             vec![canonical_envelope(
-                TruthBranchIdentity::new("main"),
-                TruthCommitIdentity::new("commit-a"),
-                TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+                crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             )],
         )
         .expect("single-member window should plan");

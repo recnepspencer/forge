@@ -1,10 +1,9 @@
-use crate::identity::hash_parts;
-
 use super::consumed::ConsumedProjectionFactSet;
 use super::contracts::ProjectionContractSupportPosture;
 use super::eligibility::ProjectionConsumptionWarningKind;
 use super::envelope::SelfDescribingProjectionConsumptionEnvelope;
 use super::facts::ProjectionMaterializedFactPosture;
+use super::identity::{compose_receipt_digest, compose_receipt_integrity_digest};
 use super::receipt_transitions::ProjectionConsumptionDeferredNeighborFamily;
 use super::receipt_transitions::ProjectionConsumptionTransitionRules;
 use super::source::ProjectionSourceFamily;
@@ -36,53 +35,26 @@ impl ProjectionConsumptionReceipt {
             .iter()
             .filter_map(|rule| rule.deferred_neighbor())
             .collect::<Vec<_>>();
-        let integrity_digest = hash_parts(&[
-            "projection_consumption_receipt_integrity_v1".to_string(),
-            format!("fact_set:{}", fact_set.fact_set_digest()),
-            format!("counters:{counter_snapshot_digest}"),
-            format!("source_identity:{}", fact_set.source_identity()),
-            format!(
-                "materialized_fact_posture:{}",
-                fact_set
-                    .materialized_fact_posture()
-                    .map(ProjectionMaterializedFactPosture::posture_digest)
-                    .unwrap_or("none")
-            ),
-        ]);
-        let receipt_digest = hash_parts(&[
-            "projection_consumption_receipt_v1".to_string(),
-            format!("declaration:{}", fact_set.declaration_digest()),
-            format!("contract:{}", fact_set.contract_digest()),
-            format!("fact_set:{}", fact_set.fact_set_digest()),
-            format!("source_family:{}", fact_set.source_family().as_str()),
-            format!("source_identity:{}", fact_set.source_identity()),
-            format!("support_posture:{}", fact_set.support_posture().as_str()),
-            format!(
-                "materialized_fact_posture:{}",
-                fact_set
-                    .materialized_fact_posture()
-                    .map(ProjectionMaterializedFactPosture::posture_digest)
-                    .unwrap_or("none")
-            ),
-            format!(
-                "warnings:{}",
-                fact_set
-                    .support_posture()
-                    .warning_kinds()
-                    .iter()
-                    .map(|warning| warning.as_str())
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            format!(
-                "deferred_neighbors:{}",
-                deferred_neighbors
-                    .iter()
-                    .map(|neighbor| neighbor.as_str())
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-        ]);
+        let materialized_fact_posture_digest = fact_set
+            .materialized_fact_posture()
+            .map(ProjectionMaterializedFactPosture::posture_digest);
+        let integrity_digest = compose_receipt_integrity_digest(
+            fact_set.fact_set_digest(),
+            &counter_snapshot_digest,
+            fact_set.source_identity(),
+            materialized_fact_posture_digest.as_deref(),
+        );
+        let receipt_digest = compose_receipt_digest(
+            fact_set.declaration_digest(),
+            fact_set.contract_digest(),
+            fact_set.fact_set_digest(),
+            fact_set.source_family(),
+            fact_set.source_identity(),
+            fact_set.support_posture(),
+            materialized_fact_posture_digest.as_deref(),
+            fact_set.support_posture().warning_kinds(),
+            &deferred_neighbors,
+        );
         Self {
             declaration_digest: fact_set.declaration_digest().to_string(),
             contract_digest: fact_set.contract_digest().to_string(),

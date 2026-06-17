@@ -26,10 +26,10 @@ impl crate::adapter::ContinuityLineageSource for CausalLineageSource {
     > {
         crate::adapter::BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![BridgeHistoricalResolvedLineageIdentity::new(
+            vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
                 "lineage:causal-successor",
             )],
-            vec![BridgeHistoricalResolvedRecordIdentity::new(
+            vec![BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned(
                 "record:causal-successor",
             )],
             vec![1],
@@ -61,8 +61,11 @@ pub(super) fn missing_bridge_reference(
     identity: &str,
 ) -> BridgeCausalEvidenceReference {
     bridge_reference(
-        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(family, identity)
-            .expect("bridge reference identity should be valid"),
+        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
+            family,
+            crate::facade::BridgeIdentityEvidence::from_bridge_owner_external_authority(identity),
+        )
+        .expect("bridge reference identity should be valid"),
     )
 }
 
@@ -134,7 +137,7 @@ pub(super) fn bridge_stream_checkpoint_reference(
 ) -> BridgeCausalEvidenceReference {
     missing_bridge_reference(
         BridgeCausalEvidenceFamily::BridgeStreamCheckpoint,
-        checkpoint.checkpoint_token_identity(),
+        checkpoint.checkpoint_token_identity_for_reporting(),
     )
 }
 
@@ -175,7 +178,7 @@ pub(super) fn binding_for<'a>(
         .find(|binding| {
             binding.owner() == BridgeCausalEvidenceOwner::RuntimeBridge
                 && binding.family() == family
-                && binding.reference_identity() == reference_identity
+                && binding.reference_evidence_identity().as_str() == reference_identity
         })
         .expect("expected retained bridge binding should be present")
 }
@@ -194,8 +197,8 @@ pub(super) fn registered_causal_merge(
             "rel-merge-v1",
             "schema-policy-v1",
             BridgeMergeParentOrderProof::new(vec![
-                crate::facade::TruthCommitIdentity::new("parent-a"),
-                crate::facade::TruthCommitIdentity::new("parent-b"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-a"),
+                crate::truth_identity_fixtures::truth_commit_fixture("parent-b"),
             ]),
         ),
     )
@@ -207,9 +210,9 @@ pub(super) fn branch_comparison_declaration(
 ) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::branch_comparison(
         declaration_identity,
-        StructuralSchemaIdentity::new("schema:geometry"),
+        StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
-            StructuralSchemaIdentity::new("schema:geometry"),
+            StructuralSchemaIdentity::admit_bridge_owned("schema:geometry"),
             StructuralFingerprintFamily::BranchComparisonFingerprint,
             "geometry-branch-v1",
             StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
@@ -218,12 +221,12 @@ pub(super) fn branch_comparison_declaration(
         ),
         StructuralTruthViewBasis::explicit_branch_pair(
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("left"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("left"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("right"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("right"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
         ),
     )
@@ -243,8 +246,8 @@ pub(super) fn retained_runtime(
         .register_source(registered_source(
             "source:analysis-snapshot",
             BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -254,8 +257,8 @@ pub(super) fn retained_runtime(
         .register_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -268,14 +271,14 @@ pub(super) fn retained_runtime(
             "structural:analysis-snapshot",
             StructuralFingerprintFamily::TopologyFingerprint,
             StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-                TruthBranchIdentity::new("analysis"),
-                TruthSnapshotIdentity::new("snapshot-a"),
+                crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+                crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
             )),
         ))
         .register_structural(branch_declaration)
         .register_merge(merge_declaration)
         .register_mapping(BridgeMappingRegistration::new(
-            BridgeMappingId::new("mapping"),
+            BridgeMappingId::admit_bridge_owned("mapping"),
             TruthPatchScope::for_entity_field(
                 MappingSelector::exact("entity-1"),
                 forge_foundational::facade::AspectKey::new("profile")
@@ -288,7 +291,7 @@ pub(super) fn retained_runtime(
                     .expect("valid native aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
-            SignalInvalidationScope::new("signal:profile"),
+            SignalInvalidationScope::admit_bridge_owned("signal:profile"),
             CoarseRoutingMode::Direct,
         ))
         .build()

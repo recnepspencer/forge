@@ -1,0 +1,5 @@
+error[E0609]: no field `shape_diff_result_bundle` on type `&HistoricalEvaluationCapability`
+ --> tests/ui/facade_historical_capability_has_no_query_context_diff_bundle.rs:6:37
+  |
+6 |     let _ = historical.capability().shape_diff_result_bundle;
+  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^ unknown field

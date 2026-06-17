@@ -5,3 +5,11 @@ error[E0560]: struct `ForgeQueryRuntimePublicApiTranscriptEvidence` has no field
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ForgeQueryRuntimePublicApiTranscriptEvidence` does not have this field
    |
    = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryRuntimePublicApiTranscriptEvidence` has no field named `transcript_digest`
+  --> tests/ui/runtime_public_api_transcript_evidence_constructor_private.rs:17:9
+   |
+17 |         transcript_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `ForgeQueryRuntimePublicApiTranscriptEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned

@@ -11,7 +11,7 @@ pub(crate) fn continuity_authority(
     continuity_authority_with_successor(
         branch_identity,
         snapshot_identity,
-        BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+        BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
     )
 }
 
@@ -22,7 +22,7 @@ pub(crate) fn continuity_authority_with_successor(
 ) -> BridgeHistoricalLineageAuthority {
     BridgeHistoricalLineageAuthority::try_new(
         BridgeContinuityAuthorityBasis::new(branch_identity, snapshot_identity),
-        vec![BridgeHistoricalResolvedLineageIdentity::new(
+        vec![BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned(
             "lineage:test-successor",
         )],
         vec![successor],
@@ -38,13 +38,13 @@ pub(crate) fn ambiguous_continuity_authority(
     BridgeHistoricalLineageAuthority::try_new(
         BridgeContinuityAuthorityBasis::new(branch_identity, snapshot_identity),
         vec![
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:test-a"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:test-b"),
-            BridgeHistoricalResolvedLineageIdentity::new("lineage:test-c"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:test-a"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:test-b"),
+            BridgeHistoricalResolvedLineageIdentity::admit_bridge_owned("lineage:test-c"),
         ],
         vec![
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
-            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::admit_bridge_owned("entity:0:5:2"),
         ],
         vec![7, 8, 9],
     )

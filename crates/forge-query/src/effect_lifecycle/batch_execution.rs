@@ -1,11 +1,12 @@
 use crate::basis_lifecycle::BasisFamily;
-use crate::identity::hash_parts;
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::batch::LoweredEffectBatchExecutionPlan;
 use super::counters::EffectLifecycleCounters;
 use super::execution::{
     EffectExecutionDenialKind, ExecutedEffectAuthorityArtifact, ExecutedEffectPlan,
 };
+use super::execution_artifacts::executed_authority_artifact_identity;
 use super::planning::EffectAuthorityOwner;
 use super::receipt::EffectExecutionReceipt;
 use super::taxonomy::EffectAuthorityLane;
@@ -53,7 +54,7 @@ pub struct ExecutedEffectBatchPlan {
     authority_owner: EffectAuthorityOwner,
     aggregate_artifact: ExecutedEffectAuthorityArtifact,
     components: Vec<ExecutedEffectPlan>,
-    batch_digest: String,
+    batch_identity: ForgeQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
@@ -66,27 +67,36 @@ impl ExecutedEffectBatchPlan {
         aggregate_artifact: ExecutedEffectAuthorityArtifact,
         components: Vec<ExecutedEffectPlan>,
     ) -> Self {
-        let batch_digest =
-            hash_parts(
-                &std::iter::once("executed_effect_batch_plan_v2".to_string())
-                    .chain(std::iter::once(format!(
-                        "authority:{}",
-                        authority_lane.as_str()
-                    )))
-                    .chain(std::iter::once(format!("basis:{}", basis_family.as_str())))
-                    .chain(std::iter::once(format!(
-                        "owner:{}",
-                        authority_owner.as_str()
-                    )))
-                    .chain(std::iter::once(format!(
-                        "aggregate:{}",
-                        aggregate_artifact_digest(&aggregate_artifact)
-                    )))
-                    .chain(components.iter().map(|component| {
-                        format!("component:{}", component.effect_execution_digest())
-                    }))
-                    .collect::<Vec<_>>(),
-            );
+        let batch_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "executed_effect_batch_plan_v2",
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("authority"),
+                    authority_lane.as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("basis"), basis_family.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("owner"),
+                    authority_owner.as_str(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("lowered"),
+                    lowered.batch_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("aggregate"),
+                    &executed_authority_artifact_identity(&aggregate_artifact),
+                )
+                .field_evidence_identity_sequence(
+                    ForgeQueryEvidenceTag::new("component"),
+                    components
+                        .iter()
+                        .map(ExecutedEffectPlan::effect_execution_identity),
+                )
+                .seal();
         let counters = EffectLifecycleCounters::executed_batch(
             components.len(),
             components
@@ -106,7 +116,7 @@ impl ExecutedEffectBatchPlan {
             authority_owner,
             aggregate_artifact,
             components,
-            batch_digest,
+            batch_identity,
             counters,
         }
     }
@@ -144,8 +154,12 @@ impl ExecutedEffectBatchPlan {
         &self.components
     }
 
-    pub fn batch_digest(&self) -> &str {
-        &self.batch_digest
+    pub fn batch_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.batch_identity
+    }
+
+    pub fn batch_for_reporting(&self) -> &str {
+        self.batch_identity.as_str()
     }
 
     pub fn counters(&self) -> &EffectLifecycleCounters {
@@ -154,25 +168,5 @@ impl ExecutedEffectBatchPlan {
 
     pub fn receipt(&self) -> EffectExecutionReceipt {
         EffectExecutionReceipt::from_batch(self.clone())
-    }
-}
-
-fn aggregate_artifact_digest(artifact: &ExecutedEffectAuthorityArtifact) -> String {
-    match artifact {
-        ExecutedEffectAuthorityArtifact::Mutation(result) => {
-            format!(
-                "commit:{}:{}",
-                result.outcome.commit.commit_id.0, result.outcome.commit.version_id.0
-            )
-        }
-        ExecutedEffectAuthorityArtifact::Merge(result) => {
-            format!(
-                "merge:{}:{}",
-                result.commit.outcome.commit.commit_id.0, result.commit.outcome.commit.version_id.0
-            )
-        }
-        ExecutedEffectAuthorityArtifact::Writeback { execution } => {
-            format!("writeback:{}", execution.digest())
-        }
     }
 }

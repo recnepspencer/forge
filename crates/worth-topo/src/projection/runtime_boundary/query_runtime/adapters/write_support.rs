@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
 use forge_query::facade::{
-    ForgeQueryAspectValue, ForgeQueryMutationDelta, ForgeQueryMutationKind,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
+    ForgeQueryAspectValue, ForgeQueryEntityIdentity, ForgeQueryMutationDelta,
+    ForgeQueryMutationKind, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
 };
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use forge_relational::facade::publication::{
@@ -11,6 +11,9 @@ use forge_relational::facade::publication::{
 };
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{CommitResult, RecordRef};
+use forge_runtime_bridge::facade::{
+    RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts,
+};
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
 use schema::facade::platform::relations::RelationKind;
 use serde_json::Value;
@@ -49,12 +52,12 @@ pub(super) fn mutation_deltas_from_patch_records(
         else {
             continue;
         };
-        deltas.push(ForgeQueryMutationDelta {
+        deltas.push(ForgeQueryMutationDelta::new(
             collection,
-            entity_identity: record_identity(&record.target),
-            kind: mutation_kind(record.structural_change),
-            aspect_paths: declared_aspect_paths.to_vec(),
-        });
+            record_identity(&record.target),
+            mutation_kind(record.structural_change),
+            declared_aspect_paths.to_vec(),
+        ));
     }
     if deltas.is_empty() {
         return Err(ForgeQueryWorkspaceError::new(
@@ -90,6 +93,46 @@ pub(super) fn optional_text(aspects: &BTreeMap<String, Value>, key: &str) -> Opt
     aspects.get(key).and_then(Value::as_str).map(str::to_string)
 }
 
+pub(super) fn entity_id_from_query_identity(
+    identity: &ForgeQueryEntityIdentity,
+) -> Result<EntityId, ForgeQueryWorkspaceError> {
+    let Some(parts) = identity.relational_record_parts() else {
+        return Err(ForgeQueryWorkspaceError::new(
+            "topology production runtime requires a typed relational entity identity",
+        ));
+    };
+    if parts.kind() != RelationalBridgeRecordIdentityKind::Entity {
+        return Err(ForgeQueryWorkspaceError::new(
+            "topology production runtime expected entity identity, got relation identity",
+        ));
+    }
+    Ok(EntityId::new(
+        PartitionId(parts.partition_id()),
+        parts.local_slot(),
+        parts.generation(),
+    ))
+}
+
+pub(super) fn relation_id_from_query_identity(
+    identity: &ForgeQueryEntityIdentity,
+) -> Result<RelationId, ForgeQueryWorkspaceError> {
+    let Some(parts) = identity.relational_record_parts() else {
+        return Err(ForgeQueryWorkspaceError::new(
+            "topology production runtime requires a typed relational relation identity",
+        ));
+    };
+    if parts.kind() != RelationalBridgeRecordIdentityKind::Relation {
+        return Err(ForgeQueryWorkspaceError::new(
+            "topology production runtime expected relation identity, got entity identity",
+        ));
+    }
+    Ok(RelationId::new(
+        PartitionId(parts.partition_id()),
+        parts.local_slot(),
+        parts.generation(),
+    ))
+}
+
 pub(super) fn parse_entity_identity(identity: &str) -> Result<EntityId, ForgeQueryWorkspaceError> {
     let mut parts = identity.split(':');
     let kind = parts.next().unwrap_or_default();
@@ -119,43 +162,6 @@ pub(super) fn parse_entity_identity(identity: &str) -> Result<EntityId, ForgeQue
         )));
     }
     Ok(EntityId::new(
-        PartitionId(partition_id),
-        local_slot,
-        generation,
-    ))
-}
-
-pub(super) fn parse_relation_identity(
-    identity: &str,
-) -> Result<RelationId, ForgeQueryWorkspaceError> {
-    let mut parts = identity.split(':');
-    let kind = parts.next().unwrap_or_default();
-    if kind != "relation" {
-        return Err(ForgeQueryWorkspaceError::new(format!(
-            "topology production runtime expected relation identity, got `{identity}`"
-        )));
-    }
-    let partition_id = parts
-        .next()
-        .ok_or_else(|| ForgeQueryWorkspaceError::new("missing relation partition id"))?
-        .parse::<u32>()
-        .map_err(|_| ForgeQueryWorkspaceError::new("invalid relation partition id"))?;
-    let local_slot = parts
-        .next()
-        .ok_or_else(|| ForgeQueryWorkspaceError::new("missing relation local slot"))?
-        .parse::<u64>()
-        .map_err(|_| ForgeQueryWorkspaceError::new("invalid relation local slot"))?;
-    let generation = parts
-        .next()
-        .ok_or_else(|| ForgeQueryWorkspaceError::new("missing relation generation"))?
-        .parse::<u32>()
-        .map_err(|_| ForgeQueryWorkspaceError::new("invalid relation generation"))?;
-    if parts.next().is_some() {
-        return Err(ForgeQueryWorkspaceError::new(format!(
-            "relation identity `{identity}` had too many fields"
-        )));
-    }
-    Ok(RelationId::new(
         PartitionId(partition_id),
         local_slot,
         generation,
@@ -279,15 +285,39 @@ fn mutation_kind(change: RecordStructuralChange) -> ForgeQueryMutationKind {
     }
 }
 
-pub(super) fn record_identity(target: &RecordRef) -> String {
+pub(super) fn record_identity(target: &RecordRef) -> ForgeQueryEntityIdentity {
     match target {
-        RecordRef::Entity(entity) => format!(
-            "entity:{}:{}:{}",
-            entity.partition_id.0, entity.local_slot.0, entity.generation.0
-        ),
-        RecordRef::Relation(relation) => format!(
-            "relation:{}:{}:{}",
-            relation.partition_id.0, relation.local_slot.0, relation.generation.0
-        ),
+        RecordRef::Entity(entity) => entity_identity(*entity),
+        RecordRef::Relation(relation) => relation_identity(*relation),
     }
+}
+
+pub(super) fn entity_identity(entity: EntityId) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        entity.partition_id.0,
+        entity.local_slot.0,
+        entity.generation.0,
+    ))
+}
+
+pub(super) fn relation_identity(relation: RelationId) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::relation(
+        relation.partition_id.0,
+        relation.local_slot.0,
+        relation.generation.0,
+    ))
+}
+
+pub(super) fn entity_identity_label(entity: EntityId) -> String {
+    format!(
+        "entity:{}:{}:{}",
+        entity.partition_id.0, entity.local_slot.0, entity.generation.0
+    )
+}
+
+pub(super) fn relation_identity_label(relation: RelationId) -> String {
+    format!(
+        "relation:{}:{}:{}",
+        relation.partition_id.0, relation.local_slot.0, relation.generation.0
+    )
 }

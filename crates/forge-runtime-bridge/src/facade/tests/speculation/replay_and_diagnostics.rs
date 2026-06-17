@@ -5,7 +5,6 @@ use crate::facade::tests::speculation::{
 use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgePreviewSessionIdentity,
     BridgeRuntimePolicy, StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity,
-    TruthBranchIdentity, TruthSnapshotIdentity,
 };
 
 #[test]
@@ -13,7 +12,7 @@ fn runtime_replays_discarded_preview_bundle_from_retained_records() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:replay-discard"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:replay-discard"),
             preview_declaration(),
         )
         .expect("preview declaration should admit");
@@ -52,7 +51,7 @@ fn runtime_rejects_post_discard_reentry_and_preserves_canonical_discard_bundle()
     let runtime = runtime(BridgeRuntimePolicy::default());
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:discard-terminal"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:discard-terminal"),
             preview_declaration(),
         )
         .expect("preview declaration should admit");
@@ -82,14 +81,20 @@ fn runtime_rejects_post_discard_reentry_and_preserves_canonical_discard_bundle()
 
     let hostile_reentry_error = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:discard-terminal"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:discard-terminal"),
             preview_declaration().with_structural_basis(structural_basis(StructuralBasisInput {
-                schema_identity: StructuralSchemaIdentity::new("schema:hostile-reentry"),
-                declaration_identity: StructuralIdentityDeclarationIdentity::new(
+                schema_identity: StructuralSchemaIdentity::admit_bridge_owned(
+                    "schema:hostile-reentry",
+                ),
+                declaration_identity: StructuralIdentityDeclarationIdentity::admit_bridge_owned(
                     "structural:hostile-reentry",
                 ),
-                truth_branch_identity: TruthBranchIdentity::new("truth:hostile-reentry"),
-                snapshot_identity: TruthSnapshotIdentity::new("snapshot:hostile-reentry"),
+                truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture(
+                    "truth:hostile-reentry",
+                ),
+                snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+                    "snapshot:hostile-reentry",
+                ),
                 semantics_version: StructuralSemanticsVersion::HostileReentry,
             })),
         )
@@ -130,7 +135,7 @@ fn runtime_explains_preview_promotion_and_replay_from_retained_records() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:explain-promotion"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:explain-promotion"),
             preview_declaration(),
         )
         .expect("preview declaration should admit");
@@ -149,7 +154,7 @@ fn runtime_explains_preview_promotion_and_replay_from_retained_records() {
         .explain_last_preview_promotion_record()
         .expect("promotion explanation should exist");
     let replay_bundle = runtime
-        .replay_preview_bundle(&BridgePreviewSessionIdentity::new(
+        .replay_preview_bundle(&BridgePreviewSessionIdentity::admit_bridge_owned(
             "preview-session:explain-promotion",
         ))
         .expect("promotion replay bundle should exist");
@@ -177,7 +182,7 @@ fn runtime_explains_preview_discard_from_retained_records() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("preview-session:explain-discard"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:explain-discard"),
             preview_declaration(),
         )
         .expect("preview declaration should admit");

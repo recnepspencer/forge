@@ -1,4 +1,3 @@
-use crate::identity::hash_parts;
 use crate::workflow::{
     lower_merge_workflow_declaration, lower_mutation_intent_declaration,
     lower_query_writeback_declaration, LoweredMergeWorkflowDeclaration,
@@ -6,6 +5,7 @@ use crate::workflow::{
     WorkflowLoweringCounters, WorkflowLoweringError, WorkflowLoweringFailureClass,
     WorkflowStalenessClass,
 };
+use crate::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag};
 
 use super::counters::EffectLifecycleCounters;
 use super::eligibility::AdmittedEffectIntent;
@@ -52,39 +52,49 @@ pub struct EffectLoweringDenial {
     denial_kind: EffectLoweringDenialKind,
     message: &'static str,
     staleness_class: WorkflowStalenessClass,
-    authority_scoped_plan_digest: String,
-    denial_digest: String,
+    authority_scoped_plan_identity: ForgeQueryEvidenceIdentity,
+    denial_identity: ForgeQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
 impl EffectLoweringDenial {
     fn from_workflow_error(plan: &AuthorityScopedEffectPlan, error: WorkflowLoweringError) -> Self {
         Self::from_workflow_error_for_batch(
-            plan.plan_digest(),
+            plan.plan_identity(),
             plan.counters().effect_support_row_count(),
             error,
         )
     }
 
     pub(crate) fn from_workflow_error_for_batch(
-        execution_subject_digest: &str,
+        execution_subject_identity: &ForgeQueryEvidenceIdentity,
         effect_support_row_count: usize,
         error: WorkflowLoweringError,
     ) -> Self {
         let denial_kind = lowering_denial_kind(error.failure_class());
-        let denial_digest = hash_parts(&[
-            "effect_lowering_denial_v1".to_string(),
-            format!("plan:{execution_subject_digest}"),
-            format!("kind:{}", denial_kind.as_str()),
-            format!("staleness:{}", error.staleness_class().as_str()),
-            format!("message:{}", error.message()),
-        ]);
+        let denial_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "effect_lowering_denial_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("plan"),
+                    execution_subject_identity,
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("kind"), denial_kind.as_str())
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("staleness"),
+                    error.staleness_class().as_str(),
+                )
+                .field_shape(ForgeQueryEvidenceTag::new("message"), error.message())
+                .seal();
         Self {
             denial_kind,
             message: error.message(),
             staleness_class: error.staleness_class().clone(),
-            authority_scoped_plan_digest: execution_subject_digest.to_string(),
-            denial_digest,
+            authority_scoped_plan_identity: execution_subject_identity.clone(),
+            denial_identity,
             counters: EffectLifecycleCounters::lowering_denied(
                 effect_support_row_count,
                 error.counters().workflow_lowering_width(),
@@ -104,12 +114,20 @@ impl EffectLoweringDenial {
         &self.staleness_class
     }
 
-    pub fn authority_scoped_plan_digest(&self) -> &str {
-        &self.authority_scoped_plan_digest
+    pub fn authority_scoped_plan_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.authority_scoped_plan_identity
     }
 
-    pub fn denial_digest(&self) -> &str {
-        &self.denial_digest
+    pub fn authority_scoped_plan_for_reporting(&self) -> &str {
+        self.authority_scoped_plan_identity.as_str()
+    }
+
+    pub fn denial_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.denial_identity
+    }
+
+    pub fn denial_for_reporting(&self) -> &str {
+        self.denial_identity.as_str()
     }
 
     pub fn counters(&self) -> &EffectLifecycleCounters {
@@ -128,7 +146,7 @@ pub enum LoweredEffectExecutionArtifact {
 pub struct LoweredEffectExecutionPlan {
     authority_scoped_plan: AuthorityScopedEffectPlan,
     artifact: LoweredEffectExecutionArtifact,
-    lowered_effect_execution_plan_digest: String,
+    lowered_effect_execution_plan_identity: ForgeQueryEvidenceIdentity,
     counters: EffectLifecycleCounters,
 }
 
@@ -137,11 +155,21 @@ impl LoweredEffectExecutionPlan {
         authority_scoped_plan: AuthorityScopedEffectPlan,
         artifact: LoweredEffectExecutionArtifact,
     ) -> Self {
-        let lowered_effect_execution_plan_digest = hash_parts(&[
-            "lowered_effect_execution_plan_v1".to_string(),
-            format!("plan:{}", authority_scoped_plan.plan_digest()),
-            format!("artifact:{}", artifact_digest(&artifact)),
-        ]);
+        let lowered_effect_execution_plan_identity =
+            ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "lowered_effect_execution_plan_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("plan"),
+                    authority_scoped_plan.plan_identity(),
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("artifact"),
+                    artifact_identity(&artifact),
+                )
+                .seal();
         let counters = EffectLifecycleCounters::lowered(
             authority_scoped_plan.counters().effect_support_row_count(),
             artifact_counters(&artifact).workflow_lowering_width(),
@@ -150,7 +178,7 @@ impl LoweredEffectExecutionPlan {
         Self {
             authority_scoped_plan,
             artifact,
-            lowered_effect_execution_plan_digest,
+            lowered_effect_execution_plan_identity,
             counters,
         }
     }
@@ -236,8 +264,12 @@ impl LoweredEffectExecutionPlan {
         }
     }
 
-    pub fn lowered_effect_execution_plan_digest(&self) -> &str {
-        &self.lowered_effect_execution_plan_digest
+    pub fn lowered_effect_execution_plan_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.lowered_effect_execution_plan_identity
+    }
+
+    pub fn lowered_effect_execution_plan_for_reporting(&self) -> &str {
+        self.lowered_effect_execution_plan_identity.as_str()
     }
 
     pub fn counters(&self) -> &EffectLifecycleCounters {
@@ -258,8 +290,8 @@ pub fn lower_authority_scoped_effect_plan(
             authority_scoped_plan
                 .admitted()
                 .normalized()
-                .expected_lower_runtime_binding_digest()
-                .expect("admitted mutation effects must preserve a lower-runtime binding digest"),
+                .expected_lower_runtime_binding_identity()
+                .expect("admitted mutation effects must preserve a lower-runtime binding identity"),
             input.clone(),
         )
         .map(LoweredEffectExecutionArtifact::Mutation),
@@ -324,11 +356,11 @@ fn lowering_denial_kind(failure_class: &WorkflowLoweringFailureClass) -> EffectL
     }
 }
 
-fn artifact_digest(artifact: &LoweredEffectExecutionArtifact) -> &str {
+fn artifact_identity(artifact: &LoweredEffectExecutionArtifact) -> &ForgeQueryEvidenceIdentity {
     match artifact {
-        LoweredEffectExecutionArtifact::Mutation(declaration) => declaration.lowering_digest(),
-        LoweredEffectExecutionArtifact::Merge(declaration) => declaration.lowering_digest(),
-        LoweredEffectExecutionArtifact::Writeback(declaration) => declaration.lowering_digest(),
+        LoweredEffectExecutionArtifact::Mutation(declaration) => declaration.lowering_identity(),
+        LoweredEffectExecutionArtifact::Merge(declaration) => declaration.lowering_identity(),
+        LoweredEffectExecutionArtifact::Writeback(declaration) => declaration.lowering_identity(),
     }
 }
 

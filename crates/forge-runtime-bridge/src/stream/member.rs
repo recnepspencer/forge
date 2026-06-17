@@ -32,7 +32,7 @@ impl CanonicalStreamMember {
         );
         let digest = digest_string("canonical-stream-member", &basis);
         Self {
-            stream_member_identity: StreamMemberIdentity::new(digest.clone()),
+            stream_member_identity: StreamMemberIdentity::admit_bridge_owned(digest.clone()),
             source_branch: envelope.branch_identity().clone(),
             source_commit: envelope.commit_identity().clone(),
             source_patch: envelope.patch_identity().clone(),

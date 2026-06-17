@@ -128,7 +128,9 @@ impl ForgeServerDirectMutationResult {
 
     pub fn result_digest(&self) -> &str {
         match self {
-            Self::Single { receipt, .. } => receipt.commit_identity(),
+            Self::Single { receipt, .. } => receipt
+                .commit_evidence_identity()
+                .terminal_projection_for_reporting(),
             Self::Batch { receipt, .. } => receipt.batch_digest(),
         }
     }

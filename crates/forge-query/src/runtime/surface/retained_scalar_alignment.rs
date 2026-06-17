@@ -176,7 +176,7 @@ fn verify_scalar_alignment_between_fact_sets(
             )))
             .chain(std::iter::once(format!(
                 "binding:{}",
-                binding.binding_digest()
+                binding.binding_for_reporting()
             )))
             .chain(std::iter::once(format!("left:{left_view_name}")))
             .chain(std::iter::once(format!("right:{right_view_name}")))
@@ -194,7 +194,7 @@ fn verify_scalar_alignment_between_fact_sets(
 
     Ok(ForgeQueryRetainedScalarAlignment {
         artifact_name: binding.artifact_name().to_string(),
-        binding_digest: binding.binding_digest().to_string(),
+        binding_digest: binding.binding_for_reporting().to_string(),
         left_view_name: left_view_name.to_string(),
         right_view_name: right_view_name.to_string(),
         alignment_digest,
@@ -208,6 +208,7 @@ mod tests {
 
     use serde_json::json;
 
+    use crate::memory_workspace::ForgeQuerySnapshotIdentity;
     use crate::runtime::surface::{
         ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationBundle,
         ForgeQueryDerivedMaterializationReceipt, ForgeQueryDerivedMaterializationResult,
@@ -215,16 +216,18 @@ mod tests {
     };
 
     fn binding(row: serde_json::Value) -> ForgeQueryDerivedArtifactBinding {
+        let snapshot_identity =
+            crate::memory_workspace::admit_external_snapshot_label("snapshot:test");
         let materialization = ForgeQueryDerivedMaterializationResult::new(
             vec![row],
             ForgeQueryDerivedMaterializationReceipt::test_only(
                 "surface:test",
-                "snapshot:test",
+                snapshot_identity.clone(),
                 "result:test",
             ),
         );
         let bundle = ForgeQueryDerivedMaterializationBundle::new(
-            "snapshot:test",
+            snapshot_identity,
             BTreeMap::from([("surface:test".to_string(), materialization)]),
         );
         ForgeQueryDerivedArtifactBinding::bind(

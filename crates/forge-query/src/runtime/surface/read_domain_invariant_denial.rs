@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::runtime::read_composition_hooks::{
     read_invariant_pack_hook_family, ForgeQueryReadInvariantPackContext,
     ForgeQueryReadInvariantPackViolation,
@@ -24,14 +26,27 @@ impl ForgeQueryReadDomainInvariantDenial {
         let hook_family = read_invariant_pack_hook_family().to_string();
         let invariant_family = violation.invariant_family().to_string();
         let message = violation.message().to_string();
-        let denial_digest = hash_parts(&[
-            "forge_query_read_domain_invariant_denial_v1".to_string(),
-            format!("hook:{hook_family}"),
-            format!("invariant:{invariant_family}"),
-            format!("message:{message}"),
-            format!("summary:{}", domain_invariant_summary.summary_digest()),
-            format!("violation:{}", violation.violation_digest()),
-        ]);
+        let denial_digest =
+            forge_query_evidence_identity(ForgeQueryEvidenceScope::ReadDomainInvariantDenial)
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("hook_family"),
+                    hook_family.as_str(),
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("invariant_family"),
+                    invariant_family.as_str(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("summary_digest"),
+                    domain_invariant_summary.summary_digest(),
+                )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("violation_digest"),
+                    violation.violation_digest(),
+                )
+                .seal()
+                .as_str()
+                .to_string();
         Self {
             hook_family,
             invariant_family,

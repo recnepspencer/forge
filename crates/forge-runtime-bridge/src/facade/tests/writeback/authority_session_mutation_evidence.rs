@@ -1,4 +1,15 @@
 use super::support::*;
+use std::sync::Arc;
+
+fn authoritative_identity(value: impl Into<Arc<str>>) -> BridgeContinuityAuthoritativeIdentity {
+    BridgeContinuityAuthoritativeIdentity::new(value)
+        .expect("test continuity authoritative identity should be valid")
+}
+
+fn resolved_target_identity(value: impl Into<Arc<str>>) -> BridgeContinuityResolvedTargetIdentity {
+    BridgeContinuityResolvedTargetIdentity::new(value)
+        .expect("test continuity resolved target should be valid")
+}
 
 #[test]
 fn writeback_batch_mutation_authority_bundle_counts_continuity_components() {
@@ -7,7 +18,7 @@ fn writeback_batch_mutation_authority_bundle_counts_continuity_components() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new(
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "writeback:batch-mutation-authority-continuity",
                 ),
                 BridgeRequestKind::Authoritative,
@@ -22,27 +33,24 @@ fn writeback_batch_mutation_authority_bundle_counts_continuity_components() {
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new("causality:batch-mutation-authority-continuity:a"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
+            "causality:batch-mutation-authority-continuity:a",
+        ),
         "batch-mutation-authority-continuity:a",
-        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-continuity:a"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "effect:batch-mutation-authority-continuity:a",
+        ),
         "batch-mutation-authority-continuity:a",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-continuity:a",
         ),
     )
     .with_continuity_mutation(
         crate::facade::BridgeContinuityMutationBundle::rebind_existing_target(
             crate::continuity::BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor,
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-existing")
-                .expect("test continuity authoritative identity should be native"),
-            Some(
-                BridgeContinuityAuthoritativeIdentity::new("authority:task-existing-successor")
-                    .expect("test continuity authoritative identity should be native"),
-            ),
-            Some(
-                BridgeContinuityResolvedTargetIdentity::new("entity:task-existing")
-                    .expect("test continuity resolved target should be native"),
-            ),
+            authoritative_identity("authority:task-existing"),
+            Some(authoritative_identity("authority:task-existing-successor")),
+            Some(resolved_target_identity("entity:task-existing")),
             Some(
                 BridgeContinuityTargetCollection::new("Task")
                     .expect("test continuity target collection should be native"),
@@ -54,11 +62,15 @@ fn writeback_batch_mutation_authority_bundle_counts_continuity_components() {
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new("causality:batch-mutation-authority-continuity:b"),
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
+            "causality:batch-mutation-authority-continuity:b",
+        ),
         "batch-mutation-authority-continuity:b",
-        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-continuity:b"),
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
+            "effect:batch-mutation-authority-continuity:b",
+        ),
         "batch-mutation-authority-continuity:b",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-continuity:b",
         ),
     );
@@ -81,7 +93,7 @@ fn writeback_batch_continuity_digest_changes_with_successor_resolution_evidence(
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new(
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "writeback:batch-mutation-authority-continuity-resolution-digest",
                 ),
                 BridgeRequestKind::Authoritative,
@@ -96,33 +108,26 @@ fn writeback_batch_continuity_digest_changes_with_successor_resolution_evidence(
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new(
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
             "causality:batch-mutation-authority-continuity-resolution-digest:left",
         ),
         "batch-mutation-authority-continuity-resolution-digest:left",
-        BridgeWritebackEffectIdentity::new(
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
             "effect:batch-mutation-authority-continuity-resolution-digest:left",
         ),
         "batch-mutation-authority-continuity-resolution-digest:left",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-continuity-resolution-digest:left",
         ),
     )
     .with_continuity_mutation(
         crate::facade::BridgeContinuityMutationBundle::rebind_existing_target(
             crate::continuity::BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor,
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-existing")
-                .expect("test continuity authoritative identity should be native"),
-            Some(
-                BridgeContinuityAuthoritativeIdentity::new(
-                    "authority:task-existing-successor:left",
-                )
-                .expect("test continuity authoritative identity should be native"),
-            ),
-            Some(
-                BridgeContinuityResolvedTargetIdentity::new("entity:task-existing")
-                    .expect("test continuity resolved target should be native"),
-            ),
+            authoritative_identity("authority:task-existing"),
+            Some(authoritative_identity(
+                "authority:task-existing-successor:left",
+            )),
+            Some(resolved_target_identity("entity:task-existing")),
             Some(
                 BridgeContinuityTargetCollection::new("Task")
                     .expect("test continuity target collection should be native"),
@@ -134,33 +139,26 @@ fn writeback_batch_continuity_digest_changes_with_successor_resolution_evidence(
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new(
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
             "causality:batch-mutation-authority-continuity-resolution-digest:right",
         ),
         "batch-mutation-authority-continuity-resolution-digest:right",
-        BridgeWritebackEffectIdentity::new(
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
             "effect:batch-mutation-authority-continuity-resolution-digest:right",
         ),
         "batch-mutation-authority-continuity-resolution-digest:right",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-continuity-resolution-digest:right",
         ),
     )
     .with_continuity_mutation(
         crate::facade::BridgeContinuityMutationBundle::rebind_existing_target(
             crate::continuity::BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor,
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-existing")
-                .expect("test continuity authoritative identity should be native"),
-            Some(
-                BridgeContinuityAuthoritativeIdentity::new(
-                    "authority:task-existing-successor:right",
-                )
-                .expect("test continuity authoritative identity should be native"),
-            ),
-            Some(
-                BridgeContinuityResolvedTargetIdentity::new("entity:task-existing")
-                    .expect("test continuity resolved target should be native"),
-            ),
+            authoritative_identity("authority:task-existing"),
+            Some(authoritative_identity(
+                "authority:task-existing-successor:right",
+            )),
+            Some(resolved_target_identity("entity:task-existing")),
             Some(
                 BridgeContinuityTargetCollection::new("Task")
                     .expect("test continuity target collection should be native"),
@@ -190,7 +188,7 @@ fn writeback_batch_continuity_digest_changes_with_target_binding_evidence() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                BridgeWritebackDeclarationIdentity::new(
+                BridgeWritebackDeclarationIdentity::admit_bridge_owned(
                     "writeback:batch-mutation-authority-continuity-binding-digest",
                 ),
                 BridgeRequestKind::Authoritative,
@@ -205,31 +203,24 @@ fn writeback_batch_continuity_digest_changes_with_target_binding_evidence() {
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new(
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
             "causality:batch-mutation-authority-continuity-binding-digest:left",
         ),
         "batch-mutation-authority-continuity-binding-digest:left",
-        BridgeWritebackEffectIdentity::new(
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
             "effect:batch-mutation-authority-continuity-binding-digest:left",
         ),
         "batch-mutation-authority-continuity-binding-digest:left",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-continuity-binding-digest:left",
         ),
     )
     .with_continuity_mutation(
         crate::facade::BridgeContinuityMutationBundle::rebind_existing_target(
             crate::continuity::BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor,
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-existing")
-                .expect("test continuity authoritative identity should be native"),
-            Some(
-                BridgeContinuityAuthoritativeIdentity::new("authority:task-existing-successor")
-                    .expect("test continuity authoritative identity should be native"),
-            ),
-            Some(
-                BridgeContinuityResolvedTargetIdentity::new("entity:task-existing:left")
-                    .expect("test continuity resolved target should be native"),
-            ),
+            authoritative_identity("authority:task-existing"),
+            Some(authoritative_identity("authority:task-existing-successor")),
+            Some(resolved_target_identity("entity:task-existing:left")),
             Some(
                 BridgeContinuityTargetCollection::new("Task")
                     .expect("test continuity target collection should be native"),
@@ -241,31 +232,24 @@ fn writeback_batch_continuity_digest_changes_with_target_binding_evidence() {
         &runtime,
         &lowered_policy,
         &contract,
-        BridgeWritebackCausalityIdentity::new(
+        BridgeWritebackCausalityIdentity::admit_bridge_owned(
             "causality:batch-mutation-authority-continuity-binding-digest:right",
         ),
         "batch-mutation-authority-continuity-binding-digest:right",
-        BridgeWritebackEffectIdentity::new(
+        BridgeWritebackEffectIdentity::admit_bridge_owned(
             "effect:batch-mutation-authority-continuity-binding-digest:right",
         ),
         "batch-mutation-authority-continuity-binding-digest:right",
-        BridgeWritebackIdempotenceIdentity::new(
+        BridgeWritebackIdempotenceIdentity::admit_bridge_owned(
             "idempotence:batch-mutation-authority-continuity-binding-digest:right",
         ),
     )
     .with_continuity_mutation(
         crate::facade::BridgeContinuityMutationBundle::rebind_existing_target(
             crate::continuity::BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor,
-            BridgeContinuityAuthoritativeIdentity::new("authority:task-existing")
-                .expect("test continuity authoritative identity should be native"),
-            Some(
-                BridgeContinuityAuthoritativeIdentity::new("authority:task-existing-successor")
-                    .expect("test continuity authoritative identity should be native"),
-            ),
-            Some(
-                BridgeContinuityResolvedTargetIdentity::new("entity:task-existing:right")
-                    .expect("test continuity resolved target should be native"),
-            ),
+            authoritative_identity("authority:task-existing"),
+            Some(authoritative_identity("authority:task-existing-successor")),
+            Some(resolved_target_identity("entity:task-existing:right")),
             Some(
                 BridgeContinuityTargetCollection::new("Task")
                     .expect("test continuity target collection should be native"),

@@ -1,11 +1,20 @@
+use forge_query::facade::ForgeQueryEntityIdentity;
+use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
+
 use super::*;
 use crate::derived_topology::materialized_graph::TopologyQueryMaterializationInput;
+
+fn entity_identity(partition: u32, slot: u64, generation: u32) -> ForgeQueryEntityIdentity {
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        partition, slot, generation,
+    ))
+}
 
 #[test]
 fn query_materializer_rejects_malformed_relation_endpoints() {
     let entity_rows = vec![
         forge_query::facade::ForgeQueryEntity::from_external_projection(
-            "entity:0:1:0",
+            entity_identity(0, 1, 0),
             json!({
                 "topology": {
                     "kind": TopologyEntityKind::Model.kind_name(),
@@ -16,7 +25,9 @@ fn query_materializer_rejects_malformed_relation_endpoints() {
     ];
     let relation_rows = vec![
         forge_query::facade::ForgeQueryEntity::from_external_projection(
-            "entity:0:9:0",
+            ForgeQueryEntityIdentity::from_relational_record(
+                RelationalBridgeRecordIdentityParts::relation(0, 9, 0),
+            ),
             json!({
                 "topology": {
                     "kind": TopologyRelationKind::ModelOwnsBody.kind_name(),

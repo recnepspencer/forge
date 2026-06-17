@@ -3,7 +3,10 @@ fn phase_aligned_fixtures_compose_pipeline_artifacts() {
     let canonical = crate::harness::fixtures::canonical_bundles::runtime_detail_bundle();
     let validated = crate::harness::fixtures::validated_bundles::runtime_detail_bundle();
     let request = crate::harness::fixtures::planning_requests::direct_runtime_request(&validated);
-    let basis = crate::harness::fixtures::resolved_bases::runtime_basis(&validated, "snapshot-1");
+    let basis = crate::harness::fixtures::resolved_bases::runtime_basis(
+        &validated,
+        &crate::harness::fixtures::resolved_bases::primary_snapshot_identity(),
+    );
     let plan = crate::facade::plan_validated_bundle(&validated, request).unwrap();
     let preflight = crate::facade::preflight_execution_basis(plan, basis).unwrap();
 

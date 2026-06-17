@@ -76,12 +76,16 @@ pub use mapper::{
     BridgeWritebackMapperWitnessIdentity,
 };
 pub use mutation_evidence::{
-    BridgeBatchMutationAuthorityBundle, BridgeExistingTruthBindingBundle,
-    BridgeExistingTruthBindingFamily, BridgeExistingTruthBindingOutcome,
-    BridgeMutationAuthorityBundle, BridgeMutationCausalityBundle, BridgeMutationProvenanceBundle,
+    BridgeBatchMutationAuthorityBundle, BridgeExistingTruthBindingAuthoritativeIdentity,
+    BridgeExistingTruthBindingBundle, BridgeExistingTruthBindingFamily,
+    BridgeExistingTruthBindingOutcome, BridgeExistingTruthBindingResolvedTargetIdentity,
+    BridgeExistingTruthBindingTargetCollection, BridgeMutationAuthorityBundle,
+    BridgeMutationCausalityBundle, BridgeMutationProvenanceBundle,
 };
 pub use naming_mutation::{
-    BridgeNamingMutationBundle, BridgeNamingMutationFamily, BridgeNamingMutationOutcome,
+    BridgeNamingAttachmentIdentity, BridgeNamingAuthoritativeIdentity, BridgeNamingMutationBundle,
+    BridgeNamingMutationFamily, BridgeNamingMutationOutcome, BridgeNamingResolvedTargetIdentity,
+    BridgeNamingTargetCollection,
 };
 pub use outcome::BridgeWritebackAuthorityOutcome;
 pub use replay::BridgeWritebackReplayBundle;
@@ -92,8 +96,9 @@ pub use strategy_coherence::{
     BridgeWritebackStrategyCoherenceReport,
 };
 pub use symbolic_target_reference::{
-    BridgeSymbolicTargetReferenceBundle, BridgeSymbolicTargetReferenceFamily,
-    BridgeSymbolicTargetReferenceOutcome,
+    BridgeSymbolicTargetCollection, BridgeSymbolicTargetReferenceBundle,
+    BridgeSymbolicTargetReferenceFamily, BridgeSymbolicTargetReferenceOutcome,
+    BridgeSymbolicTargetResolvedEntityIdentity, BridgeSymbolicTargetSymbolIdentity,
 };
 pub use taxonomy::{
     BridgeWritebackEffectClass, BridgeWritebackFailureClass, BridgeWritebackFamilyKind,

@@ -10,7 +10,7 @@ use super::input::ForgeQueryContributionComposedOrchestrationInput;
 use super::intent_result::ForgeQueryContributionComposedIntentResult;
 use super::lower::{
     build_composed_artifact, lower_declaration, materialization_policy_label,
-    process_contributions, request_descriptor, request_digest, stop_reason, DeclarationLowering,
+    process_contributions, request_descriptor, request_identity, stop_reason, DeclarationLowering,
 };
 use super::mapping::{
     composed_outcome, contribution_digest_from_outcome, linked_artifacts_for_envelope,
@@ -200,7 +200,7 @@ pub(crate) fn orchestrate_declaration_with_contributions_on_handle<
     input: ForgeQueryContributionComposedOrchestrationInput<D, I>,
 ) -> ForgeQueryContributionComposedOrchestrationTranscript<D, I> {
     let request_descriptor_value = request_descriptor(&input);
-    let request_digest_value = request_digest(&input);
+    let request_digest_value = request_identity(&input).as_str().to_string();
     let materialization_policy = materialization_policy_label(input.materialization_policy());
     let (declaration_input, contributions, materialization_policy_value) = input.into_parts();
     if contributions.is_empty() {
@@ -264,7 +264,7 @@ fn finalize_transcript<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationI
     match build_composed_artifact(declaration.envelope, intent_results.clone()) {
         Ok(composed) => {
             let composition_classification = Some(composed.classification());
-            let contribution_digest = Some(composed.composition_digest().to_string());
+            let contribution_digest = Some(composed.composition_for_reporting().to_string());
             ForgeQueryContributionComposedOrchestrationTranscript::new(
                 request_descriptor,
                 request_digest,

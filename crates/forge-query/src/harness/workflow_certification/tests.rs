@@ -3,6 +3,9 @@ use super::{
     WORKFLOW_REQUIRED_CANONICAL_ROW_NAMES, WORKFLOW_REQUIRED_REJECTION_ROW_NAMES,
 };
 use crate::aspect_field_authoring::single_aspect_field_patch_from_external_json;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::harness::certification::{milestone_five_point_five_requirements, unmet_required_rows};
 use crate::harness::fixtures::execution_preflights;
 use crate::harness::fixtures::relational_merge_inspection::deleted_vs_modified_inspection_artifact;
@@ -22,7 +25,7 @@ use forge_relational::facade::merge::{MergeExecutionRequest, MergeIntent};
 use forge_runtime_bridge::facade::{
     BridgeRequestKind, BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity,
     BridgeWritebackEffectClass, BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
-    BridgeWritebackStrategyClass,
+    BridgeWritebackRequestMode, BridgeWritebackStrategyClass,
 };
 use serde_json::json;
 
@@ -120,9 +123,10 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
         ),
     )
     .expect("mutation declaration should admit");
+    let authority_binding_identity = binding.basis_identity();
     let lowered = lower_mutation_intent_declaration(
         &declaration,
-        binding.basis_digest(),
+        &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields_external_json: json!({"name":"after"}),
@@ -215,19 +219,56 @@ fn workflow_certification_writeback_lowering_matches_direct_bridge_control() {
     )
     .expect("writeback lowering should succeed");
 
-    let control = BridgeWritebackDeclaration::writeback_capable(
-        BridgeWritebackDeclarationIdentity::new(format!(
-            "forge-query:{}",
-            declaration.report().declaration_digest()
-        )),
+    assert_eq!(
+        lowered.bridge_declaration().request_kind(),
         BridgeRequestKind::Authoritative,
-        BridgeWritebackFamilyKind::ProjectedStateDiff,
+    );
+    assert_eq!(
+        lowered.bridge_declaration().request_mode(),
+        BridgeWritebackRequestMode::WritebackCapable,
+    );
+    assert_eq!(
+        lowered.bridge_declaration().family_kind(),
+        Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
+    );
+    assert_eq!(
+        lowered.bridge_declaration().effect_class(),
         BridgeWritebackEffectClass::ProjectedStateDiff,
-        BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
+    );
+    assert_eq!(
+        lowered.bridge_declaration().strategy_class(),
+        Some(BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation),
+    );
+    assert_eq!(
+        lowered.bridge_declaration().idempotence_class(),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
-
-    assert_eq!(lowered.bridge_declaration(), &control);
+    assert_eq!(
+        lowered.bridge_declaration().digest(),
+        BridgeWritebackDeclaration::writeback_capable(
+            BridgeWritebackDeclarationIdentity::from_bridge_evidence(
+                &ForgeQueryEvidenceIdentity::compose(
+                    ForgeQueryEvidenceScope::WorkflowMutationLowering
+                )
+                .field_shape(
+                    ForgeQueryEvidenceTag::new("identity_family"),
+                    "workflow_writeback_bridge_declaration_v1",
+                )
+                .field_evidence_identity(
+                    ForgeQueryEvidenceTag::new("declaration"),
+                    declaration.report().declaration_identity(),
+                )
+                .seal()
+                .bridge_external_identity_evidence(),
+            ),
+            BridgeRequestKind::Authoritative,
+            BridgeWritebackFamilyKind::ProjectedStateDiff,
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
+            BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+        )
+        .digest(),
+    );
 }
 
 #[test]
@@ -358,9 +399,10 @@ fn workflow_certification_lane_specific_counters_are_exercised() {
         ),
     )
     .expect("mutation declaration should admit");
+    let authority_binding_identity = binding.basis_identity();
     let mutation_lowered = lower_mutation_intent_declaration(
         &mutation_declaration,
-        binding.basis_digest(),
+        &authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields_external_json: json!({"name":"after"}),

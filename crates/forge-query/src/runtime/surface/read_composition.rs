@@ -1,6 +1,10 @@
 use crate::declarative_live::DeclarativeLiveQueryRequest;
-use crate::identity::{hash_parts, SchemaBasisDigest};
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
+use crate::identity::SchemaBasisDigest;
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::planning::ExecutionPlanBundle;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::relationship_proof::{
@@ -41,6 +45,17 @@ pub enum ForgeQueryReadExecutionEngine {
     QueryRuntimeBranch,
     QueryRuntimeHistorical,
     QueryRuntimePreviewDerived,
+}
+
+impl ForgeQueryReadExecutionEngine {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::QueryRuntimeCurrent => "query-runtime-current",
+            Self::QueryRuntimeBranch => "query-runtime-branch",
+            Self::QueryRuntimeHistorical => "query-runtime-historical",
+            Self::QueryRuntimePreviewDerived => "query-runtime-preview-derived",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -162,21 +177,40 @@ impl ForgeQueryReadGraph {
         schema_view: QuerySchemaView,
         execution_plan: ExecutionPlanBundle,
     ) -> Self {
-        let digest = hash_parts(&[
-            format!("family:{:?}", family),
-            format!("scope:{}", scope_class.as_str()),
-            format!("plan:{}", execution_plan.query().plan_digest().as_str()),
-            format!("built_in_operators:{built_in_operators:?}"),
-            format!("declared_traversal_count:{declared_traversal_clause_count}"),
-            format!("declared_traversal_depth:{declared_traversal_depth_limit}"),
-            format!(
-                "relationship_proof_admission:{}",
+        let family_label = match family {
+            ForgeQueryReadGraphFamily::Detail => "detail",
+            ForgeQueryReadGraphFamily::Collection => "collection",
+        };
+        let digest = forge_query_evidence_identity(ForgeQueryEvidenceScope::ReadGraphDigest)
+            .field_shape(ForgeQueryEvidenceTag::new("family"), family_label)
+            .field_shape(ForgeQueryEvidenceTag::new("scope"), scope_class.as_str())
+            .field_value(
+                ForgeQueryEvidenceTag::new("plan"),
+                execution_plan.query().plan_digest().as_str(),
+            )
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("built_in_operator"),
+                built_in_operators
+                    .iter()
+                    .map(ForgeQueryReadBuiltInOperator::as_str),
+            )
+            .field_usize(
+                ForgeQueryEvidenceTag::new("declared_traversal_count"),
+                declared_traversal_clause_count,
+            )
+            .field_usize(
+                ForgeQueryEvidenceTag::new("declared_traversal_depth"),
+                declared_traversal_depth_limit,
+            )
+            .optional_value(
+                ForgeQueryEvidenceTag::new("relationship_proof_admission"),
                 relationship_proof_admission
                     .as_ref()
-                    .map(|admission| admission.identity().as_str())
-                    .unwrap_or("none")
-            ),
-        ]);
+                    .map(|admission| admission.identity().as_str()),
+            )
+            .seal()
+            .as_str()
+            .to_string();
         Self {
             digest,
             family,
@@ -200,7 +234,7 @@ pub struct ForgeQueryReadReceipt {
     pub(super) query_digest: String,
     pub(super) basis_digest: String,
     pub(super) result_digest: String,
-    pub(super) snapshot_token: String,
+    pub(super) snapshot_identity: ForgeQuerySnapshotIdentity,
     pub(super) scope_class: ForgeQueryReadScopeClass,
     pub(super) execution_engine: ForgeQueryReadExecutionEngine,
     pub(super) fallback_class: ForgeQueryReadFallbackClass,
@@ -237,8 +271,14 @@ impl ForgeQueryReadReceipt {
         &self.result_digest
     }
 
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
+    pub fn snapshot_identity(&self) -> &ForgeQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn snapshot_evidence_identity(
+        &self,
+    ) -> crate::evidence_identity::ForgeQueryEvidenceIdentity {
+        self.snapshot_identity.evidence_identity()
     }
 
     pub fn scope_class(&self) -> &ForgeQueryReadScopeClass {
@@ -357,7 +397,9 @@ impl ForgeQueryReadReceipt {
             query_digest: query_digest.into(),
             basis_digest: basis_digest.into(),
             result_digest: result_digest.into(),
-            snapshot_token: "snapshot:test".to_string(),
+            snapshot_identity: crate::memory_workspace::admit_external_snapshot_label(
+                "snapshot:test",
+            ),
             scope_class: ForgeQueryReadScopeClass::ExplicitBroadSearch,
             execution_engine,
             fallback_class: ForgeQueryReadFallbackClass::None,

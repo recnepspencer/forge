@@ -29,7 +29,7 @@ impl StreamHarnessCertificationBundle {
         Self {
             stream_digest: Arc::from(result.summary().stream_digest()),
             window_digest: Arc::from(result.summary().window_digest()),
-            checkpoint_digest: Arc::from(checkpoint.checkpoint_token_identity()),
+            checkpoint_digest: Arc::from(checkpoint.checkpoint_token_identity_for_reporting()),
             consumer_contract_digest: Arc::from(result.summary().consumer_contract_digest()),
             diagnostics_digest: Arc::from(result.summary().diagnostics_digest()),
             replay_digest: Arc::from(replay_record.digest()),
@@ -47,7 +47,11 @@ impl StreamHarnessCertificationBundle {
         Self {
             stream_digest: Arc::from(result.summary().stream_digest()),
             window_digest: Arc::from(result.summary().window_digest()),
-            checkpoint_digest: Arc::from(result.checkpoint().checkpoint_token_identity()),
+            checkpoint_digest: Arc::from(
+                result
+                    .checkpoint()
+                    .checkpoint_token_identity_for_reporting(),
+            ),
             consumer_contract_digest: Arc::from(result.summary().consumer_contract_digest()),
             diagnostics_digest: Arc::from(result.summary().diagnostics_digest()),
             replay_digest: Arc::from(result.replay_record().digest()),

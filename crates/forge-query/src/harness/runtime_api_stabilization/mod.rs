@@ -1,7 +1,9 @@
 mod builders;
 mod closeout;
 mod tests;
+mod transcript_maintainer;
 mod transcript_runtime;
+mod transcript_session_proofs;
 mod transcripts;
 
 use crate::harness::certification::{digest_parts, CertificationMatrix};
@@ -160,5 +162,10 @@ impl RuntimeApiStabilizationAdapter {
             rows: builders::canonical_rows(),
             rejection_rows: builders::rejection_rows(),
         }
+    }
+
+    pub(crate) fn composed_runtime_hostile_transcript_evidence(
+    ) -> crate::runtime::ForgeQueryRuntimePublicApiTranscriptEvidence {
+        transcripts::composed_runtime_hostile_transcript()
     }
 }

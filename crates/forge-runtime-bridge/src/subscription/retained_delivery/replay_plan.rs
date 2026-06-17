@@ -198,9 +198,10 @@ impl BridgeSubscriptionDeliveryReplayPlan {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            delivery_replay_plan_identity: BridgeSubscriptionDeliveryReplayPlanIdentity::new(
-                format!("bridge-subscription-delivery-replay-plan-id:sha256:{digest:x}"),
-            ),
+            delivery_replay_plan_identity:
+                BridgeSubscriptionDeliveryReplayPlanIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-delivery-replay-plan-id:sha256:{digest:x}"
+                )),
             resume_admission_identity: resume_admission.resume_admission_identity().clone(),
             checkpoint_identity: resume_admission.checkpoint_identity().clone(),
             active_subscription_identity: resume_admission.active_subscription_identity().clone(),

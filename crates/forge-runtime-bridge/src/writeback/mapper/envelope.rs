@@ -53,7 +53,7 @@ impl BridgeWritebackMapperEnvelope {
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
-            envelope_identity: BridgeWritebackMapperEnvelopeIdentity::new(format!(
+            envelope_identity: BridgeWritebackMapperEnvelopeIdentity::admit_bridge_owned(format!(
                 "bridge-writeback-mapper-envelope:sha256:{digest:x}"
             )),
             contract_digest: Arc::from(contract.digest().to_owned()),

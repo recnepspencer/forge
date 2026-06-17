@@ -40,14 +40,14 @@ fn preview_session_basis(
 fn bridge_counters_expose_digest_input_bytes() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = build_runtime_with_aspects(
@@ -61,7 +61,7 @@ fn bridge_counters_expose_digest_input_bytes() {
         .deliver_invalidation(
             runtime
                 .plan_committed_patch(BridgeRouteRequest::for_commit(
-                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                    crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
                 ))
                 .expect("route should plan before digest budget capture"),
         )
@@ -75,14 +75,14 @@ fn bridge_counters_expose_digest_input_bytes() {
 fn historical_evaluation_counters_capture_selector_branch_and_materialization_width() {
     let source = InMemoryRelationalBridgeSource::default();
     source.insert_committed_patch(committed_patch(
-        crate::facade::TruthCommitIdentity::new("commit-a"),
-        crate::facade::TruthPatchIdentity::new("patch-a"),
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+        crate::truth_identity_fixtures::truth_patch_fixture("patch-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         forge_foundational::facade::FieldKey::new("name".to_owned())
             .expect("valid harness field key"),
     ));
     source.insert_snapshot(field_slice_snapshot(
-        TruthSnapshotIdentity::new("snapshot-a"),
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         "alice",
     ));
     let runtime = build_runtime_with_aspects(
@@ -94,8 +94,8 @@ fn historical_evaluation_counters_capture_selector_branch_and_materialization_wi
 
     let declaration = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::historical_commit(
-            TruthBranchIdentity::new("main"),
-            crate::facade::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         BridgeReplayMode::Enabled,
         runtime.policy().diagnostics_tier(),
@@ -134,22 +134,24 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
         vec![field_aspect_registration()],
     );
     let declaration = BridgePreviewSessionDeclaration::new(
-        BridgePreviewSessionDeclarationIdentity::new("counter:preview-declaration"),
+        BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("counter:preview-declaration"),
         BridgeRequestKind::Preview,
         BridgeSpeculativeBranchBinding::new(
-            BridgeSpeculativeBranchBindingIdentity::new("counter:binding"),
-            TruthBranchIdentity::new("main"),
-            BridgeSignalBranchIdentity::new("signal:counter"),
+            BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("counter:binding"),
+            crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            BridgeSignalBranchIdentity::admit_bridge_owned("signal:counter"),
         ),
         preview_session_basis(CounterPreviewSessionBasisInput {
-            truth_branch_identity: TruthBranchIdentity::new("main"),
-            snapshot_identity: TruthSnapshotIdentity::new("snapshot:counter"),
+            truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture("main"),
+            snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+                "snapshot:counter",
+            ),
         }),
     );
 
     let admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("counter:preview-session"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("counter:preview-session"),
             declaration,
         )
         .expect("preview declaration should admit");
@@ -200,20 +202,26 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
 
     let promotion_admitted = runtime
         .admit_preview_session(
-            BridgePreviewSessionIdentity::new("counter:preview-promotion-session"),
+            BridgePreviewSessionIdentity::admit_bridge_owned("counter:preview-promotion-session"),
             BridgePreviewSessionDeclaration::new(
-                BridgePreviewSessionDeclarationIdentity::new(
+                BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
                     "counter:preview-promotion-declaration",
                 ),
                 BridgeRequestKind::Preview,
                 BridgeSpeculativeBranchBinding::new(
-                    BridgeSpeculativeBranchBindingIdentity::new("counter:promotion-binding"),
-                    TruthBranchIdentity::new("main"),
-                    BridgeSignalBranchIdentity::new("signal:counter"),
+                    BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned(
+                        "counter:promotion-binding",
+                    ),
+                    crate::truth_identity_fixtures::truth_branch_fixture("main"),
+                    BridgeSignalBranchIdentity::admit_bridge_owned("signal:counter"),
                 ),
                 preview_session_basis(CounterPreviewSessionBasisInput {
-                    truth_branch_identity: TruthBranchIdentity::new("main"),
-                    snapshot_identity: TruthSnapshotIdentity::new("snapshot:counter-promotion"),
+                    truth_branch_identity: crate::truth_identity_fixtures::truth_branch_fixture(
+                        "main",
+                    ),
+                    snapshot_identity: crate::truth_identity_fixtures::truth_snapshot_fixture(
+                        "snapshot:counter-promotion",
+                    ),
                 }),
             ),
         )

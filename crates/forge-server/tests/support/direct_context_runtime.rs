@@ -1,13 +1,15 @@
 use forge_query::facade::{
-    DeclarativeLiveQueryRequest, ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
-    ForgeQueryRuntime, ForgeQueryRuntimeBackend, ForgeQueryRuntimeError,
+    DeclarativeLiveQueryRequest, ForgeQueryEntity, ForgeQueryEvidenceIdentity, ForgeQueryLivePatch,
+    ForgeQueryLiveViewHandle, ForgeQueryRuntime, ForgeQueryRuntimeBackend, ForgeQueryRuntimeError,
     ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeRemaskProjection, ForgeQueryRuntimeSchemaAdapter,
     ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeSupportProfile,
-    ForgeQueryWorkspace, ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity, ForgeQueryWorkspace,
+    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
     LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
     SubscriptionActivationReceipt,
 };
+use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use forge_server::{
     ForgeServerDirectDeclarationSourceKind, ForgeServerQueryWorkspaceBindingError,
     ForgeServerQueryWorkspaceBindingRequest, ForgeServerQueryWorkspaceBindingTarget,
@@ -130,7 +132,11 @@ impl ForgeQueryRuntimeBackend for RemaskRuntimeBackend {
     fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {
         self.declared_live_views.contains(view_name).then(|| {
             vec![ForgeQueryEntity::from_external_projection(
-                "user-1",
+                forge_query::facade::admit_authored_entity_token(
+                    forge_query::facade::QueryExternalIdentityToken::new(
+                        std::sync::Arc::from("user-1"),
+                    ),
+                ),
                 json!({ "identity": { "id": "user-1" }, "profile": { "display_name": "Ada Forge" } }),
             )]
         }).unwrap_or_default()
@@ -147,8 +153,10 @@ impl ForgeQueryRuntimeBackend for RemaskRuntimeBackend {
         Vec::new()
     }
 
-    fn snapshot_token(&self) -> String {
-        "direct-context-remask-snapshot".to_string()
+    fn current_snapshot_identity(&self) -> ForgeQuerySnapshotIdentity {
+        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(1, 1),
+        )
     }
 
     fn install_live_subscription(
@@ -165,7 +173,7 @@ impl ForgeQueryRuntimeBackend for RemaskRuntimeBackend {
 
     fn admit_preview_basis(
         &self,
-        _label: &str,
+        _label: &ForgeQuerySessionLabel,
         _effect_policy: forge_query::facade::ForgeQueryEffectPolicy,
         _authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<forge_query::facade::ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError>
@@ -233,8 +241,10 @@ struct DirectContextRemaskActivation {
 }
 
 impl ForgeQueryRuntimeSubscriptionActivationAdapter for DirectContextRemaskActivation {
-    fn support_evidence(&self) -> String {
-        "direct-context-remask-support".to_string()
+    fn support_evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
+        forge_query::facade::runtime_subscription_support_evidence_identity(
+            "direct-context-remask-support",
+        )
     }
 
     fn remask_projection(

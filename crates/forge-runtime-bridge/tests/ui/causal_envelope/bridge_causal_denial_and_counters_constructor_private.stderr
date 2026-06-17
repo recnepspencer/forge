@@ -1,43 +1,15 @@
-error[E0451]: fields `evidence_reference_count`, `lower_runtime_family_count`, `bridge_retained_lookup_count`, `retained_bridge_binding_count`, `external_authority_reference_count`, `materialized_detail_count`, `missing_bridge_record_count`, `bridge_record_unindexed_scan_count` and `counter_digest` of struct `BridgeCausalEnvelopeCounters` are private
-  --> tests/ui/causal_envelope/bridge_causal_denial_and_counters_constructor_private.rs:8:9
+error[E0560]: struct `BridgeCausalEnvelopeCounters` has no field named `counter_digest`
+  --> tests/ui/causal_envelope/bridge_causal_denial_and_counters_constructor_private.rs:16:9
    |
- 7 |     let counters = BridgeCausalEnvelopeCounters {
-   |                    ---------------------------- in this type
- 8 |         evidence_reference_count: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         lower_runtime_family_count: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         bridge_retained_lookup_count: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         retained_bridge_binding_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         external_authority_reference_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         materialized_detail_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         missing_bridge_record_count: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-15 |         bridge_record_unindexed_scan_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 16 |         counter_digest: sealed_authority_placeholder(),
-   |         ^^^^^^^^^^^^^^ private field
-
-error[E0451]: fields `kind`, `family`, `supplied_owner`, `expected_owner`, `reference_identity`, `counters` and `failure_digest` of struct `BridgeCausalEnvelopeDenial` are private
-  --> tests/ui/causal_envelope/bridge_causal_denial_and_counters_constructor_private.rs:20:9
+   |         ^^^^^^^^^^^^^^ `BridgeCausalEnvelopeCounters` does not have this field
    |
-19 |     let _ = BridgeCausalEnvelopeDenial {
-   |             -------------------------- in this type
-20 |         kind: BridgeCausalEnvelopeDenialKind::MissingRetainedBridgeRecord,
-   |         ^^^^ private field
-21 |         family: BridgeCausalEvidenceFamily::BridgeRoute,
-   |         ^^^^^^ private field
-22 |         supplied_owner: BridgeCausalEvidenceOwner::RuntimeBridge,
-   |         ^^^^^^^^^^^^^^ private field
-23 |         expected_owner: BridgeCausalEvidenceOwner::RuntimeBridge,
-   |         ^^^^^^^^^^^^^^ private field
+   = note: all struct fields are already assigned
+
+error[E0277]: the trait bound `BridgeIdentityEvidence: From<&str>` is not satisfied
+  --> tests/ui/causal_envelope/bridge_causal_denial_and_counters_constructor_private.rs:24:37
+   |
 24 |         reference_identity: "route".into(),
-   |         ^^^^^^^^^^^^^^^^^^ private field
-25 |         counters,
-   |         ^^^^^^^^ private field
-26 |         failure_digest: sealed_authority_placeholder(),
-   |         ^^^^^^^^^^^^^^ private field
+   |                                     ^^^^ the trait `From<&str>` is not implemented for `BridgeIdentityEvidence`
+   |
+   = note: required for `&str` to implement `Into<BridgeIdentityEvidence>`

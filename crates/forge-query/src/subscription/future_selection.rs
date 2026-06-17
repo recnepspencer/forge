@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct QuerySubscriptionAsyncRequestIdentityPart {
@@ -47,7 +49,7 @@ pub struct QuerySubscriptionFutureSelection {
     class: QuerySubscriptionFutureSelectionClass,
     requests_completion_lifecycle: bool,
     async_request_identity: Vec<QuerySubscriptionAsyncRequestIdentityPart>,
-    projection_digest: String,
+    projection_identity: ForgeQueryEvidenceIdentity,
 }
 
 impl QuerySubscriptionFutureSelection {
@@ -103,30 +105,38 @@ impl QuerySubscriptionFutureSelection {
         async_request_identity: Vec<QuerySubscriptionAsyncRequestIdentityPart>,
     ) -> Self {
         let async_request_identity = normalize_async_request_identity(async_request_identity);
-        let mut parts = vec![
-            "query_subscription_future_selection_v1".to_string(),
-            format!("class:{}", class.as_str()),
-        ];
-        if requests_completion_lifecycle {
-            parts.push("completion_lifecycle:true".to_string());
-        }
-        parts.extend(
-            async_request_identity
-                .iter()
-                .enumerate()
-                .map(|(index, part)| {
-                    format!(
-                        "async_request_identity:{index}:{}={}",
-                        part.key(),
-                        part.value()
-                    )
-                }),
+        let mut projection_identity = ForgeQueryEvidenceIdentity::compose(
+            ForgeQueryEvidenceScope::SubscriptionActivationReceipt,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "query_subscription_future_selection_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("class"), class.as_str())
+        .field_usize(
+            ForgeQueryEvidenceTag::new("async_request_width"),
+            async_request_identity.len(),
         );
+        if requests_completion_lifecycle {
+            projection_identity = projection_identity.field_shape(
+                ForgeQueryEvidenceTag::new("completion_lifecycle"),
+                "requested",
+            );
+        }
+        projection_identity = projection_identity.field_value_sequence(
+            ForgeQueryEvidenceTag::new("async_keys"),
+            async_request_identity.iter().map(|part| part.key()),
+        );
+        projection_identity = projection_identity.field_value_sequence(
+            ForgeQueryEvidenceTag::new("async_values"),
+            async_request_identity.iter().map(|part| part.value()),
+        );
+        let projection_identity = projection_identity.seal();
         Self {
             class,
             requests_completion_lifecycle,
             async_request_identity,
-            projection_digest: hash_parts(&parts),
+            projection_identity,
         }
     }
 
@@ -142,8 +152,12 @@ impl QuerySubscriptionFutureSelection {
         &self.async_request_identity
     }
 
-    pub fn projection_digest(&self) -> &str {
-        &self.projection_digest
+    pub fn projection_identity(&self) -> &ForgeQueryEvidenceIdentity {
+        &self.projection_identity
+    }
+
+    pub(crate) fn projection_digest(&self) -> &str {
+        self.projection_identity.as_str()
     }
 
     pub fn retained_facts(&self) -> Vec<String> {

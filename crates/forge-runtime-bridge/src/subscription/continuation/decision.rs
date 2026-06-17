@@ -36,9 +36,10 @@ impl BridgeSubscriptionContinuationChild {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            continuation_child_identity: BridgeSubscriptionContinuationChildIdentity::new(format!(
-                "bridge-subscription-continuation-child-id:sha256:{digest:x}"
-            )),
+            continuation_child_identity:
+                BridgeSubscriptionContinuationChildIdentity::admit_bridge_owned(format!(
+                    "bridge-subscription-continuation-child-id:sha256:{digest:x}"
+                )),
             child_slot,
             child_basis_digest,
             canonical_basis,
@@ -190,9 +191,10 @@ impl BridgeSubscriptionContinuationDecision {
             child_basis,
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let continuation_decision_identity = BridgeSubscriptionContinuationDecisionIdentity::new(
-            format!("bridge-subscription-continuation-decision-id:sha256:{digest:x}"),
-        );
+        let continuation_decision_identity =
+            BridgeSubscriptionContinuationDecisionIdentity::admit_bridge_owned(format!(
+                "bridge-subscription-continuation-decision-id:sha256:{digest:x}"
+            ));
         let children = candidate
             .child_basis_digests()
             .iter()

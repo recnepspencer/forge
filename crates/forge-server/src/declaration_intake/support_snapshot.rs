@@ -35,7 +35,9 @@ impl ForgeServerDirectSupportSnapshot {
             source_support_status.as_str(),
             source_support_reason,
             declaration.view_shape().as_str(),
-            read_family_row.row_digest(),
+            read_family_row
+                .row_digest()
+                .terminal_projection_for_reporting(),
             read_family_contract
                 .as_ref()
                 .map(|contract| contract.contract_digest())

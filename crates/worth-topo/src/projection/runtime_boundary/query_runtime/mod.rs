@@ -1,5 +1,18 @@
 mod adapters;
 mod contracts;
+pub(crate) mod identity_authority;
+pub use identity_authority::{
+    topology_query_runtime_phase_eight_compile_fail_targets,
+    topology_query_runtime_phase_eight_golden_paths,
+    topology_query_runtime_phase_nine_compile_fail_targets,
+    topology_query_runtime_phase_nine_golden_paths, PHASE_EIGHT_EXCLUDED_FOLKLORE_PATHS,
+    PHASE_EIGHT_FORBIDDEN_SUBSTITUTION_PATTERNS, PHASE_EIGHT_QUERY_RUNTIME_SCAN_PATHS,
+    PHASE_NINE_FORBIDDEN_SUBSTITUTION_PATTERNS, PHASE_NINE_QUERY_RUNTIME_SCAN_PATHS,
+    TOPOLOGY_QUERY_RUNTIME_PHASE_EIGHT_COMPILE_FAIL_TARGET_COUNT,
+    TOPOLOGY_QUERY_RUNTIME_PHASE_EIGHT_GOLDEN_PATH_COUNT,
+    TOPOLOGY_QUERY_RUNTIME_PHASE_NINE_COMPILE_FAIL_TARGET_COUNT,
+    TOPOLOGY_QUERY_RUNTIME_PHASE_NINE_GOLDEN_PATH_COUNT,
+};
 mod mutation_support;
 mod mutation_support_rows;
 mod operator_bindings;
@@ -34,8 +47,8 @@ pub use self::adapters::write_authority::TopologyRuntimeWriteAuthority;
 pub use self::adapters::TopologyRuntimeSchemaAdapter;
 use self::adapters::{
     TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence,
-    TopologyRuntimeDeclarationInitializationAdapter, TopologyRuntimeSourceAdapter,
-    TopologyStaticSignalSink, TopologySubscriptionActivation,
+    TopologyRuntimeDeclarationInitializationAdapter, TopologyRuntimeSnapshotIdentityAdapter,
+    TopologyRuntimeSourceAdapter, TopologyStaticSignalSink, TopologySubscriptionActivation,
 };
 
 pub fn topology_runtime(
@@ -49,6 +62,7 @@ pub fn topology_runtime(
         .runtime_bridge(self::adapters::build_runtime_bridge(binding.clone())?)
         .schema_adapter(self::adapters::TopologyRuntimeSchemaAdapter)
         .source_adapter(TopologyRuntimeSourceAdapter::new(binding.clone()))
+        .snapshot_identity(TopologyRuntimeSnapshotIdentityAdapter::new(binding.clone()))
         .write_authority(
             self::adapters::write_authority::TopologyRuntimeWriteAuthority::new(write_binding),
         )

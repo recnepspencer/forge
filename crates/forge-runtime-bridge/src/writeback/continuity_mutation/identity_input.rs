@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use crate::identity::BridgeIdentityEvidence;
+
 use super::BridgeContinuityMutationBundleError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,6 +14,15 @@ impl BridgeContinuityAuthoritativeIdentity {
         let value = normalize_continuity_text("authoritative identity", value)?;
         require_native_identity_projection("authoritative identity", value.as_ref())?;
         Ok(Self { value })
+    }
+
+    pub fn from_bridge_evidence(evidence_identity: &BridgeIdentityEvidence) -> Self {
+        Self {
+            value: Arc::from(format!(
+                "bridge-continuity-authoritative:{}",
+                evidence_identity.as_str()
+            )),
+        }
     }
 
     pub fn as_str(&self) -> &str {

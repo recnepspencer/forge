@@ -1,4 +1,6 @@
-use crate::identity::hash_parts;
+use crate::evidence_identity::{
+    ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
+};
 use crate::runtime::{
     ForgeQueryBranchIntentReceiptInspection, ForgeQueryIntentDenialInspection,
     ForgeQueryIntentReceiptInspection, ForgeQueryPreviewOutcomeInspection, ForgeQueryReadReceipt,
@@ -6,68 +8,122 @@ use crate::runtime::{
 };
 
 use super::inventory::CausalEvidenceFamily;
+use super::observation_identity::{CausalObservationTargetHandle, CausalResultShapeContextHandle};
+use super::receipt_helpers::{
+    causal_evidence_reference_identity_digest, causal_observation_basis_evidence_identity,
+    causal_observation_query_evidence_identity, causal_observation_receipt_evidence_identity,
+    read_observation_query_identity, read_observation_receipt_identity,
+    read_observation_result_reference_digest, write_observation_query_identity,
+};
 use super::receipt_types::{
-    CausalObservationEvidenceIdentity, CausalObservationOutcome, ObservationReceiptParts,
-    QueryObservationReceipt, QueryObservationReceiptFamily,
+    CausalObservationBasisPosture, CausalObservationEvidenceIdentity, CausalObservationOutcome,
+    ObservationReceiptParts, QueryObservationReceipt, QueryObservationReceiptFamily,
 };
 
 impl QueryObservationReceipt {
     pub fn from_write_receipt_inspection(inspection: &ForgeQueryWriteReceiptInspection) -> Self {
+        let commit_identity = inspection.commit_identity().evidence_identity();
         let mut evidence_identities = vec![
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                inspection.inspection_digest(),
+                causal_evidence_reference_identity_digest(
+                    CausalEvidenceFamily::QueryInspection,
+                    inspection.inspection_identity(),
+                ),
             ),
             CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::RelationalAuthority,
-                inspection.commit_identity(),
+                causal_evidence_reference_identity_digest(
+                    CausalEvidenceFamily::RelationalAuthority,
+                    &commit_identity,
+                ),
             ),
         ];
         if let Some(causality) = inspection.causality_evidence() {
+            let causality_digest = causality.causality_digest().evidence_identity();
+            let route_digest = causality.route_digest().evidence_identity();
+            let evaluation_surface_digest =
+                causality.evaluation_surface_digest().evidence_identity();
             evidence_identities.push(CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryMutationCausality,
-                causality.causality_digest(),
+                causal_evidence_reference_identity_digest(
+                    CausalEvidenceFamily::QueryMutationCausality,
+                    &causality_digest,
+                ),
             ));
             evidence_identities.push(CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,
-                causality.route_digest(),
+                causal_evidence_reference_identity_digest(
+                    CausalEvidenceFamily::BridgeRoute,
+                    &route_digest,
+                ),
             ));
             evidence_identities.push(CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeEvaluation,
-                causality.evaluation_surface_digest(),
+                causal_evidence_reference_identity_digest(
+                    CausalEvidenceFamily::BridgeEvaluation,
+                    &evaluation_surface_digest,
+                ),
             ));
         }
         if let Some(provenance) = inspection.provenance_evidence() {
+            let feedback_provenance_digest =
+                provenance.feedback_provenance_digest().evidence_identity();
+            let execution_record_digest = provenance.execution_record_digest().evidence_identity();
             evidence_identities.push(CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryMutationProvenance,
-                provenance.feedback_provenance_digest(),
+                causal_evidence_reference_identity_digest(
+                    CausalEvidenceFamily::QueryMutationProvenance,
+                    &feedback_provenance_digest,
+                ),
             ));
             evidence_identities.push(CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::Provenance,
-                provenance.execution_record_digest(),
+                causal_evidence_reference_identity_digest(
+                    CausalEvidenceFamily::Provenance,
+                    &execution_record_digest,
+                ),
             ));
         }
+        let snapshot_identity = inspection.snapshot_identity().evidence_identity();
+        let target_identity = inspection
+            .target_entity_identity()
+            .or_else(|| inspection.declared_entity_identity())
+            .map(|identity| identity.evidence_identity());
+        let fallback_target_identity = target_handle(
+            "write_receipt_unspecified_target",
+            inspection.inspection_identity(),
+            "mutation-target-unspecified",
+        );
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::WriteReceipt,
-            observation_receipt_digest: inspection.inspection_digest().to_string(),
-            query_digest: hash_parts(&[
-                "query_observation_write_metadata_v1".to_string(),
-                format!("{:?}", inspection.mutation_metadata().entries()),
-            ]),
-            basis_posture: inspection.basis_lane().as_str().to_string(),
-            basis_digest: inspection.snapshot_token().to_string(),
-            result_shape_context_digest: inspection.mutation_family().to_string(),
-            observation_target_digest: inspection
-                .target_entity_identity()
-                .or_else(|| inspection.declared_entity_identity())
-                .unwrap_or("mutation-target-unspecified")
-                .to_string(),
+            observation_receipt_identity: causal_observation_receipt_evidence_identity(
+                QueryObservationReceiptFamily::WriteReceipt,
+                inspection.inspection_identity(),
+            ),
+            query_identity: write_observation_query_identity(inspection),
+            basis_posture: CausalObservationBasisPosture::AuthorityLane(inspection.basis_lane()),
+            basis_identity: causal_observation_basis_evidence_identity(
+                &CausalObservationBasisPosture::AuthorityLane(inspection.basis_lane()),
+                &snapshot_identity,
+            ),
+            result_shape_context: result_shape_handle(
+                "write_receipt_mutation_family",
+                inspection.inspection_identity(),
+                inspection.mutation_family(),
+            ),
+            observation_target: target_identity
+                .as_ref()
+                .map(CausalObservationTargetHandle::from_evidence_identity)
+                .unwrap_or(fallback_target_identity),
             outcome: CausalObservationOutcome::Changed,
             evidence_identities,
         })
     }
 
     pub fn from_intent_receipt_inspection(inspection: &ForgeQueryIntentReceiptInspection) -> Self {
+        let snapshot_identity = inspection.snapshot_identity().evidence_identity();
+        let commit_identity = inspection.commit_identity().evidence_identity();
         let outcome = if inspection.produced_mutation_digest().is_some() {
             CausalObservationOutcome::Changed
         } else {
@@ -75,42 +131,85 @@ impl QueryObservationReceipt {
         };
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::IntentReceipt,
-            observation_receipt_digest: inspection.receipt_digest().to_string(),
-            query_digest: inspection.canonical_input_digest().to_string(),
-            basis_posture: inspection.target_lane().as_str().to_string(),
-            basis_digest: inspection.snapshot_token().to_string(),
-            result_shape_context_digest: inspection.strategy_descriptor_digest().to_string(),
-            observation_target_digest: inspection.intent_name().to_string(),
+            observation_receipt_identity: causal_observation_receipt_evidence_identity(
+                QueryObservationReceiptFamily::IntentReceipt,
+                inspection.receipt_identity(),
+            ),
+            query_identity: causal_observation_query_evidence_identity(
+                "intent_receipt",
+                inspection.receipt_identity(),
+            ),
+            basis_posture: CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
+            basis_identity: causal_observation_basis_evidence_identity(
+                &CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
+                &snapshot_identity,
+            ),
+            result_shape_context: result_shape_handle(
+                "intent_receipt_strategy",
+                inspection.receipt_identity(),
+                inspection.strategy_descriptor_digest(),
+            ),
+            observation_target: target_handle(
+                "intent_receipt_intent",
+                inspection.receipt_identity(),
+                inspection.intent_name(),
+            ),
             outcome,
             evidence_identities: vec![
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::QueryInspection,
-                    inspection.inspection_digest(),
+                    causal_evidence_reference_identity_digest(
+                        CausalEvidenceFamily::QueryInspection,
+                        inspection.inspection_identity(),
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::RelationalAuthority,
-                    inspection.commit_identity(),
+                    causal_evidence_reference_identity_digest(
+                        CausalEvidenceFamily::RelationalAuthority,
+                        &commit_identity,
+                    ),
                 ),
             ],
         })
     }
 
     pub fn from_intent_denial_inspection(inspection: &ForgeQueryIntentDenialInspection) -> Self {
+        let snapshot_basis_identity = inspection
+            .snapshot_evidence_identity()
+            .unwrap_or_else(not_executed_snapshot_basis_identity);
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::IntentDenial,
-            observation_receipt_digest: inspection.denial_digest().to_string(),
-            query_digest: inspection.canonical_input_digest().to_string(),
-            basis_posture: inspection.target_lane().as_str().to_string(),
-            basis_digest: inspection
-                .snapshot_token()
-                .unwrap_or("not-executed")
-                .to_string(),
-            result_shape_context_digest: inspection.stage().to_string(),
-            observation_target_digest: inspection.intent_name().to_string(),
+            observation_receipt_identity: causal_observation_receipt_evidence_identity(
+                QueryObservationReceiptFamily::IntentDenial,
+                inspection.denial_identity(),
+            ),
+            query_identity: causal_observation_query_evidence_identity(
+                "intent_denial",
+                inspection.denial_identity(),
+            ),
+            basis_posture: CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
+            basis_identity: causal_observation_basis_evidence_identity(
+                &CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
+                &snapshot_basis_identity,
+            ),
+            result_shape_context: result_shape_handle(
+                "intent_denial_stage",
+                inspection.denial_identity(),
+                inspection.stage(),
+            ),
+            observation_target: target_handle(
+                "intent_denial_intent",
+                inspection.denial_identity(),
+                inspection.intent_name(),
+            ),
             outcome: CausalObservationOutcome::Denied,
             evidence_identities: vec![CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                inspection.inspection_digest(),
+                causal_evidence_reference_identity_digest(
+                    CausalEvidenceFamily::QueryInspection,
+                    inspection.inspection_identity(),
+                ),
             )],
         })
     }
@@ -120,21 +219,44 @@ impl QueryObservationReceipt {
     ) -> Self {
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::BranchIntentReceipt,
-            observation_receipt_digest: inspection.receipt_digest().to_string(),
-            query_digest: inspection.canonical_input_digest().to_string(),
-            basis_posture: inspection.target_lane().as_str().to_string(),
-            basis_digest: inspection.basis_digest().to_string(),
-            result_shape_context_digest: inspection.admission_digest().to_string(),
-            observation_target_digest: inspection.intent_name().to_string(),
+            observation_receipt_identity: causal_observation_receipt_evidence_identity(
+                QueryObservationReceiptFamily::BranchIntentReceipt,
+                inspection.receipt_identity(),
+            ),
+            query_identity: causal_observation_query_evidence_identity(
+                "branch_intent_receipt",
+                inspection.receipt_identity(),
+            ),
+            basis_posture: CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
+            basis_identity: causal_observation_basis_evidence_identity(
+                &CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
+                inspection.basis_identity(),
+            ),
+            result_shape_context: result_shape_handle(
+                "branch_intent_admission",
+                inspection.receipt_identity(),
+                inspection.admission_digest(),
+            ),
+            observation_target: target_handle(
+                "branch_intent_intent",
+                inspection.receipt_identity(),
+                inspection.intent_name(),
+            ),
             outcome: CausalObservationOutcome::BranchPreview,
             evidence_identities: vec![
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::QueryInspection,
-                    inspection.inspection_digest(),
+                    causal_evidence_reference_identity_digest(
+                        CausalEvidenceFamily::QueryInspection,
+                        inspection.inspection_identity(),
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::BridgePreview,
-                    inspection.admission_digest(),
+                    causal_evidence_reference_identity_digest(
+                        CausalEvidenceFamily::BridgePreview,
+                        inspection.admission_identity(),
+                    ),
                 ),
             ],
         })
@@ -145,56 +267,114 @@ impl QueryObservationReceipt {
     ) -> Self {
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::PreviewOutcome,
-            observation_receipt_digest: inspection.closeout_digest().to_string(),
-            query_digest: inspection.label().to_string(),
-            basis_posture: inspection.target_lane().as_str().to_string(),
-            basis_digest: inspection.basis_digest().to_string(),
-            result_shape_context_digest: inspection.residue_digest().to_string(),
-            observation_target_digest: inspection.label().to_string(),
+            observation_receipt_identity: causal_observation_receipt_evidence_identity(
+                QueryObservationReceiptFamily::PreviewOutcome,
+                inspection.closeout_identity(),
+            ),
+            query_identity: causal_observation_query_evidence_identity(
+                "preview_outcome",
+                &inspection.session_label().identity_digest(),
+            ),
+            basis_posture: CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
+            basis_identity: causal_observation_basis_evidence_identity(
+                &CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
+                inspection.basis_identity(),
+            ),
+            result_shape_context: result_shape_handle(
+                "preview_outcome_residue",
+                inspection.closeout_identity(),
+                inspection.residue_digest(),
+            ),
+            observation_target: target_handle(
+                "preview_outcome_session",
+                inspection.closeout_identity(),
+                inspection.session_label().display(),
+            ),
             outcome: CausalObservationOutcome::BranchPreview,
             evidence_identities: vec![
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::QueryInspection,
-                    inspection.inspection_digest(),
+                    causal_evidence_reference_identity_digest(
+                        CausalEvidenceFamily::QueryInspection,
+                        inspection.inspection_identity(),
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::BridgePreview,
-                    inspection.closeout_digest(),
+                    causal_evidence_reference_identity_digest(
+                        CausalEvidenceFamily::BridgePreview,
+                        inspection.closeout_identity(),
+                    ),
                 ),
             ],
         })
     }
 
     pub fn from_read_receipt(receipt: &ForgeQueryReadReceipt) -> Self {
+        let snapshot_evidence_identity = receipt.snapshot_evidence_identity();
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::ReadReceipt,
-            observation_receipt_digest: receipt.result_digest().to_string(),
-            query_digest: receipt.query_digest().to_string(),
-            basis_posture: format!("{:?}", receipt.execution_engine()),
-            basis_digest: receipt.basis_digest().to_string(),
-            result_shape_context_digest: receipt.read_graph_digest().to_string(),
-            observation_target_digest: receipt.result_digest().to_string(),
+            observation_receipt_identity: read_observation_receipt_identity(receipt),
+            query_identity: read_observation_query_identity(receipt, &snapshot_evidence_identity),
+            basis_posture: CausalObservationBasisPosture::ReadExecution(
+                receipt.execution_engine().clone(),
+            ),
+            basis_identity: causal_observation_basis_evidence_identity(
+                &CausalObservationBasisPosture::ReadExecution(receipt.execution_engine().clone()),
+                &snapshot_evidence_identity,
+            ),
+            result_shape_context: result_shape_handle(
+                "read_receipt_graph",
+                &snapshot_evidence_identity,
+                receipt.read_graph_digest(),
+            ),
+            observation_target: target_handle(
+                "read_receipt_result",
+                &snapshot_evidence_identity,
+                receipt.result_digest(),
+            ),
             outcome: CausalObservationOutcome::Replayed,
             evidence_identities: vec![CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                receipt.result_digest(),
+                read_observation_result_reference_digest(receipt, &snapshot_evidence_identity),
             )],
         })
     }
 
     pub(crate) fn certification_historical_replay_fixture(label: &str) -> Self {
+        let fixture_authority = fixture_authority_identity(label);
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::Fixture,
-            observation_receipt_digest: format!("fixture-observation-replayed:{label}"),
-            query_digest: format!("fixture-query:{label}"),
-            basis_posture: "historical_replay_certification".to_string(),
-            basis_digest: format!("fixture-basis:{label}"),
-            result_shape_context_digest: format!("fixture-result-shape:{label}"),
-            observation_target_digest: format!("fixture-target:{label}"),
+            observation_receipt_identity: causal_observation_receipt_evidence_identity(
+                QueryObservationReceiptFamily::Fixture,
+                &fixture_component_identity(label, "observation_receipt", "replayed"),
+            ),
+            query_identity: causal_observation_query_evidence_identity(
+                "fixture_replayed",
+                &fixture_component_identity(label, "query", "historical_replay"),
+            ),
+            basis_posture: CausalObservationBasisPosture::HistoricalReplayCertification,
+            basis_identity: causal_observation_basis_evidence_identity(
+                &CausalObservationBasisPosture::HistoricalReplayCertification,
+                &fixture_component_identity(label, "basis", "historical_replay_certification"),
+            ),
+            result_shape_context: result_shape_handle(
+                "fixture_result_shape",
+                &fixture_authority,
+                format!("fixture-result-shape:{label}"),
+            ),
+            observation_target: target_handle(
+                "fixture_target",
+                &fixture_authority,
+                format!("fixture-target:{label}"),
+            ),
             outcome: CausalObservationOutcome::Replayed,
             evidence_identities: vec![CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::QueryInspection,
-                format!("fixture-query-inspection:{label}"),
+                causal_evidence_reference_identity_digest(
+                    CausalEvidenceFamily::QueryInspection,
+                    &fixture_component_identity(label, "evidence_reference", "query_inspection"),
+                ),
             )],
         })
     }
@@ -204,16 +384,101 @@ impl QueryObservationReceipt {
         outcome: CausalObservationOutcome,
         evidence_identities: Vec<CausalObservationEvidenceIdentity>,
     ) -> Self {
+        let fixture_authority = fixture_authority_identity(outcome.as_str());
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::Fixture,
-            observation_receipt_digest: format!("fixture-observation-{}", outcome.as_str()),
-            query_digest: "fixture-query".to_string(),
-            basis_posture: "fixture-basis-posture".to_string(),
-            basis_digest: "fixture-basis".to_string(),
-            result_shape_context_digest: "fixture-result-shape".to_string(),
-            observation_target_digest: format!("fixture-target-{}", outcome.as_str()),
+            observation_receipt_identity: causal_observation_receipt_evidence_identity(
+                QueryObservationReceiptFamily::Fixture,
+                &fixture_component_identity(outcome.as_str(), "observation_receipt", "fixture"),
+            ),
+            query_identity: causal_observation_query_evidence_identity(
+                "fixture",
+                &fixture_component_identity(outcome.as_str(), "query", "fixture"),
+            ),
+            basis_posture: CausalObservationBasisPosture::Fixture,
+            basis_identity: causal_observation_basis_evidence_identity(
+                &CausalObservationBasisPosture::Fixture,
+                &fixture_component_identity(outcome.as_str(), "basis", "fixture"),
+            ),
+            result_shape_context: result_shape_handle(
+                "fixture_result_shape",
+                &fixture_authority,
+                "fixture-result-shape",
+            ),
+            observation_target: target_handle(
+                "fixture_target",
+                &fixture_authority,
+                format!("fixture-target-{}", outcome.as_str()),
+            ),
             outcome,
             evidence_identities,
         })
     }
+}
+
+fn not_executed_snapshot_basis_identity() -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalObservationBasis)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "not_executed_snapshot_basis_v1",
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("execution_state"),
+            "not-executed",
+        )
+        .seal()
+}
+
+fn fixture_authority_identity(label: &str) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalQueryObservationReceipt)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "fixture_authority")
+        .field_value(ForgeQueryEvidenceTag::new("label"), label)
+        .seal()
+}
+
+fn fixture_component_identity(
+    label: &str,
+    component: &'static str,
+    descriptor: &'static str,
+) -> ForgeQueryEvidenceIdentity {
+    ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalQueryObservationReceipt)
+        .field_shape(ForgeQueryEvidenceTag::new("role"), "fixture_component")
+        .field_shape(ForgeQueryEvidenceTag::new("component"), component)
+        .field_value(ForgeQueryEvidenceTag::new("label"), label)
+        .field_value(ForgeQueryEvidenceTag::new("descriptor"), descriptor)
+        .seal()
+}
+
+fn result_shape_handle(
+    role: &'static str,
+    authority_identity: &ForgeQueryEvidenceIdentity,
+    descriptor: impl AsRef<str>,
+) -> CausalResultShapeContextHandle {
+    let identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalResultShapeContext)
+            .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("authority"), authority_identity)
+            .field_value(
+                ForgeQueryEvidenceTag::new("descriptor"),
+                descriptor.as_ref(),
+            )
+            .seal();
+    CausalResultShapeContextHandle::from_evidence_identity(&identity)
+}
+
+fn target_handle(
+    role: &'static str,
+    authority_identity: &ForgeQueryEvidenceIdentity,
+    descriptor: impl AsRef<str>,
+) -> CausalObservationTargetHandle {
+    let identity =
+        ForgeQueryEvidenceIdentity::compose(ForgeQueryEvidenceScope::CausalObservationTarget)
+            .field_shape(ForgeQueryEvidenceTag::new("role"), role)
+            .field_evidence_identity(ForgeQueryEvidenceTag::new("authority"), authority_identity)
+            .field_value(
+                ForgeQueryEvidenceTag::new("descriptor"),
+                descriptor.as_ref(),
+            )
+            .seal();
+    CausalObservationTargetHandle::from_evidence_identity(&identity)
 }

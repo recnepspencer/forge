@@ -10,10 +10,10 @@ use forge_relational::facade::history::BranchId;
 
 use super::scenarios::{
     branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding,
-    runtime_workflow_binding_with_snapshot, tenant_mutation_basis, workflow_request,
+    runtime_workflow_binding_for_branch, tenant_mutation_basis, workflow_request,
 };
 use super::support::{
-    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
     test_bridge_with_writeback_authority,
 };
 
@@ -65,7 +65,7 @@ fn scalar_mutation_oracle_digest() -> String {
         .create_branch(BranchId(branch.to_string()), &BranchId("main".to_string()))
         .expect("closeout oracle branch should be created");
     let raw = raw_mutation_effect_with_binding(
-        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, branch)),
+        runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, branch), branch),
         entity_id,
         "closeout-oracle".to_string(),
     );
@@ -87,7 +87,7 @@ fn scalar_mutation_oracle_digest() -> String {
         .expect("closeout oracle mutation should execute")
         .verify_against_relational_runtime(&runtime)
         .expect("closeout oracle mutation should verify")
-        .relational_oracle_digest()
+        .relational_oracle_for_reporting()
         .expect("relational oracle digest should exist")
         .to_string()
 }
@@ -101,7 +101,8 @@ fn batch_mutation_oracle_digest() -> String {
         .history_authority()
         .create_branch(BranchId(branch.to_string()), &BranchId("main".to_string()))
         .expect("closeout oracle batch branch should be created");
-    let binding = runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, branch));
+    let binding =
+        runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, branch), branch);
     let executed = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis(branch)))
         .push(raw_mutation_effect_with_binding(
@@ -124,7 +125,7 @@ fn batch_mutation_oracle_digest() -> String {
     executed
         .verify_against_relational_runtime(&runtime)
         .expect("closeout oracle batch should verify")
-        .relational_oracle_digest()
+        .relational_oracle_for_reporting()
         .expect("relational batch oracle digest should exist")
         .to_string()
 }
@@ -155,7 +156,7 @@ fn bridge_oracle_digest() -> String {
     executed
         .verify_against_bridge_runtime(&bridge)
         .expect("closeout bridge oracle should verify")
-        .bridge_oracle_digest()
+        .bridge_oracle_for_reporting()
         .expect("bridge oracle digest should exist")
         .to_string()
 }

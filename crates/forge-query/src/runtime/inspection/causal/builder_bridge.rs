@@ -1,8 +1,11 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeDenial, BridgeCausalEvidenceFamily,
     BridgeCausalEvidenceOwner, BridgeCausalEvidenceReference,
-    BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary, RuntimeBridge,
+    BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary,
+    BridgeIdentityEvidence, RuntimeBridge,
 };
+
+use crate::ForgeQueryEvidenceIdentity;
 
 use super::admission::{
     AdmittedCausalInspection, AdvisoryCausalInspection, CausalInspectionProofFlow,
@@ -15,6 +18,7 @@ use super::materialization::{
     materialize_bridge_denied_advisory_causal_inspection, materialize_denied_causal_inspection,
     CausalInspectionMaterializationError, QueryCausalInspectionArtifact,
 };
+use super::observation_identity::CausalEvidenceReferenceDigest;
 use super::reference::CausalEvidenceReference;
 
 impl CausalInspectionPlan {
@@ -93,13 +97,20 @@ impl CausalInspectionPlan {
         inspection: &AdmittedCausalInspection,
     ) -> Result<BridgeCausalEnvelopeAssemblyRequest, CausalInspectionMaterializationError> {
         let summary = BridgeCausalInspectionAdmissionSummary::admitted(
-            inspection.admitted_inspection_digest(),
-            inspection.subject().anchor_digest(),
+            inspection
+                .admitted_inspection_identity()
+                .evidence_identity()
+                .bridge_evidence_identity(),
+            inspection
+                .subject()
+                .anchor_identity()
+                .evidence_identity()
+                .bridge_evidence_identity(),
         )
         .map_err(materialization_error_from_bridge_denial)?;
         bridge_request_from_summary(
             summary,
-            inspection.subject().query_observation_digest(),
+            inspection.subject().query_observation_evidence_identity(),
             self.reference_set.references(),
         )
     }
@@ -109,13 +120,20 @@ impl CausalInspectionPlan {
         inspection: &AdvisoryCausalInspection,
     ) -> Result<BridgeCausalEnvelopeAssemblyRequest, CausalInspectionMaterializationError> {
         let summary = BridgeCausalInspectionAdmissionSummary::advisory(
-            inspection.advisory_inspection_digest(),
-            inspection.subject().anchor_digest(),
+            inspection
+                .advisory_inspection_identity()
+                .evidence_identity()
+                .bridge_evidence_identity(),
+            inspection
+                .subject()
+                .anchor_identity()
+                .evidence_identity()
+                .bridge_evidence_identity(),
         )
         .map_err(materialization_error_from_bridge_denial)?;
         bridge_request_from_summary(
             summary,
-            inspection.subject().query_observation_digest(),
+            inspection.subject().query_observation_evidence_identity(),
             self.reference_set.references(),
         )
     }
@@ -123,14 +141,16 @@ impl CausalInspectionPlan {
 
 fn bridge_request_from_summary(
     summary: BridgeCausalInspectionAdmissionSummary,
-    query_observation_digest: &str,
+    query_observation_identity: &ForgeQueryEvidenceIdentity,
     references: &[CausalEvidenceReference],
 ) -> Result<BridgeCausalEnvelopeAssemblyRequest, CausalInspectionMaterializationError> {
     let mut bridge_references = vec![BridgeCausalEvidenceReference::new(
         BridgeCausalEvidenceOwner::Query,
         BridgeCausalEvidenceFamily::QueryObservation,
-        BridgeCausalEvidenceReferenceIdentity::query_observation(query_observation_digest)
-            .map_err(materialization_error_from_bridge_denial)?,
+        BridgeCausalEvidenceReferenceIdentity::query_observation(bridge_query_evidence_identity(
+            query_observation_identity,
+        ))
+        .map_err(materialization_error_from_bridge_denial)?,
     )
     .map_err(materialization_error_from_bridge_denial)?];
     for reference in references {
@@ -141,11 +161,7 @@ fn bridge_request_from_summary(
                 BridgeCausalEvidenceReference::new(
                     owner,
                     family,
-                    bridge_reference_identity(
-                        owner,
-                        family,
-                        reference.reference_digest().as_str(),
-                    )?,
+                    bridge_reference_identity(owner, family, reference.reference_digest())?,
                 )
                 .map_err(materialization_error_from_bridge_denial)?,
             );
@@ -158,23 +174,35 @@ fn bridge_request_from_summary(
 fn bridge_reference_identity(
     owner: BridgeCausalEvidenceOwner,
     family: BridgeCausalEvidenceFamily,
-    reference_digest: &str,
+    reference_digest: &CausalEvidenceReferenceDigest,
 ) -> Result<BridgeCausalEvidenceReferenceIdentity, CausalInspectionMaterializationError> {
     let identity = match owner {
         BridgeCausalEvidenceOwner::Query => {
-            BridgeCausalEvidenceReferenceIdentity::query_observation(reference_digest)
+            BridgeCausalEvidenceReferenceIdentity::query_observation(
+                bridge_query_evidence_identity(reference_digest.evidence_identity()),
+            )
         }
         BridgeCausalEvidenceOwner::RuntimeBridge => {
-            BridgeCausalEvidenceReferenceIdentity::runtime_bridge(family, reference_digest)
+            BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
+                family,
+                reference_digest.bridge_authority_evidence(),
+            )
         }
         BridgeCausalEvidenceOwner::Relational => {
-            BridgeCausalEvidenceReferenceIdentity::relational_authority(reference_digest)
+            BridgeCausalEvidenceReferenceIdentity::relational_authority(
+                reference_digest.bridge_authority_evidence(),
+            )
         }
-        BridgeCausalEvidenceOwner::Signal => {
-            BridgeCausalEvidenceReferenceIdentity::signal(family, reference_digest)
-        }
+        BridgeCausalEvidenceOwner::Signal => BridgeCausalEvidenceReferenceIdentity::signal(
+            family,
+            reference_digest.bridge_authority_evidence(),
+        ),
     };
     identity.map_err(materialization_error_from_bridge_denial)
+}
+
+fn bridge_query_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> BridgeIdentityEvidence {
+    identity.bridge_evidence_identity()
 }
 
 fn bridge_reference_family(

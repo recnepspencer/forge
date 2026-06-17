@@ -8,6 +8,7 @@ use forge_proof::TransitionOutcome;
 use sha2::{Digest, Sha256};
 
 use crate::mapping::SubscriptionSliceKind;
+use crate::relational_identity::RelationalBridgeRecordIdentityParts;
 use crate::snapshot::{
     BridgeSnapshotReadError, SnapshotReadContract, SnapshotReadCorrelationId,
     SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadTarget,
@@ -18,6 +19,7 @@ use crate::snapshot::{
 pub struct SnapshotReadRequest {
     correlation_id: SnapshotReadCorrelationId,
     entity_identity: Arc<str>,
+    relational_record_identity: Option<RelationalBridgeRecordIdentityParts>,
     target: SnapshotReadTarget,
     shape: SnapshotReadShape,
 }
@@ -43,9 +45,20 @@ impl SnapshotReadRequest {
                 canonical_basis.as_ref(),
             ),
             entity_identity,
+            relational_record_identity: None,
             target,
             shape,
         }
+    }
+
+    pub(crate) fn for_coarse_relational_record(
+        entity_identity: impl Into<Arc<str>>,
+        relational_record_identity: RelationalBridgeRecordIdentityParts,
+        contract: SnapshotReadContract,
+    ) -> Self {
+        let mut request = Self::for_coarse(entity_identity, contract);
+        request.relational_record_identity = Some(relational_record_identity);
+        request
     }
 
     pub fn for_native_subscription_slice(
@@ -89,9 +102,31 @@ impl SnapshotReadRequest {
                 canonical_basis.as_ref(),
             ),
             entity_identity,
+            relational_record_identity: None,
             target,
             shape,
         }
+    }
+
+    pub(crate) fn from_native_subscription_slice_relational_record(
+        entity_identity: impl Into<Arc<str>>,
+        relational_record_identity: RelationalBridgeRecordIdentityParts,
+        contract: SnapshotReadContract,
+        aspect_locator: AspectLocator,
+        field_locator: Option<AspectFieldLocator>,
+        projection_mask: AspectMask<ProjectionMask>,
+        slice_kind: SubscriptionSliceKind,
+    ) -> Self {
+        let mut request = Self::from_native_subscription_slice(
+            entity_identity,
+            contract,
+            aspect_locator,
+            field_locator,
+            projection_mask,
+            slice_kind,
+        );
+        request.relational_record_identity = Some(relational_record_identity);
+        request
     }
 
     pub fn correlation_id(&self) -> &SnapshotReadCorrelationId {
@@ -100,6 +135,10 @@ impl SnapshotReadRequest {
 
     pub fn entity_identity(&self) -> &str {
         self.entity_identity.as_ref()
+    }
+
+    pub fn relational_record_identity_parts(&self) -> Option<RelationalBridgeRecordIdentityParts> {
+        self.relational_record_identity
     }
 
     pub fn aspect_key(&self) -> &AspectKey {

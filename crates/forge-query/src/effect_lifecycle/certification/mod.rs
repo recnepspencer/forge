@@ -87,7 +87,7 @@ pub struct EffectLifecycleSeededCertificationRow {
 
 impl EffectLifecycleSeededCertificationRow {
     pub(super) fn new(parts: EffectLifecycleSeededRowParts) -> Self {
-        let counter_snapshot_digest = parts.counters.digest();
+        let counter_snapshot_digest = parts.counters.counter_for_reporting().to_string();
         let row_digest = hash_parts(&[
             "effect_lifecycle_seeded_certification_row_v1".to_string(),
             format!("scenario:{}", parts.scenario_name),

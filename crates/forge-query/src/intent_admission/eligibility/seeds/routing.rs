@@ -35,7 +35,7 @@ impl ForgeQueryExistingTruthProbeIntentSeed {
     pub fn request_label(&self) -> String {
         format!(
             "probe.existing.{}",
-            self.request.binding().authoritative_identity()
+            self.request.binding().authoritative_identity().as_str()
         )
     }
 

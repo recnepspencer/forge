@@ -7,7 +7,7 @@ fn pricing_shock_discard_stays_zero_residue_under_interleaved_main_churn() {
 
     assert_eq!(
         discard.live_main_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-main-live")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main-live")
     );
     assert_eq!(
         discard.speculative_rubber_cost_cents,
@@ -15,7 +15,7 @@ fn pricing_shock_discard_stays_zero_residue_under_interleaved_main_churn() {
     );
     assert_eq!(
         discard.post_discard_main_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-main-live")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main-live")
     );
     assert_eq!(
         discard.post_discard_main_steel_cost_cents,
@@ -42,11 +42,11 @@ fn pricing_shock_promotion_stays_distinct_from_interleaved_main_truth() {
 
     assert_eq!(
         promotion.main_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-main-interleaved")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main-interleaved")
     );
     assert_eq!(
         promotion.speculative_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-shock")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-shock")
     );
     assert_eq!(
         promotion.main_rubber_cost_cents,
@@ -62,7 +62,7 @@ fn pricing_shock_promotion_stays_distinct_from_interleaved_main_truth() {
     );
     assert_eq!(
         promotion.promotion_session_identity,
-        BridgePreviewSessionIdentity::new("pricing:preview-promote-churn")
+        BridgePreviewSessionIdentity::admit_bridge_owned("pricing:preview-promote-churn")
     );
     assert!(promotion
         .authoritative_commit_boundary_digest
@@ -87,15 +87,15 @@ fn pricing_shock_live_graph_shared_input_fans_out_across_one_hundred_products() 
     assert_eq!(fanout.second_delivery_target_count, 100);
     assert_eq!(
         fanout.second_source_commit,
-        TruthCommitIdentity::new("commit:steel-fanout-b")
+        crate::truth_identity_fixtures::truth_commit_fixture("commit:steel-fanout-b")
     );
     assert_eq!(
         fanout.second_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-fanout-b")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-fanout-b")
     );
     assert_eq!(
         fanout.branch_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-fanout-b")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-fanout-b")
     );
     assert_eq!(
         fanout.branch_steel_cost_cents,
@@ -166,7 +166,7 @@ fn pricing_shock_merge_lane_preserves_aspect_reconciliation_history_and_revisita
     assert!(merge.remap_published);
     assert_eq!(
         merge.main_premerge_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-main")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-main")
     );
     assert_eq!(
         merge.main_premerge_rubber_cost_cents,
@@ -174,7 +174,7 @@ fn pricing_shock_merge_lane_preserves_aspect_reconciliation_history_and_revisita
     );
     assert_eq!(
         merge.speculative_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-shock")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-shock")
     );
     assert_eq!(
         merge.speculative_rubber_cost_cents,
@@ -182,7 +182,7 @@ fn pricing_shock_merge_lane_preserves_aspect_reconciliation_history_and_revisita
     );
     assert_eq!(
         merge.merged_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-merged")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-merged")
     );
     assert_eq!(
         merge.merged_rubber_cost_cents,
@@ -190,7 +190,7 @@ fn pricing_shock_merge_lane_preserves_aspect_reconciliation_history_and_revisita
     );
     assert_eq!(
         merge.merged_aspect_registration_id,
-        BridgeAspectRegistrationId::new("pricing-rubber-usd-field")
+        BridgeAspectRegistrationId::admit_bridge_owned("pricing-rubber-usd-field")
     );
     assert_eq!(
         merge.merged_fine_grained_match_status,
@@ -211,7 +211,7 @@ fn pricing_shock_merge_snapshot_identity_conflict_is_detectable_against_independ
 
     assert_eq!(
         merge.merged_snapshot,
-        TruthSnapshotIdentity::new("snapshot:pricing-merged")
+        crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot:pricing-merged")
     );
     assert_eq!(
         merge.merged_rubber_cost_cents, scenario.main_rubber_cost,

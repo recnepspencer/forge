@@ -15,6 +15,7 @@ pub enum ForgeQueryRuntimeError {
     MissingRuntimeBridge,
     MissingSchemaAdapter,
     MissingSourceAdapter,
+    MissingSnapshotIdentityAdapter,
     MissingWriteAuthority,
     MissingSignalSink,
     MissingSubscriptionActivation,
@@ -41,6 +42,9 @@ pub enum ForgeQueryRuntimeError {
     MissingLiveView(String),
     MissingLiveSubscription(String),
     MissingDerivedView(String),
+    SharedReadStaleBasis {
+        snapshot_identity: crate::memory_workspace::ForgeQuerySnapshotIdentity,
+    },
     MissingEffect(String),
     MissingPendingWriteIntent(String),
     RetainedRowDecode {
@@ -63,7 +67,10 @@ pub enum ForgeQueryRuntimeError {
         stage: &'static str,
         message: String,
     },
-    UnsupportedAuthority(String),
+    UnsupportedAuthorityRequirement(ForgeQueryAuthorityRequirement),
+    ExistingTruthAssertionRequiresAuthorityLane {
+        required_lane: ForgeQueryAuthorityLane,
+    },
     IntentCommitDenied {
         intent_name: String,
         stage: &'static str,
@@ -93,7 +100,7 @@ pub enum ForgeQueryRuntimeError {
         label: ForgeQuerySessionLabel,
     },
     PreviewOperationEffectDenied {
-        label: String,
+        label: ForgeQuerySessionLabel,
         stage: &'static str,
         message: String,
     },
@@ -120,6 +127,10 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
             Self::MissingSourceAdapter => write!(
                 f,
                 "forge query bridge-backed runtime bootstrap requires source_adapter(...); complete the builder-owned bridge-backed authority path before build_backend_from_parts()"
+            ),
+            Self::MissingSnapshotIdentityAdapter => write!(
+                f,
+                "forge query bridge-backed runtime bootstrap requires snapshot_identity(...); current snapshot truth must come from a typed backend authority before build_backend_from_parts()"
             ),
             Self::MissingWriteAuthority => write!(
                 f,
@@ -173,6 +184,11 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 )
             }
             Self::MissingDerivedView(view) => write!(f, "unknown computed view `{view}`"),
+            Self::SharedReadStaleBasis { snapshot_identity } => write!(
+                f,
+                "shared read basis `{}` is stale and can no longer serve published artifacts",
+                snapshot_identity.terminal_projection_for_reporting()
+            ),
             Self::MissingEffect(effect) => write!(f, "unknown effect `{effect}`"),
             Self::MissingPendingWriteIntent(effect) => {
                 write!(f, "effect `{effect}` has no pending write intent delivery")
@@ -209,10 +225,17 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 f,
                 "live view `{view_name}` subscription installation failed during {stage}: {message}"
             ),
-            Self::UnsupportedAuthority(authority) => {
+            Self::UnsupportedAuthorityRequirement(requirement) => {
                 write!(
                     f,
-                    "authority requirement `{authority}` is not admitted by this runtime"
+                    "authority requirement `{}` is not admitted by this runtime",
+                    requirement.as_str()
+                )
+            }
+            Self::ExistingTruthAssertionRequiresAuthorityLane { required_lane } => {
+                write!(
+                    f,
+                    "existing-truth assertion currently requires the `{required_lane}` lane"
                 )
             }
             Self::IntentCommitDenied {

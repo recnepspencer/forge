@@ -36,7 +36,10 @@ fn compose_graph_supports_symbolic_entity_followup_and_relation_retirement() {
                 relation
                     .aspect("edge.kind", "depends_on")
                     .symbolic_entity_identity("edge.source_identity", &draft)
-                    .existing_entity_identity("edge.target_identity", "task-existing")
+                    .existing_entity_identity(
+                        "edge.target_identity",
+                        test_entity_identity("task-existing"),
+                    )
             })?;
             graph.update_entity(&draft, |task| task.aspect("title.value", "Published task"))?;
             graph.delete_relation(&edge, |delete| {
@@ -225,14 +228,16 @@ fn compose_graph_supports_symbolic_entity_followup_and_relation_retirement() {
                 inspection.component_operations()[2]
                     .symbolic_target_reference_evidence()
                     .expect("symbolic entity update should retain target evidence")
-                    .symbol(),
+                    .symbol()
+                    .as_str(),
                 "draft-task"
             );
             assert_eq!(
                 inspection.component_operations()[3]
                     .symbolic_target_reference_evidence()
                     .expect("symbolic relation delete should retain target evidence")
-                    .symbol(),
+                    .symbol()
+                    .as_str(),
                 "draft-edge"
             );
         }

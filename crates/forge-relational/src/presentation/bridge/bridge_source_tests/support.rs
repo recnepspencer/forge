@@ -30,10 +30,10 @@ pub(super) fn exact_registration(
     patch_item: &BridgeCommittedPatchItem,
 ) -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new(mapping_id),
+        BridgeMappingId::from_stable_name(mapping_id),
         truth_scope_for_patch_item(patch_item),
         snapshot_read_contract(patch_item.aspect_key()),
-        SignalInvalidationScope::new("signal.user.profile"),
+        SignalInvalidationScope::from_stable_name("signal.user.profile"),
         CoarseRoutingMode::Direct,
     )
 }
@@ -43,7 +43,7 @@ pub(super) fn exact_aspect_registration(
     patch_item: &BridgeCommittedPatchItem,
 ) -> BridgeAspectRegistration {
     BridgeAspectRegistration::new(
-        BridgeAspectRegistrationId::new(registration_id),
+        BridgeAspectRegistrationId::from_stable_name(registration_id),
         truth_scope_for_patch_item(patch_item),
         snapshot_read_contract(patch_item.aspect_key()),
         patch_item.surface_kind(),
@@ -61,7 +61,7 @@ pub(super) fn runtime_bridge_for_envelope(
         .canonical_items()
         .first()
         .expect("lineage publication fixture must carry one native patch item");
-    RuntimeBridgeBuilder::new()
+    let mut builder = RuntimeBridgeBuilder::new()
         .with_relational_source(source.clone())
         .with_signal_sink(TestSink)
         .with_continuity_lineage_source(source)
@@ -69,7 +69,9 @@ pub(super) fn runtime_bridge_for_envelope(
         .register_aspect_mapping(exact_aspect_registration(
             "lineage-publication-item-field-0",
             patch_item,
-        ))
+        ));
+    register_remaining_patch_items!(builder, envelope, "lineage-publication");
+    builder
         .build()
         .expect("runtime bridge should build from runtime-backed relational source")
 }

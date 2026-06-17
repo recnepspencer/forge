@@ -1,83 +1,24 @@
-use crate::identity::hash_parts;
-
-use super::{
-    denied_basis_capability_for_lane_mismatch, BasisAuthorityPosture, BasisEligibility,
-    BasisEligibilityCounters, BasisEligibilityDisposition, BasisOperationLaneRequest,
-    BasisTenantSchemaPosture, DeniedBasisCapability, NormalizedBasisFamily,
+use super::identity::basis_lifecycle_digest;
+use crate::evidence_identity::{
+    forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
+    ForgeQueryEvidenceTag,
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BasisVisibility {
-    CurrentHead,
-    BranchScoped,
-    SnapshotScoped,
-    Historical,
-    PreviewScoped,
-}
-
-impl BasisVisibility {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::CurrentHead => "current_head",
-            Self::BranchScoped => "branch_scoped",
-            Self::SnapshotScoped => "snapshot_scoped",
-            Self::Historical => "historical",
-            Self::PreviewScoped => "preview_scoped",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BasisLifecyclePosture {
-    Authoritative,
-    MutablePreparation,
-    HistoricalReplay,
-    AdvisoryPreview,
-}
-
-impl BasisLifecyclePosture {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Authoritative => "authoritative",
-            Self::MutablePreparation => "mutable_preparation",
-            Self::HistoricalReplay => "historical_replay",
-            Self::AdvisoryPreview => "advisory_preview",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum UnboundLowerRuntimeEvidencePlaceholder {
-    BridgeTruthViewAuthority,
-    BridgeContinuityAuthority,
-    BridgeSubscriptionAuthority,
-    BridgePreviewSubscriptionAuthority,
-    BridgeWritebackAuthority,
-    BridgeCausalEnvelopeAuthority,
-    RelationalTruthAuthority,
-    SignalObservationAuthority,
-}
-
-impl UnboundLowerRuntimeEvidencePlaceholder {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::BridgeTruthViewAuthority => "bridge_truth_view_authority",
-            Self::BridgeContinuityAuthority => "bridge_continuity_authority",
-            Self::BridgeSubscriptionAuthority => "bridge_subscription_authority",
-            Self::BridgePreviewSubscriptionAuthority => "bridge_preview_subscription_authority",
-            Self::BridgeWritebackAuthority => "bridge_writeback_authority",
-            Self::BridgeCausalEnvelopeAuthority => "bridge_causal_envelope_authority",
-            Self::RelationalTruthAuthority => "relational_truth_authority",
-            Self::SignalObservationAuthority => "signal_observation_authority",
-        }
-    }
-}
+use super::{
+    denied_basis_capability_for_lane_mismatch, lifecycle_posture_for_admission,
+    permitted_lanes_for_family, placeholders_for_lane, visibility_for_family,
+    BasisAuthorityPosture, BasisEligibility, BasisEligibilityCounters, BasisEligibilityDisposition,
+    BasisLifecyclePosture, BasisOperationLaneRequest, BasisTenantSchemaPosture, BasisVisibility,
+    DeniedBasisCapability, NormalizedBasisFamily, NormalizedBasisSubject,
+    UnboundLowerRuntimeEvidencePlaceholder,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdmittedBasisCapability {
     normalized_basis_intent_digest: String,
     family: NormalizedBasisFamily,
     authority_posture: BasisAuthorityPosture,
+    scope_subject: NormalizedBasisSubject,
     scope_label: String,
     visibility: BasisVisibility,
     lifecycle_posture: BasisLifecyclePosture,
@@ -100,6 +41,10 @@ impl AdmittedBasisCapability {
 
     pub fn authority_posture(&self) -> &BasisAuthorityPosture {
         &self.authority_posture
+    }
+
+    pub fn scope_subject(&self) -> &NormalizedBasisSubject {
+        &self.scope_subject
     }
 
     pub fn scope_label(&self) -> &str {
@@ -139,6 +84,14 @@ impl AdmittedBasisCapability {
     pub fn capability_digest(&self) -> &str {
         &self.capability_digest
     }
+
+    pub fn snapshot_basis_identity(&self) -> ForgeQueryEvidenceIdentity {
+        compose_admitted_capability_snapshot_basis_identity(self)
+    }
+
+    pub fn snapshot_result_shape_identity(&self) -> ForgeQueryEvidenceIdentity {
+        compose_admitted_capability_snapshot_result_shape_identity(self)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -146,6 +99,7 @@ pub struct AdvisoryBasisCapability {
     normalized_basis_intent_digest: String,
     family: NormalizedBasisFamily,
     authority_posture: BasisAuthorityPosture,
+    scope_subject: NormalizedBasisSubject,
     scope_label: String,
     visibility: BasisVisibility,
     lifecycle_posture: BasisLifecyclePosture,
@@ -168,6 +122,10 @@ impl AdvisoryBasisCapability {
 
     pub fn authority_posture(&self) -> &BasisAuthorityPosture {
         &self.authority_posture
+    }
+
+    pub fn scope_subject(&self) -> &NormalizedBasisSubject {
+        &self.scope_subject
     }
 
     pub fn scope_label(&self) -> &str {
@@ -206,6 +164,14 @@ impl AdvisoryBasisCapability {
 
     pub fn advisory_digest(&self) -> &str {
         &self.advisory_digest
+    }
+
+    pub fn snapshot_basis_identity(&self) -> ForgeQueryEvidenceIdentity {
+        compose_advisory_capability_snapshot_basis_identity(self)
+    }
+
+    pub fn snapshot_result_shape_identity(&self) -> ForgeQueryEvidenceIdentity {
+        compose_advisory_capability_snapshot_result_shape_identity(self)
     }
 }
 
@@ -274,6 +240,7 @@ pub fn admit_basis_capability(eligibility: BasisEligibility) -> BasisCapabilityA
                     .to_string(),
                 family: eligibility.family().clone(),
                 authority_posture: eligibility.authority_posture().clone(),
+                scope_subject: eligibility.normalized_subject().clone(),
                 scope_label: eligibility.normalized_label().to_string(),
                 visibility,
                 lifecycle_posture,
@@ -282,17 +249,23 @@ pub fn admit_basis_capability(eligibility: BasisEligibility) -> BasisCapabilityA
                 lower_runtime_evidence_placeholders,
                 permitted_lanes,
                 counters: eligibility.counters().clone(),
-                capability_digest: hash_parts(&[
-                    format!(
-                        "normalized_basis_intent_digest:{}",
-                        eligibility.normalized_basis_intent_digest()
-                    ),
-                    format!("family:{}", eligibility.family().as_str()),
-                    format!("operation_lane:{}", eligibility.operation_lane().as_str()),
-                    format!("visibility:{}", visibility.as_str()),
-                    format!("lifecycle_posture:{}", lifecycle_posture.as_str()),
-                    "disposition:success".to_string(),
-                ]),
+                capability_digest: basis_lifecycle_digest(
+                    "basis_capability_success_v1",
+                    [
+                        (
+                            "normalized_basis_intent_digest",
+                            eligibility.normalized_basis_intent_digest().to_string(),
+                        ),
+                        ("family", eligibility.family().as_str().to_string()),
+                        (
+                            "operation_lane",
+                            eligibility.operation_lane().as_str().to_string(),
+                        ),
+                        ("visibility", visibility.as_str().to_string()),
+                        ("lifecycle_posture", lifecycle_posture.as_str().to_string()),
+                        ("disposition", "success".to_string()),
+                    ],
+                ),
             })
         }
         BasisEligibilityDisposition::Advisory => {
@@ -302,6 +275,7 @@ pub fn admit_basis_capability(eligibility: BasisEligibility) -> BasisCapabilityA
                     .to_string(),
                 family: eligibility.family().clone(),
                 authority_posture: eligibility.authority_posture().clone(),
+                scope_subject: eligibility.normalized_subject().clone(),
                 scope_label: eligibility.normalized_label().to_string(),
                 visibility,
                 lifecycle_posture,
@@ -310,17 +284,23 @@ pub fn admit_basis_capability(eligibility: BasisEligibility) -> BasisCapabilityA
                 lower_runtime_evidence_placeholders,
                 permitted_lanes,
                 counters: eligibility.counters().clone(),
-                advisory_digest: hash_parts(&[
-                    format!(
-                        "normalized_basis_intent_digest:{}",
-                        eligibility.normalized_basis_intent_digest()
-                    ),
-                    format!("family:{}", eligibility.family().as_str()),
-                    format!("operation_lane:{}", eligibility.operation_lane().as_str()),
-                    format!("visibility:{}", visibility.as_str()),
-                    format!("lifecycle_posture:{}", lifecycle_posture.as_str()),
-                    "disposition:advisory".to_string(),
-                ]),
+                advisory_digest: basis_lifecycle_digest(
+                    "basis_capability_advisory_v1",
+                    [
+                        (
+                            "normalized_basis_intent_digest",
+                            eligibility.normalized_basis_intent_digest().to_string(),
+                        ),
+                        ("family", eligibility.family().as_str().to_string()),
+                        (
+                            "operation_lane",
+                            eligibility.operation_lane().as_str().to_string(),
+                        ),
+                        ("visibility", visibility.as_str().to_string()),
+                        ("lifecycle_posture", lifecycle_posture.as_str().to_string()),
+                        ("disposition", "advisory".to_string()),
+                    ],
+                ),
             })
         }
     }
@@ -389,118 +369,114 @@ define_lane_admission!(
     Certification
 );
 
-fn visibility_for_family(family: &NormalizedBasisFamily) -> BasisVisibility {
-    match family {
-        NormalizedBasisFamily::CurrentHead => BasisVisibility::CurrentHead,
-        NormalizedBasisFamily::BranchHead => BasisVisibility::BranchScoped,
-        NormalizedBasisFamily::BranchSnapshot | NormalizedBasisFamily::RuntimeSnapshot => {
-            BasisVisibility::SnapshotScoped
-        }
-        NormalizedBasisFamily::HistoricalSnapshot | NormalizedBasisFamily::HistoricalCommit => {
-            BasisVisibility::Historical
-        }
-        NormalizedBasisFamily::Preview | NormalizedBasisFamily::PreviewDerivedHistorical => {
-            BasisVisibility::PreviewScoped
-        }
-    }
+fn compose_admitted_capability_snapshot_basis_identity(
+    capability: &AdmittedBasisCapability,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "basis_capability_snapshot_basis_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("disposition"), "admitted")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            capability.family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("operation_lane"),
+            capability.operation_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("visibility"),
+            capability.visibility().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("lifecycle_posture"),
+            capability.lifecycle_posture().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("scope_label"),
+            capability.scope_label(),
+        )
+        .seal()
 }
 
-fn lifecycle_posture_for_admission(
-    lane: &BasisOperationLaneRequest,
-    disposition: &BasisEligibilityDisposition,
-) -> BasisLifecyclePosture {
-    match disposition {
-        BasisEligibilityDisposition::Advisory => BasisLifecyclePosture::AdvisoryPreview,
-        BasisEligibilityDisposition::Success => match lane {
-            BasisOperationLaneRequest::MutationPreparation => {
-                BasisLifecyclePosture::MutablePreparation
-            }
-            BasisOperationLaneRequest::Replay => BasisLifecyclePosture::HistoricalReplay,
-            _ => BasisLifecyclePosture::Authoritative,
-        },
-    }
+fn compose_admitted_capability_snapshot_result_shape_identity(
+    capability: &AdmittedBasisCapability,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "basis_capability_snapshot_result_shape_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("disposition"), "admitted")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            capability.family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("operation_lane"),
+            capability.operation_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority"),
+            capability.authority_posture().as_str(),
+        )
+        .seal()
 }
 
-fn placeholders_for_lane(
-    lane: &BasisOperationLaneRequest,
-    disposition: &BasisEligibilityDisposition,
-) -> &'static [UnboundLowerRuntimeEvidencePlaceholder] {
-    match (lane, disposition) {
-        (BasisOperationLaneRequest::Observation, _) => &[
-            UnboundLowerRuntimeEvidencePlaceholder::BridgeTruthViewAuthority,
-            UnboundLowerRuntimeEvidencePlaceholder::RelationalTruthAuthority,
-            UnboundLowerRuntimeEvidencePlaceholder::SignalObservationAuthority,
-        ],
-        (BasisOperationLaneRequest::Inspection, _) => &[
-            UnboundLowerRuntimeEvidencePlaceholder::BridgeContinuityAuthority,
-            UnboundLowerRuntimeEvidencePlaceholder::RelationalTruthAuthority,
-            UnboundLowerRuntimeEvidencePlaceholder::SignalObservationAuthority,
-        ],
-        (
-            BasisOperationLaneRequest::SubscriptionDeclaration
-            | BasisOperationLaneRequest::SubscriptionActivation,
-            BasisEligibilityDisposition::Advisory,
-        ) => &[UnboundLowerRuntimeEvidencePlaceholder::BridgePreviewSubscriptionAuthority],
-        (
-            BasisOperationLaneRequest::SubscriptionDeclaration
-            | BasisOperationLaneRequest::SubscriptionActivation,
-            BasisEligibilityDisposition::Success,
-        ) => &[UnboundLowerRuntimeEvidencePlaceholder::BridgeSubscriptionAuthority],
-        (BasisOperationLaneRequest::Materialization, _) => &[
-            UnboundLowerRuntimeEvidencePlaceholder::BridgeTruthViewAuthority,
-            UnboundLowerRuntimeEvidencePlaceholder::BridgeCausalEnvelopeAuthority,
-        ],
-        (BasisOperationLaneRequest::MutationPreparation, _) => {
-            &[UnboundLowerRuntimeEvidencePlaceholder::BridgeWritebackAuthority]
-        }
-        _ => &[],
-    }
+fn compose_advisory_capability_snapshot_basis_identity(
+    capability: &AdvisoryBasisCapability,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "basis_capability_snapshot_basis_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("disposition"), "advisory")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            capability.family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("operation_lane"),
+            capability.operation_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("visibility"),
+            capability.visibility().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("lifecycle_posture"),
+            capability.lifecycle_posture().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("scope_label"),
+            capability.scope_label(),
+        )
+        .seal()
 }
 
-fn permitted_lanes_for_family(
-    family: &NormalizedBasisFamily,
-) -> &'static [BasisOperationLaneRequest] {
-    match family {
-        NormalizedBasisFamily::CurrentHead => &[
-            BasisOperationLaneRequest::Observation,
-            BasisOperationLaneRequest::Inspection,
-            BasisOperationLaneRequest::Materialization,
-            BasisOperationLaneRequest::SubscriptionDeclaration,
-            BasisOperationLaneRequest::SubscriptionActivation,
-            BasisOperationLaneRequest::Certification,
-            BasisOperationLaneRequest::MutationPreparation,
-        ],
-        NormalizedBasisFamily::BranchHead => &[
-            BasisOperationLaneRequest::Observation,
-            BasisOperationLaneRequest::Inspection,
-            BasisOperationLaneRequest::Materialization,
-            BasisOperationLaneRequest::SubscriptionDeclaration,
-            BasisOperationLaneRequest::SubscriptionActivation,
-            BasisOperationLaneRequest::Certification,
-            BasisOperationLaneRequest::MutationPreparation,
-        ],
-        NormalizedBasisFamily::BranchSnapshot | NormalizedBasisFamily::RuntimeSnapshot => &[
-            BasisOperationLaneRequest::Observation,
-            BasisOperationLaneRequest::Inspection,
-            BasisOperationLaneRequest::Materialization,
-            BasisOperationLaneRequest::Certification,
-        ],
-        NormalizedBasisFamily::HistoricalSnapshot | NormalizedBasisFamily::HistoricalCommit => &[
-            BasisOperationLaneRequest::Observation,
-            BasisOperationLaneRequest::Inspection,
-            BasisOperationLaneRequest::Materialization,
-            BasisOperationLaneRequest::Replay,
-            BasisOperationLaneRequest::Certification,
-        ],
-        NormalizedBasisFamily::Preview => &[
-            BasisOperationLaneRequest::Observation,
-            BasisOperationLaneRequest::Inspection,
-            BasisOperationLaneRequest::PreviewCloseout,
-        ],
-        NormalizedBasisFamily::PreviewDerivedHistorical => &[
-            BasisOperationLaneRequest::Observation,
-            BasisOperationLaneRequest::Inspection,
-            BasisOperationLaneRequest::Certification,
-        ],
-    }
+fn compose_advisory_capability_snapshot_result_shape_identity(
+    capability: &AdvisoryBasisCapability,
+) -> ForgeQueryEvidenceIdentity {
+    forge_query_evidence_identity(ForgeQueryEvidenceScope::RawBasisIntent)
+        .field_shape(
+            ForgeQueryEvidenceTag::new("identity_family"),
+            "basis_capability_snapshot_result_shape_v1",
+        )
+        .field_shape(ForgeQueryEvidenceTag::new("disposition"), "advisory")
+        .field_shape(
+            ForgeQueryEvidenceTag::new("family"),
+            capability.family().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("operation_lane"),
+            capability.operation_lane().as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("authority"),
+            capability.authority_posture().as_str(),
+        )
+        .seal()
 }

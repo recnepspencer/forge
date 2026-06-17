@@ -1,5 +1,3 @@
-use crate::identity::hash_parts;
-
 use super::admission_decision::{
     CausalInspectionAdmissionDecision, CausalInspectionAdmissionDecisionKind,
     CausalInspectionAdmissionSubject, CausalInspectionAdvisoryKind, CausalInspectionViolationKind,
@@ -8,6 +6,7 @@ use super::admission_trace::{
     CausalDecisionTraceIndex, CausalDecisionTraceRow, CausalInspectionAdmissionCounters,
     CausalInspectionAdmissionReceipt,
 };
+use super::identity::{compose_causal_outcome_identity, CausalInspectionOutcomeIdentity};
 use super::request::{
     CausalInspectionExplanationFamily, CausalInspectionRequest, CausalInspectionRichness,
 };
@@ -19,7 +18,7 @@ pub struct AdmittedCausalInspection {
     decision_trace: CausalDecisionTraceIndex,
     receipt: CausalInspectionAdmissionReceipt,
     counters: CausalInspectionAdmissionCounters,
-    admitted_inspection_digest: String,
+    admitted_inspection_digest: CausalInspectionOutcomeIdentity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -29,7 +28,7 @@ pub struct AdvisoryCausalInspection {
     decision_trace: CausalDecisionTraceIndex,
     receipt: CausalInspectionAdmissionReceipt,
     counters: CausalInspectionAdmissionCounters,
-    advisory_inspection_digest: String,
+    advisory_inspection_digest: CausalInspectionOutcomeIdentity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -39,7 +38,7 @@ pub struct DeniedCausalInspection {
     decision_trace: CausalDecisionTraceIndex,
     receipt: CausalInspectionAdmissionReceipt,
     counters: CausalInspectionAdmissionCounters,
-    denied_inspection_digest: String,
+    denied_inspection_digest: CausalInspectionOutcomeIdentity,
 }
 
 macro_rules! inspection_accessors {
@@ -66,7 +65,11 @@ macro_rules! inspection_accessors {
             }
 
             pub fn $digest_name(&self) -> &str {
-                &self.$digest_name
+                self.$digest_name.as_str()
+            }
+
+            pub fn inspection_for_reporting(&self) -> &str {
+                self.$digest_name.as_str()
             }
         }
     };
@@ -75,6 +78,36 @@ macro_rules! inspection_accessors {
 inspection_accessors!(AdmittedCausalInspection, admitted_inspection_digest);
 inspection_accessors!(AdvisoryCausalInspection, advisory_inspection_digest);
 inspection_accessors!(DeniedCausalInspection, denied_inspection_digest);
+
+impl AdmittedCausalInspection {
+    pub(super) fn admitted_inspection_identity(&self) -> &CausalInspectionOutcomeIdentity {
+        &self.admitted_inspection_digest
+    }
+
+    pub fn admitted_inspection_for_reporting(&self) -> &str {
+        self.admitted_inspection_digest()
+    }
+}
+
+impl AdvisoryCausalInspection {
+    pub(super) fn advisory_inspection_identity(&self) -> &CausalInspectionOutcomeIdentity {
+        &self.advisory_inspection_digest
+    }
+
+    pub fn advisory_inspection_for_reporting(&self) -> &str {
+        self.advisory_inspection_digest()
+    }
+}
+
+impl DeniedCausalInspection {
+    pub(super) fn denied_inspection_identity(&self) -> &CausalInspectionOutcomeIdentity {
+        &self.denied_inspection_digest
+    }
+
+    pub fn denied_inspection_for_reporting(&self) -> &str {
+        self.denied_inspection_digest()
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CausalInspectionProofFlow {
@@ -111,7 +144,7 @@ pub fn admit_causal_inspection(request: CausalInspectionRequest) -> CausalInspec
         CausalInspectionAdmissionDecisionKind::Success => {
             CausalInspectionProofFlow::Admitted(AdmittedCausalInspection {
                 admitted_inspection_digest: inspection_digest(
-                    "admitted_causal_inspection_v1",
+                    CausalInspectionAdmissionDecisionKind::Success,
                     &subject,
                     &decision,
                     &trace,
@@ -127,7 +160,7 @@ pub fn admit_causal_inspection(request: CausalInspectionRequest) -> CausalInspec
         CausalInspectionAdmissionDecisionKind::Advisory => {
             CausalInspectionProofFlow::Advisory(AdvisoryCausalInspection {
                 advisory_inspection_digest: inspection_digest(
-                    "advisory_causal_inspection_v1",
+                    CausalInspectionAdmissionDecisionKind::Advisory,
                     &subject,
                     &decision,
                     &trace,
@@ -143,7 +176,7 @@ pub fn admit_causal_inspection(request: CausalInspectionRequest) -> CausalInspec
         CausalInspectionAdmissionDecisionKind::Violation => {
             CausalInspectionProofFlow::Denied(DeniedCausalInspection {
                 denied_inspection_digest: inspection_digest(
-                    "denied_causal_inspection_v1",
+                    CausalInspectionAdmissionDecisionKind::Violation,
                     &subject,
                     &decision,
                     &trace,
@@ -232,17 +265,17 @@ fn decision_trace(
 }
 
 fn inspection_digest(
-    label: &'static str,
+    kind: CausalInspectionAdmissionDecisionKind,
     subject: &CausalInspectionAdmissionSubject,
     decision: &CausalInspectionAdmissionDecision,
     trace: &CausalDecisionTraceIndex,
     receipt: &CausalInspectionAdmissionReceipt,
-) -> String {
-    hash_parts(&[
-        label.to_string(),
-        format!("subject:{}", subject.subject_digest()),
-        format!("decision:{}", decision.decision_digest()),
-        format!("trace:{}", trace.trace_digest()),
-        format!("receipt:{}", receipt.receipt_digest()),
-    ])
+) -> CausalInspectionOutcomeIdentity {
+    compose_causal_outcome_identity(
+        kind,
+        subject.subject_identity(),
+        decision.decision_identity(),
+        trace.trace_identity(),
+        receipt.receipt_identity(),
+    )
 }

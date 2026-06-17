@@ -152,7 +152,7 @@ impl BridgeSubscriptionFanoutProjectionValidation {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
             fanout_projection_validation_identity:
-                BridgeSubscriptionFanoutProjectionValidationIdentity::new(format!(
+                BridgeSubscriptionFanoutProjectionValidationIdentity::admit_bridge_owned(format!(
                     "bridge-subscription-fanout-projection-validation-id:sha256:{digest:x}"
                 )),
             fanout_layout_identity: layout.fanout_layout_identity().clone(),

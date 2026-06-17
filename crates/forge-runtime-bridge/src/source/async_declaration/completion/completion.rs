@@ -58,7 +58,7 @@ impl BridgeAsyncCompletionReceipt {
     ) -> Self {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            receipt_identity: BridgeAsyncCompletionReceiptIdentity::new(format!(
+            receipt_identity: BridgeAsyncCompletionReceiptIdentity::admit_bridge_owned(format!(
                 "bridge-async-completion-receipt-id:sha256:{digest:x}"
             )),
             completion_identity: completion_identity.clone(),
@@ -106,9 +106,9 @@ impl BridgeAsyncDeniedCompletionReceipt {
     ) -> Self {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            receipt_identity: BridgeAsyncDeniedCompletionReceiptIdentity::new(format!(
-                "bridge-async-denied-completion-receipt-id:sha256:{digest:x}"
-            )),
+            receipt_identity: BridgeAsyncDeniedCompletionReceiptIdentity::admit_bridge_owned(
+                format!("bridge-async-denied-completion-receipt-id:sha256:{digest:x}"),
+            ),
             denial_identity: denial_identity.clone(),
             state,
             canonical_basis,
@@ -176,7 +176,7 @@ impl AdmittedBridgeAsyncCompletion {
             completion_class,
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let completion_identity = BridgeAsyncCompletionIdentity::new(format!(
+        let completion_identity = BridgeAsyncCompletionIdentity::admit_bridge_owned(format!(
             "bridge-async-completion-id:sha256:{digest:x}"
         ));
         let receipt = BridgeAsyncCompletionReceipt::admitted(
@@ -287,7 +287,7 @@ impl BridgeAsyncDeniedCompletion {
             denied_completion.payload_byte_len(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
-        let denial_identity = BridgeAsyncCompletionDenialIdentity::new(format!(
+        let denial_identity = BridgeAsyncCompletionDenialIdentity::admit_bridge_owned(format!(
             "bridge-async-denied-completion-id:sha256:{digest:x}"
         ));
         let receipt = BridgeAsyncDeniedCompletionReceipt::denied(

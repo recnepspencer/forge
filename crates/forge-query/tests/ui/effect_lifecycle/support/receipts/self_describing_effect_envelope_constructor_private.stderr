@@ -1,43 +1,47 @@
-error: cannot construct `forge_query::facade::SelfDescribingEffectEnvelope` with struct literal syntax due to private fields
-  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:6:13
+error[E0560]: struct `forge_query::facade::SelfDescribingEffectEnvelope` has no field named `trace_digest`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:11:9
    |
- 6 |     let _ = SelfDescribingEffectEnvelope {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 7 |         declared_effect_family: EffectFamily::Mutation,
-   |         ---------------------------------------------- private field
- 8 |         authority_lane: EffectAuthorityLane::Relational,
-   |         ----------------------------------------------- private field
- 9 |         primary_result: EffectEnvelopePrimaryResult::MutationCommitted,
-   |         -------------------------------------------------------------- private field
-10 |         warnings: Vec::new(),
-   |         -------------------- private field
 11 |         trace_digest: String::new(),
-   |         --------------------------- private field
+   |         ^^^^^^^^^^^^ `forge_query::facade::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `forge_query::facade::SelfDescribingEffectEnvelope` has no field named `structural_deltas`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:12:9
+   |
 12 |         structural_deltas: Vec::new(),
-   |         ----------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^ `forge_query::facade::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `forge_query::facade::SelfDescribingEffectEnvelope` has no field named `integrity_digest`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:13:9
+   |
 13 |         integrity_digest: String::new(),
-   |         ------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^ `forge_query::facade::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `forge_query::facade::SelfDescribingEffectEnvelope` has no field named `performance_digest`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:14:9
+   |
 14 |         performance_digest: String::new(),
-   |         --------------------------------- private field
+   |         ^^^^^^^^^^^^^^^^^^ `forge_query::facade::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `forge_query::facade::SelfDescribingEffectEnvelope` has no field named `boundary_digest`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:15:9
+   |
 15 |         boundary_digest: String::new(),
-   |         ------------------------------ private field
+   |         ^^^^^^^^^^^^^^^ `forge_query::facade::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `forge_query::facade::SelfDescribingEffectEnvelope` has no field named `envelope_digest`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:16:9
+   |
 16 |         envelope_digest: String::new(),
-   |         ------------------------------ private field
+   |         ^^^^^^^^^^^^^^^ `forge_query::facade::SelfDescribingEffectEnvelope` does not have this field
    |
-   = note: ...and other private fields `authority_owner`, `basis_lane`, `receipt_family`, `transition_rules_digest`, `deferred_neighbors` and `sources` that were not provided
-help: you might have meant to use the `from_receipt` associated function
-   |
- 6 -     let _ = SelfDescribingEffectEnvelope {
- 7 -         declared_effect_family: EffectFamily::Mutation,
- 8 -         authority_lane: EffectAuthorityLane::Relational,
- 9 -         primary_result: EffectEnvelopePrimaryResult::MutationCommitted,
-10 -         warnings: Vec::new(),
-11 -         trace_digest: String::new(),
-12 -         structural_deltas: Vec::new(),
-13 -         integrity_digest: String::new(),
-14 -         performance_digest: String::new(),
-15 -         boundary_digest: String::new(),
-16 -         envelope_digest: String::new(),
-17 -     };
- 6 +     let _ = SelfDescribingEffectEnvelope::from_receipt(_);
-   |
+   = note: all struct fields are already assigned

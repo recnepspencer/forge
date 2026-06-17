@@ -127,13 +127,13 @@ impl ProjectionConsumptionAuthoringSurface {
 
     pub fn from_retained_derived_artifact_binding(
         binding: &ForgeQueryDerivedArtifactBinding,
-        result_shape_digest: &str,
+        result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
     ) -> Self {
         Self {
             source: ProjectionConsumptionSource::from_retained_derived_artifact_binding(binding),
-            binding: ProjectionConsumptionBindingContext::from_result_shape_digest(
-                result_shape_digest,
+            binding: ProjectionConsumptionBindingContext::from_authorized_projection(
+                result_shape,
                 authorized_projection,
             ),
         }
@@ -141,13 +141,13 @@ impl ProjectionConsumptionAuthoringSurface {
 
     pub fn from_live_artifact_binding(
         binding: &ForgeQueryLiveArtifactBinding,
-        result_shape_digest: &str,
+        result_shape_identity: &crate::evidence_identity::ForgeQueryEvidenceIdentity,
         authorized_projection: &AuthorizedProjectionArtifact,
     ) -> Self {
         Self {
             source: ProjectionConsumptionSource::from_live_artifact_binding(binding),
-            binding: ProjectionConsumptionBindingContext::from_result_shape_digest(
-                result_shape_digest,
+            binding: ProjectionConsumptionBindingContext::from_result_shape_identity(
+                result_shape_identity,
                 authorized_projection,
             ),
         }
@@ -287,7 +287,7 @@ impl QueryContextExecutionArtifact {
 impl ForgeQueryDerivedArtifactBinding {
     pub fn declare_projection_fact_consumption(
         &self,
-        result_shape_digest: &str,
+        result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
         requested: ProjectMaterializedFacts,
     ) -> Result<ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError> {
@@ -295,7 +295,7 @@ impl ForgeQueryDerivedArtifactBinding {
             .source(
                 ProjectionConsumptionAuthoringSurface::from_retained_derived_artifact_binding(
                     self,
-                    result_shape_digest,
+                    result_shape,
                     authorized_projection,
                 ),
             )
@@ -306,7 +306,7 @@ impl ForgeQueryDerivedArtifactBinding {
 impl ForgeQueryLiveArtifactBinding {
     pub fn declare_projection_fact_consumption(
         &self,
-        result_shape_digest: &str,
+        result_shape_identity: &crate::evidence_identity::ForgeQueryEvidenceIdentity,
         authorized_projection: &AuthorizedProjectionArtifact,
         requested: ProjectMaterializedFacts,
     ) -> Result<ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError> {
@@ -314,7 +314,7 @@ impl ForgeQueryLiveArtifactBinding {
             .source(
                 ProjectionConsumptionAuthoringSurface::from_live_artifact_binding(
                     self,
-                    result_shape_digest,
+                    result_shape_identity,
                     authorized_projection,
                 ),
             )

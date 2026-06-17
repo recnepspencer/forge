@@ -36,6 +36,7 @@ use crate::facade::{
     ExecutionBasisIntent, QueryBasisContextRequest, QueryContextBindingSource,
     ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -118,7 +119,7 @@ fn current_context_for_family(
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        snapshot_token.to_string(),
+        crate::memory_workspace::admit_external_snapshot_label(snapshot_token).evidence_identity(),
         family.read_graph().schema_basis().clone(),
         SnapshotLineageClass::CurrentHead,
     );

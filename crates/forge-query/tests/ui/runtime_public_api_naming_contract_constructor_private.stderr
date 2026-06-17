@@ -1,31 +1,15 @@
-error[E0451]: fields `concept`, `preferred_name`, `alternate_names`, `boundary_crossing` and `naming_digest` of struct `ForgeQueryRuntimePublicApiNamingRow` are private
-  --> tests/ui/runtime_public_api_naming_contract_constructor_private.rs:7:9
+error[E0560]: struct `ForgeQueryRuntimePublicApiNamingRow` has no field named `naming_digest`
+  --> tests/ui/runtime_public_api_naming_contract_constructor_private.rs:11:9
    |
- 6 |     let _row = ForgeQueryRuntimePublicApiNamingRow {
-   |                ----------------------------------- in this type
- 7 |         concept: "live-view".to_string(),
-   |         ^^^^^^^ private field
- 8 |         preferred_name: "surface".to_string(),
-   |         ^^^^^^^^^^^^^^ private field
- 9 |         alternate_names: Vec::new(),
-   |         ^^^^^^^^^^^^^^^ private field
-10 |         boundary_crossing: true,
-   |         ^^^^^^^^^^^^^^^^^ private field
 11 |         naming_digest: "unchecked".to_string(),
-   |         ^^^^^^^^^^^^^ private field
-
-error[E0451]: fields `rows`, `preferred_entrypoint_count`, `alternate_name_count`, `boundary_crossing_name_count` and `contract_digest` of struct `ForgeQueryRuntimePublicApiNamingContract` are private
-  --> tests/ui/runtime_public_api_naming_contract_constructor_private.rs:15:9
+   |         ^^^^^^^^^^^^^ `ForgeQueryRuntimePublicApiNamingRow` does not have this field
    |
-14 |     let _contract = ForgeQueryRuntimePublicApiNamingContract {
-   |                     ---------------------------------------- in this type
-15 |         rows: Vec::new(),
-   |         ^^^^ private field
-16 |         preferred_entrypoint_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-17 |         alternate_name_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
-18 |         boundary_crossing_name_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ForgeQueryRuntimePublicApiNamingContract` has no field named `contract_digest`
+  --> tests/ui/runtime_public_api_naming_contract_constructor_private.rs:19:9
+   |
 19 |         contract_digest: "unchecked".to_string(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^ `ForgeQueryRuntimePublicApiNamingContract` does not have this field
+   |
+   = note: all struct fields are already assigned

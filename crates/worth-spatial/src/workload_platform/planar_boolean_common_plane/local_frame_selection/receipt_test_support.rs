@@ -7,8 +7,8 @@ mod readiness_bundle;
 #[path = "receipt_test_support/shared_plane_identity.rs"]
 mod shared_plane_identity;
 
-pub(super) use readiness_bundle::readiness_receipt;
-pub(super) use shared_plane_identity::shared_plane_identity_receipt;
+pub(crate) use readiness_bundle::readiness_receipt;
+pub(crate) use shared_plane_identity::shared_plane_identity_receipt;
 
 const WORLD: &str = "planar-boolean-common-plane-local-frame-selection-tests";
 const TOPOLOGY: &str = "topology:local-frame-test";

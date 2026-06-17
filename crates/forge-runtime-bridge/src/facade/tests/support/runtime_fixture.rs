@@ -10,7 +10,7 @@ use crate::mapping::{
     SignalInvalidationScope, TruthPatchScope,
 };
 use crate::policy::BridgeRuntimePolicy;
-use crate::snapshot::{BridgeTruthViewSelector, SnapshotReadContract, TruthSnapshotIdentity};
+use crate::snapshot::{BridgeTruthViewSelector, SnapshotReadContract};
 use crate::source::BridgeSourceCapability;
 use crate::structural::{StructuralFingerprintFamily, StructuralTruthViewBasis};
 use forge_foundational::facade::{AspectKey, FieldKey, ScalarAspectType};
@@ -72,8 +72,8 @@ fn analysis_snapshot_source() -> crate::source::SourceDeclaration {
     registered_source(
         "source:analysis-snapshot",
         BridgeTruthViewSelector::branch_snapshot(
-            crate::input::envelope::TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         ),
         vec![
             BridgeSourceCapability::SnapshotRead,
@@ -86,8 +86,8 @@ fn analysis_history_source() -> crate::source::SourceDeclaration {
     registered_source(
         "source:analysis-history",
         BridgeTruthViewSelector::historical_commit(
-            crate::input::envelope::TruthBranchIdentity::new("analysis"),
-            crate::input::envelope::TruthCommitIdentity::new("commit-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
         ),
         vec![
             BridgeSourceCapability::SnapshotRead,
@@ -103,15 +103,15 @@ fn analysis_structural_registration() -> crate::structural::StructuralIdentityDe
         "structural:analysis-snapshot",
         StructuralFingerprintFamily::TopologyFingerprint,
         StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
-            crate::input::envelope::TruthBranchIdentity::new("analysis"),
-            TruthSnapshotIdentity::new("snapshot-a"),
+            crate::truth_identity_fixtures::truth_branch_fixture("analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )),
     )
 }
 
 fn native_profile_mapping_registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("mapping"),
+        BridgeMappingId::admit_bridge_owned("mapping"),
         TruthPatchScope::for_entity_field(
             MappingSelector::exact("entity-1"),
             AspectKey::new("profile").expect("valid native aspect key"),
@@ -121,7 +121,7 @@ fn native_profile_mapping_registration() -> BridgeMappingRegistration {
             AspectKey::new("profile").expect("valid native aspect key"),
             ScalarAspectType::String,
         ),
-        SignalInvalidationScope::new("signal:profile"),
+        SignalInvalidationScope::admit_bridge_owned("signal:profile"),
         CoarseRoutingMode::Direct,
     )
 }

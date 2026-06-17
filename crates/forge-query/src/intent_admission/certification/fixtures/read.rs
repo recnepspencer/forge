@@ -10,9 +10,10 @@ use crate::facade::{
     ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
 use crate::intent_admission::{ForgeQueryAdmittedIntentPlan, ForgeQueryRawIntentAdmissionRequest};
+use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
 
-use super::runtime::certification_runtime;
+use super::{certification_snapshot_identity, runtime::certification_runtime};
 
 #[derive(Clone)]
 pub(in crate::intent_admission::certification) struct CertifiedReadIntentFixture {
@@ -95,15 +96,20 @@ pub(in crate::intent_admission::certification) fn read_delegation_parity_fixture
 
     let mut delegated_basis = certification_read_workspace("delegated-read-basis");
     let basis_family = certification_read_family(&mut delegated_basis, "tasks");
-    let basis_context = current_context_for_family(&basis_family, "certification-read-basis");
+    let basis_context = current_context_for_family(
+        &basis_family,
+        certification_snapshot_identity("certification-read-basis"),
+    );
     let basis_legacy = delegated_basis
         .execute_read_family_in_basis_context(&basis_family, &basis_context)
         .expect("delegated basis read should execute");
 
     let mut canonical_basis = certification_read_workspace("canonical-read-basis");
     let canonical_basis_family = certification_read_family(&mut canonical_basis, "tasks");
-    let canonical_context =
-        current_context_for_family(&canonical_basis_family, "certification-read-basis");
+    let canonical_context = current_context_for_family(
+        &canonical_basis_family,
+        certification_snapshot_identity("certification-read-basis"),
+    );
     let basis_review = canonical_basis
         .review_read_execution(canonical_basis_family, Some(canonical_context))
         .expect("canonical basis review should succeed");
@@ -161,7 +167,7 @@ fn certification_read_family(
 
 fn current_context_for_family(
     family: &ForgeQueryReadFamily,
-    snapshot_token: &str,
+    snapshot_identity: ForgeQuerySnapshotIdentity,
 ) -> AdmittedQueryBasisContext {
     let intent = ExecutionBasisIntent::new(
         BasisAuthorityFamily::Runtime,
@@ -171,7 +177,7 @@ fn current_context_for_family(
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
-        snapshot_token.to_string(),
+        snapshot_identity.evidence_identity(),
         family.read_graph().schema_basis().clone(),
         SnapshotLineageClass::CurrentHead,
     );

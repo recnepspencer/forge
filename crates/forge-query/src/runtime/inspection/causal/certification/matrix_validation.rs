@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use super::super::inventory::CausalEvidenceFamily;
-use super::super::materialization::QueryCausalInspectionArtifact;
+use super::super::materialization::{CausalInspectionArtifactKind, QueryCausalInspectionArtifact};
 use super::error::{CausalInspectionCertificationError, CausalInspectionCertificationErrorKind};
 use super::failure_evidence::CausalInspectionCertificationFailureEvidence;
 use super::matrix::CausalInspectionRepresentativeEvidence;
@@ -173,7 +173,7 @@ fn validate_basic_artifact_posture(
         }
         CausalInspectionRepresentativeKind::AdvisoryRedactedCausalEnvelope
         | CausalInspectionRepresentativeKind::PolicyRedacted => {
-            artifact.kind().as_str() == "advisory"
+            artifact.kind() == CausalInspectionArtifactKind::Advisory
         }
         CausalInspectionRepresentativeKind::QueryDeniedBeforeBridgeEnvelope => artifact.is_denied(),
         _ => false,

@@ -10,15 +10,21 @@ fn changed_anchor_with_route_signal_and_inspection() -> CausalObservationAnchor 
             vec![
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::QueryInspection,
-                    "indexed-query-inspection-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "indexed-query-inspection-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::BridgeRoute,
-                    "indexed-bridge-route-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "indexed-bridge-route-reference",
+                    ),
                 ),
                 CausalObservationEvidenceIdentity::new(
                     CausalEvidenceFamily::SignalInvalidation,
-                    "indexed-signal-invalidation-reference",
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        "indexed-signal-invalidation-reference",
+                    ),
                 ),
             ],
         ),
@@ -35,13 +41,17 @@ fn indexed_evidence_reference_resolution_uses_index_records_without_scan_fallbac
         causal_evidence_reference_index_record(
             CausalEvidenceOwner::RuntimeBridge,
             CausalEvidenceFamily::BridgeRoute,
-            "indexed-bridge-route-reference",
+            crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                "indexed-bridge-route-reference",
+            ),
         )
         .unwrap(),
         causal_evidence_reference_index_record(
             CausalEvidenceOwner::Signal,
             CausalEvidenceFamily::SignalInvalidation,
-            "indexed-signal-invalidation-reference",
+            crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                "indexed-signal-invalidation-reference",
+            ),
         )
         .unwrap(),
     ]);
@@ -68,12 +78,18 @@ fn indexed_evidence_reference_resolution_uses_index_records_without_scan_fallbac
     assert!(reference_set.references().iter().any(|reference| {
         reference.owner() == CausalEvidenceOwner::RuntimeBridge
             && reference.family() == CausalEvidenceFamily::BridgeRoute
-            && reference.reference_digest().as_str() == "indexed-bridge-route-reference"
+            && reference.reference_digest()
+                == &crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "indexed-bridge-route-reference",
+                )
     }));
     assert!(reference_set.references().iter().any(|reference| {
         reference.owner() == CausalEvidenceOwner::Signal
             && reference.family() == CausalEvidenceFamily::SignalInvalidation
-            && reference.reference_digest().as_str() == "indexed-signal-invalidation-reference"
+            && reference.reference_digest()
+                == &crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                    "indexed-signal-invalidation-reference",
+                )
     }));
     assert_eq!(index.record_count(), 2);
     assert_eq!(index.family_count(), 2);
@@ -96,7 +112,9 @@ fn indexed_reference_resolution_denies_missing_index_record_for_anchor_carried_f
     let index = causal_evidence_reference_index([causal_evidence_reference_index_record(
         CausalEvidenceOwner::Query,
         CausalEvidenceFamily::QueryInspection,
-        "indexed-query-inspection-reference",
+        crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+            "indexed-query-inspection-reference",
+        ),
     )
     .unwrap()]);
 
@@ -133,19 +151,25 @@ fn indexed_reference_resolution_ignores_unrelated_retained_index_records() {
         causal_evidence_reference_index_record(
             CausalEvidenceOwner::RuntimeBridge,
             CausalEvidenceFamily::BridgeRoute,
-            "stale-bridge-route-reference",
+            crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                "stale-bridge-route-reference",
+            ),
         )
         .unwrap(),
         causal_evidence_reference_index_record(
             CausalEvidenceOwner::RuntimeBridge,
             CausalEvidenceFamily::BridgeRoute,
-            "indexed-bridge-route-reference",
+            crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                "indexed-bridge-route-reference",
+            ),
         )
         .unwrap(),
         causal_evidence_reference_index_record(
             CausalEvidenceOwner::Signal,
             CausalEvidenceFamily::SignalEvaluation,
-            "unrelated-signal-evaluation-reference",
+            crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                "unrelated-signal-evaluation-reference",
+            ),
         )
         .unwrap(),
     ]);
@@ -186,7 +210,9 @@ fn indexed_reference_resolution_lookup_cost_follows_anchor_reference_width_not_r
         let mut index_records = vec![causal_evidence_reference_index_record(
             CausalEvidenceOwner::RuntimeBridge,
             CausalEvidenceFamily::BridgeRoute,
-            "indexed-bridge-route-reference",
+            crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                "indexed-bridge-route-reference",
+            ),
         )
         .unwrap()];
         for retained_index in 0..unrelated_retained_record_count {
@@ -194,7 +220,9 @@ fn indexed_reference_resolution_lookup_cost_follows_anchor_reference_width_not_r
                 causal_evidence_reference_index_record(
                     CausalEvidenceOwner::RuntimeBridge,
                     CausalEvidenceFamily::BridgeRoute,
-                    format!("unrelated-retained-bridge-route-{retained_index}"),
+                    crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+                        format!("unrelated-retained-bridge-route-{retained_index}"),
+                    ),
                 )
                 .unwrap(),
             );
@@ -225,11 +253,13 @@ fn indexed_reference_resolution_lookup_cost_follows_anchor_reference_width_not_r
 }
 
 #[test]
-fn reference_index_record_denies_owner_mismatch_and_empty_digest() {
+fn reference_index_record_denies_owner_mismatch_and_seals_fixture_reference_labels() {
     let owner_mismatch = causal_evidence_reference_index_record(
         CausalEvidenceOwner::Signal,
         CausalEvidenceFamily::BridgeRoute,
-        "bridge-route-reference",
+        crate::runtime::tests::causal_inspection::causal_test_reference_digest(
+            "bridge-route-reference",
+        ),
     )
     .unwrap_err();
 
@@ -245,16 +275,16 @@ fn reference_index_record_denies_owner_mismatch_and_empty_digest() {
     );
     assert!(!owner_mismatch.failure_digest().is_empty());
 
-    let empty_digest = causal_evidence_reference_index_record(
+    let sealed_empty_label = causal_evidence_reference_index_record(
         CausalEvidenceOwner::RuntimeBridge,
         CausalEvidenceFamily::BridgeRoute,
-        "",
+        crate::runtime::tests::causal_inspection::causal_test_reference_digest(""),
     )
-    .unwrap_err();
+    .expect("typed reference labels should seal before index admission");
 
     assert_eq!(
-        empty_digest.kind(),
-        CausalEvidenceReferenceIndexErrorKind::EmptyReferenceDigest
+        sealed_empty_label.family(),
+        CausalEvidenceFamily::BridgeRoute
     );
-    assert_eq!(empty_digest.family(), CausalEvidenceFamily::BridgeRoute);
+    assert!(!sealed_empty_label.reference_digest().as_str().is_empty());
 }

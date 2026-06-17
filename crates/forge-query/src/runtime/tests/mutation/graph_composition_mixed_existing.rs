@@ -45,7 +45,7 @@ fn compose_graph_supports_mixed_symbolic_create_and_existing_target_lifecycle() 
     let update_binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-update",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-update").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 update_seed.deltas()[0].entity_identity.clone(),
             )
             .expect("update relation target should build")
@@ -56,7 +56,7 @@ fn compose_graph_supports_mixed_symbolic_create_and_existing_target_lifecycle() 
     let delete_binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                "authority:rel-delete",
+                crate::runtime::ForgeQueryMutationAuthorityIdentity::existing_truth_binding_authority(crate::runtime::ForgeQueryExistingTruthBindingAuthorityLabel::new("authority:rel-update").expect("existing-truth authority label")).expect("existing-truth authority identity"),
                 delete_seed.deltas()[0].entity_identity.clone(),
             )
             .expect("delete relation target should build")

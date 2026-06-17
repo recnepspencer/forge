@@ -3,7 +3,7 @@ use crate::adapter::BridgeHistoricalLineageRequest;
 use crate::continuity::BridgeContinuityAuthorityBasis;
 use crate::error::BridgeLineageSourceErrorKind;
 use crate::facade::RuntimeBridgeBuilder;
-use crate::snapshot::TruthSnapshotIdentity;
+use crate::truth_identity_fixtures::{truth_branch, truth_snapshot};
 
 #[test]
 fn build_accepts_optional_continuity_lineage_source() {
@@ -15,10 +15,8 @@ fn build_accepts_optional_continuity_lineage_source() {
         .build()
         .expect("builder should accept continuity lineage source");
 
-    let authority_basis = BridgeContinuityAuthorityBasis::new(
-        crate::input::envelope::TruthBranchIdentity::new("main"),
-        TruthSnapshotIdentity::new("snapshot"),
-    );
+    let authority_basis =
+        BridgeContinuityAuthorityBasis::new(truth_branch("main"), truth_snapshot(1, 1));
     let source = runtime
         .continuity_lineage_source()
         .expect("continuity lineage source should be present");
@@ -62,10 +60,7 @@ fn continuity_lineage_source_can_return_typed_unsupported_class_failure() {
         .expect("continuity lineage source should be present");
     let error = source
         .historical_lineage(BridgeHistoricalLineageRequest::new(
-            BridgeContinuityAuthorityBasis::new(
-                crate::input::envelope::TruthBranchIdentity::new("main"),
-                TruthSnapshotIdentity::new("snapshot"),
-            ),
+            BridgeContinuityAuthorityBasis::new(truth_branch("main"), truth_snapshot(1, 1)),
             native_prior_field_slice("relation:test", "aspect.test", "field_test"),
         ))
         .expect_err("unsupported continuity class should be typed");
