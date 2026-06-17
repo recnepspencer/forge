@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanEdgeSplitPhaseStop`
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_phase_stop_not_from_raw_strings.rs:2:5
+  |
+2 |     PlanarBooleanEdgeSplitPhaseStop, PlanarBooleanSplitDecisionPhase,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     |
+  |     no `PlanarBooleanEdgeSplitPhaseStop` in `facade::planar_boolean_edge_splitting`
+  |     help: a similar name exists in the module: `PlanarBooleanEdgeSplitRequest`

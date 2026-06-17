@@ -1,5 +1,5 @@
 mod error;
-mod facade;
+pub(crate) mod facade;
 mod loop_wiring;
 mod naming;
 mod ownership;
@@ -14,6 +14,5 @@ pub use error::TopologyValidationError;
 pub(crate) use facade::TopologyValidator;
 pub use facade::{
     validate_interpreted_topology, validate_named_topology_truth, DerivedTopologyValidationReport,
-    TopologyValidationInputClass, TopologyValidationPhase, TopologyValidationReport,
-    TopologyValidationRow,
+    TopologyValidationPhase, TopologyValidationReport,
 };

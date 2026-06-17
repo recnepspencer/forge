@@ -1,10 +1,14 @@
 #[path = "public_api_planar_boolean_collinear_relations_support/mod.rs"]
 #[allow(dead_code)]
 mod collinear_relation_support;
+#[path = "public_api_planar_boolean_edge_splitting_decision_log_support.rs"]
+mod edge_splitting_decision_log_support;
 #[path = "public_api_planar_boolean_edge_splitting_endpoint_boundary_support.rs"]
 mod edge_splitting_endpoint_boundary_support;
 #[path = "public_api_planar_boolean_edge_splitting_interval_subdivision_support.rs"]
 mod edge_splitting_interval_subdivision_support;
+#[path = "public_api_planar_boolean_edge_splitting_ledger_support.rs"]
+mod edge_splitting_ledger_support;
 #[path = "public_api_planar_boolean_edge_splitting_normalized_schedule_support.rs"]
 mod edge_splitting_normalized_schedule_support;
 #[path = "public_api_planar_boolean_edge_splitting_ordered_schedule_support.rs"]
@@ -40,8 +44,13 @@ mod predicate_binding_support;
 #[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
 mod reduced_pair_support;
 
+use edge_splitting_decision_log_support::assert_split_decision_log_matches_metaboss;
 use edge_splitting_endpoint_boundary_support::assert_endpoint_boundary_normalization_matches_metaboss;
 use edge_splitting_interval_subdivision_support::assert_interval_subdivision_normalization_matches_metaboss;
+use edge_splitting_ledger_support::{
+    assert_split_edge_chain_ledger_matches_metaboss,
+    assert_split_edge_chain_ledger_orders_all_products_canonically_across_replay,
+};
 use edge_splitting_normalized_schedule_support::assert_normalized_edge_split_schedule_matches_metaboss;
 use edge_splitting_ordered_schedule_support::assert_ordered_edge_split_schedule_matches_metaboss;
 use edge_splitting_overlap_chain_support::assert_overlap_edge_chains_match_metaboss;
@@ -300,6 +309,26 @@ fn point_split_candidates_preserve_event_kind_coordinate_and_parameter_facts() {
 }
 
 #[test]
+fn split_edge_chain_ledger_contains_request_schedules_vertices_fragments_overlap_chains_names_and_decisions(
+) {
+    reduced_pair_support::run_with_large_stack(|| {
+        let subject = MetabossEventExtractionSubject::certify_event_carrier(
+            "phase7.3 split edge-chain ledger assembly",
+        );
+        assert_split_edge_chain_ledger_matches_metaboss(&subject);
+    });
+}
+
+#[test]
+fn split_edge_chain_ledger_orders_all_products_canonically_across_replay() {
+    reduced_pair_support::run_with_large_stack(|| {
+        let subject =
+            MetabossEventExtractionSubject::certify("phase7.3 split ledger replay ordering");
+        assert_split_edge_chain_ledger_orders_all_products_canonically_across_replay(&subject);
+    });
+}
+
+#[test]
 fn interval_split_candidates_preserve_kind_source_range_and_source_sense() {
     reduced_pair_support::run_with_large_stack(|| {
         let subject =
@@ -344,6 +373,7 @@ fn interval_split_candidates_preserve_kind_source_range_and_source_sense() {
         assert_overlap_edge_chains_match_metaboss(&subject);
         assert_split_chain_validation_matches_metaboss(&subject);
         assert_split_persistent_naming_matches_metaboss(&subject);
+        assert_split_decision_log_matches_metaboss(&subject);
     });
 }
 

@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_decision_row_not_forgeable.rs:7:47
+  |
+7 |       let _row = PlanarBooleanSplitDecisionRow::new(
+  |                                                 ^^^ private associated function
+  |
+ ::: src/workload_platform/planar_boolean_edge_splitting/split_decision_log/decision_recording/row.rs
+  |
+  | /     pub(crate) fn new(
+  | |         decision_identity: String,
+  | |         phase: PlanarBooleanSplitDecisionPhase,
+  | |         kind: PlanarBooleanSplitDecisionKind,
+... |
+  | |         policy_or_denial_kind: Option<String>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

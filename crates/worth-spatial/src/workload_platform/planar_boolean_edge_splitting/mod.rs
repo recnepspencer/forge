@@ -19,6 +19,8 @@ mod proof_chain_tests;
 mod raw_edge_split_schedule;
 mod source_edge_carrier_recovery;
 mod split_chain_validation;
+mod split_decision_log;
+mod split_edge_chain_ledger;
 mod split_edge_fragments;
 mod split_persistent_naming;
 mod split_scope_admission;
@@ -130,6 +132,30 @@ pub use split_chain_validation::{
     PlanarBooleanOverlapChainCoverageRow, PlanarBooleanSplitChainValidationCounters,
     PlanarBooleanSplitChainValidationDenial, PlanarBooleanSplitChainValidationDenialKind,
     PlanarBooleanSplitChainValidationReceipt, PlanarBooleanSplitFragmentCoverageRow,
+};
+#[allow(unused_imports)]
+pub use split_decision_log::{
+    PlanarBooleanEdgeSplitPhaseStop, PlanarBooleanSplitAffectedArtifact,
+    PlanarBooleanSplitArtifactDecisionRows, PlanarBooleanSplitDecisionCoverageExpectation,
+    PlanarBooleanSplitDecisionCoverageManifest, PlanarBooleanSplitDecisionCoverageReceipt,
+    PlanarBooleanSplitDecisionKind, PlanarBooleanSplitDecisionLogCounters,
+    PlanarBooleanSplitDecisionLogDeclaration, PlanarBooleanSplitDecisionLogDenial,
+    PlanarBooleanSplitDecisionLogDenialKind, PlanarBooleanSplitDecisionLogInput,
+    PlanarBooleanSplitDecisionLogLoweredPlan, PlanarBooleanSplitDecisionLogQueryDomain,
+    PlanarBooleanSplitDecisionLogQueryInput, PlanarBooleanSplitDecisionLogQueryResult,
+    PlanarBooleanSplitDecisionLogReceipt, PlanarBooleanSplitDecisionPhase,
+    PlanarBooleanSplitDecisionReason, PlanarBooleanSplitDecisionRow,
+    PlanarBooleanSplitFailureLocalization, PlanarBooleanSplitOperationalTruthDigest,
+    PlanarBooleanStructuredEdgeSplitFailureReport,
+};
+#[allow(unused_imports)]
+pub use split_edge_chain_ledger::{
+    PlanarBooleanSplitEdgeChain, PlanarBooleanSplitEdgeChainLedger,
+    PlanarBooleanSplitEdgeChainLedgerCounters, PlanarBooleanSplitEdgeChainLedgerDeclaration,
+    PlanarBooleanSplitEdgeChainLedgerDenial, PlanarBooleanSplitEdgeChainLedgerDenialKind,
+    PlanarBooleanSplitEdgeChainLedgerLoweredPlan, PlanarBooleanSplitEdgeChainLedgerQueryDomain,
+    PlanarBooleanSplitEdgeChainLedgerQueryInput, PlanarBooleanSplitEdgeChainLedgerQueryResult,
+    PlanarBooleanSplitEdgeChainLedgerReceipt,
 };
 #[allow(unused_imports)]
 pub use split_edge_fragments::{

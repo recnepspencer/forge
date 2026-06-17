@@ -24,6 +24,7 @@ use super::{
 pub(crate) struct SourceEdgeCarrierRecoverySubject {
     pub(crate) segment_pairs: PlanarBooleanSegmentPairEnumerationReceipt,
     pub(crate) ledger: PlanarBooleanEventLedgerReceipt,
+    pub(crate) request: PlanarBooleanEdgeSplitRequest,
     pub(crate) scope: PlanarBooleanEdgeSplitScopeAdmission,
 }
 
@@ -82,6 +83,7 @@ pub(crate) fn subject_with_ledger(
     SourceEdgeCarrierRecoverySubject {
         segment_pairs,
         ledger,
+        request,
         scope,
     }
 }

@@ -10,7 +10,7 @@ use worth_spatial::facade::planar_boolean_events::{
 use super::super::event_ledger_support::{
     ledger_from_certified_inputs, CertifiedEventLedgerInputs,
 };
-use super::super::predicate_binding_support;
+use super::super::predicate_binding_support::{self, BindingSubject};
 use super::expected_shape::MetabossExpectedLedgerShape;
 
 pub(crate) struct MetabossEventExtractionSubject {
@@ -23,8 +23,18 @@ pub(crate) struct MetabossEventExtractionSubject {
 
 impl MetabossEventExtractionSubject {
     pub(crate) fn certify(readiness_scope: &'static str) -> Self {
-        let expected = MetabossExpectedLedgerShape::new();
         let binding_subject = predicate_binding_support::metaboss_binding_subject(readiness_scope);
+        Self::from_binding_subject(binding_subject)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn certify_event_carrier(readiness_scope: &'static str) -> Self {
+        let binding_subject = predicate_binding_support::binding_subject(readiness_scope);
+        Self::from_binding_subject(binding_subject)
+    }
+
+    fn from_binding_subject(binding_subject: BindingSubject) -> Self {
+        let expected = MetabossExpectedLedgerShape::new();
         let event_request = PlanarBooleanEventExtractionRequest::from_reduced_operand_pair(
             binding_subject.reduced_pair.clone(),
         );

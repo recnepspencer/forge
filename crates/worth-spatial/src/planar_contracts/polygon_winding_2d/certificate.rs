@@ -34,11 +34,32 @@ impl CertifiedPolygonWinding2DReceipt {
         basis: &CertifiedPolygonWinding2DBasis,
         declaration_digest: &str,
         envelope_digest: &str,
+        counters: CertifiedPolygonWinding2DPerformanceCounters,
     ) -> Vec<String> {
         let mut parts = certified_polygon_winding_2d_identity_entries(basis)
             .into_iter()
             .map(|entry| format!("{}:{}", entry.locus(), entry.value()))
             .collect::<Vec<_>>();
+        parts.push(format!(
+            "segment_contact.possible_pairs:{}",
+            counters.segment_contact_possible_pairs()
+        ));
+        parts.push(format!(
+            "segment_contact.candidate_pairs:{}",
+            counters.segment_contact_candidate_pairs()
+        ));
+        parts.push(format!(
+            "segment_contact.culled_pairs:{}",
+            counters.segment_contact_culled_pairs()
+        ));
+        parts.push(format!(
+            "segment_contact.adjacent_self_pairs_skipped:{}",
+            counters.segment_contact_adjacent_self_pairs_skipped()
+        ));
+        parts.push(format!(
+            "segment_contact.fallback_used:{}",
+            counters.segment_contact_fallback_used()
+        ));
         parts.push(format!("declaration:{declaration_digest}"));
         parts.push(format!("envelope:{envelope_digest}"));
         parts
@@ -48,11 +69,13 @@ impl CertifiedPolygonWinding2DReceipt {
         basis: &CertifiedPolygonWinding2DBasis,
         declaration_digest: &str,
         envelope_digest: &str,
+        counters: CertifiedPolygonWinding2DPerformanceCounters,
     ) -> String {
         certified_polygon_winding_2d_digest(&Self::digest_parts(
             basis,
             declaration_digest,
             envelope_digest,
+            counters,
         ))
     }
 

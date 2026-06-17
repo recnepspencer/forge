@@ -203,11 +203,19 @@ where
 
     pub fn segment_contact_pairs_required(&self) -> usize {
         let loops = self.entry.case().basis().loop_summaries();
-        loops
+        let self_contact_pairs = loops
+            .iter()
+            .map(|loop_summary| {
+                let edge_count = loop_summary.vertices().len();
+                edge_count.saturating_mul(edge_count.saturating_sub(3)) / 2
+            })
+            .sum::<usize>();
+        let cross_loop_pairs = loops
             .iter()
             .skip(1)
             .map(|candidate| loops[0].vertices().len() * candidate.vertices().len())
-            .sum()
+            .sum::<usize>();
+        self_contact_pairs + cross_loop_pairs
     }
 
     pub fn certify(

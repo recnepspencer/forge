@@ -21,6 +21,11 @@ help: the following other types implement trait `BooleanEvidenceReceipt`
   |
   | impl BooleanEvidenceReceipt for PlanarBooleanSegmentPairEnumerationReceipt {
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanSegmentPairEnumerationReceipt`
+  |
+ ::: src/workload_platform/planar_boolean_edge_splitting/split_edge_chain_ledger/receipt.rs
+  |
+  | impl BooleanEvidenceReceipt for PlanarBooleanSplitEdgeChainLedgerReceipt {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanSplitEdgeChainLedgerReceipt`
 note: required by a bound in `require_boolean_evidence_receipt`
  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_scope_admission_not_boolean_evidence_receipt.rs:9:46
   |

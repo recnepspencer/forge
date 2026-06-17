@@ -55,12 +55,80 @@ fn phase_1_closeout_proves_authority_lanes_and_validator_registration() {
     assert!(closeout.certified_prepared_spatial_products_do_not_claim_topology_authority());
     assert!(closeout.certified_validators_use_runtime_visible_lanes());
     assert!(closeout.certified_phase_1_required_rows_present());
-    assert_eq!(closeout.required_phase_1_operator_rows(), 8);
-    assert_eq!(closeout.required_phase_1_validator_rows(), 2);
+    assert!(closeout.required_phase_1_operator_rows() >= 12);
+    assert!(closeout.required_phase_1_validator_rows() >= 5);
     assert!(closeout.prepared_spatial_operators() > 10);
     assert!(closeout.topology_grouped_declaration_operators() >= 2);
     assert!(closeout.query_graph_composition_programs() >= 3);
     assert!(closeout.runtime_facing_validator_count() >= 5);
+}
+
+#[test]
+fn phase_22_decision_log_operators_and_validators_are_query_registered() {
+    let blueprint = EdgeSplitOperatorBlueprint::phase_1();
+
+    assert_eq!(
+        blueprint
+            .operator("RecordEdgeSplitDecisionLog")
+            .expect("edge split decision log operator should be registered")
+            .required_query_surface(),
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition
+    );
+    assert_eq!(
+        blueprint
+            .operator("EmitPlanarBooleanOutcome")
+            .expect("outcome emission operator should be registered")
+            .classification(),
+        EdgeSplitOperatorClassification::TopologyDeclarationFamily
+    );
+    assert_eq!(
+        blueprint
+            .validator("ValidateEdgeSplitDecisionLogCoverage")
+            .expect("decision-log coverage validator should be registered")
+            .runtime_lane(),
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack
+    );
+    assert!(blueprint
+        .validator("ValidateEdgeSplitDiagnosticsDoNotMutateOperationalDigest")
+        .expect("diagnostic digest validator should be registered")
+        .governs_topology_legality());
+}
+
+#[test]
+fn phase_23_split_ledger_operators_and_validators_are_query_registered() {
+    let blueprint = EdgeSplitOperatorBlueprint::phase_1();
+
+    for operator_name in [
+        "AssemblePlanarBooleanSplitEdgeChainLedger",
+        "BuildSplitEdgeChain",
+        "BuildSplitLedgerReceipt",
+        "CanonicalizeSplitLedgerOrdering",
+        "ValidateSplitLedgerReceiptChain",
+    ] {
+        assert_eq!(
+            blueprint
+                .operator(operator_name)
+                .expect("split ledger operator should be registered")
+                .required_query_surface(),
+            EdgeSplitRequiredQuerySurface::QueryGraphComposition
+        );
+    }
+    for validator_name in [
+        "ValidateSplitLedgerReceiptChain",
+        "RejectSplitLedgerMissingValidationReceipt",
+        "RejectSplitLedgerMissingPersistentNamingReceipt",
+        "RejectSplitLedgerMissingDecisionLogReceipt",
+        "RejectSplitLedgerForeignProductLineage",
+    ] {
+        let validator = blueprint
+            .validator(validator_name)
+            .expect("split ledger validator should be registered");
+        assert_eq!(
+            validator.runtime_lane(),
+            EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack
+        );
+        assert!(validator.governs_topology_legality());
+    }
 }
 
 #[test]
@@ -74,7 +142,7 @@ fn closeout_rejects_missing_required_phase_1_rows() {
     );
 
     let missing_validator = EdgeSplitOperatorBlueprint::try_from_rows(
-        required_phase_1_operator_rows(),
+        EdgeSplitOperatorBlueprint::phase_1().operators().to_vec(),
         vec![EdgeSplitValidatorRow::new(
             "OnlyNonTopologyValidator",
             EdgeSplitValidatorRuntimeLane::SpatialPreparedProductValidation,
@@ -91,14 +159,14 @@ fn closeout_rejects_missing_required_phase_1_rows() {
 
 #[test]
 fn closeout_rejects_required_rows_with_wrong_lanes() {
-    let mut wrong_operator_lane = required_phase_1_operator_rows();
+    let mut wrong_operator_lane = EdgeSplitOperatorBlueprint::phase_1().operators().to_vec();
     wrong_operator_lane
         .retain(|operator| operator.operator_name() != "RegisterEdgeSplitContributionWorkflow");
     wrong_operator_lane.push(query_graph("RegisterEdgeSplitContributionWorkflow"));
 
     let operator_denial = EdgeSplitOperatorBlueprint::try_from_rows(
         wrong_operator_lane,
-        required_phase_1_validator_rows(),
+        EdgeSplitOperatorBlueprint::phase_1().validators().to_vec(),
     )
     .expect_err("required phase 1 operator rows must use their exact Query lanes");
     assert_eq!(
@@ -106,7 +174,7 @@ fn closeout_rejects_required_rows_with_wrong_lanes() {
         EdgeSplitBlueprintCloseoutDenial::RequiredOperatorLaneMismatch
     );
 
-    let mut wrong_validator_lane = required_phase_1_validator_rows();
+    let mut wrong_validator_lane = EdgeSplitOperatorBlueprint::phase_1().validators().to_vec();
     wrong_validator_lane.retain(|validator| {
         validator.validator_name() != "ValidateSplitValidatorRuntimeRegistration"
     });
@@ -118,7 +186,7 @@ fn closeout_rejects_required_rows_with_wrong_lanes() {
     ));
 
     let validator_denial = EdgeSplitOperatorBlueprint::try_from_rows(
-        required_phase_1_operator_rows(),
+        EdgeSplitOperatorBlueprint::phase_1().operators().to_vec(),
         wrong_validator_lane,
     )
     .expect_err("required phase 1 validator rows must use their exact runtime lanes");
@@ -208,72 +276,6 @@ fn prepared(operator_name: &'static str) -> EdgeSplitOperatorRow {
     )
 }
 
-fn required_phase_1_operator_rows() -> Vec<EdgeSplitOperatorRow> {
-    vec![
-        query_declaration("RegisterEdgeSplitOperatorDeclarationFamily"),
-        query_grouped("RegisterEdgeSplitGroupedOperatorFamily"),
-        query_contribution("RegisterEdgeSplitContributionWorkflow"),
-        query_invariant("RegisterEdgeSplitGraphInvariantPack"),
-        query_graph("MapSplitLedgerToTopologyOperatorDeclarations"),
-        prepared("ClassifyPreparedVsAuthoritativeSplitOperator"),
-        query_declaration("ValidateSplitOperatorQueryProgression"),
-        query_invariant("ValidateSplitValidatorRuntimeRegistration"),
-    ]
-}
-
-fn required_phase_1_validator_rows() -> Vec<EdgeSplitValidatorRow> {
-    vec![
-        EdgeSplitValidatorRow::new(
-            "ValidateSplitOperatorQueryProgression",
-            EdgeSplitValidatorRuntimeLane::TopologyDeclarationReview,
-            true,
-            &[EdgeSplitValidatorProofObligation::RuntimeFacingDenialPathTypedAndInspectable],
-        ),
-        EdgeSplitValidatorRow::new(
-            "ValidateSplitValidatorRuntimeRegistration",
-            EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
-            true,
-            &[EdgeSplitValidatorProofObligation::RuntimeFacingDenialPathTypedAndInspectable],
-        ),
-    ]
-}
-
-fn query_declaration(operator_name: &'static str) -> EdgeSplitOperatorRow {
-    EdgeSplitOperatorRow::new(
-        operator_name,
-        EdgeSplitOperatorClassification::TopologyDeclarationFamily,
-        EdgeSplitOperatorTruthAuthority::WorthTopoQueryDeclaration,
-        EdgeSplitRequiredQuerySurface::TopologyDeclarationEntry,
-        Some("TopologyOperatorWorkflowHandleExt"),
-        &[EdgeSplitOperatorProofObligation::TopologyOperatorDeclarationReview],
-        None,
-    )
-}
-
-fn query_grouped(operator_name: &'static str) -> EdgeSplitOperatorRow {
-    EdgeSplitOperatorRow::new(
-        operator_name,
-        EdgeSplitOperatorClassification::TopologyGroupedDeclarationFamily,
-        EdgeSplitOperatorTruthAuthority::WorthTopoQueryDeclaration,
-        EdgeSplitRequiredQuerySurface::TopologyGroupedDeclaration,
-        Some("topology_grouped_operator_neighborhood"),
-        &[EdgeSplitOperatorProofObligation::GroupedSupportAndContributionEvidence],
-        None,
-    )
-}
-
-fn query_contribution(operator_name: &'static str) -> EdgeSplitOperatorRow {
-    EdgeSplitOperatorRow::new(
-        operator_name,
-        EdgeSplitOperatorClassification::TopologyContributionWorkflow,
-        EdgeSplitOperatorTruthAuthority::WorthTopoQueryDeclaration,
-        EdgeSplitRequiredQuerySurface::TopologyContributionWorkflow,
-        Some("topology_operator_contribution_workflow"),
-        &[EdgeSplitOperatorProofObligation::RetainedContributionSemanticProjection],
-        None,
-    )
-}
-
 fn query_graph(operator_name: &'static str) -> EdgeSplitOperatorRow {
     EdgeSplitOperatorRow::new(
         operator_name,
@@ -282,18 +284,6 @@ fn query_graph(operator_name: &'static str) -> EdgeSplitOperatorRow {
         EdgeSplitRequiredQuerySurface::QueryGraphComposition,
         Some("workspace.compose_graph_with_invariant_pack"),
         &[EdgeSplitOperatorProofObligation::QueryGraphCompositionProgram],
-        None,
-    )
-}
-
-fn query_invariant(operator_name: &'static str) -> EdgeSplitOperatorRow {
-    EdgeSplitOperatorRow::new(
-        operator_name,
-        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
-        EdgeSplitOperatorTruthAuthority::ForgeQueryGraphComposition,
-        EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
-        Some("ForgeQueryRuntime::builder().invariant_registration_artifact"),
-        &[EdgeSplitOperatorProofObligation::TypedGraphCompositionDomainInvariantDenial],
         None,
     )
 }

@@ -78,7 +78,7 @@ fn nested_hole_winding_rows_are_retained_and_replayable() {
         .expect("compiled winding plan");
 
     assert_eq!(plan.loop_count(), 2);
-    assert_eq!(plan.segment_contact_pairs_required(), 16);
+    assert_eq!(plan.segment_contact_pairs_required(), 20);
     assert_eq!(plan.projected_vertex_count(), 8);
 
     let receipt = plan.certify().expect("winding receipt");
@@ -93,7 +93,17 @@ fn nested_hole_winding_rows_are_retained_and_replayable() {
     assert_eq!(receipt.counters().projected_vertices_consumed(), 8);
     assert_eq!(receipt.counters().loop_edges_walked(), 8);
     assert_eq!(receipt.counters().winding_predicates_consumed(), 4);
-    assert!(receipt.counters().segment_contacts_classified() >= 16);
+    assert_eq!(receipt.counters().segment_contact_possible_pairs(), 20);
+    assert_eq!(receipt.counters().segment_contact_candidate_pairs(), 0);
+    assert_eq!(receipt.counters().segment_contact_culled_pairs(), 20);
+    assert_eq!(
+        receipt
+            .counters()
+            .segment_contact_adjacent_self_pairs_skipped(),
+        8
+    );
+    assert_eq!(receipt.counters().segment_contacts_classified(), 0);
+    assert!(!receipt.counters().segment_contact_fallback_used());
     assert_eq!(receipt.counters().winding_tie_breaks_used(), 0);
 
     let replay_outer = CertifiedProjectedLoop2D::from_projected_vertices(

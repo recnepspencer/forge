@@ -6,7 +6,7 @@ mod input;
 mod recovered_carrier;
 mod recovery;
 #[cfg(test)]
-mod test_support;
+pub(crate) mod test_support;
 #[cfg(test)]
 mod tests;
 mod validation;

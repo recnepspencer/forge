@@ -115,7 +115,7 @@ fn assert_selector_and_signature_rows_reconcile(
     assert_eq!(naming.counters().geometry_authority_attempts_rejected(), 0);
 }
 
-fn typed_topology_query_basis() -> PlanarBooleanSplitPersistentNamingQueryBasis {
+pub(crate) fn typed_topology_query_basis() -> PlanarBooleanSplitPersistentNamingQueryBasis {
     let query = ForgeQueryApplicationFacade::runtime_backed_default();
     let topology_domain_handle = topology_query_domain_entry(&query)
         .with_operating_context(topology_current_head_authoritative_context())

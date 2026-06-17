@@ -129,6 +129,16 @@ fn phase_1_operators() -> Vec<EdgeSplitOperatorRow> {
         query_invariant("RejectDanglingSplitNameReference"),
         query_invariant("RejectSplitNameFromGeometryOrDisplayString"),
         query_invariant("RejectAmbiguousSplitIdentityEvolution"),
+        query_graph("RecordBooleanDecisionLog"),
+        query_graph("RecordEdgeSplitDecisionLog"),
+        query_graph("LocalizePlanarBooleanFailure"),
+        query_graph("BuildStructuredEdgeSplitFailureReport"),
+        query_graph("AssemblePlanarBooleanSplitEdgeChainLedger"),
+        query_graph("BuildSplitEdgeChain"),
+        query_graph("BuildSplitLedgerReceipt"),
+        query_graph("CanonicalizeSplitLedgerOrdering"),
+        query_graph("ValidateSplitLedgerReceiptChain"),
+        query_declaration("EmitPlanarBooleanOutcome"),
         query_grouped_with_precedent(
             "SplitConnectedHalfEdgeSetToNewWire",
             "TopologySplitConnectedHalfEdgeSetToNewWireDeclaration",
@@ -169,6 +179,15 @@ fn phase_1_validators() -> Vec<EdgeSplitValidatorRow> {
         query_invariant_validator("RejectDanglingSplitNameReference"),
         query_invariant_validator("RejectSplitNameFromGeometryOrDisplayString"),
         query_invariant_validator("RejectAmbiguousSplitIdentityEvolution"),
+        query_invariant_validator("ValidateBooleanDecisionLogCoverage"),
+        query_invariant_validator("ValidateEdgeSplitDecisionLogCoverage"),
+        query_invariant_validator("ValidateEdgeSplitFailureLocalizationConsistency"),
+        query_invariant_validator("ValidateEdgeSplitDiagnosticsDoNotMutateOperationalDigest"),
+        query_invariant_validator("ValidateSplitLedgerReceiptChain"),
+        query_invariant_validator("RejectSplitLedgerMissingValidationReceipt"),
+        query_invariant_validator("RejectSplitLedgerMissingPersistentNamingReceipt"),
+        query_invariant_validator("RejectSplitLedgerMissingDecisionLogReceipt"),
+        query_invariant_validator("RejectSplitLedgerForeignProductLineage"),
     ]
 }
 

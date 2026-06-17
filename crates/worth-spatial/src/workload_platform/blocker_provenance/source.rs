@@ -5,6 +5,7 @@ pub enum WorkloadBlockerSourceKind {
     PlanarBooleanEntryBasis,
     PlanarBooleanDeclaration,
     PlanarBooleanEventExtraction,
+    PlanarBooleanEdgeSplitting,
 }
 
 impl WorkloadBlockerSourceKind {
@@ -15,6 +16,7 @@ impl WorkloadBlockerSourceKind {
             Self::PlanarBooleanEntryBasis => "planar boolean entry basis",
             Self::PlanarBooleanDeclaration => "planar boolean declaration",
             Self::PlanarBooleanEventExtraction => "planar boolean event extraction",
+            Self::PlanarBooleanEdgeSplitting => "planar boolean edge splitting",
         }
     }
 }

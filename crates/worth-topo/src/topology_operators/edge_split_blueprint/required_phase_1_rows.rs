@@ -201,6 +201,51 @@ const REQUIRED_PHASE_1_OPERATOR_LANES: &[(
         EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
         EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
     ),
+    (
+        "RecordEdgeSplitDecisionLog",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "LocalizePlanarBooleanFailure",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "BuildStructuredEdgeSplitFailureReport",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "AssemblePlanarBooleanSplitEdgeChainLedger",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "BuildSplitEdgeChain",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "BuildSplitLedgerReceipt",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "CanonicalizeSplitLedgerOrdering",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "ValidateSplitLedgerReceiptChain",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "EmitPlanarBooleanOutcome",
+        EdgeSplitOperatorClassification::TopologyDeclarationFamily,
+        EdgeSplitRequiredQuerySurface::TopologyDeclarationEntry,
+    ),
 ];
 
 const REQUIRED_PHASE_1_VALIDATOR_LANES: &[(&str, EdgeSplitValidatorRuntimeLane, bool)] = &[
@@ -241,6 +286,46 @@ const REQUIRED_PHASE_1_VALIDATOR_LANES: &[(&str, EdgeSplitValidatorRuntimeLane, 
     ),
     (
         "RejectAmbiguousSplitIdentityEvolution",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "ValidateEdgeSplitDecisionLogCoverage",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "ValidateEdgeSplitFailureLocalizationConsistency",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "ValidateEdgeSplitDiagnosticsDoNotMutateOperationalDigest",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "ValidateSplitLedgerReceiptChain",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "RejectSplitLedgerMissingValidationReceipt",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "RejectSplitLedgerMissingPersistentNamingReceipt",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "RejectSplitLedgerMissingDecisionLogReceipt",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "RejectSplitLedgerForeignProductLineage",
         EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
         true,
     ),

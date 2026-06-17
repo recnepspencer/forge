@@ -74,7 +74,8 @@ where
     match winding_handle.orchestrate_declaration_entry_outcome(entry.clone()) {
         ForgeQueryOrdinaryOutcome::Bound(envelope) => {
             let basis = entry.case().basis().clone();
-            let segments = certify_segment_contacts(&basis, segment_contracts)?;
+            let (segments, segment_candidate_counters) =
+                certify_segment_contacts(&basis, segment_contracts)?;
             deny_bad_contacts(&segments)?;
             let predicates = certify_winding_predicates(&basis, predicate_handle)?;
             let containments = containment_rows(&basis, &segments)?;
@@ -83,30 +84,51 @@ where
                 .map_err(|denial| CertifiedPolygonWinding2DFactError::WindingBasis { denial })?;
             let envelope_digest = format!("{:?}", envelope.envelope_digest());
             let declaration_digest = envelope.declaration_digest().to_string();
+            let counters = CertifiedPolygonWinding2DPerformanceCounters::certified(
+                certified_basis.loop_edges_walked(),
+                certified_basis.vertices().len(),
+                segment_candidate_counters.possible_pairs(),
+                segment_candidate_counters.candidate_pairs(),
+                segment_candidate_counters.culled_pairs(),
+                segment_candidate_counters.adjacent_self_pairs_skipped(),
+                certified_basis.segment_contact_fact_digests().len(),
+                certified_basis.winding_predicate_fact_digests().len(),
+                certified_basis.winding_tie_breaks_used(),
+                0,
+                segment_candidate_counters.fallback_used(),
+            );
             let basis_part_count = CertifiedPolygonWinding2DReceipt::digest_parts(
                 &certified_basis,
                 &declaration_digest,
                 &envelope_digest,
+                counters,
             )
             .len();
+            let counters = CertifiedPolygonWinding2DPerformanceCounters::certified(
+                certified_basis.loop_edges_walked(),
+                certified_basis.vertices().len(),
+                segment_candidate_counters.possible_pairs(),
+                segment_candidate_counters.candidate_pairs(),
+                segment_candidate_counters.culled_pairs(),
+                segment_candidate_counters.adjacent_self_pairs_skipped(),
+                certified_basis.segment_contact_fact_digests().len(),
+                certified_basis.winding_predicate_fact_digests().len(),
+                certified_basis.winding_tie_breaks_used(),
+                basis_part_count,
+                segment_candidate_counters.fallback_used(),
+            );
             let fact_digest = CertifiedPolygonWinding2DReceipt::fact_digest_for(
                 &certified_basis,
                 &declaration_digest,
                 &envelope_digest,
+                counters,
             );
             Ok(CertifiedPolygonWinding2DReceipt::new(
                 certified_basis.clone(),
                 declaration_digest,
                 envelope_digest,
                 fact_digest,
-                CertifiedPolygonWinding2DPerformanceCounters::certified(
-                    certified_basis.loop_edges_walked(),
-                    certified_basis.vertices().len(),
-                    certified_basis.segment_contact_fact_digests().len(),
-                    certified_basis.winding_predicate_fact_digests().len(),
-                    certified_basis.winding_tie_breaks_used(),
-                    basis_part_count,
-                ),
+                counters,
             ))
         }
         ForgeQueryOrdinaryOutcome::Ambiguous(posture)

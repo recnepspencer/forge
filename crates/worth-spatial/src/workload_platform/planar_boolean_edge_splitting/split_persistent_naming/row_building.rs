@@ -102,11 +102,7 @@ fn push_overlap_chain_name_rows(
             rows.push(PlanarBooleanSplitPersistentNameRow::new(
                 member.source_edge_identity(),
                 PlanarBooleanSplitNamedArtifactKind::OverlapChain,
-                &format!(
-                    "{}:member:{}",
-                    chain.chain_identity(),
-                    member.member_identity()
-                ),
+                chain.chain_identity(),
                 chain.event_group_identities().to_vec(),
                 evolution,
             ));

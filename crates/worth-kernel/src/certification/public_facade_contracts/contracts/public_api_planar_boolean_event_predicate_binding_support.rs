@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
 
+#[path = "public_api_planar_boolean_event_predicate_binding_predicate_cache.rs"]
+mod predicate_cache;
+#[path = "public_api_planar_boolean_event_predicate_binding_projection_cache.rs"]
+mod projection_cache;
 use forge_query::facade::ForgeQueryApplicationFacade;
 use worth_kernel::workload_composition::PlanarBooleanCommonPlaneReducedOperandPairRequest;
-use worth_spatial::facade::planar_boolean_events::{
-    PlanarBooleanNormalizedEndpoint, PlanarBooleanSegmentPairEnumerationReceipt,
-    PlanarBooleanSegmentPairWorkItem,
-};
+use worth_spatial::facade::planar_boolean_events::PlanarBooleanSegmentPairEnumerationReceipt;
 use worth_spatial::facade::planar_local_frame::{
     planar_local_frame_certificate_entry, planar_local_frame_certificate_facts,
     PlanarLocalFrameBasis, PlanarLocalFrameCertificateCase, PlanarLocalFrameCertificateQueryDomain,
@@ -27,15 +28,11 @@ use worth_spatial::facade::planar_predicates::{
     PlanarPredicateAuthorityQueryWorld, PlanarPredicateFactReceipt, PlanarPredicateInputBasis,
 };
 use worth_spatial::facade::planar_projection::{
-    project_point_to_certified_plane_2d_entry, project_point_to_certified_plane_2d_facts,
-    ProjectPointToCertifiedPlane2DBasis, ProjectPointToCertifiedPlane2DCase,
     ProjectPointToCertifiedPlane2DQueryDomain, ProjectPointToCertifiedPlane2DQueryWorld,
-    ProjectPointToCertifiedPlane2DReceipt,
 };
 use worth_spatial::facade::planar_segment_segment::{
-    CertifiedProjectedSegment2D, CertifiedSegmentSegment2D, CertifiedSegmentSegment2DContracts,
-    CertifiedSegmentSegment2DQueryDomain, CertifiedSegmentSegment2DQueryWorld,
-    CertifiedSegmentSegment2DReceipt, SegmentContactPolicy,
+    CertifiedSegmentSegment2DContracts, CertifiedSegmentSegment2DQueryDomain,
+    CertifiedSegmentSegment2DQueryWorld, CertifiedSegmentSegment2DReceipt,
 };
 
 use super::reduced_pair_support;
@@ -94,12 +91,26 @@ fn binding_subject_from_projected_operands(
             .left()
             .precision_basis_identity(),
     );
-    let segment_receipts = pair_worklist
-        .work_items()
-        .iter()
-        .map(|work_item| segment_receipt(readiness_scope, &frame, work_item))
-        .collect::<Vec<_>>();
-    let predicates = unique_orientation_predicates(&segment_receipts);
+    let segment_contracts = CertifiedSegmentSegment2DContracts::new(
+        segment_handle(readiness_scope),
+        predicate_handle(),
+    );
+    let projection_handle = projection_handle(readiness_scope);
+    let mut projection_cache = BTreeMap::new();
+    let mut segment_receipts = Vec::with_capacity(pair_worklist.work_items().len());
+    for work_item in pair_worklist.work_items() {
+        segment_receipts.push(projection_cache::segment_receipt_from_cached_projection(
+            &frame,
+            work_item,
+            TOPOLOGY,
+            &segment_contracts,
+            &projection_handle,
+            &mut projection_cache,
+        ));
+    }
+    let predicate_handle = predicate_handle();
+    let predicates =
+        predicate_cache::unique_orientation_predicates_cached(&segment_receipts, &predicate_handle);
     let predicate_consumption =
         predicate_consumption_receipt(readiness_scope, segment_receipts.clone(), predicates);
     BindingSubject {
@@ -144,13 +155,32 @@ fn binding_subject_with_alternate_segment_contract_scope(
     let precision_identity = alternate_precision_identity
         .unwrap_or_else(|| first_work_item.left().precision_basis_identity());
     let frame = certified_frame(readiness_scope, frame_identity, precision_identity);
+    let segment_contracts = CertifiedSegmentSegment2DContracts::new(
+        segment_handle(readiness_scope),
+        predicate_handle(),
+    );
+    let projection_handle = projection_handle(readiness_scope);
+    let mut projection_cache = BTreeMap::new();
     subject.segment_receipts = subject
         .pair_worklist
         .work_items()
         .iter()
-        .map(|work_item| segment_receipt(readiness_scope, &frame, work_item))
+        .map(|work_item| {
+            projection_cache::segment_receipt_from_cached_projection(
+                &frame,
+                work_item,
+                TOPOLOGY,
+                &segment_contracts,
+                &projection_handle,
+                &mut projection_cache,
+            )
+        })
         .collect();
-    let predicates = unique_orientation_predicates(&subject.segment_receipts);
+    let predicate_handle = predicate_handle();
+    let predicates = predicate_cache::unique_orientation_predicates_cached(
+        &subject.segment_receipts,
+        &predicate_handle,
+    );
     subject.predicate_consumption = predicate_consumption_receipt(
         readiness_scope,
         subject.segment_receipts.clone(),
@@ -212,120 +242,6 @@ fn precision_receipt(
         &precision_handle(world),
     )
     .expect("precision receipt")
-}
-
-fn segment_receipt(
-    world: &'static str,
-    frame: &PlanarLocalFrameCertificateReceipt,
-    work_item: &PlanarBooleanSegmentPairWorkItem,
-) -> CertifiedSegmentSegment2DReceipt {
-    let left = CertifiedProjectedSegment2D::from_projected_endpoints(
-        work_item.left().canonical_segment_identity(),
-        projected_endpoint(
-            world,
-            frame,
-            work_item.left().source_ordered_start_endpoint(),
-        ),
-        projected_endpoint(world, frame, work_item.left().source_ordered_end_endpoint()),
-    )
-    .expect("left projected segment");
-    let right = CertifiedProjectedSegment2D::from_projected_endpoints(
-        work_item.right().canonical_segment_identity(),
-        projected_endpoint(
-            world,
-            frame,
-            work_item.right().source_ordered_start_endpoint(),
-        ),
-        projected_endpoint(
-            world,
-            frame,
-            work_item.right().source_ordered_end_endpoint(),
-        ),
-    )
-    .expect("right projected segment");
-
-    CertifiedSegmentSegment2D::classify(left, right)
-        .within_topology_basis(TOPOLOGY)
-        .with_policy(SegmentContactPolicy::CertifyContactsDenyImprintRequired)
-        .compile(&CertifiedSegmentSegment2DContracts::new(
-            segment_handle(world),
-            predicate_handle(),
-        ))
-        .expect("segment plan")
-        .certify()
-        .expect("segment receipt")
-}
-
-fn projected_endpoint(
-    world: &'static str,
-    frame: &PlanarLocalFrameCertificateReceipt,
-    endpoint: &PlanarBooleanNormalizedEndpoint,
-) -> ProjectPointToCertifiedPlane2DReceipt {
-    let point = endpoint.point();
-    let basis = ProjectPointToCertifiedPlane2DBasis::builder()
-        .source_point_identity(endpoint.source_endpoint_identity())
-        .source_point([1.0e12, 0.0, 0.0])
-        .source_point_basis_digest(endpoint.projected_endpoint_fact_identity())
-        .local_delta_from_frame_origin([point[0], point[1], 0.0])
-        .local_frame_receipt(frame)
-        .build()
-        .expect("valid projection basis");
-    project_point_to_certified_plane_2d_facts(
-        &project_point_to_certified_plane_2d_entry(
-            ProjectPointToCertifiedPlane2DCase::from_local_frame(basis),
-        ),
-        &projection_handle(world),
-    )
-    .expect("projection receipt")
-}
-
-fn unique_orientation_predicates(
-    segments: &[CertifiedSegmentSegment2DReceipt],
-) -> Vec<PlanarPredicateFactReceipt> {
-    let mut receipts = BTreeMap::new();
-    for segment in segments {
-        for receipt in segment_orientation_predicates(segment) {
-            receipts.insert(receipt.fact_digest().to_string(), receipt);
-        }
-    }
-    receipts.into_values().collect()
-}
-
-fn segment_orientation_predicates(
-    segment: &CertifiedSegmentSegment2DReceipt,
-) -> Vec<PlanarPredicateFactReceipt> {
-    let basis = segment.basis();
-    [
-        [
-            basis.first_start_point_2d(),
-            basis.first_end_point_2d(),
-            basis.second_start_point_2d(),
-        ],
-        [
-            basis.first_start_point_2d(),
-            basis.first_end_point_2d(),
-            basis.second_end_point_2d(),
-        ],
-        [
-            basis.second_start_point_2d(),
-            basis.second_end_point_2d(),
-            basis.first_start_point_2d(),
-        ],
-        [
-            basis.second_start_point_2d(),
-            basis.second_end_point_2d(),
-            basis.first_end_point_2d(),
-        ],
-    ]
-    .into_iter()
-    .map(|points| {
-        predicate_receipt(
-            basis.frame_identity(),
-            basis.tolerance_policy_identity(),
-            points,
-        )
-    })
-    .collect()
 }
 
 fn predicate_consumption_receipt(

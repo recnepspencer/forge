@@ -146,6 +146,28 @@ impl PlanarBooleanSplitPersistentNamingReceipt {
             && self.counters.identity_break_denials() == 0
             && self.counters.foreign_artifact_denials() == 0
     }
+
+    #[cfg(test)]
+    pub(crate) fn with_rows_for_tests(
+        &self,
+        persistent_name_rows: Vec<PlanarBooleanSplitPersistentNameRow>,
+        counters: PlanarBooleanSplitPersistentNamingCounters,
+    ) -> Self {
+        Self {
+            receipt_identity: self.receipt_identity.clone(),
+            split_chain_validation_receipt_identity: self
+                .split_chain_validation_receipt_identity
+                .clone(),
+            split_edge_fragment_set_identity: self.split_edge_fragment_set_identity.clone(),
+            split_vertex_identity_set_identity: self.split_vertex_identity_set_identity.clone(),
+            overlap_edge_chain_set_identity: self.overlap_edge_chain_set_identity.clone(),
+            identity_evolution_rows: self.identity_evolution_rows.clone(),
+            persistent_name_rows,
+            selector_resolution_rows: Vec::new(),
+            subshape_signature_rows: Vec::new(),
+            counters,
+        }
+    }
 }
 
 fn source_edge_identities(input: &PlanarBooleanSplitPersistentNamingInput<'_>) -> Vec<String> {
