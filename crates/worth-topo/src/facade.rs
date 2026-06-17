@@ -18,6 +18,9 @@ pub use crate::construction::{
     TopologyPrimitiveConstructionQueryBirthSynopsis, TopologyPrimitiveConstructionQueryEnvelope,
     TopologyPrimitiveConstructionQueryHandoff, TopologyPrimitiveConstructionQueryReceipt,
 };
+pub use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{
+    NamingAttachmentReport, NamingAttachmentRow,
+};
 #[cfg(test)]
 pub(crate) use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 pub use crate::projection::runtime_boundary::query_runtime::{
@@ -101,3 +104,4 @@ pub use crate::workload_platform::{
     TopologyWorkloadEnvelope, TopologyWorkloadFamily, TopologyWorkloadReceipt,
     TopologyWorkloadSupport, TopologyWorkloadSupportPosture,
 };
+pub use forge_relational::facade::identity::{EntityId, PartitionId};

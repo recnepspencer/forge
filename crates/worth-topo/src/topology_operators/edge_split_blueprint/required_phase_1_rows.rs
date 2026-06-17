@@ -126,6 +126,81 @@ const REQUIRED_PHASE_1_OPERATOR_LANES: &[(
         EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
         EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
     ),
+    (
+        "BuildSplitPersistentNamingMap",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "BuildSplitPersistentNamingSeeds",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "AdmitSplitIdentityEvolutionQuery",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "BindSplitPersistentNamesToQueryLineage",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition,
+    ),
+    (
+        "PropagatePersistentNamesThroughSplit",
+        EdgeSplitOperatorClassification::TopologyContributionWorkflow,
+        EdgeSplitRequiredQuerySurface::TopologyContributionWorkflow,
+    ),
+    (
+        "RecordSplitEntityParentage",
+        EdgeSplitOperatorClassification::TopologyContributionWorkflow,
+        EdgeSplitRequiredQuerySurface::TopologyContributionWorkflow,
+    ),
+    (
+        "ForkSplitEntityLineage",
+        EdgeSplitOperatorClassification::TopologyContributionWorkflow,
+        EdgeSplitRequiredQuerySurface::TopologyContributionWorkflow,
+    ),
+    (
+        "ExtractSplitStableSubshapeSignatures",
+        EdgeSplitOperatorClassification::PreparedSpatialOnly,
+        EdgeSplitRequiredQuerySurface::None,
+    ),
+    (
+        "ResolveSplitNameConflictsAfterBoolean",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
+    ),
+    (
+        "ValidateSplitNameSurvival",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
+    ),
+    (
+        "ValidateSplitPersistentNameUniqueness",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
+    ),
+    (
+        "ValidateSplitSelectorResolutionDeterminism",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
+    ),
+    (
+        "RejectDanglingSplitNameReference",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
+    ),
+    (
+        "RejectSplitNameFromGeometryOrDisplayString",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
+    ),
+    (
+        "RejectAmbiguousSplitIdentityEvolution",
+        EdgeSplitOperatorClassification::QueryGraphCompositionProgram,
+        EdgeSplitRequiredQuerySurface::QueryInvariantRegistration,
+    ),
 ];
 
 const REQUIRED_PHASE_1_VALIDATOR_LANES: &[(&str, EdgeSplitValidatorRuntimeLane, bool)] = &[
@@ -136,6 +211,36 @@ const REQUIRED_PHASE_1_VALIDATOR_LANES: &[(&str, EdgeSplitValidatorRuntimeLane, 
     ),
     (
         "ValidateSplitValidatorRuntimeRegistration",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "ValidateSplitNameSurvival",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "ValidateSplitPersistentNameUniqueness",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "ValidateSplitSelectorResolutionDeterminism",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "RejectDanglingSplitNameReference",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "RejectSplitNameFromGeometryOrDisplayString",
+        EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
+        true,
+    ),
+    (
+        "RejectAmbiguousSplitIdentityEvolution",
         EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack,
         true,
     ),

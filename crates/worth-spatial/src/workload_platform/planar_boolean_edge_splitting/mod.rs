@@ -20,6 +20,7 @@ mod raw_edge_split_schedule;
 mod source_edge_carrier_recovery;
 mod split_chain_validation;
 mod split_edge_fragments;
+mod split_persistent_naming;
 mod split_scope_admission;
 mod split_vertex_identity;
 
@@ -136,6 +137,15 @@ pub use split_edge_fragments::{
     PlanarBooleanSplitEdgeFragmentDenial, PlanarBooleanSplitEdgeFragmentDenialKind,
     PlanarBooleanSplitEdgeFragmentEndpointKind, PlanarBooleanSplitEdgeFragmentEndpointRef,
     PlanarBooleanSplitEdgeFragmentSchedule, PlanarBooleanSplitEdgeFragmentSet,
+};
+#[allow(unused_imports)]
+pub use split_persistent_naming::{
+    PlanarBooleanSplitIdentityEvolutionOutcomeKind, PlanarBooleanSplitIdentityEvolutionRow,
+    PlanarBooleanSplitNamedArtifactKind, PlanarBooleanSplitPersistentNameRow,
+    PlanarBooleanSplitPersistentNamingCounters, PlanarBooleanSplitPersistentNamingDenial,
+    PlanarBooleanSplitPersistentNamingDenialKind, PlanarBooleanSplitPersistentNamingInput,
+    PlanarBooleanSplitPersistentNamingQueryBasis, PlanarBooleanSplitPersistentNamingReceipt,
+    PlanarBooleanSplitSelectorResolutionRow, PlanarBooleanSplitSubshapeSignatureRow,
 };
 #[allow(unused_imports)]
 pub use split_scope_admission::{

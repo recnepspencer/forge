@@ -114,7 +114,21 @@ fn phase_1_operators() -> Vec<EdgeSplitOperatorRow> {
         prepared("ValidateNoDanglingSplitChainReferences"),
         prepared("ValidateOverlapChainFragmentReferences"),
         prepared("RejectSplitChainGapOrOverlap"),
-        prepared("PropagatePersistentNamesThroughSplit"),
+        query_graph("BuildSplitPersistentNamingMap"),
+        query_graph("BuildSplitPersistentNamingSeeds"),
+        query_graph("AdmitSplitIdentityEvolutionQuery"),
+        query_graph("BindSplitPersistentNamesToQueryLineage"),
+        query_contribution("PropagatePersistentNamesThroughSplit"),
+        query_contribution("RecordSplitEntityParentage"),
+        query_contribution("ForkSplitEntityLineage"),
+        prepared("ExtractSplitStableSubshapeSignatures"),
+        query_invariant("ResolveSplitNameConflictsAfterBoolean"),
+        query_invariant("ValidateSplitNameSurvival"),
+        query_invariant("ValidateSplitPersistentNameUniqueness"),
+        query_invariant("ValidateSplitSelectorResolutionDeterminism"),
+        query_invariant("RejectDanglingSplitNameReference"),
+        query_invariant("RejectSplitNameFromGeometryOrDisplayString"),
+        query_invariant("RejectAmbiguousSplitIdentityEvolution"),
         query_grouped_with_precedent(
             "SplitConnectedHalfEdgeSetToNewWire",
             "TopologySplitConnectedHalfEdgeSetToNewWireDeclaration",
@@ -131,97 +145,51 @@ fn phase_1_operators() -> Vec<EdgeSplitOperatorRow> {
 
 fn phase_1_validators() -> Vec<EdgeSplitValidatorRow> {
     vec![
-        validator(
-            "ValidateSplitOperatorQueryProgression",
-            ValidatorLane::TopologyDeclarationReview,
-            true,
-        ),
-        validator(
-            "ValidateSplitValidatorRuntimeRegistration",
-            ValidatorLane::QueryGraphInvariantPack,
-            true,
-        ),
-        validator(
-            "ValidateSplitEdgeChainClosure",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "ValidateSplitFragmentDomainCoverage",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "ValidateNoDanglingSplitChainReferences",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "ValidateOverlapChainFragmentReferences",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "RejectSplitChainGapOrOverlap",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "ValidateCoincidentOppositeSensePreservation",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "ValidateNoUnexpectedZeroLengthEdges",
-            ValidatorLane::QueryGraphInvariantPack,
-            true,
-        ),
-        validator(
-            "ValidateCanonicalOrderingStable",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "ValidateEndpointNoOpSplitPolicy",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "RejectEndpointSplitThatWouldCreateZeroLengthFragment",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "ValidateOverlapIntervalSubdivisionConsistency",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "RejectMicroIntervalBelowAdmittedPolicy",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "ValidateSplitVertexIdentityCoalescence",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "RejectCoordinateOnlySplitVertexIdentity",
-            ValidatorLane::SpatialPreparedProductValidation,
-            false,
-        ),
-        validator(
-            "ValidateConsistentVertexMergesInGraph",
-            ValidatorLane::QueryGraphInvariantPack,
-            true,
-        ),
-        validator(
-            "ValidateNameSurvivalThroughSplitMerge",
-            ValidatorLane::TopologyDeclarationReview,
-            true,
-        ),
+        topology_review_validator("ValidateSplitOperatorQueryProgression"),
+        query_invariant_validator("ValidateSplitValidatorRuntimeRegistration"),
+        spatial_validator("ValidateSplitEdgeChainClosure"),
+        spatial_validator("ValidateSplitFragmentDomainCoverage"),
+        spatial_validator("ValidateNoDanglingSplitChainReferences"),
+        spatial_validator("ValidateOverlapChainFragmentReferences"),
+        spatial_validator("RejectSplitChainGapOrOverlap"),
+        spatial_validator("ValidateCoincidentOppositeSensePreservation"),
+        query_invariant_validator("ValidateNoUnexpectedZeroLengthEdges"),
+        spatial_validator("ValidateCanonicalOrderingStable"),
+        spatial_validator("ValidateEndpointNoOpSplitPolicy"),
+        spatial_validator("RejectEndpointSplitThatWouldCreateZeroLengthFragment"),
+        spatial_validator("ValidateOverlapIntervalSubdivisionConsistency"),
+        spatial_validator("RejectMicroIntervalBelowAdmittedPolicy"),
+        spatial_validator("ValidateSplitVertexIdentityCoalescence"),
+        spatial_validator("RejectCoordinateOnlySplitVertexIdentity"),
+        query_invariant_validator("ValidateConsistentVertexMergesInGraph"),
+        topology_review_validator("ValidateNameSurvivalThroughSplitMerge"),
+        query_invariant_validator("ValidateSplitNameSurvival"),
+        query_invariant_validator("ValidateSplitPersistentNameUniqueness"),
+        query_invariant_validator("ValidateSplitSelectorResolutionDeterminism"),
+        query_invariant_validator("RejectDanglingSplitNameReference"),
+        query_invariant_validator("RejectSplitNameFromGeometryOrDisplayString"),
+        query_invariant_validator("RejectAmbiguousSplitIdentityEvolution"),
     ]
+}
+
+fn spatial_validator(validator_name: &'static str) -> EdgeSplitValidatorRow {
+    validator(
+        validator_name,
+        ValidatorLane::SpatialPreparedProductValidation,
+        false,
+    )
+}
+
+fn query_invariant_validator(validator_name: &'static str) -> EdgeSplitValidatorRow {
+    validator(validator_name, ValidatorLane::QueryGraphInvariantPack, true)
+}
+
+fn topology_review_validator(validator_name: &'static str) -> EdgeSplitValidatorRow {
+    validator(
+        validator_name,
+        ValidatorLane::TopologyDeclarationReview,
+        true,
+    )
 }
 
 fn prepared(operator_name: &'static str) -> EdgeSplitOperatorRow {

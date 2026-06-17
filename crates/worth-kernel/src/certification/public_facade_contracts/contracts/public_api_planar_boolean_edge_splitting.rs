@@ -11,6 +11,8 @@ mod edge_splitting_normalized_schedule_support;
 mod edge_splitting_ordered_schedule_support;
 #[path = "public_api_planar_boolean_edge_splitting_overlap_chain_support.rs"]
 mod edge_splitting_overlap_chain_support;
+#[path = "public_api_planar_boolean_edge_splitting_persistent_naming_support.rs"]
+mod edge_splitting_persistent_naming_support;
 #[path = "public_api_planar_boolean_edge_splitting_posture_support.rs"]
 mod edge_splitting_posture_support;
 #[path = "public_api_planar_boolean_edge_splitting_raw_schedule_support.rs"]
@@ -43,6 +45,7 @@ use edge_splitting_interval_subdivision_support::assert_interval_subdivision_nor
 use edge_splitting_normalized_schedule_support::assert_normalized_edge_split_schedule_matches_metaboss;
 use edge_splitting_ordered_schedule_support::assert_ordered_edge_split_schedule_matches_metaboss;
 use edge_splitting_overlap_chain_support::assert_overlap_edge_chains_match_metaboss;
+use edge_splitting_persistent_naming_support::assert_split_persistent_naming_matches_metaboss;
 use edge_splitting_posture_support::assert_point_split_postures_match_admitted_events;
 use edge_splitting_raw_schedule_support::assert_raw_edge_split_schedule_matches_metaboss;
 use edge_splitting_split_chain_validation_support::assert_split_chain_validation_matches_metaboss;
@@ -131,71 +134,6 @@ fn candidate_index_consumption_gate_proves_metaboss_query_indexed_discovery() {
     });
 }
 
-#[test]
-fn candidate_index_consumption_gate_rejects_missing_metaboss_event_ledger_evidence() {
-    assert_metaboss_candidate_index_consumption_denial(
-        "phase7.3 missing event ledger evidence",
-        |subject| {
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &subject.inputs().pair_worklist,
-            )]
-        },
-        PlanarBooleanCandidateIndexConsumptionDenialKind::MissingEventLedgerEvidence,
-        "split consumption must require receipt-backed event-ledger evidence",
-    );
-}
-
-#[test]
-fn candidate_index_consumption_gate_rejects_missing_metaboss_segment_pair_evidence() {
-    assert_metaboss_candidate_index_consumption_denial(
-        "phase7.3 missing segment pair evidence",
-        |subject| {
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                subject.ledger(),
-            )]
-        },
-        PlanarBooleanCandidateIndexConsumptionDenialKind::MissingSegmentPairEnumerationEvidence,
-        "split consumption must require receipt-backed segment-pair evidence",
-    );
-}
-
-#[test]
-fn candidate_index_consumption_gate_rejects_manual_metaboss_segment_pair_evidence() {
-    assert_metaboss_candidate_index_consumption_denial(
-        "phase7.3 manual segment pair evidence",
-        |subject| {
-            let segment_pairs = &subject.inputs().pair_worklist;
-            vec![
-                WorkloadEvidenceRow::new(
-                    WorkloadEvidenceStage::BooleanSegmentPairEnumeration,
-                    segment_pairs.segment_pair_enumeration_identity(),
-                ),
-                WorkloadEvidenceRow::from_boolean_evidence_receipt(subject.ledger()),
-            ]
-        },
-        PlanarBooleanCandidateIndexConsumptionDenialKind::ManualSegmentPairEnumerationEvidence,
-        "split consumption must reject manual segment-pair evidence rows",
-    );
-}
-
-#[test]
-fn candidate_index_consumption_gate_rejects_manual_metaboss_event_ledger_evidence() {
-    assert_metaboss_candidate_index_consumption_denial(
-        "phase7.3 manual event ledger evidence",
-        |subject| {
-            vec![
-                WorkloadEvidenceRow::from_boolean_evidence_receipt(&subject.inputs().pair_worklist),
-                WorkloadEvidenceRow::new(
-                    WorkloadEvidenceStage::BooleanEventLedger,
-                    subject.ledger().event_ledger_identity(),
-                ),
-            ]
-        },
-        PlanarBooleanCandidateIndexConsumptionDenialKind::ManualEventLedgerEvidence,
-        "split consumption must reject manual event-ledger evidence rows",
-    );
-}
-
 fn assert_metaboss_candidate_index_consumption_denial(
     certification_label: &'static str,
     evidence_rows: impl FnOnce(&MetabossEventExtractionSubject) -> Vec<WorkloadEvidenceRow>
@@ -223,6 +161,8 @@ fn assert_metaboss_candidate_index_consumption_denial(
         assert_eq!(denial.kind(), expected_kind);
     });
 }
+
+include!("public_api_planar_boolean_edge_splitting_candidate_index_denial_tests.rs");
 
 #[test]
 fn split_event_participation_index_covers_every_event_carrier_reference() {
@@ -403,6 +343,7 @@ fn interval_split_candidates_preserve_kind_source_range_and_source_sense() {
         assert_split_edge_fragments_match_metaboss(&subject);
         assert_overlap_edge_chains_match_metaboss(&subject);
         assert_split_chain_validation_matches_metaboss(&subject);
+        assert_split_persistent_naming_matches_metaboss(&subject);
     });
 }
 

@@ -1,0 +1,13 @@
+error[E0451]: fields `row_identity`, `persistent_name_identity`, `artifact_identity` and `selector_basis_identity` of struct `PlanarBooleanSplitSelectorResolutionRow` are private
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/split_selector_resolution_row_not_forgeable.rs:5:9
+  |
+4 |     let _ = PlanarBooleanSplitSelectorResolutionRow {
+  |             --------------------------------------- in this type
+5 |         row_identity: "forged".to_string(),
+  |         ^^^^^^^^^^^^ private field
+6 |         persistent_name_identity: "name".to_string(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+7 |         artifact_identity: "artifact".to_string(),
+  |         ^^^^^^^^^^^^^^^^^ private field
+8 |         selector_basis_identity: "selector".to_string(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ private field

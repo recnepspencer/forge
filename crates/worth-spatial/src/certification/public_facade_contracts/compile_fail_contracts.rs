@@ -15,15 +15,9 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
     cf!("public_spatial_policy_namespace_not_exported.rs");
     cf!("public_spatial_arbitration_namespace_not_exported.rs");
     cf!("public_spatial_birth_namespace_not_exported.rs");
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_binding_birth_comparison_helpers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_binding_birth_assessment_helpers_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_spatial_binding_birth_materialization_helper_not_exported.rs"
-    ));
+    cf!("public_spatial_binding_birth_comparison_helpers_not_exported.rs");
+    cf!("public_spatial_binding_birth_assessment_helpers_not_exported.rs");
+    cf!("public_spatial_binding_birth_materialization_helper_not_exported.rs");
     t.compile_fail(format!(
         "{compile_fail}/public_spatial_binding_birth_materialization_runtime_products_not_exported.rs"
     ));
@@ -182,6 +176,14 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
     cf!("planar_boolean_edge_splitting/split_chain_validation_receipt_not_forgeable.rs");
     cf!("planar_boolean_edge_splitting/split_fragment_coverage_row_not_forgeable.rs");
     cf!("planar_boolean_edge_splitting/overlap_chain_coverage_row_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_persistent_naming_receipt_not_forgeable.rs");
+    cf!(
+        "planar_boolean_edge_splitting/split_persistent_naming_query_basis_not_from_raw_strings.rs"
+    );
+    cf!("planar_boolean_edge_splitting/split_persistent_name_row_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_identity_evolution_row_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_selector_resolution_row_not_forgeable.rs");
+    cf!("planar_boolean_edge_splitting/split_subshape_signature_row_not_forgeable.rs");
     cf!("planar_boolean_edge_splitting/coordinate_only_split_vertex_identity_rejected.rs");
     cf!("planar_boolean_edge_splitting/interval_split_candidate_not_forgeable.rs");
     cf!("planar_boolean_edge_splitting/interval_split_candidate_set_not_forgeable.rs");

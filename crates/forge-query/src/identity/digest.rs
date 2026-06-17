@@ -8,6 +8,10 @@ impl CanonicalQueryDigest {
         Self(hash_parts(parts))
     }
 
+    pub fn from_domain_parts(parts: &[String]) -> Self {
+        Self(hash_parts(parts))
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -96,6 +100,10 @@ pub struct BasisDigest(String);
 
 impl BasisDigest {
     pub(crate) fn from_parts(parts: &[String]) -> Self {
+        Self(hash_parts(parts))
+    }
+
+    pub fn from_domain_parts(parts: &[String]) -> Self {
         Self(hash_parts(parts))
     }
 
