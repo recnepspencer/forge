@@ -1,7 +1,6 @@
 use forge_runtime_bridge::facade::{
-    BridgeDeniedMixedCause, BridgeMixedCauseDeliveryWindowPlan, BridgeMixedCauseOrderFamilyKind,
-    BridgeMixedCauseOrdering, BridgeMixedCauseOrderingLaneKind, BridgeOrderedMixedCause,
-    BridgeSuppressedMixedCause,
+    BridgeMixedCauseDeliveryWindowPlan, BridgeMixedCauseOrderFamilyKind, BridgeMixedCauseOrdering,
+    BridgeMixedCauseOrderingLaneKind,
 };
 
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
@@ -21,6 +20,7 @@ pub enum ForgeQueryRuntimeMixedCauseLaneKind {
 }
 
 impl ForgeQueryRuntimeMixedCauseLaneKind {
+    #[allow(dead_code)]
     fn as_str(self) -> &'static str {
         match self {
             Self::Authoritative => "authoritative",

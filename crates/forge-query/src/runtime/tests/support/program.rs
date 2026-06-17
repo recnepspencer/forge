@@ -1,5 +1,4 @@
 use super::*;
-use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQueryEntityIdentity};
 
 pub(in crate::runtime::tests) struct FakeDsl;
 

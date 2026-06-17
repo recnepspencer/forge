@@ -12,7 +12,6 @@ use crate::facade::{
     QueryContextFamily, ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
 use crate::harness::fixtures::preview_bridge::active_preview_artifacts;
-use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::runtime::{
     ForgeQueryReadDenialKind, ForgeQueryReadExecutionEngine, ForgeQueryReadFamily,
     ForgeQueryRuntimeError, ForgeQueryWorkspace,

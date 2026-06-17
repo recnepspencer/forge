@@ -443,7 +443,7 @@ fn runtime_certification_artifacts_for_source(
         "affected-scope",
         MaintenanceDeltaWidth::measured(1),
     );
-    let delivery_window_digest = window.delivery_window_projection().label().to_string();
+    let _delivery_window_digest = window.delivery_window_projection().label().to_string();
     let (delta, lowering_report, _) = lower_query_subscription_maintenance_delta(delta).unwrap();
     let work_packet = build_active_delivery_work_packet(
         &mut runtime,

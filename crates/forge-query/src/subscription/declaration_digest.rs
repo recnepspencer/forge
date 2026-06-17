@@ -7,8 +7,4 @@ impl QuerySubscriptionDeclarationDigest {
     pub(super) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self(identity.as_str().to_string())
     }
-
-    pub(crate) fn as_str(&self) -> &str {
-        &self.0
-    }
 }

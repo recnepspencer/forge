@@ -1,4 +1,3 @@
-use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::program::ForgeQueryDerivedView;
 use crate::runtime::tests::support::stateful_bridge_task_runtime as build_stateful_bridge_task_runtime;
 use crate::runtime::{

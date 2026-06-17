@@ -34,6 +34,7 @@ macro_rules! causal_identity_type {
         pub struct $name(ForgeQueryEvidenceIdentity);
 
         impl $name {
+            #[allow(dead_code)]
             pub fn as_str(&self) -> &str {
                 self.0.as_str()
             }

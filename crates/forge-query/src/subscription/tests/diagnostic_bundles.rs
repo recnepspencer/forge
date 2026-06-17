@@ -754,7 +754,7 @@ fn runtime_artifacts_for_with_basis(
         )
     };
 
-    let delivery_window_digest = window.delivery_window_projection().label().to_string();
+    let _delivery_window_digest = window.delivery_window_projection().label().to_string();
     let (delta, lowering_report, _) = lower_query_subscription_maintenance_delta(delta).unwrap();
     let work_packet = build_active_delivery_work_packet(
         &mut runtime,

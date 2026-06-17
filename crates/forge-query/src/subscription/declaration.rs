@@ -71,6 +71,7 @@ impl QuerySubscriptionDeclarationArtifact {
         &self.declaration_identity
     }
 
+    #[allow(dead_code)]
     pub(crate) fn declaration_digest(&self) -> &QuerySubscriptionDeclarationDigest {
         &self.declaration_digest
     }

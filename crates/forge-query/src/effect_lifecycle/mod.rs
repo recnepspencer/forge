@@ -75,8 +75,9 @@ pub use lowering::{
     LoweredEffectExecutionArtifact, LoweredEffectExecutionPlan,
 };
 pub use normalized::{EffectIntentDenial, EffectOperationInput, NormalizedEffectIntent};
+#[cfg(test)]
+pub(crate) use oracle::bridge_observation_execution_receipt_subject_identity;
 pub use oracle::{
-    bridge_observation_execution_receipt_subject_identity,
     bridge_observation_execution_record_subject_identity,
     bridge_observation_outcome_subject_identity, bridge_observation_receipt_subject_identity,
     bridge_observation_request_subject_identity, BridgeExecutionOracle, EffectExecutionOracleError,

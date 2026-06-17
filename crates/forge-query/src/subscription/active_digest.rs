@@ -8,10 +8,6 @@ impl ActiveSubscriptionLaneDigest {
         Self(value)
     }
 
-    pub(crate) fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-
     pub fn evidence_identity(&self) -> &ForgeQueryEvidenceIdentity {
         &self.0
     }

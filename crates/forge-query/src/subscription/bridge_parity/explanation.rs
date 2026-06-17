@@ -13,7 +13,7 @@ use super::support::{
 use super::validation::{
     parity_class_for_family, validate_parity_sources, CanonicalBridgeParitySemantics,
 };
-use super::witness::{BridgeWitnessAssemblyPosture, QuerySubscriptionManualBridgeWitness};
+use super::witness::QuerySubscriptionManualBridgeWitness;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionBridgeParityComparison {

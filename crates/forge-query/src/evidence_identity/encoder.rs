@@ -31,10 +31,6 @@ pub(crate) struct ForgeQueryEvidenceIdentityEncoder {
 }
 
 impl ForgeQueryEvidenceIdentityEncoder {
-    pub(crate) fn for_scope(scope: ForgeQueryEvidenceScope) -> Self {
-        Self::new(scope, ForgeQueryEvidenceIdentityScheme::V1)
-    }
-
     pub(crate) fn new(
         scope: ForgeQueryEvidenceScope,
         scheme: ForgeQueryEvidenceIdentityScheme,

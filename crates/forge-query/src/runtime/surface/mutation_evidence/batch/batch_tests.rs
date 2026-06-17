@@ -2,7 +2,7 @@ use super::super::batch_digest_helpers::{
     batch_continuity_mutation_digest, batch_existing_truth_binding_digest,
     batch_naming_mutation_digest, batch_symbolic_target_reference_digest,
 };
-use crate::memory_workspace::{ForgeQueryEntityIdentity, ForgeQuerySnapshotIdentity};
+use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{
     ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationFamily,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,

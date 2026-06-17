@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub fn source_for_format_digest_path(path: &str) -> Option<&'static str> {
     match path {
         "application/support/report.rs" => Some(include_str!("report.rs")),

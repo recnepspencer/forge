@@ -185,6 +185,7 @@ impl ForgeQueryRuntimeRetainedDelivery {
         &self.delivery_batch_identity
     }
 
+    #[allow(dead_code)]
     pub(super) fn delivery_batch_for_reporting(&self) -> &str {
         self.delivery_batch_identity.as_str()
     }

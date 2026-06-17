@@ -28,6 +28,7 @@ use super::slice_budget::QuerySubscriptionSliceBudget;
 const SUBSCRIPTION_IDENTITY_SCOPE: ForgeQueryEvidenceScope =
     ForgeQueryEvidenceScope::SubscriptionActivationReceipt;
 
+#[allow(dead_code)]
 pub(super) fn subscription_source_identity(
     role: &str,
     source_identity: &ForgeQueryEvidenceIdentity,

@@ -22,6 +22,7 @@ macro_rules! causal_identity_type {
                 &self.0
             }
 
+            #[allow(dead_code)]
             pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
                 self.0.bridge_evidence_identity()
             }

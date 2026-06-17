@@ -13,7 +13,7 @@ use std::rc::Rc;
 use crate::declarative_live::DeclarativeLiveViewShape;
 use crate::memory_workspace::{
     ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryLivePatch,
-    ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQuerySnapshotIdentity,
+    ForgeQueryLiveViewHandle, ForgeQuerySnapshotIdentity,
 };
 use crate::subscription::SubscriptionActivationInput;
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;

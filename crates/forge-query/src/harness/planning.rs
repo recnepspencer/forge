@@ -8,7 +8,6 @@ use crate::facade::{
     GuidedAuthoringPath, IdentityBindingDescriptor, QueryBindingDescriptor, QueryBindingSlot,
     QueryBindingSubject, ResolvedSnapshotIdentity, RootEntityKey, SnapshotLineageClass,
 };
-use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::planning::{
     plan_validated_bundle_for_requested_aggregate_family,
     plan_validated_bundle_for_requested_derived_field_family, RequestedAggregateFamily,

@@ -28,17 +28,6 @@ pub(crate) fn seal(encoder: ForgeQueryEvidenceIdentityEncoder) -> String {
     encoder.seal().as_str().to_string()
 }
 
-pub(crate) fn compose_sequence_digest(
-    identity_family: &str,
-    tag: &'static str,
-    values: impl IntoIterator<Item = impl AsRef<str>>,
-) -> String {
-    seal(
-        domain_capability_scope_encoder(identity_family)
-            .field_value_sequence(ForgeQueryEvidenceTag::new(tag), values),
-    )
-}
-
 pub(crate) fn compose_certification_sequence_digest(
     identity_family: &str,
     tag: &'static str,
@@ -48,17 +37,6 @@ pub(crate) fn compose_certification_sequence_digest(
         domain_capability_certification_scope_encoder(identity_family)
             .field_value_sequence(ForgeQueryEvidenceTag::new(tag), values),
     )
-}
-
-pub(crate) fn compose_labeled_entry_digest(
-    identity_family: &'static str,
-    entries: &[(&'static str, &str)],
-) -> String {
-    let mut encoder = domain_capability_certification_scope_encoder(identity_family);
-    for (tag, value) in entries {
-        encoder = encoder.field_shape(ForgeQueryEvidenceTag::new(tag), *value);
-    }
-    seal(encoder)
 }
 
 pub(crate) fn compose_fact_request_entry_digest(request: &ProjectionFactRequest) -> String {

@@ -88,6 +88,7 @@ pub fn admit_authored_entity_token(
     ForgeQueryEntityIdentity::preview(preview_entity_evidence_from_admitted(&admitted))
 }
 
+#[cfg(test)]
 pub(crate) fn admit_external_commit_label(label: impl AsRef<str>) -> ForgeQueryCommitIdentity {
     admit_external_commit_token(QueryExternalIdentityToken::new(Arc::from(label.as_ref())))
 }

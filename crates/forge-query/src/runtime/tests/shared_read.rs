@@ -12,7 +12,6 @@ use crate::authorized_projection::{
     PolicyInfluenceSet,
 };
 use crate::canonicalization::CanonicalResultShapeArtifact;
-use crate::memory_workspace::{ForgeQueryCommitIdentity, ForgeQueryEntityIdentity};
 use crate::projection_consumption::{ProjectMaterializedFacts, ProjectionFactConsumptionAttempt};
 
 use super::support::*;

@@ -10,18 +10,6 @@ pub(crate) fn validation_evidence_identity_label(
     TerminalProjectionLabel::from_identity(identity)
 }
 
-pub(crate) fn validation_label_list_evidence(prefix: &str, labels: &[String]) -> String {
-    let mut out = String::from(prefix);
-    out.push(':');
-    for (index, label) in labels.iter().enumerate() {
-        if index > 0 {
-            out.push(',');
-        }
-        out.push_str(label);
-    }
-    out
-}
-
 pub(crate) fn validation_role_evidence_identity(
     role: &'static str,
     identity: &ForgeQueryEvidenceIdentity,
@@ -73,25 +61,4 @@ pub(crate) fn validation_label_list_evidence_identity(
             labels.iter().map(String::as_str),
         )
         .seal()
-}
-
-pub(crate) fn validation_evidence_pair(
-    left_key: &str,
-    left: &ForgeQueryEvidenceIdentity,
-    right_key: &str,
-    right: &ForgeQueryEvidenceIdentity,
-) -> [String; 2] {
-    [
-        format!("{left_key}:{}", validation_evidence_identity_label(left)),
-        format!("{right_key}:{}", validation_evidence_identity_label(right)),
-    ]
-}
-
-pub(crate) fn validation_evidence_projection_pair(
-    left_key: &str,
-    left: TerminalProjectionLabel,
-    right_key: &str,
-    right: TerminalProjectionLabel,
-) -> [String; 2] {
-    [format!("{left_key}:{left}"), format!("{right_key}:{right}")]
 }

@@ -73,6 +73,7 @@ macro_rules! variation_set_impl {
                 &self.digests
             }
 
+            #[allow(dead_code)]
             pub(crate) fn digest(&self) -> &str {
                 self.variation_identity.as_str()
             }
@@ -145,6 +146,7 @@ impl QuerySubscriptionLifecycleClassVariationSet {
         &self.classes
     }
 
+    #[allow(dead_code)]
     pub(crate) fn digest(&self) -> &str {
         self.variation_identity.as_str()
     }

@@ -23,14 +23,12 @@ use super::evidence_identities::{
     lifecycle_absent_preview_residue_identity, lifecycle_active_delivery_density_posture_identity,
     lifecycle_active_lane_handle_identity, lifecycle_active_lane_lookup_class_identity,
     lifecycle_allocation_posture_identity, lifecycle_certification_bundle_identity,
-    lifecycle_context_basis_posture_identity, lifecycle_context_policy_identity,
-    lifecycle_context_query_identity, lifecycle_context_relationship_proof_identity,
-    lifecycle_context_tenant_basis_identity, lifecycle_context_view_shape_identity,
-    lifecycle_counter_sequence_identity, lifecycle_labeled_counter_identity,
-    lifecycle_performance_sequence_identity, lifecycle_preview_promotion_residue_identity,
-    lifecycle_subscription_budget_identity, lifecycle_subscription_equivalence_identity,
-    lifecycle_subscription_family_identity, lifecycle_support_matrix_identity,
-    typed_identity_drift,
+    lifecycle_context_basis_posture_identity, lifecycle_context_query_identity,
+    lifecycle_context_view_shape_identity, lifecycle_counter_sequence_identity,
+    lifecycle_labeled_counter_identity, lifecycle_performance_sequence_identity,
+    lifecycle_preview_promotion_residue_identity, lifecycle_subscription_budget_identity,
+    lifecycle_subscription_equivalence_identity, lifecycle_subscription_family_identity,
+    lifecycle_support_matrix_identity, typed_identity_drift,
 };
 use super::input::LiveQueryAdmissionArtifact;
 use super::maintenance_delta::{

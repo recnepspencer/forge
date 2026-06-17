@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::domain_capabilities::identity::domain_capability_scope_encoder;
 use crate::evidence_identity::{ForgeQueryEvidenceIdentity, ForgeQueryEvidenceTag};
 use forge_relational::facade::merge::RelationalMergeInspectionArtifact;

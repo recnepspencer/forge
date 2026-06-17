@@ -35,6 +35,7 @@ pub enum ProjectionConsumptionCertificationLane {
 }
 
 impl ProjectionConsumptionCertificationLane {
+    #[allow(dead_code)]
     pub(super) fn as_str(&self) -> &'static str {
         match self {
             Self::SupportMatrixSurface => "support_matrix_surface",

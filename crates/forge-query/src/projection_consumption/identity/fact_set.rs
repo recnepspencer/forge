@@ -2,11 +2,7 @@ use serde_json::Value;
 
 use super::core::compose_extraction_counters_digest;
 use super::scope::{compose_sequence_digest, scope_encoder, seal};
-use crate::memory_workspace::ForgeQueryEntityIdentity;
-use crate::runtime::{
-    ForgeQueryContinuityMutationFamily, ForgeQueryContinuityOutcomeClass,
-    ForgeQueryMutationTargetClass,
-};
+use crate::runtime::{ForgeQueryContinuityMutationFamily, ForgeQueryContinuityOutcomeClass};
 use crate::ForgeQueryEvidenceTag;
 
 use super::super::consumed::{

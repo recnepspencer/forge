@@ -17,5 +17,5 @@ pub(crate) use fact_set::*;
 pub(crate) use scope::{
     certification_scope_encoder, compose_certification_sequence_digest,
     compose_certification_sequence_digest as compose_digest_sequence, compose_labeled_entry_digest,
-    compose_sequence_digest, consumption_scope_encoder, scope_encoder, seal,
+    seal,
 };

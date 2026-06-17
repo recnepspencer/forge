@@ -208,7 +208,6 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::memory_workspace::ForgeQuerySnapshotIdentity;
     use crate::runtime::surface::{
         ForgeQueryDerivedArtifactBinding, ForgeQueryDerivedMaterializationBundle,
         ForgeQueryDerivedMaterializationReceipt, ForgeQueryDerivedMaterializationResult,

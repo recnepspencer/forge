@@ -1,4 +1,3 @@
-use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::{ForgeQueryIntentDeclaration, ForgeQueryRuntimeError};
 
 use super::fixture::stateful_bridge_task_runtime;
