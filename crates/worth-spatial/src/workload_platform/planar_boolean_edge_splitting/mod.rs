@@ -1,12 +1,14 @@
 mod candidate_index_consumption_gate;
 mod canonical_parameter;
 mod canonical_schedule_ordering;
+mod downstream_split_consumption;
 mod duplicate_split_normalization;
 mod edge_split_request;
 mod endpoint_boundary_normalization;
 mod event_participation_index;
 mod interval_parameter_admission;
 mod interval_split_candidates;
+mod loop_reconstruction_consumption;
 mod micro_interval_normalization;
 mod overlap_edge_chains;
 mod point_parameter_admission;
@@ -23,8 +25,10 @@ mod split_decision_log;
 mod split_edge_chain_ledger;
 mod split_edge_fragments;
 mod split_persistent_naming;
+mod split_replay_parity;
 mod split_scope_admission;
 mod split_vertex_identity;
+mod summum_bonum_closeout;
 
 #[allow(unused_imports)]
 pub use candidate_index_consumption_gate::{
@@ -38,6 +42,13 @@ pub use canonical_schedule_ordering::{
     PlanarBooleanOrderedEdgeSplitScheduleDenial, PlanarBooleanOrderedEdgeSplitScheduleDenialKind,
     PlanarBooleanOrderedEdgeSplitScheduleEntry, PlanarBooleanOrderedEdgeSplitScheduleSet,
     PlanarBooleanSplitScheduleOrderKey,
+};
+#[allow(unused_imports)]
+pub use downstream_split_consumption::{
+    PlanarBooleanDownstreamSplitConsumption, PlanarBooleanDownstreamSplitConsumptionCounters,
+    PlanarBooleanDownstreamSplitConsumptionDenial,
+    PlanarBooleanDownstreamSplitConsumptionDenialKind,
+    PlanarBooleanDownstreamSplitConsumptionInput,
 };
 #[allow(unused_imports)]
 pub use duplicate_split_normalization::{
@@ -78,6 +89,14 @@ pub use interval_split_candidates::{
     PlanarBooleanIntervalSplitCandidate, PlanarBooleanIntervalSplitCandidateCounters,
     PlanarBooleanIntervalSplitCandidateDenial, PlanarBooleanIntervalSplitCandidateDenialKind,
     PlanarBooleanIntervalSplitCandidateSet,
+};
+#[allow(unused_imports)]
+pub use loop_reconstruction_consumption::{
+    PlanarBooleanLoopReconstructionSplitConsumption,
+    PlanarBooleanLoopReconstructionSplitConsumptionCounters,
+    PlanarBooleanLoopReconstructionSplitConsumptionDenial,
+    PlanarBooleanLoopReconstructionSplitConsumptionDenialKind,
+    PlanarBooleanLoopReconstructionSplitConsumptionInput,
 };
 #[allow(unused_imports)]
 pub use micro_interval_normalization::{
@@ -174,6 +193,21 @@ pub use split_persistent_naming::{
     PlanarBooleanSplitSelectorResolutionRow, PlanarBooleanSplitSubshapeSignatureRow,
 };
 #[allow(unused_imports)]
+pub use split_replay_parity::{
+    CanonicalizeReversedEdgeSenseSplit, CompareEdgeSplitCheckpointParity,
+    CompareEdgeSplitReplayParity, PlanarBooleanEdgeSplitCloseout,
+    PlanarBooleanEdgeSplitReplayExecutionMode, PlanarBooleanEdgeSplitReplayLoweredPlan,
+    PlanarBooleanEdgeSplitReplayParityCounters, PlanarBooleanEdgeSplitReplayParityDenial,
+    PlanarBooleanEdgeSplitReplayParityDenialKind, PlanarBooleanEdgeSplitReplayParityInput,
+    PlanarBooleanEdgeSplitReplayParityReceipt, PlanarBooleanEdgeSplitReplayParityReport,
+    PlanarBooleanEdgeSplitReplayParityRow, PlanarBooleanEdgeSplitReplayParityRowKind,
+    PlanarBooleanEdgeSplitReplayProduct, PlanarBooleanEdgeSplitReplayProductCounters,
+    PlanarBooleanEdgeSplitReplayQueryDomain, PlanarBooleanEdgeSplitReplayQueryInput,
+    PlanarBooleanSplitReplayClosureManifest, PlanarBooleanSplitReplayClosureRow,
+    PlanarBooleanSplitReplayClosureRowKind, ReplayPlanarBooleanEdgeSplit,
+    ValidatePlanarBooleanReplayParity,
+};
+#[allow(unused_imports)]
 pub use split_scope_admission::{
     PlanarBooleanEdgeSplitDegeneracyPolicy, PlanarBooleanEdgeSplitDeterminismPolicy,
     PlanarBooleanEdgeSplitOverlapPolicy, PlanarBooleanEdgeSplitPolicyOutcome,
@@ -188,4 +222,13 @@ pub use split_vertex_identity::{
     PlanarBooleanSplitVertexIdentityCounters, PlanarBooleanSplitVertexIdentityDenial,
     PlanarBooleanSplitVertexIdentityDenialKind, PlanarBooleanSplitVertexIdentityRow,
     PlanarBooleanSplitVertexIdentitySchedule, PlanarBooleanSplitVertexIdentitySet,
+};
+#[allow(unused_imports)]
+pub use summum_bonum_closeout::{
+    PlanarBooleanEdgeSplitCloseoutCandidateRow, PlanarBooleanEdgeSplitCloseoutDecisionRow,
+    PlanarBooleanEdgeSplitCloseoutLineageRow, PlanarBooleanEdgeSplitSummumBonumCloseout,
+    PlanarBooleanEdgeSplitSummumBonumCloseoutCounters,
+    PlanarBooleanEdgeSplitSummumBonumCloseoutDenial,
+    PlanarBooleanEdgeSplitSummumBonumCloseoutDenialKind,
+    PlanarBooleanEdgeSplitSummumBonumCloseoutInput,
 };

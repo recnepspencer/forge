@@ -55,10 +55,7 @@ pub(super) fn decision_identity_with_detail(
         format!("upstream:{upstream_receipt_identity}"),
     ];
     parts.extend(extra_identity_parts.iter().cloned());
-    truth_digest_parts(
-        TruthDigestScope::ArtifactIdentity,
-        &parts,
-    )
+    truth_digest_parts(TruthDigestScope::ArtifactIdentity, &parts)
 }
 
 pub(super) fn receipt_identity(

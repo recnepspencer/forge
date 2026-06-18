@@ -1,7 +1,7 @@
 use worth_kernel::workload_composition::PlanarBooleanEventExtractionRequest;
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 pub(crate) struct CounterlessEventExtractionRequestEvidence {
@@ -36,6 +36,8 @@ impl BooleanEvidenceReceipt for CounterlessEventExtractionRequestEvidence {
     }
 }
 
+impl BooleanEvidenceRowAuthority for CounterlessEventExtractionRequestEvidence {}
+
 pub(crate) struct SupportMismatchedEventExtractionRequestEvidence {
     digest: String,
 }
@@ -68,6 +70,8 @@ impl BooleanEvidenceReceipt for SupportMismatchedEventExtractionRequestEvidence 
     }
 }
 
+impl BooleanEvidenceRowAuthority for SupportMismatchedEventExtractionRequestEvidence {}
+
 pub(crate) struct WrongCounterFamilyEventExtractionRequestEvidence {
     digest: String,
 }
@@ -99,3 +103,5 @@ impl BooleanEvidenceReceipt for WrongCounterFamilyEventExtractionRequestEvidence
         WorkloadEvidenceStageCounters::boolean_reduced_operand_pair()
     }
 }
+
+impl BooleanEvidenceRowAuthority for WrongCounterFamilyEventExtractionRequestEvidence {}

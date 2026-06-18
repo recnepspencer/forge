@@ -9,8 +9,9 @@ use worth_kernel::workload_composition::{
 };
 use worth_spatial::facade::planar_boolean_common_plane::PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt;
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceLedger, WorkloadEvidenceRow,
-    WorkloadEvidenceStage, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
@@ -212,6 +213,8 @@ impl BooleanEvidenceReceipt for CounterlessSharedPlaneEvidence {
     }
 }
 
+impl BooleanEvidenceRowAuthority for CounterlessSharedPlaneEvidence {}
+
 struct SupportMismatchedSharedPlaneEvidence {
     digest: String,
 }
@@ -243,6 +246,8 @@ impl BooleanEvidenceReceipt for SupportMismatchedSharedPlaneEvidence {
         WorkloadEvidenceStageCounters::boolean_shared_plane_identity()
     }
 }
+
+impl BooleanEvidenceRowAuthority for SupportMismatchedSharedPlaneEvidence {}
 
 fn shared_plane_from_pair(
     pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,

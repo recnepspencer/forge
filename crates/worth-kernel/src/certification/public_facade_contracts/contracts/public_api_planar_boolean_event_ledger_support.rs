@@ -8,8 +8,8 @@ use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanIntervalEventExtraction, PlanarBooleanPointEventExtraction,
 };
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 use super::collinear_relation_support::{self, SyntheticCollinearRelation};
@@ -178,3 +178,5 @@ impl BooleanEvidenceReceipt for CounterlessEventLedgerEvidence {
         WorkloadEvidenceStageCounters::default()
     }
 }
+
+impl BooleanEvidenceRowAuthority for CounterlessEventLedgerEvidence {}

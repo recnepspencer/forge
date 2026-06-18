@@ -201,6 +201,7 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
                     .with_planar_loop_boundary_profile(
                         PlanarLoopBoundaryCatalogProfile::BooleanEventMetabossLeft,
                     )
+                    .with_retained_replay_artifacts()
             }
             WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair => {
                 WorkloadCatalog::single_face_loop()
@@ -242,6 +243,7 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
                     .with_planar_loop_boundary_profile(
                         PlanarLoopBoundaryCatalogProfile::BooleanEventMetabossRight,
                     )
+                    .with_retained_replay_artifacts()
             }
             WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair => {
                 WorkloadCatalog::single_face_loop().with_transform(

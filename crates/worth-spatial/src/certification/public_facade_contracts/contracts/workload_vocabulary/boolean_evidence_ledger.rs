@@ -1,7 +1,8 @@
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, CompleteWorkloadEvidenceLedger,
-    WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow,
-    WorkloadEvidenceStage, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+    WorkloadEvidenceSupport,
 };
 
 use super::evidence_ledger_receipts::counter_backed_rows;
@@ -177,6 +178,8 @@ impl BooleanEvidenceReceipt for ContractBooleanReceipt {
     }
 }
 
+impl BooleanEvidenceRowAuthority for ContractBooleanReceipt {}
+
 fn contract_boolean_receipt(
     stage: BooleanEvidenceStageKind,
     identity: &'static str,
@@ -216,6 +219,8 @@ impl BooleanEvidenceReceipt for BorrowedIdentityBooleanReceipt {
         self.counters
     }
 }
+
+impl BooleanEvidenceRowAuthority for BorrowedIdentityBooleanReceipt {}
 
 fn run_with_large_stack(body: impl FnOnce() + Send + 'static) {
     std::thread::Builder::new()

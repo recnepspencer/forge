@@ -8,8 +8,9 @@ use worth_kernel::workload_composition::{
     WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
 };
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceLedger, WorkloadEvidenceRow,
-    WorkloadEvidenceStage, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
@@ -209,6 +210,8 @@ impl BooleanEvidenceReceipt for CounterlessLocalFrameEvidence {
     }
 }
 
+impl BooleanEvidenceRowAuthority for CounterlessLocalFrameEvidence {}
+
 struct SupportMismatchedLocalFrameEvidence {
     digest: String,
 }
@@ -238,6 +241,8 @@ impl BooleanEvidenceReceipt for SupportMismatchedLocalFrameEvidence {
         WorkloadEvidenceStageCounters::boolean_local_frame_selection()
     }
 }
+
+impl BooleanEvidenceRowAuthority for SupportMismatchedLocalFrameEvidence {}
 
 fn local_frame_from_pair(
     pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,

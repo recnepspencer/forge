@@ -139,6 +139,4 @@ pub use crate::projection::runtime_boundary::query_runtime::{
     TopologyQueryMutationLaneSupportStatus,
 };
 #[cfg(test)]
-pub use crate::validation::{
-    validate_interpreted_topology, DerivedTopologyValidationReport,
-};
+pub use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};

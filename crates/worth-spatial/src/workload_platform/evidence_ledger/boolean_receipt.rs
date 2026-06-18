@@ -6,3 +6,5 @@ pub trait BooleanEvidenceReceipt {
     fn evidence_support(&self) -> WorkloadEvidenceSupport;
     fn evidence_counters(&self) -> WorkloadEvidenceStageCounters;
 }
+
+pub trait BooleanEvidenceRowAuthority: BooleanEvidenceReceipt + 'static {}

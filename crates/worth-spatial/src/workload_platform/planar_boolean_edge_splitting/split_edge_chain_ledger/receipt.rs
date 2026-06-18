@@ -2,8 +2,8 @@ use super::counters::PlanarBooleanSplitEdgeChainLedgerCounters;
 use super::identity;
 use super::ledger::PlanarBooleanSplitEdgeChainLedger;
 use crate::workload_platform::evidence_ledger::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -116,3 +116,5 @@ impl BooleanEvidenceReceipt for PlanarBooleanSplitEdgeChainLedgerReceipt {
         WorkloadEvidenceStageCounters::boolean_split()
     }
 }
+
+impl BooleanEvidenceRowAuthority for PlanarBooleanSplitEdgeChainLedgerReceipt {}

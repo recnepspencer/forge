@@ -89,9 +89,9 @@ impl WorkloadEvidenceStageIndexProduct {
             })
     }
 
-    pub fn require_boolean_receipt(
+    pub fn require_boolean_receipt<T: BooleanEvidenceReceipt + 'static>(
         &self,
-        receipt: &impl BooleanEvidenceReceipt,
+        receipt: &T,
     ) -> Result<(), WorkloadEvidenceLedgerError> {
         match_boolean_receipt(self, receipt)
     }
@@ -108,8 +108,8 @@ impl WorkloadEvidenceStageIndexProduct {
 mod tests {
     use super::*;
     use crate::workload_platform::evidence_ledger::{
-        BooleanEvidenceStageKind, WorkloadEvidenceStageBinding, WorkloadEvidenceStageCounters,
-        WorkloadEvidenceSupport,
+        BooleanEvidenceRowAuthority, BooleanEvidenceStageKind, WorkloadEvidenceStageBinding,
+        WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
     };
 
     #[test]
@@ -266,6 +266,31 @@ mod tests {
         );
     }
 
+    #[test]
+    fn stage_index_rejects_same_identity_boolean_receipt_family_substitution() {
+        let admitted =
+            FakeBooleanReceipt::new("split", WorkloadEvidenceStageCounters::boolean_split());
+        let substituted = SubstitutedFakeBooleanReceipt::new(
+            "split",
+            WorkloadEvidenceStageCounters::boolean_split(),
+        );
+        let product = WorkloadEvidenceStageIndexProduct::new(vec![
+            WorkloadEvidenceRow::from_boolean_evidence_receipt(&substituted),
+        ])
+        .expect("substituted row remains indexable for family-mismatch denial");
+
+        let denial = product
+            .require_boolean_receipt(&admitted)
+            .expect_err("same identity and counters must not spoof a different receipt family");
+
+        assert_eq!(
+            denial,
+            WorkloadEvidenceLedgerError::MismatchedBooleanStage(
+                WorkloadEvidenceStage::BooleanSplit
+            )
+        );
+    }
+
     struct FakeBooleanReceipt {
         identity: &'static str,
         counters: WorkloadEvidenceStageCounters,
@@ -294,4 +319,37 @@ mod tests {
             self.counters
         }
     }
+
+    impl BooleanEvidenceRowAuthority for FakeBooleanReceipt {}
+
+    struct SubstitutedFakeBooleanReceipt {
+        identity: &'static str,
+        counters: WorkloadEvidenceStageCounters,
+    }
+
+    impl SubstitutedFakeBooleanReceipt {
+        fn new(identity: &'static str, counters: WorkloadEvidenceStageCounters) -> Self {
+            Self { identity, counters }
+        }
+    }
+
+    impl BooleanEvidenceReceipt for SubstitutedFakeBooleanReceipt {
+        fn boolean_stage(&self) -> BooleanEvidenceStageKind {
+            BooleanEvidenceStageKind::Split
+        }
+
+        fn evidence_identity(&self) -> &str {
+            self.identity
+        }
+
+        fn evidence_support(&self) -> WorkloadEvidenceSupport {
+            WorkloadEvidenceSupport::Admitted
+        }
+
+        fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
+            self.counters
+        }
+    }
+
+    impl BooleanEvidenceRowAuthority for SubstitutedFakeBooleanReceipt {}
 }

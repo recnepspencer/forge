@@ -1,7 +1,7 @@
 use worth_kernel::workload_composition::PlanarBooleanCommonPlaneReducedOperandPairRequest;
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 pub(crate) struct CounterlessReducedOperandPairEvidence {
@@ -36,6 +36,8 @@ impl BooleanEvidenceReceipt for CounterlessReducedOperandPairEvidence {
     }
 }
 
+impl BooleanEvidenceRowAuthority for CounterlessReducedOperandPairEvidence {}
+
 pub(crate) struct SupportMismatchedReducedOperandPairEvidence {
     digest: String,
 }
@@ -68,6 +70,8 @@ impl BooleanEvidenceReceipt for SupportMismatchedReducedOperandPairEvidence {
     }
 }
 
+impl BooleanEvidenceRowAuthority for SupportMismatchedReducedOperandPairEvidence {}
+
 pub(crate) struct WrongCounterFamilyReducedOperandPairEvidence {
     digest: String,
 }
@@ -99,3 +103,5 @@ impl BooleanEvidenceReceipt for WrongCounterFamilyReducedOperandPairEvidence {
         WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption()
     }
 }
+
+impl BooleanEvidenceRowAuthority for WrongCounterFamilyReducedOperandPairEvidence {}

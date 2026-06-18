@@ -4,9 +4,9 @@ use crate::workload_platform::evidence_ledger::{
 
 use super::product::WorkloadEvidenceStageIndexProduct;
 
-pub(crate) fn match_boolean_receipt(
+pub(crate) fn match_boolean_receipt<T: BooleanEvidenceReceipt + 'static>(
     product: &WorkloadEvidenceStageIndexProduct,
-    receipt: &impl BooleanEvidenceReceipt,
+    receipt: &T,
 ) -> Result<(), WorkloadEvidenceLedgerError> {
     let stage = receipt.boolean_stage().evidence_stage();
     let row = product
@@ -19,6 +19,9 @@ pub(crate) fn match_boolean_receipt(
         return Err(WorkloadEvidenceLedgerError::CounterlessBooleanStage(stage));
     }
     if row.evidence_identity() != receipt.evidence_identity() {
+        return Err(WorkloadEvidenceLedgerError::MismatchedBooleanStage(stage));
+    }
+    if !row.matches_receipt_type::<T>() {
         return Err(WorkloadEvidenceLedgerError::MismatchedBooleanStage(stage));
     }
     if row.support() != receipt.evidence_support() {

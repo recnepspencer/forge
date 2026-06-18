@@ -1,7 +1,7 @@
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 use super::{
@@ -117,6 +117,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanDeclarationReceipt {
     }
 }
 
+impl BooleanEvidenceRowAuthority for PlanarBooleanDeclarationReceipt {}
+
 impl BooleanEvidenceReceipt for PlanarBooleanSupportReceipt {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
         BooleanEvidenceStageKind::RoutePlan
@@ -138,6 +140,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanSupportReceipt {
     }
 }
 
+impl BooleanEvidenceRowAuthority for PlanarBooleanSupportReceipt {}
+
 impl BooleanEvidenceReceipt for PlanarBooleanOperandPairConstructionReceipt {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
         BooleanEvidenceStageKind::OperandPairConstruction
@@ -155,6 +159,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanOperandPairConstructionReceipt {
         WorkloadEvidenceStageCounters::boolean_operand_pair()
     }
 }
+
+impl BooleanEvidenceRowAuthority for PlanarBooleanOperandPairConstructionReceipt {}
 
 impl BooleanEvidenceReceipt for PlanarBooleanBlockerEvidenceReceipt {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
@@ -174,6 +180,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanBlockerEvidenceReceipt {
     }
 }
 
+impl BooleanEvidenceRowAuthority for PlanarBooleanBlockerEvidenceReceipt {}
+
 impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
         BooleanEvidenceStageKind::SharedPlaneIdentity
@@ -191,6 +199,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneSharedPlaneIdentifiedReq
         WorkloadEvidenceStageCounters::boolean_shared_plane_identity()
     }
 }
+
+impl BooleanEvidenceRowAuthority for PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest {}
 
 impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneLocalFrameSelectedRequest {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
@@ -210,6 +220,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneLocalFrameSelectedReques
     }
 }
 
+impl BooleanEvidenceRowAuthority for PlanarBooleanCommonPlaneLocalFrameSelectedRequest {}
+
 impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneOperandAProjectedRequest {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
         BooleanEvidenceStageKind::OperandAProjectionConsumption
@@ -227,6 +239,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneOperandAProjectedRequest
         WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption()
     }
 }
+
+impl BooleanEvidenceRowAuthority for PlanarBooleanCommonPlaneOperandAProjectedRequest {}
 
 impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneOperandBProjectedRequest {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
@@ -246,6 +260,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneOperandBProjectedRequest
     }
 }
 
+impl BooleanEvidenceRowAuthority for PlanarBooleanCommonPlaneOperandBProjectedRequest {}
+
 impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneReducedOperandPairRequest {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
         BooleanEvidenceStageKind::ReducedOperandPair
@@ -263,6 +279,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanCommonPlaneReducedOperandPairReques
         WorkloadEvidenceStageCounters::boolean_reduced_operand_pair()
     }
 }
+
+impl BooleanEvidenceRowAuthority for PlanarBooleanCommonPlaneReducedOperandPairRequest {}
 
 impl BooleanEvidenceReceipt for PlanarBooleanEventExtractionRequest {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
@@ -282,6 +300,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanEventExtractionRequest {
     }
 }
 
+impl BooleanEvidenceRowAuthority for PlanarBooleanEventExtractionRequest {}
+
 impl BooleanEvidenceReceipt for PlanarBooleanCommonPlanePrecisionAgreedRequest {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind {
         BooleanEvidenceStageKind::PrecisionAgreement
@@ -299,3 +319,5 @@ impl BooleanEvidenceReceipt for PlanarBooleanCommonPlanePrecisionAgreedRequest {
         WorkloadEvidenceStageCounters::boolean_precision_agreement()
     }
 }
+
+impl BooleanEvidenceRowAuthority for PlanarBooleanCommonPlanePrecisionAgreedRequest {}

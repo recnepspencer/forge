@@ -1,3 +1,5 @@
+use std::any::TypeId;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkloadEvidenceRow {
     stage: WorkloadEvidenceStage,
@@ -5,6 +7,7 @@ pub struct WorkloadEvidenceRow {
     backing: WorkloadEvidenceBacking,
     support: WorkloadEvidenceSupport,
     counters: WorkloadEvidenceStageCounters,
+    receipt_type_id: Option<TypeId>,
     upstream_stage_binding: Option<WorkloadEvidenceStageBinding>,
 }
 
@@ -16,6 +19,7 @@ impl WorkloadEvidenceRow {
             backing: WorkloadEvidenceBacking::Manual,
             support: WorkloadEvidenceSupport::Manual,
             counters: WorkloadEvidenceStageCounters::default(),
+            receipt_type_id: None,
             upstream_stage_binding: None,
         }
     }
@@ -31,6 +35,7 @@ impl WorkloadEvidenceRow {
             backing: WorkloadEvidenceBacking::Receipt,
             support: WorkloadEvidenceSupport::Admitted,
             counters,
+            receipt_type_id: None,
             upstream_stage_binding: None,
         }
     }
@@ -47,6 +52,24 @@ impl WorkloadEvidenceRow {
             backing: WorkloadEvidenceBacking::Receipt,
             support,
             counters,
+            receipt_type_id: None,
+            upstream_stage_binding: None,
+        }
+    }
+
+    pub(crate) fn receipt_backed_with_receipt_type<T: 'static>(
+        stage: WorkloadEvidenceStage,
+        evidence_identity: impl Into<String>,
+        support: WorkloadEvidenceSupport,
+        counters: WorkloadEvidenceStageCounters,
+    ) -> Self {
+        Self {
+            stage,
+            evidence_identity: evidence_identity.into(),
+            backing: WorkloadEvidenceBacking::Receipt,
+            support,
+            counters,
+            receipt_type_id: Some(TypeId::of::<T>()),
             upstream_stage_binding: None,
         }
     }
@@ -63,6 +86,7 @@ impl WorkloadEvidenceRow {
             backing: WorkloadEvidenceBacking::Receipt,
             support: WorkloadEvidenceSupport::Admitted,
             counters,
+            receipt_type_id: None,
             upstream_stage_binding: Some(upstream_stage_binding),
         }
     }
@@ -87,6 +111,10 @@ impl WorkloadEvidenceRow {
         self.upstream_stage_binding.as_ref()
     }
 
+    pub(crate) fn matches_receipt_type<T: 'static>(&self) -> bool {
+        self.receipt_type_id == Some(TypeId::of::<T>())
+    }
+
     pub fn support(&self) -> WorkloadEvidenceSupport {
         self.support
     }
@@ -99,8 +127,8 @@ impl WorkloadEvidenceRow {
         self.support == WorkloadEvidenceSupport::Admitted
     }
 
-    pub fn from_boolean_evidence_receipt(receipt: &impl BooleanEvidenceReceipt) -> Self {
-        Self::receipt_backed_with_support(
+    pub fn from_boolean_evidence_receipt<T: BooleanEvidenceRowAuthority>(receipt: &T) -> Self {
+        Self::receipt_backed_with_receipt_type::<T>(
             receipt.boolean_stage().evidence_stage(),
             receipt.evidence_identity(),
             receipt.evidence_support(),
@@ -148,4 +176,4 @@ impl WorkloadEvidenceStageBinding {
         &self.upstream_evidence_identity
     }
 }
-use super::{BooleanEvidenceReceipt, WorkloadEvidenceStage, WorkloadEvidenceStageCounters};
+use super::{BooleanEvidenceRowAuthority, WorkloadEvidenceStage, WorkloadEvidenceStageCounters};

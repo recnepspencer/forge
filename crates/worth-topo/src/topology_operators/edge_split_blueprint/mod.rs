@@ -4,7 +4,9 @@ mod lane_honesty;
 mod operator_row;
 mod proof_obligation;
 mod registry;
+mod required_phase_1_operator_lanes;
 mod required_phase_1_rows;
+mod required_phase_1_validator_lanes;
 mod validator_row;
 
 #[cfg(test)]

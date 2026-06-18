@@ -6,9 +6,9 @@ use worth_kernel::workload_composition::{
     WorkloadCatalog, WorthWorkload, WorthWorkloadParts,
 };
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, CompleteWorkloadEvidenceLedger,
-    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedger, WorkloadEvidenceRow,
+    WorkloadEvidenceStage, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 use super::super::support::certified_boolean_readiness_workload_receipt;
@@ -114,7 +114,9 @@ pub(crate) fn boolean_declaration_row(harness: &BooleanHarness) -> WorkloadEvide
     WorkloadEvidenceRow::from_boolean_evidence_receipt(&harness.declaration)
 }
 
-pub(crate) fn boolean_route_row(receipt: &impl BooleanEvidenceReceipt) -> WorkloadEvidenceRow {
+pub(crate) fn boolean_route_row<T: BooleanEvidenceRowAuthority>(
+    receipt: &T,
+) -> WorkloadEvidenceRow {
     WorkloadEvidenceRow::from_boolean_evidence_receipt(receipt)
 }
 
@@ -162,6 +164,8 @@ impl BooleanEvidenceReceipt for CounterlessBooleanRouteEvidence {
     }
 }
 
+impl BooleanEvidenceRowAuthority for CounterlessBooleanRouteEvidence {}
+
 pub(crate) struct SupportMismatchedBooleanRouteEvidence {
     digest: String,
 }
@@ -191,6 +195,8 @@ impl BooleanEvidenceReceipt for SupportMismatchedBooleanRouteEvidence {
         WorkloadEvidenceStageCounters::boolean_route()
     }
 }
+
+impl BooleanEvidenceRowAuthority for SupportMismatchedBooleanRouteEvidence {}
 
 fn pair_identity(pair: &BuiltBooleanOperandPairRecipe) -> PlanarBooleanOperandPairIdentity {
     PlanarBooleanOperandPairIdentity::new(pair.operand_pair_identity())

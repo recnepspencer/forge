@@ -2,12 +2,12 @@ use super::{
     CapturedRetainedWorkload, RetainedWorkload, UnsupportedReplayReasonCode,
     UnsupportedReplayWorkload,
 };
-use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex, OnceLock};
 use planar_bundle::{
     canonical_planar_bundle_parts, projection_consumed_canonical_planar_facts,
     retained_canonical_planar_facts,
 };
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex, OnceLock};
 
 mod planar_bundle;
 mod planar_receipts;
@@ -19,7 +19,8 @@ pub(super) const NEIGHBORHOOD: &str = "neighborhood:canonical-retained-cancellat
 
 type CaptureResult = Result<CapturedRetainedWorkload, UnsupportedReplayWorkload>;
 
-fn retained_capture_cache() -> &'static Mutex<BTreeMap<&'static str, Arc<OnceLock<CaptureResult>>>> {
+fn retained_capture_cache() -> &'static Mutex<BTreeMap<&'static str, Arc<OnceLock<CaptureResult>>>>
+{
     static CACHE: OnceLock<Mutex<BTreeMap<&'static str, Arc<OnceLock<CaptureResult>>>>> =
         OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))

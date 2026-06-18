@@ -9,7 +9,7 @@ mod stage_counters;
 mod stage_index;
 mod stage_links;
 
-pub use boolean_receipt::BooleanEvidenceReceipt;
+pub use boolean_receipt::{BooleanEvidenceReceipt, BooleanEvidenceRowAuthority};
 pub use counters::WorkloadEvidenceCounters;
 pub use guard::{WorkloadEvidenceGuard, WorkloadEvidenceGuardError};
 pub use ledger::{

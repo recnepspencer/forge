@@ -1,3 +1,4 @@
+use crate::workload_platform::evidence_ledger::WorkloadEvidenceStage;
 use crate::workload_platform::evidence_ledger::WorkloadEvidenceStageIndexProduct;
 use crate::workload_platform::planar_boolean_edge_splitting::PlanarBooleanCandidateIndexConsumptionGate;
 use crate::workload_platform::planar_boolean_events::PlanarBooleanEventLedgerReceipt;
@@ -32,5 +33,10 @@ impl<'a> PlanarBooleanEdgeSplitRequestInput<'a> {
 
     pub(crate) fn stage_index(&self) -> &'a WorkloadEvidenceStageIndexProduct {
         self.stage_index
+    }
+
+    pub(crate) fn retained_replay_stage_identity(&self) -> Option<&'a str> {
+        self.stage_index
+            .evidence_for_stage(WorkloadEvidenceStage::RetainedReplay)
     }
 }
