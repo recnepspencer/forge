@@ -40,7 +40,7 @@ error: cannot construct `TopologyReadRequestReport` with struct literal syntax d
 20 |         repeated_rediscovery_denied_count: 0,
    |         ------------------------------------ private field
    |
-   = note: ...and other private fields `executed_basis_digest` and `executed_snapshot_token` that were not provided
+   = note: ...and other private fields `executed_basis_digest` and `executed_snapshot_identity` that were not provided
 help: you might have meant to use the `query_execution_without_fallback_debt` associated function
    |
  7 -     let _ = TopologyReadRequestReport {

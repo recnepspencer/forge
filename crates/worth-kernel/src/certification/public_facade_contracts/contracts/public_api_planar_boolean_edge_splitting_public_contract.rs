@@ -50,8 +50,9 @@ mod predicate_binding_support;
 mod reduced_pair_support;
 
 #[test]
-fn split_public_contract_requires_real_ledger_and_rejects_manual_split_evidence() {
+fn split_public_contract_requires_real_ledger_and_preserves_authority_boundaries() {
     reduced_pair_support::run_with_large_stack(|| {
-        edge_splitting_public_contract_support::assert_split_public_contract_requires_real_ledger_and_rejects_manual_evidence();
+        edge_splitting_public_contract_support::
+            assert_split_public_contract_requires_real_ledger_and_preserves_authority_boundaries();
     });
 }

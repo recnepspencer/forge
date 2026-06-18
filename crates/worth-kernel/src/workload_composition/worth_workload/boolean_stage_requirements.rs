@@ -5,8 +5,8 @@ use worth_spatial::facade::planar_boolean_events::{
 use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
 
 use super::{
-    require_boolean_evidence, WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload,
-    WorthWorkloadParts,
+    require_boolean_evidence, CompletedBooleanSplitHandoff, WorkloadCompositionError,
+    WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
 };
 use crate::workload_composition::boolean_evidence_requirement::map_boolean_ledger_error;
 use crate::workload_composition::{
@@ -200,5 +200,16 @@ impl WorthWorkload {
             response: self.response.clone(),
             evidence_ledger,
         })
+    }
+
+    pub fn complete_boolean_split_handoff(
+        &self,
+        split_ledger: &PlanarBooleanSplitEdgeChainLedgerReceipt,
+    ) -> Result<CompletedBooleanSplitHandoff, WorkloadCompositionError> {
+        let completed_workload = self.with_completed_boolean_split_ledger(split_ledger)?;
+        Ok(CompletedBooleanSplitHandoff::new(
+            completed_workload,
+            split_ledger.clone(),
+        ))
     }
 }

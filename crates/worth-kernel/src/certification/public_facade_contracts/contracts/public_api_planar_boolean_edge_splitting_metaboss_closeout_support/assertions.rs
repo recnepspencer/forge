@@ -50,7 +50,7 @@ pub(crate) fn assert_edge_split_summum_bonum_decision_localization_holds() {
 
 pub(crate) fn assert_edge_split_summum_bonum_public_contract_fences_hold() {
     super::super::edge_splitting_public_contract_support::
-        assert_split_public_contract_requires_real_ledger_and_rejects_manual_evidence();
+        assert_split_public_contract_requires_real_ledger_and_preserves_authority_boundaries();
 }
 
 fn assert_candidate_index_closeout(proof: &super::proof_bundle::EdgeSplitSummumBonumProofBundle) {

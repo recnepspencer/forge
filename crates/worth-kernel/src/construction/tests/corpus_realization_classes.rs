@@ -4,13 +4,13 @@ use worth_geom::facade::{
     PrimitiveSupportNormalClass,
 };
 
-use crate::construction::request::PrimitiveConstructionFamily;
-use crate::construction::tests::support::corpus_replay_row::PrimitiveConstructionCorpusParameterRole;
-use crate::construction::tests::support::corpus_replay_view::{
+use crate::construction::certification::corpus::replay_siege_report::{
     row_attempted_realization_strategies, row_exhaustion_reason, row_feature_conditioning_class,
     row_normalization_disposition, row_realization_strategy, row_stability_class,
     row_support_normal_class, siege_report,
 };
+use crate::construction::request::PrimitiveConstructionFamily;
+use crate::construction::tests::support::corpus_replay_row::PrimitiveConstructionCorpusParameterRole;
 
 #[test]
 fn corpus_replay_siege_distinguishes_direct_and_escalated_conditioning_classes() {

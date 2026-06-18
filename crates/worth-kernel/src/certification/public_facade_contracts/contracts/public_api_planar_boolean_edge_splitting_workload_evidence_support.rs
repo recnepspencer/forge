@@ -15,14 +15,17 @@ pub(crate) fn assert_split_ledger_satisfies_workload_requirement_for_7_4_consump
     let (result, _, _, _) = build_split_edge_chain_ledger_with_manifest_for_metaboss(subject);
     let receipt = result.receipt();
     let workload = reduced_pair_support::rebuild_left_workload(subject.pair(), vec![])
-        .with_completed_boolean_split_ledger(receipt)
-        .expect("completed split ledger handoff must compose into workload evidence");
+        .complete_boolean_split_handoff(receipt)
+        .expect(
+            "completed split ledger handoff must compose into a proof-bearing workload handoff",
+        );
 
     workload
-        .require_boolean_split(receipt)
+        .require_boolean_split()
         .expect("completed split edge-chain ledger receipt must satisfy BooleanSplit closeout");
     assert_eq!(
         workload
+            .completed_workload()
             .evidence_ledger()
             .matched_boolean_row_for_receipt(receipt)
             .expect("split evidence row must match the concrete split ledger receipt")

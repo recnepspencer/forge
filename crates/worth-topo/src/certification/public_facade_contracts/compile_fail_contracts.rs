@@ -141,4 +141,13 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     t.compile_fail(format!(
         "{compile_fail}/public_edge_split_validator_row_not_forgeable.rs"
     ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_loop_operator_row_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_loop_validator_row_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_loop_blueprint_registry_not_forgeable.rs"
+    ));
 }

@@ -5,6 +5,7 @@ mod declared_mutation_sequence_builder;
 mod edge_split_blueprint;
 mod facade;
 mod local_rewrites;
+mod loop_reconstruction_blueprint;
 mod mutation_digest;
 pub(crate) mod mutation_records;
 mod mutation_sequence;
@@ -46,6 +47,15 @@ pub use edge_split_blueprint::{
     EdgeSplitValidatorProofObligation, EdgeSplitValidatorRow, EdgeSplitValidatorRuntimeLane,
 };
 pub use facade::TopologyMutationApplicationMode;
+pub use loop_reconstruction_blueprint::{
+    PlanarBooleanLoopBlueprintCloseout, PlanarBooleanLoopBlueprintCloseoutDenial,
+    PlanarBooleanLoopBlueprintRegistry, PlanarBooleanLoopBlueprintRegistryIdentity,
+    PlanarBooleanLoopOperatorClassification, PlanarBooleanLoopOperatorClassificationMatrix,
+    PlanarBooleanLoopOperatorProofObligation, PlanarBooleanLoopOperatorRow,
+    PlanarBooleanLoopOperatorTruthAuthority, PlanarBooleanLoopRequiredQuerySurface,
+    PlanarBooleanLoopValidatorProofObligation, PlanarBooleanLoopValidatorRegistrationPlan,
+    PlanarBooleanLoopValidatorRow, PlanarBooleanLoopValidatorRuntimeLane,
+};
 pub use mutation_digest::{TopologyMutationDigest, TopologyMutationSequenceDigest};
 pub(crate) use mutation_records::TopologyDeclaredMutationActionRef;
 pub use mutation_records::{
