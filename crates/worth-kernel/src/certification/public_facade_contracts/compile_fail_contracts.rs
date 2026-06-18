@@ -25,6 +25,27 @@ const PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/pb_events/split_no_ledger.rs",
 ];
 
+const PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/pb_edge_splitting/split_request_not_completed_split_evidence.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_edge_splitting/split_request_not_boolean_evidence_row.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_edge_splitting/fake_split_receipt_not_boolean_evidence_row.rs",
+];
+
+const PLANAR_BOOLEAN_EDGE_SPLITTING_EXPECTED_ERRORS: &[(&str, &str)] = &[
+    (
+        "src/certification/public_facade_contracts/compile_fail/pb_edge_splitting/split_request_not_completed_split_evidence.rs",
+        "PlanarBooleanSplitEdgeChainLedgerReceipt",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/pb_edge_splitting/split_request_not_boolean_evidence_row.rs",
+        "BooleanEvidenceRowAuthority",
+    ),
+    (
+        "src/certification/public_facade_contracts/compile_fail/pb_edge_splitting/fake_split_receipt_not_boolean_evidence_row.rs",
+        "BooleanEvidenceRowAuthority",
+    ),
+];
+
 const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_prepare_helpers_demoted.rs",
@@ -68,6 +89,9 @@ const COMPILE_FAIL_FIXTURES: &[&str] = &[
     PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[4],
     PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[5],
     PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES[6],
+    PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES[0],
+    PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES[1],
+    PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES[2],
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_fields_not_public.rs",
     PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE,
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_generic_ledger_substitution.rs",
@@ -142,11 +166,26 @@ fn kernel_public_boundary_rejects_planar_boolean_event_extraction_constructor_by
 }
 
 #[test]
+fn kernel_public_boundary_rejects_incomplete_planar_boolean_edge_split_evidence() {
+    for (fixture, expected_stderr) in PLANAR_BOOLEAN_EDGE_SPLITTING_EXPECTED_ERRORS {
+        assert_compile_fail_fixture_with_stderr(fixture, expected_stderr);
+    }
+}
+
+#[test]
 fn kernel_public_boundary_rejects_planar_boolean_summary_substitution_fixture() {
     assert_compile_fail_fixture(PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE);
 }
 
 fn assert_compile_fail_fixture(fixture: &str) {
+    assert_compile_fail_fixture_failure(fixture, None);
+}
+
+fn assert_compile_fail_fixture_with_stderr(fixture: &str, expected_stderr: &str) {
+    assert_compile_fail_fixture_failure(fixture, Some(expected_stderr));
+}
+
+fn assert_compile_fail_fixture_failure(fixture: &str, expected_stderr: Option<&str>) {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let temp_root = temp_fixture_dir();
 
@@ -161,14 +200,24 @@ fn assert_compile_fail_fixture(fixture: &str) {
         .env("CARGO_TARGET_DIR", compile_fail_target_dir(&manifest_dir))
         .output()
         .expect("run cargo check for compile-fail fixture");
+    let stderr = String::from_utf8_lossy(&output.stderr);
 
     assert!(
         !output.status.success(),
         "expected fixture to fail: {}\nstdout:\n{}\nstderr:\n{}",
         fixture,
         String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+        stderr
     );
+    if let Some(expected_stderr) = expected_stderr {
+        assert!(
+            stderr.contains(expected_stderr),
+            "expected fixture {} stderr to contain {:?}\nstderr:\n{}",
+            fixture,
+            expected_stderr,
+            stderr
+        );
+    }
 
     let _ = fs::remove_dir_all(&temp_root);
 }

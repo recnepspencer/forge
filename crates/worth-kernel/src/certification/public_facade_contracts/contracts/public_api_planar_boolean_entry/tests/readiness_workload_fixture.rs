@@ -94,7 +94,11 @@ pub(crate) fn certified_boolean_readiness_workload_receipt(
         .with_support_posture(PlanarM7ReadinessSupportPosture::support_gated(
             "Milestone 7.0 keeps boolean execution support-gated while declaration lanes harden",
         ));
-    let basis = PlanarBooleanReadinessEvidenceBasis::from_real_workload_evidence(ledger, readiness_bundle, parity);
+    let basis = PlanarBooleanReadinessEvidenceBasis::from_real_workload_evidence(
+        ledger,
+        readiness_bundle,
+        parity,
+    );
 
     PlanarBooleanReadinessWorkload::from_real_workload_evidence(basis)
         .declared(format!("phase-1 planar boolean readiness workload {world}"))

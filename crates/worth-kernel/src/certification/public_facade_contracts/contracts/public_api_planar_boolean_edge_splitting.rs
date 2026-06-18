@@ -21,6 +21,10 @@ mod edge_splitting_persistent_naming_support;
 mod edge_splitting_posture_support;
 #[path = "public_api_planar_boolean_edge_splitting_raw_schedule_support.rs"]
 mod edge_splitting_raw_schedule_support;
+#[path = "public_api_planar_boolean_edge_splitting_replay_parity.rs"]
+mod edge_splitting_replay_parity;
+#[path = "public_api_planar_boolean_edge_splitting_replay_parity_support.rs"]
+mod edge_splitting_replay_parity_support;
 #[path = "public_api_planar_boolean_edge_splitting_split_chain_validation_support.rs"]
 mod edge_splitting_split_chain_validation_support;
 #[path = "public_api_planar_boolean_edge_splitting_split_fragment_support.rs"]
@@ -29,6 +33,8 @@ mod edge_splitting_split_fragment_support;
 mod edge_splitting_split_vertex_identity_support;
 #[path = "public_api_planar_boolean_edge_splitting_support.rs"]
 mod edge_splitting_support;
+#[path = "public_api_planar_boolean_edge_splitting_workload_evidence.rs"]
+mod edge_splitting_workload_evidence;
 #[path = "public_api_planar_boolean_event_ledger_support.rs"]
 #[allow(dead_code)]
 mod event_ledger_support;

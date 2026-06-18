@@ -9,8 +9,9 @@ use worth_kernel::workload_composition::{
     WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
 };
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceLedger, WorkloadEvidenceRow,
-    WorkloadEvidenceStage, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
@@ -199,6 +200,8 @@ impl BooleanEvidenceReceipt for CounterlessOperandBProjectionEvidence {
     }
 }
 
+impl BooleanEvidenceRowAuthority for CounterlessOperandBProjectionEvidence {}
+
 struct SupportMismatchedOperandBProjectionEvidence {
     digest: String,
 }
@@ -229,6 +232,8 @@ impl BooleanEvidenceReceipt for SupportMismatchedOperandBProjectionEvidence {
     }
 }
 
+impl BooleanEvidenceRowAuthority for SupportMismatchedOperandBProjectionEvidence {}
+
 struct WrongCounterFamilyOperandBProjectionEvidence {
     digest: String,
 }
@@ -258,6 +263,8 @@ impl BooleanEvidenceReceipt for WrongCounterFamilyOperandBProjectionEvidence {
         WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption()
     }
 }
+
+impl BooleanEvidenceRowAuthority for WrongCounterFamilyOperandBProjectionEvidence {}
 
 fn operand_b_projection_from_pair(
     pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,

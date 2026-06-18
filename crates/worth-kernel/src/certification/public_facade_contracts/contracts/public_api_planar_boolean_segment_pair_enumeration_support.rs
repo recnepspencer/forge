@@ -1,7 +1,7 @@
 use worth_spatial::facade::planar_boolean_events::PlanarBooleanSegmentPairEnumerationReceipt;
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 pub(crate) struct CounterlessSegmentPairEnumerationEvidence {
@@ -33,6 +33,8 @@ impl BooleanEvidenceReceipt for CounterlessSegmentPairEnumerationEvidence {
         WorkloadEvidenceStageCounters::default()
     }
 }
+
+impl BooleanEvidenceRowAuthority for CounterlessSegmentPairEnumerationEvidence {}
 
 pub(crate) struct SupportMismatchedSegmentPairEnumerationEvidence {
     digest: String,
@@ -68,6 +70,8 @@ impl BooleanEvidenceReceipt for SupportMismatchedSegmentPairEnumerationEvidence 
     }
 }
 
+impl BooleanEvidenceRowAuthority for SupportMismatchedSegmentPairEnumerationEvidence {}
+
 pub(crate) struct WrongCounterFamilySegmentPairEnumerationEvidence {
     digest: String,
 }
@@ -97,3 +101,5 @@ impl BooleanEvidenceReceipt for WrongCounterFamilySegmentPairEnumerationEvidence
         WorkloadEvidenceStageCounters::boolean_event_extraction_request()
     }
 }
+
+impl BooleanEvidenceRowAuthority for WrongCounterFamilySegmentPairEnumerationEvidence {}

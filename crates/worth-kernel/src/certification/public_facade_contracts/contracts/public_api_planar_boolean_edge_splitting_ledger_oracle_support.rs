@@ -36,10 +36,7 @@ impl MetabossSplitLedgerOracle {
             .schedules()
             .iter()
             .map(|schedule| {
-                let key = edge_key(
-                    schedule.source_edge_identity(),
-                    schedule.carrier_identity(),
-                );
+                let key = edge_key(schedule.source_edge_identity(), schedule.carrier_identity());
                 let expected = MetabossExpectedSplitLedgerChain {
                     source_edge_identity: schedule.source_edge_identity().to_string(),
                     carrier_identity: schedule.carrier_identity().to_string(),

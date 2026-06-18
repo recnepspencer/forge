@@ -7,8 +7,9 @@ use worth_kernel::workload_composition::{
     WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
 };
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceLedger, WorkloadEvidenceRow,
-    WorkloadEvidenceStage, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
+    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
@@ -208,6 +209,8 @@ impl BooleanEvidenceReceipt for CounterlessPrecisionEvidence {
     }
 }
 
+impl BooleanEvidenceRowAuthority for CounterlessPrecisionEvidence {}
+
 struct SupportMismatchedPrecisionEvidence {
     digest: String,
 }
@@ -237,6 +240,8 @@ impl BooleanEvidenceReceipt for SupportMismatchedPrecisionEvidence {
         WorkloadEvidenceStageCounters::boolean_precision_agreement()
     }
 }
+
+impl BooleanEvidenceRowAuthority for SupportMismatchedPrecisionEvidence {}
 
 fn precision_from_pair(
     pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,

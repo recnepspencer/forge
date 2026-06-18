@@ -6,6 +6,8 @@ use super::{
 };
 
 mod prepared_product_rows;
+#[path = "tests_phase_27.rs"]
+mod tests_phase_27;
 
 #[test]
 fn phase_1_blueprint_classifies_prepared_and_authoritative_split_lanes() {
@@ -123,6 +125,95 @@ fn phase_23_split_ledger_operators_and_validators_are_query_registered() {
         let validator = blueprint
             .validator(validator_name)
             .expect("split ledger validator should be registered");
+        assert_eq!(
+            validator.runtime_lane(),
+            EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack
+        );
+        assert!(validator.governs_topology_legality());
+    }
+}
+
+#[test]
+fn phase_25_replay_parity_operators_and_validators_are_query_registered() {
+    let blueprint = EdgeSplitOperatorBlueprint::phase_1();
+
+    for operator_name in [
+        "ReplayPlanarBooleanEdgeSplit",
+        "CompareEdgeSplitReplayParity",
+        "CompareEdgeSplitCheckpointParity",
+    ] {
+        assert_eq!(
+            blueprint
+                .operator(operator_name)
+                .expect("edge-split replay operator should be registered")
+                .required_query_surface(),
+            EdgeSplitRequiredQuerySurface::QueryGraphComposition
+        );
+    }
+    assert_eq!(
+        blueprint
+            .operator("CanonicalizeReversedEdgeSenseSplit")
+            .expect("reversed source-sense canonicalizer should be registered")
+            .classification(),
+        EdgeSplitOperatorClassification::PreparedSpatialOnly
+    );
+    for validator_name in [
+        "ValidatePlanarBooleanReplayParity",
+        "ValidatePlanarBooleanCheckpointParity",
+        "ValidateJournalReplayExactness",
+    ] {
+        let validator = blueprint
+            .validator(validator_name)
+            .expect("edge-split replay validator should be registered");
+        assert_eq!(
+            validator.runtime_lane(),
+            EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack
+        );
+        assert!(validator.governs_topology_legality());
+    }
+}
+
+#[test]
+fn phase_26_downstream_split_consumption_fences_are_query_registered() {
+    let blueprint = EdgeSplitOperatorBlueprint::phase_1();
+
+    for operator_name in [
+        "RejectSyntheticSplitLedgerConstruction",
+        "RejectRawEventVectorSplitConsumption",
+        "RejectHandFilledSplitEvidenceRows",
+        "RejectCoordinateOnlySplitVertices",
+    ] {
+        let operator = blueprint
+            .operator(operator_name)
+            .expect("downstream split-consumption rejection operator should be registered");
+        assert_eq!(
+            operator.classification(),
+            EdgeSplitOperatorClassification::QueryGraphCompositionProgram
+        );
+        assert_eq!(
+            operator.required_query_surface(),
+            EdgeSplitRequiredQuerySurface::QueryInvariantRegistration
+        );
+    }
+
+    assert_eq!(
+        blueprint
+            .operator("FenceLoopReconstructionToSplitLedgerReceipt")
+            .expect("loop reconstruction fence operator should be registered")
+            .required_query_surface(),
+        EdgeSplitRequiredQuerySurface::QueryGraphComposition
+    );
+
+    for validator_name in [
+        "RejectSyntheticSplitLedgerConstruction",
+        "RejectRawEventVectorSplitConsumption",
+        "RejectHandFilledSplitEvidenceRows",
+        "RejectCoordinateOnlySplitVertices",
+        "FenceLoopReconstructionToSplitLedgerReceipt",
+    ] {
+        let validator = blueprint
+            .validator(validator_name)
+            .expect("downstream split-consumption validator should be registered");
         assert_eq!(
             validator.runtime_lane(),
             EdgeSplitValidatorRuntimeLane::QueryGraphInvariantPack

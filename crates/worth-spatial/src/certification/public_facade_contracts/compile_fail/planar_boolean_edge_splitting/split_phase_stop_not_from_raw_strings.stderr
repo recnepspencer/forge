@@ -5,4 +5,4 @@ error[E0432]: unresolved import `worth_spatial::facade::planar_boolean_edge_spli
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |     |
   |     no `PlanarBooleanEdgeSplitPhaseStop` in `facade::planar_boolean_edge_splitting`
-  |     help: a similar name exists in the module: `PlanarBooleanEdgeSplitRequest`
+  |     help: a similar name exists in the module: `PlanarBooleanEdgeSplitCloseout`

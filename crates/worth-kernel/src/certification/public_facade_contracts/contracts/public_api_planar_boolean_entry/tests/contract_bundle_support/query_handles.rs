@@ -51,7 +51,10 @@ macro_rules! handle {
         pub(crate) fn $fn_name(
         ) -> forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<$domain_ty, $world_ty> {
             static $cache_name: OnceLock<
-                forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<$domain_ty, $world_ty>,
+                forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+                    $domain_ty,
+                    $world_ty,
+                >,
             > = OnceLock::new();
             $cache_name
                 .get_or_init(|| {

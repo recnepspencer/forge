@@ -3,10 +3,6 @@ use super::denial::PlanarBooleanEdgeSplitRequestDenial;
 use super::identity::edge_split_request_identity;
 use super::input::PlanarBooleanEdgeSplitRequestInput;
 use super::validation::validate_edge_split_request;
-use crate::workload_platform::evidence_ledger::{
-    BooleanEvidenceReceipt, BooleanEvidenceStageKind, WorkloadEvidenceStageCounters,
-    WorkloadEvidenceSupport,
-};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlanarBooleanEdgeSplitRequest {
@@ -20,6 +16,7 @@ pub struct PlanarBooleanEdgeSplitRequest {
     candidate_index_consumption_gate_identity: String,
     candidate_index_product_identity: String,
     query_index_plan_digest: String,
+    retained_replay_stage_identity: Option<String>,
     counters: PlanarBooleanEdgeSplitRequestCounters,
 }
 
@@ -51,6 +48,9 @@ impl PlanarBooleanEdgeSplitRequest {
                 .candidate_index_product_identity()
                 .to_string(),
             query_index_plan_digest: candidate_index_gate.query_index_plan_digest().to_string(),
+            retained_replay_stage_identity: input
+                .retained_replay_stage_identity()
+                .map(ToString::to_string),
             counters: PlanarBooleanEdgeSplitRequestCounters::new(
                 event_ledger.segment_carriers().len(),
                 event_ledger.point_events().len(),
@@ -104,25 +104,11 @@ impl PlanarBooleanEdgeSplitRequest {
         &self.query_index_plan_digest
     }
 
+    pub fn retained_replay_stage_identity(&self) -> Option<&str> {
+        self.retained_replay_stage_identity.as_deref()
+    }
+
     pub fn counters(&self) -> PlanarBooleanEdgeSplitRequestCounters {
         self.counters
-    }
-}
-
-impl BooleanEvidenceReceipt for PlanarBooleanEdgeSplitRequest {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::Split
-    }
-
-    fn evidence_identity(&self) -> &str {
-        self.split_request_identity()
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Admitted
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::boolean_split()
     }
 }

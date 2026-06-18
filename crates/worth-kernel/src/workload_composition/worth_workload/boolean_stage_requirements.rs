@@ -1,11 +1,14 @@
-use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanEdgeSplitRequest;
+use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitEdgeChainLedgerReceipt;
 use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanEventLedgerReceipt, PlanarBooleanSegmentPairEnumerationReceipt,
 };
+use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
 
 use super::{
     require_boolean_evidence, WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload,
+    WorthWorkloadParts,
 };
+use crate::workload_composition::boolean_evidence_requirement::map_boolean_ledger_error;
 use crate::workload_composition::{
     PlanarBooleanBlockerEvidenceReceipt, PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
     PlanarBooleanCommonPlaneOperandAProjectedRequest,
@@ -163,12 +166,39 @@ impl WorthWorkload {
 
     pub fn require_boolean_split(
         &self,
-        split_request: &PlanarBooleanEdgeSplitRequest,
+        split_ledger: &PlanarBooleanSplitEdgeChainLedgerReceipt,
     ) -> Result<(), WorkloadCompositionError> {
         require_boolean_evidence(
             &self.evidence_ledger,
-            split_request,
+            split_ledger,
             WorkloadStageRequirement::BooleanSplit,
         )
+    }
+
+    pub fn with_completed_boolean_split_ledger(
+        &self,
+        split_ledger: &PlanarBooleanSplitEdgeChainLedgerReceipt,
+    ) -> Result<Self, WorkloadCompositionError> {
+        let mut rows = self.evidence_ledger.rows().to_vec();
+        rows.push(WorkloadEvidenceRow::from_boolean_evidence_receipt(
+            split_ledger,
+        ));
+        let evidence_ledger = WorkloadEvidenceLedger::from_rows(rows)
+            .and_then(WorkloadEvidenceLedger::certify_complete)
+            .map_err(|error| {
+                map_boolean_ledger_error(error, WorkloadStageRequirement::BooleanSplit)
+            })?;
+
+        Self::compose(WorthWorkloadParts {
+            topology: self.topology.clone(),
+            geometry_binding: self.geometry_binding.clone(),
+            surface_support: self.surface_support.clone(),
+            projection: self.projection.clone(),
+            transform: self.transform.clone(),
+            retained_replay: self.retained_replay.clone(),
+            diagnostics: self.diagnostics.clone(),
+            response: self.response.clone(),
+            evidence_ledger,
+        })
     }
 }

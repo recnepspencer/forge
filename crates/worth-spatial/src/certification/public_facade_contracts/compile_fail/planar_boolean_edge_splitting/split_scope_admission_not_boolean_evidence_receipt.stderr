@@ -7,12 +7,7 @@ error[E0277]: the trait bound `PlanarBooleanEdgeSplitScopeAdmission: BooleanEvid
   |     required by a bound introduced by this call
   |
 help: the following other types implement trait `BooleanEvidenceReceipt`
- --> src/workload_platform/planar_boolean_edge_splitting/edge_split_request/request.rs
-  |
-  | impl BooleanEvidenceReceipt for PlanarBooleanEdgeSplitRequest {
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanEdgeSplitRequest`
-  |
- ::: src/workload_platform/planar_boolean_events/event_ledger/receipt.rs
+ --> src/workload_platform/planar_boolean_events/event_ledger/receipt.rs
   |
   | impl BooleanEvidenceReceipt for PlanarBooleanEventLedgerReceipt {
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanEventLedgerReceipt`

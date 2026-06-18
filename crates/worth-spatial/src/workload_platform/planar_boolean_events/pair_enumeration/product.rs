@@ -61,6 +61,10 @@ impl PlanarBooleanCandidateBroadPhaseReason {
             Self::AabbEnvelopeOverlap => "aabb-envelope-overlap",
         }
     }
+
+    pub fn as_str(self) -> &'static str {
+        self.query_key()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -108,6 +112,10 @@ impl PlanarBooleanCandidateEnvelopeBasis {
         .into_iter()
         .map(|(name, value)| format!("{name}-bits:{}", value.to_bits()))
         .collect()
+    }
+
+    pub fn envelope_basis_identity(self) -> String {
+        truth_digest_parts(TruthDigestScope::ArtifactIdentity, &self.identity_parts())
     }
 }
 

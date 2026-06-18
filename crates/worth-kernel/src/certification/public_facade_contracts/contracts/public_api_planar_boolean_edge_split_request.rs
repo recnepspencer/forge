@@ -17,15 +17,12 @@ mod predicate_binding_support;
 mod reduced_pair_support;
 
 use metaboss_support::MetabossEventExtractionSubject;
-use worth_kernel::workload_composition::WorkloadCompositionError;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
     PlanarBooleanCandidateIndexConsumptionGate, PlanarBooleanCandidateIndexConsumptionInput,
     PlanarBooleanEdgeSplitRequest, PlanarBooleanEdgeSplitRequestDenialKind,
     PlanarBooleanEdgeSplitRequestInput,
 };
-use worth_spatial::facade::workload_vocabulary::{
-    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
-};
+use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
 
 #[test]
 fn edge_split_request_preserves_event_ledger_and_reduced_pair_identities() {
@@ -114,72 +111,6 @@ fn edge_split_request_requires_boolean_event_ledger_evidence_row() {
         assert_eq!(
             denial.kind(),
             PlanarBooleanEdgeSplitRequestDenialKind::MissingEventLedgerEvidence
-        );
-    });
-}
-
-#[test]
-fn edge_split_request_can_satisfy_boolean_split_workload_requirement() {
-    reduced_pair_support::run_with_large_stack(|| {
-        let subject = MetabossEventExtractionSubject::certify("phase7.3 boolean split evidence");
-        let (request, _) = metaboss_edge_split_request(&subject);
-        let workload = reduced_pair_support::rebuild_left_workload(
-            subject.pair(),
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(&request)],
-        );
-
-        workload
-            .require_boolean_split(&request)
-            .expect("receipt-backed edge split request must satisfy BooleanSplit evidence");
-    });
-}
-
-#[test]
-fn boolean_split_workload_requirement_rejects_manual_split_evidence() {
-    reduced_pair_support::run_with_large_stack(|| {
-        let subject = MetabossEventExtractionSubject::certify("phase7.3 manual split evidence");
-        let (request, _) = metaboss_edge_split_request(&subject);
-        let workload = reduced_pair_support::rebuild_left_workload(
-            subject.pair(),
-            vec![WorkloadEvidenceRow::new(
-                WorkloadEvidenceStage::BooleanSplit,
-                request.split_request_identity(),
-            )],
-        );
-
-        let denial = workload
-            .require_boolean_split(&request)
-            .expect_err("manual split evidence must not satisfy BooleanSplit requirement");
-
-        assert_eq!(
-            denial,
-            WorkloadCompositionError::ManualEvidenceStage(WorkloadEvidenceStage::BooleanSplit)
-        );
-    });
-}
-
-#[test]
-fn boolean_split_workload_requirement_rejects_foreign_split_receipt() {
-    reduced_pair_support::run_with_large_stack(|| {
-        let subject = MetabossEventExtractionSubject::certify("phase7.3 local split evidence");
-        let foreign_subject =
-            MetabossEventExtractionSubject::certify("phase7.3 foreign split evidence");
-        let (request, _) = metaboss_edge_split_request(&subject);
-        let (foreign_request, _) = metaboss_edge_split_request(&foreign_subject);
-        let workload = reduced_pair_support::rebuild_left_workload(
-            subject.pair(),
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &foreign_request,
-            )],
-        );
-
-        let denial = workload
-            .require_boolean_split(&request)
-            .expect_err("foreign split evidence must not satisfy BooleanSplit requirement");
-
-        assert_eq!(
-            denial,
-            WorkloadCompositionError::MismatchedEvidenceStage(WorkloadEvidenceStage::BooleanSplit)
         );
     });
 }

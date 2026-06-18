@@ -17,16 +17,14 @@ mod predicate_binding_support;
 mod reduced_pair_support;
 
 use metaboss_support::MetabossEventExtractionSubject;
-use worth_kernel::workload_composition::{PlanarBooleanOutcomeKind, WorkloadCompositionError};
+use worth_kernel::workload_composition::PlanarBooleanOutcomeKind;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
     PlanarBooleanCandidateIndexConsumptionGate, PlanarBooleanCandidateIndexConsumptionInput,
     PlanarBooleanEdgeSplitPolicyOutcomeKind, PlanarBooleanEdgeSplitRequest,
     PlanarBooleanEdgeSplitRequestInput, PlanarBooleanEdgeSplitScopeAdmission,
     PlanarBooleanEdgeSplitScopeAdmissionInput, PlanarBooleanEdgeSplitScopeClass,
 };
-use worth_spatial::facade::workload_vocabulary::{
-    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
-};
+use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
 
 #[test]
 fn edge_split_scope_admission_preserves_query_indexed_request_lineage() {
@@ -129,24 +127,6 @@ fn edge_split_policy_outcome_taxonomy_preserves_distinct_kernel_machine_kinds() 
             kernel_outcome_kind_stable_name(kernel_kind)
         );
     }
-}
-
-#[test]
-fn boolean_split_workload_requirement_rejects_missing_split_request_evidence() {
-    reduced_pair_support::run_with_large_stack(|| {
-        let subject = MetabossEventExtractionSubject::certify("phase7.3 missing split evidence");
-        let (request, _) = metaboss_edge_split_request(&subject);
-        let workload = reduced_pair_support::rebuild_left_workload(subject.pair(), Vec::new());
-
-        let denial = workload
-            .require_boolean_split(&request)
-            .expect_err("scope admission must not replace split request evidence");
-
-        assert_eq!(
-            denial,
-            WorkloadCompositionError::MissingEvidenceStage(WorkloadEvidenceStage::BooleanSplit)
-        );
-    });
 }
 
 fn assert_policy_kind_maps(

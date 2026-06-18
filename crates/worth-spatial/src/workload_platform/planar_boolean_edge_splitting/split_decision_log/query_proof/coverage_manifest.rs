@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use super::affected_artifact::PlanarBooleanSplitAffectedArtifact as Artifact;
 use super::denial::{PlanarBooleanSplitDecisionLogDenial, PlanarBooleanSplitDecisionLogDenialKind};
-use super::input::PlanarBooleanSplitDecisionLogInput;
 use super::identity::{decision_identity, decision_identity_with_detail};
+use super::input::PlanarBooleanSplitDecisionLogInput;
 use super::kind::PlanarBooleanSplitDecisionKind as Kind;
 use super::phase::PlanarBooleanSplitDecisionPhase as Phase;
 use super::row::PlanarBooleanSplitDecisionRow;

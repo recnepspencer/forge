@@ -1,19 +1,20 @@
 use super::edge_splitting_persistent_naming_support::typed_topology_query_basis;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
-    PlanarBooleanCandidateIndexConsumptionGate, PlanarBooleanCandidateIndexConsumptionInput,
-    PlanarBooleanEdgeSplitRequest, PlanarBooleanEdgeSplitRequestInput,
-    PlanarBooleanEdgeSplitScopeAdmission, PlanarBooleanEdgeSplitScopeAdmissionInput,
+    PlanarBooleanAdmittedIntervalSplitCandidateSet, PlanarBooleanCandidateIndexConsumptionGate,
+    PlanarBooleanCandidateIndexConsumptionInput, PlanarBooleanEdgeSplitRequest,
+    PlanarBooleanEdgeSplitRequestInput, PlanarBooleanEdgeSplitScopeAdmission,
+    PlanarBooleanEdgeSplitScopeAdmissionInput,
     PlanarBooleanEndpointBoundaryNormalizedSplitScheduleSet,
     PlanarBooleanIntervalSubdivisionNormalizedScheduleSet, PlanarBooleanMicroIntervalPolicy,
-    PlanarBooleanOverlapEdgeChainSet, PlanarBooleanSplitChainValidationReceipt,
+    PlanarBooleanOverlapEdgeChainSet, PlanarBooleanPointSplitPostureSet,
+    PlanarBooleanRawEdgeSplitScheduleSet, PlanarBooleanSplitChainValidationReceipt,
     PlanarBooleanSplitDecisionLogQueryDomain, PlanarBooleanSplitDecisionLogQueryInput,
     PlanarBooleanSplitDecisionLogQueryResult, PlanarBooleanSplitDecisionReason,
-    PlanarBooleanSplitEventParticipationIndex, PlanarBooleanSplitSourceEdgeCarrierRecoveryInput,
-    PlanarBooleanSplitSourceEdgeCarrierSet, PlanarBooleanPointSplitPostureSet,
-    PlanarBooleanRawEdgeSplitScheduleSet, PlanarBooleanAdmittedIntervalSplitCandidateSet,
-    PlanarBooleanSplitEdgeFragmentSet, PlanarBooleanSplitPersistentNamingInput,
-    PlanarBooleanSplitPersistentNamingReceipt, PlanarBooleanSplitVertexIdentitySet,
+    PlanarBooleanSplitEdgeFragmentSet, PlanarBooleanSplitEventParticipationIndex,
+    PlanarBooleanSplitPersistentNamingInput, PlanarBooleanSplitPersistentNamingReceipt,
+    PlanarBooleanSplitSourceEdgeCarrierRecoveryInput, PlanarBooleanSplitSourceEdgeCarrierSet,
+    PlanarBooleanSplitVertexIdentitySet,
 };
 use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
 
@@ -125,11 +126,17 @@ fn split_request_for_metaboss(
 ) -> PlanarBooleanEdgeSplitRequest {
     let segment_pairs = &subject.inputs().pair_worklist;
     let ledger = subject.ledger();
-    let evidence = WorkloadEvidenceLedger::from_rows(vec![
+    let mut evidence_rows = vec![
         WorkloadEvidenceRow::from_boolean_evidence_receipt(segment_pairs),
         WorkloadEvidenceRow::from_boolean_evidence_receipt(ledger),
-    ])
-    .expect("metaboss boolean receipts should build evidence for split request");
+    ];
+    if let Some(replay_receipts) = subject.pair().left().replay_receipts() {
+        evidence_rows.push(WorkloadEvidenceRow::from_replay_receipt_set(
+            replay_receipts,
+        ));
+    }
+    let evidence = WorkloadEvidenceLedger::from_rows(evidence_rows)
+        .expect("metaboss boolean receipts should build evidence for split request");
     let gate = PlanarBooleanCandidateIndexConsumptionGate::admit(
         PlanarBooleanCandidateIndexConsumptionInput::new(
             ledger,

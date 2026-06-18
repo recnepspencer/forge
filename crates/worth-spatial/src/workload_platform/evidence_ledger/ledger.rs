@@ -74,11 +74,22 @@ impl WorkloadEvidenceLedger {
         self.stage_index.row_for_stage(stage)
     }
 
-    pub fn boolean_row_for_receipt(
+    pub fn boolean_row_for_receipt<T: BooleanEvidenceReceipt>(
         &self,
-        receipt: &impl BooleanEvidenceReceipt,
+        receipt: &T,
     ) -> Option<&WorkloadEvidenceRow> {
         self.row_for_stage(receipt.boolean_stage().evidence_stage())
+    }
+
+    pub fn matched_boolean_row_for_receipt<T: BooleanEvidenceReceipt + 'static>(
+        &self,
+        receipt: &T,
+    ) -> Result<&WorkloadEvidenceRow, WorkloadEvidenceLedgerError> {
+        self.stage_index.require_boolean_receipt(receipt)?;
+        self.row_for_stage(receipt.boolean_stage().evidence_stage())
+            .ok_or(WorkloadEvidenceLedgerError::MissingBooleanStage(
+                receipt.boolean_stage().evidence_stage(),
+            ))
     }
 
     fn first_manual_authority_stage(&self) -> Option<WorkloadEvidenceStage> {
@@ -115,16 +126,23 @@ impl CompleteWorkloadEvidenceLedger {
         self.ledger.row_for_stage(stage)
     }
 
-    pub fn boolean_row_for_receipt(
+    pub fn boolean_row_for_receipt<T: BooleanEvidenceReceipt>(
         &self,
-        receipt: &impl BooleanEvidenceReceipt,
+        receipt: &T,
     ) -> Option<&WorkloadEvidenceRow> {
         self.ledger.boolean_row_for_receipt(receipt)
     }
 
-    pub fn require_boolean_receipt(
+    pub fn matched_boolean_row_for_receipt<T: BooleanEvidenceReceipt + 'static>(
         &self,
-        receipt: &impl BooleanEvidenceReceipt,
+        receipt: &T,
+    ) -> Result<&WorkloadEvidenceRow, WorkloadEvidenceLedgerError> {
+        self.ledger.matched_boolean_row_for_receipt(receipt)
+    }
+
+    pub fn require_boolean_receipt<T: BooleanEvidenceReceipt + 'static>(
+        &self,
+        receipt: &T,
     ) -> Result<(), WorkloadEvidenceLedgerError> {
         self.stage_index().require_boolean_receipt(receipt)
     }

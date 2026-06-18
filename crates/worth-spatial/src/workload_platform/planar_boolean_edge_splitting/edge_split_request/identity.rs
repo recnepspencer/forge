@@ -35,6 +35,12 @@ pub(crate) fn edge_split_request_identity(request: &PlanarBooleanEdgeSplitReques
             ),
             format!("query-plan:{}", request.query_index_plan_digest()),
             format!(
+                "retained-replay:{}",
+                request
+                    .retained_replay_stage_identity()
+                    .unwrap_or("no-retained-replay-stage")
+            ),
+            format!(
                 "segment-carrier-count:{}",
                 request.counters().segment_carrier_count()
             ),

@@ -229,9 +229,9 @@ fn require_evidence_stage(
     }
 }
 
-fn require_boolean_evidence(
+fn require_boolean_evidence<T: BooleanEvidenceReceipt + 'static>(
     ledger: &CompleteWorkloadEvidenceLedger,
-    receipt: &impl BooleanEvidenceReceipt,
+    receipt: &T,
     requirement: WorkloadStageRequirement,
 ) -> Result<(), WorkloadCompositionError> {
     ledger

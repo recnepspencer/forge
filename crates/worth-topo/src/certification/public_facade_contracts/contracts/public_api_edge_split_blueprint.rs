@@ -59,8 +59,8 @@ fn edge_split_operator_declarations_expose_query_canonical_entries_and_family_ma
     assert!(blueprint
         .closeout()
         .certified_phase_1_required_rows_present());
-    assert_eq!(blueprint.closeout().required_phase_1_operator_rows(), 23);
-    assert_eq!(blueprint.closeout().required_phase_1_validator_rows(), 8);
+    assert_eq!(blueprint.closeout().required_phase_1_operator_rows(), 46);
+    assert_eq!(blueprint.closeout().required_phase_1_validator_rows(), 29);
 }
 
 #[test]
