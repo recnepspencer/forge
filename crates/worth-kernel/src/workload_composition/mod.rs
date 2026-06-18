@@ -58,4 +58,6 @@ pub use workload_catalog::{
     WorkloadCatalogRecipeKind, WorkloadCatalogSupportPosture, WorkloadCatalogSupportReceipt,
     WorkloadTopologyBreadth,
 };
-pub use worth_workload::{WorkloadCompositionError, WorthWorkload, WorthWorkloadParts};
+pub use worth_workload::{
+    CompletedBooleanSplitHandoff, WorkloadCompositionError, WorthWorkload, WorthWorkloadParts,
+};

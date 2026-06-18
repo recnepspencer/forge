@@ -1,4 +1,5 @@
 use topology::facade::TopologyWorkloadReceipt;
+mod boolean_split_handoff;
 mod boolean_stage_requirements;
 use worth_spatial::facade::workload_vocabulary::{
     BooleanEvidenceReceipt, CompleteWorkloadEvidenceLedger, DiagnosticWorkloadReceipt,
@@ -8,6 +9,7 @@ use worth_spatial::facade::workload_vocabulary::{
 };
 
 use super::{boolean_evidence_requirement::map_boolean_ledger_error, WorkloadStageRequirement};
+pub use boolean_split_handoff::CompletedBooleanSplitHandoff;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthWorkload {

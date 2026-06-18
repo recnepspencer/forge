@@ -1,11 +1,11 @@
+use crate::construction::certification::corpus::replay_siege_report::{
+    row_attempted_realization_strategies, row_blocking_boundary, row_normalization_disposition,
+    row_realization_strategy, row_rejection_locality, row_stability_class, siege_report,
+};
 use crate::construction::outcome::PrimitiveConstructionRejectionLocality;
 use crate::construction::request::{PrimitiveConstructionFamily, PRIMITIVE_CONSTRUCTION_FAMILIES};
 use crate::construction::tests::support::blocking_boundary::PrimitiveConstructionBlockingBoundary;
 use crate::construction::tests::support::corpus_replay_row::PrimitiveConstructionCorpusParameterRole;
-use crate::construction::tests::support::corpus_replay_view::{
-    row_attempted_realization_strategies, row_blocking_boundary, row_normalization_disposition,
-    row_realization_strategy, row_rejection_locality, row_stability_class, siege_report,
-};
 use crate::construction::tests::support::realization::prepare_primitive_construction_realization_exhaustion_witness_report;
 use worth_geom::facade::{
     PrimitiveNormalizationDisposition, PrimitiveRealizationExhaustionReason,

@@ -22,6 +22,7 @@ pub mod placement;
 pub mod planar_boolean_common_plane;
 pub mod planar_boolean_edge_splitting;
 pub mod planar_boolean_events;
+pub mod planar_boolean_loop_reconstruction;
 pub mod planar_clean_fail_boundary;
 pub mod planar_contract_bundle;
 pub mod planar_contracts;

@@ -1,4 +1,4 @@
-use super::super::edge_splitting_public_contract_support::completed_split_workload_for;
+use super::super::edge_splitting_public_contract_support::completed_split_handoff_for;
 use super::super::edge_splitting_replay_parity_support::{
     build_edge_split_replay_parity_subject, replay_parity_report,
 };
@@ -13,7 +13,6 @@ use super::event_relation_metrics::{
 };
 use super::topology_closeout_metrics::{topology_closeout_summary, TopologyCloseoutSummary};
 use worth_spatial::facade::planar_boolean_edge_splitting::{
-    PlanarBooleanDownstreamSplitConsumption, PlanarBooleanDownstreamSplitConsumptionInput,
     PlanarBooleanEdgeSplitSummumBonumCloseout, PlanarBooleanEdgeSplitSummumBonumCloseoutInput,
     PlanarBooleanLoopReconstructionSplitConsumption,
     PlanarBooleanLoopReconstructionSplitConsumptionInput,
@@ -90,18 +89,15 @@ pub(crate) fn emit_edge_split_metaboss_proof_bundle() -> EdgeSplitSummumBonumPro
     assert_event_ledger_shape(&subject);
     let replay_subject = build_edge_split_replay_parity_subject(&subject);
     let replay_report = replay_parity_report(&replay_subject);
-    let completed_workload = completed_split_workload_for(&subject, &replay_subject);
-    let downstream = PlanarBooleanDownstreamSplitConsumption::admit(
-        PlanarBooleanDownstreamSplitConsumptionInput::from_split_ledger_receipt(
-            replay_subject.original_ledger.receipt(),
+    let completed_split_handoff = completed_split_handoff_for(&subject, &replay_subject);
+    let downstream = completed_split_handoff
+        .admit_downstream_split_consumption(
             replay_subject.original_decision_log.receipt(),
             &replay_subject.original_products.validation,
             &replay_subject.original_products.naming,
             replay_report.receipt(),
-            completed_workload.evidence_ledger().stage_index(),
-        ),
-    )
-    .expect("summum bonum split ledger must admit downstream consumption");
+        )
+        .expect("summum bonum split ledger must admit downstream consumption");
     let loop_consumption = PlanarBooleanLoopReconstructionSplitConsumption::admit(
         PlanarBooleanLoopReconstructionSplitConsumptionInput::from_downstream_split_consumption(
             &downstream,

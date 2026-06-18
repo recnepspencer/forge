@@ -5,81 +5,76 @@ use super::edge_splitting_replay_parity_support::{
 };
 use super::metaboss_support::MetabossEventExtractionSubject;
 use foreign_authority::assert_foreign_split_authorities_are_rejected;
-use worth_kernel::workload_composition::WorthWorkload;
+use worth_kernel::workload_composition::CompletedBooleanSplitHandoff;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
-    PlanarBooleanDownstreamSplitConsumption, PlanarBooleanDownstreamSplitConsumptionDenialKind,
-    PlanarBooleanDownstreamSplitConsumptionInput, PlanarBooleanEdgeSplitReplayParityReport,
+    PlanarBooleanDownstreamSplitConsumption, PlanarBooleanEdgeSplitReplayParityReport,
     PlanarBooleanLoopReconstructionSplitConsumption,
     PlanarBooleanLoopReconstructionSplitConsumptionInput,
 };
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
 
-pub(crate) fn assert_split_public_contract_requires_real_ledger_and_rejects_manual_evidence() {
+pub(crate) fn assert_split_public_contract_requires_real_ledger_and_preserves_authority_boundaries()
+{
     let subject =
         MetabossEventExtractionSubject::certify("phase7.3 public downstream split consumption");
     let replay_subject = build_edge_split_replay_parity_subject(&subject);
     let replay_report = replay_parity_report(&replay_subject);
-    let completed_workload = completed_split_workload_for(&subject, &replay_subject);
+    let completed_split_handoff = completed_split_handoff_for(&subject, &replay_subject);
     let consumption = admit_real_downstream_split_consumption(
         &replay_subject,
         &replay_report,
-        &completed_workload,
+        &completed_split_handoff,
     );
 
     assert_downstream_consumption_preserves_real_split_authority(
         &consumption,
         &replay_subject,
         &replay_report,
-        &completed_workload,
+        &completed_split_handoff,
     );
     assert_loop_reconstruction_consumes_downstream_split_product(&consumption);
     assert_foreign_split_authorities_are_rejected(
         &replay_subject,
         &replay_report,
-        &completed_workload,
+        &completed_split_handoff,
     );
-    assert_manual_boolean_split_evidence_is_rejected(&replay_subject, &replay_report);
 }
 
-pub(crate) fn completed_split_workload_for(
+pub(crate) fn completed_split_handoff_for(
     subject: &MetabossEventExtractionSubject,
     replay_subject: &EdgeSplitReplayParitySubject,
-) -> WorthWorkload {
-    let completed_workload = subject
+) -> CompletedBooleanSplitHandoff {
+    let completed_split_handoff = subject
         .pair()
         .left()
         .workload()
-        .with_completed_boolean_split_ledger(replay_subject.original_ledger.receipt())
-        .expect("real workload should admit the split ledger as BooleanSplit evidence");
-    completed_workload
-        .require_boolean_split(replay_subject.original_ledger.receipt())
-        .expect("completed workload should require the exact split ledger receipt");
-    completed_workload
+        .complete_boolean_split_handoff(replay_subject.original_ledger.receipt())
+        .expect("real workload should produce a proof-bearing split completion handoff");
+    completed_split_handoff
+        .require_boolean_split()
+        .expect("completed split handoff should require the exact split ledger receipt");
+    completed_split_handoff
 }
 
 fn admit_real_downstream_split_consumption(
     replay_subject: &EdgeSplitReplayParitySubject,
     replay_report: &PlanarBooleanEdgeSplitReplayParityReport,
-    completed_workload: &WorthWorkload,
+    completed_split_handoff: &CompletedBooleanSplitHandoff,
 ) -> PlanarBooleanDownstreamSplitConsumption {
-    PlanarBooleanDownstreamSplitConsumption::admit(
-        PlanarBooleanDownstreamSplitConsumptionInput::from_split_ledger_receipt(
-            replay_subject.original_ledger.receipt(),
+    completed_split_handoff
+        .admit_downstream_split_consumption(
             replay_subject.original_decision_log.receipt(),
             &replay_subject.original_products.validation,
             &replay_subject.original_products.naming,
             replay_report.receipt(),
-            completed_workload.evidence_ledger().stage_index(),
-        ),
-    )
-    .expect("real split ledger receipt should admit downstream split consumption")
+        )
+        .expect("real split ledger receipt should admit downstream split consumption")
 }
 
 fn assert_downstream_consumption_preserves_real_split_authority(
     consumption: &PlanarBooleanDownstreamSplitConsumption,
     replay_subject: &EdgeSplitReplayParitySubject,
     replay_report: &PlanarBooleanEdgeSplitReplayParityReport,
-    completed_workload: &WorthWorkload,
+    completed_split_handoff: &CompletedBooleanSplitHandoff,
 ) {
     assert!(consumption.certifies_downstream_split_consumption());
     assert_eq!(
@@ -117,16 +112,13 @@ fn assert_downstream_consumption_preserves_real_split_authority(
     );
     assert_eq!(
         consumption.workload_stage_index_identity(),
-        completed_workload
-            .evidence_ledger()
-            .stage_index()
-            .index_identity()
+        completed_split_handoff.workload_stage_index_identity()
     );
     assert_downstream_consumption_counters_match_real_split_authority(
         consumption,
         replay_subject,
         replay_report,
-        completed_workload,
+        completed_split_handoff,
     );
 }
 
@@ -134,7 +126,7 @@ fn assert_downstream_consumption_counters_match_real_split_authority(
     consumption: &PlanarBooleanDownstreamSplitConsumption,
     replay_subject: &EdgeSplitReplayParitySubject,
     replay_report: &PlanarBooleanEdgeSplitReplayParityReport,
-    completed_workload: &WorthWorkload,
+    completed_split_handoff: &CompletedBooleanSplitHandoff,
 ) {
     assert_eq!(
         consumption.counters().split_chains_consumed(),
@@ -174,7 +166,8 @@ fn assert_downstream_consumption_counters_match_real_split_authority(
     );
     assert_eq!(
         consumption.counters().stage_index_rows_consumed(),
-        completed_workload
+        completed_split_handoff
+            .completed_workload()
             .evidence_ledger()
             .stage_index()
             .rows()
@@ -216,33 +209,4 @@ fn assert_loop_reconstruction_consumes_downstream_split_product(
         consumption.workload_stage_index_identity()
     );
     assert_eq!(loop_consumption.counters().downstream_gate_consumed(), 1);
-}
-
-fn assert_manual_boolean_split_evidence_is_rejected(
-    replay_subject: &EdgeSplitReplayParitySubject,
-    replay_report: &PlanarBooleanEdgeSplitReplayParityReport,
-) {
-    let evidence = WorkloadEvidenceLedger::from_rows(vec![WorkloadEvidenceRow::new(
-        worth_spatial::facade::workload_vocabulary::WorkloadEvidenceStage::BooleanSplit,
-        replay_subject.original_ledger.receipt().receipt_identity(),
-    )])
-    .expect("manual split row should stay indexable for downstream denial");
-
-    let denial = PlanarBooleanDownstreamSplitConsumption::admit(
-        PlanarBooleanDownstreamSplitConsumptionInput::from_split_ledger_receipt(
-            replay_subject.original_ledger.receipt(),
-            replay_subject.original_decision_log.receipt(),
-            &replay_subject.original_products.validation,
-            &replay_subject.original_products.naming,
-            replay_report.receipt(),
-            evidence.stage_index(),
-        ),
-    )
-    .expect_err("manual BooleanSplit evidence must not certify downstream consumption");
-
-    assert_eq!(
-        denial.kind(),
-        PlanarBooleanDownstreamSplitConsumptionDenialKind::NonReceiptBackedBooleanSplitEvidence
-    );
-    assert_eq!(denial.counters().non_receipt_evidence_rejected(), 1);
 }

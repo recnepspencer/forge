@@ -50,6 +50,10 @@ pub use downstream_split_consumption::{
     PlanarBooleanDownstreamSplitConsumptionDenialKind,
     PlanarBooleanDownstreamSplitConsumptionInput,
 };
+#[cfg(test)]
+pub(crate) use duplicate_split_normalization::tests_support::{
+    raw_interval_entry, raw_point_entry, raw_schedule, raw_set_from_schedules,
+};
 #[allow(unused_imports)]
 pub use duplicate_split_normalization::{
     PlanarBooleanDuplicateSplitNormalizationDenial,
@@ -138,6 +142,15 @@ pub use raw_edge_split_schedule::{
     PlanarBooleanRawEdgeSplitScheduleDenial, PlanarBooleanRawEdgeSplitScheduleDenialKind,
     PlanarBooleanRawEdgeSplitScheduleEntry, PlanarBooleanRawEdgeSplitScheduleEntryKind,
     PlanarBooleanRawEdgeSplitScheduleSet,
+};
+#[cfg(test)]
+pub(crate) use source_edge_carrier_recovery::test_support::{
+    event_ledger_for as split_event_ledger_for_tests,
+    production_segment_pair_receipt as split_pair_receipt_for_tests,
+    recover as recover_source_edge_carriers_for_tests,
+    source_carriers as source_carriers_for_tests,
+    subject_with_carriers as split_subject_with_carriers_for_tests,
+    subject_with_ledger as split_subject_with_ledger_for_tests, SourceEdgeCarrierRecoverySubject,
 };
 #[allow(unused_imports)]
 pub use source_edge_carrier_recovery::{

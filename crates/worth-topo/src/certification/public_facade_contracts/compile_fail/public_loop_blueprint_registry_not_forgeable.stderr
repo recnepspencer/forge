@@ -1,0 +1,14 @@
+error[E0451]: fields `operators`, `validators`, `closeout` and `identity` of struct `PlanarBooleanLoopBlueprintRegistry` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_loop_blueprint_registry_not_forgeable.rs:9:9
+   |
+ 8 |     let _ = PlanarBooleanLoopBlueprintRegistry {
+   |             ---------------------------------- in this type
+ 9 |         operators: Vec::<PlanarBooleanLoopOperatorRow>::new(),
+   |         ^^^^^^^^^ private field
+10 |         validators: Vec::<PlanarBooleanLoopValidatorRow>::new(),
+   |         ^^^^^^^^^^ private field
+11 |         closeout: loop {
+   |         ^^^^^^^^ private field
+...
+14 |         identity: loop {
+   |         ^^^^^^^^ private field

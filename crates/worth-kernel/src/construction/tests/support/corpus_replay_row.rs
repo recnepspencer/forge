@@ -1,3 +1,7 @@
+use crate::construction::certification::corpus::lane_execution::{
+    PrimitiveConstructionCorpusBranchLocalLane, PrimitiveConstructionCorpusCurrentHeadLane,
+    PrimitiveConstructionCorpusReplayLane,
+};
 use crate::construction::request::PrimitiveConstructionFamily;
 use crate::construction::tests::support::runtime_truth::PrimitiveConstructionCertificationRuntimeTruth;
 
@@ -31,7 +35,9 @@ pub(crate) struct PrimitiveConstructionCorpusReplaySiegeRow {
     scenario_id: String,
     family: PrimitiveConstructionFamily,
     parameter_role: PrimitiveConstructionCorpusParameterRole,
-    runtime_truth: PrimitiveConstructionCertificationRuntimeTruth,
+    current_head_lane: PrimitiveConstructionCorpusCurrentHeadLane,
+    branch_local_lane: PrimitiveConstructionCorpusBranchLocalLane,
+    replay_lane: PrimitiveConstructionCorpusReplayLane,
 }
 
 impl PrimitiveConstructionCorpusReplaySiegeRow {
@@ -39,13 +45,17 @@ impl PrimitiveConstructionCorpusReplaySiegeRow {
         scenario_id: String,
         family: PrimitiveConstructionFamily,
         parameter_role: PrimitiveConstructionCorpusParameterRole,
-        runtime_truth: PrimitiveConstructionCertificationRuntimeTruth,
+        current_head_lane: PrimitiveConstructionCorpusCurrentHeadLane,
+        branch_local_lane: PrimitiveConstructionCorpusBranchLocalLane,
+        replay_lane: PrimitiveConstructionCorpusReplayLane,
     ) -> Self {
         Self {
             scenario_id,
             family,
             parameter_role,
-            runtime_truth,
+            current_head_lane,
+            branch_local_lane,
+            replay_lane,
         }
     }
 
@@ -62,10 +72,22 @@ impl PrimitiveConstructionCorpusReplaySiegeRow {
     }
 
     pub fn runtime_truth(&self) -> &PrimitiveConstructionCertificationRuntimeTruth {
-        &self.runtime_truth
+        self.current_head_lane.runtime_truth()
+    }
+
+    pub(crate) fn current_head_lane(&self) -> &PrimitiveConstructionCorpusCurrentHeadLane {
+        &self.current_head_lane
+    }
+
+    pub(crate) fn branch_local_lane(&self) -> &PrimitiveConstructionCorpusBranchLocalLane {
+        &self.branch_local_lane
+    }
+
+    pub(crate) fn replay_lane(&self) -> &PrimitiveConstructionCorpusReplayLane {
+        &self.replay_lane
     }
 
     pub fn outcome_digest(&self) -> &str {
-        self.runtime_truth.outcome_digest()
+        self.current_head_lane.runtime_truth().outcome_digest()
     }
 }
