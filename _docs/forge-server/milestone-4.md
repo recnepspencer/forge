@@ -488,27 +488,22 @@ parameters, raw JSON, product DTOs, or direct facade arguments.
 **Open questions**
 - None.
 
-### Phase 4: Operation Authority, Authorization, Support, And Concurrency Posture
+### Phase 4: Operation Authority Footprint And Authorization Proof
 
-This phase adds the proof-bearing posture set that makes concurrency a planned
-property instead of route-local optimism.
+This phase adds the first half of the proof-bearing posture set that makes
+concurrency a planned property instead of route-local optimism.
 
-By the end of this phase, every operation request must produce distinct
-authority footprint, authorization proof, admission posture, precondition
-posture, support composition, and concurrency class before lowering to an
-execution plan. The server can distinguish shared read, deterministic
-submission, product draft mutation, product session coordination, binary
-streaming, diagnostics-only work, and future lease work without executing the
-operation body.
+By the end of this phase, every operation request must produce a distinct
+authority footprint and authorization proof before any support composition,
+precondition evaluation, or execution planning occurs. The server can
+distinguish shared read, deterministic submission, product draft mutation,
+product session coordination, binary streaming, diagnostics-only work, and
+future lease work without executing the operation body.
 
 **Relevant subsystems**
 - operation authority footprint
 - operation authorization
 - operation admission posture
-- operation precondition posture
-- concurrency classification
-- Query support/admission posture
-- Query/product support composition
 - product application declaration metadata
 - diagnostics counters
 
@@ -516,19 +511,16 @@ operation body.
 - `ForgeServerOperationAuthorityFootprint`
 - `ForgeServerOperationAuthorizationProof`
 - `ForgeServerOperationAdmissionPosture`
-- `ForgeServerOperationPreconditionPosture`
-- `ForgeServerOperationConcurrencyClass`
 - `ForgeServerOperationScope`
 - `ForgeServerOperationFootprintReceipt`
-- `ForgeServerOperationSupportPosture`
-- `ForgeServerOperationSupportCompositionReceipt`
 
 **Required boundaries now**
 - `SharedReadOnly` operations must declare the Query shared-read basis or the
   product snapshot basis they consume.
 - Product read declarations must classify basis as `QueryDerived`,
   `ProductSessionDerived`, `DurableProductDerived`, or `FixtureOnly`. Only
-  comparable, digest-bearing basis kinds can admit concurrent product reads.
+  comparable, digest-bearing basis kinds can later admit concurrent product
+  reads.
 - `DeterministicSubmission` operations must declare the Query submission lane
   and journal posture they require.
 - `ProductDraftMutation` operations must declare product session identity,
@@ -539,11 +531,9 @@ operation body.
   supplies preflight, size, cancellation, and partial-failure posture.
 - Footprint classification is not authorization. Authorization consumes request
   context, operation identity, and footprint and emits an authorization proof
-  before planning succeeds.
+  before later posture composition or planning succeeds.
 - Unknown, broad, or ambiguous footprint becomes `AuthorityDenial`, not
   "serialize everything just in case."
-- Missing Query/product support becomes `SupportDenial`; stale or invalid
-  caller basis/session/idempotency becomes `PreconditionDenial`.
 
 **Warnings**
 - Do not infer concurrency from method names such as `read`, `render`, or
@@ -554,8 +544,7 @@ operation body.
   started.
 - Do not treat adapter declarations as self-proving. Runtime scheduling trusts
   adapter declarations only after registration-time validation and
-  certification prove required footprint fields and support rows cannot be
-  omitted.
+  certification prove required footprint fields cannot be omitted.
 
 **Test requirements**
 - `declared_shared_read_footprints_admit_concurrent_planning`: equivalence
@@ -564,7 +553,7 @@ operation body.
 - `product_read_basis_must_be_declared_and_comparable`: rejection proof that
   product reads claiming shared-read safety without declared basis kind,
   comparable digest semantics, or production-admitted support fail before
-  planning.
+  later concurrency admission.
 - `authorization_proof_is_required_after_footprint_classification`: hostile
   proof that a valid footprint with an unauthorized principal fails as
   `AuthorizationDenial`, not as support, scheduler, or product denial.
@@ -572,28 +561,96 @@ operation body.
   proving two mutation operations over the same product draft/session cannot
   both enter mutable execution without deterministic ordering or typed
   conflict posture.
-- `query_and_product_support_compose_without_meaning_merge`: matrix proof for
-  Query unsupported/product dependent, Query unsupported/product independent,
-  product unsupported, product unknown, fixture-only outside test profile, and
-  incompatible basis posture.
 - `ambiguous_operation_authority_cannot_fall_back_to_global_lock`: sabotage
   proof that an operation with missing or broad unknown footprint fails
   `AuthorityDenial` instead of passing by taking a global lock.
 
 **Engineering decisions**
-- Footprints, authorization proofs, support posture, precondition posture, and
-  concurrency class are separate proof-bearing inputs to planning; none are
-  advisory annotations.
-- The concurrency class is server-owned because it controls scheduling, but it
-  consumes Query and product declarations, authorization proof, support
-  posture, and precondition posture for authority facts.
+- Footprints and authorization proofs are separate proof-bearing inputs to
+  later posture composition and planning; neither is an advisory annotation.
+- Concurrency is not closed in this phase. This phase freezes the authority
+  facts that later support, precondition, and planning phases consume.
 - Product operations may be conservative, but conservatism must be explicit
   and typed.
 
 **Open questions**
 - None.
 
-### Phase 5: Lowered Operation Planning Boundary
+### Phase 5: Support Composition, Preconditions, And Concurrency Classification
+
+This phase adds the second half of the posture set: Query/product support,
+caller-supplied freshness and session preconditions, and the concurrency class
+that planning may rely on.
+
+By the end of this phase, every authorized operation request must produce
+support composition, precondition posture, and concurrency classification
+before lowering to an execution plan. The server can distinguish capability
+denial from caller-freshness denial and can classify when concurrent scheduling
+is admitted versus when deterministic serialization or typed denial is
+required.
+
+**Relevant subsystems**
+- operation admission posture
+- operation precondition posture
+- concurrency classification
+- Query support/admission posture
+- Query/product support composition
+- product application declaration metadata
+- diagnostics counters
+
+**Relevant APIs**
+- `ForgeServerOperationAdmissionPosture`
+- `ForgeServerOperationPreconditionPosture`
+- `ForgeServerOperationConcurrencyClass`
+- `ForgeServerOperationSupportPosture`
+- `ForgeServerOperationSupportCompositionReceipt`
+
+**Required boundaries now**
+- Missing Query/product support becomes `SupportDenial`; stale or invalid
+  caller basis/session/idempotency becomes `PreconditionDenial`.
+- Query and product support compose without merging their meanings or
+  flattening product-independent operations into Query-coupled denials.
+- Concurrency classification consumes operation identity, authority footprint,
+  authorization proof, support composition, and precondition posture together.
+  It may not infer parallel safety from route shape or operation names.
+- Product read declarations that lack production-admitted support or
+  comparable digest semantics may not claim shared-read-safe concurrency.
+
+**Warnings**
+- Do not let precondition posture silently widen into capability posture or
+  vice versa.
+- Do not let support composition become a second planner. It classifies
+  readiness and compatibility; it does not choose execution strategy.
+- Do not let product adapters recover unsupported or stale requests by
+  inventing local fallback posture after this phase denies them.
+
+**Test requirements**
+- `query_and_product_support_compose_without_meaning_merge`: matrix proof for
+  Query unsupported/product dependent, Query unsupported/product independent,
+  product unsupported, product unknown, fixture-only outside test profile, and
+  incompatible basis posture.
+- `stale_or_invalid_preconditions_deny_before_planning`: hostile denial proof
+  for stale basis, foreign session, malformed base digest, missing idempotency
+  binding inputs, and conflicting branch/base posture.
+- `concurrency_class_requires_support_and_precondition_closure`: classification
+  proof that shared-read, deterministic submission, product draft mutation, and
+  session coordination lanes are admitted only after support and preconditions
+  are both resolved.
+- `support_and_precondition_denials_do_not_fall_back_to_serialization`: sabotage
+  proof that unsupported or stale operations deny typed instead of being forced
+  through a conservative global queue.
+
+**Engineering decisions**
+- Support posture, precondition posture, and concurrency class are separate
+  proof-bearing inputs to planning; none is an advisory annotation.
+- The concurrency class is server-owned because it controls scheduling, but it
+  consumes Query and product declarations, authorization proof, support
+  posture, and precondition posture for authority facts.
+
+**Open questions**
+- None.
+
+### Phase 6: Lowered Operation Planning Boundary
 
 This phase adds the operation planner. The planner consumes a canonical
 operation request plus authority footprint and emits the only artifact an
@@ -674,23 +731,21 @@ strategy.
 **Open questions**
 - None.
 
-### Phase 6: Concurrent Operation Scheduler
+### Phase 7: Shared-Read Scheduler
 
-This phase introduces the server-owned scheduler for lowered operation plans.
-It is the only boundary that may run multiple operation plans together.
+This phase introduces the shared-read half of the server-owned scheduler for
+lowered operation plans. It is the first boundary that may run multiple
+read-safe operation plans together.
 
 By the end of this phase, shared-read-safe plans execute concurrently through
-Query `9.7` shared read contexts or product read snapshots where admitted,
-while deterministic submissions and product mutations are ordered by the
-authority lane declared in their plan. Conflicts, stale basis, and unsupported
-concurrency posture become typed scheduler outcomes.
+Query `9.7` shared read contexts or product read snapshots where admitted.
+Independent read failures stay isolated, and the scheduler can prove
+serialized-replay-equivalent envelopes for legal shared-read interleavings.
 
 **Relevant subsystems**
 - operation scheduler
 - execution slots
 - Query shared-read execution
-- Query deterministic submission
-- product operation execution
 - scheduler diagnostics and counters
 
 **Relevant APIs**
@@ -706,40 +761,24 @@ concurrency posture become typed scheduler outcomes.
 **Required boundaries now**
 - Shared-read plans may run concurrently only when their footprints prove
   compatible basis and no mutable product/session scope.
-- Deterministic submission plans execute through one ordered submission lane
-  and carry journal/submission posture from Query where applicable.
-- Product mutation plans over the same product draft/session either serialize
-  deterministically or deny conflict before product execution.
 - Scheduler outcomes include runtime-sourced counters for read slots,
-  submission slots, product mutation slots, conflicts denied, stale stops,
   queue decisions, cancellation stops, isolated failures, and
   forbidden-global-lock acquisitions.
 - A failed shared read does not poison independent shared-read plans in the
   same scheduled batch unless they share the failed Query/product basis.
-- A denied or failed mutation records idempotency according to the Phase 8
-  idempotency matrix once scheduler admission has accepted the operation.
-- Client cancellation posture is explicit: cancellation before scheduler
-  admission records no idempotent result; cancellation after scheduler
-  admission records the scheduler outcome according to operation family.
+- Client cancellation posture for shared reads is explicit and counted.
 
 **Warnings**
 - Do not use a global server mutex as the concurrency model. If a lock remains
   as implementation detail, it must be classified, counted, and absent from
-  ordinary admitted shared-read and deterministic mutation/submission paths.
-- Do not let thread scheduling determine submission order.
+  ordinary admitted shared-read paths.
 - Do not let product adapters spawn their own unsupervised concurrent work for
-  authority-bearing operations.
+  shared-read authority-bearing operations.
 
 **Test requirements**
 - `concurrent_shared_read_scheduler_matches_serialized_replay`: hostile matrix
   with multiple Query-direct and product-read plans proving byte-identical
   response envelopes to serialized replay across repeated interleavings.
-- `submission_and_product_mutation_order_is_deterministic`: equivalence proof
-  that interleaved mutation/submission requests produce stable ordered receipts
-  and replay-equivalent outcomes.
-- `conflicting_mutation_plans_localize_scheduler_denial`: rejection proof that
-  same-session draft mutations with incompatible base posture fail or serialize
-  according to plan, never by product-local race.
 - `shared_read_hot_path_reports_exact_zero_global_lock_acquisitions`: exact
   counter proof for the admitted shared-read path.
 - `scheduler_failures_are_isolated_by_declared_dependency`: hostile proof that
@@ -748,7 +787,7 @@ concurrency posture become typed scheduler outcomes.
   posture.
 - `scheduler_cancellation_records_only_after_admission`: cancellation proof for
   before-admission, after-admission-before-execution, and during-execution
-  cases with idempotency behavior localized by phase.
+  cases for shared-read scheduling.
 
 **Engineering decisions**
 - The scheduler is server-owned mechanism; it does not own Query meaning or
@@ -761,7 +800,77 @@ concurrency posture become typed scheduler outcomes.
 **Open questions**
 - None.
 
-### Phase 7: Product Application Adapter Boundary
+### Phase 8: Deterministic Submission And Product Mutation Scheduler
+
+This phase extends the scheduler from shared-read concurrency into the ordered
+lanes that must never rely on ambient thread timing: Query deterministic
+submission, product draft mutation, and session-coordination mutation work.
+
+By the end of this phase, deterministic submissions and product mutations are
+ordered by the authority lane declared in their plans. Conflicts, stale basis,
+queue closure, and post-admission cancellation become typed scheduler outcomes
+with exact counters.
+
+**Relevant subsystems**
+- operation scheduler
+- execution slots
+- Query deterministic submission
+- product mutation execution
+- session-coordination execution
+- scheduler diagnostics and counters
+
+**Relevant APIs**
+- `ForgeServerOperationScheduler`
+- `ForgeServerScheduledOperationBatch`
+- `ForgeServerOperationExecutionSlot`
+- `ForgeServerScheduledOperationOutcome`
+- `ForgeServerSchedulerConflictDenial`
+- `ForgeServerSchedulerFailurePosture`
+- `ForgeServerSchedulerCancellationPosture`
+- `ForgeServerOperationSchedulerCounters`
+
+**Required boundaries now**
+- Deterministic submission plans execute through one ordered submission lane
+  and carry journal/submission posture from Query where applicable.
+- Product mutation plans over the same product draft/session either serialize
+  deterministically or deny conflict before product execution.
+- A denied or failed mutation records idempotency according to the later
+  idempotency matrix once scheduler admission has accepted the operation.
+- Client cancellation posture is explicit: cancellation before scheduler
+  admission records no idempotent result; cancellation after scheduler
+  admission records the scheduler outcome according to operation family.
+
+**Warnings**
+- Do not let thread scheduling determine submission order.
+- Do not let product adapters spawn their own unsupervised concurrent work for
+  authority-bearing mutation operations.
+- Do not turn unsupported mutation concurrency into "serialize everything"
+  fallback without a typed denial or explicit scheduler lane.
+
+**Test requirements**
+- `submission_and_product_mutation_order_is_deterministic`: equivalence proof
+  that interleaved mutation/submission requests produce stable ordered receipts
+  and replay-equivalent outcomes.
+- `conflicting_mutation_plans_localize_scheduler_denial`: rejection proof that
+  same-session draft mutations with incompatible base posture fail or serialize
+  according to plan, never by product-local race.
+- `scheduler_cancellation_for_mutation_paths_records_after_admission_only`:
+  cancellation proof for before-admission, after-admission-before-execution,
+  and during-execution mutation cases with replay posture localized by phase.
+- `mutation_scheduler_reports_exact_lane_and_conflict_counters`: exact-counter
+  proof for submission slots, product mutation slots, conflicts denied, stale
+  stops, and forbidden global-lock residue.
+
+**Engineering decisions**
+- Ordered mutation scheduling is a distinct closure from shared-read
+  scheduling because the failure modes are different and easier to hide.
+- Deterministic submission and product mutation share one scheduler runtime but
+  not one semantic authority model.
+
+**Open questions**
+- None.
+
+### Phase 9: Product Application Adapter Boundary
 
 This phase admits product-application operations as a first-class server
 operation lane without making `forge-server` own product semantics.
@@ -854,28 +963,26 @@ operation.
 - Product payload schemas should be versioned and digest-bearing so web clients
   can pin them later.
 - Product basis kind is part of the product operation declaration and flows
-  into Phase 4 footprint/support composition.
+  into Phase 4 authority classification and Phase 5 support/concurrency
+  classification.
 
 **Open questions**
 - None.
 
-### Phase 8: Optimistic Product Session And Stale-Basis Contract
+### Phase 10: Product Session Identity And Lifecycle
 
-This phase adds the server-owned coordination contract required by responsive
-web applications: optimistic operation preconditions, product session identity,
-base snapshot digests, idempotency, conflict posture, and typed stale-basis
-denials.
+This phase adds the server-owned coordination identity required by responsive
+web applications: product session identity, lifecycle, preview-versus-mutation
+posture, expiry, close, and branch/base rebind denial.
 
-By the end of this phase, a product web UI can submit fast operations against
-the snapshot it last observed, and the server can admit, apply, reject,
-replay, or require rebase without making the client authoritative.
+By the end of this phase, a product web UI can hold a server-admitted session
+across requests without becoming authoritative, and the server can classify
+read-only preview, mutable draft coordination, expiry, close, and foreign or
+moved-session denial before mutation-specific replay logic runs.
 
 **Relevant subsystems**
 - product session coordination
-- optimistic preconditions
-- idempotency
-- stale-basis denial
-- product operation replay
+- product session lifecycle
 - session diagnostics
 
 **Relevant APIs**
@@ -884,14 +991,6 @@ replay, or require rebase without making the client authoritative.
 - `ForgeServerProductSessionLifecycle`
 - `ForgeServerProductSessionCreationRequest`
 - `ForgeServerProductSessionExpiryPosture`
-- `ForgeServerProductSnapshotPrecondition`
-- `ForgeServerProductOperationBaseDigest`
-- `ForgeServerProductIdempotencyKey`
-- `ForgeServerProductIdempotencyRecord`
-- `ForgeServerProductIdempotencyConflict`
-- `ForgeServerProductStaleBasisDenial`
-- `ForgeServerProductRebaseRequired`
-- `ForgeServerProductOperationReplayReceipt`
 
 **Required boundaries now**
 - Product sessions are server-admitted coordination artifacts, not product
@@ -903,6 +1002,68 @@ replay, or require rebase without making the client authoritative.
   posture is `ReadOnlyPreview` or another declared non-mutating posture.
 - Product session identity is stable across HTTP requests until explicit close,
   expiry, or rebind denial. Expiry posture is counted and typed.
+- Session lookup happens before product mutation scheduling; branch/base
+  movement requires explicit rebase or rebind posture.
+
+**Warnings**
+- Do not let product sessions become durable-storage claims. Durable product
+  persistence remains product/server storage milestone work.
+- Do not allow expired sessions to silently rehydrate or migrate branch/base
+  posture.
+- Do not let transport connection identity masquerade as product session
+  identity.
+
+**Test requirements**
+- `product_session_lifecycle_denies_expired_foreign_or_moved_sessions`:
+  lifecycle proof for create, read-only preview without draft, mutation session
+  with draft, expiry, explicit close, foreign session, and branch/base rebind.
+- `product_session_identity_is_server_admitted_not_adapter_fabricated`:
+  boundary proof that route code and product adapters cannot mint sessions
+  outside the operation runtime.
+- `preview_and_mutation_session_postures_remain_distinct`: parity proof that
+  non-mutating preview sessions and mutation-capable sessions retain different
+  lifecycle and denial posture.
+
+**Engineering decisions**
+- Product session identity is separate from transport connection identity,
+  Query branch identity, and durable product draft identity.
+- Session coordination is admitted as an operation family so it shares the
+  same front door and diagnostics path.
+- In-memory session certification proves operation-runtime semantics only. It
+  does not claim durable resume, process restart, cross-node coordination, or
+  storage-level conflict behavior.
+
+**Open questions**
+- None.
+
+### Phase 11: Product Idempotency, Replay, And Stale-Basis Contract
+
+This phase adds the server-owned optimistic coordination contract required by
+responsive web applications: base snapshot digests, idempotency, conflict
+posture, and typed stale-basis denials.
+
+By the end of this phase, a product web UI can submit fast operations against
+the snapshot it last observed, and the server can admit, apply, reject,
+replay, or require rebase without making the client authoritative.
+
+**Relevant subsystems**
+- optimistic preconditions
+- idempotency
+- stale-basis denial
+- product operation replay
+- session diagnostics
+
+**Relevant APIs**
+- `ForgeServerProductSnapshotPrecondition`
+- `ForgeServerProductOperationBaseDigest`
+- `ForgeServerProductIdempotencyKey`
+- `ForgeServerProductIdempotencyRecord`
+- `ForgeServerProductIdempotencyConflict`
+- `ForgeServerProductStaleBasisDenial`
+- `ForgeServerProductRebaseRequired`
+- `ForgeServerProductOperationReplayReceipt`
+
+**Required boundaries now**
 - Session lookup and base-precondition admission happen before product mutation
   scheduling; branch/base movement requires explicit rebase or rebind posture.
 - Base snapshot digest, bundle digest, or product revision digest are
@@ -921,15 +1082,13 @@ replay, or require rebase without making the client authoritative.
   mutation.
 
 **Warnings**
-- Do not let product sessions become durable-storage claims. Durable product
-  persistence remains product/server storage milestone work.
 - Do not auto-rebase mutation payloads in the server. The server may report
   rebase-required posture; product semantics decide whether an explicit rebase
   operation exists.
 - Do not let idempotency keys compare only by caller-provided strings without
   tenant/workspace/session/operation identity binding.
-- Do not allow expired sessions to silently rehydrate or migrate branch/base
-  posture.
+- Do not let replay closure depend on transport retry folklore or product-local
+  cache state.
 
 **Test requirements**
 - `optimistic_product_apply_matches_serialized_current_basis`: equivalence
@@ -949,25 +1108,20 @@ replay, or require rebase without making the client authoritative.
   key/same operation/same payload, same key/different payload, same key/
   different operation name, same key/different base digest, failure before
   scheduler admission, and failure after scheduler admission.
-- `product_session_lifecycle_denies_expired_foreign_or_moved_sessions`:
-  lifecycle proof for create, read-only preview without draft, mutation session
-  with draft, expiry, explicit close, foreign session, and branch/base rebind.
 
 **Engineering decisions**
-- Product session identity is separate from transport connection identity,
-  Query branch identity, and durable product draft identity.
 - Stale-basis posture is a typed denial family because web clients need a
   first-class rebase prompt, not a generic conflict string.
-- Session coordination is admitted as an operation family so it shares the
-  same front door and diagnostics path.
-- In-memory session certification proves operation-runtime semantics only. It
-  does not claim durable resume, process restart, cross-node coordination, or
-  storage-level conflict behavior.
+- Product session identity is consumed here as an already-admitted
+  coordination artifact; this phase does not own lifecycle closure.
+- Idempotency and stale-basis are split from lifecycle because replay/conflict
+  pressure and session-lifetime pressure fail differently and need separate
+  certification.
 
 **Open questions**
 - None.
 
-### Phase 9: Operation-Declared Route Assembly
+### Phase 12: Operation-Declared Route Assembly
 
 This phase replaces empty or framework-shaped route bootstrap with real route
 assembly derived from registered operation declarations.
@@ -1056,7 +1210,7 @@ envelope construction, or execution strategy.
 **Open questions**
 - None.
 
-### Phase 10: Product-Editor Readiness Certification
+### Phase 13: Product-Editor Readiness Certification
 
 This phase certifies the milestone against the product pressure that motivated
 it: product-editor-shaped operations running through the product adapter and
