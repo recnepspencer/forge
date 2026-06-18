@@ -219,7 +219,10 @@ pub(crate) fn finalize_batch_write_closeout<I>(
 where
     I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
 {
-    let receipt = runner.workspace.batch(|_| lowered_mutations)?;
+    let receipt = runner
+        .workspace
+        .submissions()?
+        .submit_batch_builder(lowered_mutations)?;
     finalize_graph_or_batch_receipt_closeout(
         runner,
         retained_handoff,

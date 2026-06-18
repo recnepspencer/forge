@@ -1,4 +1,7 @@
-use super::runtime_batching::{should_use_backend_atomic_batch, BatchCommandSummary};
+use super::runtime_batching::{
+    deny_scaffold_multi_command_batch_without_atomic_authority, should_use_backend_atomic_batch,
+    BatchCommandSummary,
+};
 use super::*;
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 use crate::runtime::runtime_writes::ForgeQueryWriteAdmissionExecutionRecord;
@@ -34,8 +37,9 @@ impl ForgeQueryRuntime {
                 ForgeQueryWorkspaceError::new("mutation batch must declare at least one operation"),
             ));
         }
-        let use_backend_atomic_batch =
-            should_use_backend_atomic_batch(&self.backend.support_profile(), &commands);
+        let support_profile = self.backend.support_profile();
+        deny_scaffold_multi_command_batch_without_atomic_authority(&support_profile, &commands)?;
+        let use_backend_atomic_batch = should_use_backend_atomic_batch(&support_profile, &commands);
         let mut command_summaries: Vec<BatchCommandSummary> = Vec::with_capacity(commands.len());
         let mut resolved_receipts = Vec::with_capacity(commands.len());
         let mut symbolic_targets =

@@ -9,7 +9,9 @@ use forge_foundational::facade::AspectValue;
 use forge_relational::facade::config::RelationalRuntimeProfile;
 use forge_relational::facade::identity::PartitionId;
 use forge_relational::facade::runtime::RelationalRuntimeApi;
-use forge_relational::facade::runtime::{EntityProjectionRecord, ProjectionAspectScope};
+use forge_relational::facade::runtime::{
+    CustomInvariantRegistration, EntityProjectionRecord, InvariantCatalog, ProjectionAspectScope,
+};
 use forge_relational::facade::schema::{
     EntityKindRegistration, KindAspectContractDeclarations, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
@@ -24,6 +26,15 @@ impl ForgeQueryMemoryWorkspace {
     pub fn collection(
         kind_name: impl Into<String>,
         aspects: impl IntoIterator<Item = ForgeQueryAspect>,
+    ) -> Result<Self, ForgeQueryWorkspaceError> {
+        Self::collection_with_invariants(kind_name, aspects, InvariantCatalog::default(), [])
+    }
+
+    pub(crate) fn collection_with_invariants(
+        kind_name: impl Into<String>,
+        aspects: impl IntoIterator<Item = ForgeQueryAspect>,
+        invariant_catalog: InvariantCatalog,
+        custom_invariants: impl IntoIterator<Item = CustomInvariantRegistration>,
     ) -> Result<Self, ForgeQueryWorkspaceError> {
         let kind_name = kind_name.into();
         let kind_id = KindId(1);
@@ -47,10 +58,14 @@ impl ForgeQueryMemoryWorkspace {
                 aspect_contract_declarations: KindAspectContractDeclarations::new(declared_aspects),
             })
             .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
-        let runtime = RelationalRuntimeApi::builder()
+        let mut runtime_builder = RelationalRuntimeApi::builder()
             .profile(RelationalRuntimeProfile::CertificationCore)
             .schema_registry(registry)
-            .build();
+            .invariant_catalog(invariant_catalog.canonicalized());
+        for custom_invariant in custom_invariants {
+            runtime_builder = runtime_builder.custom_invariant(custom_invariant);
+        }
+        let runtime = runtime_builder.build();
         Ok(Self {
             runtime,
             kind_id,

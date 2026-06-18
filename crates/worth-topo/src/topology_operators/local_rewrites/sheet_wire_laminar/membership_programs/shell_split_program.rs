@@ -7,10 +7,7 @@ use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingInde
 use crate::topology_operators::application::{
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
-use crate::topology_operators::{
-    continuity_prior_relation_authority, continuity_successor_relation_authority,
-    topology_relation_dependency_path,
-};
+use crate::topology_operators::topology_relation_dependency_path;
 
 impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
     pub(crate) fn compose_shell_split_program(
@@ -82,6 +79,12 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             *face_relation_id,
             face_relation_binding.query_identity.clone(),
         )?;
+
+        let face_rebind_authorities =
+            crate::topology_operators::authority_identity::relation_continuity_rebind_authorities(
+                *face_relation_id,
+            )?;
+
         self.workspace
             .compose_graph(|graph| {
                 let shell_symbol = graph.insert_entity(
@@ -111,9 +114,6 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                         relation
                     }
                 })?;
-                let face_prior_authority = continuity_prior_relation_authority(*face_relation_id)?;
-                let face_successor_authority =
-                    continuity_successor_relation_authority(*face_relation_id)?;
                 graph.retarget_existing_verified(
                     face_handle.clone(),
                     |verify| {
@@ -139,8 +139,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                     |update| {
                         let update = update
                             .continuity_rebind_existing_target(
-                                face_prior_authority,
-                                face_successor_authority,
+                                face_rebind_authorities.0.clone(),
+                                face_rebind_authorities.1.clone(),
                             )
                             .aspect(
                                 "topology.kind",

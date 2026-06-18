@@ -113,8 +113,8 @@ fn intent_admission_doc_names_deferred_neighbors_honestly() {
         "intent admission doc must teach lower-runtime capability routing as a covered family"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("workspace.verify_existing(...)"),
-        "intent admission doc must teach verified-existing mutation wrappers as authoritative-intent delegates"
+        INTENT_ADMISSION_DOC.contains("graph-composition verified-existing lanes"),
+        "intent admission doc must teach verified-existing work through graph-composition lanes"
     );
     assert!(
         INTENT_ADMISSION_DOC.contains("generic and derived inspection"),

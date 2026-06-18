@@ -173,8 +173,8 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
     .expect("existing relation target collection should build");
     let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(binding)
         .expect("relation binding should build");
-    harness.seed_existing_truth_value(&binding, "source.id", json!("he-1"));
-    harness.seed_existing_truth_value(&binding, "target.id", json!("he-2"));
+    harness.seed_backend_authoritative_truth(&binding, "source.id", json!("he-1"));
+    harness.seed_backend_authoritative_truth(&binding, "target.id", json!("he-2"));
     let runtime = harness
         .bridge_backed_runtime_builder()
         .support_profile(public_verified_relation_profile("update_existing_verified"))

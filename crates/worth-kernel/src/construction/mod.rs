@@ -25,6 +25,10 @@ pub(crate) mod outcome;
 #[path = "proof/mod.rs"]
 mod proof;
 #[cfg(test)]
+pub(crate) mod query_enforcement_adoption;
+#[cfg(test)]
+mod query_support_pins;
+#[cfg(test)]
 mod realization_snapshot;
 #[cfg(test)]
 #[path = "phase_chain/request.rs"]

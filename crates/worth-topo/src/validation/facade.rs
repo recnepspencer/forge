@@ -41,11 +41,6 @@ pub type DerivedTopologyValidationReport = TopologyValidationReport;
 pub struct TopologyValidator;
 
 impl TopologyValidator {
-    #[cfg(test)]
-    pub fn validate(view: &MaterializedTopologyView) -> Result<(), TopologyValidationError> {
-        Self::materialized_validation_report(view).map(|_| ())
-    }
-
     pub fn materialized_validation_report(
         view: &MaterializedTopologyView,
     ) -> Result<TopologyValidationReport, TopologyValidationError> {
@@ -122,23 +117,6 @@ pub fn validate_topology_view(
     let interpreted =
         crate::derived_topology::traversal_views::interpret_topology_view(&materialized);
     TopologyValidator::derived_validation_report(&materialized, &interpreted).map(|_| ())
-}
-
-#[cfg(test)]
-pub fn topology_validation_report(
-    view: &crate::brep::topology_graph::TopologyView,
-) -> Result<TopologyValidationReport, TopologyValidationError> {
-    let materialized = MaterializedTopologyView::whole_view(view.clone());
-    let interpreted =
-        crate::derived_topology::traversal_views::interpret_topology_view(&materialized);
-    TopologyValidator::derived_validation_report(&materialized, &interpreted)
-}
-
-#[cfg(test)]
-pub fn validate_materialized_topology(
-    view: &MaterializedTopologyView,
-) -> Result<DerivedTopologyValidationReport, TopologyValidationError> {
-    TopologyValidator::materialized_validation_report(view)
 }
 
 pub fn validate_interpreted_topology(

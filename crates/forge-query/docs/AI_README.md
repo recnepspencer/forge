@@ -256,6 +256,49 @@ Read next:
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 - [Workspace Overview](./foundations/workspace-overview.md)
 
+## Shared Read Authority And Journal Replay
+
+Milestone `9.7` changed the runtime mental model from "one mutable workspace
+borrow owns everything" to "read authority, mutation intake, derived
+publication, and replay each have a named lane."
+
+The important rule is that shared reads are real runtime-owned read authority,
+not copied snapshot convenience. A shared read context is basis-bound, sealed,
+and backed by generation pinning. Readers consume already-published facts; they
+do not evaluate derived state, warm caches, repair indexes, or trigger bridge or
+signal work as a side effect of looking.
+
+Submission is the single writer lane. Journal order is represented by typed
+journal position and journal segment identity, not by parsing commit labels,
+receipt strings, or display text. Consumer replay asks the runtime to replay a
+typed segment and returns ordinary receipts and artifacts; it does not expose a
+raw journal format as the public contract.
+
+Published derived artifacts are read through projection consumption. If a
+public bridge or downstream runtime needs materialized facts, it should consume
+typed projection receipts rather than spelunking materialization rows or
+bridge-only helper state.
+
+Milestone `9.7` closure is also derived, not declared. The support/profile row
+`milestone-9.7-derived-closure-posture` is honest only when the phase-local
+pinning, journal/replay, concurrent hostile matrix, and public-bridge reader
+proofs are present, closed, and evidence-bearing.
+
+Use this category when work touches concurrent reads, submission order, replay,
+published derived artifacts, or public-bridge read certification.
+
+The mistakes to avoid are copied-snapshot "pinning," `Mutex` or `RwLock`
+around committed-read hot paths, reader-side derived evaluation, string-derived
+journal order, and direct materialization-row reads where projection
+consumption owns the public lane.
+
+Read next:
+
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+- [Projection Consumption](./capabilities/projection-consumption.md)
+- [Read Composition](./authoring/read-composition.md)
+- [Query Operating Modes](./foundations/query-operating-modes.md)
+
 ## Support And Admission
 
 Support and admission explain what the runtime actually promises today.
@@ -302,6 +345,91 @@ Read next:
 - [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 - [Writes And Intent Boundaries](./execution/writes-and-intents.md)
+
+## Consumer Kit
+
+The Consumer Kit is Query's product surface for downstream proof. It is the
+ordinary downstream path for any crate that needs to prove it consumes Query
+correctly. It is not optional convenience, not a testing helper pile, and not a
+wrapper around folklore that the consumer still owns.
+
+The practical meaning is blunt:
+
+```text
+consumer owns domain facts and source files
+Query owns proof of Query consumption
+```
+
+So when a downstream crate needs digest-bearing evidence, hard-prohibition
+enforcement, support posture pinning, in-memory Query test workspaces, or
+adoption/residue proof, it should enter through
+`forge_query::facade::consumer_kit` instead of building local proof machinery.
+
+This milestone moved consumer proof out of downstream folklore and into Query.
+The old patterns were hand-written report structs, local digest strings,
+consumer-owned source greps, local required-family rows, and fabricated test
+receipts. Those are not alternate implementations. They are the failure modes
+the kit exists to remove.
+
+The required Consumer Kit families are:
+
+- `evidence-report-kit`
+- `hard-prohibition-registry`
+- `boundary-audit`
+- `support-snapshot`
+- `support-pinning`
+- `in-memory-test-backend`
+- `reference-consumer-adoption`
+
+Use this category when a downstream crate is about to hand-roll report structs,
+format digests, grep for forbidden Query seams, assemble required support rows,
+or build runtime adapter piles just to test Query behavior. Those patterns are
+folklore. The kit gives the consumer typed declarations, sealed evidence,
+runtime-owned audits, support-profile pinning, and honestly postured test
+workspaces through the public facade.
+
+Choose the surface by proof job:
+
+- use `EvidenceReportDeclaration` for sealed evidence reports and canonical
+  report identity
+- use `hard_prohibition_registry()` and `hard_prohibition_boundary_audit()` for
+  Query hard-prohibition enforcement
+- use `project_workspace_support_snapshot(...)` for a schema-versioned
+  projection of the live support matrix
+- use `support_pinning_contract(...)` when a consumer must fail on support-row
+  regressions
+- use `in_memory_test_runtime()` and `ForgeQueryTestBackendSchema` when tests
+  need a real `ForgeQueryWorkspace` without adapter or receipt fabrication
+- use the adoption and residue audits when a consumer must prove it deleted
+  Query-owned folklore rather than merely hiding it
+
+Real support pinning means typed row identity, live row digest binding, and a
+localized typed failure when a required row regresses. A checked-in list of row
+names or a local admission loop is not pinning.
+
+The shipped boundary audit is honest about its mechanism. Associated-path
+coverage checks registry public-symbol suffixes. Method-call coverage is
+syntax/AST based and method-name resolved, not compiler-backed type
+resolution. Do not describe it as closing macro expansion, trait dispatch, or
+type-alias resolution.
+
+The closure signal for this family lives in the support report:
+
+```rust
+let closure = ForgeQueryApplicationFacade::runtime_backed_default()
+    .support_report()
+    .consumer_kit_closure();
+```
+
+The mistake to avoid is teaching these kit surfaces as nice-to-have wrappers.
+For downstream evidence and certification, they are the canonical lane.
+
+Read next:
+
+- [Consumer Kit](./foundations/consumer-kit.md)
+- [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
+- [Hard Prohibitions](./foundations/hard-prohibitions.md)
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 
 ## Aspects And Authority Lanes
 
@@ -1322,6 +1450,12 @@ Need family support:
 - use family taxonomy, capability matrix, readiness, inventory, and support
   admission
 
+Need downstream consumer proof:
+
+- use the Consumer Kit for evidence reports, hard-prohibition audits, support
+  snapshots, support pins, in-memory test workspaces, and adoption/residue
+  proof; do not hand-roll Query proof in the consumer crate
+
 Need basis for read, mutate, replay, inspect, or materialize:
 
 - use basis capability lifecycle, not raw branch or snapshot ids
@@ -1344,6 +1478,16 @@ Need one-shot or live read execution:
 
 - use planning and snapshot-backed execution first; use live views for durable
   query-shaped surfaces; use subscriptions for long-lived admitted live meaning
+
+Need concurrent committed reads:
+
+- use shared read authority and basis-pinned contexts; do not copy snapshots or
+  take committed-read locks to imitate concurrency
+
+Need submission order or replay:
+
+- use typed journal position and journal segment identity; do not parse
+  `commit_identity`, receipt strings, or display text for order
 
 Need signal/reactive behavior:
 
@@ -1399,6 +1543,16 @@ Need materialized facts without reopening authority:
 
 - use projection consumption declarations and receipts
 
+Need public-bridge read certification:
+
+- consume published derived artifacts through projection consumption; do not
+  read materialization rows or bridge-only helper state directly
+
+Need support pinning:
+
+- use Consumer Kit support snapshots and `support_pinning_contract(...)`; a
+  local required-family list or admission loop is not real pinning
+
 Need lower-runtime contact:
 
 - use lower-runtime capability routing and boundary envelopes
@@ -1449,6 +1603,17 @@ Need public DX:
   `cancelled` enums unless you are intentionally projecting it for product UX.
 - Do not implement temporal or time-aware live semantics with ambient host
   clocks or timers outside the shipped Query runtime-backed temporal surface.
+- Do not implement shared-read pinning by copying snapshots or materialized
+  rows into a side registry.
+- Do not implement consumer proof with local digest helpers, source greps,
+  required-family row lists, or fabricated test receipts when the Consumer Kit
+  owns that proof surface.
+- Do not put `Mutex` or `RwLock` on the committed-read hot path to manufacture
+  apparent concurrency.
+- Do not parse `commit_identity`, receipt strings, or rendered labels to infer
+  journal order.
+- Do not let public-bridge readers bypass projection consumption to read
+  materialization rows directly.
 
 ## AI Checklist Before Editing Code
 
@@ -1461,8 +1626,14 @@ Before building on a Query category, answer these:
    `BridgePreviewSessionIdentity`?
 4. What Query artifact or outcome should be preserved instead of flattened?
 5. What support row or admission gate decides whether the surface is real now?
-6. Am I using Query to carry lower-runtime semantics, or am I bypassing Query
+6. If this is shared-read or replay work, what pins the read basis and what
+   typed journal identity carries order?
+7. If this reads published derived facts, am I using projection consumption
+   rather than direct materialization access?
+8. Am I using Query to carry lower-runtime semantics, or am I bypassing Query
    and inventing a local runtime path?
+9. If this is downstream consumer proof, am I using the Consumer Kit instead of
+   a local report, grep, pinning, adapter, or receipt-fabrication path?
 
 If you cannot answer those, read the owning docs before writing code.
 

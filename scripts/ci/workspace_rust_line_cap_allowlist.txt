@@ -42,6 +42,7 @@ crates/forge-query/src/domain_capabilities/payloads/workflow_semantics.rs
 crates/forge-query/src/domain_capabilities/proof_integration/artifacts.rs
 crates/forge-query/src/frontier_planning/testing.rs
 crates/forge-query/src/frontier_signal_adapter.rs
+crates/forge-query/src/facade/exports_runtime.rs
 crates/forge-query/src/harness/aspect_api_finalization_certification/rows.rs
 crates/forge-query/src/harness/fixtures/canonical_bundles.rs
 crates/forge-query/src/harness/frontier_certification/mod.rs

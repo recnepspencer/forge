@@ -148,11 +148,11 @@ impl ForgeQueryMutationSurfaceReport {
             ),
             ForgeQueryMutationSurfaceRow::new(
                 "authoritative-batch",
-                "workspace.batch(...)",
+                "workspace.submissions()?.submit_batch(commands)",
                 ForgeQueryMutationSurfacePosture::PreferredStable,
                 true,
                 None::<String>,
-                "preferred ordered multi-mutation path",
+                "preferred explicit submission lane for ordered multi-mutation commands",
             ),
             ForgeQueryMutationSurfaceRow::new(
                 "preview-insert",
@@ -185,14 +185,6 @@ impl ForgeQueryMutationSurfaceReport {
                 true,
                 None::<String>,
                 "preferred preview-local ordered multi-mutation path",
-            ),
-            ForgeQueryMutationSurfaceRow::new(
-                "direct-write-lower-level",
-                "workspace.write(...)",
-                ForgeQueryMutationSurfacePosture::LowerLevelStable,
-                false,
-                Some("workspace.insert/update/delete/batch"),
-                "stable lower-level expert seam for command-shaped runtime mutation; ordinary runtime code should prefer workspace.insert/update/delete/batch",
             ),
             ForgeQueryMutationSurfaceRow::new(
                 "aspect-insert-command",

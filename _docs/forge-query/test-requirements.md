@@ -229,6 +229,261 @@ expanding Milestone 9.7 ownership. The support-profile contract must not
 hard-code `Closed`; `Closed` is produced only by the derived closure artifact
 after it receives all required phase-local proofs.
 
+## Milestone 9.8 Phase 1 Required Suite
+
+`Consumer Evidence Report Kit Parity Test` is required for Phase 1. It must
+prove that the Query-owned report kit lets consumers declare report fields,
+semantic scope, and digest participation once, then receive sealed
+canonical-scheme report identity, field-inventory identity, digest-participation
+identity, and read-only field access without caller-owned digest construction.
+
+The suite must include:
+
+- one Query-owned report shape expressed through the kit
+- one `BranchPreviewBasisReport`-shaped fixture expressed through the kit,
+  including admitted and rejected variants
+- perturbations proving participating field changes alter report identity
+- perturbations proving diagnostic nonparticipating value changes do not alter
+  report identity but do alter field inventory
+- field add/remove/reorder/retype pressure against field-inventory identity
+- participation-posture changes against digest-participation identity
+- compile-fail coverage proving sealed reports cannot be externally
+  constructed, fields cannot be mutated after sealing, report identity cannot
+  be forged, pre-rendered digest contribution APIs are unavailable, and fields
+  cannot be added without explicit participation posture
+- proof that kit identities lower through `ForgeQueryEvidenceIdentity` scopes,
+  not worth-kernel digest helpers, rendered strings, `Debug`, or delimiter
+  joining
+
+## Milestone 9.8 Phase 2 Required Suite
+
+`Prohibition Registry And Seam Visibility Test` is required for Phase 2. It
+must prove that Query owns one typed hard-prohibition registry and that every
+covered direct workspace seam which can be enforced by Rust visibility is
+sealed before the Phase 3 audit exists.
+
+The suite must include:
+
+- a typed registry row for each covered direct workspace write, batch, and
+  existing-truth bypass seam
+- exact agreement between the registry row keys and the documented hard
+  prohibition seam-key projection
+- proof that all Phase 2 rows use `sealed-by-visibility`, not Phase 3 audit
+  residue, for seams the type system can close
+- compile-fail coverage from an external consumer-shaped crate proving direct
+  `ForgeQueryWorkspace` write, batch, existing-truth bind, probe, update,
+  assert, verify, and delete seams are not reachable
+- compile-fail coverage proving external crates cannot fabricate registry rows
+  or downgrade a sealed seam into audit-only residue
+- proof that the admitted replacement lane remains typed and explicit through
+  the existing submission or Query-authored intent path rather than a string
+  pattern list
+
+## Milestone 9.8 Phase 3 Required Suite
+
+`Shipped Bypass Audit Artifact Boundary Test` is required for Phase 3. It must
+prove that the audit derives from the Phase 2 prohibition registry, walks
+Rust syntax rather than raw source text, and emits a durable evidence report
+for every reviewed source set.
+
+The suite must include:
+
+- seeded executable bypass detection for both method-call and associated-path
+  forms derived from registry public symbols
+- public facade coverage over a real downstream source inventory, using
+  path-bearing worth-kernel Rust source files rather than only inline snippets
+- a seeded dirty downstream source entry evaluated through the same public
+  source-inventory path, proving typed failure findings name seam, mechanism,
+  source label, source path, line, and column
+- negative fixtures proving comments, doc attributes, and string literals do
+  not produce findings
+- registry/audit drift coverage proving every Phase 2 prohibited seam has an
+  derived audit coverage row and an explicit mechanism label
+- report identity perturbation proving the finding set participates in the
+  sealed audit identity
+- public facade DX coverage for `hard_prohibition_boundary_audit()
+  .covering_sources(...).assert_clean()` and typed `try_assert_clean()`
+  failure inspection
+- source-set validation coverage for invalid crate names, blank source paths,
+  and duplicate source labels
+- mechanism honesty proving the first shipped audit is `ast-method-name-
+  resolved`, including tests that pin associated-path suffix resolution and
+  method-call name-only overmatch as an explicitly named limitation rather
+  than compiler-backed type resolution
+
+## Milestone 9.8 Phase 4 Required Suite
+
+`Support Snapshot Projection Test` is required for Phase 4. It must prove that
+the consumer-kit support snapshot is a serialized, schema-versioned,
+digest-bound projection of the live runtime public support matrix, not a
+second support authority.
+
+The suite must include:
+
+- projection equivalence against a real runtime support matrix derived through
+  `ForgeQueryRuntimePublicApiContract` and
+  `ForgeQueryRuntimePublicSupportMatrix`
+- row-for-row equality for surface, facade family, support status, teaching
+  posture, owner milestone, extension rule, fail-closed posture,
+  parallel-API prohibition, optional contract digest, and live row digest
+- deterministic export coverage proving repeated projection of the same live
+  matrix emits the same snapshot digest and stable JSON document
+- load-and-compare coverage proving the serialized document reloads through
+  the public consumer-kit loader and still compares to the live matrix
+- schema-boundary denial coverage proving mismatched schema version or schema
+  identity fails with a typed support-snapshot error
+- digest-drift denial coverage proving row or document mutation cannot be
+  silently coerced into an accepted snapshot
+- facade DX coverage proving downstream consumers can project, export, load,
+  and compare without private constructors or caller-owned digest assembly
+
+## Milestone 9.8 Phase 5 Required Suite
+
+`Worth-Kernel Support Pinning Drift Test` is required for Phase 5. It must
+prove that the Query-owned support pinning contract lets a consumer declare
+the runtime support rows it requires, bind those requirements to the Phase 4
+snapshot row identities, and fail with typed localized findings when a required
+row regresses.
+
+The suite must include:
+
+- a satisfied `worth-kernel`-shaped contract requiring the `Write` and
+  `Inspect` facade families from a real support snapshot projected from
+  `ForgeQueryRuntimePublicSupportMatrix`
+- adversarial drift coverage proving a `Write` posture regression fails only
+  consumers pinned to `Write`, with findings naming the row, expected posture,
+  actual posture, and live row digest mismatch
+- proof that consumers not pinned to the regressed row do not fail merely
+  because the source matrix digest changed; that digest change is reported as
+  nonblocking evidence unless a pinned row also changes
+- rejection coverage proving incomplete pin declarations fail typed before
+  sealing and blocking findings fail through `assert_satisfied`
+- facade DX coverage proving downstream consumers can declare, seal, evaluate,
+  and assert support pins without private constructors or caller-owned digest
+  assembly
+- external compile-fail coverage proving contracts, requirements, reports, and
+  findings cannot be fabricated by consumers
+- reference-consumer adoption coverage proving the covered `worth-kernel`
+  construction authoring path no longer carries `REQUIRED_QUERY_FAMILIES`,
+  `REPORTED_QUERY_FAMILIES`, or `PrimitiveConstructionQueryGapRow` for the
+  Query rows now owned by the support pinning contract
+
+## Milestone 9.8 Phase 6 Required Suite
+
+`Shipped Test Backend Honesty Test` is required for Phase 6. It must prove
+that the consumer-kit in-memory backend gives downstream crates a real
+`ForgeQueryWorkspace` over Query's runtime admission, support, receipt, and
+read/write paths, not a caller-owned adapter pile or fabricated receipt seam.
+
+The suite must include:
+
+- facade DX coverage proving downstream consumers can import
+  `in_memory_test_runtime` and `ForgeQueryTestBackendSchema` through
+  `forge_query::facade::consumer_kit`
+- public workspace coverage proving a schema-backed test workspace can declare
+  a live view, write through `workspace.insert`, and read through the ordinary
+  live-read path
+- support-matrix honesty coverage proving supported rows are limited to
+  implemented lanes and unsupported or deferred families remain fail-closed
+- adversarial collection denial coverage proving writes outside the configured
+  single-collection schema fail instead of silently widening the backend
+- schema denial coverage proving blank or duplicate schema declarations fail
+  before workspace construction
+- preview and inspection evidence coverage proving the backend admits preview
+  basis and write-receipt inspection through runtime-owned evidence artifacts
+  rather than consumer-fabricated receipts
+- residue coverage proving the shipped backend avoids public runtime adapter
+  trait implementation and hand-fabricated mutation receipt requirements in
+  downstream consumer tests
+
+## Milestone 9.8 Phase 7 Required Suite
+
+`Reference Consumer Report Adoption Test` is required for Phase 7. It must prove
+that the covered `worth-kernel` construction evidence report surfaces adopt the
+Phase 1 evidence report kit and canonical Query evidence identity scheme instead
+of preserving local report/digest folklore.
+
+The suite must include:
+
+- semantic preservation coverage proving migrated reports still expose the same
+  worth-kernel facts and drift assertions after report identity moves to the kit
+- canonical identity coverage proving identical report inputs produce stable
+  `forge.query.evidence-identity.v1` report identities through
+  `EvidenceReportDeclaration::seal`
+- covered residue coverage proving the covered report support files no longer
+  import or call worth-kernel digest assembly for Query evidence identity
+- defended residue coverage proving remaining construction digest helpers are
+  classified as worth-domain artifact identity, not Query evidence identity
+
+## Milestone 9.8 Phase 8 Required Suite
+
+`Reference Consumer Enforcement Adoption Test` is required for Phase 8. It
+must prove that the covered `worth-kernel` construction enforcement and support
+posture surfaces consume Query-owned kit artifacts instead of preserving local
+Query folklore.
+
+The suite must include:
+
+- reference-consumer coverage proving `worth-kernel` evaluates real source
+  files through `hard_prohibition_boundary_audit().covering_sources(...)`,
+  and that the resulting report is clean
+- seeded violation coverage proving a prohibited Query seam introduced through
+  the same Worth source-inventory path fails with a typed finding naming seam,
+  source label, source path, line, and column
+- support-pinning adoption coverage proving the durable
+  `query_support_pins.json` contract evaluates against a live workspace support
+  snapshot and fails through typed support-pin findings rather than a local
+  required-family loop
+- residue coverage proving covered construction surfaces contain zero
+  `FORBIDDEN_RUNTIME_PATTERNS`, `REQUIRED_QUERY_FAMILIES`,
+  `REPORTED_QUERY_FAMILIES`, `PrimitiveConstructionQueryGapRow`, or local
+  `query_runtime_violation_count` Query-prohibition enforcement
+- classification coverage proving any remaining source-string audits in
+  `worth-kernel` are Worth-domain topology or legacy-deletion hygiene, not
+  Query-prohibition rows, and that the classification is published as a
+  canonical evidence report
+- backend-applicability coverage proving `worth-kernel` either adopts the
+  shipped in-memory test backend for a real hand-assembled adapter residue
+  surface, or publishes an explicit not-applicable classification with zero
+  hand-implemented Query runtime adapter traits and zero hand-fabricated
+  mutation receipts in covered construction surfaces
+
+## Milestone 9.8 Phase 9 Required Suite
+
+`Milestone 9.8 Consumer Kit Hostile Certification Matrix` is required for
+Phase 9. It must prove that the consumer kit closes as a support/profile
+artifact only when docs, support rows, hostile certification, and
+reference-consumer adoption residue agree.
+
+The Consumer Kit is the ordinary downstream path for reference consumers that
+need Query evidence, prohibition, snapshot, pinning, and test-backend proof.
+
+The suite must include:
+
+- support-profile closure coverage proving `support_report()
+  .consumer_kit_closure()` publishes a sealed canonical closure artifact for
+  every required kit family:
+  `evidence-report-kit`, `hard-prohibition-registry`, `boundary-audit`,
+  `support-snapshot`, `support-pinning`, `in-memory-test-backend`, and
+  `reference-consumer-adoption`
+- hostile matrix aggregation proving report misuse, seeded bypasses, support
+  snapshot/pin agreement, test backend residue, and reference-consumer residue
+  participate in one canonical certification digest
+- sabotage coverage proving removing any required family evidence digest,
+  reopening any family posture, breaking docs agreement, or publishing
+  Query-owned reference-consumer residue prevents Milestone 9.8 from reporting
+  `Closed`
+- docs agreement coverage proving public docs and support/profile rows name
+  the same consumer-kit family set and teach the kit as the ordinary downstream
+  path, not optional ergonomics
+- reference-consumer residue coverage proving current `worth-kernel` adoption
+  counts publish zero Query-owned report/digest residue, zero Query-prohibition
+  audit residue, zero support-pinning residue, and defended worth-domain
+  residue as explicit evidence
+- DX coverage proving downstream callers can inspect closure through the
+  support report without private constructors, filesystem scanning, or
+  caller-owned digest assembly
+
 ## Section Index
 
 - [Milestones 1-4](./test-requirements-milestones-1-4.md)

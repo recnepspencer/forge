@@ -161,9 +161,10 @@ pub use crate::integration_harness::public_bridge_hostile_certification::{
     public_bridge_hostile_title_projection_artifacts, PublicBridgeHostileCertificationComposeInput,
 };
 pub use crate::intent_admission::{
-    ForgeQueryIntentAdmissionSlopeLane, ForgeQueryIntentAdmissionWidthRunRow,
-    ForgeQueryIntentAdmissionWidthRunScale, ForgeQueryIntentDecisionTraceEvidence,
-    ForgeQueryIntentDecisionTraceEvidenceOwner, ForgeQueryIntentEligibilityTraceEvidence,
+    ForgeQueryIntentAdmissionMutationProofCase, ForgeQueryIntentAdmissionSlopeLane,
+    ForgeQueryIntentAdmissionWidthRunRow, ForgeQueryIntentAdmissionWidthRunScale,
+    ForgeQueryIntentDecisionTraceEvidence, ForgeQueryIntentDecisionTraceEvidenceOwner,
+    ForgeQueryIntentEligibilityTraceEvidence,
 };
 pub use crate::projection_consumption::ProjectionMaterializedFactPosture;
 pub use crate::runtime::{

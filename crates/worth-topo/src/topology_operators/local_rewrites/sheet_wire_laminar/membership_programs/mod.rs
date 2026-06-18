@@ -1,6 +1,7 @@
 mod face_inner_loop_program;
 mod shared;
 mod shell_membership_program;
+mod shell_split_program;
 mod wire_membership_program;
 
 use forge_query::facade::ForgeQueryBatchWriteReceipt;

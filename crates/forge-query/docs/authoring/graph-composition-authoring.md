@@ -10,9 +10,9 @@ runtime keeps the symbolic handles, resolution map, lifecycle meaning, and
 denied-path diagnostics as explicit artifacts instead of making you reconstruct
 graph intent from generic batch rows afterward.
 
-This is not a nicer spelling of `workspace.batch(...)`. It is a separate public
-authoring family with its own receipts, inspection surfaces, support rows, and
-typed denials.
+This is not a nicer spelling of command-batch submission. It is a separate
+public authoring family with its own receipts, inspection surfaces, support
+rows, and typed denials.
 
 ## Why You Use It
 
@@ -56,7 +56,7 @@ Good to know:
 - there is no preview-specific graph composition surface today
 - broader graph workflows are not admitted just because a nearby lifecycle lane
   exists
-- generic `workspace.batch(...)` remains the better fit when you do not need
+- explicit command-batch submission remains the better fit when you do not need
   symbolic handles or graph-specific proof artifacts
 
 ## Core Mental Model
@@ -318,8 +318,8 @@ Those rows are the machine-readable answer to:
 
 - Use [Writes and Intent Boundaries](../execution/writes-and-intents.md) when the workflow
   is ordinary direct mutation and does not need graph-shaped symbolic meaning.
-- Use `workspace.batch(...)` when ordering is enough and you do not need
-  symbolic handles, graph lifecycle surfaces, or graph-specific denial.
+- Use explicit command-batch submission when ordering is enough and you do not
+  need symbolic handles, graph lifecycle surfaces, or graph-specific denial.
 - Use `update_existing(...)` when you need an admitted existing-target update
   and no backend verification is required first.
 - Use `retarget_existing(...)` when the runtime should preserve one continuing
@@ -371,7 +371,7 @@ the domain reject?"
 
 ## Anti-Patterns
 
-- teaching graph authoring as "`workspace.batch(...)` plus careful strings"
+- teaching graph authoring as "command-batch submission plus careful strings"
 - treating symbolic handles as stable cross-composition identities
 - using plain `update_existing(...)` when the real contract is retarget or
   supersession

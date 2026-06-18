@@ -1,0 +1,5 @@
+error[E0616]: field `fields` of struct `EvidenceReport` is private
+  --> tests/ui/evidence_report/report_fields_are_private.rs:14:12
+   |
+14 |     report.fields = Vec::new();
+   |            ^^^^^^ private field

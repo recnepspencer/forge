@@ -1,9 +1,10 @@
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::memory_workspace::ForgeQueryEntityIdentity;
+use crate::memory_workspace::{ForgeQueryWorkspaceError, ForgeQueryWorkspaceErrorKind};
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryContinuityMutationIntent,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationFamily, ForgeQueryMutationMetadata,
-    ForgeQueryNamingMutationIntent, ForgeQueryRuntimeBackendPosture,
+    ForgeQueryNamingMutationIntent, ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeError,
     ForgeQueryRuntimeSupportProfile, ForgeQuerySymbolicAspectReference,
     ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReference,
     ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand,
@@ -128,4 +129,20 @@ pub(crate) fn should_use_backend_atomic_batch(
     commands: &[ForgeQueryWriteCommand],
 ) -> bool {
     support_profile.posture() == ForgeQueryRuntimeBackendPosture::Primary && commands.len() > 1
+}
+
+pub(crate) fn deny_scaffold_multi_command_batch_without_atomic_authority(
+    support_profile: &ForgeQueryRuntimeSupportProfile,
+    commands: &[ForgeQueryWriteCommand],
+) -> Result<(), ForgeQueryRuntimeError> {
+    if support_profile.posture() == ForgeQueryRuntimeBackendPosture::Scaffold && commands.len() > 1
+    {
+        return Err(ForgeQueryRuntimeError::Workspace(
+            ForgeQueryWorkspaceError::with_kind(
+                ForgeQueryWorkspaceErrorKind::BatchAtomicityUnsupported,
+                "scaffold runtime backends deny multi-command batches before execution unless they advertise an atomic batch authority",
+            ),
+        ));
+    }
+    Ok(())
 }

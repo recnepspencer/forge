@@ -16,11 +16,11 @@ use crate::topology_operators::authority_identity::{
 use crate::topology_operators::mutation_sequence::TopologyDeclaredMutationMember;
 
 pub(super) fn bind_existing_relation_handle(
-    runner: &TopologyMutationApplicationRunner<'_, '_>,
+    _runner: &TopologyMutationApplicationRunner<'_, '_>,
     relation_id: RelationId,
     query_identity: ForgeQueryEntityIdentity,
 ) -> Result<ForgeQueryExistingTruthTargetBinding, TopologyMutationApplicationError> {
-    Ok(runner.workspace.bind_existing_relation(
+    Ok(ForgeQueryExistingTruthTargetBinding::from_relation_target(
         ForgeQueryExistingRelationTarget::new(
             existing_relation_authority(relation_id)?,
             query_identity,
@@ -30,7 +30,7 @@ pub(super) fn bind_existing_relation_handle(
 }
 
 pub(super) fn bind_existing_entity_handle(
-    runner: &TopologyMutationApplicationRunner<'_, '_>,
+    _runner: &TopologyMutationApplicationRunner<'_, '_>,
     bindings: &TopologyQueryBindingIndex,
     entity_id: EntityId,
     expected_kind: TopologyEntityKind,
@@ -48,7 +48,7 @@ pub(super) fn bind_existing_entity_handle(
             },
         );
     }
-    Ok(runner.workspace.bind_existing_entity(
+    Ok(ForgeQueryExistingTruthTargetBinding::from_entity_target(
         ForgeQueryExistingEntityTarget::new(
             existing_entity_authority(entity_id)?,
             binding.query_identity,

@@ -785,9 +785,11 @@ dependencies = [
  "forge-relational",
  "forge-runtime-bridge",
  "forge-signal",
+ "proc-macro2",
  "serde",
  "serde_json",
  "sha2",
+ "syn 2.0.116",
  "trybuild",
 ]
 

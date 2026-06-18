@@ -80,14 +80,14 @@ impl CanonicalQueryDigest {
     }
 
     pub fn from_domain_parts(parts: &[String]) -> Self {
-        Self(AuthorityBackedDigestLabel::from_parts(parts))
+        Self(AuthorityBackedDigestLabel::from_domain_parts(parts))
     }
 
     pub(crate) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self(AuthorityBackedDigestLabel::from_evidence_identity(identity))
     }
 
-    pub fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &str {
         self.0.as_str()
     }
 
@@ -237,6 +237,7 @@ impl BasisDigest {
     pub fn from_domain_parts(parts: &[String]) -> Self {
         Self(AuthorityBackedDigestLabel::from_domain_parts(parts))
     }
+
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }

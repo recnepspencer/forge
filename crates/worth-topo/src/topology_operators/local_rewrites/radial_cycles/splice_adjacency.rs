@@ -1,4 +1,7 @@
-use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder};
+use forge_query::facade::{
+    ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryMutationBatchBuilder,
+};
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
@@ -94,7 +97,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             );
         }
 
-        let binding = self.workspace.bind_existing_relation(
+        let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
             ForgeQueryExistingRelationTarget::new(
                 existing_relation_authority(relation_id)?,
                 relation_binding.query_identity,

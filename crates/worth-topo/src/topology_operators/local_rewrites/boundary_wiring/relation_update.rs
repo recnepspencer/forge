@@ -114,7 +114,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let authoritative_identity = existing_relation_authority(relation_id)?;
         let successor_authoritative_identity =
             continuity_successor_relation_authority(relation_id)?;
-        let binding = self.workspace.bind_existing_relation(
+        let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
             ForgeQueryExistingRelationTarget::new(
                 authoritative_identity.clone(),
                 relation_binding.query_identity,
@@ -235,7 +235,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 },
             );
         }
-        let binding = self.workspace.bind_existing_relation(
+        let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
             ForgeQueryExistingRelationTarget::new(
                 existing_relation_authority(relation_id)?,
                 relation_binding.query_identity,

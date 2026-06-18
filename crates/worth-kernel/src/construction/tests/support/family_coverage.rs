@@ -1,5 +1,5 @@
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::request::{PrimitiveConstructionFamily, PRIMITIVE_CONSTRUCTION_FAMILIES};
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PrimitiveConstructionFamilyCoverageStatus {
@@ -29,15 +29,19 @@ impl PrimitiveConstructionFamilyCoverageRow {
         status: PrimitiveConstructionFamilyCoverageStatus,
         reason: &'static str,
     ) -> Self {
-        let parts = [
-            family.as_str().to_string(),
-            status.as_str().to_string(),
-            reason.to_string(),
-        ];
         Self {
             family,
             status,
-            row_digest: digest_owned_parts(&parts),
+            row_digest: sealed_report_identity(
+                "worth-kernel.construction.family-coverage",
+                "family-coverage-row",
+                |report| {
+                    report
+                        .shape_participating("family", family.as_str())?
+                        .shape_participating("status", status.as_str())?
+                        .value_participating("reason", reason)
+                },
+            ),
         }
     }
 

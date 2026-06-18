@@ -1,8 +1,10 @@
 mod artifact;
+mod consumer_scope_strings;
 mod encoder;
 mod foundational;
 mod scheme;
 mod scope;
+mod scope_strings;
 mod sealed;
 mod tag;
 

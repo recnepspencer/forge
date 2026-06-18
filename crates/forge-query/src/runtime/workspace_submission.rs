@@ -1,7 +1,8 @@
 use super::{
     ForgeQueryEffectHandle, ForgeQueryEffectIntentReceipt, ForgeQueryIntentDeclaration,
-    ForgeQueryIntentReceipt, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryWorkspace, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryIntentReceipt, ForgeQueryMutationBatchBuilder, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt,
 };
 
 pub struct ForgeQueryWorkspaceSubmissionLane<'a> {
@@ -25,6 +26,13 @@ impl<'a> ForgeQueryWorkspaceSubmissionLane<'a> {
         commands: Vec<ForgeQueryWriteCommand>,
     ) -> Result<super::ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
         self.runtime.write_batch_intent(commands).execute()
+    }
+
+    pub fn submit_batch_builder(
+        &mut self,
+        builder: ForgeQueryMutationBatchBuilder,
+    ) -> Result<super::ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+        self.submit_batch(builder.finish()?)
     }
 
     pub fn submit_intent(
