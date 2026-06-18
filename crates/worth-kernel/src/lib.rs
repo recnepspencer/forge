@@ -9,6 +9,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod query_adoption;
 pub mod workload_composition;
 
 #[cfg(test)]

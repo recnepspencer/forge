@@ -72,6 +72,7 @@ mod bindings;
 pub mod certification;
 mod placement;
 mod planar_contracts;
+mod query_adoption;
 #[cfg(test)]
 mod structure_guard;
 #[cfg(test)]

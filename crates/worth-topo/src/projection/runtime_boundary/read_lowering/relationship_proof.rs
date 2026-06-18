@@ -1,14 +1,8 @@
 use forge_query::facade::{
-    admit_policy_tenant_context, admit_relationship_proofs, BranchAccessGrant,
-    CanonicalQueryArtifact, ExecutionBasisIntent, PolicyEpoch, PolicyExecutionModeRequest,
-    PolicyRuleSnapshot, RelationshipProofBudget, RelationshipProofDescriptor,
-    RelationshipProofDescriptorSet, RelationshipProofTopologyClass, SchemaVariantSnapshot,
-    SnapshotLineageClass, TenantBasisEpoch, TenantBindingSnapshot,
+    ExecutionBasisIntent, ForgeQueryReadGraph, RelationshipProofTopologyClass, SnapshotLineageClass,
 };
 
 use super::TopologyReadRelationshipProofPosture;
-use crate::projection::read_views::domain::error::TopologyReadError;
-use crate::projection::read_views::domain::request::TopologyReadRequest;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct RelationshipProofLowering {
@@ -20,50 +14,57 @@ pub(super) struct RelationshipProofLowering {
     pub(super) support_profile_digest: String,
 }
 
-pub(super) fn admit_topology_read_relationship_proofs(
-    request: &TopologyReadRequest,
-    canonical_query: &CanonicalQueryArtifact,
-) -> Result<RelationshipProofLowering, TopologyReadError> {
-    let relationship_proof_support_profile =
-        forge_query::facade::runtime_backed_relationship_proof_support_profile();
-    let policy = PolicyRuleSnapshot::synthetic_authority(
-        "topology-read",
-        "topology-read-rules",
-        PolicyEpoch::Synthetic(1),
-    );
-    let admitted_policy_context = admit_policy_tenant_context(
-        canonical_query,
-        policy.clone(),
-        TenantBindingSnapshot::synthetic_direct(
-            "tenant-a",
-            "branch-a",
-            "schema-a",
-            TenantBasisEpoch::Synthetic(1),
-        ),
-        BranchAccessGrant::synthetic_granted("branch-a", &policy),
-        SchemaVariantSnapshot::synthetic_authority("tenant-a", "schema-a", "compatible"),
-        PolicyExecutionModeRequest::CurrentRead,
-    )
-    .map_err(|error| TopologyReadError::canonical_lowering_resolution(format!("{error:?}")))?;
-    let descriptor_set = relationship_proof_descriptor_set(
-        request,
-        admitted_policy_context.bundle().policy_digest(),
-    );
-    let (relationship_proof_admission, relationship_proof_counters) =
-        admit_relationship_proofs(canonical_query, &admitted_policy_context, &descriptor_set)
-            .map_err(|error| {
-                TopologyReadError::canonical_lowering_resolution(format!("{error:?}"))
-            })?;
-    Ok(RelationshipProofLowering {
-        posture: TopologyReadRelationshipProofPosture::Admitted,
-        admission_identity: Some(relationship_proof_admission.identity().as_str().to_string()),
-        topology_classes: relationship_proof_admission.topology_classes().to_vec(),
-        admission_count: relationship_proof_counters.relationship_proof_admission_count(),
-        topology_width: relationship_proof_counters.relationship_proof_topology_width(),
-        support_profile_digest: relationship_proof_support_profile
+impl RelationshipProofLowering {
+    fn support_profile_digest() -> String {
+        forge_query::facade::runtime_backed_relationship_proof_support_profile()
             .profile_digest()
-            .to_string(),
-    })
+            .to_string()
+    }
+
+    fn deferred_until_query_runtime_graph() -> Self {
+        Self {
+            posture: TopologyReadRelationshipProofPosture::Deferred,
+            admission_identity: None,
+            topology_classes: Vec::new(),
+            admission_count: 0,
+            topology_width: 0,
+            support_profile_digest: Self::support_profile_digest(),
+        }
+    }
+
+    fn from_query_read_graph(read_graph: &ForgeQueryReadGraph) -> Self {
+        let Some(admission) = read_graph.relationship_proof_admission() else {
+            return Self::deferred_until_query_runtime_graph();
+        };
+        Self {
+            posture: TopologyReadRelationshipProofPosture::Admitted,
+            admission_identity: Some(admission.identity().as_str().to_string()),
+            topology_classes: admission.topology_classes().to_vec(),
+            admission_count: admission.descriptor_count(),
+            topology_width: admission.budget().max_topology_width(),
+            support_profile_digest: Self::support_profile_digest(),
+        }
+    }
+}
+
+pub(super) fn deferred_topology_read_relationship_proofs() -> RelationshipProofLowering {
+    RelationshipProofLowering::deferred_until_query_runtime_graph()
+}
+
+pub(super) fn query_runtime_topology_read_relationship_proofs(
+    read_graph: &ForgeQueryReadGraph,
+) -> RelationshipProofLowering {
+    RelationshipProofLowering::from_query_read_graph(read_graph)
+}
+
+pub(super) fn relationship_proof_boundary_diagnostic(
+    read_graph: &ForgeQueryReadGraph,
+) -> &'static str {
+    if read_graph.relationship_proof_admission().is_some() {
+        "worth-topo/runtime_boundary/read_lowering:query-read-graph-relationship-proof-authority-admitted"
+    } else {
+        "worth-topo/runtime_boundary/read_lowering:query-read-graph-relationship-proof-authority-missing"
+    }
 }
 
 pub(super) fn runtime_basis_intent() -> ExecutionBasisIntent {
@@ -74,45 +75,48 @@ pub(super) fn runtime_basis_intent() -> ExecutionBasisIntent {
     )
 }
 
-fn relationship_proof_descriptor_set(
-    request: &TopologyReadRequest,
-    policy_digest: &str,
-) -> RelationshipProofDescriptorSet {
-    let descriptors = request
-        .traversal_steps()
-        .into_iter()
-        .map(|step| {
-            if step.depth() == 1 {
-                RelationshipProofDescriptor::direct_edge_relation_name(
-                    step.relation_name(),
-                    policy_digest.to_string(),
-                )
-            } else {
-                RelationshipProofDescriptor::bounded_ancestor_relation_name(
-                    step.relation_name(),
-                    step.depth(),
-                    policy_digest.to_string(),
-                )
-                .expect("validated traversal steps must admit bounded-ancestor descriptors")
-            }
-        })
-        .collect::<Vec<_>>();
-    let topology_width = descriptors
-        .iter()
-        .map(|descriptor| match descriptor {
-            RelationshipProofDescriptor::DirectEdge { .. } => 1,
-            RelationshipProofDescriptor::BoundedAncestor { max_depth, .. }
-            | RelationshipProofDescriptor::BoundedDescendant { max_depth, .. } => {
-                usize::from(*max_depth)
-            }
-            RelationshipProofDescriptor::TenantMembership { .. }
-            | RelationshipProofDescriptor::QueryShapeMismatch { .. }
-            | RelationshipProofDescriptor::UnboundedRecursiveWalk { .. }
-            | RelationshipProofDescriptor::HostCallbackForbidden { .. } => 0,
-        })
-        .sum();
-    RelationshipProofDescriptorSet::new(
-        descriptors.clone(),
-        RelationshipProofBudget::bounded(descriptors.len(), topology_width),
-    )
+#[cfg(test)]
+mod tests {
+    use crate::projection::runtime_boundary::read_execution::query_shape::{
+        identity_anchor_predicate, identity_ordering, identity_result_field, identity_selector,
+        topology_kind_result_field, topology_kind_selector, TOPOLOGY_ENTITY_ROOT,
+    };
+    use crate::projection::runtime_boundary::read_execution::successor_relation_name;
+    use crate::projection::runtime_boundary::read_lowering::schema::topology_read_schema_view;
+    use forge_query::facade::TraversalSelector;
+
+    #[test]
+    fn diagnostic_names_query_read_graph_relationship_proof_authority() {
+        let schema_view = topology_read_schema_view().expect("schema view");
+        let graph = forge_query::facade::ForgeQueryReadBuilder::standalone()
+            .anchored_collection(
+                TOPOLOGY_ENTITY_ROOT,
+                schema_view,
+                |query| {
+                    query
+                        .project(identity_selector().expect("identity selector"))
+                        .project(topology_kind_selector().expect("topology selector"))
+                        .where_equal(
+                            identity_anchor_predicate(".topology.half_edge.7")
+                                .expect("identity predicate"),
+                        )
+                        .order_by(identity_ordering().expect("identity ordering"))
+                        .traverse(
+                            TraversalSelector::bounded_relation_name(successor_relation_name(), 2)
+                                .expect("successor traversal"),
+                        )
+                },
+                |shape| {
+                    shape
+                        .field(identity_result_field().expect("identity field"))
+                        .field(topology_kind_result_field().expect("topology field"))
+                },
+            )
+            .expect("query read graph");
+
+        assert_eq!(
+            super::relationship_proof_boundary_diagnostic(&graph),
+            "worth-topo/runtime_boundary/read_lowering:query-read-graph-relationship-proof-authority-admitted"
+        );
+    }
 }

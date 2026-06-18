@@ -12,7 +12,7 @@ pub use replay_evidence::{ReplayEvidenceKind, ReplayEvidenceRow, ReplayEvidenceS
 pub use replay_parity::{ReplayParityKind, ReplayParityReport, ReplayParityRow};
 pub use replay_receipt::{ReplayReceiptSet, ReplayWorkloadCounters};
 pub use replay_workload::{ReplayWorkload, ReplayedWorkload};
-pub use retained_artifacts::RetainedArtifactSet;
+pub(crate) use retained_artifacts::RetainedArtifactSet;
 pub use retained_workload::{
     CapturedRetainedWorkload, RetainedArtifactCaptureReceipt, RetainedWorkload,
 };

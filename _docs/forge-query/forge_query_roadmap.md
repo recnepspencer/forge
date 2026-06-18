@@ -259,6 +259,10 @@ cross-feature proof gates before final certification:
   mutation gates live, explicit relational graph-composition execution point,
   exact-zero duplicate enforcement, and full reference adoption in `worth-topo`
   and `worth-kernel` construction with architectural certification closure
+- `Milestone 9.10` must prove graph read access planning and automatic index
+  provisioning: declared graph reads derive access shapes, required indexes,
+  budgets, and typed execution postures before execution, making hidden N+1 and
+  unbounded background indexing impossible on covered read lanes
 - `Milestone 10` must prove store-backed execution and historical parity for
   admitted shared capability families
 - `Milestone 11` must prove durable saved-query, cursor, and artifact reload
@@ -283,8 +287,8 @@ Critical path:
   `Milestone 9.3.8` -> `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
   `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` -> `Milestone 9.8` ->
-  `Milestone 9.9` -> `Milestone 10` -> `Milestone 11` -> `Milestone 12` ->
-  `Milestone 13`
+  `Milestone 9.9` -> `Milestone 9.10` -> `Milestone 10` -> `Milestone 11` ->
+  `Milestone 12` -> `Milestone 13`
 
 Store-gated completion tracks:
 
@@ -387,6 +391,10 @@ Store-gated completion tracks:
 - `Milestone 9.9` closes complete graph touch obligation authority including
   policy-aware graph mutation execution, all obligation kind executors, and full
   reference adoption in `worth-topo` and `worth-kernel` construction
+- `Milestone 9.10` closes runtime-backed graph read access planning, automatic
+  bounded index provisioning, budget denial, streaming/materialization postures,
+  and reference-consumer no-N+1 adoption before store-backed execution inherits
+  the read model
 - `Milestone 10` is the first intentionally store-gated execution milestone
 - `Milestone 11` is the intentionally store-gated durable artifact milestone
 - `Milestone 12` is the intentionally store-gated blob/media milestone
@@ -3558,6 +3566,128 @@ staffing allows; adoption and certification close strictly last.
 - full topo milestone-one catalog and kernel phase-chain adoption residue
 - bypass audit and architectural certification matrix pass
 
+## Milestone 9.10: Graph Read Access Planning And Automatic Index Provisioning
+
+### Goal
+
+Make graph read access planning a Query authority boundary: declared graph
+reads derive canonical access shapes, required indexes, budget estimates,
+admission postures, and receipts before execution. Covered graph read lanes must
+not perform hidden N+1 traversal, must not allocate unbounded background
+indexes, and must not teach AI agents a graph/index mental model that the
+runtime cannot enforce.
+
+### Adversarial Constraint
+
+Broad boolean predicates, multi-relation edge walks, dense frontier expansion,
+policy/tenant narrowed reads, relationship-proof reads, reusable read families,
+live-promoted reads, and preview/branch reads must all choose one explicit
+posture before expensive execution begins: admitted inline indexed, admitted
+paged streaming, persistent-index-required, store-backed-index-required,
+async-materialization-required, access-capability-registration-required, or
+typed denial. No covered surface may discover after the fact that it performed
+N+1 relation lookups or built a RAM-expansive derived graph structure.
+
+### Why This Milestone Exists
+
+The roadmap already points developers away from caller-owned graph loops, and
+Milestone `9.9` gives Query touch/read descriptors and obligation envelopes.
+That is not enough to make graph reads robust in the wild. Query also needs a
+performance authority boundary that derives access needs from declarations,
+admits only bounded execution postures, and records the work through
+machine-checkable counters before store-backed execution tries to push the same
+semantics into durable indexes.
+
+### Must Ship
+
+- graph read access shape vocabulary derived from canonical read graphs
+- boolean predicate normalization and selectivity inputs
+- required index set derivation for directional adjacency, predicate, ordering,
+  lifecycle, policy/tenant, and relationship-proof support
+- access cost estimates, memory/breadth budgets, and complexity contracts
+- typed access admission outcomes including budget denial, persistent-index
+  requirement, store-backed capability requirement, paged streaming, async
+  materialization, access-capability registration requirement, and typed denial
+- exhaustive graph read access-case registry covering admitted,
+  required-capability, materialized, streaming, store-owned, and typed-denial
+  cases
+- existing index inventory and support rows
+- bounded ephemeral index provisioning with lifecycle receipts
+- ordinary read, reusable read-family, intent, live, preview/branch,
+  policy/tenant, and relationship-proof integration
+- graph-read consumer bypass audit for N+1 and manual access folklore
+- reference adoption in `worth-topo` and `worth-kernel`
+- docs and AI_README category for graph read access planning
+- hostile certification matrix for no-N+1, memory budgets, and replayable
+  access-plan receipts
+
+### Must Preserve
+
+- `forge-relational` remains truth authority; Query owns read declaration,
+  access planning, admission, receipts, and support posture
+- indexes and materialized access structures remain derived and rebuildable
+  from authoritative truth
+- graph touch obligation authority remains separate from graph read access
+  planning
+- store-backed persistent index durability is represented as a typed
+  `RequiresStoreBackedPersistentIndex` capability posture with Milestone
+  `10`/`11` ownership
+
+### Complexity / Proof Obligations
+
+- exact counters for candidate roots, touched nodes, touched edges, frontier
+  width, visited/dedup size, resident bytes, allocated bytes, and page count
+- proof that over-budget broad reads reject, stream, require persistent index,
+  or require async materialization before edge-scan counters increment
+- exact-zero covered caller-owned N+1 graph read loops
+- access-plan digest replay equivalence across repeated execution on the same
+  truth basis
+
+### Allowed Debt
+
+- no runtime-backed graph read edge case may remain generic debt; every case
+  needs an access-case registry row, admission posture, support-row posture,
+  receipt field, and test requirement
+- durable persistent index storage and restart-stable access artifacts are
+  explicit Milestone `10`/`11` capability requirements surfaced through typed
+  store-owned postures
+- a graph shape without current execution support must return a named
+  required-capability posture or typed denial with owner and evidence
+- hidden N+1 loops, hidden broad scans, and unbounded automatic index builds may
+  not ship as debt
+
+### Sequencing Notes
+
+The detailed execution plan lives in [milestone-9.10.md](./milestone-9.10.md).
+This milestone belongs after `9.9` because it consumes the read/touch descriptor
+mental model, and before `10` because store-backed execution should inherit a
+complete access planning contract rather than inventing one during pushdown.
+
+### Parallelization Notes
+
+Planner vocabulary, cost modeling, and support-row work may overlap. Execution
+postures and reference adoption must follow admission surfaces. Certification
+closes last.
+
+### Store Dependency
+
+- Runtime-backed access planning, bounded ephemeral indexes, streaming posture,
+  and async-materialization admission are not blocked on `forge-store`.
+- Durable persistent index storage, restart-stable access artifacts, and
+  store-backed pushdown parity are Milestone `10`/`11` capability owners and
+  must be visible as typed store-owned postures before execution.
+
+### Acceptance Evidence
+
+- every covered graph read produces an access-plan receipt or typed denial
+- broad boolean and dense traversal reads refuse unsafe inline execution before
+  expensive work begins
+- hidden N+1 traversal is mechanically detected and absent from covered
+  reference-consumer surfaces
+- docs, AI_README, support rows, and certification agree on admitted,
+  required-capability, materialization, store-owned, and typed-denial graph read
+  access postures
+
 ## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
 
 ### Goal
@@ -4021,6 +4151,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Bounded relational materialization | Milestone 4 | Relation materialization descriptors, traversal bounds | Eager materialization stays within declared scope | Milestone 13 execution parity + geometry/chip domain suites |
 | Subgraph-scoped queries | Milestone 4 | Scope/traversal boundary descriptors | Traversal breadth remains bounded and explainable | Milestone 13 geometry/chip domain suites |
 | Relation traversal expressions | Milestones 1, 2, and 4 | Traversal nodes, validated relation-edge constraints | Illegal traversals reject; legal traversals stay bounded | Milestone 13 validation rejection + domain suites |
+| Graph read access planning and automatic index provisioning | Milestone 9.10 | Access-shape descriptors, required index sets, budget estimates, access admission envelopes, graph access receipts | Covered graph reads execute through admitted access postures, with no hidden N+1 traversal and no unbounded background indexing | Milestone 9.10 no-N+1, memory-budget, and access-plan replay certification + Milestone 13 execution parity |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
 | Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |
@@ -4107,6 +4238,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.3.7.md](./milestone-9.3.7.md)
 - [milestone-9.4.md](./milestone-9.4.md)
 - [milestone-9.5.md](./milestone-9.5.md)
+- [milestone-9.10.md](./milestone-9.10.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)

@@ -335,79 +335,45 @@ fn phase_nine_construction_corpus_replay_hostile_support_no_longer_lives_in_cert
         env!("CARGO_MANIFEST_DIR"),
         "/src/construction/tests/support/mod.rs"
     ));
-    let violations = [
-        (
-            "worth-kernel.corpus-tests-mod",
-            replay_tests_mod,
-            "mod corpus_replay_siege;",
-        ),
-        (
-            "worth-kernel.corpus-tests-mod",
-            replay_tests_mod,
-            "mod corpus_replay_siege_rejections;",
-        ),
-        (
-            "worth-kernel.corpus-tests-mod",
-            replay_tests_mod,
-            "mod corpus_realization_classes;",
-        ),
-        (
-            "worth-kernel.corpus-tests-mod",
-            replay_tests_mod,
-            "mod corpus_family_boundaries;",
-        ),
-        (
-            "worth-kernel.corpus-tests-mod",
-            replay_tests_mod,
-            "mod corpus_simplex_ladder;",
-        ),
-        (
-            "worth-kernel.corpus-tests-replay-siege",
-            replay_siege,
-            "super::support::",
-        ),
-        (
-            "worth-kernel.tests-support-mod",
-            tests_support_mod,
-            "pub(crate) mod corpus_replay_view;",
-        ),
-        (
-            "worth-kernel.tests-support-mod",
-            tests_support_mod,
-            "pub(crate) mod corpus_replay_digest;",
-        ),
-        (
-            "worth-kernel.tests-support-mod",
-            tests_support_mod,
-            "pub(crate) mod corpus_ordering;",
-        ),
-        (
-            "worth-kernel.tests-support-mod",
-            tests_support_mod,
-            "pub(crate) mod corpus_replay_generation;",
-        ),
-        (
-            "worth-kernel.tests-support-mod",
-            tests_support_mod,
-            "pub(crate) mod corpus_cases;",
-        ),
-        (
-            "worth-kernel.tests-support-mod",
-            tests_support_mod,
-            "pub(crate) mod corpus_simplex_registry;",
-        ),
-    ]
-    .into_iter()
-    .filter_map(|(label, source, pattern)| {
-        if label == "worth-kernel.corpus-tests-mod" || label == "worth-kernel.tests-support-mod" {
-            (!source.contains(pattern)).then(|| format!("{label}:missing:{pattern}"))
-        } else {
-            source
-                .contains(pattern)
-                .then(|| format!("{label}:{pattern}"))
+    let adoption_sources = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/construction/tests/support/evidence_reports/adoption_sources.rs"
+    ));
+    let mut violations = Vec::new();
+    for pattern in [
+        "mod corpus_replay_siege;",
+        "mod corpus_replay_siege_rejections;",
+        "mod corpus_realization_classes;",
+        "mod corpus_family_boundaries;",
+        "mod corpus_simplex_ladder;",
+    ] {
+        if !replay_tests_mod.contains(pattern) {
+            violations.push(format!("worth-kernel.corpus-tests-mod:missing:{pattern}"));
         }
-    })
-    .collect::<Vec<_>>();
+    }
+    if replay_siege.contains("super::support::") {
+        violations.push("worth-kernel.corpus-tests-replay-siege:super::support::".to_string());
+    }
+    for pattern in [
+        "include_str!(\"../corpus_replay_view.rs\")",
+        "include_str!(\"../corpus_replay_digest.rs\")",
+    ] {
+        if !adoption_sources.contains(pattern) {
+            violations.push(format!(
+                "worth-kernel.evidence-source-registry:missing:{pattern}"
+            ));
+        }
+    }
+    for pattern in [
+        "pub(crate) mod corpus_ordering;",
+        "pub(crate) mod corpus_replay_generation;",
+        "pub(crate) mod corpus_cases;",
+        "pub(crate) mod corpus_simplex_registry;",
+    ] {
+        if !tests_support_mod.contains(pattern) {
+            violations.push(format!("worth-kernel.tests-support-mod:missing:{pattern}"));
+        }
+    }
 
     assert_eq!(
         violations,

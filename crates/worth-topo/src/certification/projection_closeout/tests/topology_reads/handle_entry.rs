@@ -3,7 +3,7 @@ use super::support::{
 };
 use crate::facade::{topology_runtime, TopologyDeclaredQuerySurfaces, TopologyRuntimeAdapters};
 use crate::query_domain::{
-    TopologyCurrentHeadReadHandleExt, TopologyReadExecutionEngine,
+    TopologyCurrentHeadReadHandleExt, TopologyReadAnchorIdentity, TopologyReadExecutionEngine,
     TopologySnapshotReadOnlyReadHandleExt,
 };
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
@@ -21,14 +21,15 @@ fn current_head_handle_bound_reads_execute_neighborhood_queries_and_accumulate_r
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext)
         .expect("edge fan should expose radial source");
+    let source_anchor = TopologyReadAnchorIdentity::from_runtime_row_label(&source_identity);
     let handle = current_head_query_handle();
     let mut reads = handle.topology_reads(&mut workspace);
 
     let shared_vertex = reads
-        .shared_vertex_half_edge_neighborhood(&source_identity)
+        .shared_vertex_half_edge_neighborhood(&source_anchor)
         .expect("shared-vertex read should execute through handle-bound entry");
     let radial = reads
-        .radial_half_edge_neighborhood(&source_identity)
+        .radial_half_edge_neighborhood(&source_anchor)
         .expect("radial read should execute through handle-bound entry");
 
     assert_eq!(
@@ -65,12 +66,13 @@ fn snapshot_handle_bound_reads_preserve_historical_execution_posture() {
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("wire should expose successor source");
+    let start_anchor = TopologyReadAnchorIdentity::from_runtime_row_label(&start_identity);
     let handle = snapshot_query_handle();
     let snapshot_identity = workspace.snapshot_identity();
     let mut reads = handle.topology_reads(&mut workspace);
 
     let loop_cycle = reads
-        .loop_cycle(&start_identity, 5)
+        .loop_cycle(&start_anchor, 5)
         .expect("snapshot loop cycle should execute through handle-bound entry");
 
     assert_eq!(

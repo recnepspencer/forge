@@ -39,6 +39,14 @@ pub use crate::projection::runtime_boundary::query_runtime::{
 pub use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters, TopologyRuntimeFailure,
 };
+pub use crate::query_adoption::{
+    current_topology_phase_eight_performance_counters,
+    current_topology_query_consumer_kit_adoption_status, topology_query_adoption_inventory,
+    WorthTopoPhaseEightPerformanceCounters, WorthTopoQueryAdoptionClassification,
+    WorthTopoQueryAdoptionForbiddenPattern, WorthTopoQueryAdoptionInventoryRow,
+    WorthTopoQueryAuthorityCategory, WorthTopoQueryAuthorityDomain,
+    WorthTopoQueryConsumerKitAdoptionError, WorthTopoQueryConsumerKitAdoptionStatus,
+};
 pub use crate::topology_operators::{
     topology_grouped_operator_neighborhood, topology_operator_continuation_target,
     topology_operator_contribution_workflow, topology_operator_signal_workflow,

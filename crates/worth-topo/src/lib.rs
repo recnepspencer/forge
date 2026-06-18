@@ -12,6 +12,7 @@ pub mod certification;
 mod construction;
 mod derived_topology;
 mod projection;
+mod query_adoption;
 pub mod query_domain;
 mod relational_aspect_boundary;
 pub mod runtime_support;

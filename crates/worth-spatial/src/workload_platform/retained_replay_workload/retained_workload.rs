@@ -113,15 +113,11 @@ impl CapturedRetainedWorkload {
         }
     }
 
-    pub fn retained_artifacts(&self) -> &RetainedArtifactSet {
-        &self.retained_artifacts
-    }
-
     pub fn capture_receipt(&self) -> &RetainedArtifactCaptureReceipt {
         &self.capture_receipt
     }
 
-    pub fn into_retained_artifacts(self) -> RetainedArtifactSet {
+    pub(crate) fn into_retained_artifacts(self) -> RetainedArtifactSet {
         self.retained_artifacts
     }
 }

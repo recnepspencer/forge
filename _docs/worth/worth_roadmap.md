@@ -38,6 +38,11 @@ The operating rule is:
 - `Milestone 5`: Binding/rebinding authority and Query-native geometry
   hard-break work are the current predecessor for Milestone 6; do not treat
   Milestone 6 as starting from the older pre-Query-native geometry shape
+- `Worth Query-Native Hardening Gate`: Closed after Forge Query 9.7 and 9.8;
+  blocks the next workload and boolean lanes until `worth-kernel`,
+  `worth-spatial`, and `worth-topo` consume real Query support pinning,
+  evidence reports, hard-prohibition boundaries, and authority-preserving
+  runtime receipts instead of pre-Query synthetic proof paths
 - `Milestone 6.5`: Planned as the operational workload platform between exact
   planar contracts and booleans; hostile tests must consume real topology,
   binding, projection, retained replay, transform, response, and evidence rails
@@ -56,6 +61,9 @@ Worth read composition side quest:
 - [worth-query-domain-substrate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-query-domain-substrate.md)
 Worth topology domain structure gate:
 - [worth-topo-domain-structure-gate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-domain-structure-gate.md)
+Worth Query-native hardening gate:
+- [query-native-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-gate.md)
+- [query-native-hardening-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-closeout.md)
 
 ## Global Adversarial Constraint
 
@@ -463,7 +471,8 @@ Critical path:
 - `Milestone 1` -> `Milestone 2` -> `Forge Query Runtime Rewrite Gate` ->
   `Worth Read Composition Side Quest` ->
   `Worth Topology Domain Structure Gate` -> `Milestone 3` ->
-  `Milestone 4` -> `Milestone 5` -> `Milestone 6` -> `Milestone 6.5` ->
+  `Milestone 4` -> `Milestone 5` -> `Milestone 6` ->
+  `Worth Query-Native Hardening Gate` -> `Milestone 6.5` ->
   `Milestone 7` ->
   `Milestone 8` -> `Milestone 9` -> `Milestone 10` -> `Milestone 11` ->
   `Milestone 12` -> `Milestone 13` -> `Milestone 14` -> `Milestone 15` ->
@@ -2673,6 +2682,7 @@ Worth is roadmap-complete only when:
 - [worth_bootstrap_plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth_bootstrap_plan.md)
 - [milestone-1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1.md)
 - [worth-topo-domain-structure-gate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-domain-structure-gate.md)
+- [query-native-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-gate.md)
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements.md)
 - [test-requirements_pt2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements_pt2.md)
 - [metaboss_tier4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/metaboss_tier4.md)
