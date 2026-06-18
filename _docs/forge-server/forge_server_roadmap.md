@@ -52,10 +52,20 @@ that is a roadmap defect.
 - `milestone-17-closeout.md`: temporal/async basis, mixed-cause ordering,
   shared delivery, restart/resume basis, and bridge certification are already
   closed upstream and must be consumed rather than recreated.
-- `milestone-9.4-closeout.md`: Query now closes one runtime-backed downstream
+- `milestone-9.4-closeout.md`: Query closes one runtime-backed downstream
   delivery contract, runtime-backed resume negotiation, remask-aware public
   delivery posture, and mixed-cause public projection, while durable resume
   remains explicit later debt.
+- `milestone-9.7-closeout.md`: Query closes shared read authority,
+  deterministic submission, typed journal/replay posture, published derived
+  artifacts, and hostile concurrent certification. The server must consume
+  those concurrency surfaces rather than preserving pre-`9.7` single-borrow
+  assumptions.
+- `milestone-9.8-closeout.md`: Query closes the downstream consumer kit:
+  evidence reports, hard-prohibition registry/audit, support snapshots,
+  support pinning, in-memory test backend, and reference-consumer adoption.
+  The server and product-facing server tests must consume this kit rather than
+  hand-building support or adapter folklore.
 
 ## Adversarial Constraint
 
@@ -90,6 +100,12 @@ The server roadmap now inherits a meaningful upstream baseline:
 - `forge-query` Milestone 9.4 is closed for runtime-backed temporal/async/
   mixed-cause delivery projection, remask-aware downstream posture, and one
   downstream delivery contract meant for `forge-server`
+- `forge-query` Milestone 9.7 is closed for real shared-read concurrency,
+  deterministic submission, typed journal/replay posture, and hostile
+  concurrent certification
+- `forge-query` Milestone 9.8 is closed for the consumer kit that downstream
+  crates and server certification should use instead of local report,
+  support, audit, or test-backend folklore
 
 The important current limitation is also explicit:
 
@@ -98,9 +114,9 @@ The important current limitation is also explicit:
 - Query does not yet claim durable downstream resume or store-backed replay as
   closed server-facing contracts
 
-This roadmap therefore starts from a runtime-backed server and promotes durable
-lease and resume semantics later, instead of pretending those debts are already
-gone.
+This roadmap therefore starts from a runtime-backed server, consumes the Query
+concurrency and consumer-kit closures now available, and promotes durable lease
+and resume semantics later instead of pretending those debts are already gone.
 
 ## Roadmap Rules
 
@@ -362,17 +378,82 @@ polluting structured truth sync with blob transport.
   localization
 - binary and structured route counters remain independently explainable
 
-### Milestone 4: Absorbed Into Milestone 3
+### Milestone 4: Concurrent Operation Admission And Product Surface Runtime
 
-This milestone's earlier standalone binary/blob work is now intentionally
-absorbed into Milestone 3 so the full external HTTP surface lands as one
-architectural unit.
+Spec: [milestone-4.md](./milestone-4.md)
 
-Do not treat binary upload/download, multipart, range transfer, and structured
-compatibility request/response as separate sequencing tracks anymore. They
-share one external surface boundary and must be built together while preserving
-the rule that binary transport stays structurally separate from structured
-truth sync.
+### Goal
+
+Update `forge-server` to consume the real Query concurrency and consumer-kit
+closures, then add the server-owned operation runtime that lets Query-direct
+and product-application operations enter through one typed request, planning,
+scheduling, envelope, diagnostics, and route assembly boundary.
+
+This milestone prepares the server for editor-like product servers without
+making product-specific semantics part of `forge-server`.
+
+### Vision Coverage
+
+- Forge-native app facade
+- HTTP compatibility surface
+- mutation architecture
+- branch-aware delivery architecture
+- observability and provenance
+- multi-tenant architecture
+- regulated proof posture foundation
+- direct Forge-native consumption instead of endpoint glue
+- product-application operation boundary for Forge-native apps
+
+### Must Ship
+
+- Query `9.7` and `9.8` dependency audit over covered server paths
+- operation-family registry distinct from surface-family registry
+- canonical operation request contract and operation identity
+- authority footprint and concurrency classification for every operation
+- lowered operation plans with support posture, execution strategy, diagnostics
+  policy, and counters
+- concurrent operation scheduler using Query shared-read and deterministic
+  submission surfaces where applicable
+- product-application adapter boundary for product-owned operations such as
+  editor render, select, available actions, apply, and stricter finalization
+- optimistic product session, base-digest, idempotency, stale-basis, conflict,
+  and rebase posture
+- operation-declared route assembly over Axum
+- product-editor-shaped readiness certification proving product operations can
+  plug in without route-local server semantics
+
+### Must Preserve
+
+- Query remains the runtime meaning owner for Query reads, state, inspection,
+  projection consumption, mutation/submission, support posture, and shared-read
+  concurrency
+- `forge-server` owns operation admission, planning, scheduling, envelopes,
+  diagnostics, route assembly, and transport projection
+- product crates own product semantics
+- surface families remain transport/entry topology while operation families
+  remain authority/execution topology
+- route handlers decode and enter the operation runtime; they do not execute
+  semantics
+- product-editor readiness does not add product-specific semantic branches to
+  `forge-server`
+
+### Acceptance Evidence
+
+- covered Query-facing server paths have zero unclassified or legacy
+  pre-concurrency assumptions
+- equivalent Forge-native and compatibility HTTP inputs lower to identical
+  operation identities and plans where their semantic inputs match
+- shared-read-safe operations execute concurrently with serialized-replay
+  equivalent envelopes and exact scheduler counters
+- mutation/submission/product-draft conflicts serialize or deny through typed
+  scheduler posture
+- product adapters cannot bypass request context, middleware, operation
+  planning, scheduler, response shaping, or diagnostics
+- operation-declared routes are parity-equivalent with Forge-native direct
+  operations
+- product-editor-shaped render/select/action/apply/finalize operations certify
+  through the product adapter without product-specific semantics inside
+  `forge-server`
 
 ### Milestone 5: Runtime-Backed Lease Registry And Server-Managed Subscription Foundation
 
@@ -848,27 +929,32 @@ cluster, reconnect, load, policy, and topology pressure.
 ### Direct Milestone Mapping
 
 - request and session front door: Milestone 1
-- Forge-native app facade: Milestone 2
+- Forge-native app facade: Milestones 2 and 4
 - HTTP surface architecture: Milestone 3
 - binary and asset architecture: Milestone 3
 - lease and subscription architecture: Milestones 5 and 6
 - sync protocol architecture: Milestone 6
 - authentication, authorization, and remask: Milestones 1 and 7
 - regulated deployment architecture: Milestone 8
-- branch-aware delivery architecture: Milestone 7
-- observability and provenance: Milestones 1, 8, 10, and 14
+- branch-aware delivery architecture: Milestones 4 and 7
+- observability and provenance: Milestones 1, 4, 8, 10, and 14
 - view-specific delivery architecture: Milestone 9
-- mutation architecture: Milestone 10
+- mutation architecture: Milestones 4 and 10
 - zero-trust and cryptography: Milestone 13
 - integration and extensibility architecture: Milestone 11
 - distributed scalability architecture: Milestone 14
-- multi-tenant architecture: Milestones 1 and 7
+- multi-tenant architecture: Milestones 1, 4, and 7
 - runtime-backed now versus durable later split: Milestones 5, 6, and 12
 
 ### Explicit Vision Capability Mapping
 
-- Query-first server entry: Milestones 1, 2, and 3
-- direct Forge-native consumption instead of endpoint glue: Milestone 2
+- Query-first server entry: Milestones 1, 2, 3, and 4
+- direct Forge-native consumption instead of endpoint glue: Milestones 2 and 4
+- product-application operation runtime: Milestone 4
+- Query 9.7 concurrency consumption: Milestone 4
+- Query 9.8 consumer-kit consumption: Milestone 4
+- operation-declared route assembly: Milestone 4
+- optimistic product-session and stale-basis posture: Milestone 4
 - compatibility request/response surface: Milestone 3
 - file upload and binary transfer boundary: Milestone 3
 - server-managed durable-in-design subscriptions: Milestone 5
@@ -906,6 +992,12 @@ cluster, reconnect, load, policy, and topology pressure.
 - the compatibility request/response surface is shipped without redefining
   Query semantics
 - the binary and structured truth boundaries are separate and honest
+- the concurrent operation runtime consumes Query's real shared-read,
+  deterministic-submission, and consumer-kit surfaces rather than preserving
+  pre-concurrency or consumer-owned folklore
+- product-application operations enter through typed operation declarations,
+  authority footprints, lowered plans, scheduler outcomes, and server response
+  envelopes rather than route-local endpoint glue
 - active subscriptions are server-owned rather than socket-owned
 - sync delivery consumes one typed Query-owned downstream contract rather than
   raw runtime folklore
