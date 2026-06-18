@@ -1,4 +1,7 @@
-use self::relationship_proof::{admit_topology_read_relationship_proofs, runtime_basis_intent};
+use self::relationship_proof::{
+    deferred_topology_read_relationship_proofs, query_runtime_topology_read_relationship_proofs,
+    runtime_basis_intent,
+};
 use self::schema::topology_read_schema_view;
 use crate::projection::read_views::domain::error::TopologyReadError;
 use crate::projection::read_views::domain::read_proof::report::TopologyReadRequestFamily;
@@ -11,8 +14,9 @@ use crate::projection::runtime_boundary::read_execution::query_shape::{
 };
 use forge_query::facade::{
     plan_validated_bundle, planning_request_context_for_direct, validate_canonical_bundle,
-    CollectionQueryBuilder, CollectionResultShapeBuilder, GuidedAuthoringPath, LiveQueryFamily,
-    PlannedExecutionRoute, QueryFamily, RelationshipProofTopologyClass, TraversalSelector,
+    CollectionQueryBuilder, CollectionResultShapeBuilder, ForgeQueryReadGraph, GuidedAuthoringPath,
+    LiveQueryFamily, PlannedExecutionRoute, QueryFamily, RelationshipProofTopologyClass,
+    TraversalSelector,
 };
 
 pub(crate) mod relationship_proof;
@@ -139,6 +143,24 @@ impl TopologyReadLoweringArtifact {
     pub(crate) fn relationship_proof_support_profile_digest(&self) -> &str {
         self.relationship_proof_support_profile_digest.as_str()
     }
+
+    pub(crate) fn with_query_read_graph_relationship_proof(
+        mut self,
+        read_graph: &ForgeQueryReadGraph,
+    ) -> Self {
+        debug_assert!(
+            self::relationship_proof::relationship_proof_boundary_diagnostic(read_graph)
+                .contains("query-read-graph-relationship-proof-authority")
+        );
+        let relationship_proof = query_runtime_topology_read_relationship_proofs(read_graph);
+        self.relationship_proof_posture = relationship_proof.posture;
+        self.relationship_proof_admission_identity = relationship_proof.admission_identity;
+        self.relationship_proof_topology_classes = relationship_proof.topology_classes;
+        self.relationship_proof_admission_count = relationship_proof.admission_count;
+        self.relationship_proof_topology_width = relationship_proof.topology_width;
+        self.relationship_proof_support_profile_digest = relationship_proof.support_profile_digest;
+        self
+    }
 }
 
 pub(crate) fn lower_topology_read(
@@ -176,7 +198,7 @@ pub(crate) fn lower_topology_read(
     let plan = plan_validated_bundle(&validated, request_context)
         .map_err(|error| TopologyReadError::canonical_lowering_resolution(format!("{error:?}")))?;
     let live_promotion = plan.live_promotion().clone();
-    let relationship_proof = admit_topology_read_relationship_proofs(request, canonical.query())?;
+    let relationship_proof = deferred_topology_read_relationship_proofs();
     Ok(TopologyReadLoweringArtifact {
         request_family: request.family(),
         lowering_posture: TopologyReadLoweringPosture::CanonicalTraversalLowered,

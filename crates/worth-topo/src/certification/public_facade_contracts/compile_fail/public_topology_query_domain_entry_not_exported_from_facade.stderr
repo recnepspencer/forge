@@ -9,6 +9,7 @@ error[E0432]: unresolved imports `topology::facade::topology_current_head_author
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `topology_query_domain_entry_checked` in `facade`
   |     |
   |     no `topology_query_domain_entry` in `facade`
+  |     help: a similar name exists in the module: `topology_query_adoption_inventory`
 4 |     topology_query_domain_proof_root, topology_snapshot_read_only_context,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `topology_snapshot_read_only_context` in `facade`
   |     |

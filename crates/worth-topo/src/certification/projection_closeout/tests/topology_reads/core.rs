@@ -5,6 +5,7 @@ use crate::projection::read_views::domain::error::TopologyReadErrorKind;
 use crate::projection::read_views::domain::report::{
     TopologyReadExecutionEngine, TopologyReadRequestFamily,
 };
+use crate::projection::read_views::domain::TopologyReadAnchorIdentity;
 use crate::query_domain::{
     TopologyCurrentHeadReadHandleExt, TopologySnapshotReadOnlyReadHandleExt,
 };
@@ -58,13 +59,14 @@ fn topology_read_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext)
         .expect("edge fan should expose radial source");
+    let source_anchor = TopologyReadAnchorIdentity::from_runtime_row_label(&source_identity);
     let handle = current_head_query_handle();
     let mut reads = handle.topology_reads(&mut workspace);
     let shared_vertex = reads
-        .shared_vertex_half_edge_neighborhood(&source_identity)
+        .shared_vertex_half_edge_neighborhood(&source_anchor)
         .expect("shared-vertex neighborhood should load");
     let radial = reads
-        .radial_half_edge_neighborhood(&source_identity)
+        .radial_half_edge_neighborhood(&source_anchor)
         .expect("radial neighborhood should load");
 
     assert!(!shared_vertex.source_vertex_identities.is_empty());
@@ -96,7 +98,7 @@ fn topology_read_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
         shared_vertex
             .request_report
             .relationship_proof_admission_count,
-        2
+        3
     );
     assert_eq!(
         shared_vertex.request_report.lowering_artifact.root_entity(),
@@ -130,7 +132,7 @@ fn topology_read_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
     assert_eq!(radial.request_report.row_scan_fallback_count, 0);
     assert_eq!(radial.request_report.whole_view_fallback_count, 0);
     assert_eq!(radial.request_report.lowered_traversal_count, 2);
-    assert_eq!(radial.request_report.relationship_proof_admission_count, 2);
+    assert_eq!(radial.request_report.relationship_proof_admission_count, 3);
     let aggregate = reads.aggregate_report();
     assert_eq!(aggregate.request_count, 2);
     assert_eq!(aggregate.query_runtime_current_execution_count, 2);
@@ -142,7 +144,7 @@ fn topology_read_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
     assert_eq!(aggregate.row_scan_fallback_count, 0);
     assert_eq!(aggregate.whole_view_fallback_count, 0);
     assert_eq!(aggregate.lowered_traversal_count, 4);
-    assert_eq!(aggregate.relationship_proof_admission_count, 4);
+    assert_eq!(aggregate.relationship_proof_admission_count, 6);
     assert_eq!(aggregate.debt_rows.len(), 0);
     assert_eq!(aggregate.family_rows.len(), 2);
     assert!(aggregate.family_rows.iter().any(|row| {
@@ -173,10 +175,11 @@ fn topology_read_exposes_local_rewire_cycle_from_sheet_disk() {
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("sheet disk should expose successor source");
+    let moved_anchor = TopologyReadAnchorIdentity::from_runtime_row_label(&moved_identity);
     let handle = current_head_query_handle();
     let mut reads = handle.topology_reads(&mut workspace);
     let local_rewire = reads
-        .local_rewire_neighborhood(&moved_identity, 6)
+        .local_rewire_neighborhood(&moved_anchor, 6)
         .expect("local rewire neighborhood should load");
 
     assert_eq!(local_rewire.moved_half_edge_identity, moved_identity);
@@ -206,7 +209,7 @@ fn topology_read_exposes_local_rewire_cycle_from_sheet_disk() {
         local_rewire
             .request_report
             .relationship_proof_admission_count,
-        2
+        3
     );
     let aggregate = reads.aggregate_report();
     assert_eq!(aggregate.request_count, 1);
@@ -219,7 +222,7 @@ fn topology_read_exposes_local_rewire_cycle_from_sheet_disk() {
     assert_eq!(aggregate.row_scan_fallback_count, 0);
     assert_eq!(aggregate.whole_view_fallback_count, 0);
     assert_eq!(aggregate.lowered_traversal_count, 2);
-    assert_eq!(aggregate.relationship_proof_admission_count, 2);
+    assert_eq!(aggregate.relationship_proof_admission_count, 3);
     assert_eq!(aggregate.family_rows.len(), 1);
     assert_eq!(aggregate.debt_rows.len(), 0);
 }
@@ -235,10 +238,11 @@ fn topology_read_moves_loop_cycle_onto_query_runtime_without_decode_debt() {
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("wire should expose successor source");
+    let start_anchor = TopologyReadAnchorIdentity::from_runtime_row_label(&start_identity);
     let handle = current_head_query_handle();
     let mut reads = handle.topology_reads(&mut workspace);
     let loop_cycle = reads
-        .loop_cycle(&start_identity, 5)
+        .loop_cycle(&start_anchor, 5)
         .expect("loop cycle should load through the query kernel");
 
     assert_eq!(loop_cycle.start_half_edge_identity, start_identity);
@@ -296,11 +300,12 @@ fn snapshot_topology_read_uses_historical_basis_context_receipt() {
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("wire should expose successor source");
+    let start_anchor = TopologyReadAnchorIdentity::from_runtime_row_label(&start_identity);
     let handle = snapshot_query_handle();
     let snapshot_identity = workspace.snapshot_identity();
     let mut reads = handle.topology_reads(&mut workspace);
     let loop_cycle = reads
-        .loop_cycle(&start_identity, 5)
+        .loop_cycle(&start_anchor, 5)
         .expect("snapshot loop cycle should load through historical query context");
 
     assert_eq!(
@@ -337,18 +342,19 @@ fn topology_read_denies_zero_and_oversized_cycle_depths_typed_and_early() {
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("sheet disk should expose successor source");
+    let moved_anchor = TopologyReadAnchorIdentity::from_runtime_row_label(&moved_identity);
     let handle = current_head_query_handle();
     let mut reads = handle.topology_reads(&mut workspace);
 
     let zero_depth_error = reads
-        .loop_cycle(&moved_identity, 0)
+        .loop_cycle(&moved_anchor, 0)
         .expect_err("zero-depth loop cycle should fail typed and early");
     assert_eq!(
         zero_depth_error.kind(),
         TopologyReadErrorKind::UnsupportedTraversalDepth
     );
     let oversized_depth_error = reads
-        .local_rewire_neighborhood(&moved_identity, 65)
+        .local_rewire_neighborhood(&moved_anchor, 65)
         .expect_err("oversized local rewire traversal should fail typed and early");
     assert_eq!(
         oversized_depth_error.kind(),

@@ -5,8 +5,9 @@ use forge_query::facade::{
 use super::{
     TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
     TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyReadAggregateReport,
-    TopologyReadCloseoutReport, TopologyReadError, TopologyReadFallbackPosture, TopologyReadLedger,
-    TopologyReadProofReport, TopologyReadRequestFamily,
+    TopologyReadAnchorIdentity, TopologyReadCloseoutReport, TopologyReadError,
+    TopologyReadFallbackPosture, TopologyReadLedger, TopologyReadProofReport,
+    TopologyReadRequestFamily,
 };
 use crate::projection::runtime_boundary::read_execution::TopologyReadExecutionTarget;
 use crate::query_domain::{
@@ -77,7 +78,7 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
 
     pub fn shared_vertex_half_edge_neighborhood(
         &mut self,
-        source_identity: &str,
+        source_identity: &TopologyReadAnchorIdentity,
     ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyReadError> {
         self.state.shared_vertex_half_edge_neighborhood(
             self.workspace,
@@ -88,7 +89,7 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
 
     pub fn radial_half_edge_neighborhood(
         &mut self,
-        source_identity: &str,
+        source_identity: &TopologyReadAnchorIdentity,
     ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
         self.state.radial_half_edge_neighborhood(
             self.workspace,
@@ -99,7 +100,7 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
 
     pub fn loop_cycle(
         &mut self,
-        start_identity: &str,
+        start_identity: &TopologyReadAnchorIdentity,
         count: usize,
     ) -> Result<TopologyLoopCycleView, TopologyReadError> {
         self.state.loop_cycle(
@@ -112,7 +113,7 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
 
     pub fn local_rewire_neighborhood(
         &mut self,
-        moved_identity: &str,
+        moved_identity: &TopologyReadAnchorIdentity,
         cycle_count: usize,
     ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyReadError> {
         self.state.local_rewire_neighborhood(

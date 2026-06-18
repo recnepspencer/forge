@@ -30,15 +30,6 @@ impl ReplayWorkload {
         self
     }
 
-    pub fn with_retained_artifacts(mut self, retained_artifacts: RetainedArtifactSet) -> Self {
-        self.retained_capture_receipt = Some(RetainedArtifactCaptureReceipt::from_artifacts(
-            "capture retained artifacts supplied directly to replay workload",
-            &retained_artifacts,
-        ));
-        self.retained_artifacts = Some(retained_artifacts);
-        self
-    }
-
     pub fn with_captured_retained_workload(
         mut self,
         captured_retained_workload: CapturedRetainedWorkload,
@@ -143,7 +134,7 @@ fn replay_capture_receipt(
 ) -> RetainedArtifactCaptureReceipt {
     retained_capture_receipt.take().unwrap_or_else(|| {
         RetainedArtifactCaptureReceipt::from_artifacts(
-            "capture retained artifacts supplied directly to replay workload",
+            "internal retained capture receipt unavailable",
             retained_artifacts,
         )
     })

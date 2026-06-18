@@ -9,7 +9,7 @@ use worth_spatial::facade::planar_predicates::{
     planar_predicate_authority_entry, planar_predicate_authority_facts,
     PlanarPredicateAuthorityCase, PlanarPredicateCoincidencePolicy,
 };
-use worth_spatial::facade::retained_replay_workload::{ReplayWorkload, RetainedArtifactSet};
+use worth_spatial::facade::retained_replay_workload::{ReplayWorkload, RetainedWorkload};
 use worth_spatial::facade::surface_support::{SurfaceFamily, SurfaceSupportWorkload};
 use worth_spatial::facade::user_response::{
     WorthUserResponseReceipt, WorthUserResponseSource, WorthUserResponseWorkload,
@@ -177,14 +177,12 @@ pub(crate) fn integrity_mismatch_response(world: &'static str) -> WorthUserRespo
     let retained_world = retained_replay_parts(world);
     let other_retained = projection_consumed_planar_parts("user-response-integrity-other");
     let drifted_projection = projection_consumed_receipt(world, &other_retained);
-    let artifacts =
-        RetainedArtifactSet::from_retained_planar_facts(retained_world.retained_parts.retained)
-            .with_projection_consumed_facts(drifted_projection);
-    let denial = ReplayWorkload::for_transformed_workload(retained_world.transformed)
-        .declared("reject projection-consumed facts from another retained basis")
-        .with_retained_artifacts(artifacts)
-        .replay()
-        .expect_err("retained/projection drift must deny replay");
+    let denial =
+        RetainedWorkload::from_retained_planar_facts(retained_world.retained_parts.retained)
+            .declared("reject projection-consumed facts from another retained basis")
+            .with_projection_consumed_facts(drifted_projection)
+            .capture()
+            .expect_err("retained/projection drift must deny capture");
     user_response(WorthUserResponseSource::from_unsupported_replay(&denial))
 }
 

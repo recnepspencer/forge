@@ -199,6 +199,8 @@ fn execute_debt_free_family(
     lowering_artifact: crate::projection::runtime_boundary::read_lowering::TopologyReadLoweringArtifact,
     read_surface: &str,
 ) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
+    let lowering_artifact =
+        lowering_artifact.with_query_read_graph_relationship_proof(family.read_graph());
     let result = execution_target.execute_family(workspace, family)?;
     let receipt = result.receipt();
     require_no_query_fallback(receipt.fallback_class(), read_surface)?;

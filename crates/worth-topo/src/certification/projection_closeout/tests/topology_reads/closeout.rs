@@ -8,9 +8,11 @@ use crate::projection::read_views::domain::closeout::{
 use crate::projection::read_views::domain::parity::{
     build_topology_read_view_parity_artifact, TopologyReadParityKind, TopologyReadViewRef,
 };
-use crate::projection::read_views::domain::TopologyReadRequestFamily;
 use crate::projection::read_views::domain::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractStatus,
+};
+use crate::projection::read_views::domain::{
+    TopologyReadAnchorIdentity, TopologyReadRequestFamily,
 };
 use crate::query_domain::TopologyCurrentHeadReadHandleExt;
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
@@ -71,10 +73,11 @@ fn topology_read_closeout_requires_no_n_plus_one_contracts_before_phase_three_re
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("sheet disk should expose successor source");
+    let moved_anchor = TopologyReadAnchorIdentity::from_runtime_row_label(&moved_identity);
     let mut reads = handle.topology_reads(&mut workspace);
 
     let _ = reads
-        .local_rewire_neighborhood(&moved_identity, 4)
+        .local_rewire_neighborhood(&moved_anchor, 4)
         .expect("query-native local rewire neighborhood should load");
     let closeout_report = reads.closeout_report();
 

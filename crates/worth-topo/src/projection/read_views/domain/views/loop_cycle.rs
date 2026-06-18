@@ -1,7 +1,7 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
 use super::super::error::TopologyReadError;
-use super::super::request::TopologyReadRequest;
+use super::super::request::{TopologyReadAnchorIdentity, TopologyReadRequest};
 use super::super::TopologyReadLedger;
 use crate::projection::read_views::TopologyLoopCycleView;
 use crate::projection::runtime_boundary::read_execution::{
@@ -15,11 +15,12 @@ impl TopologyReadLedger {
         &self,
         workspace: &mut ForgeQueryWorkspace,
         execution_target: &TopologyReadExecutionTarget,
-        start_identity: &str,
+        start_identity: &TopologyReadAnchorIdentity,
         count: usize,
     ) -> Result<TopologyLoopCycleView, TopologyReadError> {
+        let start_identity_value = start_identity.as_str();
         let request = TopologyReadRequest::LoopCycleNeighborhood {
-            start_half_edge_identity: start_identity.to_string(),
+            start_half_edge_identity: start_identity.clone(),
             depth: u8::try_from(count).expect("supported traversal depth must fit in u8"),
         };
         Self::require_supported_traversal_depth(request.family(), count)?;
@@ -27,20 +28,20 @@ impl TopologyReadLedger {
             workspace,
             execution_target,
             &request,
-            start_identity,
+            start_identity_value,
             count,
         )?;
         let request_report = self.record_report(executed.report);
         let cycle_identities = decode_loop_cycle(
             executed.result.rows(),
-            start_identity,
+            start_identity_value,
             count,
             &successor_relation_name(),
             "loop cycle",
         )?;
         Ok(TopologyLoopCycleView {
             request_report,
-            start_half_edge_identity: start_identity.to_string(),
+            start_half_edge_identity: start_identity_value.to_string(),
             cycle_identities,
         })
     }

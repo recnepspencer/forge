@@ -49,6 +49,7 @@ pub mod projection;
 pub mod projection_fact_parity;
 pub mod projection_policy_choice;
 pub mod projection_workload;
+pub mod query_adoption;
 pub mod rebinding;
 pub mod recovery;
 pub mod refs;

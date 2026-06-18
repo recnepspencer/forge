@@ -1,9 +1,5 @@
-error[E0451]: fields `retained_planar_facts` and `projection_consumed_facts` of struct `RetainedArtifactSet` are private
- --> src/certification/public_facade_contracts/compile_fail/retained_replay_workload/retained_artifact_set_not_forgeable.rs:5:9
+error[E0432]: unresolved import `worth_spatial::facade::retained_replay_workload::RetainedArtifactSet`
+ --> src/certification/public_facade_contracts/compile_fail/retained_replay_workload/retained_artifact_set_not_forgeable.rs:1:5
   |
-4 |     let _ = RetainedArtifactSet {
-  |             ------------------- in this type
-5 |         retained_planar_facts: unconstructible(),
-  |         ^^^^^^^^^^^^^^^^^^^^^ private field
-6 |         projection_consumed_facts: None,
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+1 | use worth_spatial::facade::retained_replay_workload::RetainedArtifactSet;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `RetainedArtifactSet` in `facade::retained_replay_workload`

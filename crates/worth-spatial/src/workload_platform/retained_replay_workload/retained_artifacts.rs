@@ -28,10 +28,6 @@ impl RetainedArtifactSet {
         &self.retained_planar_facts
     }
 
-    pub fn projection_consumed_facts(&self) -> Option<&ProjectionConsumedPlanarFactsReceipt> {
-        self.projection_consumed_facts.as_ref()
-    }
-
     pub fn retained_artifact_identity(&self) -> String {
         match &self.projection_consumed_facts {
             Some(projection) => format!(

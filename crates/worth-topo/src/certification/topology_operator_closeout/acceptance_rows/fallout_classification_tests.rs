@@ -9,8 +9,8 @@ use crate::topology_operators::{
     NamingMutationContinuityMatrix, TopologyMutationDigest, TopologyMutationNamingOutcome,
     TopologyMutationSequenceDigest,
 };
-use crate::validation::{DerivedTopologyValidationReport, TopologyValidationPhase};
 use crate::validation::facade::{TopologyValidationInputClass, TopologyValidationRow};
+use crate::validation::{DerivedTopologyValidationReport, TopologyValidationPhase};
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::aggregate_acceptance::build_mutation_fallout_breadth_rows;

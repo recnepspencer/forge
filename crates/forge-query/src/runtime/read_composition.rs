@@ -30,6 +30,10 @@ impl ForgeQueryReadBuilder {
         Self
     }
 
+    pub fn standalone() -> Self {
+        Self
+    }
+
     pub fn local_collection(
         self,
         root: impl Into<String>,

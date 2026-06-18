@@ -31,6 +31,11 @@ mod public_api_planar_boolean_precision_evidence;
 mod public_api_planar_boolean_segment_carriers;
 mod public_api_planar_boolean_segment_pair_enumeration;
 mod public_api_planar_boolean_shared_plane_evidence;
+mod public_api_query_adoption;
+mod public_api_query_composition_honesty;
+mod public_api_query_native_hardening_closeout;
+mod public_api_query_performance_counters;
+mod public_api_query_synthetic_proof;
 mod public_api_workload_catalog;
 
 #[cfg(test)]

@@ -28,6 +28,7 @@ pub use handle_reads::{
     TopologyCurrentHeadReadSession, TopologySnapshotReadOnlyReadHandleExt,
     TopologySnapshotReadOnlyReadSession,
 };
+pub use request::TopologyReadAnchorIdentity;
 pub(crate) use session_state::TopologyReadLedger;
 #[allow(unused_imports)]
 pub use views::{

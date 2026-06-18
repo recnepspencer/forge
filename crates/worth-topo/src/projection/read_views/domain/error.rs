@@ -4,6 +4,7 @@ use crate::projection::read_views::domain::read_proof::report::TopologyReadReque
 pub enum TopologyReadErrorKind {
     CanonicalLoweringResolution,
     ReadFamilyExecutionDenied,
+    RuntimeBoundaryAuthorityDenied,
     UnsupportedTraversalDepth,
 }
 
@@ -24,6 +25,13 @@ impl TopologyReadError {
     pub(crate) fn read_family_execution_denied(detail: impl Into<String>) -> Self {
         Self {
             kind: TopologyReadErrorKind::ReadFamilyExecutionDenied,
+            detail: detail.into(),
+        }
+    }
+
+    pub(crate) fn runtime_boundary_authority_denied(detail: impl Into<String>) -> Self {
+        Self {
+            kind: TopologyReadErrorKind::RuntimeBoundaryAuthorityDenied,
             detail: detail.into(),
         }
     }

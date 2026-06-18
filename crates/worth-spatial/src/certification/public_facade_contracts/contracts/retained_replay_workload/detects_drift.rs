@@ -1,24 +1,22 @@
 use super::contract_subject::{projection_consumed_receipt, retained_replay_parts};
 use crate::public_api_planar_projection_consumption::contract_subject::projection_consumed_planar_parts;
 use worth_spatial::facade::retained_replay_workload::{
-    ReplayWorkload, RetainedArtifactSet, RetainedWorkload, UnsupportedReplayReasonCode,
+    RetainedWorkload, UnsupportedReplayReasonCode,
 };
 
 #[test]
-fn retained_replay_workload_detects_live_retained_projection_drift() {
+fn retained_capture_detects_live_retained_projection_drift_before_replay() {
     let retained_world = retained_replay_parts("retained-replay-drift-retained");
     let other_retained = projection_consumed_planar_parts("retained-replay-drift-projection");
     let drifted_projection =
         projection_consumed_receipt("retained-replay-drift-projection", &other_retained);
-    let artifacts =
-        RetainedArtifactSet::from_retained_planar_facts(retained_world.retained_parts.retained)
-            .with_projection_consumed_facts(drifted_projection);
 
-    let denial = ReplayWorkload::for_transformed_workload(retained_world.transformed)
-        .declared("reject projection-consumed facts from another retained basis")
-        .with_retained_artifacts(artifacts)
-        .replay()
-        .expect_err("retained/projection drift must deny replay");
+    let denial =
+        RetainedWorkload::from_retained_planar_facts(retained_world.retained_parts.retained)
+            .declared("reject projection-consumed facts from another retained basis")
+            .with_projection_consumed_facts(drifted_projection)
+            .capture()
+            .expect_err("retained/projection drift must deny retained capture");
 
     assert_eq!(
         denial.reason_code(),

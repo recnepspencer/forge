@@ -134,7 +134,7 @@ pub(crate) fn prepare_authoring_order_lane_digest_rows(
             canonical_rows.to_vec()
         } else {
             let lane_scenarios = apply_corpus_authoring_order_lane(lane, &scenarios);
-            build_corpus_rows(workspace, &lane_scenarios)?
+            build_corpus_rows(workspace, lane.as_str(), &lane_scenarios)?
         };
         let lane_row_digests = lane_rows
             .iter()

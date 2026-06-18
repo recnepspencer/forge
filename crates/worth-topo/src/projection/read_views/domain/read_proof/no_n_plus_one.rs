@@ -62,8 +62,8 @@ fn no_n_plus_one_contract_row(
         TopologyNoNPlusOneContract::RelationshipProofPosture => contract_from_condition(
             request_aggregate.lowered_traversal_count > 0
                 && request_aggregate.relationship_proof_admission_count
-                    == request_aggregate.lowered_traversal_count,
-            "every lowered traversal carried relationship-proof admission",
+                    >= request_aggregate.lowered_traversal_count,
+            "relationship-proof admission covered every lowered traversal",
             "lowered traversal breadth is not fully covered by relationship-proof admission",
         ),
     };
