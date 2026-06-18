@@ -1,0 +1,13 @@
+error[E0624]: method `bind_existing_entity` is private
+ --> tests/ui/prohibition_registry/existing_truth_bind_entity_forbidden.rs:4:23
+  |
+4 |       let _ = workspace.bind_existing_entity(target);
+  |                         ^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/runtime/workspace_mutations.rs
+  |
+  | /     pub(crate) fn bind_existing_entity(
+  | |         &self,
+  | |         target: ForgeQueryExistingEntityTarget,
+  | |     ) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
+  | |_____________________________________________________________________________- private method defined here

@@ -147,8 +147,9 @@ pub use inventory::{
     ForgeQueryIntentAdmissionDecisionClass, ForgeQueryIntentAdmissionEligibilityAuthority,
     ForgeQueryIntentAdmissionExecutionBoundary, ForgeQueryIntentAdmissionExecutionHandoffInventory,
     ForgeQueryIntentAdmissionExecutionSeam, ForgeQueryIntentAdmissionMutationAudit,
-    ForgeQueryIntentAdmissionMutationAuditRow, ForgeQueryIntentAdmissionPlanKind,
-    ForgeQueryIntentAdmissionResultArtifact, ForgeQueryIntentAdmissionSurfaceDescriptor,
+    ForgeQueryIntentAdmissionMutationAuditRow, ForgeQueryIntentAdmissionMutationProofCase,
+    ForgeQueryIntentAdmissionPlanKind, ForgeQueryIntentAdmissionResultArtifact,
+    ForgeQueryIntentAdmissionSurfaceDescriptor,
 };
 pub use plans::{
     ForgeQueryAdmittedIntentPlan, ForgeQueryAuthoritativeIntentExecutionPlan,

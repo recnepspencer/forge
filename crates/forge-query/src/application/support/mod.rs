@@ -1,5 +1,6 @@
 mod closure;
 mod concurrent_hostile_matrix;
+mod consumer_kit_closure;
 mod identity_boundary_certification_gate;
 mod identity_boundary_hostile_matrix;
 pub(crate) mod identity_boundary_inventory;
@@ -22,6 +23,14 @@ pub use closure::{
 pub use concurrent_hostile_matrix::{
     ForgeQueryConcurrentHostileMatrixArtifact, ForgeQueryConcurrentHostileMatrixPosture,
     ForgeQueryConcurrentHostileMatrixSabotage, ForgeQueryConcurrentHostileMatrixSabotageKind,
+};
+pub use consumer_kit_closure::{
+    milestone_nine_eight_consumer_kit_closure, ForgeQueryConsumerKitCertificationCase,
+    ForgeQueryConsumerKitCertificationCaseRow, ForgeQueryConsumerKitCertificationTier,
+    ForgeQueryConsumerKitClosure, ForgeQueryConsumerKitDocsAgreement,
+    ForgeQueryConsumerKitDocsFamilyRow, ForgeQueryConsumerKitFamilyClosureRow,
+    ForgeQueryConsumerKitFamilyName, ForgeQueryConsumerKitHostileCertification,
+    ForgeQueryConsumerKitReferenceResidue, ForgeQueryConsumerKitResidueBreakdown,
 };
 pub use identity_boundary_certification_gate::{
     milestone_nine_six_certification_gate_certified, MILESTONE_9_6_CERTIFICATION_GATE_PATHS,

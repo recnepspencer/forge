@@ -38,6 +38,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         deny_preview_assertion(&command)?;
         deny_preview_continuity(&command)?;
         admit_naming_intent(&command).map_err(ForgeQueryRuntimeError::MutationNamingDenied)?;
+        self.runtime.backend.admit_preview_write_command(&command)?;
         let receipt = ForgeQueryWriteReceipt::preview(
             &self.label,
             self.pending_commands.len() + 1,
@@ -174,6 +175,9 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         declaration: impl FnOnce(ForgeQueryMutationBatchBuilder) -> ForgeQueryMutationBatchBuilder,
     ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
         let commands = declaration(ForgeQueryMutationBatchBuilder::new()).finish()?;
+        for command in &commands {
+            self.runtime.backend.admit_preview_write_command(command)?;
+        }
         let mut symbolic_targets =
             BTreeMap::<String, (ForgeQueryEntityIdentity, Option<String>)>::new();
         let mut receipts = Vec::with_capacity(commands.len());

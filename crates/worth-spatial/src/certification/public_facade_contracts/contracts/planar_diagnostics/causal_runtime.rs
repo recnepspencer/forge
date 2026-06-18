@@ -4,19 +4,18 @@ use forge_foundational::facade::{
 };
 use forge_query::facade::{
     DeclarativeLiveQueryRequest, ForgeQueryBasisAdmissionEvidenceRow, ForgeQueryCommitIdentity,
-    ForgeQueryEffectPolicy, ForgeQueryEntity, ForgeQueryEntityIdentity, ForgeQueryEvidenceIdentity, ForgeQueryLivePatch,
-    ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
+    ForgeQueryEffectPolicy, ForgeQueryEntity, ForgeQueryEntityIdentity, ForgeQueryEvidenceIdentity,
+    ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
     ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
     ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
     ForgeQueryRuntimeSnapshotIdentityAdapter, ForgeQueryRuntimeSourceAdapter,
     ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
-    ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, SignalInvalidationBoundaryReceipt,
-    SubscriptionActivationBoundaryReceipt, SubscriptionActivationInput,
-    WriteAuthorityExecutionReceipt,
+    ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError,
+    ForgeQueryWriteCommand, ForgeQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt,
+    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
+    SubscriptionActivationInput, WriteAuthorityExecutionReceipt,
 };
 use forge_runtime_bridge::facade::{
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
@@ -273,9 +272,9 @@ impl ForgeQueryRuntimePreviewBasisAdapter for DiagnosticPreviewBasis {
             authority,
             label.clone(),
             effect_policy,
-            ForgeQueryBasisAdmissionEvidenceRow::rows_from_values(
-                ["planar-diagnostic-preview-basis"],
-            ),
+            ForgeQueryBasisAdmissionEvidenceRow::rows_from_values([
+                "planar-diagnostic-preview-basis",
+            ]),
         ))
     }
 }

@@ -18,6 +18,7 @@ pub(crate) mod corpus_replay_generation;
 pub(crate) mod corpus_replay_row;
 pub(crate) mod corpus_replay_view;
 pub(crate) mod corpus_simplex_registry;
+pub(crate) mod evidence_reports;
 pub(crate) mod family_coverage;
 pub(crate) mod prepared_outcome;
 pub(crate) mod prepared_result;

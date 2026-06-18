@@ -3,9 +3,7 @@ use forge_runtime_bridge::facade::{
     bridge_identity_reporting_label, BridgeIdentityEvidence, RelationalBridgeRecordIdentityKind,
 };
 
-pub(crate) fn query_entity_identity_reporting_label(
-    identity: &ForgeQueryEntityIdentity,
-) -> String {
+pub(crate) fn query_entity_identity_reporting_label(identity: &ForgeQueryEntityIdentity) -> String {
     if let Some(parts) = identity.relational_record_parts() {
         let kind = match parts.kind() {
             RelationalBridgeRecordIdentityKind::Entity => "entity",

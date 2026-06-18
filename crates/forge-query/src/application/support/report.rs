@@ -1,4 +1,7 @@
 use super::closure::ForgeQueryIdentityBoundaryClosure;
+use super::consumer_kit_closure::{
+    milestone_nine_eight_consumer_kit_closure, ForgeQueryConsumerKitClosure,
+};
 use super::identity_boundary_hostile_matrix::identity_boundary_hostile_matrix_artifact;
 use super::registry::{
     ForgeQueryCapabilityFamily, ForgeQueryCapabilityStatus, ForgeQuerySupportMatrix,
@@ -116,6 +119,7 @@ pub struct ForgeQuerySupportReport {
     query_composition_support_profile: Option<ForgeQueryQueryCompositionSupportProfile>,
     identity_evolution_support_profile: Option<ForgeQueryIdentityEvolutionSupportProfile>,
     identity_boundary_closure: ForgeQueryIdentityBoundaryClosure,
+    consumer_kit_closure: ForgeQueryConsumerKitClosure,
     validated_config_digest: String,
     counters: ForgeQuerySupportReportCounters,
     report_identity: ForgeQueryEvidenceIdentity,
@@ -193,6 +197,7 @@ impl ForgeQuerySupportReport {
             query_read_surface_available,
             preview_session_surface_available,
         );
+        let consumer_kit_closure = milestone_nine_eight_consumer_kit_closure();
         let validated_config_digest = config.validated_digest().to_string();
         let counters = ForgeQuerySupportReportCounters::generated_once();
         let report_identity =
@@ -263,6 +268,10 @@ impl ForgeQuerySupportReport {
                     ForgeQueryEvidenceTag::new("identity_boundary_closure_digest"),
                     identity_boundary_closure.closure_digest(),
                 )
+                .field_value(
+                    ForgeQueryEvidenceTag::new("consumer_kit_closure_digest"),
+                    consumer_kit_closure.closure_digest(),
+                )
                 .field_usize(
                     ForgeQueryEvidenceTag::new("support_report_generation_count"),
                     counters.support_report_generation_count(),
@@ -282,6 +291,7 @@ impl ForgeQuerySupportReport {
             query_composition_support_profile,
             identity_evolution_support_profile,
             identity_boundary_closure,
+            consumer_kit_closure,
             validated_config_digest,
             counters,
             report_identity,
@@ -338,6 +348,10 @@ impl ForgeQuerySupportReport {
 
     pub fn identity_boundary_closure(&self) -> &ForgeQueryIdentityBoundaryClosure {
         &self.identity_boundary_closure
+    }
+
+    pub fn consumer_kit_closure(&self) -> &ForgeQueryConsumerKitClosure {
+        &self.consumer_kit_closure
     }
 
     pub fn validated_config_digest(&self) -> &str {

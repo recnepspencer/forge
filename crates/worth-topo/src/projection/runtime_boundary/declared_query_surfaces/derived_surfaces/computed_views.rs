@@ -96,7 +96,9 @@ impl ForgeQueryDerivedViewMaintainer for TopologyInterpretedMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity("topology-interpreted"),
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
+                "topology-interpreted",
+            ),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {
@@ -176,7 +178,9 @@ impl ForgeQueryDerivedViewMaintainer for TopologyValidationMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity("topology-validation"),
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
+                "topology-validation",
+            ),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {

@@ -200,10 +200,6 @@ impl PrimitiveConstructionRejectedOutcome {
         self.rejection_locality
     }
 
-    pub fn reason(&self) -> &str {
-        &self.reason
-    }
-
     #[cfg(test)]
     pub fn failure_digest(&self) -> &str {
         &self.failure_digest

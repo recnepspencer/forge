@@ -79,6 +79,10 @@ impl CanonicalQueryDigest {
         Self(AuthorityBackedDigestLabel::from_parts(parts))
     }
 
+    pub fn from_domain_parts(parts: &[String]) -> Self {
+        Self(AuthorityBackedDigestLabel::from_domain_parts(parts))
+    }
+
     pub(crate) fn from_evidence_identity(identity: &ForgeQueryEvidenceIdentity) -> Self {
         Self(AuthorityBackedDigestLabel::from_evidence_identity(identity))
     }

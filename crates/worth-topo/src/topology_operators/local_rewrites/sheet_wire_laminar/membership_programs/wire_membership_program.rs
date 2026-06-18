@@ -129,7 +129,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                             }
                         },
                         |update| {
-                            let (prior, successor) = relation_rebind_authorities[relation_id].clone();
+                            let (prior, successor) =
+                                relation_rebind_authorities[relation_id].clone();
                             let update = update
                                 .continuity_rebind_existing_target(prior, successor)
                                 .aspect(
@@ -273,7 +274,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                             }
                         },
                         |update| {
-                            let (prior, successor) = relation_rebind_authorities[relation_id].clone();
+                            let (prior, successor) =
+                                relation_rebind_authorities[relation_id].clone();
                             let update = update
                                 .continuity_rebind_existing_target(prior, successor)
                                 .aspect(

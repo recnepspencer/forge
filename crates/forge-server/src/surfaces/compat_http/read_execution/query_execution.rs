@@ -232,7 +232,9 @@ impl ForgeServerCompatibilityFacade {
             ForgeServerDirectRemaskPosture::from_state_snapshot(&runtime_state),
         );
         let validator = ForgeServerReadValidator::new(
-            runtime_state.state_digest().terminal_projection_for_reporting(),
+            runtime_state
+                .state_digest()
+                .terminal_projection_for_reporting(),
             direct_context.basis_digest(),
             direct_context.branch_digest(),
         );

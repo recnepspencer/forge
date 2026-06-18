@@ -66,7 +66,7 @@ pub(crate) fn prepare_query_handoff(
         workspace.name(),
         &operation,
         &support_posture,
-            downstream_delivery_contract.contract_for_reporting(),
+        downstream_delivery_contract.contract_for_reporting(),
     );
 
     TransitionOutcome::Success(ForgeServerQueryHandoff::new(
@@ -250,7 +250,9 @@ fn derive_support_posture(
                             family_contract,
                             runtime_resume_support_posture: contract
                                 .runtime_resume_support_posture(),
-                            support_digest: contract.runtime_resume_support_for_reporting().to_string(),
+                            support_digest: contract
+                                .runtime_resume_support_for_reporting()
+                                .to_string(),
                             contract_digest: contract.contract_for_reporting().to_string(),
                         },
                     )

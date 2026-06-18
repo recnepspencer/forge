@@ -273,9 +273,9 @@ impl ForgeQueryRuntimeBackend for StreamingDatasetRuntimeBackend {
                 let payload = "x".repeat(self.payload_width);
                 ForgeQueryEntity::from_external_projection(
                     forge_query::facade::admit_authored_entity_token(
-                        forge_query::facade::QueryExternalIdentityToken::new(
-                            std::sync::Arc::from(format!("stream-row-{index}")),
-                        ),
+                        forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
+                            format!("stream-row-{index}"),
+                        )),
                     ),
                     streaming_row(index, &payload),
                 )

@@ -312,7 +312,7 @@ pub use crate::memory_workspace::{
     ForgeQueryAspect, ForgeQueryCommitIdentity, ForgeQueryEntity, ForgeQueryEntityIdentity,
     ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMemoryWorkspace,
     ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError,
+    ForgeQuerySnapshotIdentity, ForgeQueryWorkspaceError, ForgeQueryWorkspaceErrorKind,
 };
 pub use crate::projection_consumption::{
     certify_projection_consumption_closeout_core, declare_projection_consumption,

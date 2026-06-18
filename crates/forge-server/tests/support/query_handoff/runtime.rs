@@ -5,9 +5,10 @@ use forge_query::facade::{
     ForgeQueryIntentExecution, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
     ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
     ForgeQueryRuntimeBackend, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence,     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryRuntimeSupportProfile, ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity,
-    ForgeQueryWorkspace, ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSchemaAdapter,
+    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeSupportProfile,
+    ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity, ForgeQueryWorkspace,
+    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
     LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
     SubscriptionActivationReceipt,
 };
@@ -16,12 +17,12 @@ use forge_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 #[path = "runtime_mutation_support.rs"]
 mod runtime_mutation_support;
 
-use runtime_mutation_support::{test_mutation_receipt, TestSubscriptionActivation};
 use forge_server::{
     ForgeServerDirectDeclarationSourceKind, ForgeServerQueryWorkspaceBindingError,
     ForgeServerQueryWorkspaceBindingRequest, ForgeServerQueryWorkspaceBindingTarget,
     ForgeServerQueryWorkspaceProvider,
 };
+use runtime_mutation_support::{test_mutation_receipt, TestSubscriptionActivation};
 use serde_json::json;
 use std::collections::BTreeSet;
 use std::sync::{
@@ -300,9 +301,9 @@ impl ForgeQueryRuntimeBackend for TestQueryRuntimeBackend {
 
         vec![ForgeQueryEntity::from_external_projection(
             forge_query::facade::admit_authored_entity_token(
-                forge_query::facade::QueryExternalIdentityToken::new(
-                    std::sync::Arc::from("user-1"),
-                ),
+                forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
+                    "user-1",
+                )),
             ),
             json!({
                 "identity": { "id": "user-1" },
@@ -402,4 +403,3 @@ impl ForgeQueryRuntimeSchemaAdapter for TestSchemaAdapter {
         Ok(self.build_live_view_declaration_boundary_receipt(name, request, admission))
     }
 }
-

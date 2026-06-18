@@ -52,16 +52,14 @@ cross-runtime authority-evidence lane right now.
 
 ## Migration Guidance
 
-- move authoritative mutation onto workspace.insert/update/delete/batch and consume receipts plus inspect output as the domain explanation contract
-- read bridge-backed verified-existing support rows before teaching `verify_existing(...)`, `probe_existing(...)`, `update_existing_verified(...)`, or `delete_existing_verified(...)` as ordinary production runtime flows
+- move authoritative mutation onto workspace.insert/update/delete plus explicit submission or graph-composition lanes, and consume receipts plus inspect output as the domain explanation contract
+- read bridge-backed verified-existing support rows before teaching graph-composition verified-existing lanes or probe-intent execution as ordinary production runtime flows
 - read graph-composition capability rows and extension-hook rows before teaching a new mixed-shape lifecycle or domain extension as ordinary stable runtime support
 - use `workspace.compose_graph(...)` or `workspace.compose_graph_with_invariant_pack(...)` when one logical mutation needs symbolic resolution, verified preconditions, lineage, or domain-invalidity evidence as part of the ordinary receipt story
-- use `workspace.assert_existing(...)` for retained assertion receipts and `workspace.verify_existing(...)` when the backend must prove current stored truth before returning an assertion receipt
-- use `workspace.probe_existing(...)` when the domain needs current authoritative aspect values as input rather than a retained assertion receipt
-- use `workspace.bind_existing_relation(...)` plus `workspace.update_existing(...)` when an admitted relation family must preserve authoritative target identity under ordinary update-family receipts
-- use `workspace.update_existing_verified(...)` when the backend must prove current stored truth immediately before an existing-target update-family mutation
-- use `workspace.delete_existing_verified(...)` when the backend must prove current stored truth immediately before an existing-target delete-family mutation
-- keep invariant-complete multi-command workflows inside one `workspace.batch(...)` so the primary runtime can preserve one commit boundary all the way down
+- use typed existing-truth binding artifacts inside graph composition when a retained assertion, verified precondition, update, or retirement must stay identity-preserved
+- use `workspace.probe_existing_intent(request).execute()` when the domain needs current authoritative aspect values as input rather than a retained assertion receipt
+- use graph-composition existing-target update, retarget, supersession, and retirement lanes when an admitted relation family must preserve authoritative target identity
+- use graph-composition verified-existing lanes when the backend must prove current stored truth immediately before an existing-target mutation
 - delete local existing-target rebinding, naming outcome reconstruction, and continuity breadcrumb glue once equivalent Query evidence is available
 - delete local graph-program rejection reconstruction once `admission_trace()` and `domain_invariant_summary()` cover the denied-path explanation contract
 - treat unsupported mutation-evidence neighbors as fail-closed support gates rather than alternate runtime seams

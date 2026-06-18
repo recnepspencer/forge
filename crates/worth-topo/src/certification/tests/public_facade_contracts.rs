@@ -11,9 +11,8 @@ mod public_api {
 mod topology_workload_seeds_lib {
     use crate::facade::{
         TopologySeed, TopologySeedCleanFailClass, TopologySeedCleanFailReasonCode,
-        TopologySeedCleanFailStage, TopologySeedCounters, TopologySeedEntityIdentities,
-        TopologySeedKind, TopologySeedNeighborhoodReceipt, TopologySeedQueryReceipts,
-        TopologySeedTopologyPosture, TopologySeedValidationReceipt,
+        TopologySeedCleanFailStage, TopologySeedCounters, TopologySeedKind,
+        TopologySeedTopologyPosture,
     };
 
     include!("../public_facade_contracts/contracts/topology_workload_seeds/invalid_topology_clean_fail.rs");

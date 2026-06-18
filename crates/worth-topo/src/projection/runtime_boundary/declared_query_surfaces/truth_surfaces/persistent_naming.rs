@@ -6,13 +6,13 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use forge_query::facade::{
     ForgeQueryEntity, ForgeQueryEntityIdentity, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
     ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
 };
 use forge_relational::facade::identity::EntityId;
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
-use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
 use schema::facade::{QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis};
 use serde::{Deserialize, Serialize};

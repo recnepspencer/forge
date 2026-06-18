@@ -1,4 +1,7 @@
-use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder};
+use forge_query::facade::{
+    ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryMutationBatchBuilder,
+};
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
@@ -10,8 +13,8 @@ use crate::topology_operators::application::bindings::{
 use crate::topology_operators::application::{
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
-use crate::topology_operators::local_rewrites::boundary_wiring::adjacency_support::single_outgoing_relation_target_identity;
 use crate::topology_operators::authority_identity::existing_relation_authority;
+use crate::topology_operators::local_rewrites::boundary_wiring::adjacency_support::single_outgoing_relation_target_identity;
 use crate::topology_operators::topology_relation_dependency_path;
 
 impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
@@ -94,7 +97,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             );
         }
 
-        let binding = self.workspace.bind_existing_relation(
+        let binding = ForgeQueryExistingTruthTargetBinding::from_relation_target(
             ForgeQueryExistingRelationTarget::new(
                 existing_relation_authority(relation_id)?,
                 relation_binding.query_identity,

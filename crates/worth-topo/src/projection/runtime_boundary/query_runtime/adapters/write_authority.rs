@@ -62,8 +62,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
                 write_command_label(other)
             ))),
         }?;
-        let mutation_receipt =
-            self.with_bridge_authority(bridge, &command, mutation_receipt)?;
+        let mutation_receipt = self.with_bridge_authority(bridge, &command, mutation_receipt)?;
         Ok(self.build_write_authority_execution_receipt(&command, mutation_receipt))
     }
 

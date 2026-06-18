@@ -1,15 +1,18 @@
 use super::workspace::ForgeQueryWorkspace;
+#[cfg(test)]
+use super::ForgeQueryMutationMetadata;
 use super::{
-    ForgeQueryAspectMutationBuilder, ForgeQueryBatchWriteReceipt, ForgeQueryDeleteMutationBuilder,
-    ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationBatchBuilder,
-    ForgeQueryMutationMetadata, ForgeQueryRuntimeError, ForgeQueryWriteCommand,
-    ForgeQueryWriteReceipt,
+    ForgeQueryAspectMutationBuilder, ForgeQueryDeleteMutationBuilder,
+    ForgeQueryExistingEntityTarget, ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError,
+    ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+};
+use super::{
+    ForgeQueryBatchWriteReceipt, ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
 };
 use crate::memory_workspace::ForgeQueryEntityIdentity;
 
 impl ForgeQueryWorkspace {
-    pub fn write(
+    pub(crate) fn write(
         &mut self,
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
@@ -50,7 +53,8 @@ impl ForgeQueryWorkspace {
         self.write(command)
     }
 
-    pub fn bind_existing_entity(
+    #[allow(dead_code)]
+    pub(crate) fn bind_existing_entity(
         &self,
         target: ForgeQueryExistingEntityTarget,
     ) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
@@ -59,7 +63,8 @@ impl ForgeQueryWorkspace {
         )?)
     }
 
-    pub fn bind_existing_relation(
+    #[allow(dead_code)]
+    pub(crate) fn bind_existing_relation(
         &self,
         target: ForgeQueryExistingRelationTarget,
     ) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
@@ -68,7 +73,7 @@ impl ForgeQueryWorkspace {
         )?)
     }
 
-    pub fn probe_existing<I, S>(
+    pub(crate) fn probe_existing<I, S>(
         &self,
         binding: ForgeQueryExistingTruthTargetBinding,
         aspect_paths: I,
@@ -95,7 +100,8 @@ impl ForgeQueryWorkspace {
         self.runtime.probe_existing_intent(request)
     }
 
-    pub fn update_existing(
+    #[cfg(test)]
+    pub(crate) fn update_existing(
         &mut self,
         binding: ForgeQueryExistingTruthTargetBinding,
         declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
@@ -105,7 +111,8 @@ impl ForgeQueryWorkspace {
         self.write(command)
     }
 
-    pub fn assert_existing(
+    #[cfg(test)]
+    pub(crate) fn assert_existing(
         &mut self,
         binding: ForgeQueryExistingTruthTargetBinding,
         declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
@@ -115,7 +122,8 @@ impl ForgeQueryWorkspace {
         self.write(command)
     }
 
-    pub fn verify_existing(
+    #[cfg(test)]
+    pub(crate) fn verify_existing(
         &mut self,
         binding: ForgeQueryExistingTruthTargetBinding,
         declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
@@ -125,7 +133,8 @@ impl ForgeQueryWorkspace {
         self.write(command)
     }
 
-    pub fn update_existing_verified(
+    #[cfg(test)]
+    pub(crate) fn update_existing_verified(
         &mut self,
         binding: ForgeQueryExistingTruthTargetBinding,
         verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
@@ -155,7 +164,8 @@ impl ForgeQueryWorkspace {
         self.write(command)
     }
 
-    pub fn delete_existing(
+    #[cfg(test)]
+    pub(crate) fn delete_existing(
         &mut self,
         binding: ForgeQueryExistingTruthTargetBinding,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
@@ -167,7 +177,8 @@ impl ForgeQueryWorkspace {
         })
     }
 
-    pub fn delete_existing_with(
+    #[cfg(test)]
+    pub(crate) fn delete_existing_with(
         &mut self,
         binding: ForgeQueryExistingTruthTargetBinding,
         declaration: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
@@ -177,7 +188,8 @@ impl ForgeQueryWorkspace {
         self.write(command)
     }
 
-    pub fn delete_existing_verified(
+    #[cfg(test)]
+    pub(crate) fn delete_existing_verified(
         &mut self,
         binding: ForgeQueryExistingTruthTargetBinding,
         verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
@@ -190,7 +202,8 @@ impl ForgeQueryWorkspace {
         self.write(command)
     }
 
-    pub fn batch(
+    #[allow(dead_code)]
+    pub(crate) fn batch(
         &mut self,
         declaration: impl FnOnce(ForgeQueryMutationBatchBuilder) -> ForgeQueryMutationBatchBuilder,
     ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {

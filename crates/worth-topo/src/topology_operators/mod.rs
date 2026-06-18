@@ -1,5 +1,5 @@
-pub(crate) mod authority_identity;
 pub(crate) mod application;
+pub(crate) mod authority_identity;
 mod declaration_entry;
 mod declared_mutation_sequence_builder;
 mod edge_split_blueprint;

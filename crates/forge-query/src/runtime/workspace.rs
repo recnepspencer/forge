@@ -22,7 +22,7 @@ pub struct ForgeQueryWorkspace {
 }
 
 impl ForgeQueryWorkspace {
-    pub(super) fn new(
+    pub(crate) fn new(
         name: impl Into<String>,
         runtime: ForgeQueryRuntime,
     ) -> Result<Self, ForgeQueryRuntimeError> {

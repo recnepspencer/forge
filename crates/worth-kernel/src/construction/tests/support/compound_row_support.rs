@@ -4,7 +4,6 @@ use worth_math::numeric::metrics::{
 };
 use worth_spatial::facade::refs::SpatialFrameRef;
 
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::outcome::{
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
@@ -19,6 +18,7 @@ use crate::construction::tests::support::compound_runtime::{
     PrimitiveConstructionCompoundMotionKind, PrimitiveConstructionCompoundMotionPlan,
     PrimitiveConstructionCompoundRow, PrimitiveConstructionCompoundScenario,
 };
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 use crate::construction::tests::support::projection_consumption::prepare_primitive_construction_query_projection_consumption_surface_digest;
 use crate::construction::tests::support::runtime_truth::{
     PrimitiveConstructionAdmittedRuntimeTruth, PrimitiveConstructionCertificationRuntimeTruth,
@@ -73,7 +73,11 @@ pub(crate) fn row_digest(row: &PrimitiveConstructionCompoundRow) -> String {
             .unwrap_or_else(|| "none".to_string()),
     );
     parts.push(grazing_digest(row).unwrap_or_else(|| "none".to_string()));
-    digest_owned_parts(&parts)
+    sealed_report_identity(
+        "worth-kernel.construction.compound-row",
+        "compound-row",
+        |report| report.value_sequence_participating("row-parts", parts),
+    )
 }
 
 pub(crate) fn branch_basis_digest(row: &PrimitiveConstructionCompoundRow) -> String {
@@ -235,11 +239,22 @@ fn digest_admitted_motion(
     outcome: &PrimitiveConstructionAdmittedRuntimeTruth,
 ) -> String {
     let placement_facts = outcome.placement_facts();
-    crate::construction::digest::digest_owned_parts(&[
-        motion.kind().as_str().to_string(),
-        format!("{:?}", placement_facts.origin().map(f64::to_bits)),
-        format!("{:?}", placement_facts.facing_vector().map(f64::to_bits)),
-    ])
+    sealed_report_identity(
+        "worth-kernel.construction.compound-row",
+        "admitted-motion",
+        |report| {
+            report
+                .shape_participating("motion-kind", motion.kind().as_str())?
+                .value_participating(
+                    "origin",
+                    format!("{:?}", placement_facts.origin().map(f64::to_bits)),
+                )?
+                .value_participating(
+                    "facing-vector",
+                    format!("{:?}", placement_facts.facing_vector().map(f64::to_bits)),
+                )
+        },
+    )
 }
 
 fn requested_motion_digest(
@@ -258,13 +273,27 @@ fn requested_motion_digest(
             format!("reorient:{:?}", facing.map(f64::to_bits))
         }
     };
-    digest_owned_parts(&[
-        motion.kind().as_str().to_string(),
-        format!("{:?}", placement.origin().map(f64::to_bits)),
-        format!("{:?}", placement.direction_witness()),
-        format!("{:?}", placement.reference_frame()),
-        motion_projection,
-    ])
+    sealed_report_identity(
+        "worth-kernel.construction.compound-row",
+        "requested-motion",
+        |report| {
+            report
+                .shape_participating("motion-kind", motion.kind().as_str())?
+                .value_participating(
+                    "origin",
+                    format!("{:?}", placement.origin().map(f64::to_bits)),
+                )?
+                .value_participating(
+                    "direction-witness",
+                    format!("{:?}", placement.direction_witness()),
+                )?
+                .value_participating(
+                    "reference-frame",
+                    format!("{:?}", placement.reference_frame()),
+                )?
+                .value_participating("motion-projection", motion_projection)
+        },
+    )
 }
 
 fn grazing_digest_for_plan(
@@ -281,12 +310,17 @@ fn grazing_digest_for_plan(
                 admitted_angle_between(facing, frame_normal(frame)).map_err(numeric_error)?;
             let max_angle = FiniteNonNegativeF64::try_new(*max_angle_radians, "max grazing angle")
                 .map_err(numeric_error)?;
-            Ok(digest_owned_parts(&[
-                "frame-normal".to_string(),
-                angle.get().to_string(),
-                max_angle.get().to_string(),
-                (angle.get() <= max_angle.get()).to_string(),
-            ]))
+            Ok(sealed_report_identity(
+                "worth-kernel.construction.compound-row",
+                "grazing-frame-normal",
+                |report| {
+                    report
+                        .shape_participating("grazing-kind", "frame-normal")?
+                        .value_participating("angle", angle.get().to_string())?
+                        .value_participating("max-angle", max_angle.get().to_string())?
+                        .bool_participating("within-limit", angle.get() <= max_angle.get())
+                },
+            ))
         }
         PrimitiveConstructionCompoundGrazingPlan::NearReferenceAnchor {
             reference_point,
@@ -295,12 +329,17 @@ fn grazing_digest_for_plan(
             let distance = admitted_distance(origin, *reference_point).map_err(numeric_error)?;
             let max_distance = FiniteNonNegativeF64::try_new(*max_distance, "max grazing distance")
                 .map_err(numeric_error)?;
-            Ok(digest_owned_parts(&[
-                "anchor-distance".to_string(),
-                distance.get().to_string(),
-                max_distance.get().to_string(),
-                (distance.get() <= max_distance.get()).to_string(),
-            ]))
+            Ok(sealed_report_identity(
+                "worth-kernel.construction.compound-row",
+                "grazing-anchor-distance",
+                |report| {
+                    report
+                        .shape_participating("grazing-kind", "anchor-distance")?
+                        .value_participating("distance", distance.get().to_string())?
+                        .value_participating("max-distance", max_distance.get().to_string())?
+                        .bool_participating("within-limit", distance.get() <= max_distance.get())
+                },
+            ))
         }
     }
 }

@@ -141,6 +141,13 @@ pub trait ForgeQueryRuntimeBackend {
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryRuntimeInspectionEvidence, ForgeQueryWorkspaceError>;
 
+    fn admit_preview_write_command(
+        &self,
+        _command: &ForgeQueryWriteCommand,
+    ) -> Result<(), ForgeQueryWorkspaceError> {
+        Ok(())
+    }
+
     fn declaration_initialization_metadata(
         &self,
         _view: &ForgeQueryDerivedView,

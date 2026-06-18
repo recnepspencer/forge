@@ -8,9 +8,9 @@ use worth_geom::facade::{
     PrimitiveRealizationStrategy, PrimitiveStabilityClass, PrimitiveSupportNormalClass,
 };
 
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::request::PrimitiveConstructionFamily;
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 use crate::construction::tests::support::runtime_truth::{
     prepare_primitive_construction_certification_runtime_truth,
     PrimitiveConstructionCertificationRuntimeTruth,
@@ -187,19 +187,39 @@ impl BranchPreviewBasisReport {
                     .map(|value| value.as_str().to_string()),
             ),
         };
-        digest_owned_parts(&[
-            self.runtime_truth.family().as_str().to_string(),
-            self.basis_capture.branch_preview_contract_digest.clone(),
-            self.basis_capture.preview_admission_digest.clone(),
-            self.basis_capture.branch_admission_digest.clone(),
-            realization_strategy.unwrap_or_default(),
-            attempted_realization_strategies,
-            stability_class.unwrap_or_default(),
-            support_normal_class.unwrap_or_default(),
-            normalization_disposition.unwrap_or_default(),
-            exhaustion_reason.unwrap_or_default(),
-            self.parity_verified().to_string(),
-        ])
+        sealed_report_identity(
+            "worth-kernel.construction.branch-preview-basis",
+            "branch-preview-basis",
+            |report| {
+                report
+                    .shape_participating("family", self.runtime_truth.family().as_str())?
+                    .value_participating(
+                        "branch-preview-contract",
+                        self.basis_capture.branch_preview_contract_digest.clone(),
+                    )?
+                    .value_participating(
+                        "preview-admission",
+                        self.basis_capture.preview_admission_digest.clone(),
+                    )?
+                    .value_participating(
+                        "branch-admission",
+                        self.basis_capture.branch_admission_digest.clone(),
+                    )?
+                    .optional_value_participating("realization-strategy", realization_strategy)?
+                    .value_participating(
+                        "attempted-realization-strategies",
+                        attempted_realization_strategies,
+                    )?
+                    .optional_value_participating("stability-class", stability_class)?
+                    .optional_value_participating("support-normal-class", support_normal_class)?
+                    .optional_value_participating(
+                        "normalization-disposition",
+                        normalization_disposition,
+                    )?
+                    .optional_value_participating("exhaustion-reason", exhaustion_reason)?
+                    .bool_participating("parity-verified", self.parity_verified())
+            },
+        )
     }
 }
 

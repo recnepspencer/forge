@@ -1,7 +1,8 @@
 use forge_query::facade::{
     ForgeQueryEntityIdentity, ForgeQueryExistingEntityTarget,
     ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryExistingTruthProbeDenialKind,
-    ForgeQueryExistingTruthProbeMode, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
+    ForgeQueryExistingTruthProbeMode, ForgeQueryExistingTruthProbeRequest,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryLiveView, ForgeQueryMutationAuthorityIdentity,
     ForgeQueryRuntimeError,
 };
 use serde_json::{json, Value};
@@ -30,6 +31,26 @@ fn existing_authority(label: &str) -> ForgeQueryMutationAuthorityIdentity {
             .expect("existing-truth authority label"),
     )
     .expect("existing-truth authority identity")
+}
+
+fn existing_task_binding(
+    authority_label: &str,
+    entity_token: &str,
+) -> ForgeQueryExistingTruthTargetBinding {
+    ForgeQueryExistingTruthTargetBinding::from_entity_target(
+        ForgeQueryExistingEntityTarget::new(
+            existing_authority(authority_label),
+            ForgeQueryEntityIdentity::admit_authored_entity_token(
+                forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
+                    entity_token,
+                )),
+            ),
+        )
+        .expect("existing entity target should build")
+        .in_target_collection("Task")
+        .expect("existing entity target collection should build"),
+    )
+    .expect("binding should build")
 }
 
 #[test]
@@ -78,26 +99,25 @@ fn public_bridge_runtime_builder_lane_supports_seeded_existing_truth_probe() {
     let workspace = runtime
         .workspace("public.bridge-runtime-bootstrap.builder-lane")
         .expect("runtime should open a named workspace");
-    let binding = workspace
-        .bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new(
-                existing_authority("authority:task-bootstrap"),
-                ForgeQueryEntityIdentity::admit_authored_entity_token(
-                    forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
-                        "public-entity-1",
-                    )),
-                ),
-            )
-            .expect("existing entity target should build")
-            .in_target_collection("Task")
-            .expect("existing entity target collection should build"),
-        )
-        .expect("binding should build");
-    harness.seed_existing_truth_value(&binding, "title.value", json!("Seeded bootstrap task"));
+    let binding = existing_task_binding("authority:task-bootstrap", "public-entity-1");
+    let seed = harness.seed_backend_authoritative_truth(
+        &binding,
+        "title.value",
+        json!("Seeded bootstrap task"),
+    );
+    assert_eq!(seed.binding_digest(), binding.binding_digest());
+    assert_eq!(seed.target_collection(), "Task");
+    assert_eq!(seed.aspect_path(), "title.value");
 
     let probe = workspace
-        .probe_existing(binding, ["title.value"])
-        .expect("probe should execute through the public builder bootstrap lane");
+        .probe_existing_intent(
+            ForgeQueryExistingTruthProbeRequest::new(binding, ["title.value"])
+                .expect("probe request should build"),
+        )
+        .execute()
+        .expect("probe should execute through the public builder bootstrap lane")
+        .probe()
+        .clone();
 
     assert_eq!(
         probe.mode(),
@@ -113,6 +133,38 @@ fn public_bridge_runtime_builder_lane_supports_seeded_existing_truth_probe() {
 }
 
 #[test]
+fn public_bridge_runtime_builder_lane_missing_existing_truth_probe_fails_closed() {
+    let harness = PublicBridgeRuntimeHarness::new();
+    let runtime = harness
+        .bridge_backed_runtime_builder()
+        .support_profile(public_entity_verified_profile())
+        .build();
+    let workspace = runtime
+        .workspace("public.bridge-runtime-bootstrap.builder-lane-missing-probe")
+        .expect("runtime should open a named workspace");
+    let binding =
+        existing_task_binding("authority:task-bootstrap-missing", "public-entity-missing");
+
+    let error = workspace
+        .probe_existing_intent(
+            ForgeQueryExistingTruthProbeRequest::new(binding, ["title.value"])
+                .expect("probe request should build"),
+        )
+        .execute()
+        .expect_err("backend-verified probe must deny missing authoritative truth");
+
+    match error {
+        ForgeQueryRuntimeError::ExistingTruthProbeDenied(denial) => {
+            assert_eq!(
+                denial.kind(),
+                ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect
+            );
+        }
+        other => panic!("expected typed missing probe denial, got {other:?}"),
+    }
+}
+
+#[test]
 fn public_bridge_runtime_common_lane_fail_closes_existing_truth_probe_without_verification_support()
 {
     let harness = PublicBridgeRuntimeHarness::new();
@@ -120,24 +172,14 @@ fn public_bridge_runtime_common_lane_fail_closes_existing_truth_probe_without_ve
     let workspace = runtime
         .workspace("public.bridge-runtime-bootstrap.common-lane-unsupported-probe")
         .expect("runtime should open a named workspace");
-    let binding = workspace
-        .bind_existing_entity(
-            ForgeQueryExistingEntityTarget::new(
-                existing_authority("authority:task-bootstrap"),
-                ForgeQueryEntityIdentity::admit_authored_entity_token(
-                    forge_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
-                        "public-entity-1",
-                    )),
-                ),
-            )
-            .expect("existing entity target should build")
-            .in_target_collection("Task")
-            .expect("existing entity target collection should build"),
-        )
-        .expect("binding should build");
+    let binding = existing_task_binding("authority:task-bootstrap", "public-entity-1");
 
     let error = workspace
-        .probe_existing(binding, ["title.value"])
+        .probe_existing_intent(
+            ForgeQueryExistingTruthProbeRequest::new(binding, ["title.value"])
+                .expect("probe request should build"),
+        )
+        .execute()
         .expect_err("common bootstrap lane should deny undeclared verification support");
 
     match error {

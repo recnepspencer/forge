@@ -129,6 +129,8 @@ impl ResearchGraphInvariantBoundarySource {
     }
 
     pub(crate) fn envelope_digest(&self) -> &str {
-        self.envelope.envelope_identity().terminal_projection_for_reporting()
+        self.envelope
+            .envelope_identity()
+            .terminal_projection_for_reporting()
     }
 }

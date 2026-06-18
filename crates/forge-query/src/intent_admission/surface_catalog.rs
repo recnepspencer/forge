@@ -18,11 +18,11 @@ pub(crate) const AUTHORITATIVE_MUTATION_RAW_ENTRYPOINT: &str =
 pub(crate) const AUTHORITATIVE_MUTATION_BATCH_RAW_ENTRYPOINT: &str =
     "ForgeQueryRawIntentAdmissionRequest::authoritative_write_batch_entrypoint(...)";
 pub(crate) const AUTHORITATIVE_MUTATION_FAMILY_COMMON_PATHS: &str =
-    "runtime.write(command); runtime.write_intent(command).execute(); runtime.write_batch(commands); runtime.write_batch_intent(commands).execute(); workspace.write(command); workspace.write_intent(command).execute(); workspace.write_batch_intent(commands).execute(); workspace.insert(collection, declaration); workspace.update(entity_identity, declaration); workspace.update_existing(binding, declaration); workspace.assert_existing(binding, declaration); workspace.verify_existing(binding, declaration); workspace.update_existing_verified(binding, verify, update); workspace.delete(entity_identity); workspace.delete_with(entity_identity, declaration); workspace.delete_existing(binding); workspace.delete_existing_with(binding, declaration); workspace.delete_existing_verified(binding, verify, delete); workspace.batch(declaration)";
+    "runtime.write(command); runtime.write_intent(command).execute(); runtime.write_batch(commands); runtime.write_batch_intent(commands).execute(); workspace.write_intent(command).execute(); workspace.write_batch_intent(commands).execute(); workspace.insert(collection, declaration); workspace.update(entity_identity, declaration); workspace.delete(entity_identity); workspace.delete_with(entity_identity, declaration); workspace.submissions()?.submit(command); workspace.submissions()?.submit_batch(commands)";
 pub(crate) const AUTHORITATIVE_MUTATION_COMMON_PATHS: &str =
-    "runtime.write(command); runtime.write_intent(command).execute(); workspace.write(command); workspace.write_intent(command).execute(); workspace.insert(collection, declaration); workspace.update(entity_identity, declaration); workspace.update_existing(binding, declaration); workspace.assert_existing(binding, declaration); workspace.verify_existing(binding, declaration); workspace.update_existing_verified(binding, verify, update); workspace.delete(entity_identity); workspace.delete_with(entity_identity, declaration); workspace.delete_existing(binding); workspace.delete_existing_with(binding, declaration); workspace.delete_existing_verified(binding, verify, delete)";
+    "runtime.write(command); runtime.write_intent(command).execute(); workspace.write_intent(command).execute(); workspace.insert(collection, declaration); workspace.update(entity_identity, declaration); workspace.delete(entity_identity); workspace.delete_with(entity_identity, declaration); workspace.submissions()?.submit(command)";
 pub(crate) const AUTHORITATIVE_MUTATION_BATCH_COMMON_PATHS: &str =
-    "runtime.write_batch(commands); runtime.write_batch_intent(commands).execute(); workspace.write_batch_intent(commands).execute(); workspace.batch(declaration)";
+    "runtime.write_batch(commands); runtime.write_batch_intent(commands).execute(); workspace.write_batch_intent(commands).execute(); workspace.submissions()?.submit_batch(commands)";
 pub(crate) const AUTHORITATIVE_MUTATION_FAMILY_ADVANCED_PATHS: &str =
     "runtime.write_intent(command).review()?.admit()?.execute(); runtime.write_batch_intent(commands).review()?.admit()?.execute(); workspace.write_intent(command).review()?.admit()?.execute(); workspace.write_batch_intent(commands).review()?.admit()?.execute()";
 pub(crate) const AUTHORITATIVE_MUTATION_ADVANCED_PATHS: &str =
@@ -97,6 +97,6 @@ pub(crate) const DERIVED_INSPECTION_ADVANCED_PATH: &str =
 pub(crate) const EXISTING_TRUTH_PROBE_RAW_ENTRYPOINT: &str =
     "ForgeQueryRawIntentAdmissionRequest::existing_truth_probe_entrypoint(...)";
 pub(crate) const EXISTING_TRUTH_PROBE_FAMILY_COMMON_PATHS: &str =
-    "runtime.probe_existing(request); runtime.probe_existing_intent(request).execute(); workspace.probe_existing(binding, paths); workspace.probe_existing_intent(request).execute()";
+    "runtime.probe_existing(request); runtime.probe_existing_intent(request).execute(); workspace.probe_existing_intent(request).execute()";
 pub(crate) const EXISTING_TRUTH_PROBE_ADVANCED_PATHS: &str =
     "runtime.probe_existing_intent(request).review()?.admit()?.execute(); workspace.probe_existing_intent(request).review()?.admit()?.execute()";

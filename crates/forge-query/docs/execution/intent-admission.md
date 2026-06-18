@@ -72,16 +72,15 @@ Advanced path:
 - `.execution_binding()`
 - `.execute()?`
 
-Thin delegate convenience wrappers now covered by the same lattice:
+Existing-truth work covered by the same lattice:
 
-- `workspace.verify_existing(...)`
-- `workspace.update_existing_verified(...)`
-- `workspace.delete_existing_verified(...)`
+- graph-composition existing-target update, retarget, supersession, and retirement lanes
+- graph-composition verified-existing lanes
 - `workspace.read(&view)`
 - `workspace.materialize(&view)`
 - `workspace.inspect(&view)`
 - `runtime.probe_existing(...)`
-- `workspace.probe_existing(...)`
+- `workspace.probe_existing_intent(request).execute()`
 
 Good to know:
 

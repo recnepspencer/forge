@@ -186,7 +186,10 @@ fn compat_http_state_and_inspection_stay_distinct_under_the_same_named_read() {
         ForgeQueryInspection::LiveView(live) => {
             assert_eq!(
                 inspection.direct_context().basis_digest(),
-                Some(live.basis_binding_identity().terminal_projection_for_reporting())
+                Some(
+                    live.basis_binding_identity()
+                        .terminal_projection_for_reporting()
+                )
             );
         }
         other => panic!("expected live inspection result, got {other:?}"),

@@ -37,7 +37,9 @@ impl<'a> RetainedTopologyRows<'a> {
     }
 
     pub(crate) fn identities(&self) -> impl Iterator<Item = String> + 'a {
-        self.rows.iter().filter_map(|row| retained_row_identity_label(row))
+        self.rows
+            .iter()
+            .filter_map(|row| retained_row_identity_label(row))
     }
 }
 

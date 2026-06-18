@@ -5,11 +5,11 @@ use crate::certification::topology_operator_closeout::report::{
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::interpret_topology_view;
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};
 use forge_query::facade::{ForgeQueryEntity, ForgeQueryEntityIdentity};
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
-use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 pub(super) fn first_source_identity_for_relation_kind(

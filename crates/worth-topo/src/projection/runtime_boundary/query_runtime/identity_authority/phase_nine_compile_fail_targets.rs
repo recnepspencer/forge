@@ -49,11 +49,10 @@ const COMPILE_FAIL_TARGETS: &[TopologyQueryRuntimePhaseNineCompileFailTarget] = 
     ),
 ];
 
-const GOLDEN_PATHS: &[TopologyQueryRuntimePhaseNineGoldenPath] = &[
-    TopologyQueryRuntimePhaseNineGoldenPath::new(
+const GOLDEN_PATHS: &[TopologyQueryRuntimePhaseNineGoldenPath] =
+    &[TopologyQueryRuntimePhaseNineGoldenPath::new(
         "tests/ui/query_runtime_phase_nine/golden/typed_mutation_receipt_golden_path.rs",
-    ),
-];
+    )];
 
 pub const fn topology_query_runtime_phase_nine_compile_fail_targets(
 ) -> &'static [TopologyQueryRuntimePhaseNineCompileFailTarget] {

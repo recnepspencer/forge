@@ -1,3 +1,5 @@
+use super::scope_strings::evidence_scope_as_str;
+
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryEvidenceScope {
@@ -150,6 +152,30 @@ pub enum ForgeQueryEvidenceScope {
     CausalInspectionCertificationFailureEvidence,
     RuntimePublicApiNamingRow,
     RuntimePublicApiNamingContract,
+    ConsumerEvidenceReportField,
+    ConsumerEvidenceReport,
+    ConsumerEvidenceReportFieldInventory,
+    ConsumerEvidenceReportDigestParticipation,
+    ConsumerEvidenceReportAdoptionFinding,
+    ConsumerEvidenceReportAdoptionResidue,
+    ConsumerEvidenceReportAdoptionReport,
+    ConsumerBoundaryAuditFinding,
+    ConsumerBoundaryAuditReport,
+    ConsumerBoundaryAuditCoverage,
+    ConsumerBoundaryAuditSourceInventory,
+    ConsumerSupportSnapshotSchema,
+    ConsumerSupportSnapshotRow,
+    ConsumerSupportSnapshotDocument,
+    ConsumerSupportPinContractSchema,
+    ConsumerSupportPinVocabulary,
+    ConsumerSupportPinRequirement,
+    ConsumerSupportPinObservedRow,
+    ConsumerSupportPinContract,
+    ConsumerSupportPinContractDocument,
+    ConsumerSupportPinFinding,
+    ConsumerSupportPinReport,
+    ConsumerTestBackendResidueFinding,
+    ConsumerTestBackendResidueReport,
     GraphCompositionDomainInvariantDenial,
     GraphCompositionInvariantViolation,
     ReadDomainInvariantDenial,
@@ -160,210 +186,14 @@ pub enum ForgeQueryEvidenceScope {
     ApplicationStopClassBoundaryClosure,
     ApplicationSessionLabelBoundaryClosure,
     ApplicationIdentityBoundaryClosure,
+    ApplicationConsumerKitFamilyClosure,
+    ApplicationConsumerKitHostileCertification,
+    ApplicationConsumerKitReferenceResidue,
+    ApplicationConsumerKitClosure,
 }
 
 impl ForgeQueryEvidenceScope {
     pub fn as_str(self) -> &'static str {
-        match self {
-            Self::RuntimePublicSupportMatrixRow => "runtime-public-support-matrix-row",
-            Self::RuntimePublicSupportMatrix => "runtime-public-support-matrix",
-            Self::RuntimePublicApiFamilyContract => "runtime-public-api-family-contract",
-            Self::RuntimePublicApiContract => "runtime-public-api-contract",
-            Self::RuntimePublicApiTranscriptEvidence => "runtime-public-api-transcript-evidence",
-            Self::RuntimeSubscriptionBudget => "runtime-subscription-budget",
-            Self::RuntimeHostileCertificationArtifact => "runtime-hostile-certification-artifact",
-            Self::RuntimeStateSnapshot => "runtime-state-snapshot",
-            Self::WorkflowContextBinding => "workflow-context-binding",
-            Self::WorkflowMutationLowering => "workflow-mutation-lowering",
-            Self::SubscriptionActivationReceipt => "subscription-activation-receipt",
-            Self::SignalInvalidationRoutingReceipt => "signal-invalidation-routing-receipt",
-            Self::LowerRuntimeCapabilitySubject => "lower-runtime-capability-subject",
-            Self::LowerRuntimeRouteSubject => "lower-runtime-route-subject",
-            Self::LowerRuntimeCapabilityRequest => "lower-runtime-capability-request",
-            Self::LowerRuntimeCapabilityEligibility => "lower-runtime-capability-eligibility",
-            Self::LowerRuntimeRoutePlan => "lower-runtime-route-plan",
-            Self::PreviewPromotionContinuation => "preview-promotion-continuation",
-            Self::LowerRuntimeReadmissionReceipt => "lower-runtime-readmission-receipt",
-            Self::LowerRuntimeBoundaryExecutionReceipt => {
-                "lower-runtime-boundary-execution-receipt"
-            }
-            Self::LowerRuntimeBoundaryAuthority => "lower-runtime-boundary-authority",
-            Self::LowerRuntimeBoundaryEvidence => "lower-runtime-boundary-evidence",
-            Self::LowerRuntimeBoundaryEnvelope => "lower-runtime-boundary-envelope",
-            Self::DeclarationBridgeRoutingDigest => "declaration-bridge-routing-digest",
-            Self::DeclarationBridgeLoweringIdentity => "declaration-bridge-lowering-identity",
-            Self::ContinuationExecutionReadmissionEvidence => {
-                "continuation-execution-readmission-evidence"
-            }
-            Self::ContinuationLinkedArtifacts => "continuation-linked-artifacts",
-            Self::ContinuationPreparedDigest => "continuation-prepared-digest",
-            Self::ContinuationExecutionTranscript => "continuation-execution-transcript",
-            Self::ContinuationExecutionDigest => "continuation-execution-digest",
-            Self::ViewShapePlanDigest => "view-shape-plan-digest",
-            Self::BasisDigest => "basis-digest",
-            Self::BridgeGroupedTruthViewDigest => "bridge-grouped-truth-view-digest",
-            Self::ReadGraphDigest => "read-graph-digest",
-            Self::SessionLabelIdentity => "session-label-identity",
-            Self::ResolvedSnapshotBasis => "resolved-snapshot-basis",
-            Self::BasisAdmissionEvidenceRow => "basis-admission-evidence-row",
-            Self::PreviewBasisAdmission => "preview-basis-admission",
-            Self::BranchBasisAdmission => "branch-basis-admission",
-            Self::RawBasisIntent => "raw-basis-intent",
-            Self::QueryContextCompatibilityBasisLabel => "query-context-compatibility-basis-label",
-            Self::BridgeLowerRuntimeEvidenceReference => "bridge-lower-runtime-evidence-reference",
-            Self::BridgeLowerRuntimeBasisBinding => "bridge-lower-runtime-basis-binding",
-            Self::ContinuationReadmissionBasis => "continuation-readmission-basis",
-            Self::ContinuationReadmissionLowerRuntimeBinding => {
-                "continuation-readmission-lower-runtime-binding"
-            }
-            Self::ContinuationReadmissionSourceBasis => "continuation-readmission-source-basis",
-            Self::SharedReadGeneration => "shared-read-generation",
-            Self::PreviewIntentAdmission => "preview-intent-admission",
-            Self::PreviewIntentReceipt => "preview-intent-receipt",
-            Self::IntentExecutionProvenanceChain => "intent-execution-provenance-chain",
-            Self::AuthoritativeIntentReceipt => "authoritative-intent-receipt",
-            Self::EffectIntentReceipt => "effect-intent-receipt",
-            Self::WriteReceiptCommitIdentity => "write-receipt-commit-identity",
-            Self::JournalPositionIdentity => "journal-position-identity",
-            Self::JournalSegmentIdentity => "journal-segment-identity",
-            Self::JournalReplayOutcome => "journal-replay-outcome",
-            Self::WriteReceiptSnapshotIdentity => "write-receipt-snapshot-identity",
-            Self::WriteReceiptEntityIdentity => "write-receipt-entity-identity",
-            Self::AuthoredCommandEntityIdentity => "authored-command-entity-identity",
-            Self::ExistingTruthResolvedTargetIdentity => "existing-truth-resolved-target-identity",
-            Self::ProjectionConsumptionIdentity => "projection-consumption-identity",
-            Self::ProjectionConsumptionCertificationIdentity => {
-                "projection-consumption-certification-identity"
-            }
-            Self::DomainCapabilityIdentity => "domain-capability-identity",
-            Self::DomainCapabilityCertificationIdentity => {
-                "domain-capability-certification-identity"
-            }
-            Self::ProjectionConsumedContinuityAuthorityIdentity => {
-                "projection-consumed-continuity-authority-identity"
-            }
-            Self::RuntimeBridgeWritebackAuthority => "runtime-bridge-writeback-authority",
-            Self::MutationEvidenceAuthorityIdentity => "mutation-evidence-authority-identity",
-            Self::MutationEvidenceTargetCollectionIdentity => {
-                "mutation-evidence-target-collection-identity"
-            }
-            Self::MutationEvidenceSymbolIdentity => "mutation-evidence-symbol-identity",
-            Self::MutationEvidenceSourceDigest => "mutation-evidence-source-digest",
-            Self::MutationEvidenceAggregateDigest => "mutation-evidence-aggregate-digest",
-            Self::EffectTriggerCommitIdentity => "effect-trigger-commit-identity",
-            Self::PreviewIntentBasisEvidence => "preview-intent-basis-evidence",
-            Self::PreviewIntentReceiptInspectionBasis => "preview-intent-receipt-inspection-basis",
-            Self::PreviewIntentReceiptInspection => "preview-intent-receipt-inspection",
-            Self::IntentInspectionDeliveryCounters => "intent-inspection-delivery-counters",
-            Self::IntentReceiptInspection => "intent-receipt-inspection",
-            Self::IntentDenialInspection => "intent-denial-inspection",
-            Self::EffectIntentReceiptPhase => "effect-intent-receipt-phase",
-            Self::EffectIntentReceiptInspection => "effect-intent-receipt-inspection",
-            Self::FeedbackPhaseGraph => "feedback-phase-graph",
-            Self::FeedbackPhaseGraphInspection => "feedback-phase-graph-inspection",
-            Self::BranchIntentReceiptInspectionBasis => "branch-intent-receipt-inspection-basis",
-            Self::BranchIntentReceiptInspection => "branch-intent-receipt-inspection",
-            Self::GenericInspectionIntentSeed => "generic-inspection-intent-seed",
-            Self::AuthoritativeMutationIntentSeed => "authoritative-mutation-intent-seed",
-            Self::AuthoritativeMutationBatchIntentSeed => {
-                "authoritative-mutation-batch-intent-seed"
-            }
-            Self::AuthoritativeMutationExecutionHandoff => {
-                "authoritative-mutation-execution-handoff"
-            }
-            Self::BranchIntentAdmission => "branch-intent-admission",
-            Self::BranchIntentReceipt => "branch-intent-receipt",
-            Self::IntentDenialEvidence => "intent-denial-evidence",
-            Self::IntentExecutionFailureEvidence => "intent-execution-failure-evidence",
-            Self::PreviewCloseoutEvidence => "preview-closeout-evidence",
-            Self::PreviewPromotionDenialEvidence => "preview-promotion-denial-evidence",
-            Self::PreviewExecutionEvidence => "preview-execution-evidence",
-            Self::PreviewPromotionRebinding => "preview-promotion-rebinding",
-            Self::PreviewWriteReceiptIdentity => "preview-write-receipt-identity",
-            Self::WriteReceiptInspectionArtifact => "write-receipt-inspection-artifact",
-            Self::WriteReceiptDeclaredAspectOperation => "write-receipt-declared-aspect-operation",
-            Self::WriteReceiptMutationMetadataEntry => "write-receipt-mutation-metadata-entry",
-            Self::BatchWriteReceipt => "batch-write-receipt",
-            Self::BatchWriteReceiptInspectionArtifact => "batch-write-receipt-inspection-artifact",
-            Self::BatchWriteReceiptComponent => "batch-write-receipt-component",
-            Self::BatchWriteReceiptSymbolicAspectResolution => {
-                "batch-write-receipt-symbolic-aspect-resolution"
-            }
-            Self::BatchWriteReceiptGraphResolution => "batch-write-receipt-graph-resolution",
-            Self::RetainedExistingTruthAssertionEvidence => {
-                "retained-existing-truth-assertion-evidence"
-            }
-            Self::LiveArtifactBundle => "live-artifact-bundle",
-            Self::GroupedExecutionSurfaceArtifact => "grouped-execution-surface-artifact",
-            Self::DerivedMaterializationBundle => "derived-materialization-bundle",
-            Self::PreviewBindingInspectionArtifact => "preview-binding-inspection-artifact",
-            Self::PreviewOutcomeInspectionArtifact => "preview-outcome-inspection-artifact",
-            Self::CausalObservationReceipt => "causal-observation-receipt",
-            Self::CausalObservationQuery => "causal-observation-query",
-            Self::CausalObservationBasis => "causal-observation-basis",
-            Self::CausalObservationTarget => "causal-observation-target",
-            Self::CausalResultShapeContext => "causal-result-shape-context",
-            Self::CausalQueryObservationReceipt => "causal-query-observation-receipt",
-            Self::CausalObservationAnchor => "causal-observation-anchor",
-            Self::CausalObservationAnchorCounters => "causal-observation-anchor-counters",
-            Self::CausalObservationAnchorFailure => "causal-observation-anchor-failure",
-            Self::CausalEvidenceReference => "causal-evidence-reference",
-            Self::CausalEvidenceReferenceReceipt => "causal-evidence-reference-receipt",
-            Self::CausalEvidenceReferenceResolutionCounters => {
-                "causal-evidence-reference-resolution-counters"
-            }
-            Self::CausalEvidenceReferenceResolutionDenial => {
-                "causal-evidence-reference-resolution-denial"
-            }
-            Self::CausalEvidenceReferenceIndex => "causal-evidence-reference-index",
-            Self::CausalEvidenceReferenceIndexRecord => "causal-evidence-reference-index-record",
-            Self::CausalEvidenceReferenceIndexError => "causal-evidence-reference-index-error",
-            Self::CausalInspectionTarget => "causal-inspection-target",
-            Self::CausalInspectionRequest => "causal-inspection-request",
-            Self::CausalInspectionRequestFailure => "causal-inspection-request-failure",
-            Self::CausalInspectionAdmissionSubject => "causal-inspection-admission-subject",
-            Self::CausalInspectionAdmissionDecision => "causal-inspection-admission-decision",
-            Self::CausalInspectionDecisionTraceRow => "causal-inspection-decision-trace-row",
-            Self::CausalInspectionDecisionTraceIndex => "causal-inspection-decision-trace-index",
-            Self::CausalInspectionAdmissionCounters => "causal-inspection-admission-counters",
-            Self::CausalInspectionAdmissionReceipt => "causal-inspection-admission-receipt",
-            Self::CausalInspectionOutcome => "causal-inspection-outcome",
-            Self::CausalInspectionMaterializedDetail => "causal-inspection-materialized-detail",
-            Self::CausalInspectionDeniedArtifactDetail => {
-                "causal-inspection-denied-artifact-detail"
-            }
-            Self::CausalInspectionArtifact => "causal-inspection-artifact",
-            Self::CausalInspectionArtifactIdentity => "causal-inspection-artifact-identity",
-            Self::CausalInspectionPerformanceSnapshot => "causal-inspection-performance-snapshot",
-            Self::CausalInspectionPerformanceSlope => "causal-inspection-performance-slope",
-            Self::CausalInspectionPerformanceScaleSlope => {
-                "causal-inspection-performance-scale-slope"
-            }
-            Self::CausalInspectionPerformanceCertificationBundle => {
-                "causal-inspection-performance-certification-bundle"
-            }
-            Self::CausalInspectionCertificationError => "causal-inspection-certification-error",
-            Self::CausalInspectionCertificationFailureEvidence => {
-                "causal-inspection-certification-failure-evidence"
-            }
-            Self::RuntimePublicApiNamingRow => "runtime-public-api-naming-row",
-            Self::RuntimePublicApiNamingContract => "runtime-public-api-naming-contract",
-            Self::GraphCompositionDomainInvariantDenial => {
-                "graph-composition-domain-invariant-denial"
-            }
-            Self::GraphCompositionInvariantViolation => "graph-composition-invariant-violation",
-            Self::ReadDomainInvariantDenial => "read-domain-invariant-denial",
-            Self::ReadInvariantViolation => "read-invariant-violation",
-            Self::ApplicationSupportSectionPosture => "application-support-section-posture",
-            Self::ApplicationSupportReport => "application-support-report",
-            Self::ApplicationEvidenceIdentityBoundaryClosure => {
-                "application-evidence-identity-boundary-closure"
-            }
-            Self::ApplicationStopClassBoundaryClosure => "application-stop-class-boundary-closure",
-            Self::ApplicationSessionLabelBoundaryClosure => {
-                "application-session-label-boundary-closure"
-            }
-            Self::ApplicationIdentityBoundaryClosure => "application-identity-boundary-closure",
-        }
+        evidence_scope_as_str(self)
     }
 }

@@ -36,7 +36,9 @@ pub fn runtime_backed_delivery_bundle(
     )
     .with_output_digest(
         Output::SurfaceContract,
-        delivery.downstream_delivery_contract().contract_for_reporting(),
+        delivery
+            .downstream_delivery_contract()
+            .contract_for_reporting(),
     )
     .with_output_digest(Output::Declaration, lease.declaration_digest())
     .with_output_digest(Output::Handoff, delivery.handoff_digest())

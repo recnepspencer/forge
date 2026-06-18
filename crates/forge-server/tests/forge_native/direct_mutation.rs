@@ -1,10 +1,10 @@
 use forge_proof::TransitionOutcome;
 use forge_query::facade::{
-    ForgeQueryAspectMutationBuilder, ForgeQueryExistingEntityTarget,
+    admit_authored_entity_token, ForgeQueryAspectMutationBuilder, ForgeQueryExistingEntityTarget,
     ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryExistingTruthTargetBinding,
     ForgeQueryMutationAuthorityIdentity, ForgeQueryRuntimeFacadeFamily,
     ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand,
-    QueryExternalIdentityToken, admit_authored_entity_token,
+    QueryExternalIdentityToken,
 };
 use forge_server::{
     ForgeServerDirectMutationOutcome, ForgeServerQueryHandoffDenialCode,
@@ -56,14 +56,8 @@ fn direct_single_mutation_returns_provenance_bearing_result_boundary() {
             .execution_provenance_chain_digest()
             .expect("single receipt should preserve execution provenance")
     );
-    assert_eq!(
-        inspection.commit_identity(),
-        receipt.commit_identity()
-    );
-    assert_eq!(
-        inspection.snapshot_identity(),
-        receipt.snapshot_identity()
-    );
+    assert_eq!(inspection.commit_identity(), receipt.commit_identity());
+    assert_eq!(inspection.snapshot_identity(), receipt.snapshot_identity());
     assert!(mutation
         .canonical_digest()
         .contains(mutation.handoff_digest()));
@@ -306,9 +300,9 @@ fn existing_binding(
                     .expect("existing-truth authority label"),
             )
             .expect("existing-truth authority identity"),
-            admit_authored_entity_token(
-                QueryExternalIdentityToken::new(std::sync::Arc::from(resolved_entity_identity)),
-            ),
+            admit_authored_entity_token(QueryExternalIdentityToken::new(std::sync::Arc::from(
+                resolved_entity_identity,
+            ))),
         )
         .expect("existing entity target should build")
         .in_target_collection("Task")

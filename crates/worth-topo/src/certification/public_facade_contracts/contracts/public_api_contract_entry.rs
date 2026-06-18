@@ -3,9 +3,8 @@ include!("public_api.rs");
 mod public_api_topology_workload_seeds {
     use topology::facade::{
         TopologySeed, TopologySeedCleanFailClass, TopologySeedCleanFailReasonCode,
-        TopologySeedCleanFailStage, TopologySeedCounters, TopologySeedEntityIdentities,
-        TopologySeedKind, TopologySeedNeighborhoodReceipt, TopologySeedQueryReceipts,
-        TopologySeedTopologyPosture, TopologySeedValidationReceipt,
+        TopologySeedCleanFailStage, TopologySeedCounters, TopologySeedKind,
+        TopologySeedTopologyPosture,
     };
 
     include!("topology_workload_seeds/invalid_topology_clean_fail.rs");

@@ -5,9 +5,9 @@ use super::*;
 use crate::derived_topology::materialized_graph::TopologyQueryMaterializationInput;
 
 fn entity_identity(partition: u32, slot: u64, generation: u32) -> ForgeQueryEntityIdentity {
-    ForgeQueryEntityIdentity::from_relational_record(
-        RelationalBridgeRecordIdentityParts::entity(partition, slot, generation),
-    )
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        partition, slot, generation,
+    ))
 }
 
 #[test]

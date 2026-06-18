@@ -11,9 +11,9 @@ fn relation(name: &str) -> RelationName {
 }
 
 fn entity_identity(partition: u32, slot: u64, generation: u32) -> ForgeQueryEntityIdentity {
-    ForgeQueryEntityIdentity::from_relational_record(
-        RelationalBridgeRecordIdentityParts::entity(partition, slot, generation),
-    )
+    ForgeQueryEntityIdentity::from_relational_record(RelationalBridgeRecordIdentityParts::entity(
+        partition, slot, generation,
+    ))
 }
 
 fn entity_label(partition: u32, slot: u64, generation: u32) -> String {

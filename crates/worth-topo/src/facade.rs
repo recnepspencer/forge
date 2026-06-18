@@ -23,22 +23,21 @@ pub use crate::projection::runtime_boundary::declared_query_surfaces::truth_surf
 };
 #[cfg(test)]
 pub(crate) use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
-pub use crate::projection::runtime_boundary::query_runtime::{
-    topology_runtime, TopologyRuntimeAdapters, TopologyRuntimeFailure,
-};
 #[doc(hidden)]
 pub use crate::projection::runtime_boundary::query_runtime::{
     topology_query_runtime_phase_eight_compile_fail_targets,
     topology_query_runtime_phase_eight_golden_paths,
     topology_query_runtime_phase_nine_compile_fail_targets,
-    topology_query_runtime_phase_nine_golden_paths,
-    PHASE_EIGHT_EXCLUDED_FOLKLORE_PATHS, PHASE_EIGHT_FORBIDDEN_SUBSTITUTION_PATTERNS,
-    PHASE_EIGHT_QUERY_RUNTIME_SCAN_PATHS,
+    topology_query_runtime_phase_nine_golden_paths, PHASE_EIGHT_EXCLUDED_FOLKLORE_PATHS,
+    PHASE_EIGHT_FORBIDDEN_SUBSTITUTION_PATTERNS, PHASE_EIGHT_QUERY_RUNTIME_SCAN_PATHS,
     PHASE_NINE_FORBIDDEN_SUBSTITUTION_PATTERNS, PHASE_NINE_QUERY_RUNTIME_SCAN_PATHS,
     TOPOLOGY_QUERY_RUNTIME_PHASE_EIGHT_COMPILE_FAIL_TARGET_COUNT,
     TOPOLOGY_QUERY_RUNTIME_PHASE_EIGHT_GOLDEN_PATH_COUNT,
     TOPOLOGY_QUERY_RUNTIME_PHASE_NINE_COMPILE_FAIL_TARGET_COUNT,
     TOPOLOGY_QUERY_RUNTIME_PHASE_NINE_GOLDEN_PATH_COUNT,
+};
+pub use crate::projection::runtime_boundary::query_runtime::{
+    topology_runtime, TopologyRuntimeAdapters, TopologyRuntimeFailure,
 };
 pub use crate::topology_operators::{
     topology_grouped_operator_neighborhood, topology_operator_continuation_target,
@@ -140,6 +139,4 @@ pub use crate::projection::runtime_boundary::query_runtime::{
     TopologyQueryMutationLaneSupportStatus,
 };
 #[cfg(test)]
-pub use crate::validation::{
-    validate_interpreted_topology, DerivedTopologyValidationReport,
-};
+pub use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};

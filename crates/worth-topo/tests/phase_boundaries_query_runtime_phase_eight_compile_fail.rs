@@ -77,9 +77,8 @@ fn assert_forbidden_patterns_absent(path: &std::path::Path, relative_path: &str)
     {
         return;
     }
-    let content = std::fs::read_to_string(path).unwrap_or_else(|error| {
-        panic!("folklore scan could not read `{relative_path}`: {error}")
-    });
+    let content = std::fs::read_to_string(path)
+        .unwrap_or_else(|error| panic!("folklore scan could not read `{relative_path}`: {error}"));
     for pattern in topology::facade::PHASE_EIGHT_FORBIDDEN_SUBSTITUTION_PATTERNS {
         assert!(
             !content.contains(pattern),

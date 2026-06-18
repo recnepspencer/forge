@@ -55,11 +55,20 @@ fn runtime_public_mutation_surface_report_lists_only_live_lower_level_command_su
         .expect("task runtime should open a named workspace");
     let report = workspace.public_mutation_surface_report();
 
-    assert_eq!(report.lower_level_stable_count(), 5);
+    assert_eq!(report.lower_level_stable_count(), 4);
     assert_eq!(report.support_gated_count(), 2);
     assert!(report
         .row_by_surface("ForgeQueryWriteCommand::Insert")
         .is_none());
+    assert_eq!(
+        report
+            .row_by_surface("workspace.submissions()?.submit_batch(commands)")
+            .expect("submission batch row should exist")
+            .posture(),
+        ForgeQueryMutationSurfacePosture::PreferredStable
+    );
+    assert!(report.row_by_surface("workspace.batch(...)").is_none());
+    assert!(report.row_by_surface("workspace.write(...)").is_none());
     assert_eq!(
         report
             .row_by_surface("ForgeQueryWriteCommand::InsertAspects")

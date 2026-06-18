@@ -1,6 +1,6 @@
 use forge_query::facade::{
-    ForgeQueryComputedBuilder, ForgeQueryDerivedPatch,
-    ForgeQueryDerivedView, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryComputedBuilder, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
+    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
     ForgeQueryDerivedViewMaterialization, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
     ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
 };
@@ -82,7 +82,9 @@ impl ForgeQueryDerivedViewMaintainer for TopologyMaterializedMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity("topology-materialized"),
+            crate::projection::runtime_boundary::query_support::derived_surface_commit_identity(
+                "topology-materialized",
+            ),
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {

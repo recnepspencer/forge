@@ -121,8 +121,6 @@ fn admit_compat_entity_identity(entity_identity: &str) -> ForgeQueryEntityIdenti
     RelationalBridgeRecordIdentityParts::from_bridge_entity_identity(entity_identity)
         .map(ForgeQueryEntityIdentity::from_relational_record)
         .unwrap_or_else(|| {
-            admit_authored_entity_token(QueryExternalIdentityToken::new(Arc::from(
-                entity_identity,
-            )))
+            admit_authored_entity_token(QueryExternalIdentityToken::new(Arc::from(entity_identity)))
         })
 }

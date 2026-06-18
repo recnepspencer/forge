@@ -165,11 +165,6 @@ impl From<ForgeQueryRecoveryStopKind> for TopologyDeclarationEntryStopClass {
             ForgeQueryRecoveryStopKind::Ambiguous => Self::Ambiguous,
             ForgeQueryRecoveryStopKind::AsyncRequestDrift => Self::AsyncRequestDrift,
             ForgeQueryRecoveryStopKind::AspectConflict => Self::AspectConflict,
-            ForgeQueryRecoveryStopKind::AsyncRequestDrift
-            | ForgeQueryRecoveryStopKind::PreviewCrossedResidue
-            | ForgeQueryRecoveryStopKind::RemaskDrift
-            | ForgeQueryRecoveryStopKind::ReplayDrift
-            | ForgeQueryRecoveryStopKind::StaleCompletion => Self::Stale,
             ForgeQueryRecoveryStopKind::AuthorityMismatch => Self::AuthorityMismatch,
             ForgeQueryRecoveryStopKind::BasisMismatch => Self::BasisMismatch,
             ForgeQueryRecoveryStopKind::ContributionDenied

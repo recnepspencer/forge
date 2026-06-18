@@ -10,9 +10,9 @@ use worth_geom::facade::PrimitiveStabilityClass;
 use crate::construction::authoring::{
     require_primitive_construction_query_authority, PrimitiveConstructionQueryEntryError,
 };
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::request::PrimitiveConstructionFamily;
+use crate::construction::tests::support::evidence_reports::sealed_report_identity;
 use crate::construction::tests::support::runtime_truth::{
     prepare_primitive_construction_certification_runtime_truth,
     PrimitiveConstructionCertificationRuntimeTruth,
@@ -47,6 +47,11 @@ pub(crate) fn prepare_primitive_construction_query_projection_consumption_surfac
     workspace: &mut ForgeQueryWorkspace,
     intent: PrimitiveConstructionIntent,
 ) -> Result<String, PrimitiveConstructionQueryProjectionConsumptionParityError> {
+    let write_contract_digest = workspace
+        .admit_public_api_family(ForgeQueryRuntimeFacadeFamily::Write)
+        .map_err(PrimitiveConstructionQueryProjectionConsumptionParityError::QueryRuntime)?
+        .contract_digest()
+        .to_string();
     let query_contract_digest = workspace
         .admit_public_api_family(ForgeQueryRuntimeFacadeFamily::Inspect)
         .map_err(PrimitiveConstructionQueryProjectionConsumptionParityError::QueryRuntime)?
@@ -92,19 +97,26 @@ pub(crate) fn prepare_primitive_construction_query_projection_consumption_surfac
         );
     }
 
-    Ok(digest_owned_parts(&[
-        outcome.family().as_str().to_string(),
-        query_contract_digest,
-        outcome
-            .required_query_families()
-            .iter()
-            .map(|family| format!("{family:?}"))
-            .collect::<Vec<_>>()
-            .join("|"),
-        outcome.read_surface().as_str().to_string(),
-        outcome.inspection_surface().as_str().to_string(),
-        outcome.fact_provenance().as_str().to_string(),
-        outcome.outcome_digest().to_string(),
-        true.to_string(),
-    ]))
+    Ok(sealed_report_identity(
+        "worth-kernel.construction.projection-consumption",
+        "projection-consumption-surface",
+        |report| {
+            report
+                .shape_participating("family", outcome.family().as_str())?
+                .value_participating("write-contract", write_contract_digest)?
+                .value_participating("query-contract", query_contract_digest)?
+                .value_sequence_participating(
+                    "required-query-families",
+                    outcome
+                        .required_query_families()
+                        .iter()
+                        .map(|family| format!("{family:?}")),
+                )?
+                .shape_participating("read-surface", outcome.read_surface().as_str())?
+                .shape_participating("inspection-surface", outcome.inspection_surface().as_str())?
+                .shape_participating("fact-provenance", outcome.fact_provenance().as_str())?
+                .value_participating("outcome", outcome.outcome_digest().to_string())?
+                .bool_participating("sanctioned-surface", true)
+        },
+    ))
 }

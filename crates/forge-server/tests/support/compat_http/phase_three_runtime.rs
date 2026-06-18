@@ -2,6 +2,10 @@
 
 use forge_proof::TransitionOutcome;
 use forge_query::facade::{
+    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryMutationDelta,
+    ForgeQueryMutationKind,
+};
+use forge_query::facade::{
     ForgeQueryEntity, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLivePatch,
     ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
     ForgeQueryRuntimeBackend, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
@@ -9,10 +13,6 @@ use forge_query::facade::{
     ForgeQuerySnapshotIdentity, ForgeQueryWorkspace, ForgeQueryWorkspaceError,
     ForgeQueryWriteCommand, ForgeQueryWriteReceipt, SubscriptionActivationInput,
     SubscriptionActivationReceipt,
-};
-use forge_query::facade::{
-    ForgeQueryCommitIdentity, ForgeQueryEntityIdentity, ForgeQueryMutationDelta,
-    ForgeQueryMutationKind,
 };
 use forge_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,

@@ -143,15 +143,12 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             let invalidation_identity = bridge_identity_projection(
                 record.invalidation_identity().bridge_admission_evidence(),
             );
-            let source_snapshot_identity = bridge_identity_projection(
-                record.source_snapshot().bridge_admission_evidence(),
-            );
-            let source_branch_identity = bridge_identity_projection(
-                record.source_branch().bridge_admission_evidence(),
-            );
-            let source_commit_identity = bridge_identity_projection(
-                record.source_commit().bridge_admission_evidence(),
-            );
+            let source_snapshot_identity =
+                bridge_identity_projection(record.source_snapshot().bridge_admission_evidence());
+            let source_branch_identity =
+                bridge_identity_projection(record.source_branch().bridge_admission_evidence());
+            let source_commit_identity =
+                bridge_identity_projection(record.source_commit().bridge_admission_evidence());
             route_identities.push(route_identity.clone());
             invalidation_identities.push(invalidation_identity.clone());
             snapshot_identities.push(source_snapshot_identity.clone());
@@ -165,9 +162,8 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             )
         }));
         historical_rows.extend(historical_records.iter().map(|record| {
-            let record_identity = bridge_identity_projection(
-                record.record_identity().bridge_admission_evidence(),
-            );
+            let record_identity =
+                bridge_identity_projection(record.record_identity().bridge_admission_evidence());
             let branch_identity = bridge_identity_projection(
                 record
                     .decision_log()
@@ -177,9 +173,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             let commit_identity = record
                 .decision_log()
                 .commit_identity()
-                .map(|identity| {
-                    bridge_identity_projection(identity.bridge_admission_evidence())
-                });
+                .map(|identity| bridge_identity_projection(identity.bridge_admission_evidence()));
             let snapshot_identity = bridge_identity_projection(
                 record
                     .decision_log()

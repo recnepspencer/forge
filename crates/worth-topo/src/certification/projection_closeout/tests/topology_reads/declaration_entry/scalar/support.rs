@@ -9,8 +9,8 @@ use crate::facade::{
     TopologyDetachShellOrWireMembershipDeclaration, TopologyRetireTopologyEntityDeclaration,
     TopologyRewireLoopEndpointDeclaration, TopologySpliceRadialAdjacencyDeclaration,
 };
-use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
+use crate::projection::runtime_boundary::query_support::query_entity_identity_reporting_label;
 use crate::projection::{query_entity_id_from_row, query_relation_id_from_row};
 use forge_query::facade::ForgeQueryWorkspace;
 

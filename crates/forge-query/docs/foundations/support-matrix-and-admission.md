@@ -102,6 +102,25 @@ Good to know:
 4. admitted families return a sealed family contract
 5. deferred or unsupported families deny typed and early
 
+## Consumer Snapshots And Pins
+
+For downstream consumers, live support inspection is not always enough. A crate
+may need to freeze the rows it depends on and fail its own build when those
+rows regress. Use the [Consumer Kit](consumer-kit.md) for that job.
+
+The consumer path is:
+
+1. project the live matrix with `project_workspace_support_snapshot(...)`
+2. export or load the schema-versioned support snapshot document when needed
+3. declare required rows with `support_pinning_contract(...)`
+4. evaluate the pin contract against the snapshot
+5. fail through typed `ForgeQuerySupportPinFinding` rows when required posture
+   regresses
+
+Support snapshots are projections of this matrix. They are not a second support
+authority. Support pins bind to typed row identity and live row digests; a
+local list of required family names is not real pinning.
+
 ## Small Example
 
 ```rust

@@ -19,8 +19,8 @@ artifact, orchestration, grouping, and recovery model.
   Typed domain entry, declaration pipeline, helpers, grouped work, recovery,
   continuation, and certification.
 - `foundations/`
-  Runtime posture, support, operating modes, policy/tenant narrowing, workspace,
-  and preview or branch context.
+  Runtime posture, support, operating modes, consumer proof, policy/tenant
+  narrowing, workspace, and preview or branch context.
 - `authoring/`
   Query authoring, read composition, collections/cursors, parallel admission,
   templates, and reusable shapes.
@@ -47,6 +47,9 @@ artifact, orchestration, grouping, and recovery model.
   [Recipes](./domain-capabilities/recipes/README.md)
 - if you need runtime posture and support context first:
   [foundations/support-matrix-and-admission.md](./foundations/support-matrix-and-admission.md)
+- if you need downstream consumer proof, support pins, audits, or test
+  workspaces:
+  [foundations/consumer-kit.md](./foundations/consumer-kit.md)
 - if you need store-backed vs runtime-backed honesty:
   [foundations/query-operating-modes.md](./foundations/query-operating-modes.md)
 - if you need policy, tenant, or relationship-proof narrowing:
@@ -64,6 +67,7 @@ artifact, orchestration, grouping, and recovery model.
 
 ## Foundations (feature docs)
 
+- [Consumer Kit](./foundations/consumer-kit.md)
 - [Query operating modes](./foundations/query-operating-modes.md)
 - [Policy, tenant, and relationship-proof narrowing](./foundations/policy-tenant-and-relationship-proof-narrowing.md)
 

@@ -265,14 +265,31 @@ pub struct ForgeQueryLivePatch {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryWorkspaceError {
+    kind: ForgeQueryWorkspaceErrorKind,
     message: String,
 }
 
 impl ForgeQueryWorkspaceError {
     pub fn new(message: impl Into<String>) -> Self {
         Self {
+            kind: ForgeQueryWorkspaceErrorKind::Unclassified,
             message: message.into(),
         }
+    }
+
+    pub fn with_kind(kind: ForgeQueryWorkspaceErrorKind, message: impl Into<String>) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+        }
+    }
+
+    pub fn kind(&self) -> ForgeQueryWorkspaceErrorKind {
+        self.kind
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
     }
 }
 
@@ -283,6 +300,15 @@ impl std::fmt::Display for ForgeQueryWorkspaceError {
 }
 
 impl std::error::Error for ForgeQueryWorkspaceError {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForgeQueryWorkspaceErrorKind {
+    Unclassified,
+    UnsupportedCollection,
+    UnsupportedWriteFamily,
+    EmptySchema,
+    BatchAtomicityUnsupported,
+}
 
 pub struct ForgeQueryMemoryWorkspace {
     runtime: RelationalRuntime,

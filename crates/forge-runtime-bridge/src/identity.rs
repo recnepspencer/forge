@@ -210,7 +210,9 @@ impl<Tag> BridgeIdentity<Tag> {
 
     pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
         BridgeIdentityEvidence::from_external_authority(
-            crate::identity_authority::bridge_truth_external_identity_token(Arc::clone(&self.value)),
+            crate::identity_authority::bridge_truth_external_identity_token(Arc::clone(
+                &self.value,
+            )),
         )
     }
 }
