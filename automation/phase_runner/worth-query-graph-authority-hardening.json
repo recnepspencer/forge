@@ -1,0 +1,290 @@
+{
+  "schema_version": 1,
+  "state_revision": 0,
+  "current": {
+    "phase": 1,
+    "turn": "plan"
+  },
+  "project": {
+    "name": "Worth Query Graph Authority Hardening Gate",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worktree_2",
+    "spec_file": "_docs\\worth\\worth-query-graph-authority-hardening-gate.md",
+    "context_files": [
+      "_docs\\coding_guidelines\\MENTALITY.md",
+      "_docs\\coding_guidelines\\arch_laws.md",
+      "_docs\\coding_guidelines\\composition_laws.md",
+      "_docs\\coding_guidelines\\domain_structure_laws.md",
+      "_docs\\coding_guidelines\\perf_laws.md",
+      "crates\\forge-query\\docs\\AI_README.md",
+      "_docs\\worth\\milestone-7.3.md",
+      "_docs\\worth\\milestone-7.4.md"
+    ]
+  },
+  "session": {
+    "command": "C:\\nvm4w\\nodejs\\codex.cmd",
+    "model": "gpt-5.5",
+    "reasoning_effort": "medium",
+    "thread_id": null,
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review.md",
+    "repair": "templates/repair.md",
+    "close": "templates/close.md"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Global Discovery And Gate Harness",
+      "owner": "cross-crate",
+      "scope": [
+        "crates\\worth-topo",
+        "crates\\worth-spatial",
+        "crates\\worth-kernel",
+        "crates\\forge-query",
+        "_docs\\worth\\worth-query-graph-authority-hardening-gate.md"
+      ],
+      "acceptance": [
+        "machine-readable inventory and deletion ledger exist",
+        "unclassified audited source rows fail certification",
+        "root authority family discovery records are represented",
+        "lower-authority promotion compile-fail plan is explicit"
+      ],
+      "instructions": "Build the generic scoreboard first. Prefer compiler-led discovery and typed inventory/deletion rows over prose. Do not begin crate cleanup beyond what is needed to expose and classify the roots.",
+      "qa_focus": "Inventory completeness, deletion-ledger action honesty, no filename-only classification, no production debt hidden as certification language.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Forge Query Contract Baseline",
+      "owner": "forge-query contract",
+      "scope": [
+        "crates\\forge-query\\src",
+        "crates\\forge-query\\docs",
+        "crates\\forge-query\\tests",
+        "_docs\\worth\\worth-query-graph-authority-hardening-gate.md"
+      ],
+      "acceptance": [
+        "canonical Query graph obligation and Consumer Kit surfaces are named",
+        "Worth cannot substitute local adoption status for graph execution proof",
+        "missing Query capability blockers become query-gap rows"
+      ],
+      "instructions": "Pin the Query surfaces Worth may consume before rewriting crate internals. Keep this phase short and contract-focused; do not build Worth-local substitutes for missing Query capabilities.",
+      "qa_focus": "Query proof vocabulary exactness, Consumer Kit usage, no local required-family lists, no fabricated receipts, query-gap rows for real blockers.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "`worth-topo` Authority Cleanup And QA",
+      "owner": "worth-topo",
+      "scope": [
+        "crates\\worth-topo\\src\\topology_operators\\adoption",
+        "crates\\worth-topo\\src\\topology_operators\\edge_split_blueprint",
+        "crates\\worth-topo\\src\\topology_operators\\loop_reconstruction_blueprint",
+        "crates\\worth-topo\\src\\construction\\query_native_boundary",
+        "crates\\worth-topo\\src\\certification"
+      ],
+      "acceptance": [
+        "cargo check -p worth-topo",
+        "topology operator catalog lowers to Query descriptors and registrations",
+        "raw handoff, admitted handoff, compose execution, denial, receipt, and envelope are phase-typed",
+        "topo public facade exposes proof/status without forgeable internals",
+        "topo deletion ledger rows are resolved"
+      ],
+      "instructions": "Clean worth-topo as one vertical slice. Topology owns topology semantics; Query owns graph obligation selection and execution authority. Include facade and compile-fail lockdown in this phase.",
+      "qa_focus": "Blueprint proof-obligation duplication, local guard residue, handoff-only promotion, public constructor leakage, topology geometry boundary violations.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "`worth-spatial` Evidence Cleanup And QA",
+      "owner": "worth-spatial",
+      "scope": [
+        "crates\\worth-spatial\\src\\query_adoption",
+        "crates\\worth-spatial\\src\\workload_platform\\evidence_ledger",
+        "crates\\worth-spatial\\src\\workload_platform\\planar_boolean_events",
+        "crates\\worth-spatial\\src\\workload_platform\\planar_boolean_edge_splitting",
+        "crates\\worth-spatial\\src\\workload_platform\\planar_boolean_loop_reconstruction",
+        "crates\\worth-spatial\\src\\certification"
+      ],
+      "acceptance": [
+        "cargo check -p worth-spatial",
+        "spatial evidence cannot satisfy Query graph authority by itself",
+        "production evidence lookup uses typed evidence-stage index products",
+        "raw evidence rows and string stage links cannot satisfy production APIs",
+        "split and loop ledger identities remain replay-stable"
+      ],
+      "instructions": "Clean worth-spatial as one vertical slice. Spatial owns geometry evidence, witnesses, tolerances, events, split/loop evidence, and replay parity. It must not promote spatial evidence into Query graph authority.",
+      "qa_focus": "Spatial graph-authority promotion, raw evidence scan leftovers, copied row vectors, string-prefix stage linkage, digest drift after Query accompaniment.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "`worth-kernel` Construction Authority Cleanup And QA",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates\\worth-kernel\\src\\query_adoption",
+        "crates\\worth-kernel\\src\\construction\\query_authority",
+        "crates\\worth-kernel\\src\\construction\\graph_obligation_adoption",
+        "crates\\worth-kernel\\src\\construction\\phase_chain",
+        "crates\\worth-kernel\\src\\construction\\result_surface",
+        "crates\\worth-kernel\\src\\workload_composition",
+        "crates\\worth-kernel\\src\\certification"
+      ],
+      "acceptance": [
+        "cargo check -p worth-kernel",
+        "covered primitive construction birth executes through Query graph authority",
+        "handoff-only construction proof is rejected or explicit residue",
+        "primitive family inventory is mechanically consistent or residue",
+        "primitive birth selector is exact or blocked by query-gap"
+      ],
+      "instructions": "Clean worth-kernel as one vertical slice. Kernel owns construction orchestration and workload composition; it must consume lower-crate receipts and Query proof rather than forging authority.",
+      "qa_focus": "Handoff-only proof, broad primitive birth selector matching, support summary duplication, primitive family count drift, lower-authority compile-fail gaps.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Boolean Chain Integration And Ledger Exclusivity",
+      "owner": "cross-crate boolean chain",
+      "scope": [
+        "crates\\worth-spatial\\src\\workload_platform\\planar_boolean_edge_splitting",
+        "crates\\worth-spatial\\src\\workload_platform\\planar_boolean_loop_reconstruction",
+        "crates\\worth-kernel\\src\\workload_composition",
+        "crates\\worth-topo\\src\\topology_operators",
+        "crates\\worth-kernel\\src\\certification",
+        "crates\\worth-spatial\\src\\certification"
+      ],
+      "acceptance": [
+        "7.5-facing consumers accept ledger receipts plus required Query proof",
+        "raw split fragments, continuation maps, copied digests, and local graph legality rows are rejected",
+        "Query graph evidence does not change split or loop ledger digest identity",
+        "remaining boolean prep ceremony is explicit capped residue"
+      ],
+      "instructions": "Fence the boolean handoff surface that 7.5+ will inherit. Do not implement 7.5 overlap-region extraction. Preserve 7.3 split-ledger and 7.4 loop-ledger exclusivity.",
+      "qa_focus": "Raw fact reopening, ledger digest drift, Query proof replacing domain ledgers, accidental 7.5 functionality, local graph legality leaks.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Performance And Complexity Contracts",
+      "owner": "cross-crate counters",
+      "scope": [
+        "crates\\worth-topo",
+        "crates\\worth-spatial",
+        "crates\\worth-kernel",
+        "crates\\forge-query",
+        "_docs\\worth\\worth-query-graph-authority-hardening-gate.md"
+      ],
+      "acceptance": [
+        "graph obligation selection exposes exact structural counters",
+        "evidence-stage lookup exposes exact indexed lookup counters",
+        "production broad scans fail where indexed products are required",
+        "large admitted boolean-prep workload scales with declared breadth"
+      ],
+      "instructions": "Add performance-visible proof after crate-local cleanup has removed transitional paths. Use structural counters, not elapsed-time claims.",
+      "qa_focus": "Hidden broad scans, repeated selector rediscovery, timing-as-proof, counters hidden away from the boundary being claimed.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "Cross-Crate Closeout Certification",
+      "owner": "cross-crate closeout",
+      "scope": [
+        "crates\\worth-topo",
+        "crates\\worth-spatial",
+        "crates\\worth-kernel",
+        "crates\\forge-query",
+        "_docs\\worth",
+        "automation\\phase_runner\\worth-query-graph-authority-hardening.json"
+      ],
+      "acceptance": [
+        "cargo check -p worth-topo -p worth-spatial -p worth-kernel",
+        "closeout matrix covers every Phase 1 audited source",
+        "public facades expose adoption/proof posture through ordinary APIs",
+        "synthetic proof, local support pins, copied rows, handoff-only receipts, raw vectors, and string links fail closeout",
+        "closeout doc states residue and Query gaps before broad 7.5 work"
+      ],
+      "instructions": "Close the gate only after the certification suite exists. Prove zero silent covered-lane bypass and report deletion/residue/query-gap counts by class.",
+      "qa_focus": "API-presence-only closeout, happy-path-only proof, residue deletion without anti-bypass tests, roadmap/spec drift, unowned remaining debt.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    }
+  ],
+  "history": []
+}
