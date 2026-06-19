@@ -60,7 +60,9 @@ impl ForgeServerUploadCleanupReceipt {
             stored_ingress.workspace_digest(),
             stored_ingress.branch_digest(),
             performance_receipt.counter(CLEANUP_OPERATIONS).unwrap_or(0),
-            performance_receipt.counter(CLEANUP_STAGED_BYTES).unwrap_or(0),
+            performance_receipt
+                .counter(CLEANUP_STAGED_BYTES)
+                .unwrap_or(0),
         );
         Self {
             reason,

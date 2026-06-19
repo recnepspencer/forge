@@ -76,12 +76,12 @@ fn lower_command(
             builder
                 .build_update(admit_compat_entity_identity(entity_identity))
                 .map_err(|error| {
-                ForgeServerQueryHandoffDenial::new(
-                    ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
-                    diagnostics_profile,
-                    error.to_string(),
-                )
-            })
+                    ForgeServerQueryHandoffDenial::new(
+                        ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
+                        diagnostics_profile,
+                        error.to_string(),
+                    )
+                })
         }
         ForgeServerCompatibilityMutationCommand::Delete {
             entity_identity,
@@ -100,12 +100,12 @@ fn lower_command(
             builder
                 .build_delete(admit_compat_entity_identity(entity_identity))
                 .map_err(|error| {
-                ForgeServerQueryHandoffDenial::new(
-                    ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
-                    diagnostics_profile,
-                    error.to_string(),
-                )
-            })
+                    ForgeServerQueryHandoffDenial::new(
+                        ForgeServerQueryHandoffDenialCode::CompatibilityMutationRequestInvalid,
+                        diagnostics_profile,
+                        error.to_string(),
+                    )
+                })
         }
         ForgeServerCompatibilityMutationCommand::VerifyExisting { .. } => {
             Err(ForgeServerQueryHandoffDenial::new(

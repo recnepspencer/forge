@@ -17,7 +17,9 @@ use crate::{
         admitted_named_read, family_contract_digest, forge_native_session, operator_evidence_record,
     },
     forge_native_runtime::{build_server, build_server_with_workspace_provider},
-    query_handoff_fixture::{admit_read, request_input, resolve_request_context, success},
+    query_handoff_fixture::{
+        admit_delivery_posture, request_input, resolve_request_context, success,
+    },
     query_handoff_runtime::TestWorkspaceProvider,
 };
 
@@ -97,7 +99,7 @@ fn direct_delivery_contract_preserves_query_handoff_posture_parity() {
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_delivery_posture(
                     &server,
                     resolve_request_context(
                         &server,
@@ -106,6 +108,7 @@ fn direct_delivery_contract_preserves_query_handoff_posture_parity() {
                             ForgeServerTransportClass::CompatHttp,
                         ),
                     ),
+                    lease.resume_basis_digest(),
                 ),
                 ForgeServerQueryHandoffOperation::downstream_delivery(
                     "users.profile",

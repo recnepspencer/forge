@@ -7,7 +7,7 @@ use forge_server::{
 use crate::{
     certification_bundle::ForgeServerCertificationOutputDigest as Output,
     forge_native_assertions::{admitted_named_read, family_contract_digest},
-    query_handoff_fixture::{admit_read, request_input, resolve_request_context, success},
+    query_handoff_fixture::{admit_read_posture, request_input, resolve_request_context, success},
 };
 
 use crate::certification_bundle::ForgeServerCertificationBundle;
@@ -101,12 +101,11 @@ pub fn compatibility_overlap_bundle(
             ForgeServerTransportClass::CompatHttp,
         ),
     );
-    let admission = admit_read(server, request_context);
     let handoff = success(
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admission,
+                admit_read_posture(server, request_context),
                 ForgeServerQueryHandoffOperation::query_read(operation_name),
             )),
     );

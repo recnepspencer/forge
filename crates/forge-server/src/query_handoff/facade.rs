@@ -15,6 +15,10 @@ impl ForgeServerQueryHandoffFacade {
         Self { config }
     }
 
+    pub(crate) fn config(&self) -> &ForgeServerQueryHandoffConfig {
+        &self.config
+    }
+
     pub fn prepare(&self, input: ForgeServerQueryHandoffInput) -> ForgeServerQueryHandoffOutcome {
         prepare_query_handoff(&self.config, input)
     }

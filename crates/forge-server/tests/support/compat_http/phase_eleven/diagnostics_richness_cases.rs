@@ -122,6 +122,7 @@ fn compat_http_phase_eleven_certification_bundle_honors_server_operator_evidence
                 .build()
                 .expect("server config should validate"),
         )
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults())
         .register_surface(ForgeNativeSurface::enabled())
         .register_surface(CompatHttpSurface::phase_one_enabled())
         .build()

@@ -3,7 +3,8 @@ use forge_foundational::facade::DiagnosticRichnessProfile;
 use crate::{
     ForgeServerDenial, ForgeServerDenialCode, ForgeServerDenialPriority, ForgeServerPipelineStep,
     ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffDenialCode,
-    ForgeServerRequestContextDenial, ForgeServerRequestContextDenialCode,
+    ForgeServerQueryHandoffDenialFamily, ForgeServerRequestContextDenial,
+    ForgeServerRequestContextDenialCode,
 };
 
 use super::{receipt::ForgeServerResponseReceipt, ForgeServerResponseTransform};
@@ -183,6 +184,20 @@ impl ForgeServerDenialEnvelope {
     pub fn query_handoff_code(&self) -> Option<ForgeServerQueryHandoffDenialCode> {
         match self.cause {
             ForgeServerDenialCause::QueryHandoff { code, .. } => Some(code),
+            _ => None,
+        }
+    }
+
+    pub fn query_handoff_family(&self) -> Option<ForgeServerQueryHandoffDenialFamily> {
+        match self.cause {
+            ForgeServerDenialCause::QueryHandoff { code, .. } => Some(
+                ForgeServerQueryHandoffDenial::new(
+                    code,
+                    self.diagnostics_profile,
+                    self.cause.detail(),
+                )
+                .family(),
+            ),
             _ => None,
         }
     }

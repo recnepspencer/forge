@@ -14,15 +14,15 @@ mod query_handoff_fixture;
 mod query_handoff_runtime;
 
 use query_handoff_fixture::{
-    admit_mutation, admit_read, denied, request_input, resolve_request_context, test_server,
-    test_server_with_middleware,
+    admit_mutation_posture, admit_read_posture, denied, request_input, resolve_request_context,
+    test_server, test_server_with_middleware,
 };
 use query_handoff_runtime::{ProfiledTestWorkspaceProvider, TestWorkspaceProvider};
 
 #[test]
 fn prepare_denies_durable_resume_but_admits_runtime_backed_resume() {
     let server = test_server(TestWorkspaceProvider::default(), false);
-    let admission = admit_read(
+    let admission = admit_read_posture(
         &server,
         resolve_request_context(
             &server,
@@ -78,7 +78,7 @@ fn prepare_denies_mismatched_read_intent_before_query_binding() {
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     &server,
                     resolve_request_context(
                         &server,
@@ -116,7 +116,7 @@ fn prepare_denies_read_handoff_when_query_workspace_does_not_admit_read_family()
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     &server,
                     resolve_request_context(
                         &server,
@@ -157,7 +157,7 @@ fn prepare_denies_downstream_delivery_when_query_workspace_does_not_admit_live_f
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     &server,
                     resolve_request_context(
                         &server,
@@ -195,7 +195,7 @@ fn prepare_denies_downstream_delivery_when_middleware_only_admitted_mutation_int
             .build()
             .expect("middleware config should validate"),
     );
-    let mutation_admission = admit_mutation(
+    let mutation_admission = admit_mutation_posture(
         &server,
         resolve_request_context(
             &server,

@@ -1,4 +1,8 @@
 use forge_proof::{TransitionOutcome, TransitionReadiness};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     declaration_intake::ForgeServerDirectDeclarationIntakeFacade,
@@ -12,7 +16,10 @@ use crate::{
         ForgeServerForgeNativePreparedSession, ForgeServerForgeNativeSession,
         ForgeServerForgeNativeSurfaceRoot,
     },
+    operation_registry::ForgeServerOperationRegistry,
+    product_operation_contract::ForgeServerStoredProductOperation,
     ForgeServerMiddlewareFacade, ForgeServerPipelineInput, ForgeServerPipelineIntent,
+    ForgeServerProductAdapterRegistry, ForgeServerProductSessionRegistry,
     ForgeServerQueryHandoffFacade, ForgeServerRequestContextFacade, ForgeServerRequestContextInput,
     ForgeServerResponseFacade, ForgeServerSurfaceFamily, ForgeServerTransportClass,
 };
@@ -38,6 +45,10 @@ pub type ForgeServerForgeNativeSessionOutcome = TransitionOutcome<
 #[derive(Clone, Debug)]
 pub struct ForgeServerForgeNativeFacade {
     root: ForgeServerForgeNativeSurfaceRoot,
+    operation_registry: ForgeServerOperationRegistry,
+    product_adapter_registry: ForgeServerProductAdapterRegistry,
+    product_session_registry: ForgeServerProductSessionRegistry,
+    product_operation_replay_store: Arc<Mutex<HashMap<String, ForgeServerStoredProductOperation>>>,
     request_contexts: ForgeServerRequestContextFacade,
     middleware: ForgeServerMiddlewareFacade,
     declaration_intake: ForgeServerDirectDeclarationIntakeFacade,
@@ -48,6 +59,12 @@ pub struct ForgeServerForgeNativeFacade {
 impl ForgeServerForgeNativeFacade {
     pub(crate) fn new(
         root: ForgeServerForgeNativeSurfaceRoot,
+        operation_registry: ForgeServerOperationRegistry,
+        product_adapter_registry: ForgeServerProductAdapterRegistry,
+        product_session_registry: ForgeServerProductSessionRegistry,
+        product_operation_replay_store: Arc<
+            Mutex<HashMap<String, ForgeServerStoredProductOperation>>,
+        >,
         request_contexts: ForgeServerRequestContextFacade,
         middleware: ForgeServerMiddlewareFacade,
         declaration_intake: ForgeServerDirectDeclarationIntakeFacade,
@@ -56,6 +73,10 @@ impl ForgeServerForgeNativeFacade {
     ) -> Self {
         Self {
             root,
+            operation_registry,
+            product_adapter_registry,
+            product_session_registry,
+            product_operation_replay_store,
             request_contexts,
             middleware,
             declaration_intake,
@@ -66,6 +87,10 @@ impl ForgeServerForgeNativeFacade {
 
     pub fn root(&self) -> ForgeServerForgeNativeSurfaceRoot {
         self.root
+    }
+
+    pub fn operation_registry(&self) -> &ForgeServerOperationRegistry {
+        &self.operation_registry
     }
 
     pub fn prepare_session(
@@ -121,6 +146,11 @@ impl ForgeServerForgeNativeFacade {
             TransitionOutcome::Success(admission) => {
                 TransitionOutcome::success(ForgeServerForgeNativePreparedSession::new(
                     admission,
+                    self.operation_registry.clone(),
+                    self.product_adapter_registry.clone(),
+                    self.product_session_registry.clone(),
+                    self.product_operation_replay_store.clone(),
+                    self.query_handoff.config().clone(),
                     self.declaration_intake.clone(),
                     self.query_handoff.clone(),
                     self.responses.clone(),

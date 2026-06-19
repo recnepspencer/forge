@@ -88,3 +88,119 @@ impl ForgeServerBinaryRetryPosture {
         }
     }
 }
+
+pub(super) fn derive_retry_posture(
+    read: &crate::ForgeServerCompatibilityRead,
+    download: &crate::ForgeServerBinaryDownloadRequest,
+    selected_start: usize,
+    selected_end_exclusive: usize,
+    head_only: bool,
+    range_honored: bool,
+    diagnostics_profile: forge_foundational::DiagnosticRichnessProfile,
+) -> Result<ForgeServerBinaryRetryPosture, crate::ForgeServerQueryHandoffDenial> {
+    let Some(resume_request) = download.resume_request() else {
+        return Ok(ForgeServerBinaryRetryPosture::ordinary(range_honored));
+    };
+    if head_only {
+        return Err(crate::ForgeServerQueryHandoffDenial::new(
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+            diagnostics_profile,
+            "HEAD binary egress does not admit resumed byte delivery claims",
+        ));
+    }
+    if resume_request.require_restart_stable_claim()
+        && matches!(
+            read.support_posture().durable_resume_support_posture(),
+            forge_query::facade::ForgeQueryLowerRuntimeSupportPosture::Deferred
+                | forge_query::facade::ForgeQueryLowerRuntimeSupportPosture::Forbidden
+        )
+    {
+        return Err(crate::ForgeServerQueryHandoffDenial::new(
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+            diagnostics_profile,
+            format!(
+                "restart-stable resume is not admitted for this binary delivery posture: `{}`",
+                read.support_posture()
+                    .durable_resume_support_posture()
+                    .as_str()
+            ),
+        ));
+    }
+    let session_resume = resume_request.session_resume();
+    if selected_start != session_resume.expected_next_start() {
+        return Err(crate::ForgeServerQueryHandoffDenial::new(
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+            diagnostics_profile,
+            format!(
+                "resume request expected byte {} but selected byte {}",
+                session_resume.expected_next_start(),
+                selected_start
+            ),
+        ));
+    }
+    if download.content_type() != session_resume.content_type() {
+        return Err(crate::ForgeServerQueryHandoffDenial::new(
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+            diagnostics_profile,
+            "resume request changed the canonical binary download artifact or policy story",
+        ));
+    }
+    if download.authorization().canonical_digest() != session_resume.authorization_digest() {
+        return Err(crate::ForgeServerQueryHandoffDenial::new(
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+            diagnostics_profile,
+            "resume request widened the admitted authorization window",
+        ));
+    }
+    if download.payload_digest() != session_resume.full_representation_digest() {
+        return Err(crate::ForgeServerQueryHandoffDenial::new(
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+            diagnostics_profile,
+            format!(
+                "resume integrity digest mismatch: expected full digest `{}` but observed `{}`",
+                session_resume.full_representation_digest(),
+                download.payload_digest()
+            ),
+        ));
+    }
+    if read.validator().entity_tag() != session_resume.validator_entity_tag() {
+        return Err(crate::ForgeServerQueryHandoffDenial::new(
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+            diagnostics_profile,
+            format!(
+                "resume validator mismatch: expected `{}` but observed `{}`",
+                session_resume.validator_entity_tag(),
+                read.validator().entity_tag()
+            ),
+        ));
+    }
+    if read.direct_context().workspace_digest() != session_resume.workspace_digest() {
+        return Err(crate::ForgeServerQueryHandoffDenial::new(
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+            diagnostics_profile,
+            "resume request crossed into a different workspace delivery context",
+        ));
+    }
+    if read.direct_context().branch_digest() != session_resume.branch_digest() {
+        return Err(crate::ForgeServerQueryHandoffDenial::new(
+            crate::ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+            diagnostics_profile,
+            "resume request crossed into a different branch delivery context",
+        ));
+    }
+    if let Some(expected_integrity) = resume_request.expected_integrity() {
+        crate::ForgeServerBinaryIntegrityDigest::project_for_validation(
+            download,
+            read.validator(),
+            selected_start,
+            selected_end_exclusive,
+            head_only,
+        )
+        .verify_resume_expectation(expected_integrity, diagnostics_profile)?;
+    }
+    Ok(ForgeServerBinaryRetryPosture::resumed(
+        session_resume.previous_session_digest(),
+        session_resume.expected_next_start(),
+        resume_request.require_restart_stable_claim(),
+    ))
+}

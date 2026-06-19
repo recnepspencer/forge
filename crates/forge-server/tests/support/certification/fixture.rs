@@ -1,6 +1,8 @@
 use forge_proof::{TransitionOutcome, TransitionReadiness};
 use forge_server::{
     request_context::DiagnosticRichnessProfile, ForgeServer, ForgeServerMiddlewareConfig,
+    ForgeServerOperationAdmissionPosture, ForgeServerOperationAuthorityMetadata,
+    ForgeServerOperationFamily, ForgeServerOperationRequestInput,
     ForgeServerOperatorEvidenceConfig, ForgeServerPipelineInput, ForgeServerPipelineIntent,
     ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation, ForgeServerResponseConfig,
     ForgeServerResponseInput, ForgeServerResponseTransform, ForgeServerSurfaceFamily,
@@ -80,7 +82,7 @@ pub fn read_success_bundle_for_workspace(
         tenant_id,
         workspace_id,
     );
-    let admission = admit_query_read(server, request_context);
+    let admission = admit_query_read_posture(server, request_context);
     let response = server.responses().shape(
         ForgeServerResponseInput::query_handoff_success(prepare_query_handoff(
             server,
@@ -229,9 +231,39 @@ fn admit_query_read(
     }
 }
 
+fn admit_query_read_posture(
+    server: &ForgeServer,
+    request_context: forge_server::ForgeServerResolvedRequestContext,
+) -> ForgeServerOperationAdmissionPosture {
+    let admission = admit_query_read(server, request_context);
+    let operation_request = server
+        .operation_requests()
+        .admit_from_forge_native_admission(
+            &admission,
+            ForgeServerOperationRequestInput::builder()
+                .with_operation_family(ForgeServerOperationFamily::QueryDirectRead)
+                .with_operation_name("users.profile")
+                .with_basis_digest("basis-users-profile")
+                .build(),
+        )
+        .expect("read operation request should admit");
+    server
+        .operation_admissions()
+        .admit(
+            &admission,
+            &operation_request,
+            ForgeServerOperationAuthorityMetadata::shared_read(
+                "query-shared-read-basis",
+                "basis-users-profile",
+                "users.profile",
+            ),
+        )
+        .expect("read posture should admit")
+}
+
 fn prepare_query_handoff(
     server: &ForgeServer,
-    admission: forge_server::ForgeServerAdmission,
+    admission: ForgeServerOperationAdmissionPosture,
     operation: ForgeServerQueryHandoffOperation,
 ) -> forge_server::ForgeServerQueryHandoff {
     match server

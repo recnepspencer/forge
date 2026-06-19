@@ -11,6 +11,8 @@ use super::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeServerCompatibilityMutation {
+    operation_request: crate::ForgeServerOperationRequest,
+    plan_proof: crate::ForgeServerOperationPlanProof,
     mutation_request: ForgeServerCompatibilityMutationRequest,
     precondition: ForgeServerMutationPrecondition,
     mutation_result: ForgeServerCompatibilityMutationResult,
@@ -20,13 +22,16 @@ pub struct ForgeServerCompatibilityMutation {
 
 impl ForgeServerCompatibilityMutation {
     pub(crate) fn new(
+        operation_request: crate::ForgeServerOperationRequest,
+        plan_proof: crate::ForgeServerOperationPlanProof,
         mutation_request: ForgeServerCompatibilityMutationRequest,
         precondition: ForgeServerMutationPrecondition,
         mutation_result: ForgeServerCompatibilityMutationResult,
         envelope: ForgeServerCompatibilityMutationEnvelope,
     ) -> Self {
         let canonical_digest = format!(
-            "forge-server-compat-mutation-v1|request:{}|precondition:{}|result:{}|inspection:{}|envelope:{}",
+            "forge-server-compat-mutation-v1|operation_request:{}|request:{}|precondition:{}|result:{}|inspection:{}|envelope:{}",
+            operation_request.canonical_digest(),
             mutation_request.canonical_digest(),
             precondition.canonical_digest(),
             mutation_result.result_digest(),
@@ -34,6 +39,8 @@ impl ForgeServerCompatibilityMutation {
             envelope.canonical_digest(),
         );
         Self {
+            operation_request,
+            plan_proof,
             mutation_request,
             precondition,
             mutation_result,
@@ -55,11 +62,21 @@ impl ForgeServerCompatibilityMutation {
             replay_receipt,
         );
         Self::new(
+            self.operation_request.clone(),
+            self.plan_proof.clone(),
             self.mutation_request.clone(),
             self.precondition.clone(),
             self.mutation_result.clone(),
             envelope,
         )
+    }
+
+    pub fn operation_request(&self) -> &crate::ForgeServerOperationRequest {
+        &self.operation_request
+    }
+
+    pub fn plan_proof(&self) -> &crate::ForgeServerOperationPlanProof {
+        &self.plan_proof
     }
 
     pub fn mutation_request(&self) -> &ForgeServerCompatibilityMutationRequest {

@@ -52,9 +52,10 @@ fn direct_named_read_declaration_preserves_identity_and_support_snapshot() {
             .support_snapshot()
             .read_family_row()
             .facade_family(),
-        Some(ForgeQueryRuntimeFacadeFamily::Read)
+        Some(ForgeQueryRuntimeFacadeFamily::Read.as_str())
     );
     assert!(prepared.support_snapshot().read_family_contract().is_some());
+    assert!(prepared.support_snapshot().read_family_pin_satisfied());
     assert!(prepared.support_snapshot().is_admitted_now());
     assert!(!prepared.declaration_digest().is_empty());
 
@@ -145,11 +146,7 @@ fn direct_named_read_declaration_localizes_unsupported_query_family() {
 
     assert!(prepared.support_snapshot().read_family_contract().is_none());
     assert_eq!(
-        prepared
-            .support_snapshot()
-            .read_family_row()
-            .status()
-            .as_str(),
+        prepared.support_snapshot().read_family_row().status(),
         "unsupported"
     );
 
@@ -167,7 +164,7 @@ fn direct_named_read_declaration_localizes_unsupported_query_family() {
             .expect("family denial should preserve support snapshot")
             .read_family_row()
             .facade_family(),
-        Some(ForgeQueryRuntimeFacadeFamily::Read)
+        Some(ForgeQueryRuntimeFacadeFamily::Read.as_str())
     );
 }
 

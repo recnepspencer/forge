@@ -7,9 +7,9 @@ error[E0624]: associated function `new` is private
  ::: src/forge_native/direct/delivery_contract.rs
   |
   | /     pub(crate) fn new(
+  | |         plan_proof: crate::ForgeServerOperationPlanProof,
   | |         support_posture: ForgeServerQuerySupportPosture,
   | |         workspace_name: String,
-  | |         handoff_digest: String,
 ... |
   | |         response_envelope: crate::ForgeServerResponseEnvelope,
   | |     ) -> Self {

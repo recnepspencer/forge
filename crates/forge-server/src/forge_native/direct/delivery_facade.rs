@@ -3,7 +3,8 @@ use forge_proof::TransitionOutcome;
 use crate::{
     ForgeServerAdmittedDirectDeclaration, ForgeServerDirectContextArtifact,
     ForgeServerDirectDeliveryContract, ForgeServerDirectDeliveryRequest,
-    ForgeServerDirectLeaseDeclaration, ForgeServerDirectRemaskPosture,
+    ForgeServerDirectLeaseDeclaration, ForgeServerDirectRemaskPosture, ForgeServerOperationFamily,
+    ForgeServerOperationRequestFacade, ForgeServerOperationRequestInput,
     ForgeServerQueryHandoffOperation, ForgeServerResponseInput,
 };
 
@@ -32,6 +33,9 @@ impl ForgeServerForgeNativeDirectFacade {
         &self,
         declaration: &ForgeServerAdmittedDirectDeclaration,
     ) -> ForgeServerDirectLeaseDeclarationOutcome {
+        if let Err(denial) = self.admit_operation_family(ForgeServerOperationFamily::SyncLease) {
+            return self.operation_denial_outcome(denial);
+        }
         match ForgeServerDirectLeaseDeclaration::from_admitted_declaration(declaration) {
             Ok(lease) => TransitionOutcome::Success(lease),
             Err(error) => self.runtime_error_outcome(error),
@@ -43,6 +47,9 @@ impl ForgeServerForgeNativeDirectFacade {
         lease: &ForgeServerDirectLeaseDeclaration,
         request: &ForgeServerDirectDeliveryRequest,
     ) -> ForgeServerDirectDeliveryOutcome {
+        if let Err(denial) = self.admit_operation_family(ForgeServerOperationFamily::SyncLease) {
+            return self.operation_denial_outcome(denial);
+        }
         if let Some(denial) = validate_runtime_backed_resume_request(
             self.admission.request_context().diagnostics_profile(),
             lease,
@@ -50,13 +57,37 @@ impl ForgeServerForgeNativeDirectFacade {
         ) {
             return TransitionOutcome::Denied(denial);
         }
-        match self.prepare_handoff(ForgeServerQueryHandoffOperation::downstream_delivery(
-            lease.declaration_binding_label(),
-            request.freshness_mode(),
-            request.delivery_class(),
-            request.requested_resume().clone(),
-        )) {
-            TransitionOutcome::Success(handoff) => {
+        let operation_request =
+            match ForgeServerOperationRequestFacade::new(self.operation_registry.clone())
+                .admit_from_forge_native_admission(
+                    &self.admission,
+                    ForgeServerOperationRequestInput::builder()
+                        .with_operation_family(ForgeServerOperationFamily::SyncLease)
+                        .with_operation_name(lease.declaration_binding_label())
+                        .with_basis_digest(lease.resume_basis_digest())
+                        .build(),
+                ) {
+                Ok(value) => value,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(crate::ForgeServerQueryHandoffDenial::new(
+                        crate::ForgeServerQueryHandoffDenialCode::AuthorizationDenied,
+                        denial.diagnostics_profile(),
+                        denial.detail(),
+                    ));
+                }
+            };
+        match self.prepare_declared_plan(
+            operation_request,
+            ForgeServerQueryHandoffOperation::downstream_delivery(
+                lease.declaration_binding_label(),
+                request.freshness_mode(),
+                request.delivery_class(),
+                request.requested_resume().clone(),
+            ),
+        ) {
+            Ok(plan) => {
+                let plan_proof = plan.proof();
+                let handoff = plan.into_query_handoff();
                 let request_context = self.admission.resolved_request_context().request_context();
                 let current_principal_id = request_context.authenticated_principal().principal_id();
                 let current_tenant_id = request_context.workspace_target().tenant_id();
@@ -100,6 +131,7 @@ impl ForgeServerForgeNativeDirectFacade {
                     ForgeServerDirectRemaskPosture::visible(),
                 );
                 TransitionOutcome::Success(ForgeServerDirectDeliveryContract::new(
+                    plan_proof,
                     support_posture,
                     workspace_name,
                     handoff_digest,
@@ -110,11 +142,7 @@ impl ForgeServerForgeNativeDirectFacade {
                     response_envelope,
                 ))
             }
-            TransitionOutcome::Denied(denial) => TransitionOutcome::Denied(denial),
-            TransitionOutcome::Deferred(deferred) => TransitionOutcome::Deferred(deferred),
-            TransitionOutcome::Stale(stale) => TransitionOutcome::Stale(stale),
-            TransitionOutcome::RebindRequired(rebind) => TransitionOutcome::RebindRequired(rebind),
-            TransitionOutcome::Failed(failure) => TransitionOutcome::Failed(failure),
+            Err(denial) => TransitionOutcome::Denied(denial),
         }
     }
 }

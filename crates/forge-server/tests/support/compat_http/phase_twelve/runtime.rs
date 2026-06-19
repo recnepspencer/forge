@@ -51,6 +51,7 @@ fn build_server_with_max_diagnostics(
                 .build()
                 .expect("server config should validate"),
         )
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults())
         .register_surface(ForgeNativeSurface::enabled())
         .register_surface(CompatHttpSurface::phase_one_enabled())
         .build()

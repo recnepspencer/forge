@@ -13,7 +13,7 @@ use forge_server::{
 use crate::{
     forge_native_assertions::{admitted_named_read, family_contract_digest, forge_native_session},
     forge_native_runtime::{build_server, build_server_with_profiled_workspace},
-    query_handoff_fixture::{admit_read, request_input, resolve_request_context, success},
+    query_handoff_fixture::{admit_read_posture, request_input, resolve_request_context, success},
 };
 
 #[test]
@@ -27,7 +27,7 @@ fn direct_read_preserves_read_family_parity_with_compatibility_handoff() {
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     &server,
                     resolve_request_context(
                         &server,

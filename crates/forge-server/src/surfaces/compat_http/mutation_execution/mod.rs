@@ -3,6 +3,8 @@ mod execution;
 mod idempotency;
 mod precondition;
 mod query_execution;
+mod query_execution_support;
+mod replay_cache;
 mod request;
 mod response;
 mod schema;

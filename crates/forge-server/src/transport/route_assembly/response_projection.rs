@@ -1,0 +1,152 @@
+use axum::{
+    http::{HeaderMap, HeaderName, HeaderValue, StatusCode},
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde_json::json;
+
+use super::{
+    execution_bridge::{ForgeServerOperationalRouteOutcome, ForgeServerRouteExecutionOutcome},
+    ForgeServerTransportDenial, ForgeServerTransportDenialCode,
+};
+
+pub(super) fn semantic_response(outcome: ForgeServerRouteExecutionOutcome) -> Response {
+    match outcome {
+        ForgeServerRouteExecutionOutcome::ProductOperation(operation) => response_with_headers(
+            Json(json!({
+                "route_kind": "product_operation",
+                "operation_name": operation.envelope().operation_name(),
+                "envelope_kind": format!("{:?}", operation.envelope().kind()),
+                "canonical_digest": operation.envelope().canonical_digest(),
+                "plan_digest": operation.plan().map(|plan| plan.canonical_digest()),
+            })),
+            semantic_headers(
+                "product_operation",
+                Some(operation.envelope().operation_name()),
+                operation.plan().map(|plan| plan.canonical_digest()),
+                Some(operation.envelope().canonical_digest()),
+                operation
+                    .scheduler_admission()
+                    .map(|admission| admission.scheduler_lane()),
+            ),
+        ),
+        ForgeServerRouteExecutionOutcome::ProductSession(coordination) => response_with_headers(
+            Json(json!({
+                "route_kind": "product_session",
+                "product_session_identity": coordination.session().identity().as_str(),
+                "plan_digest": coordination.plan().canonical_digest(),
+            })),
+            semantic_headers(
+                "product_session",
+                Some(coordination.plan().command().operation_name()),
+                Some(coordination.plan().canonical_digest()),
+                None,
+                Some(coordination.scheduler_admission().scheduler_lane()),
+            ),
+        ),
+        ForgeServerRouteExecutionOutcome::Operational(outcome) => response_with_headers(
+            operational_response(outcome),
+            operational_headers("operational"),
+        ),
+    }
+}
+
+pub(super) fn operational_response(
+    outcome: ForgeServerOperationalRouteOutcome,
+) -> Json<serde_json::Value> {
+    Json(json!({
+        "route_kind": "operational",
+        "kind": format!("{:?}", outcome.kind()),
+        "path": outcome.path(),
+    }))
+}
+
+pub(super) fn transport_denial_response(denial: ForgeServerTransportDenial) -> Response {
+    let status = match denial.code() {
+        ForgeServerTransportDenialCode::MalformedJson => StatusCode::BAD_REQUEST,
+        ForgeServerTransportDenialCode::OversizedBody => StatusCode::PAYLOAD_TOO_LARGE,
+        ForgeServerTransportDenialCode::UnsupportedContentType => {
+            StatusCode::UNSUPPORTED_MEDIA_TYPE
+        }
+        ForgeServerTransportDenialCode::UnknownRoute => StatusCode::NOT_FOUND,
+        _ => StatusCode::BAD_REQUEST,
+    };
+    response_with_headers(
+        (
+            status,
+            Json(json!({
+                "transport_denial_code": format!("{:?}", denial.code()),
+                "detail": denial.detail(),
+            })),
+        ),
+        transport_denial_headers(denial.code()),
+    )
+}
+
+fn response_with_headers<T>(response: T, headers: HeaderMap) -> Response
+where
+    T: IntoResponse,
+{
+    let mut response = response.into_response();
+    response.headers_mut().extend(headers);
+    response
+}
+
+fn semantic_headers(
+    route_kind: &str,
+    operation_name: Option<&str>,
+    plan_digest: Option<&str>,
+    envelope_digest: Option<&str>,
+    scheduler_lane: Option<&str>,
+) -> HeaderMap {
+    let mut headers = base_headers(route_kind, true);
+    insert_optional_header(&mut headers, "x-forge-operation-name", operation_name);
+    insert_optional_header(&mut headers, "x-forge-plan-digest", plan_digest);
+    insert_optional_header(&mut headers, "x-forge-envelope-digest", envelope_digest);
+    insert_optional_header(&mut headers, "x-forge-scheduler-lane", scheduler_lane);
+    headers
+}
+
+fn operational_headers(route_kind: &str) -> HeaderMap {
+    base_headers(route_kind, false)
+}
+
+fn transport_denial_headers(code: ForgeServerTransportDenialCode) -> HeaderMap {
+    let mut headers = base_headers("transport_denial", false);
+    insert_header(
+        &mut headers,
+        "x-forge-transport-denial-code",
+        &format!("{code:?}"),
+    );
+    headers
+}
+
+fn base_headers(route_kind: &str, entered_semantic_runtime: bool) -> HeaderMap {
+    let mut headers = HeaderMap::new();
+    insert_header(&mut headers, "x-forge-route-kind", route_kind);
+    insert_header(
+        &mut headers,
+        "x-forge-semantic-runtime-entered",
+        if entered_semantic_runtime {
+            "true"
+        } else {
+            "false"
+        },
+    );
+    headers
+}
+
+fn insert_optional_header(headers: &mut HeaderMap, name: &str, value: Option<&str>) {
+    if let Some(value) = value {
+        insert_header(headers, name, value);
+    }
+}
+
+fn insert_header(headers: &mut HeaderMap, name: &str, value: &str) {
+    if let (Ok(name), Ok(value)) = (
+        HeaderName::from_bytes(name.as_bytes()),
+        HeaderValue::from_str(value),
+    ) {
+        headers.insert(name, value);
+    }
+}

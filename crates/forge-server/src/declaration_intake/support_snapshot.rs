@@ -1,5 +1,5 @@
 use forge_query::facade::{
-    ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimePublicSupportMatrixRow,
+    consumer_kit::ForgeQuerySupportSnapshotRow, ForgeQueryRuntimePublicApiFamilyContract,
 };
 
 use super::{
@@ -13,36 +13,44 @@ pub struct ForgeServerDirectSupportSnapshot {
     source_kind: ForgeServerDirectDeclarationSourceKind,
     source_support_status: ForgeServerDirectDeclarationSourceSupportStatus,
     source_support_reason: String,
-    read_family_row: ForgeQueryRuntimePublicSupportMatrixRow,
+    read_family_row: ForgeQuerySupportSnapshotRow,
     read_family_contract: Option<ForgeQueryRuntimePublicApiFamilyContract>,
     support_matrix_digest: String,
+    support_snapshot_digest: String,
+    read_family_pin_report_digest: String,
+    read_family_pin_satisfied: bool,
     support_posture_digest: String,
 }
 
 impl ForgeServerDirectSupportSnapshot {
     pub(crate) fn new(
         declaration: ForgeServerDirectDeclaration,
-        read_family_row: ForgeQueryRuntimePublicSupportMatrixRow,
+        read_family_row: ForgeQuerySupportSnapshotRow,
         read_family_contract: Option<ForgeQueryRuntimePublicApiFamilyContract>,
         support_matrix_digest: String,
+        support_snapshot_digest: String,
+        read_family_pin_report_digest: String,
+        read_family_pin_satisfied: bool,
     ) -> Self {
         let source_kind = declaration.source().kind();
         let source_support_status = declaration.source().support_status();
         let source_support_reason = declaration.source().support_reason().to_string();
         let support_posture_digest = format!(
-            "forge-server-direct-support-v1|source:{}|source_status:{}|reason:{}|view_shape:{}|read_row:{}|read_contract:{}|matrix:{}",
+            "forge-server-direct-support-v2|source:{}|source_status:{}|reason:{}|view_shape:{}|read_row:{}|read_live_row:{}|read_contract:{}|matrix:{}|snapshot:{}|pin_report:{}|pin_satisfied:{}",
             source_kind.as_str(),
             source_support_status.as_str(),
             source_support_reason,
             declaration.view_shape().as_str(),
-            read_family_row
-                .row_digest()
-                .terminal_projection_for_reporting(),
+            read_family_row.snapshot_row_digest(),
+            read_family_row.live_row_digest(),
             read_family_contract
                 .as_ref()
                 .map(|contract| contract.contract_digest())
                 .unwrap_or("none"),
             support_matrix_digest,
+            support_snapshot_digest,
+            read_family_pin_report_digest,
+            read_family_pin_satisfied,
         );
         Self {
             declaration,
@@ -52,6 +60,9 @@ impl ForgeServerDirectSupportSnapshot {
             read_family_row,
             read_family_contract,
             support_matrix_digest,
+            support_snapshot_digest,
+            read_family_pin_report_digest,
+            read_family_pin_satisfied,
             support_posture_digest,
         }
     }
@@ -72,7 +83,7 @@ impl ForgeServerDirectSupportSnapshot {
         &self.source_support_reason
     }
 
-    pub fn read_family_row(&self) -> &ForgeQueryRuntimePublicSupportMatrixRow {
+    pub fn read_family_row(&self) -> &ForgeQuerySupportSnapshotRow {
         &self.read_family_row
     }
 
@@ -82,6 +93,18 @@ impl ForgeServerDirectSupportSnapshot {
 
     pub fn support_matrix_digest(&self) -> &str {
         &self.support_matrix_digest
+    }
+
+    pub fn support_snapshot_digest(&self) -> &str {
+        &self.support_snapshot_digest
+    }
+
+    pub fn read_family_pin_report_digest(&self) -> &str {
+        &self.read_family_pin_report_digest
+    }
+
+    pub fn read_family_pin_satisfied(&self) -> bool {
+        self.read_family_pin_satisfied
     }
 
     pub fn support_posture_digest(&self) -> &str {
@@ -95,5 +118,6 @@ impl ForgeServerDirectSupportSnapshot {
     pub fn is_admitted_now(&self) -> bool {
         self.source_support_status == ForgeServerDirectDeclarationSourceSupportStatus::Supported
             && self.read_family_contract.is_some()
+            && self.read_family_pin_satisfied
     }
 }

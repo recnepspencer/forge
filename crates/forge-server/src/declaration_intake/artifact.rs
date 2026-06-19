@@ -90,7 +90,9 @@ impl ForgeServerPreparedDirectDeclaration {
             ));
         }
 
-        if self.support_snapshot.read_family_contract().is_none() {
+        if self.support_snapshot.read_family_contract().is_none()
+            || !self.support_snapshot.read_family_pin_satisfied()
+        {
             return Err(
                 ForgeServerDirectDeclarationDenial::query_facade_family_not_admitted(
                     self.admission.request_context().diagnostics_profile(),

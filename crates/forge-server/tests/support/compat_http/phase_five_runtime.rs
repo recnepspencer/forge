@@ -46,6 +46,7 @@ pub(crate) fn build_phase_five_server_with_mutation_disabled() -> ForgeServer {
                 .build()
                 .expect("server config should validate"),
         )
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults())
         .register_surface(ForgeNativeSurface::enabled())
         .register_surface(CompatHttpSurface::phase_one_enabled())
         .build()
@@ -81,6 +82,7 @@ pub(crate) fn build_phase_five_server_with_workspace_provider(
                 .build()
                 .expect("server config should validate"),
         )
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults())
         .register_surface(ForgeNativeSurface::enabled())
         .register_surface(CompatHttpSurface::phase_one_enabled())
         .build()

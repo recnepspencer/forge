@@ -44,7 +44,7 @@ fn expected_operation_segment(
                 denial_code,
                 diagnostics_profile,
                 "compatibility operation-name binding is only defined for read, streaming, upload, and download families",
-            ))
+            ));
         }
     };
     let Some(remainder) = request_contract.normalized_path().strip_prefix(route_stem) else {

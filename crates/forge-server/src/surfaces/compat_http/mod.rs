@@ -8,6 +8,9 @@ mod facade;
 mod file_identity;
 mod file_linkage;
 mod mutation_execution;
+mod product_continuation;
+mod product_execution;
+mod product_session_execution;
 mod read_execution;
 mod registration;
 mod request_contract;
@@ -45,6 +48,7 @@ pub use external_evidence::{
     ForgeServerCompatibilityCertificationBundle, ForgeServerExternalCounterSet,
     ForgeServerExternalEvidenceRecord,
 };
+pub(crate) use facade::map_operation_admission_denial;
 pub use facade::ForgeServerCompatibilityFacade;
 pub(crate) use file_identity::{
     project_binary_egress_envelope, project_metadata_inspection_envelope,
@@ -68,6 +72,13 @@ pub use mutation_execution::{
     ForgeServerCompatibilityMutationResult, ForgeServerIdempotencyKey,
     ForgeServerIdempotentReplayReceipt, ForgeServerMutationPrecondition,
 };
+pub use product_continuation::{
+    ForgeServerCompatibilityOpenedProductSession,
+    ForgeServerCompatibilityProductSessionContinuation,
+};
+pub use product_execution::ForgeServerCompatibilityAdmittedProductMutationCommand;
+pub use product_execution::ForgeServerCompatibilityProductOperationFacade;
+pub use product_session_execution::ForgeServerCompatibilityProductSessionFacade;
 pub use read_execution::{
     ForgeServerCompatibilityCachePolicy, ForgeServerCompatibilityExecutionInput,
     ForgeServerCompatibilityExecutionOutcome, ForgeServerCompatibilityInspection,
