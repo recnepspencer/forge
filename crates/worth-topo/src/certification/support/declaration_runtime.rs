@@ -287,6 +287,7 @@ mod tests {
                 stop_stage: None,
                 refusal_class: None,
                 recovery: None,
+                graph_obligation_envelope_digest: None,
                 reason: "snapshot contexts require explicit rebind".to_string(),
             },
         ));
@@ -298,6 +299,7 @@ mod tests {
                     Some(TopologyDeclarationEntryStopClass::RebindRequired)
                 );
                 assert!(stop.recovery().is_none());
+                assert!(stop.graph_obligation_envelope_digest().is_none());
             }
             _ => panic!("expected declaration-entry stop outcome"),
         }

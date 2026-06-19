@@ -190,6 +190,16 @@ impl ForgeQueryContributionComposedIntentStageResult {
     }
 }
 
+pub(crate) fn primary_intent_descriptor(
+    intent_results: &[ForgeQueryContributionComposedIntentResult],
+) -> Option<&ForgeQueryContributionComposedIntentRequestDescriptor> {
+    intent_results
+        .iter()
+        .find(|value| !value.is_admitted())
+        .or_else(|| intent_results.first())
+        .map(ForgeQueryContributionComposedIntentResult::request)
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryContributionComposedIntentClassification {
     Admitted,

@@ -4,9 +4,9 @@ mod interpretation_tests {
     use forge_relational::facade::runtime::RelationalRuntimeApi;
     use schema::facade::bootstrap_schema_registry;
 
-    use crate::facade::{
+    use crate::derived_topology::materialized_graph::TopologyMaterializer;
+    use crate::derived_topology::traversal_views::{
         build_topology_read_artifact, certify_topology_view, interpret_topology_view,
-        TopologyMaterializer,
     };
     use crate::test_support::hostile_neighborhoods::interpretation_neighborhoods::{
         closed_wire_cycle_of_size, closed_wire_cycle_view, connected_wire_branch_view,

@@ -37,6 +37,7 @@ mod read_domain_invariant_summary;
 mod read_extension_hook_support;
 mod read_family;
 mod read_operator_coverage;
+mod read_receipt_accessors;
 mod read_receipt_construction;
 mod read_receipt_support;
 mod read_relationship_proof_denial;

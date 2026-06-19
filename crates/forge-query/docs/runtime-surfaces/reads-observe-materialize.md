@@ -12,11 +12,19 @@ They answer different questions:
 They are not interchangeable. Each one reflects a different retained runtime
 surface and cost shape.
 
+If the retained read surface carries graph touch meaning, Graph Touch
+Obligation Authority owns the graph obligation posture. These consumption
+methods should not grow local graph legality checks around retained handles;
+they consume surfaces whose obligations were selected, budgeted, and recorded
+through Query.
+
 ## Why You Use It
 
 - you need the current rows for a live surface
 - you need query-shaped incremental updates rather than broad mutation noise
 - you need the current derived rows for a computed surface
+- you need graph-bearing read or live-read consumption to preserve the same
+  obligation evidence path as mutation and construction lanes
 
 ## Stable Entry Points
 

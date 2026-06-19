@@ -15,6 +15,7 @@ use super::batch_receipt_aggregates::{
 use super::ForgeQueryWriteReceipt;
 
 mod graph_composition_accessors;
+mod graph_obligation_accessors;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBatchWriteReceipt {
@@ -39,6 +40,7 @@ pub struct ForgeQueryBatchWriteReceipt {
     refresh_fallback: bool,
     decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
+    obligation_dispatch: Option<crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch>,
 }
 
 impl ForgeQueryBatchWriteReceipt {
@@ -61,6 +63,9 @@ impl ForgeQueryBatchWriteReceipt {
         refresh_fallback: bool,
         decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
         execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
+        obligation_dispatch: Option<
+            crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch,
+        >,
     ) -> Result<Self, ForgeQueryRuntimeError> {
         if write_receipts.is_empty() {
             return Err(ForgeQueryRuntimeError::Workspace(
@@ -212,6 +217,7 @@ impl ForgeQueryBatchWriteReceipt {
             refresh_fallback,
             decision_trace_envelope,
             execution_provenance,
+            obligation_dispatch,
         })
     }
 
@@ -267,6 +273,7 @@ impl ForgeQueryBatchWriteReceipt {
             aggregates.meaningful_effect_suppression_count,
             aggregates.effect_expression_failure_count,
             aggregates.refresh_fallback,
+            None,
             None,
             None,
         )
@@ -364,6 +371,12 @@ impl ForgeQueryBatchWriteReceipt {
 
     pub fn execution_provenance(&self) -> Option<&ForgeQueryIntentExecutionProvenance> {
         self.execution_provenance.as_ref()
+    }
+
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.obligation_dispatch.as_ref()
     }
 }
 

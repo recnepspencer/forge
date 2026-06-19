@@ -100,6 +100,7 @@ impl ForgeQueryRuntime {
                 ForgeQueryMutationMetadata::default(),
                 Some(decision_trace_envelope.clone()),
                 Some(execution_provenance.clone()),
+                None,
             )
             .map_err(|error| {
                 self.intent_execution_routing_error(
@@ -137,6 +138,7 @@ impl ForgeQueryRuntime {
                 )
             })?;
         let declaration = binding.declaration().clone();
+        self.admit_effect_write_intent_graph_obligation_boundary(&handoff, &pending_delivery)?;
         let execution = self.backend.execute_intent(&declaration)?;
         admit_effect_execution(binding.handoff(), &execution).map_err(|violation| {
             let decision_trace_envelope =
@@ -201,6 +203,7 @@ impl ForgeQueryRuntime {
                 ForgeQueryMutationMetadata::default(),
                 Some(decision_trace_envelope.clone()),
                 Some(execution_provenance.clone()),
+                None,
             )
             .map_err(|error| {
                 self.intent_execution_routing_error(
@@ -247,5 +250,24 @@ impl ForgeQueryRuntime {
             .ok_or_else(|| {
                 ForgeQueryRuntimeError::MissingPendingWriteIntent(binding.effect_name().to_string())
             })
+    }
+
+    fn admit_effect_write_intent_graph_obligation_boundary(
+        &self,
+        _handoff: &ForgeQueryAdmittedIntentExecutionHandoff,
+        pending_delivery: &ForgeQueryEffectDelivery,
+    ) -> Result<(), ForgeQueryRuntimeError> {
+        if self
+            .graph_obligation_registration_catalog()
+            .registration_count()
+            == 0
+        {
+            return Ok(());
+        }
+        Err(
+            ForgeQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing {
+                effect_name: pending_delivery.effect_name().to_string(),
+            },
+        )
     }
 }

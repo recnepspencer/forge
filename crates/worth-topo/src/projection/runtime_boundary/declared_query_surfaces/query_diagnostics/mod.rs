@@ -1,5 +1,6 @@
 mod equivalence_contract;
 mod evidence;
+mod retained_diagnostics;
 
 use forge_query::facade::{
     ForgeQueryComputedBuilder, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
@@ -8,25 +9,14 @@ use forge_query::facade::{
     ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
 use schema::facade::QueryAspectPath;
-use serde_json::{json, Value};
+use serde_json::json;
 
-use crate::derived_topology::materialized_graph::MaterializedTopologyView;
-use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::{
-    build_derived_equivalence_contract_report,
-    derived_read_diagnostics::{
-        build_derived_fallback_report_from_counts, build_derived_invalidation_report_from_aspects,
-        DerivedReadDiagnostics,
-    },
-};
-use crate::validation::DerivedTopologyValidationReport;
-
-use super::derived_surfaces::{decode_query_surface_row, TopologyQuerySurfaceError};
 use super::QUERY_SURFACE_FAILURE_ROW_KEY;
 pub(crate) use equivalence_contract::declare_topology_equivalence_contract_surface;
 #[cfg(test)]
 pub(crate) use equivalence_contract::equivalence_contract_from_diagnostics_rows;
 pub(crate) use evidence::TopologyQueryMutationEvidence;
+use retained_diagnostics::derived_read_diagnostics_from_upstreams;
 
 #[derive(Debug, Clone)]
 pub(crate) struct TopologyDiagnosticsMaintainer {
@@ -152,105 +142,4 @@ pub(crate) fn declare_topology_diagnostics_surface<T, M, I, V>(
             validation_view.name(),
         ),
     )
-}
-
-#[allow(dead_code)]
-pub(crate) fn derived_read_diagnostics_from_query_rows(
-    refresh: &ForgeQueryRetainedRefreshContext,
-    materialized_rows: &[Value],
-    interpreted_rows: &[Value],
-    validation_rows: &[Value],
-) -> Result<DerivedReadDiagnostics, TopologyQuerySurfaceError> {
-    let evidence = TopologyQueryMutationEvidence::from_refresh(refresh)?;
-    let touched_aspects = evidence.touched_aspects()?;
-    let materialized: MaterializedTopologyView =
-        decode_query_surface_row(materialized_rows, "materialized topology")?;
-    let interpreted: InterpretedTopologyView =
-        decode_query_surface_row(interpreted_rows, "interpreted topology")?;
-    let validation: DerivedTopologyValidationReport =
-        decode_query_surface_row(validation_rows, "topology validation")?;
-
-    Ok(DerivedReadDiagnostics {
-        invalidation_report: build_derived_invalidation_report_from_aspects(
-            touched_aspects.iter().copied(),
-        ),
-        rebuild_report: crate::projection::diagnostic_surfaces::derived_read_diagnostics::build_derived_rebuild_report(
-            &materialized,
-            &interpreted,
-            &validation,
-        ),
-        fallback_report: build_derived_fallback_report_from_counts(
-            evidence.precision_fallback_count,
-            evidence.precision_budget_fallback_count,
-            &materialized,
-        ),
-        equivalence_contract_report: build_derived_equivalence_contract_report(
-            evidence.authority_snapshot_id,
-            evidence.authority_branch_id,
-            evidence.authoritative_mutation_origin,
-            evidence.derivation_origin,
-            evidence.truth_basis_digest_hex,
-            touched_aspects.len(),
-            crate::projection::diagnostic_surfaces::derived_read_diagnostics::triggered_invalidation_targets_from_aspects(
-                touched_aspects.iter().copied(),
-            ),
-            evidence.precision_fallback_count,
-            evidence.precision_budget_fallback_count,
-            &materialized,
-            &interpreted,
-            &validation,
-        ),
-    })
-}
-
-fn derived_read_diagnostics_from_upstreams(
-    refresh: &ForgeQueryRetainedRefreshContext,
-    upstreams: &ForgeQueryRetainedUpstreamInputs,
-    materialized_view_name: &str,
-    interpreted_view_name: &str,
-    validation_view_name: &str,
-) -> Result<DerivedReadDiagnostics, TopologyQuerySurfaceError> {
-    let evidence = TopologyQueryMutationEvidence::from_refresh(refresh)?;
-    let touched_aspects = evidence.touched_aspects()?;
-    let materialized: MaterializedTopologyView = upstreams
-        .decode_single_computed_row(materialized_view_name)
-        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-    let interpreted: InterpretedTopologyView = upstreams
-        .decode_single_computed_row(interpreted_view_name)
-        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-    let validation: DerivedTopologyValidationReport = upstreams
-        .decode_single_computed_row(validation_view_name)
-        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-
-    Ok(DerivedReadDiagnostics {
-        invalidation_report: build_derived_invalidation_report_from_aspects(
-            touched_aspects.iter().copied(),
-        ),
-        rebuild_report: crate::projection::diagnostic_surfaces::derived_read_diagnostics::build_derived_rebuild_report(
-            &materialized,
-            &interpreted,
-            &validation,
-        ),
-        fallback_report: build_derived_fallback_report_from_counts(
-            evidence.precision_fallback_count,
-            evidence.precision_budget_fallback_count,
-            &materialized,
-        ),
-        equivalence_contract_report: build_derived_equivalence_contract_report(
-            evidence.authority_snapshot_id,
-            evidence.authority_branch_id,
-            evidence.authoritative_mutation_origin,
-            evidence.derivation_origin,
-            evidence.truth_basis_digest_hex,
-            touched_aspects.len(),
-            crate::projection::diagnostic_surfaces::derived_read_diagnostics::triggered_invalidation_targets_from_aspects(
-                touched_aspects.iter().copied(),
-            ),
-            evidence.precision_fallback_count,
-            evidence.precision_budget_fallback_count,
-            &materialized,
-            &interpreted,
-            &validation,
-        ),
-    })
 }

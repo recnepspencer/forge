@@ -26,6 +26,9 @@ pub(crate) fn certify_snapshot_surfaces_row(
     let declared_query_diagnostics = source_text(
         "src/projection/runtime_boundary/declared_query_surfaces/query_diagnostics/mod.rs",
     )?;
+    let retained_query_diagnostics = source_text(
+        "src/projection/runtime_boundary/declared_query_surfaces/query_diagnostics/retained_diagnostics.rs",
+    )?;
     let declared_truth_surfaces = source_text(
         "src/projection/runtime_boundary/declared_query_surfaces/truth_surfaces/mod.rs",
     )?;
@@ -69,14 +72,15 @@ pub(crate) fn certify_snapshot_surfaces_row(
     ensure(declared_computed_views.contains("decode_single_computed_row(materialized_view_name)"))?;
     ensure(declared_computed_views.contains("interpreted_topology_from_upstreams("))?;
     ensure(declared_computed_views.contains("validation_report_from_upstreams("))?;
+    ensure(declared_query_diagnostics.contains("mod retained_diagnostics;"))?;
     ensure(
-        declared_query_diagnostics.contains("decode_single_computed_row(materialized_view_name)"),
+        retained_query_diagnostics.contains("decode_single_computed_row(materialized_view_name)"),
     )?;
     ensure(
-        declared_query_diagnostics.contains("decode_single_computed_row(interpreted_view_name)"),
+        retained_query_diagnostics.contains("decode_single_computed_row(interpreted_view_name)"),
     )?;
     ensure(
-        declared_query_diagnostics.contains("decode_single_computed_row(validation_view_name)"),
+        retained_query_diagnostics.contains("decode_single_computed_row(validation_view_name)"),
     )?;
     ensure(certification_snapshot_support.contains("historical_query_snapshot_for_read_basis"))?;
     ensure(

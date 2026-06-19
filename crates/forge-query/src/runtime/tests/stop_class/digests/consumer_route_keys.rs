@@ -21,6 +21,28 @@ pub(super) fn consumer_stop_route_key(route: &ConsumerStopRoute) -> String {
         ConsumerStopRoute::MutationContinuityDenied(kind) => {
             format!("mutation_continuity_denied:{kind:?}")
         }
+        ConsumerStopRoute::GraphObligationTouchDescriptorDenied(kind) => {
+            format!("graph_obligation_touch_descriptor_denied:{kind:?}")
+        }
+        ConsumerStopRoute::GraphObligationEffectTouchDescriptorMissing => {
+            "graph_obligation_effect_touch_descriptor_missing".to_string()
+        }
+        ConsumerStopRoute::GraphObligationIntentTouchDescriptorMissing => {
+            "graph_obligation_intent_touch_descriptor_missing".to_string()
+        }
+        ConsumerStopRoute::GraphMutationPolicyContextDenied { expected, actual } => {
+            format!(
+                "graph_mutation_policy_context_denied:{}:{}",
+                expected.as_str(),
+                actual.as_str()
+            )
+        }
+        ConsumerStopRoute::GraphMutationPolicyGateDenied { verdict } => {
+            format!("graph_mutation_policy_gate_denied:{}", verdict.as_str())
+        }
+        ConsumerStopRoute::GraphObligationDenied { blocking_count } => {
+            format!("graph_obligation_denied:{blocking_count}")
+        }
         ConsumerStopRoute::GraphCompositionDenied(kind) => {
             format!("graph_composition_denied:{kind:?}")
         }

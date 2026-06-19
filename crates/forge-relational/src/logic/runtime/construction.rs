@@ -40,7 +40,7 @@ impl RuntimeExtensions {
         schema_contract_runtime.custom_invariant_registries =
             FrozenCustomInvariantRegistry::from_registrations(self.custom_invariants.clone())
                 .expect(
-                    "custom invariant registrations must have unique semantic identities at runtime construction",
+                    "custom invariant registrations must have unique semantic identities per execution point at runtime construction",
                 );
         schema_contract_runtime
     }

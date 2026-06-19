@@ -23,7 +23,6 @@ pub(super) fn map_support_plane(error: String) -> PrimitiveConstructionPhaseErro
     ))
 }
 
-#[cfg(test)]
 pub(super) fn map_placement_geometry(error: impl ToString) -> PrimitiveConstructionPhaseError {
     PrimitiveConstructionPhaseError::Geometry(PrimitiveConstructionGeometryError::GeometryFailure(
         error.to_string(),

@@ -23,6 +23,7 @@ pub struct CommitValidationSummary {
     pub snapshot_publication_seen: bool,
     pub certification_boundary_seen: bool,
     pub harness_audit_seen: bool,
+    pub graph_composition_seen: bool,
     pub consumed_groups: InvariantGroupSet,
     pub applicable_groups: InvariantGroupSet,
     pub result_count: usize,
@@ -74,6 +75,9 @@ impl CommitValidation {
                 }
                 InvariantExecutionPoint::HarnessAudit => {
                     summary.harness_audit_seen = true;
+                }
+                InvariantExecutionPoint::GraphComposition => {
+                    summary.graph_composition_seen = true;
                 }
             }
 

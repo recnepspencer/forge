@@ -5,7 +5,7 @@ use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use schema::facade::QueryAspectPath;
 use serde::{Deserialize, Serialize};
 
-use super::TopologyQuerySurfaceError;
+use crate::projection::runtime_boundary::declared_query_surfaces::TopologyQuerySurfaceError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct TopologyQueryMutationEvidence {

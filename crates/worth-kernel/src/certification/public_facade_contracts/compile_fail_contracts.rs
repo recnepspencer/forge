@@ -56,6 +56,7 @@ const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_prepare_helpers_demoted.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_construction_query_native_exports_demoted.rs",
+    "src/certification/public_facade_contracts/compile_fail/authority/public_construction_query_authority_exports_demoted.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_construction_policy_and_arbitration_exports_demoted.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_construction_tolerance_precision_exports_demoted.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_entry_prepare_outcome_demoted.rs",

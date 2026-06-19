@@ -1,5 +1,8 @@
 use super::super::request::PrimitiveConstructionFamily;
-use topology::facade::TopologyPrimitiveConstructionQueryAdmittedHandoff;
+use topology::facade::{
+    TopologyPrimitiveConstructionBirthComposeEvidence,
+    TopologyPrimitiveConstructionQueryAdmittedHandoff,
+};
 use worth_geom::facade::{
     PrimitiveConditioningWitness, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
 };
@@ -7,75 +10,75 @@ use worth_geom::facade::{
 #[derive(Clone, Debug)]
 pub(crate) struct PreparedPrimitiveConstructionAdmittedArtifact {
     topology_query_admitted_handoff: TopologyPrimitiveConstructionQueryAdmittedHandoff,
-    #[cfg(test)]
+    topology_compose_evidence: Option<TopologyPrimitiveConstructionBirthComposeEvidence>,
     birth_consequence_digest: String,
-    #[cfg(test)]
     birth_mapping_digest: String,
     conditioning_witness: PrimitiveConditioningWitness,
     realization_strategy: PrimitiveRealizationStrategy,
     attempted_realization_strategies: Vec<PrimitiveRealizationStrategy>,
     stability_class: PrimitiveStabilityClass,
-    #[cfg(test)]
     realization_digest: String,
-    #[cfg(test)]
     realization_geometry_digest: String,
 }
 
 impl PreparedPrimitiveConstructionAdmittedArtifact {
     pub(super) fn from_topology_query_admitted_handoff(
         topology_query_admitted_handoff: TopologyPrimitiveConstructionQueryAdmittedHandoff,
-        #[cfg(test)] birth_consequence_digest: String,
-        #[cfg(test)] birth_mapping_digest: String,
+        birth_consequence_digest: String,
+        birth_mapping_digest: String,
         conditioning_witness: PrimitiveConditioningWitness,
         realization_strategy: PrimitiveRealizationStrategy,
         attempted_realization_strategies: Vec<PrimitiveRealizationStrategy>,
         stability_class: PrimitiveStabilityClass,
-        #[cfg(test)] realization_digest: String,
-        #[cfg(test)] realization_geometry_digest: String,
+        realization_digest: String,
+        realization_geometry_digest: String,
     ) -> Self {
         Self::new(
             topology_query_admitted_handoff,
-            #[cfg(test)]
+            None,
             birth_consequence_digest,
-            #[cfg(test)]
             birth_mapping_digest,
             conditioning_witness,
             realization_strategy,
             attempted_realization_strategies,
             stability_class,
-            #[cfg(test)]
             realization_digest,
-            #[cfg(test)]
             realization_geometry_digest,
         )
     }
 
     pub(crate) fn new(
         topology_query_admitted_handoff: TopologyPrimitiveConstructionQueryAdmittedHandoff,
-        #[cfg(test)] birth_consequence_digest: String,
-        #[cfg(test)] birth_mapping_digest: String,
+        topology_compose_evidence: Option<TopologyPrimitiveConstructionBirthComposeEvidence>,
+        birth_consequence_digest: String,
+        birth_mapping_digest: String,
         conditioning_witness: PrimitiveConditioningWitness,
         realization_strategy: PrimitiveRealizationStrategy,
         attempted_realization_strategies: Vec<PrimitiveRealizationStrategy>,
         stability_class: PrimitiveStabilityClass,
-        #[cfg(test)] realization_digest: String,
-        #[cfg(test)] realization_geometry_digest: String,
+        realization_digest: String,
+        realization_geometry_digest: String,
     ) -> Self {
         Self {
             topology_query_admitted_handoff,
-            #[cfg(test)]
+            topology_compose_evidence,
             birth_consequence_digest,
-            #[cfg(test)]
             birth_mapping_digest,
             conditioning_witness,
             realization_strategy,
             attempted_realization_strategies,
             stability_class,
-            #[cfg(test)]
             realization_digest,
-            #[cfg(test)]
             realization_geometry_digest,
         }
+    }
+
+    pub(super) fn with_topology_compose_evidence(
+        mut self,
+        topology_compose_evidence: TopologyPrimitiveConstructionBirthComposeEvidence,
+    ) -> Self {
+        self.topology_compose_evidence = Some(topology_compose_evidence);
+        self
     }
 
     pub(crate) fn family(&self) -> PrimitiveConstructionFamily {
@@ -86,7 +89,6 @@ impl PreparedPrimitiveConstructionAdmittedArtifact {
         )
     }
 
-    #[cfg(test)]
     pub(crate) fn scaffold_digest(&self) -> &str {
         self.topology_query_admitted_handoff
             .topology_query_handoff()
@@ -109,34 +111,34 @@ impl PreparedPrimitiveConstructionAdmittedArtifact {
         self.stability_class
     }
 
-    #[cfg(test)]
     pub(crate) fn realization_digest(&self) -> &str {
         &self.realization_digest
     }
 
-    #[cfg(test)]
     pub(crate) fn realization_geometry_digest(&self) -> &str {
         &self.realization_geometry_digest
     }
 
-    #[cfg(test)]
     pub(crate) fn birth_consequence_digest(&self) -> &str {
         &self.birth_consequence_digest
     }
 
-    #[cfg(test)]
     pub(crate) fn birth_mapping_digest(&self) -> &str {
         &self.birth_mapping_digest
     }
 
-    #[cfg(test)]
     pub(crate) fn topology_query_admitted_handoff(
         &self,
     ) -> &TopologyPrimitiveConstructionQueryAdmittedHandoff {
         &self.topology_query_admitted_handoff
     }
 
-    #[cfg(test)]
+    pub(crate) fn topology_compose_evidence(
+        &self,
+    ) -> Option<&TopologyPrimitiveConstructionBirthComposeEvidence> {
+        self.topology_compose_evidence.as_ref()
+    }
+
     pub(crate) fn admitted_handoff_digest(&self) -> &str {
         self.topology_query_admitted_handoff
             .admitted_handoff_digest()

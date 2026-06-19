@@ -1,4 +1,4 @@
-# Milestone 9.10 Engineering Spec: Graph Read Access Planning And Automatic Index Provisioning
+# Milestone 9.10 Engineering Spec: Graph Read Access Planning And Declarative Index Admission
 
 > **Status:** Draft
 >
@@ -16,12 +16,16 @@
 Forge Query must derive graph read access needs from the declared read shape,
 plan the required adjacency/index posture before execution, and either execute
 through an admitted bounded plan or fail with a typed posture that explains the
-missing support, budget excess, or required materialization lane.
+missing support, budget excess, or required materialization lane. The common
+authoring path must stay declarative, but every hidden-looking convenience must
+lower into proof-bearing artifacts that can be inspected, tested, replayed, and
+refused before execution.
 
 The product target is not "cache more graph data." The product target is:
 
 ```text
 read declaration
+-> admitted schema/query references
 -> canonical graph read access shape
 -> selectivity and cardinality estimate
 -> required access/index posture
@@ -49,7 +53,12 @@ inherits the runtime-backed read model.
   convenience cache and hoping to optimize later.
 - `arch_laws.md`: semantic intent must compile into execution strategy,
   applicability must be pre-solved at entry, lowered plans must be the only
-  executor input, and cost boundaries must be explicit in API shape.
+  executor input, cost boundaries must be explicit in API shape, and each phase
+  output must carry the proof established by that phase.
+- `dx_laws.md`: good DX is organized truth, not cute syntax; friendly
+  declarations must lower into inspectable plans, stringly names are acceptable
+  only at declaration boundaries, and proof-carrying progression must appear in
+  the type system without making the common path ceremonial.
 - `composition_laws.md`: planning, estimation, admission, execution,
   diagnostics, and certification must live in named files and functions rather
   than collapsing into broad read helpers.
@@ -82,8 +91,8 @@ execution begins. It must be impossible for covered surfaces to:
 
 ## Product Decision Lock
 
-- Automatic index provisioning means **automatic plan derivation**, not
-  automatic eager materialization.
+- Declarative index admission means **automatic plan derivation**, not
+  automatic eager materialization and not a magic "index everything" switch.
 - Inline graph reads may use existing indexes, admitted runtime indexes, or
   bounded ephemeral indexes only within certified memory and breadth budgets.
 - Dangerous broad reads must return typed outcomes such as
@@ -99,6 +108,79 @@ execution begins. It must be impossible for covered surfaces to:
 - AI-facing docs must teach the exact boundary: Query learns access needs from
   declarations, but Query does not allocate the universe to satisfy an unsafe
   declaration.
+- Public authoring APIs may remain concise, but the accountability surface must
+  expose the exact access shape, required index rows, cost estimate, support
+  inventory match, selected posture, and denial/materialization escape hatch
+  before execution.
+- Raw strings, raw relation names, and loose selectors may appear only at
+  declaration/admission boundaries. After admission they must become typed
+  proof-carrying references such as admitted projection fields, predicate
+  fields, ordering fields, relations, traversal operators, and access-plan
+  index rows.
+- An executor must never accept raw read graphs, raw names, or merely validated
+  selectors when an admitted graph access plan is required. The only executable
+  graph-read input is the lowered proof-bearing access plan for the selected
+  posture.
+
+## DX And Proof-Bearing Contract
+
+The milestone must preserve two truths at once:
+
+- Common graph-read authoring stays declarative. A caller should describe the
+  read family, root, schema view, traversal operator, predicates, ordering, and
+  result shape as one semantic unit instead of manually registering unrelated
+  planner, index, budget, and execution fragments.
+- Phase progression stays structural. The runtime must lower that declaration
+  through typed artifacts whose names and fields encode what has been proven:
+  raw declaration, admitted schema references, canonical read graph, access
+  shape, selectivity shape, required index set, cost estimate, support
+  inventory match, access admission, lowered execution plan, and receipt.
+
+The desired DX shape is:
+
+```rust
+let family = workspace.define_read_family("tenant-face-neighborhood", |read| {
+    read.anchored_frontier_collection(/* declaration-owned read meaning */)
+})?;
+
+let plan = workspace.plan_graph_read_access(&family)?;
+
+plan.required_indexes();
+plan.cost_estimate();
+plan.admission();
+plan.explain();
+
+let result = workspace.execute_read_family_with_access_plan(plan)?;
+```
+
+This is intentionally different from:
+
+```rust
+workspace.auto_index_every_graph_read();
+```
+
+The former keeps the common path readable while making the lowered access
+contract inspectable. The latter hides which indexes, postures, costs, and
+denials exist, and is prohibited.
+
+The proof chain must make invalid shortcuts unrepresentable:
+
+```text
+Raw graph read declaration
+-> AdmittedQuerySchemaReferences
+-> ForgeQueryReadGraph
+-> ForgeQueryGraphReadAccessShape
+-> ForgeQueryRequiredGraphIndexSet
+-> ForgeQueryGraphReadCostEstimate
+-> ForgeQueryGraphIndexInventoryMatch
+-> ForgeQueryGraphReadAccessAdmission
+-> ForgeQueryAdmittedGraphReadAccessPlan
+-> ForgeQueryGraphReadExecutionReceipt
+```
+
+Each arrow is an authority boundary. Each output type must expose only read-only
+views of the proof it carries, and construction must be sealed to the function
+that actually establishes the proof.
 
 ## Phase Plan
 
@@ -122,6 +204,11 @@ one-shot, reusable, live-promoted, preview, or branch-scoped.
 - `ForgeQueryReadGraph`
 - `ForgeQueryReadFamily`
 - `ForgeQueryReadReceipt`
+- new: `ForgeQueryAdmittedQuerySchemaReferences`
+- new: `ForgeQueryAdmittedGraphReadRelation`
+- new: `ForgeQueryAdmittedGraphReadProjectionField`
+- new: `ForgeQueryAdmittedGraphReadPredicateField`
+- new: `ForgeQueryAdmittedGraphReadOrderingField`
 - new: `ForgeQueryGraphReadAccessShape`
 - new: `ForgeQueryGraphReadAccessShapeDigest`
 
@@ -130,6 +217,12 @@ one-shot, reusable, live-promoted, preview, or branch-scoped.
   into a profiler artifact.
 - Do not collapse relation direction into relation kind. Direction is a cost
   boundary and must survive canonicalization.
+- Do not pass raw strings, merely validated names, or schema-unproven selectors
+  into access-shape derivation. Access-shape derivation consumes admitted
+  schema/query references produced by Query-owned validation.
+- Do not make callers manually thread every proof artifact through ordinary
+  authoring. The declaration surface may be concise, but the lowered artifacts
+  must exist and be inspectable.
 
 **Test requirements**
 - Adversarial equivalence: semantically equivalent declarations with different
@@ -145,6 +238,12 @@ one-shot, reusable, live-promoted, preview, or branch-scoped.
   execution admission.
 - Shape fields are private; only Query-owned lowering can construct the sealed
   artifact.
+- The public declaration may accept declaration-bound names where that keeps the
+  authoring surface readable, but the canonical read graph stores admitted
+  typed references, not raw strings.
+- The access-shape artifact is the first graph-read phase output that encodes
+  the proof "schema references and traversal operators have been admitted for
+  this read graph."
 
 **Open questions**
 - None.
@@ -208,6 +307,7 @@ whether those structures already exist.
 - new: `ForgeQueryRequiredGraphIndexSet`
 - new: `ForgeQueryRequiredGraphIndexRow`
 - new: `ForgeQueryGraphIndexRequirementKind`
+- new: `ForgeQueryGraphIndexInventoryMatch`
 - `ForgeQueryGraphReadAccessShape`
 
 **Warnings**
@@ -215,6 +315,9 @@ whether those structures already exist.
   missing support until allocation time.
 - Do not model indexes as strings. Requirement rows need typed relation,
   direction, predicate, and lifecycle fields.
+- Do not allow a caller-provided index label to satisfy a requirement row.
+  Matching support must be derived from typed requirement identity, rebuild
+  basis, invalidation basis, lifecycle owner, and complexity contract.
 
 **Test requirements**
 - Adversarial parity: equivalent access shapes derive byte-identical required
@@ -229,6 +332,11 @@ whether those structures already exist.
 - Requirement rows include a rebuild basis that proves the index is derived
   from authoritative truth.
 - Requirement set digest participates in read receipt identity.
+- Requirement derivation consumes `ForgeQueryGraphReadAccessShape` and
+  `ForgeQueryBooleanSelectivityShape`; it does not re-open the raw authored
+  declaration or re-parse relation/predicate names.
+- Inventory matching produces its own proof artifact so "required" and
+  "supported" stay separate phases.
 
 **Open questions**
 - None.
@@ -279,7 +387,8 @@ registry so budget, capability, store-ownership, and support decisions are
 visible before execution. The system must be able to admit inline indexed,
 paged streaming, prebuilt/persistent-index-backed, async materialized, require
 store-backed capability, require access capability registration, or deny with a
-structured reason.
+structured reason. Admission must produce a proof-bearing artifact that is the
+only valid input to graph-read execution for the selected posture.
 
 **Relevant subsystems**
 - `crates/forge-query/src/intent_admission/`
@@ -294,6 +403,8 @@ structured reason.
 - new: `ForgeQueryGraphReadAccessCase`
 - new: `ForgeQueryGraphReadAccessCaseRegistry`
 - new: `ForgeQueryGraphReadRequiredCapabilityOwner`
+- new: `ForgeQueryAdmittedGraphReadAccessPlan`
+- new: `ForgeQueryGraphReadAccessPlanExplanation`
 
 **Warnings**
 - `DeniedBudgetExceeded` is not a soft warning. Covered execution must not run
@@ -303,6 +414,13 @@ structured reason.
 - Generic catch-all admission variants are prohibited. Unknown or
   not-yet-admitted shapes must classify as a named required capability, a
   store-owned requirement, or a typed denial.
+- Do not make `compose_read(...)` or `execute_read_family(...)` silently perform
+  graph access admission on a path that cannot be inspected. Friendly one-shot
+  helpers may internally plan and execute, but their receipt must expose the
+  same admission artifact a caller could have inspected explicitly.
+- Do not allow execution APIs to accept weaker inputs than the proof chain
+  already established. If an admitted access plan exists, executor entry takes
+  that admitted plan, not the raw family plus ambient strategy flags.
 
 **Test requirements**
 - Adversarial rejection: a read whose estimated frontier exceeds inline budget
@@ -312,6 +430,10 @@ structured reason.
   family fronts produces the same access admission digest.
 - Adversarial DX: denial carries required index rows, exceeded budget fields,
   and suggested posture without exposing internal executor topology.
+- Adversarial inspectability: a caller can plan a graph read, inspect the
+  required index rows, selected posture, cost estimate, support inventory match,
+  and denial/materialization escape hatch, and then execute the exact admitted
+  plan without the executor recomputing strategy.
 - Adversarial edge cases: every public read operator, relation direction,
   predicate family, basis posture, live/preview/branch posture, and
   relationship-proof combination maps to an access-case registry row before any
@@ -320,6 +442,9 @@ structured reason.
 **Engineering decisions**
 - Admission outcome attaches to the read receipt even on denied paths.
 - Denials lower through typed stop classes rather than message matching.
+- `ForgeQueryAdmittedGraphReadAccessPlan` consumes access admission plus the
+  selected support/inventory evidence. It cannot be constructed from raw read
+  graphs, raw index names, or caller-owned strategy flags.
 - The access-case registry is the implementation checklist for this milestone:
   adding a new graph read capability requires adding the case row, tests,
   receipt posture, support-row behavior, and docs row in the same phase.
@@ -779,9 +904,11 @@ access plans where covered.
 ### Phase 17: Public Docs, AI_README, And DX Target
 
 Update public docs and AI orientation so agents learn the exact contract:
-Query derives access plans from declarations, provisions only admitted bounded
-index postures, and returns typed required-capability, materialization, or
-denial postures instead of hiding N+1 or RAM-expansive work.
+Query derives access plans from declarations, admits only typed bounded index
+postures, and returns typed required-capability, materialization, or denial
+postures instead of hiding N+1 or RAM-expansive work. The docs must teach that
+the high-level declaration is the authoring surface and the access plan is the
+accountability surface.
 
 **Relevant subsystems**
 - `crates/forge-query/docs/AI_README.md`
@@ -791,42 +918,78 @@ denial postures instead of hiding N+1 or RAM-expansive work.
 
 **Relevant APIs**
 - public read composition facade
+- explicit graph-read access planning facade
 - access-plan support rows
 - graph read receipt access-plan summaries
 
 **Warnings**
 - Do not document the aspirational index story as if every graph shape is
   admitted. Support rows must name what is real.
-- Do not teach "automatic indexing" without teaching budget denial and async/
-  persistent/streaming postures.
+- Do not teach "automatic indexing" without teaching the inspectable access
+  plan, budget denial, and async/persistent/streaming postures.
+- Do not teach examples that depend on `unwrap()` or raw strings flowing past
+  the declaration boundary. Examples must either use typed/generated schema
+  references or show the admission step that converts declaration names into
+  proof-carrying references.
 
 **Test requirements**
 - Adversarial agreement: AI_README, feature docs, support rows, and public
   certification name the same access postures, required-capability cases, and
   typed denials.
 - Adversarial DX: the documented happy path shows a graph read declaration that
-  produces an access receipt without caller-owned loops.
+  produces an inspectable access plan and access receipt without caller-owned
+  loops.
 - Adversarial denial docs: broad boolean examples show typed budget denial and
   legitimate escape hatches rather than "increase limit and retry."
+- Adversarial no-magic docs: docs list the exact required index rows for a
+  representative complex graph read so readers can see which access structures
+  the runtime derived before execution.
 
 **Engineering decisions**
 - AI_README gets a distinct category for graph read access planning, separate
   from graph touch obligation authority.
-- Docs include the canonical DX target:
+- Docs include an illustrative canonical DX target. The exact function names may
+  follow the final read-composition facade, but the proof-bearing shape is
+  locked:
 
 ```rust
-let result = workspace.compose_read(|read| {
-    read.anchored_frontier_detail(topology_schema, anchor)
-        .through_relation("HalfEdgeNext")
-        .through_relation("HalfEdgeTwin")
-        .max_depth(4)
-        .where_field("tenant_id").equals(current_tenant)
-        .project(["half_edge_id", "face_id", "next_id"])
+let family = workspace.define_read_family("tenant-face-neighborhood", |read| {
+    read.anchored_frontier_collection(
+        "HalfEdge",
+        topology_schema,
+        topology_schema.relations([
+            "HalfEdgeNext",
+            "HalfEdgeTwin",
+            "HalfEdgeFace",
+        ])?,
+        GraphTraversalDepth::bounded(4)?,
+        |query| {
+            query
+                .where_equal(topology_schema.predicate_field("tenant", "tenant_id")?, current_tenant)
+                .project(topology_schema.projection_field("identity", "half_edge_id")?)
+                .project(topology_schema.projection_field("topology", "face_id")?)
+                .project(topology_schema.projection_field("topology", "next_id")?)
+        },
+        |shape| {
+            shape
+                .field("half_edge_id")
+                .field("face_id")
+                .field("next_id")
+        },
+    )
 })?;
 
-let access = result.receipt().graph_access_plan();
-assert!(access.proves_no_caller_owned_n_plus_one());
-assert!(access.max_resident_bytes() <= admitted_budget.max_resident_bytes());
+let access_plan = workspace.plan_graph_read_access(&family)?;
+
+let indexes = access_plan.required_indexes();
+assert!(indexes.contains_directional_adjacency(topology_schema.relation("HalfEdgeNext")?, Outgoing));
+assert!(indexes.contains_predicate(topology_schema.predicate_field("tenant", "tenant_id")?));
+
+let result = workspace.execute_read_family_with_access_plan(access_plan)?;
+
+let receipt = result.receipt().graph_access_plan();
+assert!(receipt.proves_no_caller_owned_n_plus_one());
+assert!(receipt.max_resident_bytes() <= receipt.admitted_budget().max_resident_bytes());
 ```
 
 **Open questions**
@@ -876,9 +1039,16 @@ memory counters, reference adoption, and docs/support agreement.
 
 ## Must Ship
 
+- an explicit graph-read access planning facade that lowers a read family into
+  an inspectable access plan before execution
+- proof-bearing schema/query reference admission for graph-read relations,
+  projection fields, predicate fields, ordering fields, traversal operators,
+  and result-shape fields
 - sealed graph read access shape vocabulary derived from canonical read graphs
 - boolean predicate normalization and selectivity input artifacts
 - required graph index set derivation with typed directional/lifecycle rows
+- graph index inventory matching as a distinct proof artifact from requirement
+  derivation
 - cost estimates, memory/breadth budgets, and complexity contracts
 - typed access admission outcomes:
   `AdmittedInlineIndexed`, `AdmittedPagedStreaming`,
@@ -889,6 +1059,8 @@ memory counters, reference adoption, and docs/support agreement.
 - exhaustive access-case registry covering admitted, required-capability,
   materialized, streaming, store-owned, and typed-denial graph read cases
 - existing index inventory and support rows
+- `ForgeQueryAdmittedGraphReadAccessPlan` as the only executable input for
+  graph-read execution postures that require access planning
 - bounded ephemeral index provisioning with lifecycle receipts
 - paged streaming frontier execution
 - persistent index requirement declarations for read families
@@ -917,6 +1089,9 @@ memory counters, reference adoption, and docs/support agreement.
 
 ## Acceptance Evidence
 
+- a representative complex graph read can be declared concisely, planned before
+  execution, inspected for exact required index rows and cost posture, and then
+  executed through the same admitted plan
 - covered graph reads execute only through proof-bearing access plans
 - hidden N+1 graph traversal is mechanically impossible on covered public lanes
 - broad boolean and dense frontier reads deny, stream, require persistent index,
@@ -929,6 +1104,9 @@ memory counters, reference adoption, and docs/support agreement.
 - docs, support rows, AI_README, and certification agree about admitted,
   required-capability, materialization, store-owned, and typed-denial graph read
   access postures
+- docs and tests prove that declaration-bound strings do not survive as
+  executable authority; execution receives admitted references and admitted
+  access plans
 - every edge case named in docs, tests, support rows, or the access-case
   registry maps to a concrete admission result and receipt field
 - worth-topo and worth-kernel covered graph read surfaces delete or classify

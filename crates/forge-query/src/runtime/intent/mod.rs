@@ -30,7 +30,10 @@ pub(in crate::runtime) use admission::{
     admit_branch_intent_declaration, admit_preview_intent_declaration,
 };
 pub use branch::ForgeQueryBranchIntentReceipt;
-pub use declaration::{ForgeQueryIntentDeclaration, ForgeQueryIntentSourceLane};
+pub use declaration::{
+    ForgeQueryIntentDeclaration, ForgeQueryIntentSourceLane,
+    ForgeQueryTouchBearingIntentDeclaration,
+};
 pub use denial::ForgeQueryIntentDenialEvidence;
 pub use effect_triggered::ForgeQueryEffectIntentReceipt;
 pub use execution::{ForgeQueryIntentExecution, ForgeQueryIntentExecutionKind};

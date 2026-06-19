@@ -2,6 +2,7 @@ use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceIdentity, ForgeQueryEvidenceScope,
     ForgeQueryEvidenceTag,
 };
+use forge_relational::facade::identity::KindId;
 
 use super::ForgeQueryGraphCompositionBreadth;
 
@@ -51,6 +52,7 @@ pub struct ForgeQueryGraphCompositionProgramStep {
     component_index: usize,
     kind: ForgeQueryGraphCompositionProgramStepKind,
     declared_collection: String,
+    relation_kind_id: Option<KindId>,
     declared_symbol: Option<String>,
 }
 
@@ -65,8 +67,14 @@ impl ForgeQueryGraphCompositionProgramStep {
             component_index,
             kind,
             declared_collection: declared_collection.into(),
+            relation_kind_id: None,
             declared_symbol,
         }
+    }
+
+    pub(crate) fn with_relation_kind_id(mut self, relation_kind_id: KindId) -> Self {
+        self.relation_kind_id = Some(relation_kind_id);
+        self
     }
 
     pub fn component_index(&self) -> usize {
@@ -79,6 +87,10 @@ impl ForgeQueryGraphCompositionProgramStep {
 
     pub fn declared_collection(&self) -> &str {
         &self.declared_collection
+    }
+
+    pub fn relation_kind_id(&self) -> Option<KindId> {
+        self.relation_kind_id
     }
 
     pub fn declared_symbol(&self) -> Option<&str> {
@@ -115,6 +127,12 @@ impl ForgeQueryGraphCompositionProgram {
                 .field_value(
                     ForgeQueryEvidenceTag::new("declared_collection"),
                     step.declared_collection(),
+                )
+                .optional_value(
+                    ForgeQueryEvidenceTag::new("relation_kind_id"),
+                    step.relation_kind_id()
+                        .map(|kind_id| kind_id.0.to_string())
+                        .as_deref(),
                 )
                 .optional_value(
                     ForgeQueryEvidenceTag::new("declared_symbol"),

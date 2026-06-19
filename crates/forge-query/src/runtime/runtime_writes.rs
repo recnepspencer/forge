@@ -11,6 +11,7 @@ pub(crate) struct ForgeQueryWriteAdmissionExecutionRecord {
     pub decision_digest: String,
     pub handoff_digest: String,
     pub binding_digest: String,
+    pub obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
 }
 
 impl ForgeQueryRuntime {
@@ -186,6 +187,7 @@ impl ForgeQueryRuntime {
             mutation_metadata,
             decision_trace_envelope,
             execution_provenance,
+            shared_admission.and_then(|record| record.obligation_dispatch),
         )?;
         self.journal_replay.record_write_receipt(&receipt);
         Ok(receipt)
@@ -312,7 +314,11 @@ impl ForgeQueryRuntime {
                 .evidence_identity()
                 .reporting_projection()
                 .to_string();
-            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
+            let obligation_dispatch_envelope_digest = record
+                .obligation_dispatch
+                .as_ref()
+                .and_then(ForgeQueryAuthoritativeMutationObligationDispatch::envelope_digest);
+            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts_with_obligation_dispatch(
                 record.family,
                 record.entrypoint,
                 &record.request_detail,
@@ -321,6 +327,7 @@ impl ForgeQueryRuntime {
                 &record.decision_digest,
                 &record.handoff_digest,
                 record.execution_seam,
+                obligation_dispatch_envelope_digest,
                 mutation_family.as_str(),
                 &commit_label,
                 "mutation-write",
@@ -333,5 +340,20 @@ impl ForgeQueryRuntime {
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         self.write_intent(command).execute()
+    }
+
+    pub fn write_with_policy_context(
+        &mut self,
+        command: ForgeQueryWriteCommand,
+        policy_context: crate::policy_basis::AdmittedPolicyTenantContext,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let review = self.review_authoritative_runtime_write(command)?;
+        let handoff = self
+            .resolve_reviewed_admitted_authoritative_write_handoff_with_policy_context(
+                review,
+                &policy_context,
+            )?;
+        let binding = self.prepare_authoritative_mutation_execution_binding(handoff);
+        self.execute_authoritative_mutation_execution_binding(binding)
     }
 }

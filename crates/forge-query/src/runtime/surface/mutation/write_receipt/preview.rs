@@ -113,6 +113,7 @@ impl ForgeQueryWriteReceipt {
             refresh_fallback: false,
             decision_trace_envelope: None,
             execution_provenance: None,
+            obligation_dispatch: None,
         }
     }
 }

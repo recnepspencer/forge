@@ -1,8 +1,10 @@
 use super::*;
 
+mod graph_obligation_denial;
 mod stop_class;
 mod stop_classify;
 
+pub use graph_obligation_denial::ForgeQueryGraphObligationDenial;
 pub use stop_class::{
     ForgeQueryRuntimeDeclarationFailureKind, ForgeQueryRuntimeLookupFailureKind,
     ForgeQueryRuntimeMissingArtifactKind, ForgeQueryRuntimeMissingComponent, ForgeQueryStopClass,
@@ -26,6 +28,20 @@ pub enum ForgeQueryRuntimeError {
     ExistingTruthProbeDenied(ForgeQueryExistingTruthProbeDenial),
     MutationBindingDenied(ForgeQueryExistingTruthBindingDenial),
     MutationContinuityDenied(ForgeQueryContinuityMutationDenial),
+    GraphObligationTouchDescriptorDenied(ForgeQueryGraphTouchDescriptorDenial),
+    GraphObligationEffectTouchDescriptorMissing {
+        effect_name: String,
+    },
+    GraphObligationIntentTouchDescriptorMissing {
+        intent_name: String,
+    },
+    GraphMutationPolicyContextDenied {
+        expected: crate::policy_basis::PolicyExecutionModeRequest,
+        actual: crate::policy_basis::PolicyExecutionModeRequest,
+        policy_tenant_admission_digest: String,
+    },
+    GraphMutationPolicyGateDenied(crate::runtime::ForgeQueryGraphMutationPolicyGateEvidence),
+    GraphObligationDenied(ForgeQueryGraphObligationDenial),
     GraphCompositionDenied(ForgeQueryGraphCompositionDenial),
     GraphCompositionDomainInvariantDenied(ForgeQueryGraphCompositionDomainInvariantDenial),
     MutationNamingDenied(ForgeQueryNamingMutationDenial),
@@ -161,6 +177,42 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
             Self::ExistingTruthProbeDenied(denial) => write!(f, "{denial}"),
             Self::MutationBindingDenied(denial) => write!(f, "{denial}"),
             Self::MutationContinuityDenied(denial) => write!(f, "{denial}"),
+            Self::GraphObligationTouchDescriptorDenied(denial) => write!(
+                f,
+                "graph obligation dispatch denied malformed touch descriptor: {denial}"
+            ),
+            Self::GraphObligationEffectTouchDescriptorMissing { effect_name } => write!(
+                f,
+                "effect-triggered write intent `{effect_name}` cannot execute while graph obligations are registered until pending delivery payload declares a graph touch descriptor"
+            ),
+            Self::GraphObligationIntentTouchDescriptorMissing { intent_name } => write!(
+                f,
+                "intent `{intent_name}` cannot execute through preview or branch lanes while graph obligations are registered until the declaration carries a graph touch descriptor"
+            ),
+            Self::GraphMutationPolicyContextDenied {
+                expected,
+                actual,
+                policy_tenant_admission_digest,
+            } => write!(
+                f,
+                "graph mutation policy context denied: expected {} admission, got {} admission for policy tenant context {}",
+                expected.as_str(),
+                actual.as_str(),
+                policy_tenant_admission_digest
+            ),
+            Self::GraphMutationPolicyGateDenied(evidence) => write!(
+                f,
+                "graph mutation policy gate denied mutation: verdict {}, policy tenant context {}, gate evidence {}",
+                evidence.verdict().as_str(),
+                evidence.policy_tenant_admission_digest(),
+                evidence.evidence_digest()
+            ),
+            Self::GraphObligationDenied(denial) => write!(
+                f,
+                "graph obligation dispatch denied mutation: {} blocking obligation(s), projection {}",
+                denial.blocking_count(),
+                denial.projection_digest()
+            ),
             Self::GraphCompositionDenied(denial) => write!(f, "{denial}"),
             Self::GraphCompositionDomainInvariantDenied(denial) => write!(f, "{denial}"),
             Self::MutationNamingDenied(denial) => write!(f, "{denial}"),

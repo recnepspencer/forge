@@ -3,7 +3,9 @@ mod mutation_evidence;
 #[cfg(test)]
 mod query_anchor;
 
-use forge_query::facade::ForgeQueryDeclarationInput;
+use forge_query::facade::{
+    ForgeQueryAuthoritativeMutationObligationDispatchProjection, ForgeQueryDeclarationInput,
+};
 #[cfg(test)]
 use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection};
 
@@ -19,7 +21,6 @@ use super::{
 };
 
 pub(crate) use accepted_mutation_projection::TopologyAcceptedMutationProjection;
-#[cfg(test)]
 pub(crate) use mutation_evidence::TopologyMutationApplicationEvidence;
 #[cfg(test)]
 pub(crate) use query_anchor::TopologyOperatorApplicationQueryAnchor;
@@ -29,9 +30,10 @@ pub(crate) use query_anchor::TopologyOperatorApplicationQueryAnchor;
 pub(crate) struct TopologyDeclaredMutationArtifact {
     post_write_query_artifact: TopologyPostWriteQueryArtifact,
     accepted_mutation_projection: TopologyAcceptedMutationProjection,
+    graph_obligation_orchestration:
+        Option<ForgeQueryAuthoritativeMutationObligationDispatchProjection>,
     #[cfg(test)]
     query_anchor: TopologyOperatorApplicationQueryAnchor,
-    #[cfg(test)]
     mutation_evidence: TopologyMutationApplicationEvidence,
 }
 
@@ -59,10 +61,13 @@ impl TopologyDeclaredMutationArtifact {
                 semantic_family_key,
                 sequence,
             )?;
-        #[cfg(test)]
-        let mutation_evidence = TopologyMutationApplicationEvidence::from_inspection(
-            post_write_query_artifact.inspection(),
-        );
+        let graph_obligation_orchestration =
+            retained_handoff.graph_obligation_dispatch_projection();
+        let mutation_evidence =
+            TopologyMutationApplicationEvidence::from_inspection_and_graph_obligation_projection(
+                post_write_query_artifact.inspection(),
+                graph_obligation_orchestration.as_ref(),
+            );
 
         Ok(Self {
             post_write_query_artifact,
@@ -72,11 +77,11 @@ impl TopologyDeclaredMutationArtifact {
                     sequence,
                     &accepted_query_contribution_semantic_projection,
                 ),
+            graph_obligation_orchestration,
             #[cfg(test)]
             query_anchor: TopologyOperatorApplicationQueryAnchor::from_retained_handoff(
                 retained_handoff,
             ),
-            #[cfg(test)]
             mutation_evidence,
         })
     }
@@ -86,9 +91,29 @@ impl TopologyDeclaredMutationArtifact {
         &self.query_anchor
     }
 
-    #[cfg(test)]
     pub(crate) fn mutation_evidence(&self) -> TopologyMutationApplicationEvidence {
-        self.mutation_evidence
+        self.mutation_evidence.clone()
+    }
+
+    pub(crate) fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.graph_obligation_orchestration
+            .as_ref()
+            .and_then(|projection| projection.envelope_digest())
+    }
+
+    pub(crate) fn graph_obligation_orchestration(
+        &self,
+    ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatchProjection> {
+        self.graph_obligation_orchestration.as_ref()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn graph_composition_obligation(
+        &self,
+    ) -> Option<ForgeQueryAuthoritativeMutationObligationDispatchProjection> {
+        self.receipt()
+            .obligation_dispatch()
+            .map(|dispatch| dispatch.evidence_projection())
     }
 
     #[cfg(test)]

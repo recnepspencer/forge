@@ -19,6 +19,7 @@ pub struct ForgeQueryPreviewIntentReceipt {
     basis_evidence: Vec<String>,
     basis_evidence_identity: ForgeQueryEvidenceIdentity,
     admission_identity: ForgeQueryEvidenceIdentity,
+    obligation_dispatch: Option<crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch>,
     receipt_identity: ForgeQueryEvidenceIdentity,
 }
 
@@ -28,6 +29,9 @@ impl ForgeQueryPreviewIntentReceipt {
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
         admission: ForgeQueryEffectAdmission,
+        obligation_dispatch: Option<
+            crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch,
+        >,
     ) -> Self {
         let basis_evidence = basis_admission.evidence().to_vec();
         let canonical_input_digest = declaration.input_digest();
@@ -40,7 +44,8 @@ impl ForgeQueryPreviewIntentReceipt {
             admission,
             &canonical_input_digest,
         );
-        let receipt_identity = preview_intent_receipt_identity(&admission_identity);
+        let receipt_identity =
+            preview_intent_receipt_identity(&admission_identity, obligation_dispatch.as_ref());
         Self {
             intent_name: declaration.name().to_string(),
             strategy_identity: declaration.strategy_name().to_string(),
@@ -52,6 +57,7 @@ impl ForgeQueryPreviewIntentReceipt {
             basis_evidence,
             basis_evidence_identity,
             admission_identity,
+            obligation_dispatch,
             receipt_identity,
         }
     }
@@ -98,6 +104,12 @@ impl ForgeQueryPreviewIntentReceipt {
 
     pub fn admission_digest(&self) -> &str {
         self.admission_identity.as_str()
+    }
+
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.obligation_dispatch.as_ref()
     }
 
     pub fn receipt_digest(&self) -> &str {

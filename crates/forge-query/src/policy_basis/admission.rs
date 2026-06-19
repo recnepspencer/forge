@@ -64,7 +64,7 @@ fn admit_policy_basis(
     if !mode.phase_one_admitted() {
         return Err(PolicyTenantAdmissionError::new(
             PolicyTenantAdmissionFailureClass::UnsupportedExecutionMode,
-            "Phase 1 admits current, branch, and runtime-backed historical reads only",
+            "policy tenant admission admits current, branch, historical read, and graph mutation contexts only",
             PolicyTenantAdmissionCounters::admitted(
                 PolicyBasisCounters::denied_mode(),
                 crate::tenant_basis::TenantBasisCounters::default(),

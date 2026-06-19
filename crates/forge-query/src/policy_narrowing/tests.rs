@@ -16,10 +16,11 @@ use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBinding
 use super::lowering::narrow_policy_query_with_budget;
 use super::{
     classify_saved_policy_narrowing_reuse, narrow_policy_query,
-    optimizer_input_from_narrowed_policy_query, runtime_backed_policy_narrowing_support_profile,
-    PolicyNarrowingFailureClass, PolicyNarrowingSupportStatus, PolicyNarrowingSurface,
+    optimizer_input_from_narrowed_policy_query, PolicyNarrowingFailureClass,
     SavedPolicyNarrowingReuseDescriptor, SavedPolicyNarrowingReuseDisposition,
 };
+
+mod support_profile;
 
 fn canonical_query() -> crate::canonicalization::CanonicalQueryBundle {
     let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
@@ -251,29 +252,6 @@ fn relationship_proof_host_callback_is_forbidden_before_truth_touch() {
         1
     );
     assert_eq!(error.counters().relationship_proof().truth_touch_count(), 0);
-}
-
-#[test]
-fn support_profile_marks_execution_live_diff_and_delivery_deferred() {
-    let profile = runtime_backed_policy_narrowing_support_profile();
-
-    assert!(profile.surfaces().contains(&(
-        PolicyNarrowingSurface::NarrowedPolicyQueryArtifact,
-        PolicyNarrowingSupportStatus::Verified
-    )));
-    assert!(profile.surfaces().contains(&(
-        PolicyNarrowingSurface::PolicyAwareLive,
-        PolicyNarrowingSupportStatus::Deferred
-    )));
-    assert!(profile.surfaces().contains(&(
-        PolicyNarrowingSurface::PolicyAwareHistoricalDiff,
-        PolicyNarrowingSupportStatus::Deferred
-    )));
-    assert!(profile.surfaces().contains(&(
-        PolicyNarrowingSurface::StoreBackedDurability,
-        PolicyNarrowingSupportStatus::BlockedOnForgeStore
-    )));
-    assert!(!profile.profile_digest().is_empty());
 }
 
 #[test]

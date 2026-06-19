@@ -10,6 +10,12 @@ fn runtime_stop_class_taxonomy_covers_representative_runtime_error_variants() {
             | ForgeQueryStopClass::ExistingTruthProbeDenied { .. }
             | ForgeQueryStopClass::MutationBindingDenied { .. }
             | ForgeQueryStopClass::MutationContinuityDenied { .. }
+            | ForgeQueryStopClass::GraphObligationTouchDescriptorDenied { .. }
+            | ForgeQueryStopClass::GraphObligationEffectTouchDescriptorMissing { .. }
+            | ForgeQueryStopClass::GraphObligationIntentTouchDescriptorMissing { .. }
+            | ForgeQueryStopClass::GraphMutationPolicyContextDenied { .. }
+            | ForgeQueryStopClass::GraphMutationPolicyGateDenied { .. }
+            | ForgeQueryStopClass::GraphObligationDenied { .. }
             | ForgeQueryStopClass::GraphCompositionDenied { .. }
             | ForgeQueryStopClass::GraphCompositionDomainInvariantDenied { .. }
             | ForgeQueryStopClass::MutationNamingDenied { .. }

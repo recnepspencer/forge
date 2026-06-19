@@ -1,6 +1,7 @@
 pub(crate) mod boundary_audit;
 pub(crate) mod evidence_report;
 pub(crate) mod evidence_report_adoption;
+pub(crate) mod graph_obligation_adoption;
 pub(crate) mod prohibition_registry;
 pub(crate) mod support_pinning;
 pub(crate) mod support_snapshot;
@@ -33,6 +34,20 @@ pub use evidence_report_adoption::{
     ForgeQueryEvidenceReportAdoptionResidueClassification,
     ForgeQueryEvidenceReportAdoptionResidueRow, ForgeQueryEvidenceReportAdoptionSource,
     ForgeQueryEvidenceReportAdoptionSourceSet, ForgeQueryEvidenceReportAdoptionSyntaxClass,
+};
+pub use graph_obligation_adoption::{
+    graph_obligation_consumer_kit, ForgeQueryGraphObligationAdoptionManifest,
+    ForgeQueryGraphObligationAdoptionProof, ForgeQueryGraphObligationConsumerKit,
+    ForgeQueryGraphObligationConsumerKitError, ForgeQueryGraphObligationConsumerKitErrorKind,
+    ForgeQueryGraphObligationConsumerRegistrationDeclaration,
+    ForgeQueryGraphObligationExecutionProof, ForgeQueryGraphObligationExecutionProofRow,
+    ForgeQueryGraphObligationInMemoryProof, ForgeQueryGraphObligationInMemorySelectedObligation,
+    ForgeQueryGraphObligationInMemoryTestWorkspace, ForgeQueryGraphObligationLocalCeremonyAudit,
+    ForgeQueryGraphObligationLocalCeremonyFinding, ForgeQueryGraphObligationResidueCertification,
+    ForgeQueryGraphObligationResidueManifest, ForgeQueryGraphObligationResidueRow,
+    ForgeQueryGraphObligationSelectorCoverageDeclaration,
+    ForgeQueryGraphObligationSelectorCoverageRow, ForgeQueryGraphObligationSupportPin,
+    ForgeQueryGraphObligationSupportPinFinding,
 };
 pub use prohibition_registry::{
     hard_prohibition_compile_fail_fixtures, hard_prohibition_documentation_rows,

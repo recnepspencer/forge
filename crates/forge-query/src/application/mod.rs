@@ -19,6 +19,7 @@ mod declaration_route_plan;
 mod declaration_signal_compatibility;
 mod domain_entry;
 mod domain_handle;
+mod graph_obligation_orchestration;
 mod support;
 
 pub use capability::{
@@ -247,6 +248,11 @@ pub use domain_handle::{
     ForgeQueryDomainOperatingRequirement, ForgeQueryValidatedConfiguredDomainHandle,
 };
 #[allow(unused_imports)]
+pub use graph_obligation_orchestration::{
+    ForgeQueryGraphObligationOrchestrationBoundary, ForgeQueryGraphObligationOrchestrationDispatch,
+    ForgeQueryGraphObligationOrchestrationDispatchError,
+};
+#[allow(unused_imports)]
 pub(crate) use support::identity_boundary_inventory::{
     format_digest_folklore_pattern_in, normalize_source_text,
     ordinary_session_entrypoint_audit_violations, source_for_format_digest_path,
@@ -379,6 +385,7 @@ pub(crate) use declaration_signal_compatibility::{
     forge_query_checked_declaration_signal_compatibility_on_handle,
 };
 pub(crate) use domain_handle::checked_route_plan_from_progressed_with_profile;
+pub(crate) use graph_obligation_orchestration::dispatch_graph_obligations_for_orchestration;
 
 #[cfg(test)]
 mod tests;

@@ -10,9 +10,8 @@ use serde_json::{json, Value};
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::{interpret_topology_view, InterpretedTopologyView};
-use crate::validation::{
-    validate_interpreted_topology, DerivedTopologyValidationReport, TopologyValidationError,
-};
+use crate::projection::diagnostic_surfaces::derived_read_diagnostics::derive_topology_validation_report;
+use crate::validation::{DerivedTopologyValidationReport, TopologyValidationError};
 
 use super::QUERY_SURFACE_FAILURE_ROW_KEY;
 
@@ -271,7 +270,7 @@ pub(crate) fn validation_report_from_query_rows(
         decode_query_surface_row(materialized_rows, "materialized topology")?;
     let interpreted: InterpretedTopologyView =
         decode_query_surface_row(interpreted_rows, "interpreted topology")?;
-    validate_interpreted_topology(&materialized, &interpreted).map_err(validation_surface_error)
+    derive_topology_validation_report(&materialized, &interpreted).map_err(validation_surface_error)
 }
 
 fn interpreted_topology_from_upstreams(
@@ -295,7 +294,7 @@ fn validation_report_from_upstreams(
     let interpreted: InterpretedTopologyView = upstreams
         .decode_single_computed_row(interpreted_view_name)
         .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-    validate_interpreted_topology(&materialized, &interpreted).map_err(validation_surface_error)
+    derive_topology_validation_report(&materialized, &interpreted).map_err(validation_surface_error)
 }
 
 pub(crate) fn decode_query_surface_row<T>(

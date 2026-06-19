@@ -38,13 +38,17 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         deny_preview_assertion(&command)?;
         deny_preview_continuity(&command)?;
         admit_naming_intent(&command).map_err(ForgeQueryRuntimeError::MutationNamingDenied)?;
+        let obligation_dispatch = self
+            .runtime
+            .preview_mutation_obligation_dispatch(&command)?;
         self.runtime.backend.admit_preview_write_command(&command)?;
         let receipt = ForgeQueryWriteReceipt::preview(
             &self.label,
             self.pending_commands.len() + 1,
             &command,
             self.runtime.current_snapshot_identity(),
-        );
+        )
+        .with_obligation_dispatch(obligation_dispatch);
         self.pending_commands.push(command);
         self.writes.push(receipt.clone());
         self.route_preview_execution(&receipt);
@@ -176,14 +180,24 @@ impl<'a> ForgeQueryPreviewSession<'a> {
     ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
         let commands = declaration(ForgeQueryMutationBatchBuilder::new()).finish()?;
         for command in &commands {
+            deny_preview_assertion(command)?;
+            deny_preview_continuity(command)?;
+            if command.symbolic_target_reference().is_none() {
+                admit_naming_intent(command)
+                    .map_err(ForgeQueryRuntimeError::MutationNamingDenied)?;
+            }
+        }
+        admit_preview_batch_symbolic_references(&commands)?;
+        let obligation_dispatch = self
+            .runtime
+            .preview_mutation_batch_obligation_dispatch(&commands)?;
+        for command in &commands {
             self.runtime.backend.admit_preview_write_command(command)?;
         }
         let mut symbolic_targets =
             BTreeMap::<String, (ForgeQueryEntityIdentity, Option<String>)>::new();
         let mut receipts = Vec::with_capacity(commands.len());
         for command in commands {
-            deny_preview_assertion(&command)?;
-            deny_preview_continuity(&command)?;
             let symbolic_target_reference = command.symbolic_target_reference().cloned();
             let receipt = match &command {
                 ForgeQueryWriteCommand::UpdateSymbolicAspects {
@@ -241,16 +255,12 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                         resolved_collection,
                     )
                 }
-                _ => {
-                    admit_naming_intent(&command)
-                        .map_err(ForgeQueryRuntimeError::MutationNamingDenied)?;
-                    ForgeQueryWriteReceipt::preview(
-                        &self.label,
-                        self.pending_commands.len() + 1,
-                        &command,
-                        self.runtime.current_snapshot_identity(),
-                    )
-                }
+                _ => ForgeQueryWriteReceipt::preview(
+                    &self.label,
+                    self.pending_commands.len() + 1,
+                    &command,
+                    self.runtime.current_snapshot_identity(),
+                ),
             };
             if let Some(reference) = symbolic_target_reference.as_ref() {
                 record_preview_symbolic_target(&mut symbolic_targets, reference, &receipt);
@@ -261,7 +271,47 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             receipts.push(receipt);
         }
         ForgeQueryBatchWriteReceipt::from_write_receipts(receipts)
+            .map(|receipt| receipt.with_obligation_dispatch(obligation_dispatch))
     }
+}
+
+fn admit_preview_batch_symbolic_references(
+    commands: &[ForgeQueryWriteCommand],
+) -> Result<(), ForgeQueryRuntimeError> {
+    let mut planned_symbolic_targets =
+        BTreeMap::<String, (ForgeQueryEntityIdentity, Option<String>)>::new();
+    for command in commands {
+        if let Some(reference) = command.symbolic_target_reference() {
+            if command.mutation_family() != crate::runtime::ForgeQueryMutationFamily::Insert {
+                resolve_preview_symbolic_target(&planned_symbolic_targets, reference)?;
+            }
+        }
+        for reference in command.symbolic_aspect_references() {
+            resolve_preview_symbolic_target(&planned_symbolic_targets, reference.reference())?;
+        }
+        record_planned_preview_symbolic_target(&mut planned_symbolic_targets, command);
+    }
+    Ok(())
+}
+
+fn record_planned_preview_symbolic_target(
+    planned_symbolic_targets: &mut BTreeMap<String, (ForgeQueryEntityIdentity, Option<String>)>,
+    command: &ForgeQueryWriteCommand,
+) {
+    if command.mutation_family() != crate::runtime::ForgeQueryMutationFamily::Insert {
+        return;
+    }
+    let Some(reference) = command.symbolic_target_reference() else {
+        return;
+    };
+    let planned_identity = crate::memory_workspace::admit_authored_entity_label(format!(
+        "planned-preview-symbolic:{}",
+        reference.symbol()
+    ));
+    planned_symbolic_targets.insert(
+        reference.symbol().to_string(),
+        (planned_identity, command.declared_collection()),
+    );
 }
 
 fn record_preview_symbolic_target(

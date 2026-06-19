@@ -13,6 +13,7 @@ impl std::fmt::Display for TopologyMutationApplicationError {
                 stop_stage,
                 refusal_class,
                 recovery,
+                graph_obligation_envelope_digest,
                 reason,
             } => {
                 write!(
@@ -33,6 +34,9 @@ impl std::fmt::Display for TopologyMutationApplicationError {
                         recovery.authority_surface(),
                         recovery.recommended_action()
                     )?;
+                }
+                if let Some(digest) = graph_obligation_envelope_digest {
+                    write!(f, " with graph obligation envelope `{digest}`")?;
                 }
                 write!(f, ": {reason}")
             }

@@ -1,7 +1,10 @@
 use std::path::Path;
 
 use forge_query::facade::consumer_kit::hard_prohibition_boundary_audit;
+use topology::certification::milestone_one_runtime_builder;
+use topology::runtime_support::{topology_runtime, TopologyRuntimeAdapters};
 
+use crate::construction::authoring::require_default_primitive_construction_query_authority;
 use crate::construction::query_enforcement_adoption::worth_kernel_query_boundary_sources;
 
 const TOPOLOGY_CARGO: &str = include_str!(concat!(
@@ -132,8 +135,8 @@ fn public_queryless_happy_path_quarantined() -> bool {
 }
 
 fn query_runtime_authoring_honesty() -> bool {
-    KERNEL_AUTHORING.contains("primitive_construction_query_support_pins()?")
-        && KERNEL_AUTHORING.contains("project_workspace_support_snapshot(")
+    query_authority_typed_evidence_is_satisfied()
+        && KERNEL_AUTHORING.contains("require_default_primitive_construction_query_authority(")
         && KERNEL_QUERY_SUPPORT_PINS.contains("load_support_pin_contract_document(")
         && KERNEL_QUERY_SUPPORT_PINS
             .contains("ForgeQuerySupportPinContractSchemaVersion::current()")
@@ -143,10 +146,38 @@ fn query_runtime_authoring_honesty() -> bool {
         && !KERNEL_AUTHORING.contains("REPORTED_QUERY_FAMILIES")
         && !KERNEL_AUTHORING.contains("PrimitiveConstructionQueryGapRow")
         && !KERNEL_AUTHORING.contains("support_pinning_contract(\"worth-kernel\")")
+        && !KERNEL_AUTHORING.contains("project_workspace_support_snapshot(")
         && !KERNEL_AUTHORING.contains("require_primitive_construction_query_entry(")
         && KERNEL_AUTHORING.contains("ForgeQueryWorkspace")
         && !KERNEL_AUTHORING.contains("author_primitive_construction_declaration(")
         && !KERNEL_AUTHORING.contains("PrimitiveConstructionAuthoringEntry")
+}
+
+fn query_authority_typed_evidence_is_satisfied() -> bool {
+    let runtime = match milestone_one_runtime_builder() {
+        Ok(builder) => builder.build(),
+        Err(_) => return false,
+    };
+    let workspace = match topology_runtime(
+        TopologyRuntimeAdapters::current_head(runtime),
+        "worth-kernel.phase-five-closeout-query-authority".to_string(),
+    ) {
+        Ok(workspace) => workspace,
+        Err(_) => return false,
+    };
+    let receipt = match require_default_primitive_construction_query_authority(&workspace) {
+        Ok(receipt) => receipt,
+        Err(_) => return false,
+    };
+
+    receipt.support_pins_satisfied()
+        && receipt.support_pin_finding_count() == 0
+        && receipt.support_pin_blocking_finding_count() == 0
+        && receipt.evaluated_support_source_matrix_digest()
+            == workspace
+                .public_support_matrix()
+                .matrix_digest()
+                .terminal_projection_for_reporting()
 }
 
 fn family_birth_input_boundary_localized() -> bool {

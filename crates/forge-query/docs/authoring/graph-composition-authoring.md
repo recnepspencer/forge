@@ -14,6 +14,12 @@ This is not a nicer spelling of command-batch submission. It is a separate
 public authoring family with its own receipts, inspection surfaces, support
 rows, and typed denials.
 
+Graph composition authors graph-shaped work. Graph Touch Obligation Authority
+governs the semantic obligations created by graph-shaped work. When the
+composition touch carries covered graph meaning, Query should select,
+dispatch, budget, execute, and record registered graph obligations through the
+authority path instead of making the caller remember validator callbacks.
+
 ## Why You Use It
 
 - you need to declare entities or relations and reference them later in the
@@ -24,8 +30,9 @@ rows, and typed denials.
   explicitly instead of hiding behind plain update semantics
 - you need backend-verified existing-truth checks inside the same authoring
   program
-- you need denied-path diagnostics that say whether Query rejected the program
-  or a domain invariant pack rejected the topology
+- you need denied-path diagnostics that say whether Query rejected the program,
+  the registered graph obligation path rejected the touch, or a compatibility
+  domain invariant pack rejected the topology
 
 ## Stable Entry Points
 
@@ -83,8 +90,11 @@ Authority boundaries still matter:
   and continuity semantics
 - Query owns the public authoring vocabulary, support posture, receipts,
   inspection, and denied-path evidence
-- domain invariants remain domain-owned; Query only provides the distinct lane
-  that keeps "supported substrate" separate from "invalid topology"
+- registered graph obligations are the primary covered path for graph touch
+  legality, selector coverage, support rows, and executor verdict evidence
+- manual invariant packs are compatibility/custom extension surfaces, not the primary covered graph obligation path
+- domain invariants remain domain-owned; Query keeps "supported substrate",
+  registered obligation denial, and compatibility topology rejection distinct
 
 ## How It Executes
 
@@ -113,13 +123,19 @@ Denied paths do not produce those receipt surfaces. Instead they expose:
 - `denial.admission_trace()`
 - `denial.failure_stage()`
 
-When a domain invariant pack rejects an otherwise supported program, the
-runtime uses:
+When a registered graph obligation applies, Query derives it from the graph
+touch descriptor, operating world descriptor, and obligation index. The runtime
+then executes the selected obligation through a dispatch envelope and preserves
+the executor verdict in receipts, traces, support rows, or diagnostics.
+
+When a compatibility domain invariant pack rejects an otherwise supported
+program, the runtime uses:
 
 - `ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(...)`
 - `denial.domain_invariant_summary()`
 
-That keeps Query-owned support denial distinct from domain-invalid topology.
+That keeps Query-owned support denial distinct from registered graph obligation
+denial and compatibility domain-invalid topology.
 
 ## Small Example
 
@@ -328,8 +344,12 @@ Those rows are the machine-readable answer to:
   split or merge semantics.
 - Use the verified variants when the backend must prove current authoritative
   truth immediately before the existing-target mutation.
-- Use `compose_graph_with_invariant_pack(...)` when the program shape may be
-  substrate-valid but still needs domain-owned invariant rejection.
+- Use registered graph obligations when the program shape should select covered
+  legality, sequencing, capability, context, schema-contract, or advisory
+  checks from the touched graph shape.
+- Use `compose_graph_with_invariant_pack(...)` only when the program shape may
+  be substrate-valid but still needs compatibility/custom domain-owned
+  invariant rejection outside the covered graph obligation path.
 
 ## Inspection And Debugging
 
@@ -358,7 +378,16 @@ Start here when a composition denies:
 - `denial.admission_trace()`
   - shows the ordered denied-path stages
 
-Start here when a domain invariant pack rejects a supported program:
+Start here when a registered graph obligation denies:
+
+- graph obligation dispatch envelope evidence
+- graph obligation executor verdict evidence
+- graph obligation support row evidence
+- graph obligation budget evidence such as `BudgetExceeded`, state-load
+  counters, cost classes, and artifact-policy-gated diagnostics
+
+Start here when a compatibility domain invariant pack rejects a supported
+program:
 
 - `ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(...)`
 - `denial.domain_invariant_summary().declared_collections()`
@@ -380,6 +409,9 @@ the domain reject?"
 - collapsing domain-invalid topology into `GraphCompositionDenied(...)`
 - reconstructing graph meaning from generic component rows when composition
   evidence already exists
+- presenting manual invariant packs as the primary covered graph obligation
+  path
+- hiding budget overflow by completing local graph walks after `BudgetExceeded`
 
 ## Current Limits
 
@@ -390,9 +422,13 @@ the domain reject?"
 - temporal, async/resource, store-backed, and durable graph-authoring semantics
   remain outside this feature boundary
 - Query does not own topology validity or domain-local invariant semantics
+- graph touch obligation authority is bounded by admitted support rows, budget
+  posture, and executor verdict evidence
 
 ## Related Docs
 
+- [Graph Touch Obligation Authority](graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](graph-obligation-consumer-kit.md)
 - [Writes and Intent Boundaries](../execution/writes-and-intents.md)
 - [Existing-Truth Verified Updates](../capabilities/existing-truth.md)
 - [Existing-Truth Verified Deletes](../capabilities/existing-truth.md)

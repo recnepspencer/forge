@@ -80,6 +80,11 @@ impl TopologyMutationApplicationStop {
     pub(crate) fn recovery(&self) -> Option<&forge_query::facade::ForgeQueryRecoveryBrief> {
         self.recovery.as_ref()
     }
+
+    pub(crate) fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.error
+            .declaration_entry_graph_obligation_envelope_digest()
+    }
 }
 
 pub(crate) struct TopologyMutationApplicationRunner<'workspace, 'surfaces> {

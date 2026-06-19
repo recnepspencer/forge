@@ -78,6 +78,7 @@ fn every_invariant_variant_supports_at_least_one_execution_point_and_can_registe
         InvariantExecutionPoint::SnapshotPublication,
         InvariantExecutionPoint::CertificationBoundary,
         InvariantExecutionPoint::HarnessAudit,
+        InvariantExecutionPoint::GraphComposition,
     ];
 
     for rule in InvariantRule::registration_examples() {
@@ -115,6 +116,7 @@ fn effect_supported_by_execution_point(point: InvariantExecutionPoint) -> Invari
     match point {
         InvariantExecutionPoint::MutationSensitive
         | InvariantExecutionPoint::CommitBoundary
+        | InvariantExecutionPoint::GraphComposition
         | InvariantExecutionPoint::HarnessAudit => InvariantFailureEffect::BlockCommit,
         InvariantExecutionPoint::SnapshotPublication
         | InvariantExecutionPoint::CertificationBoundary => {

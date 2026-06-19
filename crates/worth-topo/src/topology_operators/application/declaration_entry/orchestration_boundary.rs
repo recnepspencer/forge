@@ -63,6 +63,10 @@ where
     };
     let fallback_stop_class = contribution_stop_class(&outcome);
     let fallback_reason = contribution_reason(&outcome).to_string();
+    let graph_obligation_envelope_digest = outcome
+        .graph_obligation_dispatch()
+        .and_then(|dispatch| dispatch.envelope_digest())
+        .map(str::to_string);
     let brief = handle.recover_topology_operator_contribution_checked(outcome);
     let stop_class = brief
         .as_ref()
@@ -78,6 +82,7 @@ where
         stop_stage,
         refusal_class: None,
         recovery: brief,
+        graph_obligation_envelope_digest,
         reason,
     }
 }

@@ -144,6 +144,7 @@ impl ForgeQueryReadReceipt {
             relationship_proof_support_profile,
             breadth,
             materialized_fact_posture: None,
+            graph_obligation_dispatch: None,
             decision_trace_envelope: None,
             execution_provenance: None,
         }

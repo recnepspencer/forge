@@ -317,6 +317,12 @@ inventory, readiness, inspection, and declaration-entry orchestration.
 Seam-ledger projections and orchestration both reject retained artifacts from
 the wrong admitted handle or operating world.
 
+Graph touch obligation authority uses the same admitted-world boundary.
+Consumers should pass graph touches through Query's operating world descriptor
+and registered obligation index instead of deriving local validator tables from
+a configured handle. The handle proves the world; it does not make local graph
+ceremony authoritative.
+
 The new typed binding pipeline follows the same rule. Binding does not replace
 handle admission and it does not introduce ambient dependency injection.
 Instead, it lets the admitted handle verify:
@@ -771,6 +777,7 @@ They do not yet provide:
 
 ## Related Docs
 
+- [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)

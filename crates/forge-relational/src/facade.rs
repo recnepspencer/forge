@@ -2,6 +2,8 @@
 //! External crates should import through this module rather than reaching into
 //! internal crate structure directly.
 
+mod runtime_validation_exports;
+
 pub mod config {
     pub use crate::config::data::{
         AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CheckpointPolicy,
@@ -229,6 +231,7 @@ pub mod merge {
 }
 
 pub mod runtime {
+    pub use super::runtime_validation_exports::*;
     pub use crate::logic::builder::RelationalRuntimeBuilder;
     pub use crate::logic::commit::CommitAuthorityContract;
     pub use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
@@ -250,17 +253,6 @@ pub mod runtime {
     pub use crate::storage::data::{
         ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord, PartitionStorageStats,
         RelationReadRecord, RelationalReadView, StorageStats,
-    };
-    pub use crate::validation::data::{
-        CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
-        CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
-        CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
-        CustomInvariantRuleId, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-        CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCatalog,
-        InvariantCheckResult, InvariantClass, InvariantCostClass, InvariantDecisionKind,
-        InvariantDecisionRecord, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
-        InvariantGroupSet, InvariantRegistration, InvariantRule, PlannedRelationEndpointUpdate,
-        StructuralRelationRecord, StructuralRelationView,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
     pub use crate::visibility::materialization::read_records::{

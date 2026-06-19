@@ -7,6 +7,7 @@ pub enum PolicyAwareExecutionMode {
     LiveSubscription,
     DeliveryShape,
     OptimizerInput,
+    GraphMutation,
 }
 
 impl PolicyAwareExecutionMode {
@@ -19,6 +20,7 @@ impl PolicyAwareExecutionMode {
             Self::LiveSubscription => "live_subscription",
             Self::DeliveryShape => "delivery_shape",
             Self::OptimizerInput => "optimizer_input",
+            Self::GraphMutation => "graph_mutation",
         }
     }
 }

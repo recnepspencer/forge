@@ -304,6 +304,19 @@ pub(crate) fn rejected_outcome(
                     reason.to_string(),
                 ),
             },
+            PrimitiveConstructionPhaseError::TopologyBirthCompose(error) => {
+                PrimitiveConstructionRejectedOutcome::new(
+                    family,
+                    PrimitiveConstructionRejectionClass::TopologyExecution,
+                    PrimitiveConstructionRejectionLocality::Execution,
+                    Vec::new(),
+                    None,
+                    None,
+                    None,
+                    None,
+                    error.to_string(),
+                )
+            }
         },
     }
 }

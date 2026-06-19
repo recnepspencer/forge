@@ -14,14 +14,27 @@ use schema::facade::platform::relations::RelationKind;
 use super::shared::RuntimeTopologyGraph;
 use super::shared_queries::{kind_name, owner_relation_for_kind};
 
-pub fn registration() -> Result<
+pub(super) fn graph_composition_registration() -> Result<
     CustomInvariantRegistration,
     forge_relational::facade::runtime::CustomInvariantRegistrationError,
 > {
-    CustomInvariantRegistration::new(OwnershipSurfaceRule)
+    CustomInvariantRegistration::new(OwnershipSurfaceRule {
+        execution_point: InvariantExecutionPoint::GraphComposition,
+    })
 }
 
-struct OwnershipSurfaceRule;
+pub(super) fn commit_backstop_registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
+    CustomInvariantRegistration::new(OwnershipSurfaceRule {
+        execution_point: InvariantExecutionPoint::CommitBoundary,
+    })
+}
+
+struct OwnershipSurfaceRule {
+    execution_point: InvariantExecutionPoint,
+}
 
 impl CustomInvariantRule for OwnershipSurfaceRule {
     type Scope = RuntimeTopologyGraph;
@@ -36,7 +49,7 @@ impl CustomInvariantRule for OwnershipSurfaceRule {
             },
             display_name: Arc::from(" Milestone 1 Ownership Surface"),
             operational: CustomInvariantOperationalMetadata {
-                execution_point: InvariantExecutionPoint::CommitBoundary,
+                execution_point: self.execution_point,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
                 cost_class: InvariantCostClass::Touched,
                 failure_effect: InvariantFailureEffect::BlockCommit,

@@ -1,4 +1,5 @@
 use crate::runtime::ForgeQuerySymbolicTargetReference;
+use forge_relational::facade::identity::KindId;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphEntitySymbol {
@@ -22,6 +23,7 @@ impl ForgeQueryGraphEntitySymbol {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphRelationSymbol {
     reference: ForgeQuerySymbolicTargetReference,
+    relation_kind_id: Option<KindId>,
 }
 
 impl ForgeQueryGraphRelationSymbol {
@@ -29,8 +31,18 @@ impl ForgeQueryGraphRelationSymbol {
         self.reference.symbol()
     }
 
-    pub(crate) fn new(reference: ForgeQuerySymbolicTargetReference) -> Self {
-        Self { reference }
+    pub fn relation_kind_id(&self) -> Option<KindId> {
+        self.relation_kind_id
+    }
+
+    pub(crate) fn new(
+        reference: ForgeQuerySymbolicTargetReference,
+        relation_kind_id: Option<KindId>,
+    ) -> Self {
+        Self {
+            reference,
+            relation_kind_id,
+        }
     }
 
     pub(crate) fn reference(&self) -> ForgeQuerySymbolicTargetReference {

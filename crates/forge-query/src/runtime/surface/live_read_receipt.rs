@@ -3,8 +3,8 @@ use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::runtime::{
-    ForgeQueryIntentConsumerInspection, ForgeQueryIntentExecutionProvenance,
-    ForgeQueryRuntimeLiveSubscriptionInstallation,
+    ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryIntentConsumerInspection,
+    ForgeQueryIntentExecutionProvenance, ForgeQueryRuntimeLiveSubscriptionInstallation,
 };
 
 use super::read_receipt_support::materialized_result_digest;
@@ -22,6 +22,7 @@ pub struct ForgeQueryLiveReadReceipt {
     snapshot_evidence_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     row_count: usize,
     materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
+    pub(super) graph_obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
 }
@@ -55,6 +56,7 @@ impl ForgeQueryLiveReadReceipt {
             snapshot_evidence_identity,
             row_count: rows.len(),
             materialized_fact_posture,
+            graph_obligation_dispatch: None,
             decision_trace_envelope: None,
             execution_provenance: None,
         }
@@ -112,6 +114,26 @@ impl ForgeQueryLiveReadReceipt {
         self.materialized_fact_posture.as_ref()
     }
 
+    pub fn graph_obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.graph_obligation_dispatch.as_ref()
+    }
+
+    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.graph_obligation_dispatch
+            .as_ref()
+            .and_then(ForgeQueryAuthoritativeMutationObligationDispatch::envelope_digest)
+    }
+
+    pub fn graph_obligation_evidence(
+        &self,
+    ) -> Option<crate::runtime::ForgeQueryGraphObligationAttachmentEvidence> {
+        self.graph_obligation_dispatch
+            .as_ref()
+            .map(|dispatch| dispatch.attachment_evidence())
+    }
+
     pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {
         self.decision_trace_envelope.as_ref()
     }
@@ -156,6 +178,7 @@ impl ForgeQueryLiveReadReceipt {
             snapshot_evidence_identity,
             row_count,
             materialized_fact_posture: None,
+            graph_obligation_dispatch: None,
             decision_trace_envelope: None,
             execution_provenance: None,
         }

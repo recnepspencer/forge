@@ -61,11 +61,18 @@ pub(super) fn preview_intent_admission_identity(
 
 pub(super) fn preview_intent_receipt_identity(
     admission_identity: &ForgeQueryEvidenceIdentity,
+    obligation_dispatch: Option<&crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch>,
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::PreviewIntentReceipt)
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("admission_identity"),
             admission_identity,
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("graph_obligation_dispatch"),
+            obligation_dispatch.map(
+                crate::runtime::ForgeQueryAuthoritativeMutationObligationDispatch::dispatch_digest,
+            ),
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("posture"),

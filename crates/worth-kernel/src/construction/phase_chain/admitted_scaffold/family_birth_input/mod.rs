@@ -12,7 +12,6 @@ mod scalar_admission;
 mod topology_counts;
 
 pub(super) struct PrimitiveConstructionAdmittedBirthInput {
-    #[cfg(test)]
     birth_topology_truth: super::PrimitiveConstructionAdmittedBirthTopologyTruth,
     realization_posture: super::PrimitiveConstructionAdmittedRealizationPosture,
     #[cfg(test)]
@@ -20,7 +19,6 @@ pub(super) struct PrimitiveConstructionAdmittedBirthInput {
 }
 
 impl PrimitiveConstructionAdmittedBirthInput {
-    #[cfg(test)]
     pub(super) fn into_birth_topology_truth(
         self,
     ) -> super::PrimitiveConstructionAdmittedBirthTopologyTruth {
@@ -33,7 +31,6 @@ impl PrimitiveConstructionAdmittedBirthInput {
         self.realization_posture
     }
 
-    #[cfg(test)]
     pub(super) fn into_topology_and_realization(
         self,
     ) -> (

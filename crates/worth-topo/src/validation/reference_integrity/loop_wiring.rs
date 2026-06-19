@@ -13,14 +13,27 @@ use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
 use super::shared::RuntimeTopologyGraph;
 
-pub fn registration() -> Result<
+pub(super) fn graph_composition_registration() -> Result<
     CustomInvariantRegistration,
     forge_relational::facade::runtime::CustomInvariantRegistrationError,
 > {
-    CustomInvariantRegistration::new(LoopWiringRule)
+    CustomInvariantRegistration::new(LoopWiringRule {
+        execution_point: InvariantExecutionPoint::GraphComposition,
+    })
 }
 
-struct LoopWiringRule;
+pub(super) fn commit_backstop_registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
+    CustomInvariantRegistration::new(LoopWiringRule {
+        execution_point: InvariantExecutionPoint::CommitBoundary,
+    })
+}
+
+struct LoopWiringRule {
+    execution_point: InvariantExecutionPoint,
+}
 
 impl CustomInvariantRule for LoopWiringRule {
     type Scope = RuntimeTopologyGraph;
@@ -35,7 +48,7 @@ impl CustomInvariantRule for LoopWiringRule {
             },
             display_name: Arc::from(" Milestone 1 Loop Wiring"),
             operational: CustomInvariantOperationalMetadata {
-                execution_point: InvariantExecutionPoint::CommitBoundary,
+                execution_point: self.execution_point,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
                 cost_class: InvariantCostClass::Touched,
                 failure_effect: InvariantFailureEffect::BlockCommit,

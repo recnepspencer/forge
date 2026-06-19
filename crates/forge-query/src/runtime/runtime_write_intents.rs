@@ -39,9 +39,39 @@ impl ForgeQueryRuntime {
         match review.decision().clone() {
             ForgeQueryIntentAdmissionDecision::Admitted(
                 crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutation(plan),
-            ) => Ok(ForgeQueryAuthoritativeMutationExecutionHandoff::from_plan(
-                plan,
-            )),
+            ) => {
+                let handoff = ForgeQueryAuthoritativeMutationExecutionHandoff::from_plan(plan);
+                let obligation_dispatch =
+                    self.authoritative_mutation_obligation_dispatch(&handoff)?;
+                Ok(handoff.with_obligation_dispatch(obligation_dispatch))
+            }
+            ForgeQueryIntentAdmissionDecision::Admitted(_) => {
+                Err(self.authoritative_write_non_admitted_error(&review))
+            }
+            ForgeQueryIntentAdmissionDecision::Advisory(_)
+            | ForgeQueryIntentAdmissionDecision::Violation(_) => {
+                Err(self.authoritative_write_non_admitted_error(&review))
+            }
+        }
+    }
+
+    pub(crate) fn resolve_reviewed_admitted_authoritative_write_handoff_with_policy_context(
+        &self,
+        review: ForgeQueryRuntimeIntentAdmissionReviewData,
+        policy_context: &crate::policy_basis::AdmittedPolicyTenantContext,
+    ) -> Result<ForgeQueryAuthoritativeMutationExecutionHandoff, ForgeQueryRuntimeError> {
+        match review.decision().clone() {
+            ForgeQueryIntentAdmissionDecision::Admitted(
+                crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutation(plan),
+            ) => {
+                let handoff = ForgeQueryAuthoritativeMutationExecutionHandoff::from_plan(plan);
+                let obligation_dispatch = self
+                    .authoritative_mutation_obligation_dispatch_with_policy_context(
+                        &handoff,
+                        policy_context,
+                    )?;
+                Ok(handoff.with_obligation_dispatch(obligation_dispatch))
+            }
             ForgeQueryIntentAdmissionDecision::Admitted(_) => {
                 Err(self.authoritative_write_non_admitted_error(&review))
             }
@@ -108,6 +138,7 @@ impl ForgeQueryRuntime {
             decision_digest: handoff.decision_digest().to_string(),
             handoff_digest: handoff.handoff_digest().to_string(),
             binding_digest: binding.binding_digest().to_string(),
+            obligation_dispatch: binding.obligation_dispatch().cloned(),
         };
         self.execute_authoritative_write_command_direct(
             handoff.command().clone(),

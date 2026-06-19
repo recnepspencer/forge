@@ -85,11 +85,7 @@ impl<'a> ForgeQueryRuntimeWriteIntentAdmissionReview<'a> {
     pub fn admit(self) -> Result<ForgeQueryAdmittedRuntimeWriteIntent<'a>, ForgeQueryRuntimeError> {
         let handoff = self
             .runtime
-            .resolve_reviewed_admitted_authoritative_write_handoff(self.review.clone())
-            .map_err(|_| {
-                self.runtime
-                    .authoritative_write_non_admitted_error(&self.review)
-            })?;
+            .resolve_reviewed_admitted_authoritative_write_handoff(self.review.clone())?;
         let execution_binding = self
             .runtime
             .prepare_authoritative_mutation_execution_binding(handoff.clone());

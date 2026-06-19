@@ -5,18 +5,28 @@ pub use crate::brep::topology_graph::{
     TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyView, TopologyWire,
 };
 pub use crate::construction::{
+    execute_primitive_construction_birth_compose,
     prepare_primitive_construction_query_admitted_handoff,
     prepare_primitive_construction_query_admitted_handoff_from_synopsis,
     prepare_primitive_construction_query_envelope, prepare_primitive_construction_query_handoff,
-    prepare_primitive_construction_query_receipt, TopologyConstructionQueryAdmittedHandoffError,
-    TopologyConstructionQueryEnvelopeError, TopologyConstructionQueryFactKind,
-    TopologyConstructionQueryFactProvenance, TopologyConstructionQueryFactRow,
-    TopologyConstructionQueryHandoffError, TopologyConstructionQueryInspectionSurface,
-    TopologyConstructionQueryMutationSurface, TopologyConstructionQueryReadSurface,
-    TopologyConstructionQueryReceiptError, TopologyPrimitiveConstructionBirthFamily,
+    prepare_primitive_construction_query_receipt,
+    topology_primitive_construction_birth_graph_obligation_registration,
+    TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
+    TopologyConstructionQueryFactKind, TopologyConstructionQueryFactProvenance,
+    TopologyConstructionQueryFactRow, TopologyConstructionQueryHandoffError,
+    TopologyConstructionQueryInspectionSurface, TopologyConstructionQueryMutationSurface,
+    TopologyConstructionQueryReadSurface, TopologyConstructionQueryReceiptError,
+    TopologyPrimitiveConstructionBirthComposeEvidence,
+    TopologyPrimitiveConstructionBirthComposeExecution,
+    TopologyPrimitiveConstructionBirthComposeExecutionError,
+    TopologyPrimitiveConstructionBirthComposeProgram, TopologyPrimitiveConstructionBirthFamily,
+    TopologyPrimitiveConstructionBirthMaterializationCoverage,
+    TopologyPrimitiveConstructionBirthSelectedObligationRow,
+    TopologyPrimitiveConstructionBirthTopologyKind,
     TopologyPrimitiveConstructionQueryAdmittedHandoff,
     TopologyPrimitiveConstructionQueryBirthSynopsis, TopologyPrimitiveConstructionQueryEnvelope,
     TopologyPrimitiveConstructionQueryHandoff, TopologyPrimitiveConstructionQueryReceipt,
+    TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
 };
 pub use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{
     NamingAttachmentReport, NamingAttachmentRow,
@@ -48,8 +58,19 @@ pub use crate::query_adoption::{
     WorthTopoQueryConsumerKitAdoptionError, WorthTopoQueryConsumerKitAdoptionStatus,
 };
 pub use crate::topology_operators::{
-    topology_grouped_operator_neighborhood, topology_operator_continuation_target,
-    topology_operator_contribution_workflow, topology_operator_signal_workflow,
+    topology_grouped_operator_neighborhood,
+    topology_operator_command_batch_equivalent_touch_descriptor,
+    topology_operator_continuation_target, topology_operator_contribution_workflow,
+    topology_operator_graph_obligation_adoption_proof,
+    topology_operator_graph_obligation_audit_sources, topology_operator_graph_obligation_catalog,
+    topology_operator_graph_obligation_local_ceremony_audit,
+    topology_operator_graph_obligation_registration_declaration,
+    topology_operator_graph_obligation_residue_manifest,
+    topology_operator_graph_obligation_selector_coverage,
+    topology_operator_graph_obligation_support_matrix,
+    topology_operator_graph_obligation_support_pin, topology_operator_legacy_guard_audit,
+    topology_operator_local_guard_residue_inventory, topology_operator_local_guard_residue_total,
+    topology_operator_relation_touch_descriptor, topology_operator_signal_workflow,
     BoundaryMembershipKind, EdgeSplitBlueprintCloseout, EdgeSplitBlueprintCloseoutDenial,
     EdgeSplitOperatorBlueprint, EdgeSplitOperatorClassification, EdgeSplitOperatorProofObligation,
     EdgeSplitOperatorRow, EdgeSplitOperatorTruthAuthority, EdgeSplitRequiredQuerySurface,
@@ -89,11 +110,15 @@ pub use crate::topology_operators::{
     TopologyOperatorEnvelopeChecked, TopologyOperatorEnvelopeFromProgressedChecked,
     TopologyOperatorEnvelopeFromProgressedProof,
     TopologyOperatorEnvelopeFromProgressedTerminalError, TopologyOperatorEnvelopeProof,
-    TopologyOperatorEnvelopeTerminalError, TopologyOperatorGroupedContributionComposition,
+    TopologyOperatorEnvelopeTerminalError, TopologyOperatorGraphObligationAdoptionStatus,
+    TopologyOperatorGraphObligationCatalog, TopologyOperatorGraphObligationCatalogRow,
+    TopologyOperatorGraphObligationLoweringPath, TopologyOperatorGroupedContributionComposition,
     TopologyOperatorGroupedContributionInput, TopologyOperatorGroupedContributionMemberContext,
     TopologyOperatorGroupedContributionStop, TopologyOperatorGroupedDeclaration,
     TopologyOperatorGroupedDeclarationStop, TopologyOperatorGroupedInput,
-    TopologyOperatorGroupedOutcome, TopologyOperatorPreparedContinuation,
+    TopologyOperatorGroupedOutcome, TopologyOperatorLegacyGuardAudit,
+    TopologyOperatorLegacyGuardAuditRow, TopologyOperatorLocalGuardResidueClass,
+    TopologyOperatorLocalGuardResidueRow, TopologyOperatorPreparedContinuation,
     TopologyOperatorPreparedContinuationChecked, TopologyOperatorPreparedContinuationOutcome,
     TopologyOperatorPreparedContinuationProof, TopologyOperatorProgressedDeclaration,
     TopologyOperatorProgressionError, TopologyOperatorRoutePlan, TopologyOperatorRoutePlanChecked,
@@ -114,7 +139,9 @@ pub use crate::topology_operators::{
     TopologySplitConnectedHalfEdgeSetToNewWireFamily,
     TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
     TopologySplitSingleFaceFromTwoFaceShellToNewShellFamily, TopologyWireRehomeHalfEdgeMember,
-    TopologyWireSplitHalfEdgeMember,
+    TopologyWireSplitHalfEdgeMember, TOPOLOGY_OPERATOR_GRAPH_OBLIGATION_FAMILY,
+    TOPOLOGY_OPERATOR_INCOMING_RELATION_COUNT_GUARD_PATTERN, TOPOLOGY_OPERATOR_RELATION_COLLECTION,
+    TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION, TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH,
 };
 pub use crate::workload_platform::{
     NmtTopologyConstruction, NmtTopologyConstructionCounters, NmtTopologyConstructionDenial,
@@ -138,20 +165,7 @@ pub use forge_relational::facade::identity::{EntityId, PartitionId};
 pub use crate::certification::*;
 
 #[cfg(test)]
-pub use crate::derived_topology::materialized_graph::{
-    MaterializedTopologyView, TopologyMaterializer,
-};
-#[cfg(test)]
-pub use crate::derived_topology::traversal_views::{
-    build_topology_read_artifact, certify_topology_view, interpret_topology_view,
-    InterpretedTopologyView,
-};
-#[cfg(test)]
-pub use crate::projection::diagnostic_surfaces::derived_read_diagnostics::DerivedReadDiagnostics;
-#[cfg(test)]
 pub use crate::projection::runtime_boundary::query_runtime::{
     TopologyQueryMutationLane, TopologyQueryMutationLaneExecutionShape,
     TopologyQueryMutationLaneSupportStatus,
 };
-#[cfg(test)]
-pub use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};

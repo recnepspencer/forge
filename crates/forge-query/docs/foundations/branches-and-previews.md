@@ -81,6 +81,11 @@ Branch:
 The key idea is isolation by authority lane, not by reimplementing the whole
 runtime.
 
+Graph touch obligations follow that same isolation rule. Branch and preview
+graph touches must carry an operating world descriptor, and Query must select
+registered obligations from that descriptor rather than pretending branch-local,
+preview-local, and authoritative graph work share one validator table.
+
 ## How It Executes
 
 Preview path:
@@ -283,6 +288,7 @@ Look for:
 
 ## Related Docs
 
+- [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
 - [Workspace Overview](workspace-overview.md)
 - [Writes and Intent Boundaries](../execution/writes-and-intents.md)
 - [State and Readiness Surfaces](state.md)

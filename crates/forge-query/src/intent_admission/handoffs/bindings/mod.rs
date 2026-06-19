@@ -8,8 +8,9 @@ use crate::evidence_identity::{
 };
 use crate::memory_workspace::ForgeQueryCommitIdentity;
 use crate::runtime::{
-    ForgeQueryEffectDelivery, ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryIntentDeclaration,
-    ForgeQueryIntentSourceLane, ForgeQueryWriteCommand,
+    ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryEffectDelivery,
+    ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryIntentDeclaration, ForgeQueryIntentSourceLane,
+    ForgeQueryWriteCommand,
 };
 
 use super::{
@@ -199,6 +200,12 @@ impl ForgeQueryAuthoritativeMutationExecutionBinding {
         &self.handoff
     }
 
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.handoff.obligation_dispatch()
+    }
+
     pub fn binding_digest(&self) -> &str {
         &self.binding_digest
     }
@@ -233,6 +240,12 @@ impl ForgeQueryAuthoritativeMutationBatchExecutionBinding {
 
     pub fn handoff(&self) -> &ForgeQueryAuthoritativeMutationBatchExecutionHandoff {
         &self.handoff
+    }
+
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.handoff.obligation_dispatch()
     }
 
     pub fn binding_digest(&self) -> &str {

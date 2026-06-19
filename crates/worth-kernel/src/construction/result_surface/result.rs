@@ -16,5 +16,6 @@ impl std::error::Error for PrimitiveConstructionResultError {}
 
 #[cfg(test)]
 pub use crate::construction::tests::support::prepared_result::{
-    prepare_primitive_construction_result, PreparedPrimitiveConstructionResult,
+    prepare_primitive_construction_executed_result, prepare_primitive_construction_result,
+    PreparedPrimitiveConstructionResult,
 };

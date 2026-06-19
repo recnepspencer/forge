@@ -213,6 +213,18 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
             > 0
     );
     assert_eq!(
+        diagnostics_report
+            .validation_execution_report
+            .execution_count,
+        1
+    );
+    assert_eq!(
+        diagnostics_report
+            .validation_execution_report
+            .registered_rule_count,
+        diagnostics_report.validation_report.rows.len()
+    );
+    assert_eq!(
         serde_json::from_value::<crate::certification::DerivedEquivalenceContractReport>(
             equivalence_rows[0].clone()
         )

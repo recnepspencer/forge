@@ -1,6 +1,7 @@
 mod admission;
 mod admitted_handoff;
 mod birth_synopsis;
+mod compose_execution;
 mod envelope;
 mod handoff;
 mod receipt;
@@ -19,6 +20,19 @@ pub use admitted_handoff::{
 };
 pub use birth_synopsis::{
     TopologyPrimitiveConstructionBirthFamily, TopologyPrimitiveConstructionQueryBirthSynopsis,
+};
+pub(crate) use compose_execution::topology_primitive_construction_birth_layout_violation_registration;
+pub use compose_execution::{
+    execute_primitive_construction_birth_compose,
+    topology_primitive_construction_birth_graph_obligation_registration,
+    TopologyPrimitiveConstructionBirthComposeEvidence,
+    TopologyPrimitiveConstructionBirthComposeExecution,
+    TopologyPrimitiveConstructionBirthComposeExecutionError,
+    TopologyPrimitiveConstructionBirthComposeProgram,
+    TopologyPrimitiveConstructionBirthMaterializationCoverage,
+    TopologyPrimitiveConstructionBirthSelectedObligationRow,
+    TopologyPrimitiveConstructionBirthTopologyKind,
+    TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
 };
 pub use envelope::TopologyPrimitiveConstructionQueryEnvelope;
 pub use handoff::TopologyPrimitiveConstructionQueryHandoff;

@@ -1,4 +1,7 @@
-use super::super::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
+use super::super::admitted_scaffold::{
+    prepare_primitive_construction_admitted_artifact,
+    prepare_primitive_construction_executed_admitted_artifact,
+};
 use super::super::artifact::build_canonical_primitive_construction_artifact;
 use super::super::intent::PrimitiveConstructionIntent;
 use super::super::request::{
@@ -12,7 +15,12 @@ use super::super::specs::{
 use super::support::family_coverage::{
     primitive_construction_family_coverage_report, PrimitiveConstructionFamilyCoverageStatus,
 };
-use topology::facade::TopologyConstructionQueryMutationSurface;
+use forge_query::facade::ForgeQueryGraphObligationSupportLane;
+use topology::certification::milestone_one_runtime_builder;
+use topology::facade::{
+    TopologyConstructionQueryMutationSurface, TopologyPrimitiveConstructionBirthTopologyKind,
+};
+use topology::runtime_support::{topology_runtime, TopologyRuntimeAdapters};
 use worth_geom::facade::{PrimitiveRealizationStrategy, PrimitiveStabilityClass};
 
 #[test]
@@ -131,6 +139,33 @@ fn family_coverage_report_marks_all_phase_three_rows_explicitly() {
 }
 
 #[test]
+fn primitive_birth_family_directory_inventory_matches_compose_coverage() {
+    let family_directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src/construction/phase_chain/admitted_scaffold/family_birth_input/families");
+    let mut family_files = std::fs::read_dir(&family_directory)
+        .expect("family birth input directory should be readable")
+        .map(|entry| {
+            entry
+                .expect("family file entry should be readable")
+                .file_name()
+                .to_string_lossy()
+                .to_string()
+        })
+        .filter(|name| name.ends_with(".rs") && name != "mod.rs")
+        .collect::<Vec<_>>();
+    family_files.sort();
+
+    let mut expected_family_files = PRIMITIVE_CONSTRUCTION_FAMILIES
+        .iter()
+        .map(|family| format!("{}.rs", family.as_str()))
+        .collect::<Vec<_>>();
+    expected_family_files.sort();
+
+    assert_eq!(family_files, expected_family_files);
+    assert_eq!(family_files.len(), PRIMITIVE_CONSTRUCTION_FAMILIES.len());
+}
+
+#[test]
 fn canonical_artifact_surface_binds_admitted_artifact_and_birth_truth() {
     let intent = PrimitiveConstructionIntent::wire_body(WireBodySpec { edge_count: 8 });
     let request = intent.clone().into_request();
@@ -159,6 +194,61 @@ fn canonical_artifact_surface_binds_admitted_artifact_and_birth_truth() {
         PrimitiveStabilityClass::StableDirect
     );
     assert_ne!(artifact.artifact_digest(), artifact.birth_truth_digest());
+}
+
+#[test]
+fn kernel_admitted_artifact_executes_topology_birth_compose_with_runtime_evidence() {
+    let runtime = milestone_one_runtime_builder()
+        .expect("topology runtime builder")
+        .build();
+    let mut workspace = topology_runtime(
+        TopologyRuntimeAdapters::current_head(runtime),
+        "worth-kernel.primitive-birth-compose.execution",
+    )
+    .expect("topology workspace");
+    let request =
+        PrimitiveConstructionIntent::wire_body(WireBodySpec { edge_count: 8 }).into_request();
+
+    let artifact =
+        prepare_primitive_construction_executed_admitted_artifact(&mut workspace, &request)
+            .expect("executed admitted artifact");
+    let evidence = artifact
+        .topology_compose_evidence()
+        .expect("kernel artifact should retain topology compose evidence");
+
+    assert_eq!(artifact.family(), PrimitiveConstructionFamily::WireBody);
+    assert_eq!(
+        evidence.mutation_surface(),
+        TopologyConstructionQueryMutationSurface::ComposeGraph
+    );
+    assert_eq!(evidence.graph_obligation_selected_count(), 1);
+    assert_eq!(
+        evidence
+            .materialization_coverage()
+            .committed_topology_kinds(),
+        &[TopologyPrimitiveConstructionBirthTopologyKind::Vertex]
+    );
+    assert!(evidence
+        .materialization_coverage()
+        .unmaterialized_topology_kinds()
+        .contains(&TopologyPrimitiveConstructionBirthTopologyKind::Edge));
+    let selected_obligation = evidence
+        .selected_obligation_rows()
+        .first()
+        .expect("kernel evidence should retain selected obligation row");
+    assert_eq!(
+        selected_obligation.rule_name(),
+        "primitive-construction-birth-compose.graph-obligation"
+    );
+    assert_eq!(
+        selected_obligation.support_lane(),
+        ForgeQueryGraphObligationSupportLane::GraphComposition
+    );
+    assert_eq!(
+        evidence.source_admitted_handoff_digest(),
+        artifact.admitted_handoff_digest()
+    );
+    assert!(!evidence.graph_obligation_envelope_digest().is_empty());
 }
 
 #[test]

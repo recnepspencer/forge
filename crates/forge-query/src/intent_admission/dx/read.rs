@@ -102,7 +102,7 @@ impl<'a> ForgeQueryWorkspaceReadIntentAdmissionReview<'a> {
             })?;
         let execution_binding = self
             .workspace
-            .into_runtime_read_execution_binding(handoff.clone());
+            .into_runtime_read_execution_binding(handoff.clone())?;
         Ok(ForgeQueryAdmittedWorkspaceReadIntent {
             workspace: self.workspace,
             review: self.review,

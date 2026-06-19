@@ -1,7 +1,6 @@
 use super::error::TopologyReadError;
 use crate::projection::runtime_boundary::read_lowering::schema::TopologyDomainTraversalRelation;
 use forge_query::facade::{ForgeQueryEntityIdentity, RelationName};
-use forge_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 
 use crate::projection::read_views::domain::read_proof::report::TopologyReadRequestFamily;
 
@@ -21,18 +20,18 @@ impl TopologyReadAnchorIdentity {
     pub fn from_query_entity_identity(
         identity: &ForgeQueryEntityIdentity,
     ) -> Result<Self, TopologyReadError> {
-        let Some(parts) = identity.relational_record_parts() else {
+        let Some(parts) = identity.relational_entity_record_parts() else {
+            if identity.relational_record_parts().is_some() {
+                return Err(authority_denial(
+                    TopologyReadAnchorAuthority::QueryEntityIdentity,
+                    "query relation identity cannot anchor topology entity read",
+                ));
+            }
             return Err(authority_denial(
                 TopologyReadAnchorAuthority::QueryEntityIdentity,
                 "non-relational query entity identity",
             ));
         };
-        if parts.kind() != RelationalBridgeRecordIdentityKind::Entity {
-            return Err(authority_denial(
-                TopologyReadAnchorAuthority::QueryEntityIdentity,
-                "query relation identity cannot anchor topology entity read",
-            ));
-        }
         Ok(Self {
             value: format!(
                 "entity:{}:{}:{}",

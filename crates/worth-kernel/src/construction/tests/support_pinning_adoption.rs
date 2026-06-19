@@ -1,4 +1,3 @@
-const AUTHORING_RS: &str = include_str!("../authoring.rs");
 const QUERY_SUPPORT_PINS_JSON: &str = include_str!("../query_support_pins.json");
 
 use forge_query::facade::consumer_kit::{
@@ -6,7 +5,10 @@ use forge_query::facade::consumer_kit::{
     ForgeQueryPinnedTeachingPosture, ForgeQueryRuntimeFacadeFamily,
     ForgeQuerySupportPinContractSchemaVersion, ForgeQuerySupportPinningErrorKind,
 };
+use topology::certification::milestone_one_runtime_builder;
+use topology::runtime_support::{topology_runtime, TopologyRuntimeAdapters};
 
+use crate::construction::authoring::require_default_primitive_construction_query_authority;
 use crate::construction::query_support_pins::{
     primitive_construction_query_support_pin_adoption_evidence,
     primitive_construction_query_support_pins,
@@ -30,11 +32,33 @@ fn construction_authoring_loads_durable_query_owned_support_pins() {
         adoption.schema_version(),
         ForgeQuerySupportPinContractSchemaVersion::current()
     );
-    assert!(AUTHORING_RS.contains("project_workspace_support_snapshot("));
-    assert!(!AUTHORING_RS.contains("REQUIRED_QUERY_FAMILIES"));
-    assert!(!AUTHORING_RS.contains("REPORTED_QUERY_FAMILIES"));
-    assert!(!AUTHORING_RS.contains("PrimitiveConstructionQueryGapRow"));
-    assert!(!AUTHORING_RS.contains("support_pinning_contract(\"worth-kernel\")"));
+}
+
+#[test]
+fn construction_query_authority_evaluates_support_pins_against_real_workspace_snapshot() {
+    let runtime = milestone_one_runtime_builder()
+        .expect("runtime builder")
+        .build();
+    let workspace = topology_runtime(
+        TopologyRuntimeAdapters::current_head(runtime),
+        "worth-kernel.support-pinning-authority-adoption".to_string(),
+    )
+    .expect("workspace");
+    let receipt = require_default_primitive_construction_query_authority(&workspace)
+        .expect("construction query authority should evaluate support pins");
+
+    assert_eq!(receipt.evaluated_support_pin_count(), 2);
+    assert_eq!(receipt.matched_support_pin_count(), 2);
+    assert_eq!(receipt.support_pin_finding_count(), 0);
+    assert_eq!(receipt.support_pin_blocking_finding_count(), 0);
+    assert!(receipt.support_pins_satisfied());
+    assert_eq!(
+        receipt.evaluated_support_source_matrix_digest(),
+        workspace
+            .public_support_matrix()
+            .matrix_digest()
+            .terminal_projection_for_reporting()
+    );
 }
 
 #[test]

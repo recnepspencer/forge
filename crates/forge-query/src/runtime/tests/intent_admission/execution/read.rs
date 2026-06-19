@@ -20,7 +20,9 @@ fn execute_read_family_delegates_to_canonical_admission_and_execution_handoff() 
     let handoff = canonical_workspace
         .resolve_reviewed_admitted_read_execution_handoff(review)
         .expect("canonical read handoff should admit");
-    let binding = canonical_workspace.into_runtime_read_execution_binding(handoff);
+    let binding = canonical_workspace
+        .into_runtime_read_execution_binding(handoff)
+        .expect("canonical read binding should prepare");
     let canonical = canonical_workspace
         .execute_bound_read_execution(binding)
         .expect("canonical read binding should execute");

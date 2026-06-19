@@ -96,13 +96,16 @@ fn lower_insert_command(
     let aspect_map = aspect_map(&aspects);
     let declared_aspect_paths = declared_insert_aspect_paths(&aspects, &symbolic_aspect_references);
     match collection.as_str() {
-        "TopologyEntity" => lower_entity_insert_command(
-            runtime,
-            created_entities,
-            &aspect_map,
-            declared_aspect_paths,
-            symbolic_target_reference,
-        ),
+        "TopologyEntity"
+        | crate::construction::TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION => {
+            lower_entity_insert_command(
+                runtime,
+                created_entities,
+                &aspect_map,
+                declared_aspect_paths,
+                symbolic_target_reference,
+            )
+        }
         "TopologyRelation" => lower_relation_insert_command(
             runtime,
             created_entities,

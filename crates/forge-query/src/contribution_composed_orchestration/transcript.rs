@@ -1,13 +1,16 @@
+mod graph_dispatch;
+
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationEntryOrchestrationStage,
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryGraphObligationOrchestrationDispatch,
 };
 use crate::binding_pipeline::ForgeQueryBindingLinkedArtifacts;
 
-use super::aspect::ForgeQueryContributionComposedDeclarationAspectRecord;
 use super::composition::ForgeQueryContributionComposedClassification;
+use super::declaration_record::ForgeQueryContributionComposedDeclarationRecord;
 use super::input::ForgeQueryContributionComposedOrchestrationInput;
-use super::intent_result::ForgeQueryContributionComposedIntentResult;
+use super::intent_result::{primary_intent_descriptor, ForgeQueryContributionComposedIntentResult};
 use super::lower::{
     build_composed_artifact, lower_declaration, materialization_policy_label,
     process_contributions, request_descriptor, request_identity, stop_reason, DeclarationLowering,
@@ -21,89 +24,9 @@ use super::outcome::{
     ForgeQueryContributionComposedOrchestrationCheckedKind,
     ForgeQueryContributionComposedOrchestrationOutcome,
 };
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryContributionComposedDeclarationRecord {
-    stage: ForgeQueryDeclarationEntryOrchestrationStage,
-    declaration_digest: Option<String>,
-    progression_digest: Option<String>,
-    envelope_digest: Option<String>,
-    route_plan_digest: Option<String>,
-    aspect_record: Option<ForgeQueryContributionComposedDeclarationAspectRecord>,
-}
-
-impl ForgeQueryContributionComposedDeclarationRecord {
-    fn from_linked_artifacts(
-        stage: ForgeQueryDeclarationEntryOrchestrationStage,
-        linked_artifacts: &ForgeQueryBindingLinkedArtifacts,
-    ) -> Self {
-        Self {
-            stage,
-            declaration_digest: linked_artifacts.declaration_digest().map(str::to_string),
-            progression_digest: linked_artifacts.progression_digest().map(str::to_string),
-            envelope_digest: linked_artifacts.envelope_digest().map(str::to_string),
-            route_plan_digest: linked_artifacts.route_plan_digest().map(str::to_string),
-            aspect_record: None,
-        }
-    }
-
-    fn from_envelope<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-        envelope: &crate::application::ForgeQueryDeclarationEnvelope<D, I>,
-        linked_artifacts: &ForgeQueryBindingLinkedArtifacts,
-    ) -> Self {
-        Self {
-            stage: ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed,
-            declaration_digest: linked_artifacts.declaration_digest().map(str::to_string),
-            progression_digest: linked_artifacts.progression_digest().map(str::to_string),
-            envelope_digest: linked_artifacts.envelope_digest().map(str::to_string),
-            route_plan_digest: linked_artifacts.route_plan_digest().map(str::to_string),
-            aspect_record: Some(ForgeQueryContributionComposedDeclarationAspectRecord::new(
-                envelope.aspect_contract().clone(),
-                envelope.aspect_publication().clone(),
-            )),
-        }
-    }
-
-    pub fn stage(&self) -> ForgeQueryDeclarationEntryOrchestrationStage {
-        self.stage
-    }
-
-    pub fn declaration_digest(&self) -> Option<&str> {
-        self.declaration_digest.as_deref()
-    }
-
-    pub fn progression_digest(&self) -> Option<&str> {
-        self.progression_digest.as_deref()
-    }
-
-    pub fn envelope_digest(&self) -> Option<&str> {
-        self.envelope_digest.as_deref()
-    }
-
-    pub fn route_plan_digest(&self) -> Option<&str> {
-        self.route_plan_digest.as_deref()
-    }
-
-    pub fn aspect_record(&self) -> Option<&ForgeQueryContributionComposedDeclarationAspectRecord> {
-        self.aspect_record.as_ref()
-    }
-
-    pub fn aspect_contract(
-        &self,
-    ) -> Option<&crate::application::ForgeQueryDeclarationAspectContract> {
-        self.aspect_record
-            .as_ref()
-            .map(ForgeQueryContributionComposedDeclarationAspectRecord::contract)
-    }
-
-    pub fn aspect_publication(
-        &self,
-    ) -> Option<&crate::application::ForgeQueryDeclarationAspectPublication> {
-        self.aspect_record
-            .as_ref()
-            .map(ForgeQueryContributionComposedDeclarationAspectRecord::publication)
-    }
-}
+use graph_dispatch::{
+    dispatch_contribution_orchestration_graph_obligations, ContributionOrchestrationGraphDispatch,
+};
 
 pub struct ForgeQueryContributionComposedOrchestrationTranscript<
     D: ForgeQueryDomainEntryMarker,
@@ -117,6 +40,7 @@ pub struct ForgeQueryContributionComposedOrchestrationTranscript<
     linked_artifacts: ForgeQueryBindingLinkedArtifacts,
     contribution_digest: Option<String>,
     composition_classification: Option<ForgeQueryContributionComposedClassification>,
+    graph_obligation_dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
     intent_results: Vec<ForgeQueryContributionComposedIntentResult>,
 }
 
@@ -133,6 +57,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         linked_artifacts: ForgeQueryBindingLinkedArtifacts,
         contribution_digest: Option<String>,
         composition_classification: Option<ForgeQueryContributionComposedClassification>,
+        graph_obligation_dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
         intent_results: Vec<ForgeQueryContributionComposedIntentResult>,
     ) -> Self {
         Self {
@@ -144,6 +69,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             linked_artifacts,
             contribution_digest,
             composition_classification,
+            graph_obligation_dispatch,
             intent_results,
         }
     }
@@ -184,6 +110,12 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn intent_results(&self) -> &[ForgeQueryContributionComposedIntentResult] {
         &self.intent_results
+    }
+
+    pub fn graph_obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryGraphObligationOrchestrationDispatch> {
+        self.graph_obligation_dispatch.as_ref()
     }
 
     pub fn into_checked(self) -> ForgeQueryContributionComposedOrchestrationChecked<D, I> {
@@ -227,11 +159,37 @@ pub(crate) fn orchestrate_declaration_with_contributions_on_handle<
                 linked.clone(),
                 contribution_digest,
                 None,
+                None,
                 Vec::new(),
             );
         }
     };
     let linked = linked_artifacts_for_envelope(&declaration.envelope);
+    let graph_obligation_dispatch = match dispatch_contribution_orchestration_graph_obligations(
+        handle,
+        &declaration,
+        &linked,
+    ) {
+        ContributionOrchestrationGraphDispatch::Continue(dispatch) => dispatch,
+        ContributionOrchestrationGraphDispatch::Stop(outcome) => {
+            let graph_obligation_dispatch = outcome.graph_obligation_dispatch().cloned();
+            return ForgeQueryContributionComposedOrchestrationTranscript::new(
+                request_descriptor_value,
+                request_digest_value,
+                materialization_policy,
+                ForgeQueryContributionComposedDeclarationRecord::from_envelope(
+                    &declaration.envelope,
+                    &linked,
+                ),
+                outcome,
+                linked,
+                None,
+                None,
+                graph_obligation_dispatch,
+                Vec::new(),
+            );
+        }
+    };
     let intent_results = process_contributions::<D, I>(
         declaration.target.clone(),
         declaration.declaration_aspect_record.clone(),
@@ -245,6 +203,7 @@ pub(crate) fn orchestrate_declaration_with_contributions_on_handle<
         materialization_policy,
         declaration,
         linked,
+        graph_obligation_dispatch,
         intent_results,
     )
 }
@@ -255,6 +214,7 @@ fn finalize_transcript<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationI
     materialization_policy: &'static str,
     declaration: DeclarationLowering<D, I>,
     linked: ForgeQueryBindingLinkedArtifacts,
+    graph_obligation_dispatch: Option<ForgeQueryGraphObligationOrchestrationDispatch>,
     intent_results: Vec<ForgeQueryContributionComposedIntentResult>,
 ) -> ForgeQueryContributionComposedOrchestrationTranscript<D, I> {
     let declaration_record = ForgeQueryContributionComposedDeclarationRecord::from_envelope(
@@ -270,10 +230,13 @@ fn finalize_transcript<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationI
                 request_digest,
                 materialization_policy,
                 declaration_record,
-                ForgeQueryContributionComposedOrchestrationOutcome::Bound(composed),
+                ForgeQueryContributionComposedOrchestrationOutcome::Bound(
+                    composed.with_graph_obligation_dispatch(graph_obligation_dispatch.clone()),
+                ),
                 linked,
                 contribution_digest,
                 composition_classification,
+                graph_obligation_dispatch,
                 intent_results,
             )
         }
@@ -288,7 +251,8 @@ fn finalize_transcript<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationI
                 Some(contribution_digest.clone()),
                 declaration_record.aspect_record().cloned(),
                 primary_intent_descriptor(&intent_results).cloned(),
-            );
+            )
+            .with_graph_obligation_dispatch(graph_obligation_dispatch.clone());
             ForgeQueryContributionComposedOrchestrationTranscript::new(
                 request_descriptor,
                 request_digest,
@@ -298,6 +262,7 @@ fn finalize_transcript<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationI
                 linked,
                 Some(contribution_digest),
                 None,
+                graph_obligation_dispatch,
                 intent_results,
             )
         }
@@ -334,18 +299,9 @@ fn empty_contribution_transcript<
         ForgeQueryBindingLinkedArtifacts::new(),
         None,
         None,
+        None,
         Vec::new(),
     )
-}
-
-fn primary_intent_descriptor(
-    intent_results: &[ForgeQueryContributionComposedIntentResult],
-) -> Option<&super::intent_result::ForgeQueryContributionComposedIntentRequestDescriptor> {
-    intent_results
-        .iter()
-        .find(|value| !value.is_admitted())
-        .or_else(|| intent_results.first())
-        .map(ForgeQueryContributionComposedIntentResult::request)
 }
 
 fn declaration_stage<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(

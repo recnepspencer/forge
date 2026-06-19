@@ -5,15 +5,16 @@ use super::{ForgeQueryMutationFamily, ForgeQueryWriteCommand};
 use crate::evidence_identity::ForgeQueryEvidenceIdentity;
 use crate::runtime::ForgeQueryJournalPosition;
 use crate::runtime::{
-    ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
-    ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent,
-    ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryIntentDecisionTraceEnvelope,
-    ForgeQueryIntentExecutionProvenance, ForgeQueryMutationCausalityEvidence,
-    ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
-    ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationIntent,
-    ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReference,
-    ForgeQuerySymbolicTargetReferenceEvidence, ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryAspectMutationOperation, ForgeQueryAuthoritativeMutationObligationDispatch,
+    ForgeQueryAuthorityLane, ForgeQueryContinuityMutationEvidence,
+    ForgeQueryContinuityMutationIntent, ForgeQueryExistingTruthAssertionEvidence,
+    ForgeQueryExistingTruthBindingEvidence, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryIntentDecisionTraceEnvelope, ForgeQueryIntentExecutionProvenance,
+    ForgeQueryMutationCausalityEvidence, ForgeQueryMutationProvenanceEvidence,
+    ForgeQueryMutationTargetEvidence, ForgeQueryNamingMutationEvidence,
+    ForgeQueryNamingMutationIntent, ForgeQuerySymbolicAspectResolutionEvidence,
+    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQueryVerifiedExistingTruthAssertion,
 };
 
 mod accessors;
@@ -68,6 +69,7 @@ pub struct ForgeQueryWriteReceipt {
     pub(super) refresh_fallback: bool,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
+    pub(super) obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
 }
 
 impl ForgeQueryWriteReceipt {
@@ -99,6 +101,7 @@ impl ForgeQueryWriteReceipt {
         refresh_fallback: bool,
         decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
         execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
+        obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
     ) -> Self {
         let commit_evidence_identity =
             write_receipt_commit_evidence_identity(&inner.commit_identity);
@@ -205,6 +208,7 @@ impl ForgeQueryWriteReceipt {
             refresh_fallback,
             decision_trace_envelope,
             execution_provenance,
+            obligation_dispatch,
         }
     }
 
@@ -333,6 +337,7 @@ impl ForgeQueryWriteReceipt {
             refresh_fallback: false,
             decision_trace_envelope: None,
             execution_provenance: None,
+            obligation_dispatch: None,
         }
     }
 }
