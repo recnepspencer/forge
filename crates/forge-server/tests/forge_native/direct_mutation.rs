@@ -2,13 +2,12 @@ use forge_proof::TransitionOutcome;
 use forge_query::facade::{
     admit_authored_entity_token, ForgeQueryAspectMutationBuilder, ForgeQueryExistingEntityTarget,
     ForgeQueryExistingTruthBindingAuthorityLabel, ForgeQueryExistingTruthTargetBinding,
-    ForgeQueryMutationAuthorityIdentity, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand,
-    QueryExternalIdentityToken,
+    ForgeQueryMutationAuthorityIdentity, ForgeQueryRuntimeBackendPosture,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeSupportProfile,
+    ForgeQueryWriteCommand, QueryExternalIdentityToken,
 };
 use forge_server::{
-    ForgeServerDirectMutationOutcome, ForgeServerQueryHandoffDenialCode,
-    ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation, ForgeServerQueryOperation,
+    ForgeServerDirectMutationOutcome, ForgeServerQueryHandoffDenialCode, ForgeServerQueryOperation,
     ForgeServerResponseInput, ForgeServerSuccessKind,
 };
 use std::sync::atomic::Ordering;
@@ -18,11 +17,14 @@ use crate::forge_native_assertions::{
     response_provenance_digest,
 };
 use crate::forge_native_runtime::{build_server, build_server_with_profiled_counting_workspace};
-use crate::query_handoff_fixture::{request_input, resolve_request_context, success};
+use crate::query_handoff_runtime::RealMutationWorkspaceProvider;
 
 #[test]
 fn direct_single_mutation_returns_provenance_bearing_result_boundary() {
-    let server = build_server(true);
+    let server = crate::forge_native_runtime::build_server_with_workspace_provider(
+        RealMutationWorkspaceProvider,
+        true,
+    );
     let mutation = direct_mutation_success(forge_native_session(&server).direct().mutate(
         &ForgeServerQueryOperation::single_mutation("tasks.insert", insert_task("task-1")),
     ));
@@ -65,7 +67,11 @@ fn direct_single_mutation_returns_provenance_bearing_result_boundary() {
 
 #[test]
 fn direct_batch_mutation_preserves_batch_receipt_and_inspection_digests() {
-    let server = build_server(true);
+    let server = build_server_with_profiled_counting_workspace(
+        ForgeQueryRuntimeSupportProfile::scaffold_backend_profile()
+            .with_posture(ForgeQueryRuntimeBackendPosture::Primary),
+    )
+    .0;
     let mutation = direct_mutation_success(forge_native_session(&server).direct().mutate(
         &ForgeServerQueryOperation::batch_mutation(
             "tasks.seed",
@@ -199,52 +205,43 @@ fn direct_mutation_denies_before_write_when_receipt_inspection_family_is_unavail
 
 #[test]
 fn direct_mutation_preserves_mutation_lane_support_and_operator_classification() {
-    let server = build_server(true);
+    let server = build_dual_surface_mutation_server();
     let direct = direct_mutation_success(forge_native_session(&server).direct().mutate(
         &ForgeServerQueryOperation::single_mutation("tasks.insert", insert_task("task-1")),
     ));
-    let admission = match server
-        .middleware()
-        .admit(forge_server::ForgeServerPipelineInput::new(
-            resolve_request_context(
-                &server,
-                request_input(
-                    forge_server::ForgeServerSurfaceFamily::CompatHttp,
-                    forge_server::ForgeServerTransportClass::CompatHttp,
-                ),
-            ),
-            forge_server::ForgeServerPipelineIntent::query_mutation("tasks.insert"),
-        )) {
-        TransitionOutcome::Success(admission) => admission,
-        other => panic!("expected admitted mutation pipeline result, got {other:?}"),
-    };
-    let compat_handoff = success(server.query_handoff().prepare(
-        ForgeServerQueryHandoffInput::new(
-            admission,
-            ForgeServerQueryHandoffOperation::query_mutation("tasks.insert"),
+    let compat = compat_mutation_success(server.compat_http().mutate(
+        forge_server::ForgeServerCompatibilityMutationExecutionInput::new(
+            prepared_compat_mutation_request(&server, "tasks.insert"),
+            "tasks.insert",
+            serde_json::json!({
+                "command": {
+                    "family": "insert",
+                    "collection": "Task",
+                    "aspects": {
+                        "identity.id": "task-1",
+                        "title.value": "Title for task-1"
+                    }
+                }
+            }),
         ),
     ));
-    let compat_response =
-        server
-            .responses()
-            .shape_with_defaults(ForgeServerResponseInput::query_handoff_success(
-                compat_handoff,
-            ));
     let direct_evidence = operator_evidence_record(&server, direct.response_envelope().clone());
 
     assert_eq!(
         family_contract_digest(direct.support_posture()),
         family_contract_digest(
-            compat_response
+            compat
+                .envelope()
+                .response_envelope()
                 .success()
-                .expect("compat response should succeed")
+                .expect("compat mutation should succeed")
                 .payload()
-                .support_posture()
+                .support_posture(),
         )
     );
     assert_eq!(
         response_provenance_digest(direct.response_envelope()),
-        response_provenance_digest(&compat_response)
+        response_provenance_digest(compat.envelope().response_envelope())
     );
     assert_eq!(
         direct_evidence.classification(),
@@ -266,6 +263,93 @@ fn direct_mutation_preserves_mutation_lane_support_and_operator_classification()
             .exact_value(),
         0
     );
+}
+
+#[test]
+fn direct_mutation_canonicalizes_operation_name_before_handoff() {
+    let server = crate::forge_native_runtime::build_server_with_workspace_provider(
+        RealMutationWorkspaceProvider,
+        true,
+    );
+    let mutation = direct_mutation_success(forge_native_session(&server).direct().mutate(
+        &ForgeServerQueryOperation::single_mutation("Tasks.Insert", insert_task("task-1")),
+    ));
+
+    assert_eq!(
+        mutation.operation_request().identity().operation_name(),
+        "tasks.insert"
+    );
+}
+
+fn prepared_compat_mutation_request(
+    server: &forge_server::ForgeServer,
+    operation_name: &str,
+) -> forge_server::ForgeServerCompatibilityPreparedRequest {
+    match server.compat_http().prepare_request(
+        forge_server::ForgeServerCompatibilityRequestInput::builder()
+            .with_authenticated_principal_id("principal-7")
+            .with_tenant_id("tenant-a")
+            .with_workspace_id("workspace-42")
+            .with_branch_id("branch-9")
+            .with_route_family(forge_server::ForgeServerCompatHttpRouteFamily::Mutation)
+            .with_method("POST")
+            .with_path(format!("/compat/mutations/{operation_name}"))
+            .with_header("accept", "application/json")
+            .with_body_content_type("application/json")
+            .with_body_present(true)
+            .build()
+            .expect("compat mutation request should validate"),
+    ) {
+        TransitionOutcome::Success(prepared) => prepared,
+        other => panic!("expected prepared compat mutation request, got {other:?}"),
+    }
+}
+
+fn build_dual_surface_mutation_server() -> forge_server::ForgeServer {
+    forge_server::ForgeServer::builder()
+        .with_config(
+            forge_server::ForgeServerConfig::builder()
+                .with_bind_address(([127, 0, 0, 1], 8080).into())
+                .with_request_context_config(
+                    forge_server::ForgeServerRequestContextConfig::builder()
+                        .with_preview_targeting_enabled(true)
+                        .with_default_diagnostics_profile(
+                            forge_server::request_context::DiagnosticRichnessProfile::Standard,
+                        )
+                        .build()
+                        .expect("request context config should validate"),
+                )
+                .with_middleware_config(
+                    forge_server::ForgeServerMiddlewareConfig::builder()
+                        .with_query_mutation_enabled(true)
+                        .build()
+                        .expect("middleware config should validate"),
+                )
+                .with_query_handoff_config(
+                    forge_server::ForgeServerQueryHandoffConfig::builder()
+                        .with_workspace_provider(RealMutationWorkspaceProvider)
+                        .build()
+                        .expect("query handoff config should validate"),
+                )
+                .build()
+                .expect("server config should validate"),
+        )
+        .register_operations(forge_server::ForgeServerOperationRegistration::phase_two_defaults())
+        .register_surface(forge_server::surfaces::ForgeNativeSurface::enabled())
+        .register_surface(forge_server::surfaces::CompatHttpSurface::phase_one_enabled())
+        .build()
+        .expect("dual-surface mutation server should build")
+}
+
+fn compat_mutation_success(
+    outcome: forge_server::ForgeServerCompatibilityMutationOutcome<
+        forge_server::ForgeServerCompatibilityMutation,
+    >,
+) -> forge_server::ForgeServerCompatibilityMutation {
+    match outcome {
+        TransitionOutcome::Success(value) => value,
+        other => panic!("expected compatibility mutation success, got {other:?}"),
+    }
 }
 
 fn insert_task(identity: &str) -> ForgeQueryWriteCommand {

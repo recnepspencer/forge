@@ -3,6 +3,8 @@ mod denial;
 mod direct;
 mod facade;
 mod input;
+mod product;
+mod product_session;
 mod root;
 mod session;
 
@@ -38,5 +40,9 @@ pub use input::{
     ForgeServerForgeNativeSessionInput, ForgeServerForgeNativeSessionInputBuilder,
     ForgeServerForgeNativeSessionInputError,
 };
+pub use product::{
+    ForgeServerForgeNativeProductMutationCommand, ForgeServerForgeNativeProductOperationFacade,
+};
+pub use product_session::ForgeServerForgeNativeProductSessionFacade;
 pub use root::ForgeServerForgeNativeSurfaceRoot;
 pub use session::{ForgeServerForgeNativePreparedSession, ForgeServerForgeNativeSession};

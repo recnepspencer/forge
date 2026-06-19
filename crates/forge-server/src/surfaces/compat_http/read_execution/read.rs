@@ -43,6 +43,8 @@ impl ForgeServerReadValidator {
 
 #[derive(Debug)]
 pub struct ForgeServerCompatibilityRead {
+    operation_request: crate::ForgeServerOperationRequest,
+    plan_proof: crate::ForgeServerOperationPlanProof,
     operation_name: String,
     support_posture: ForgeServerQuerySupportPosture,
     workspace_name: String,
@@ -62,6 +64,8 @@ pub struct ForgeServerCompatibilityRead {
 
 impl ForgeServerCompatibilityRead {
     pub(crate) fn new(
+        operation_request: crate::ForgeServerOperationRequest,
+        plan_proof: crate::ForgeServerOperationPlanProof,
         operation_name: impl Into<String>,
         support_posture: ForgeServerQuerySupportPosture,
         workspace_name: String,
@@ -86,7 +90,8 @@ impl ForgeServerCompatibilityRead {
             &cache_policy,
         );
         let canonical_digest = format!(
-            "forge-server-compat-read-v3:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            "forge-server-compat-read-v3:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            operation_request.canonical_digest(),
             operation_name,
             handoff_digest,
             basis_request.canonical_digest(),
@@ -98,6 +103,8 @@ impl ForgeServerCompatibilityRead {
             certification_bundle.canonical_digest(),
         );
         Self {
+            operation_request,
+            plan_proof,
             operation_name,
             support_posture,
             workspace_name,
@@ -114,6 +121,14 @@ impl ForgeServerCompatibilityRead {
             certification_bundle,
             canonical_digest,
         }
+    }
+
+    pub fn operation_request(&self) -> &crate::ForgeServerOperationRequest {
+        &self.operation_request
+    }
+
+    pub fn plan_proof(&self) -> &crate::ForgeServerOperationPlanProof {
+        &self.plan_proof
     }
 
     pub fn operation_name(&self) -> &str {

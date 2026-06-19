@@ -210,7 +210,11 @@ impl ForgeServerBinaryDownload {
             tenant_id: provenance.tenant_id().to_string(),
             workspace_digest: provenance.workspace_digest().to_string(),
             branch_digest: provenance.branch_digest().to_string(),
-            detail: self.session().retry_posture().canonical_digest().to_string(),
+            detail: self
+                .session()
+                .retry_posture()
+                .canonical_digest()
+                .to_string(),
             attachment_bundle: attachment_bundle(
                 "download-retry",
                 provenance.provenance(),
@@ -285,7 +289,11 @@ impl ForgeServerUploadCleanupReceipt {
             workspace_digest: self.workspace_digest().to_string(),
             branch_digest: self.branch_digest().to_string(),
             detail: self.canonical_digest().to_string(),
-            attachment_bundle: attachment_bundle("upload-cleanup", &provenance, self.canonical_digest()),
+            attachment_bundle: attachment_bundle(
+                "upload-cleanup",
+                &provenance,
+                self.canonical_digest(),
+            ),
             external_counters: external_counter_set(
                 "compat_http.transfer.lifecycle.external",
                 &external_rows,

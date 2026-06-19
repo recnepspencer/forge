@@ -23,6 +23,9 @@ fn external_code_cannot_construct_or_reuse_sealed_phase_artifacts_directly() {
         "tests/ui/construction/forge_native/private_direct_delivery_contract_constructor.rs",
     );
     tests.compile_fail("tests/ui/construction/private_request_context_constructor.rs");
+    tests.compile_fail("tests/ui/construction/private_lowered_operation_plan_constructor.rs");
+    tests.compile_fail("tests/ui/construction/private_lowered_operation_plan_handoff_access.rs");
+    tests.compile_fail("tests/ui/construction/private_scheduler_raw_input_access.rs");
     tests.compile_fail("tests/ui/construction/private_surface_registration_constructor.rs");
     tests.compile_fail("tests/ui/construction/private_server_constructor.rs");
     tests.compile_fail("tests/ui/cross_family/compat_http_cannot_import_forge_native_internal.rs");

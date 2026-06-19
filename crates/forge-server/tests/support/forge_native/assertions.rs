@@ -35,6 +35,7 @@ pub(crate) fn admitted_named_read(
 
 pub(crate) fn family_contract_digest(posture: &ForgeServerQuerySupportPosture) -> &str {
     match posture {
+        ForgeServerQuerySupportPosture::ProductIndependent { label } => label,
         ForgeServerQuerySupportPosture::QueryReadSupported { family_contract }
         | ForgeServerQuerySupportPosture::DirectReadSupported { family_contract }
         | ForgeServerQuerySupportPosture::DirectStateSupported { family_contract }

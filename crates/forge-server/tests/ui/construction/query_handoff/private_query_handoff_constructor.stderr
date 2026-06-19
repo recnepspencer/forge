@@ -1,3 +1,11 @@
+error[E0560]: struct `ForgeServerQueryHandoff` has no field named `admission`
+ --> tests/ui/construction/query_handoff/private_query_handoff_constructor.rs:5:9
+  |
+5 |         admission: loop {},
+  |         ^^^^^^^^^ `ForgeServerQueryHandoff` does not have this field
+  |
+  = note: all struct fields are already assigned
+
 warning: unreachable expression
  --> tests/ui/construction/query_handoff/private_query_handoff_constructor.rs:6:20
   |
@@ -17,22 +25,3 @@ warning: unreachable expression
    | |                              ------- any code following this expression is unreachable
 11 | |         },
    | |_________^ unreachable expression
-
-error[E0451]: fields `admission`, `operation`, `workspace`, `downstream_delivery_contract`, `support_posture` and `canonical_digest` of struct `ForgeServerQueryHandoff` are private
-  --> tests/ui/construction/query_handoff/private_query_handoff_constructor.rs:5:9
-   |
- 4 |     let _ = ForgeServerQueryHandoff {
-   |             ----------------------- in this type
- 5 |         admission: loop {},
-   |         ^^^^^^^^^ private field
- 6 |         operation: ForgeServerQueryHandoffOperation::query_read("users.profile"),
-   |         ^^^^^^^^^ private field
- 7 |         workspace: loop {},
-   |         ^^^^^^^^^ private field
- 8 |         downstream_delivery_contract: loop {},
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         support_posture: ForgeServerQuerySupportPosture::QueryReadSupported {
-   |         ^^^^^^^^^^^^^^^ private field
-...
-12 |         canonical_digest: "forged".to_string(),
-   |         ^^^^^^^^^^^^^^^^ private field

@@ -1,18 +1,21 @@
 use crate::{
-    ForgeServerCompatibilityExecutionInput, ForgeServerCompatibilityExecutionOutcome,
-    ForgeServerCompatibilityFacade, ForgeServerCompatibilityPreparedRequest,
-    ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffDenialCode,
-    ForgeServerQueryHandoffFailure,
+    ForgeServerCanonicalHeaderSet, ForgeServerCompatibilityExecutionInput,
+    ForgeServerCompatibilityExecutionOutcome, ForgeServerCompatibilityFacade,
+    ForgeServerCompatibilityPreparedRequest, ForgeServerExternalRequestContract,
+    ForgeServerOperationFamily, ForgeServerOperationRequestFacade, ForgeServerQueryHandoffDenial,
+    ForgeServerQueryHandoffDenialCode, ForgeServerQueryHandoffFailure,
 };
 use forge_proof::TransitionOutcome;
+use std::collections::BTreeMap;
 
 use super::{
     performance::{
         ForgeServerBinaryEgressMetricSnapshot, ForgeServerBinaryEgressPerformanceReceipt,
     },
+    retry_posture::derive_retry_posture,
     ForgeServerBinaryDownload, ForgeServerBinaryDownloadRequest, ForgeServerBinaryEgressSession,
-    ForgeServerBinaryIntegrityDigest, ForgeServerBinaryRetryPosture,
-    ForgeServerBinarySessionResume, ForgeServerConditionalRangeRequest, ForgeServerRangeRequest,
+    ForgeServerBinaryIntegrityDigest, ForgeServerBinarySessionResume,
+    ForgeServerConditionalRangeRequest, ForgeServerRangeRequest,
 };
 
 pub type ForgeServerBinaryDownloadOutcome<T> = ForgeServerCompatibilityExecutionOutcome<T>;
@@ -43,6 +46,16 @@ impl ForgeServerCompatibilityFacade {
         &self,
         input: ForgeServerBinaryDownloadExecutionInput,
     ) -> ForgeServerBinaryDownloadOutcome<ForgeServerBinaryEgressSession> {
+        if let Err(denial) = self.admit_operation_family_for_query(
+            input
+                .prepared_request
+                .admission()
+                .request_context()
+                .diagnostics_profile(),
+            ForgeServerOperationFamily::BinaryTransfer,
+        ) {
+            return TransitionOutcome::Denied(denial);
+        }
         if let Err(denial) = validate_download_request(&input.prepared_request) {
             return TransitionOutcome::Denied(denial);
         }
@@ -80,9 +93,40 @@ impl ForgeServerCompatibilityFacade {
                 Ok(value) => value,
                 Err(denial) => return TransitionOutcome::Denied(denial),
             };
+        let operation_request =
+            match ForgeServerOperationRequestFacade::new(self.operation_registry.clone())
+                .admit_from_compat_http(
+                    &input.prepared_request,
+                    ForgeServerOperationFamily::BinaryTransfer,
+                    &input.operation_name,
+                    None,
+                ) {
+                Ok(value) => value,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
+                        ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
+                        denial.diagnostics_profile(),
+                        denial.detail(),
+                    ));
+                }
+            };
+        let operation_admission =
+            match crate::ForgeServerOperationAdmissionFacade::with_operation_registry(
+                self.operation_registry.clone(),
+            )
+            .admit_declared(input.prepared_request.admission(), &operation_request)
+            {
+                Ok(value) => value,
+                Err(denial) => {
+                    return TransitionOutcome::Denied(
+                        crate::surfaces::compat_http::map_operation_admission_denial(denial),
+                    );
+                }
+            };
         let head_only = input.prepared_request.request_contract().method() == "HEAD";
+        let metadata_read_request = metadata_read_prepared_request(&input.prepared_request);
         let read = match self.read(ForgeServerCompatibilityExecutionInput::new(
-            input.prepared_request.clone(),
+            metadata_read_request,
             input.operation_name,
         )) {
             TransitionOutcome::Success(value) => value,
@@ -132,6 +176,7 @@ impl ForgeServerCompatibilityFacade {
             Err(denial) => return TransitionOutcome::Denied(denial),
         };
         TransitionOutcome::Success(ForgeServerBinaryEgressSession::new(
+            operation_admission,
             read,
             input.download,
             range_request,
@@ -195,7 +240,7 @@ impl ForgeServerCompatibilityFacade {
             Err(_) => {
                 return TransitionOutcome::Failed(ForgeServerQueryHandoffFailure::new(
                     "compatibility_download_performance_receipt_failed",
-                ))
+                ));
             }
         };
         let file_envelope = crate::surfaces::compat_http::project_binary_egress_envelope(
@@ -282,118 +327,30 @@ fn download_request_invalid(
     )
 }
 
-fn derive_retry_posture(
-    read: &crate::ForgeServerCompatibilityRead,
-    download: &ForgeServerBinaryDownloadRequest,
-    selected_start: usize,
-    selected_end_exclusive: usize,
-    head_only: bool,
-    range_honored: bool,
-    diagnostics_profile: forge_foundational::DiagnosticRichnessProfile,
-) -> Result<ForgeServerBinaryRetryPosture, ForgeServerQueryHandoffDenial> {
-    let Some(resume_request) = download.resume_request() else {
-        return Ok(ForgeServerBinaryRetryPosture::ordinary(range_honored));
-    };
-    if head_only {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
-            diagnostics_profile,
-            "HEAD binary egress does not admit resumed byte delivery claims",
-        ));
-    }
-    if resume_request.require_restart_stable_claim()
-        && matches!(
-            read.support_posture().durable_resume_support_posture(),
-            forge_query::facade::ForgeQueryLowerRuntimeSupportPosture::Deferred
-                | forge_query::facade::ForgeQueryLowerRuntimeSupportPosture::Forbidden
-        )
-    {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
-            diagnostics_profile,
-            format!(
-                "restart-stable resume is not admitted for this binary delivery posture: `{}`",
-                read.support_posture()
-                    .durable_resume_support_posture()
-                    .as_str()
-            ),
-        ));
-    }
-    let session_resume = resume_request.session_resume();
-    if selected_start != session_resume.expected_next_start() {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
-            diagnostics_profile,
-            format!(
-                "resume request expected byte {} but selected byte {}",
-                session_resume.expected_next_start(),
-                selected_start
-            ),
-        ));
-    }
-    if download.content_type() != session_resume.content_type() {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
-            diagnostics_profile,
-            "resume request changed the canonical binary download artifact or policy story",
-        ));
-    }
-    if download.authorization().canonical_digest() != session_resume.authorization_digest() {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
-            diagnostics_profile,
-            "resume request widened the admitted authorization window",
-        ));
-    }
-    if download.payload_digest() != session_resume.full_representation_digest() {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
-            diagnostics_profile,
-            format!(
-                "resume integrity digest mismatch: expected full digest `{}` but observed `{}`",
-                session_resume.full_representation_digest(),
-                download.payload_digest()
-            ),
-        ));
-    }
-    if read.validator().entity_tag() != session_resume.validator_entity_tag() {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
-            diagnostics_profile,
-            format!(
-                "resume validator mismatch: expected `{}` but observed `{}`",
-                session_resume.validator_entity_tag(),
-                read.validator().entity_tag()
-            ),
-        ));
-    }
-    if read.direct_context().workspace_digest() != session_resume.workspace_digest() {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
-            diagnostics_profile,
-            "resume request crossed into a different workspace delivery context",
-        ));
-    }
-    if read.direct_context().branch_digest() != session_resume.branch_digest() {
-        return Err(ForgeServerQueryHandoffDenial::new(
-            ForgeServerQueryHandoffDenialCode::CompatibilityDownloadRequestInvalid,
-            diagnostics_profile,
-            "resume request crossed into a different branch delivery context",
-        ));
-    }
-    if let Some(expected_integrity) = resume_request.expected_integrity() {
-        ForgeServerBinaryIntegrityDigest::project_for_validation(
-            download,
-            read.validator(),
-            selected_start,
-            selected_end_exclusive,
-            head_only,
-        )
-        .verify_resume_expectation(expected_integrity, diagnostics_profile)?;
-    }
-    Ok(ForgeServerBinaryRetryPosture::resumed(
-        session_resume.previous_session_digest(),
-        session_resume.expected_next_start(),
-        resume_request.require_restart_stable_claim(),
-    ))
+fn metadata_read_prepared_request(
+    prepared_request: &ForgeServerCompatibilityPreparedRequest,
+) -> ForgeServerCompatibilityPreparedRequest {
+    let request_contract = prepared_request.request_contract();
+    let headers = request_contract
+        .canonical_headers()
+        .iter()
+        .filter(|(name, _)| *name != "range" && *name != "if-range")
+        .map(|(name, values)| (name.to_string(), values.to_vec()))
+        .collect::<BTreeMap<_, _>>();
+    let metadata_contract = ForgeServerExternalRequestContract::new(
+        request_contract.route_family(),
+        request_contract.method().to_string(),
+        request_contract.normalized_path().to_string(),
+        request_contract.normalized_query_pairs().to_vec(),
+        ForgeServerCanonicalHeaderSet::new(headers),
+        request_contract.representation(),
+        request_contract.version(),
+        request_contract.diagnostics_profile(),
+        request_contract.body_present(),
+        request_contract.body_content_type().map(str::to_string),
+    );
+    ForgeServerCompatibilityPreparedRequest::new(
+        prepared_request.admission().clone(),
+        metadata_contract,
+    )
 }

@@ -5,13 +5,15 @@ use forge_server::{
     request_context::DiagnosticRichnessProfile,
     surfaces::{CompatHttpSurface, ForgeNativeSurface},
     ForgeServer, ForgeServerConfig, ForgeServerDirectDeliveryClass, ForgeServerDirectFreshnessMode,
-    ForgeServerMiddlewareConfig, ForgeServerOperatorEvidenceConfig, ForgeServerQueryHandoffConfig,
-    ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation,
-    ForgeServerQueryHandoffOutcome, ForgeServerQueryWorkspaceProvider,
-    ForgeServerRequestContextConfig, ForgeServerRequestContextDenial,
-    ForgeServerRequestContextInput, ForgeServerResolvedRequestContext, ForgeServerResponseConfig,
-    ForgeServerResponseInput, ForgeServerResponseTransform, ForgeServerSurfaceFamily,
-    ForgeServerTransportClass,
+    ForgeServerMiddlewareConfig, ForgeServerOperationAdmissionPosture,
+    ForgeServerOperationAuthorityMetadata, ForgeServerOperationFamily,
+    ForgeServerOperationRequestInput, ForgeServerOperatorEvidenceConfig,
+    ForgeServerQueryHandoffConfig, ForgeServerQueryHandoffDenial, ForgeServerQueryHandoffInput,
+    ForgeServerQueryHandoffOperation, ForgeServerQueryHandoffOutcome,
+    ForgeServerQueryWorkspaceProvider, ForgeServerRequestContextConfig,
+    ForgeServerRequestContextDenial, ForgeServerRequestContextInput,
+    ForgeServerResolvedRequestContext, ForgeServerResponseConfig, ForgeServerResponseInput,
+    ForgeServerResponseTransform, ForgeServerSurfaceFamily, ForgeServerTransportClass,
 };
 
 pub(crate) fn test_server(
@@ -216,6 +218,67 @@ pub(crate) fn admit_mutation(
     }
 }
 
+pub(crate) fn admit_read_posture(
+    server: &ForgeServer,
+    resolved: ForgeServerResolvedRequestContext,
+) -> ForgeServerOperationAdmissionPosture {
+    let admission = admit_read(server, resolved);
+    let operation_request = server
+        .operation_requests()
+        .admit_from_forge_native_admission(
+            &admission,
+            ForgeServerOperationRequestInput::builder()
+                .with_operation_family(ForgeServerOperationFamily::QueryDirectRead)
+                .with_operation_name("users.profile")
+                .with_basis_digest("basis-users-profile")
+                .build(),
+        )
+        .expect("read operation request should admit");
+    server
+        .operation_admissions()
+        .admit(
+            &admission,
+            &operation_request,
+            ForgeServerOperationAuthorityMetadata::shared_read(
+                "query-shared-read-basis",
+                "basis-users-profile",
+                "users.profile",
+            ),
+        )
+        .expect("read operation admission should admit")
+}
+
+pub(crate) fn admit_mutation_posture(
+    server: &ForgeServer,
+    resolved: ForgeServerResolvedRequestContext,
+) -> ForgeServerOperationAdmissionPosture {
+    let admission = admit_mutation(server, resolved);
+    let operation_request = server
+        .operation_requests()
+        .admit_from_forge_native_admission(
+            &admission,
+            ForgeServerOperationRequestInput::builder()
+                .with_operation_family(ForgeServerOperationFamily::QueryDirectSubmission)
+                .with_operation_name("users.rename")
+                .with_idempotency_key("idem-7")
+                .build(),
+        )
+        .expect("mutation operation request should admit");
+    server
+        .operation_admissions()
+        .admit(
+            &admission,
+            &operation_request,
+            ForgeServerOperationAuthorityMetadata::deterministic_submission(
+                "query-write",
+                "query-write-review",
+                "caller-basis-unbound",
+                "idempotent",
+            ),
+        )
+        .expect("mutation operation admission should admit")
+}
+
 pub(crate) fn middleware_mutation_denial(server: &ForgeServer) -> forge_server::ForgeServerDenial {
     match server
         .middleware()
@@ -244,9 +307,11 @@ pub(crate) fn query_handoff_success(
     let admission = match &operation {
         ForgeServerQueryHandoffOperation::QueryRead { .. }
         | ForgeServerQueryHandoffOperation::DownstreamDelivery { .. } => {
-            admit_read(server, resolved)
+            admit_read_posture(server, resolved)
         }
-        ForgeServerQueryHandoffOperation::QueryMutation { .. } => admit_mutation(server, resolved),
+        ForgeServerQueryHandoffOperation::QueryMutation { .. } => {
+            admit_mutation_posture(server, resolved)
+        }
         ForgeServerQueryHandoffOperation::DirectRead { .. }
         | ForgeServerQueryHandoffOperation::DirectState { .. }
         | ForgeServerQueryHandoffOperation::DirectInspection { .. }
@@ -269,7 +334,7 @@ pub(crate) fn query_handoff_durable_denial(server: &ForgeServer) -> ForgeServerQ
         server
             .query_handoff()
             .prepare(ForgeServerQueryHandoffInput::new(
-                admit_read(
+                admit_read_posture(
                     server,
                     resolve_ready(
                         server,

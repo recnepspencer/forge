@@ -9,6 +9,8 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ForgeServerDirectMutation {
+    operation_request: crate::ForgeServerOperationRequest,
+    plan_proof: crate::ForgeServerOperationPlanProof,
     support_posture: ForgeServerQuerySupportPosture,
     workspace_name: String,
     handoff_digest: String,
@@ -20,6 +22,8 @@ pub struct ForgeServerDirectMutation {
 
 impl ForgeServerDirectMutation {
     pub(crate) fn new(
+        operation_request: crate::ForgeServerOperationRequest,
+        plan_proof: crate::ForgeServerOperationPlanProof,
         support_posture: ForgeServerQuerySupportPosture,
         workspace_name: String,
         handoff_digest: String,
@@ -28,12 +32,15 @@ impl ForgeServerDirectMutation {
         response_envelope: ForgeServerResponseEnvelope,
     ) -> Self {
         let canonical_digest = format!(
-            "forge-server-direct-mutation-v1:{}:{}:{}",
+            "forge-server-direct-mutation-v1:{}:{}:{}:{}",
+            operation_request.canonical_digest(),
             handoff_digest,
             mutation_result.result_digest(),
             mutation_result.inspection_digest()
         );
         Self {
+            operation_request,
+            plan_proof,
             support_posture,
             workspace_name,
             handoff_digest,
@@ -42,6 +49,14 @@ impl ForgeServerDirectMutation {
             response_envelope,
             canonical_digest,
         }
+    }
+
+    pub fn operation_request(&self) -> &crate::ForgeServerOperationRequest {
+        &self.operation_request
+    }
+
+    pub fn plan_proof(&self) -> &crate::ForgeServerOperationPlanProof {
+        &self.plan_proof
     }
 
     pub fn support_posture(&self) -> &ForgeServerQuerySupportPosture {

@@ -1,6 +1,7 @@
 use crate::{
     ForgeServerBinaryCertificationBundle, ForgeServerCompatibilityFileEnvelope,
-    ForgeServerCompatibilityRead, ForgeServerFileTransferDisposition, ForgeServerReadValidator,
+    ForgeServerCompatibilityRead, ForgeServerFileTransferDisposition,
+    ForgeServerOperationAdmissionPosture, ForgeServerReadValidator,
 };
 
 use super::super::project_binary_egress_envelope;
@@ -13,6 +14,7 @@ use super::{
 
 #[derive(Debug)]
 pub struct ForgeServerBinaryEgressSession {
+    operation_admission: ForgeServerOperationAdmissionPosture,
     read: ForgeServerCompatibilityRead,
     download_request: ForgeServerBinaryDownloadRequest,
     range_request: ForgeServerRangeRequest,
@@ -27,6 +29,7 @@ pub struct ForgeServerBinaryEgressSession {
 
 impl ForgeServerBinaryEgressSession {
     pub(crate) fn new(
+        operation_admission: ForgeServerOperationAdmissionPosture,
         read: ForgeServerCompatibilityRead,
         download_request: ForgeServerBinaryDownloadRequest,
         range_request: ForgeServerRangeRequest,
@@ -38,7 +41,8 @@ impl ForgeServerBinaryEgressSession {
         retry_posture: ForgeServerBinaryRetryPosture,
     ) -> Self {
         let canonical_digest = format!(
-            "compat-http-binary-egress-session-v1|read={}|download={}|range={}|conditional={}|selected={}-{}|range_honored={}|head_only={}|retry={}",
+            "compat-http-binary-egress-session-v2|authority={}|read={}|download={}|range={}|conditional={}|selected={}-{}|range_honored={}|head_only={}|retry={}",
+            operation_admission.canonical_digest(),
             read.canonical_digest(),
             download_request.canonical_digest(),
             range_request.canonical_digest(),
@@ -50,6 +54,7 @@ impl ForgeServerBinaryEgressSession {
             retry_posture.canonical_digest(),
         );
         Self {
+            operation_admission,
             read,
             download_request,
             range_request,
@@ -65,6 +70,10 @@ impl ForgeServerBinaryEgressSession {
 
     pub fn read(&self) -> &ForgeServerCompatibilityRead {
         &self.read
+    }
+
+    pub fn operation_admission(&self) -> &ForgeServerOperationAdmissionPosture {
+        &self.operation_admission
     }
 
     pub fn download_request(&self) -> &ForgeServerBinaryDownloadRequest {

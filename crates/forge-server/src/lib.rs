@@ -15,7 +15,19 @@ mod diagnostics;
 pub mod facade;
 pub mod forge_native;
 pub mod middleware;
+mod operation_admission;
+mod operation_planning;
+mod operation_readiness;
+mod operation_registry;
+mod operation_request;
+mod operation_runtime_certification;
+mod operation_scheduler;
 pub mod operator_evidence;
+mod product_adapter;
+mod product_operation_contract;
+mod product_session;
+mod product_session_coordination;
+pub mod query_dependency_audit;
 pub mod query_handoff;
 mod registration;
 pub mod request_context;
@@ -63,6 +75,7 @@ pub use forge_native::{
     ForgeServerForgeNativeDirectFacade, ForgeServerForgeNativeFacade,
     ForgeServerForgeNativeFailure, ForgeServerForgeNativePreparationOutcome,
     ForgeServerForgeNativePreparedSession, ForgeServerForgeNativeProductFacade,
+    ForgeServerForgeNativeProductMutationCommand, ForgeServerForgeNativeProductSessionFacade,
     ForgeServerForgeNativeRebindRequired, ForgeServerForgeNativeSession,
     ForgeServerForgeNativeSessionDenial, ForgeServerForgeNativeSessionDenialCode,
     ForgeServerForgeNativeSessionInput, ForgeServerForgeNativeSessionInputBuilder,
@@ -76,15 +89,132 @@ pub use middleware::{
     ForgeServerPipelineInput, ForgeServerPipelineIntent, ForgeServerPipelineStep,
     ForgeServerPreparedQueryHandoffIntent, ForgeServerPreparedQueryHandoffKind,
 };
+pub use operation_admission::{
+    ForgeServerOperationAdmissionDenial, ForgeServerOperationAdmissionDenialCode,
+    ForgeServerOperationAdmissionFacade, ForgeServerOperationAdmissionPosture,
+    ForgeServerOperationAuthorityDeclaration, ForgeServerOperationAuthorityFootprint,
+    ForgeServerOperationAuthorityKind, ForgeServerOperationAuthorityMetadata,
+    ForgeServerOperationAuthorizationProof, ForgeServerOperationConcurrencyClass,
+    ForgeServerOperationConcurrencyDenial, ForgeServerOperationConcurrencyDenialCode,
+    ForgeServerOperationConcurrencyFacade, ForgeServerOperationFootprintReceipt,
+    ForgeServerOperationScope, ForgeServerProductSessionCoordinationTarget,
+    ForgeServerProductSupportPosture, ForgeServerSharedReadBasisKind,
+};
+pub use operation_planning::{
+    ForgeServerLoweredOperationPlan, ForgeServerOperationExecutionStrategy,
+    ForgeServerOperationPlanCounters, ForgeServerOperationPlanDenial,
+    ForgeServerOperationPlanDenialCode, ForgeServerOperationPlanEvidencePolicy,
+    ForgeServerOperationPlanProof, ForgeServerOperationPlanReceipt, ForgeServerOperationPlanner,
+    ForgeServerOperationPlannerInput,
+};
+pub use operation_readiness::{
+    ForgeServerCompatibilityMutationPrecondition,
+    ForgeServerCompatibilityMutationPreconditionContext, ForgeServerOperationPreconditionPosture,
+    ForgeServerOperationQuerySupportContext, ForgeServerOperationReadinessClosure,
+    ForgeServerOperationReadinessDenial, ForgeServerOperationReadinessDenialCode,
+    ForgeServerOperationReadinessDenialFacts, ForgeServerOperationReadinessFacade,
+    ForgeServerOperationSupportCompositionReceipt, ForgeServerOperationSupportPosture,
+    ForgeServerProductBasisPrecondition,
+};
+pub use operation_registry::{
+    ForgeServerOperationAuthorizationPolicy, ForgeServerOperationCapabilities,
+    ForgeServerOperationDenial, ForgeServerOperationFamily, ForgeServerOperationInventory,
+    ForgeServerOperationInventoryRow, ForgeServerOperationRegistration,
+    ForgeServerOperationRegistry, ForgeServerOperationRegistryError,
+};
+pub use operation_request::{
+    ForgeServerOperationIdentity, ForgeServerOperationInputEnvelope, ForgeServerOperationRequest,
+    ForgeServerOperationRequestDenial, ForgeServerOperationRequestDenialCode,
+    ForgeServerOperationRequestFacade, ForgeServerOperationRequestInput,
+    ForgeServerOperationRequestInputBuilder, ForgeServerOperationRequestReceipt,
+};
+pub use operation_runtime_certification::{
+    ForgeServerEditorLikeOperationFixture, ForgeServerNoProductSemanticsCertification,
+    ForgeServerOperationRuntimeCloseoutDigest, ForgeServerProductEditorReadinessCertification,
+    ForgeServerProductIdempotentReplayCertificationProof,
+    ForgeServerProductMutationCertificationProof,
+    ForgeServerProductOperationRuntimeArtifactRequirements,
+    ForgeServerProductOperationRuntimeCertification,
+    ForgeServerProductOperationRuntimeCertificationFacade,
+    ForgeServerProductOperationRuntimeRequirementRow,
+    ForgeServerProductOperationRuntimeRequirementStatus,
+    ForgeServerProductOperationRuntimeSupportRow,
+    ForgeServerProductPressureShapeCertificationProof,
+    ForgeServerProductRouteParityCertificationProof, ForgeServerProductRouteParityEntry,
+    ForgeServerProductSharedReadCertificationProof,
+    ForgeServerProductStaleApplyDenialCertificationProof,
+};
+pub use operation_scheduler::{
+    ForgeServerExecutedOperationBatch, ForgeServerOperationExecutionSlot,
+    ForgeServerOperationScheduler, ForgeServerOperationSchedulerCounters,
+    ForgeServerScheduledMutationResult, ForgeServerScheduledOperationBatch,
+    ForgeServerScheduledOperationOutcome, ForgeServerScheduledOperationTraceEntry,
+    ForgeServerSchedulerCancellationDirective, ForgeServerSchedulerCancellationPosture,
+    ForgeServerSchedulerCertificationSabotage, ForgeServerSchedulerConflictDenial,
+    ForgeServerSchedulerConflictDenialCode, ForgeServerSchedulerConflictDenialFacts,
+    ForgeServerSchedulerFailurePosture, ForgeServerSchedulerRuntimeFailure,
+};
 pub use operator_evidence::{
     ForgeServerEvidenceInput, ForgeServerEvidenceTransform, ForgeServerObservedCounter,
     ForgeServerOperatorCounterReceipt, ForgeServerOperatorEvidenceClass,
     ForgeServerOperatorEvidenceFacade, ForgeServerOperatorEvidenceMaterializationError,
     ForgeServerOperatorEvidencePlan, ForgeServerOperatorEvidenceRecord,
 };
+pub use product_adapter::{
+    ForgeServerCompletedProductOperation, ForgeServerExecutedProductReadBatch,
+    ForgeServerLoweredProductOperationPlan, ForgeServerProductAdapterCertificationCode,
+    ForgeServerProductAdapterCertificationError, ForgeServerProductAdapterExecutionError,
+    ForgeServerProductAdapterRegistrationReceipt, ForgeServerProductAdapterRegistry,
+    ForgeServerProductAdapterRegistryError, ForgeServerProductApplicationAdapter,
+    ForgeServerProductApplicationAdapterRegistration,
+    ForgeServerProductOperationAuthorityRequirement, ForgeServerProductOperationBasisKind,
+    ForgeServerProductOperationDeclaration, ForgeServerProductOperationDenial,
+    ForgeServerProductOperationDenialCode, ForgeServerProductOperationDenialFacts,
+    ForgeServerProductOperationEnvelope, ForgeServerProductOperationEnvelopeKind,
+    ForgeServerProductOperationErrorMap, ForgeServerProductOperationErrorMaps,
+    ForgeServerProductOperationExecutionBoundary, ForgeServerProductOperationFailure,
+    ForgeServerProductOperationInput, ForgeServerProductOperationOutcome,
+    ForgeServerProductOperationPayload, ForgeServerProductOperationReplayClass,
+    ForgeServerProductOperationReplayDiagnostics, ForgeServerProductOperationRuntime,
+    ForgeServerProductOperationSuccess, ForgeServerProductOperationSupportSnapshot,
+    ForgeServerProductOperationSurfaceDenial, ForgeServerProductOperationSurfaceDenialCode,
+    ForgeServerProductOperationSurfaceDenialFacts, ForgeServerProductPayloadSchemaValidator,
+    ForgeServerProductSchedulerAdmission, ForgeServerScheduledProductOperation,
+};
+pub use product_operation_contract::{
+    ForgeServerProductIdempotencyConflict, ForgeServerProductIdempotencyKey,
+    ForgeServerProductIdempotencyRecord, ForgeServerProductOperationBaseDigest,
+    ForgeServerProductOperationReplayReceipt, ForgeServerProductRebaseRequired,
+    ForgeServerProductSnapshotPrecondition, ForgeServerProductStaleBasisDenial,
+};
+pub use product_session::{
+    ForgeServerProductSession, ForgeServerProductSessionClock,
+    ForgeServerProductSessionCounterSnapshot, ForgeServerProductSessionCreationRequest,
+    ForgeServerProductSessionDenial, ForgeServerProductSessionDenialCode,
+    ForgeServerProductSessionExpiryPosture, ForgeServerProductSessionIdentity,
+    ForgeServerProductSessionLifecycle, ForgeServerProductSessionRegistry,
+    ForgeServerSystemProductSessionClock,
+};
+pub use product_session_coordination::{
+    ForgeServerCompletedProductSessionCoordination,
+    ForgeServerLoweredProductSessionCoordinationPlan, ForgeServerProductSessionCoordinationCommand,
+    ForgeServerProductSessionCoordinationRuntime, ForgeServerProductSessionSchedulerAdmission,
+};
+pub use query_dependency_audit::{
+    ForgeServerQueryDependencyAudit, ForgeServerQueryDependencyAuditFacade,
+    ForgeServerQueryDependencyAuditPathKind, ForgeServerQueryDependencyAuditProvenance,
+    ForgeServerQueryDependencyAuditReceipt, ForgeServerQueryDependencyAuditRow,
+    ForgeServerQueryDependencyAuditRowId, ForgeServerQueryDependencyBoundaryAuditProvenance,
+    ForgeServerQueryDependencyClosurePosture, ForgeServerQueryDependencyConsumerKitPosture,
+    ForgeServerQueryDependencyCoveredPathInventory, ForgeServerQueryDependencyRuntimeReadiness,
+    ForgeServerQueryDependencyScopePosture, ForgeServerQueryDependencySupportPinProvenance,
+    ForgeServerQueryDependencySupportPosture,
+    ForgeServerQueryDependencyTestBackendResidueProvenance,
+};
 pub use query_handoff::{
     ForgeServerQueryHandoff, ForgeServerQueryHandoffDeferred, ForgeServerQueryHandoffDenial,
-    ForgeServerQueryHandoffDenialCode, ForgeServerQueryHandoffFacade,
+    ForgeServerQueryHandoffDenialCode, ForgeServerQueryHandoffDenialFacts,
+    ForgeServerQueryHandoffDenialFamily, ForgeServerQueryHandoffFacade,
     ForgeServerQueryHandoffFailure, ForgeServerQueryHandoffInput, ForgeServerQueryHandoffOperation,
     ForgeServerQueryHandoffOutcome, ForgeServerQueryHandoffRebindRequired,
     ForgeServerQueryHandoffStale, ForgeServerQueryOperation, ForgeServerQueryOperationKind,
@@ -123,17 +253,19 @@ pub use surfaces::{
     ForgeServerBinaryPolicyDecision, ForgeServerBinaryResumeRequest, ForgeServerBinaryRetryPosture,
     ForgeServerBinarySessionResume, ForgeServerCacheabilityPolicy, ForgeServerCanonicalFilename,
     ForgeServerCanonicalHeaderSet, ForgeServerCompatHttpRouteFamilies,
-    ForgeServerCompatHttpRouteFamily, ForgeServerCompatibilityCachePolicy,
-    ForgeServerCompatibilityCertificationBundle, ForgeServerCompatibilityDeferred,
-    ForgeServerCompatibilityDenial, ForgeServerCompatibilityDenialCode,
-    ForgeServerCompatibilityExecutionInput, ForgeServerCompatibilityExecutionOutcome,
-    ForgeServerCompatibilityExport, ForgeServerCompatibilityFacade,
-    ForgeServerCompatibilityFailure, ForgeServerCompatibilityFileEnvelope,
-    ForgeServerCompatibilityInspection, ForgeServerCompatibilityMutation,
-    ForgeServerCompatibilityMutationCommand, ForgeServerCompatibilityMutationEnvelope,
-    ForgeServerCompatibilityMutationExecutionInput, ForgeServerCompatibilityMutationOutcome,
-    ForgeServerCompatibilityMutationRequest, ForgeServerCompatibilityMutationResult,
-    ForgeServerCompatibilityPreparedRequest, ForgeServerCompatibilityRead,
+    ForgeServerCompatHttpRouteFamily, ForgeServerCompatibilityAdmittedProductMutationCommand,
+    ForgeServerCompatibilityCachePolicy, ForgeServerCompatibilityCertificationBundle,
+    ForgeServerCompatibilityDeferred, ForgeServerCompatibilityDenial,
+    ForgeServerCompatibilityDenialCode, ForgeServerCompatibilityExecutionInput,
+    ForgeServerCompatibilityExecutionOutcome, ForgeServerCompatibilityExport,
+    ForgeServerCompatibilityFacade, ForgeServerCompatibilityFailure,
+    ForgeServerCompatibilityFileEnvelope, ForgeServerCompatibilityInspection,
+    ForgeServerCompatibilityMutation, ForgeServerCompatibilityMutationCommand,
+    ForgeServerCompatibilityMutationEnvelope, ForgeServerCompatibilityMutationExecutionInput,
+    ForgeServerCompatibilityMutationOutcome, ForgeServerCompatibilityMutationRequest,
+    ForgeServerCompatibilityMutationResult, ForgeServerCompatibilityOpenedProductSession,
+    ForgeServerCompatibilityPreparedRequest, ForgeServerCompatibilityProductSessionContinuation,
+    ForgeServerCompatibilityProductSessionFacade, ForgeServerCompatibilityRead,
     ForgeServerCompatibilityRebindRequired, ForgeServerCompatibilityRequest,
     ForgeServerCompatibilityRequestInput, ForgeServerCompatibilityRequestInputBuilder,
     ForgeServerCompatibilityRequestInputError, ForgeServerCompatibilityRequestOutcome,
@@ -160,4 +292,12 @@ pub use surfaces::{
     ForgeServerUploadExpectation, ForgeServerUploadManifest, ForgeServerUploadPart,
     ForgeServerUploadTransferMode, ForgeServerVerifiedBinaryIngress, IntegrationSurface,
     IntegrationSurfaceRoot, LeaseSurface, LeaseSurfaceRoot, SyncSurface, SyncSurfaceRoot,
+};
+pub use transport::{
+    ForgeServerDeclaredRoute, ForgeServerOperationRouter, ForgeServerOperationalRoute,
+    ForgeServerOperationalRouteKind, ForgeServerOperationalRouteOutcome,
+    ForgeServerProjectedRouter, ForgeServerRouteAssembly, ForgeServerRouteAssemblyError,
+    ForgeServerRouteBranchTarget, ForgeServerRouteExecutionBridge,
+    ForgeServerRouteExecutionOutcome, ForgeServerRouteInventory, ForgeServerRouteInventoryRow,
+    ForgeServerRouteTransportRequest, ForgeServerTransportDenial, ForgeServerTransportDenialCode,
 };

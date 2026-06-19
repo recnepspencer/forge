@@ -1,6 +1,6 @@
 use crate::{
     ForgeServerCompatibilityMutationRequest, ForgeServerCompatibilityPreparedRequest,
-    ForgeServerMultipartUpload,
+    ForgeServerMultipartUpload, ForgeServerOperationAdmissionPosture,
 };
 
 use super::{
@@ -13,6 +13,7 @@ pub struct ForgeServerBinaryIngressSession {
     operation_name: String,
     upload: ForgeServerMultipartUpload,
     mutation_request: ForgeServerCompatibilityMutationRequest,
+    operation_admission: ForgeServerOperationAdmissionPosture,
     tenant_id: String,
     workspace_digest: String,
     branch_digest: String,
@@ -26,6 +27,7 @@ impl ForgeServerBinaryIngressSession {
         operation_name: String,
         upload: ForgeServerMultipartUpload,
         mutation_request: ForgeServerCompatibilityMutationRequest,
+        operation_admission: ForgeServerOperationAdmissionPosture,
         performance_receipt: ForgeServerIngressPerformanceReceipt,
     ) -> Self {
         let tenant_id = prepared_request
@@ -45,18 +47,20 @@ impl ForgeServerBinaryIngressSession {
             .branch_target()
             .branch_digest();
         let session_digest = format!(
-            "forge-server-binary-ingress-session-v1|tenant={}|workspace={}|branch={}|operation={}|upload={}",
+            "forge-server-binary-ingress-session-v2|tenant={}|workspace={}|branch={}|operation={}|upload={}|authority={}",
             tenant_id,
             workspace_digest,
             branch_digest,
             operation_name.trim(),
             upload.canonical_digest(),
+            operation_admission.canonical_digest(),
         );
         Self {
             prepared_request,
             operation_name,
             upload,
             mutation_request,
+            operation_admission,
             tenant_id,
             workspace_digest,
             branch_digest,
@@ -79,6 +83,10 @@ impl ForgeServerBinaryIngressSession {
 
     pub fn mutation_request(&self) -> &ForgeServerCompatibilityMutationRequest {
         &self.mutation_request
+    }
+
+    pub fn operation_admission(&self) -> &ForgeServerOperationAdmissionPosture {
+        &self.operation_admission
     }
 
     pub fn workspace_digest(&self) -> &str {
@@ -108,6 +116,7 @@ impl ForgeServerBinaryIngressSession {
         String,
         ForgeServerMultipartUpload,
         ForgeServerCompatibilityMutationRequest,
+        ForgeServerOperationAdmissionPosture,
         String,
         String,
         String,
@@ -119,6 +128,7 @@ impl ForgeServerBinaryIngressSession {
             self.operation_name,
             self.upload,
             self.mutation_request,
+            self.operation_admission,
             self.tenant_id,
             self.workspace_digest,
             self.branch_digest,
