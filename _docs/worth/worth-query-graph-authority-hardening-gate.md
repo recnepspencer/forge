@@ -247,68 +247,50 @@ attempts, including:
 
 ## Phase Plan
 
-### Phase 1: Compiler-Led Graph Authority Discovery
+This gate is ordered for an automation loop that can clean one bounded owner
+surface until it is done, run QA, and only then move on. The order is therefore
+not a taxonomy of authority concepts. It is the implementation order:
+discover globally, pin the Query contract, clean `worth-topo`, clean
+`worth-spatial`, clean `worth-kernel`, then prove the boolean chain and
+cross-crate closeout.
 
-Freeze the full surface map before refactoring by making the compiler reveal
-downstream consumers of the wrong authority roots. This phase must not rely on
-grep cleverness as the discovery mechanism. Search can seed the candidate
-root list, but the authoritative discovery step is to deliberately demote,
-seal, privatize, rename, or witness-gate the root structs, constructors,
-exports, and trait implementations that currently allow local graph authority,
-support reports, proof wrappers, handoff-only execution, raw evidence scans,
-or string-prefix stage linkage to act like production authority.
+Each crate cleanup phase owns its local facade and compile-fail lockdown. Public
+proof fences must not be deferred to a final global facade phase; otherwise
+agents will keep using internal constructors and lower-authority fixtures as
+temporary conveniences that become hard to remove.
 
-The output is still an inventory and deletion ledger, but those artifacts must
-be populated from compiler-discovered dependencies and compile-fail
-enforcement points. Every production file that breaks because a root authority
-type was sealed or demoted must be classified. Every file that does not break
-but still belongs to a deletion target class must be explained by an explicit
-public-facade path, certification-only boundary, or residue row.
+A phase is complete only when its deletion ledger rows are resolved, its public
+surface is locked, its compile-fail contracts prove weaker authority cannot be
+promoted, and its focused QA suite passes.
 
-The main discovery move is to strengthen API inputs to proof-bearing types.
-If a function semantically requires executed graph authority, it must accept
-`GraphObligationExecutedAuthority` or the domain-specific equivalent, not a
-support report, adoption status, admitted handoff, raw row list, or copied
-digest. The compile errors from that signature change are the first-class
-discovery artifact.
+### Phase 1: Global Discovery And Gate Harness
+
+Freeze the full Worth graph-authority surface map before crate cleanup starts.
+Search may seed the candidate root list, but the authoritative discovery move
+is compiler-led: deliberately demote, seal, privatize, rename, or witness-gate
+the root structs, constructors, exports, and trait implementations that let
+local graph authority, support reports, proof wrappers, handoff-only execution,
+raw evidence scans, string-prefix stage linkage, or support-pinning ceremony
+act like production authority.
+
+The output of this phase is a production inventory and deletion ledger that the
+automation script can use as a scoreboard. Every audited source row must name:
+
+- owner crate and subsystem
+- authority class
+- deletion target class, if any
+- discovery source: `compiler`, `compile-fail`, `public-facade`,
+  `certification-only`, or `search-seed`
+- action: `keep`, `collapse`, `delete`, `residue`, or `query-gap`
+- replacement surface or blocker
+- QA evidence that prevents silent drift
 
 **Relevant subsystems**
 
 - `worth-topo` topology operator adoption and query-native boundary
-- `worth-spatial` query adoption and planar boolean workload evidence
-- `worth-kernel` construction query authority, graph obligation adoption, and
-  crate-level Query adoption
+- `worth-spatial` query adoption and workload evidence ledger
+- `worth-kernel` construction query authority and graph obligation adoption
 - Forge Query Consumer Kit and Graph Touch Obligation Authority
-
-**Relevant APIs**
-
-- `worth_topo::topology_operators::*graph_obligation*`
-- `worth_topo::construction::query_native_boundary::*`
-- `worth_spatial::query_adoption::*`
-- `worth_kernel::construction::query_authority::*`
-- `worth_kernel::construction::graph_obligation_adoption::*`
-- `worth_kernel::query_adoption::*`
-- `forge_query::facade::consumer_kit::*`
-
-**Authority roots to break first**
-
-- support report structs whose fields or constructors let callers restate
-  Query support posture outside the executed graph authority receipt
-- local support-pin wrapper constructors outside Query Consumer Kit paths
-- topology blueprint `proof_obligations` rows that encode graph legality
-- handoff-only construction result helpers and receipt promotion helpers
-- raw evidence-row vectors and scan helper entrypoints used by production
-  operator/workload paths
-- string-prefix stage-link helpers
-- graph-obligation adoption proof constructors that prove API availability
-  without execution-backed selection and residue
-- residue/adoption row constructors that can be forged outside the proving
-  module
-- untagged digest/string plumbing where the same representation is used for
-  support snapshots, graph obligation execution, split ledgers, loop ledgers,
-  residue manifests, and construction authority receipts
-- test fixture types that can be passed to production APIs because they share
-  the same shape as production proof
 
 **Warnings**
 
@@ -318,154 +300,121 @@ discovery artifact.
 - Do not hide production debt inside test/certification language. A production
   path used by workload or boolean execution remains production even if tests
   are the only current caller.
-- Do not commit a deliberately broken workspace as the final phase output.
-  Compiler-led discovery means using breakage to find consumers, then replacing
-  the breakage with enforced APIs and compile-fail tests.
-- Do not demote everything at once if the compiler output becomes unreadable.
-  Break one root authority family at a time and record the downstream consumer
-  set before moving to the next family.
+- Do not demote every root at once if the compiler output becomes unreadable.
+  Break one authority family at a time and record the downstream consumer set
+  before moving to the next family.
+- Do not commit intentionally broken discovery edits. Commit enforced APIs,
+  inventory rows, deletion rows, and compile-fail guards.
 
 **Test requirements**
 
 - Adversarial compiler-discovery test: each root authority family has a
   discovery record showing the intentional break, the downstream compile
   failures it exposed, and the final enforced API that replaced the break.
-- Adversarial coverage test: every compiler-discovered Worth production source
-  set is represented in a typed inventory row with owner, authority class,
-  action (`keep`, `collapse`, `delete`, `residue`, or `query-gap`), replacement
-  surface, and discovery source (`compiler`, `compile-fail`, `public-facade`,
-  or `certification-only`).
+- Adversarial coverage test: every audited Worth production source is
+  represented in a typed inventory row.
 - Adversarial leakage test: adding an unclassified source under the audited
   paths fails certification rather than silently becoming implicit residue.
-- Adversarial drift test: a source cannot be both covered Query adoption and
-  defended Worth-domain residue unless the row explicitly names the noncovered
-  reason.
-- Adversarial deletion test: a duplicate support report, local support-pin
-  wrapper, raw evidence scan helper, handoff-only result helper, or blueprint
-  proof-obligation row cannot be classified as `keep` unless it proves a
-  distinct authority boundary not carried by Query or ledger receipts.
-- Adversarial compile-fail lock test: every root authority family that was
-  broken during discovery has a committed compile-fail or public-facade
-  contract proving consumers cannot reintroduce the old construction path.
+- Adversarial deletion test: duplicate support reports, local support-pin
+  wrappers, raw evidence scan helpers, handoff-only result helpers, and
+  blueprint proof-obligation rows cannot be classified as `keep` unless they
+  prove a distinct authority boundary not carried by Query or ledger receipts.
 - Adversarial proof-phase test: every production API discovered in this phase
-  accepts the strongest phase-typed authority object it semantically requires,
-  and a weaker phase object fails to compile.
-- Adversarial digest-tag test: copied or same-shaped digests cannot cross from
-  support, split, loop, residue, construction, or graph-execution authority
-  into another authority slot.
+  accepts the strongest phase-typed authority object it semantically requires.
 
 **Engineering decisions**
 
-- The inventory is a production artifact, not a spreadsheet in prose.
-- The inventory must distinguish crate-level Query adoption posture from graph
-  obligation authority adoption.
-- The deletion ledger is as important as the adoption inventory. Keeping fewer
-  local proof surfaces is a product outcome, not cleanup polish.
-- The matrix is an output format, not the discovery method. The compiler is the
-  discovery mechanism; the matrix records what the compiler taught us and how
-  each discovered dependency was resolved.
-- Prefer root-struct and trait-bound breakage over text search because it
-  discovers transitive consumers and semantic dependencies that do not share
-  obvious names.
-- Prefer phase-typed wrappers and witness tokens over runtime checks. A caller
-  with only a descriptive report should not reach a runtime denial when the
-  intended contract is compile-time unrepresentability.
+- The inventory and deletion ledger are code artifacts, not spreadsheet prose.
+- The matrix records what the compiler taught us; it is not the discovery
+  mechanism.
+- Prefer proof-bearing wrappers and witness tokens over runtime checks.
 - Keep provenance in docs and reports, but do not name production modules after
   milestones unless the responsibility is historical compatibility itself.
 
-**Open questions**
+### Phase 2: Forge Query Contract Baseline
 
-- None.
+Pin the exact Query surfaces Worth is allowed to consume before rewriting crate
+internals. This phase defines the canonical Consumer Kit, graph obligation,
+selector, support posture, execution, receipt, residue, and public facade
+contracts that later phases must use.
 
-### Phase 2: Adoption Surface Boundary Split
-
-Separate general Query adoption posture from graph obligation authority proof.
-Worth currently has crate-level `query_adoption` surfaces and 9.9 graph
-obligation adoption surfaces living close together. This phase makes their
-roles non-overlapping.
-Where a general adoption report merely repeats graph-obligation selection,
-support, execution, or residue proof already carried by a graph authority
-receipt, the report must be deleted or collapsed into a derived view.
+This is a short baseline phase, but it is load-bearing. Without it, each Worth
+crate can accidentally define its own local meaning of Query proof.
 
 **Relevant subsystems**
 
-- `worth-kernel/src/query_adoption`
-- `worth-kernel/src/construction/graph_obligation_adoption`
-- `worth-topo/src/query_adoption`
-- `worth-topo/src/topology_operators/adoption`
-- `worth-spatial/src/query_adoption`
-
-**Relevant APIs**
-
-- `current_kernel_query_consumer_kit_adoption_status`
-- `current_topology_query_consumer_kit_adoption_status`
-- `current_spatial_query_consumer_kit_adoption_status`
-- `topology_operator_graph_obligation_adoption_proof`
-- `primitive_construction_graph_obligation_adoption_proof`
+- `forge-query::facade::consumer_kit::*`
+- Forge Query graph touch descriptors, selectors, obligation registrations,
+  support posture, execution rows, receipts, adoption manifests, and residue
+  manifests
+- Query docs for Graph Touch Obligation Authority and Consumer Kit adoption
 
 **Warnings**
 
-- Crate-level adoption reports must not become authority receipts for specific
-  graph touch execution.
-- Graph obligation adoption must not become a generic "Query posture is good"
-  badge detached from selected obligations, support posture, execution proof,
-  and residue.
+- Do not treat crate-level Query adoption as graph obligation execution proof.
+- Do not accept local required-family lists, local support pinning, or fabricated
+  receipts when the Consumer Kit owns the proof surface.
+- Do not extend Worth locally when the blocker is really a Query selector,
+  support, receipt, or Consumer Kit API gap.
 
 **Test requirements**
 
-- Adversarial equivalence test: the crate-level adoption report and the
-  graph-obligation adoption proof can be generated for the same crate without
-  sharing digest identity, because they prove different things.
-- Adversarial rejection test: a graph-obligation closeout attempt backed only
-  by crate-level Query adoption status fails.
-- Adversarial boundary test: a crate-level adoption report cannot include a
-  covered graph touch lane without pointing to the graph-obligation proof
-  surface or explicit residue.
+- Adversarial contract test: Worth can name the Query types that represent
+  adoption posture, selector coverage, support pinning, selected obligation,
+  executed obligation, receipt, and residue without local substitutes.
+- Adversarial weaker-proof test: crate-level adoption status cannot satisfy an
+  API requiring graph obligation execution proof.
+- Adversarial Query-gap test: any missing Query capability is represented as a
+  named blocking row, not a Worth-local workaround.
 
 **Engineering decisions**
 
-- Use distinct modules or submodules when a name currently covers both posture
-  and authority.
-- Public facades may aggregate both reports, but aggregation files must not
-  implement report construction.
-- General Query adoption may remain cross-crate; graph obligation proof must
-  stay tied to selected lanes and execution evidence.
-- Derived report views may exist only if they are mechanically built from the
-  canonical proof receipt and cannot drift into independent authority.
+- Prefer updating Query specs or Query APIs when exact authority cannot be
+  expressed honestly.
+- Worth phases may define domain-specific witnesses only when they wrap or
+  consume canonical Query proof instead of competing with it.
 
-**Open questions**
+### Phase 3: `worth-topo` Authority Cleanup And QA
 
-- Whether to rename existing `query_adoption` modules or introduce narrower
-  child modules depends on import churn found in Phase 1.
+Clean `worth-topo` as a vertical slice. Topology owns topology operator
+semantics and topology truth. Query owns graph obligation selection and
+execution authority. This phase collapses topology operator local guard,
+blueprint proof-obligation, adoption, and query-native handoff surfaces into
+one honest topology-to-Query story.
 
-### Phase 3: Topology Operator Graph Authority Catalog
-
-Collapse topology operator proof-obligation and local-guard ceremony into one
-topology operator graph authority catalog that lowers to Query-owned graph
-obligation artifacts.
+This phase includes the `worth-topo` public facade and compile-fail lockdown.
+It is not done until external consumers can obtain proof/status through public
+APIs and cannot forge internal proof rows or skip proof phases.
 
 **Relevant subsystems**
 
 - `worth-topo/src/topology_operators/adoption`
-- `worth-topo/src/topology_operators/loop_reconstruction_blueprint`
 - `worth-topo/src/topology_operators/edge_split_blueprint`
-- topology operator public facade contracts
+- `worth-topo/src/topology_operators/loop_reconstruction_blueprint`
+- `worth-topo/src/construction/query_native_boundary`
+- `worth-topo/src/construction/query_native_boundary/compose_execution`
+- `worth-topo` public facade and certification contracts
 
-**Relevant APIs**
+**Required work**
 
-- `topology_operator_graph_obligation_catalog`
-- `topology_operator_graph_obligation_registration_declaration`
-- `topology_operator_graph_obligation_selector_coverage`
-- `topology_operator_graph_obligation_support_pin`
-- `topology_operator_legacy_guard_audit`
-- topology operator blueprint `proof_obligations`
+- Separate topology crate Query adoption posture from topology graph obligation
+  authority proof.
+- Collapse topology operator proof-obligation and local-guard ceremony into a
+  graph authority catalog that lowers to Query descriptors, registrations,
+  selector coverage, support posture, and execution proof.
+- Make query-native boundary progression phase-typed: raw handoff, admitted
+  handoff, compose execution, denial, receipt, and envelope must be distinct.
+- Delete blueprint-local graph legality where Query now owns the covered lane,
+  or retain it only as explicit capped topology residue.
+- Lock public facade accessors and compile-fail tests for proof internals.
 
 **Warnings**
 
-- Do not let a blueprint proof-obligation row become a second graph
-  obligation selector.
+- Do not let a blueprint proof-obligation row become a second graph obligation
+  selector.
 - Do not delete a local guard until its Query lowering path or explicit residue
   row is mechanically proven.
+- Handoff preparation is not compose execution.
 - Topology remains geometry-free. This phase may bind topology relation touch
   meaning, not spatial predicate meaning.
 
@@ -474,210 +423,124 @@ obligation artifacts.
 - Adversarial parity test: every covered topology operator catalog row lowers
   to exactly one Query touch descriptor family, registration declaration,
   selector coverage row, and support posture row.
-- Adversarial rejection test: a topology operator with a local guard pattern
-  but no Query lowering path and no residue row fails closeout.
+- Adversarial rejection test: a topology operator with a local guard pattern but
+  no Query lowering path and no residue row fails closeout.
 - Adversarial duplication test: the same graph legality meaning cannot appear
   once as a Query registration and again as a blueprint-local proof obligation.
-
-**Engineering decisions**
-
-- The catalog owns topology operator meaning; Query owns obligation selection.
-- Blueprint rows may reference the catalog but may not carry independent graph
-  legality.
-- Local guard residue must be typed and capped, not found only by text scan.
-
-**Open questions**
-
-- Whether loop and edge-split blueprints share one graph authority catalog or
-  keep family-specific catalogs should be decided by shared lifecycle, not by
-  visual similarity.
-
-### Phase 4: Topology Query-Native Boundary Receipts
-
-Make the `worth-topo` query-native boundary a proof-widening pipeline. Raw
-handoff, admitted handoff, compose execution, graph obligation evidence,
-denial, receipt, and envelope must be distinct artifacts.
-Each phase output must be a distinct proof-bearing type, and no later phase may
-accept an earlier phase type when a stronger proof has been established.
-
-**Relevant subsystems**
-
-- `worth-topo/src/construction/query_native_boundary`
-- `worth-topo/src/construction/query_native_boundary/compose_execution`
-- topology projection/runtime-boundary certification
-
-**Relevant APIs**
-
-- `query_native_boundary::handoff`
-- `query_native_boundary::admitted_handoff`
-- `query_native_boundary::compose_execution::*`
-- `query_native_boundary::receipt`
-- `query_native_boundary::envelope`
-
-**Warnings**
-
-- Handoff preparation is not compose execution.
-- A receipt that lacks graph obligation evidence cannot satisfy a covered
-  graph touch lane.
-- Denial evidence must stay typed; string reasons are not authority.
-
-**Test requirements**
-
-- Adversarial replay test: the same admitted handoff and operating world
-  produce stable compose execution evidence, receipt digest, and graph
-  obligation envelope digest.
-- Adversarial rejection test: a handoff-only artifact cannot be promoted to an
-  executed compose receipt.
-- Adversarial denial test: missing graph obligation registration produces a
-  typed denial before execution receipt construction.
 - Adversarial phase-promotion compile-fail test: raw handoff cannot be passed
   where admitted handoff is required, admitted handoff cannot be passed where
-  executed compose evidence is required, and executed compose evidence cannot
-  be forged as a receipt.
+  executed compose evidence is required, and executed compose evidence cannot be
+  forged as a receipt.
+- Adversarial facade test: public consumers can obtain topology adoption and
+  graph-authority posture without importing internal modules.
 
-**Engineering decisions**
+**QA gate**
 
-- Use proof-bearing wrapper types for each phase.
-- Execution receipts expose selected obligation count, support lane, envelope
-  digest, and denial context where applicable.
-- Diagnostic richness must not change receipt identity.
+- `cargo check -p worth-topo`
+- focused topology operator adoption, query-native boundary, public facade, and
+  compile-fail certification tests
+- deletion ledger rows for `worth-topo` are all `delete`, `collapse`,
+  `certification-only`, `residue`, or `query-gap`
 
-**Open questions**
+### Phase 4: `worth-spatial` Evidence Cleanup And QA
 
-- None.
+Clean `worth-spatial` as a vertical slice. Spatial owns geometry and spatial
+evidence. It may prove witnesses, tolerances, events, split evidence, loop
+evidence, replay parity, and workload evidence. It may not promote spatial
+evidence into Query graph authority.
 
-### Phase 5: Spatial Evidence Authority Alignment
-
-Keep `worth-spatial` as geometry/spatial evidence authority while aligning its
-Query adoption posture with 9.9. Spatial may prove witnesses, tolerances,
-events, splits, loops, and replay parity; it may not claim Query graph
-authority.
+This phase includes the `worth-spatial` public facade and compile-fail lockdown.
+It is not done until production evidence lookup consumes typed indexed products
+where required and spatial evidence cannot masquerade as graph obligation proof.
 
 **Relevant subsystems**
 
 - `worth-spatial/src/query_adoption`
+- `worth-spatial/src/workload_platform/evidence_ledger`
 - `worth-spatial/src/workload_platform/planar_boolean_events`
 - `worth-spatial/src/workload_platform/planar_boolean_edge_splitting`
 - `worth-spatial/src/workload_platform/planar_boolean_loop_reconstruction`
+- `worth-spatial` public facade and certification contracts
 
-**Relevant APIs**
+**Required work**
 
-- `spatial_query_adoption_inventory`
-- `current_spatial_query_consumer_kit_adoption_status`
-- spatial evidence reports and support projection rows
-- planar boolean split and loop evidence receipts
+- Separate spatial crate Query adoption posture from graph obligation authority
+  proof.
+- Align spatial evidence reports with Query adoption without claiming Query
+  graph authority.
+- Replace production dependence on raw evidence-row scans, copied row vectors,
+  and string-prefix stage linkage with typed evidence-stage index products.
+- Preserve 7.3 split-ledger and 7.4 loop-ledger digest identity while adding or
+  consuming Query graph obligation accompaniment.
+- Lock public facade accessors and compile-fail tests for evidence/proof
+  internals.
 
 **Warnings**
 
 - Spatial evidence rows are not Query graph obligation execution rows.
 - Spatial support projection must not become a support posture override.
+- A copied `Vec` of evidence rows is not an indexed product.
+- String-prefix stage linkage is not identity authority.
 - Do not move topology legality or graph selection into spatial because a
   spatial workload discovered the failing case.
 
 **Test requirements**
 
-- Adversarial authority test: spatial evidence reports can prove spatial
-  witness truth without satisfying a graph obligation proof by themselves.
+- Adversarial authority test: spatial evidence reports can prove spatial witness
+  truth without satisfying a graph obligation proof by themselves.
 - Adversarial rejection test: forged Query evidence rows or direct support
   posture assumptions in spatial adoption fail public certification.
-- Adversarial parity test: split and loop evidence receipts retain their
-  existing replay identity after Query adoption alignment.
-
-**Engineering decisions**
-
-- Keep spatial Query adoption report language focused on downstream adoption
-  and support posture.
-- Add a narrow local `query_evidence` support module only if repeated spatial
-  proof-handoff code has the same semantic lifecycle.
-- Do not introduce graph-authority terminology into spatial evidence products
-  unless the type is explicitly a Query proof consumption wrapper.
-
-**Open questions**
-
-- Whether planar boolean event/split/loop families need a shared spatial
-  Query-consumption helper depends on actual duplication found in Phase 1.
-
-### Phase 6: Evidence Stage Index And Scan Removal
-
-Remove production dependence on raw evidence-row scans, copied row vectors,
-and string-prefix stage linkage where 7.3/7.4 boolean prep expects typed
-receipt-backed products.
-Production consumers must require an `EvidenceStageIndexWitness` or equivalent
-indexed receipt product, not a row slice that happens to contain the same
-stage.
-
-**Relevant subsystems**
-
-- `worth-spatial/src/workload_platform/evidence_ledger`
-- `worth-kernel/src/workload_composition`
-- `worth-kernel/src/workload_composition/operator_harness`
-- spatial workload operators that consume kernel evidence
-
-**Relevant APIs**
-
-- `CompleteWorkloadEvidenceLedger`
-- `WorkloadEvidenceStage`
-- `BooleanEvidenceReceipt`
-- `WorthWorkload::require_boolean_*`
-- operator harness receipt sets and stage links
-
-**Warnings**
-
-- A copied `Vec` of evidence rows is not an indexed product.
-- String-prefix stage linkage is not identity authority.
-- Full scans may remain only when statically classified as certification or
-  hostile-baseline fixtures.
-
-**Test requirements**
-
 - Adversarial complexity test: evidence-stage lookup exposes exact indexed
   lookup counters and rejects broad row scans on production paths.
-- Adversarial rejection test: operator execution that consumes raw evidence
-  rows or string-prefix stage links fails certification.
-- Adversarial replay test: indexed evidence-stage products preserve the same
-  receipt identity as the prior accepted workload evidence chain.
 - Adversarial weaker-type compile-fail test: raw evidence row vectors, copied
   row slices, and string-derived stage links cannot satisfy an API requiring an
   evidence-stage index witness.
+- Adversarial replay test: split and loop evidence receipts retain their replay
+  identity after Query adoption alignment.
 
-**Engineering decisions**
+**QA gate**
 
-- Build or reuse typed evidence-stage index products rather than decorating
-  scan results with Query digests.
-- Requirement checks consume proof-bearing receipts, not row lists.
-- Hostile full-breadth paths are allowed only as named baseline fixtures.
+- `cargo check -p worth-spatial`
+- focused spatial Query adoption, evidence-stage index, boolean receipt,
+  public facade, and compile-fail certification tests
+- deletion ledger rows for `worth-spatial` are all `delete`, `collapse`,
+  `certification-only`, `residue`, or `query-gap`
 
-**Open questions**
+### Phase 5: `worth-kernel` Construction Authority Cleanup And QA
 
-- Whether the indexed evidence product belongs primarily in `worth-spatial` or
-  `worth-kernel` should follow source truth: spatial owns evidence semantics;
-  kernel owns workload composition requirements.
+Clean `worth-kernel` as a vertical slice. Kernel owns construction
+orchestration and workload composition. Primitive construction birth must either
+execute through Query graph authority or emit explicit certified residue with a
+better blocker. Handoff-only construction proof must not remain an ordinary
+production authority path.
 
-### Phase 7: Kernel Construction Query Authority Cleanup
-
-Attack the known 9.9 kernel residue classes directly. Primitive construction
-birth must execute through Query graph authority or remain explicit residue
-with a better blocker.
-This phase is expected to remove whole handoff-only and support-summary classes
-when executed construction receipts make them redundant.
-Construction outputs that claim covered graph authority must require an
-`ExecutedPrimitiveBirthGraphAuthority` or equivalent receipt-backed proof type.
+This phase includes the `worth-kernel` public facade and compile-fail lockdown.
+It is not done until primitive construction authority receipts distinguish
+prepared, admitted, selected, executed, denied, receipted, and residue outcomes.
 
 **Relevant subsystems**
 
+- `worth-kernel/src/query_adoption`
 - `worth-kernel/src/construction/query_authority`
 - `worth-kernel/src/construction/graph_obligation_adoption`
 - `worth-kernel/src/construction/phase_chain`
 - `worth-kernel/src/construction/result_surface`
-- `worth-kernel/src/construction/tests/support/compound_lowering`
+- `worth-kernel/src/workload_composition`
+- `worth-kernel` public facade and certification contracts
 
-**Relevant APIs**
+**Required work**
 
-- `PrimitiveConstructionQueryAuthorityRequest`
-- `PrimitiveConstructionQueryAuthorityReceipt`
-- `require_primitive_construction_query_authority`
-- `primitive_construction_graph_obligation_residue_manifest`
-- primitive construction family inventory
+- Separate kernel crate Query adoption posture from graph obligation authority
+  proof.
+- Replace handoff-only construction result helpers with executed construction
+  authority receipts where Query support exists.
+- Validate primitive construction family inventory across spec, request enum,
+  adoption matrix, execution matrix, and residue manifest.
+- Replace broad collection-only primitive birth selection with an exact selector
+  contract, or name the Query API gap that blocks exactness.
+- Collapse support summaries that can be derived from construction authority
+  receipts or Query graph obligation proof into accessors or derived views.
+- Lock public facade accessors and compile-fail tests for authority internals.
 
 **Warnings**
 
@@ -685,6 +548,9 @@ Construction outputs that claim covered graph authority must require an
 - Motion preflight sequencing must become typed graph-obligation/preflight
   denial or stay named residue.
 - The primitive family count mismatch cannot be papered over with a constant.
+- Matching only the topology birth collection is too broad for primitive birth
+  authority.
+- Do not fork Query selector logic locally in Worth.
 
 **Test requirements**
 
@@ -695,226 +561,98 @@ Construction outputs that claim covered graph authority must require an
 - Adversarial inventory test: the primitive family count in the spec, request
   enum, adoption matrix, and execution matrix agree or produce explicit
   certified residue.
-- Adversarial lower-authority compile-fail test: a
-  `PrimitiveConstructionQueryAuthorityReceipt`, support summary, or admitted
-  handoff cannot be passed where executed primitive birth graph authority is
+- Adversarial selector test: same-collection descriptors with wrong mutation
+  family, aspect operation, aspect path, or read shape do not select primitive
+  birth obligation.
+- Adversarial lower-authority compile-fail test: support summary, adoption
+  status, admitted handoff, or construction receipt without executed graph
+  authority cannot be passed where executed primitive birth graph authority is
   required.
 
-**Engineering decisions**
+**QA gate**
 
-- Construction authority receipts must carry enough evidence for a consumer to
-  distinguish prepared, admitted, executed, denied, and residue outcomes.
-- Existing residue rows are work targets, not permanent acceptance.
-- If deleting a residue row requires a missing Query capability, record that
-  as a `query-gap` with exact API requirement.
-- Support summaries that can be read directly from the construction authority
-  receipt or Query graph obligation proof should become accessors or derived
-  report views, not independent production structs.
+- `cargo check -p worth-kernel`
+- focused kernel Query adoption, construction query authority, primitive birth
+  selector, public facade, and compile-fail certification tests
+- deletion ledger rows for `worth-kernel` are all `delete`, `collapse`,
+  `certification-only`, `residue`, or `query-gap`
 
-**Open questions**
+### Phase 6: Boolean Chain Integration And Ledger Exclusivity
 
-- Whether the seventh primitive family exists as a real construction family or
-  the old spec language overcounted must be resolved mechanically in this
-  phase.
+After the three Worth crates are locally honest, prove that the 7.3 and 7.4
+artifact ladders remain exclusive downstream boolean truth. Later boolean work
+must consume split and loop ledger receipts plus required Query graph obligation
+proof, not raw events, raw fragments, local continuation maps, copied evidence
+rows, or local graph legality.
 
-### Phase 8: Exact Primitive Birth Selector Contract
-
-Replace broad collection-only primitive birth selection with an exact
-descriptor contract. If Query cannot express the necessary conjunction, this
-phase must define the Query API gap instead of hiding it in Worth.
+This phase must not implement 7.5 overlap-region extraction. It only fences the
+handoff surface that 7.5+ will inherit.
 
 **Relevant subsystems**
 
-- Forge Query graph touch selector vocabulary
-- `worth-kernel` primitive construction query authority
-- `worth-kernel` graph obligation adoption selector matrix
-
-**Relevant APIs**
-
-- `ForgeQueryGraphTouchDescriptor`
-- `ForgeQueryGraphTouchSelector`
-- `ForgeQueryGraphObligationOperatingWorldSelector`
-- primitive construction selector matrix and catalog rows
-
-**Warnings**
-
-- Matching only the topology birth collection is too broad for primitive birth
-  authority.
-- A selector that admits wrong mutation family, aspect operation, aspect path,
-  or read shape is not a covered selector.
-- Do not fork Query selector logic locally in Worth.
-
-**Test requirements**
-
-- Adversarial selector test: same-collection descriptors with wrong mutation
-  family, aspect operation, aspect path, or read shape do not select the
-  primitive birth obligation.
-- Adversarial Query-gap test: if current Query cannot express the exact
-  conjunction, certification fails with a named Query API requirement rather
-  than accepting broad selection.
-- Adversarial replay test: exact selector identity remains stable across
-  replay and operating-world equivalent handles.
-
-**Engineering decisions**
-
-- Prefer extending Query selector vocabulary over Worth-local conjunctive
-  filtering.
-- The selector contract must be public enough for Consumer Kit adoption proof
-  and private enough to prevent forged selector coverage.
-- The adoption matrix must bind selector exactness, not only coverage count.
-
-**Open questions**
-
-- None.
-
-### Phase 9: Boolean Prep Integration And Ledger Exclusivity
-
-Preserve the 7.3 and 7.4 artifact ladders after Query graph authority
-hardening. Later boolean work must consume split and loop ledger receipts plus
-Query graph obligation proof, not raw events, raw fragments, local
-continuation maps, or local graph legality.
-
-**Relevant subsystems**
-
-- `worth-spatial` planar boolean edge splitting
-- `worth-spatial` planar boolean loop reconstruction
+- `worth-spatial` planar boolean edge splitting and loop reconstruction
 - `worth-kernel` workload composition for boolean split and loop stages
 - `worth-topo` topology operator declaration and graph composition surfaces
-
-**Relevant APIs**
-
-- `PlanarBooleanSplitEdgeChainLedgerReceipt`
-- `PlanarBooleanLoopReconstructionLedgerReceipt`
-- `WorthWorkload::require_boolean_split`
-- `WorthWorkload::require_boolean_loop_reconstruction`
-- topology operator graph composition / grouped contribution workflow
+- 7.3 and 7.4 ledger receipt public contracts
 
 **Warnings**
 
-- This phase must not implement 7.5 overlap-region extraction.
-- Do not reopen raw event, split, fragment, continuation, or loop facts to
-  prove graph authority.
+- Do not reopen raw event, split, fragment, continuation, or loop facts to prove
+  graph authority.
 - Query authority hardening must not weaken the 7.3 split-ledger or 7.4
   loop-ledger exclusivity laws.
+- Graph obligation evidence is authority accompaniment, not a replacement for
+  split or loop domain ledgers.
 
 **Test requirements**
 
 - Adversarial downstream test: a 7.5-facing consumer accepts only the loop
   ledger receipt plus required Query graph obligation proof and rejects raw
   split fragments, raw continuation maps, and local graph legality rows.
-- Adversarial replay test: adding Query graph obligation evidence to the
-  boolean chain does not change split-ledger or loop-ledger digest identity.
+- Adversarial replay test: adding Query graph obligation evidence to the boolean
+  chain does not change split-ledger or loop-ledger digest identity.
 - Adversarial residue test: any boolean prep surface that still needs local
   ceremony appears in a capped residue manifest with owner and removal trigger.
+- Adversarial exclusivity compile-fail test: raw split, raw loop, copied digest,
+  and synthetic graph authority fixtures cannot satisfy the 7.5-facing
+  consumption boundary.
 
-**Engineering decisions**
+**QA gate**
 
-- Treat graph obligation evidence as authority accompaniment, not a replacement
-  for split or loop domain ledgers.
-- Boolean evidence rows should point at the canonical ledger receipts and Query
-  proof, not hand-filled intermediate rows.
-- Later boolean phases inherit this gate as a precondition.
+- focused split-ledger, loop-ledger, workload evidence, and 7.5-facing
+  anti-theatre tests
+- cross-crate check that 7.3/7.4 ledger receipt identities remain stable after
+  graph-authority cleanup
 
-**Open questions**
+### Phase 7: Performance And Complexity Contracts
 
-- None.
-
-### Phase 10: Public Facade And Compile-Fail Lockdown
-
-Expose the right proof and adoption capabilities publicly while making local
-ceremony and forged proof construction unrepresentable.
-The facade must expose proof-bearing results and read-only accessors; it must
-not expose constructors for intermediate proof phases or lower-authority
-promotion paths.
-
-**Relevant subsystems**
-
-- `worth-topo` public facade and certification contracts
-- `worth-spatial` public facade and certification contracts
-- `worth-kernel` public facade and certification contracts
-- Forge Query Consumer Kit public facade
-
-**Relevant APIs**
-
-- `worth_topo::facade::*`
-- `worth_spatial::facade::*`
-- `worth_kernel::query_adoption::*`
-- `worth_kernel::construction::*` public surfaces
-- compile-fail contract registries
-
-**Warnings**
-
-- Do not expose internal proof row constructors to make tests convenient.
-- Do not make proof internals public because downstream agents "might need"
-  them. Consumers need receipts, reports, and adoption/proof status.
-- Facade aggregation files may export; they may not implement proof logic.
-
-**Test requirements**
-
-- Adversarial compile-fail test: external consumers cannot construct graph
-  obligation adoption manifests, support pins, selector coverage, authority
-  receipts, execution rows, or residue rows directly.
-- Adversarial facade test: public consumers can obtain the current topo,
-  spatial, and kernel Query/graph-authority posture without importing internal
-  modules.
-- Adversarial replacement test: moving internal graph-authority modules behind
-  the same facade does not break public proof consumption.
-- Adversarial phase-order compile-fail test: external consumers cannot skip
-  raw -> audited -> admitted -> selected -> executed -> receipted progression
-  by constructing a later phase type directly.
-
-**Engineering decisions**
-
-- Public APIs expose semantic capabilities, not current folder topology.
-- Compile-fail tests are required for every proof-bearing object that could be
-  forged from raw strings, copied digests, or row literals.
-- Compile-fail tests must also cover weaker proof promotion: descriptive
-  reports, support summaries, adoption statuses, and fixture rows cannot satisfy
-  APIs requiring execution-backed proof.
-- Certification-only surfaces must be visibly marked and must not become
-  production entrypoints.
-
-**Open questions**
-
-- None.
-
-### Phase 11: Performance And Complexity Contracts
-
-Make the refactor performance-visible. A gate that removes local ceremony but
-leaves hidden broad scans has not actually aligned with Query 9.9.
+Make the refactor performance-visible after the crate-local cleanup has removed
+transitional paths. A gate that removes local ceremony but leaves hidden broad
+scans has not actually aligned with Query 9.9.
 
 **Relevant subsystems**
 
 - Query graph obligation selection counters consumed by Worth
-- topo operator catalog lowering
-- spatial evidence-stage lookup
-- kernel construction graph authority
-- boolean split and loop workload evidence
-
-**Relevant APIs**
-
-- graph obligation selection counters and support rows
-- evidence-stage index counters
-- topology operator graph authority catalog counters
-- construction authority receipt counters
-- boolean split/loop ledger counters
+- topology operator catalog lowering counters
+- spatial evidence-stage lookup counters
+- kernel construction graph authority counters
+- boolean split and loop workload evidence counters
 
 **Warnings**
 
 - A cheap-looking API must not hide graph walks, broad evidence scans, or
   repeated selector rediscovery.
-- Do not use elapsed time thresholds as proof when structural counters can
-  name the work.
+- Do not use elapsed time thresholds as proof when structural counters can name
+  the work.
 - Diagnostic richness must not change operational counters or receipt identity.
 
 **Test requirements**
 
-- Adversarial complexity test: covered graph obligation selection in Worth
-  paths asserts exact attempted bucket lookup, selected-row, denied-row, and
-  residue counts.
+- Adversarial complexity test: covered graph obligation selection in Worth paths
+  asserts exact attempted bucket lookup, selected-row, denied-row, and residue
+  counts.
 - Adversarial scan test: production evidence-stage and operator-consumption
-  paths fail if they perform raw row scans where an indexed product is
-  required.
+  paths fail if they perform raw row scans where an indexed product is required.
 - Adversarial density test: a large admitted boolean-prep workload proves
   graph-authority work scales with declared touch/evidence breadth, not global
   topology size.
@@ -926,19 +664,17 @@ leaves hidden broad scans has not actually aligned with Query 9.9.
   never as an invisible fallback.
 - Complexity contracts must be named after the boundary they prove.
 
-**Open questions**
+### Phase 8: Cross-Crate Closeout Certification
 
-- The exact large-workload fixture should reuse existing 7.3/7.4 hostile
-  workload catalog recipes if they are sufficiently representative.
+Close the gate with one cross-crate certification story. The closeout must prove
+that Worth consumes Query graph authority honestly, that 7.3/7.4 boolean ledger
+exclusivity survived the cleanup, and that any remaining residue is explicit,
+capped, owner-tagged, and non-competing.
 
-### Phase 12: Cross-Crate Closeout Certification
-
-Close the gate with one cross-crate certification story. The closeout must
-prove that Worth consumes Query graph authority honestly and that any remaining
-residue is explicit, capped, and non-competing.
-The closeout must also prove the deletion ledger closed: every targeted
-support-report, local-proof, handoff-only, scan-helper, or stage-link class is
-deleted, collapsed, certification-only, residue, or Query-gap.
+The closeout must also prove the deletion ledger closed: every targeted support
+report, local proof wrapper, handoff-only helper, raw evidence scan helper,
+string-prefix stage link, blueprint proof-obligation row, and compatibility
+report is deleted, collapsed, certification-only, residue, or Query-gap.
 
 **Relevant subsystems**
 
@@ -946,16 +682,7 @@ deleted, collapsed, certification-only, residue, or Query-gap.
 - `worth-spatial`
 - `worth-kernel`
 - Forge Query Consumer Kit
-- Worth roadmap/test-requirements docs
-
-**Relevant APIs**
-
-- topology operator graph-obligation adoption proof
-- spatial Query adoption status
-- kernel graph-obligation adoption proof
-- kernel construction authority receipt
-- boolean split and loop ledger receipts
-- public facade certification contracts
+- Worth roadmap and test-requirements docs
 
 **Warnings**
 
@@ -964,13 +691,14 @@ deleted, collapsed, certification-only, residue, or Query-gap.
 - Do not close on a single happy-path boolean or primitive construction case.
 - Do not delete residue rows without a test that proves the former bypass is
   impossible.
+- Do not add a closeout doc before the certification suite exists.
 
 **Test requirements**
 
 - Adversarial closeout matrix: every audited source from Phase 1 is covered,
   deleted, blocked as Query-gap, or represented as capped residue.
-- Adversarial reference-consumer test: topo, spatial, and kernel public
-  facades expose their adoption/proof posture through ordinary public APIs.
+- Adversarial reference-consumer test: topo, spatial, and kernel public facades
+  expose their adoption/proof posture through ordinary public APIs.
 - Adversarial anti-theatre test: synthetic Query proof, local support pins,
   copied graph evidence rows, handoff-only receipts, raw evidence vectors, and
   string-prefix stage links cannot satisfy the closeout suite.
@@ -982,18 +710,12 @@ deleted, collapsed, certification-only, residue, or Query-gap.
 
 **Engineering decisions**
 
-- Add a closeout doc only after the certification suite exists.
 - The closeout may say "zero silent bypass" only if every remaining residue row
   is explicit and non-competing.
 - The closeout must state whether any Query API gap remains before 7.5+ work
-  resumes.
+  begins.
 - The closeout must report line/removal counts by deletion class. The count is
-  not the success criterion, but it protects the intended simplification from
-  being lost in a purely additive implementation.
-
-**Open questions**
-
-- None.
+  evidence of scope, not a substitute for proof.
 
 ## Admitted Surface
 
