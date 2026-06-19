@@ -56,6 +56,8 @@ The runner knows generic phase state:
 - `not_started`, `in_progress`, `complete`, `regressed`, `blocked`
 - `not_started`, `needed`, `in_progress`, `passed`, `failed`
 - `plan`, `implement`, `review`, `repair`, and `close` template turns
+- phase note buckets: `plan`, `done`, `remaining`, `findings`, and
+  `verification`
 
 It does not know what a crate, milestone, proof, or closeout means. Those belong
 in the config and templates.

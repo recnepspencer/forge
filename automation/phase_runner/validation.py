@@ -5,6 +5,8 @@ from typing import Any
 
 from state import PHASE_STATUSES, QA_STATUSES
 
+REQUIRED_NOTE_LISTS = ("plan", "done", "remaining", "findings", "verification")
+
 
 def validate_state(state: dict[str, Any], state_path: Path) -> list[str]:
     errors: list[str] = []
@@ -42,6 +44,7 @@ def validate_state(state: dict[str, Any], state_path: Path) -> list[str]:
             for key in ("scope", "acceptance"):
                 if not isinstance(phase.get(key), list) or not phase.get(key):
                     errors.append(f"{prefix}.{key} must be a non-empty list")
+            validate_phase_notes(phase, prefix, errors)
 
         current = state.get("current", {})
         if isinstance(current, dict):
@@ -89,6 +92,18 @@ def validate_state(state: dict[str, Any], state_path: Path) -> list[str]:
 def require_mapping(state: dict[str, Any], key: str, errors: list[str]) -> None:
     if not isinstance(state.get(key), dict):
         errors.append(f"{key} must be an object")
+
+
+def validate_phase_notes(
+    phase: dict[str, Any], prefix: str, errors: list[str]
+) -> None:
+    notes = phase.get("notes")
+    if not isinstance(notes, dict):
+        errors.append(f"{prefix}.notes must be an object")
+        return
+    for key in REQUIRED_NOTE_LISTS:
+        if not isinstance(notes.get(key), list):
+            errors.append(f"{prefix}.notes.{key} must be a list")
 
 
 def resolve_config_path(state_path: Path, value: str) -> Path:
