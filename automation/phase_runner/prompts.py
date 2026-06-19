@@ -8,15 +8,26 @@ from state import current_phase, current_turn
 from validation import resolve_config_path
 
 TOKEN = re.compile(r"{([A-Za-z0-9_.]+)}")
+DEFAULT_CONTRACT_TEMPLATE = "templates/_contract.md"
 
 
 def render_prompt(state: dict[str, Any], state_path: Path) -> str:
     phase = current_phase_required(state)
     turn = current_turn_required(state)
+    context = build_context(state, state_path, phase, turn)
+    context["contract"] = render_contract(state, state_path, context)
     template_path = resolve_config_path(state_path, state["turn_templates"][turn])
     template = template_path.read_text(encoding="utf-8")
-    context = build_context(state, state_path, phase, turn)
     return render_template(template, context)
+
+
+def render_contract(
+    state: dict[str, Any], state_path: Path, context: dict[str, Any]
+) -> str:
+    relative = state.get("contract_template", DEFAULT_CONTRACT_TEMPLATE)
+    contract_path = resolve_config_path(state_path, relative)
+    contract = contract_path.read_text(encoding="utf-8")
+    return render_template(contract, context)
 
 
 def build_context(

@@ -2,8 +2,8 @@ You are implementing {project.name}.
 
 State file: {state_file}
 Spec file: {spec_file}
-Current cursor: phase {current.phase}, turn {current.turn}
-Current phase: {phase.id} - {phase.title}
+Cursor: phase {current.phase}, turn {current.turn}
+Phase: {phase.id} - {phase.title}
 
 Phase scope:
 {phase.scope}
@@ -11,15 +11,25 @@ Phase scope:
 Acceptance evidence:
 {phase.acceptance}
 
-Work the current phase plan. If no useful plan exists, create a concise one in
-the state file before editing. Continue implementation from the nearest
-unfinished item, verify what you changed, and keep the phase notes current.
+Work this phase's plan in `notes.plan`. If no usable plan exists, write a concise
+one before editing. Continue from the nearest unfinished item.
+
+Enforce mechanically, not by convention: make invalid states unrepresentable,
+push violations to compile errors or tests, and prefer `pub(crate)` over a
+comment asking callers to behave. Scope expansion is the norm, not the
+exception — if the real fix lives behind a blocker in another module or crate,
+expand into it and build the blocker. Do not widen an API, expose a raw seam, or
+leave an escape hatch to dodge hard work, and do not mark debt unless the
+blocker fix is genuinely major and mechanically contained, exactly as the debt
+law requires.
+
+Verify what you changed and record what proves it in `notes.verification` before
+you claim any status.
 
 Phase-specific instructions:
 {phase.instructions}
 
-At the end, update the state file truthfully:
-- record what changed, what proves it, and what remains
-- keep or update this phase status
-- set the next cursor explicitly
-- preserve unrelated state
+Record what changed, what proves it, and what remains in this phase's notes; set
+status by the contract; advance the cursor.
+
+{contract}

@@ -80,3 +80,23 @@ Templates use simple `{dot.path}` variables. Lists render as bullets. Missing
 variables are errors. There are intentionally no conditionals or embedded code.
 
 Keep prompt content in templates, and keep project semantics in JSON fields.
+
+### The contract token
+
+Every turn template ends with `{contract}`, which renders `templates/_contract.md`
+(override with a top-level `contract_template` field in the state file). The
+contract is the shared, load-bearing half of every prompt — it carries the rules
+that must be identical on every turn:
+
+- the state-mutation protocol (read the state file fresh in the same command
+  that writes it; mutate only the current phase row, cursor, `completed_at`, and
+  history; preserve everything else)
+- the `status` / `qa_status` enums and the transition mapping
+- the turn state machine and cursor-advancement rules (the runner sends exactly
+  the cursor turn and infers nothing — the model advances `current` itself)
+- the rule that acceptance checks are *run* and their evidence recorded, and
+  that a status is a claim backed by recorded evidence rather than an assertion
+
+The contract is rendered first, against the same context, so it can resolve
+`{status_values}`, `{qa_status_values}`, and `{turns}`. Each turn template adds
+only its turn-specific stance on top.

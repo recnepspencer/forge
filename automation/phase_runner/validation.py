@@ -63,6 +63,11 @@ def validate_state(state: dict[str, Any], state_path: Path) -> list[str]:
                 if not template_path.exists():
                     errors.append(f"template not found for {key}: {template_path}")
 
+    contract_template = state.get("contract_template", "templates/_contract.md")
+    contract_path = resolve_config_path(state_path, contract_template)
+    if not contract_path.exists():
+        errors.append(f"contract template not found: {contract_path}")
+
     project = state.get("project", {})
     if isinstance(project, dict):
         cwd = project.get("cwd")

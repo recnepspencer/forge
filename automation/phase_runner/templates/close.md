@@ -2,18 +2,30 @@ You are closing {project.name}.
 
 State file: {state_file}
 Spec file: {spec_file}
-Current cursor: phase {current.phase}, turn {current.turn}
-Current phase: {phase.id} - {phase.title}
+Cursor: phase {current.phase}, turn {current.turn}
+Phase: {phase.id} - {phase.title}
 
-Acceptance evidence:
+Acceptance evidence (the closeout checklist — run every runnable item now):
 {phase.acceptance}
 
-Verify the phase closure evidence against the spec and state notes. Summarize
-the final proof, remaining explicit residue or query gaps, and verification
-commands. Then update the phase status honestly.
+Laws and context to hold as the standard:
+{project.context_files}
 
-At the end, update the state file truthfully:
-- set this phase status and qa_status
-- record the closeout evidence in this phase's notes/history
-- set the next cursor explicitly, or set current to null if all phases are done
-- preserve unrelated state
+Close only what is actually closed. The façade is the only surface: confirm the
+phase exposes its result through ordinary public APIs and that internal types,
+raw rows, and forgeable receipts cannot satisfy the contract from outside. API
+presence is not proof — a method that exists is not a method that proves
+anything. Where the phase claims a property, confirm the structure enforces it.
+
+Re-run the acceptance checks and record command, exit code, and output tail in
+`notes.verification`. Summarize the final proof, the explicit residue or query
+gaps that remain — named and owned per the debt law, not silently dropped — and
+the exact verification commands. Then set `status` and `qa_status` by the
+contract.
+
+This is the only turn allowed to advance to the next phase: if a later phase
+exists, set the cursor to it at turn `plan`; if this was the last phase, set
+`current` to null and set `completed_at`. Do this only when the phase is
+`complete` and `qa_status` is `passed`.
+
+{contract}
