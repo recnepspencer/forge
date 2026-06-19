@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "state_revision": 0,
+  "state_revision": 2,
   "current": {
     "phase": 1,
-    "turn": "plan"
+    "turn": "implement"
   },
   "project": {
     "name": "Worth Query Graph Authority Hardening Gate",
@@ -24,11 +24,12 @@
     "command": "C:\\nvm4w\\nodejs\\codex.cmd",
     "model": "gpt-5.5",
     "reasoning_effort": "medium",
-    "thread_id": null,
+    "thread_id": "019ee11a-e39c-7e31-a76a-bf699d2a48d6",
     "config": {
       "approval_policy": "never",
       "sandbox_mode": "danger-full-access"
-    }
+    },
+    "thread_started_at": "2026-06-19T18:18:16.660870+00:00"
   },
   "turn_templates": {
     "plan": "templates/plan.md",
@@ -57,15 +58,33 @@
       ],
       "instructions": "Build the generic scoreboard first. Prefer compiler-led discovery and typed inventory/deletion rows over prose. Do not begin crate cleanup beyond what is needed to expose and classify the roots.",
       "qa_focus": "Inventory completeness, deletion-ledger action honesty, no filename-only classification, no production debt hidden as certification language.",
-      "status": "not_started",
+      "status": "in_progress",
       "qa_status": "not_started",
-      "attempts": 0,
+      "attempts": 1,
       "notes": {
-        "plan": [],
-        "done": [],
-        "remaining": [],
+        "plan": [
+          "Adversarial constraint: at production scale, Phase 1 breaks if any audited Worth source under worth-topo, worth-spatial, worth-kernel, or the consumed forge-query graph-obligation facade can still compile by passing a lower-authority artifact (support report, crate adoption status, admitted handoff, raw evidence rows, string stage link, copied split/loop digest, synthetic fixture, or residue literal) into a production graph-authority boundary while the inventory classifies only by search/prose. Quantitative target: 0 unclassified audited Rust source files in scoped production roots, 0 deletion-target rows allowed as keep without a distinct authority proof, and one discovery record plus one lower-authority promotion guard plan for each root authority family before crate cleanup begins.",
+          "Create the generic cross-crate scoreboard before any cleanup. Add a narrow module, preferably under crates/worth-kernel/src/query_graph_authority_gate/ because worth-kernel already owns cross-crate Worth query-adoption reports, with typed rows for WorthGraphAuthorityInventoryRow, WorthGraphAuthorityDeletionLedgerRow, WorthGraphAuthorityDiscoveryRecord, and WorthLowerAuthorityPromotionGuardPlan. The row vocabulary must encode owner crate/subsystem, authority class, deletion target class, discovery source (compiler, compile-fail, public-facade, certification-only, search-seed), action (keep, collapse, delete, residue, query-gap), replacement surface/blocker, and QA evidence reference. Do not model these as strings except for stable source paths and evidence labels.",
+          "Build validation before population. The report constructor must reject duplicate source ids, empty owner/subsystem/responsibility/replacement fields, deletion-target rows marked keep without a distinct-authority justification, residue rows without owner/cap/introduced-phase/removal-trigger, query-gap rows without a named Query blocker, and any audited source path that has no inventory row. This is the load-bearing harness; later crate cleanup depends on these denials.",
+          "Implement audited-source discovery as a test/certification helper, not as prose. Walk only the Phase 1 audited roots in the spec: crates/worth-topo/src/topology_operators/adoption, crates/worth-topo/src/construction/query_native_boundary, crates/worth-spatial/src/query_adoption, crates/worth-spatial/src/workload_platform/evidence_ledger and 7.3/7.4 boolean evidence paths, crates/worth-kernel/src/query_adoption, crates/worth-kernel/src/construction/query_authority, crates/worth-kernel/src/construction/graph_obligation_adoption, crates/worth-kernel/src/construction/phase_chain, crates/worth-kernel/src/construction/result_surface, crates/worth-kernel/src/workload_composition, and the forge-query facade/docs surfaces consumed for graph obligation authority. Certification must fail on a seeded unclassified .rs path so drift cannot silently become implicit residue.",
+          "Seed root authority family discovery records from actual surfaces before feature cleanup: topology operator graph obligation adoption/catalog/residue/proof, topology query-native handoff/admission/compose execution, spatial query adoption and evidence-stage index/stage links, kernel construction query authority/support summary, kernel graph obligation adoption selector/family execution matrices, kernel phase-chain admitted scaffold and result surface, workload evidence/split/loop handoffs, and forge-query Consumer Kit/Graph Touch Obligation facade exports. Each record must name the intentional compiler-led break to try later, the expected downstream failures it should expose, and the final enforced API target that will replace the break.",
+          "Build the deletion ledger in parallel with the inventory. Seed rows for duplicate support reports, local support-pin wrappers, blueprint proof-obligation rows, local ceremony audits, handoff-only result helpers, raw evidence-row scan helpers, copied evidence-row vectors, string-prefix/stage-link helpers, synthetic proof fixtures, compatibility reports, and residue manifests. Initial actions may be collapse/delete/residue/query-gap/certification-only only when backed by the typed row; do not classify production deletion targets as keep unless the row proves a distinct boundary not carried by Query, split ledger, loop ledger, or receipt proof.",
+          "Make the lower-authority promotion compile-fail plan explicit in code even before all trybuild cases exist. Add guard-plan rows for: support report is not graph authority; crate-level Query adoption is not graph obligation proof; admitted handoff is not executed birth; raw evidence rows are not an evidence-stage index; string-prefix stage links are not typed receipt linkage; split ledger digest is not loop ledger digest; synthetic graph authority fixture is not production proof; residue row literal is not a certified residue manifest. Point each planned guard at the future ui test path and required stronger type.",
+          "Add focused Phase 1 tests around the scoreboard constructor and coverage rules first: machine-readable inventory and deletion ledger instantiate; duplicate/unclassified/invalid residue rows fail; seeded unclassified audited source fails; root discovery records cover all root families; deletion-target keep without distinct authority proof fails; compile-fail guard plan contains all lower-authority promotion cases. Only after these pass should later phases demote/private/seal real crate APIs.",
+          "Keep crate cleanup out of Phase 1 except tiny exposure needed to classify root families. If an implementation step reveals a missing Query graph-obligation capability, record a query-gap row with blocker and stop the affected coverage from certifying; do not add a Worth-local substitute."
+        ],
+        "done": [
+          "Planning turn read the authority spec, Phase 1 state, coding laws/context docs, Query orientation, Worth 7.3/7.4 specs, and scoped source surfaces including existing adoption inventory, topology operator graph-obligation adoption, spatial evidence ledger, kernel construction/query authority, and Query graph-obligation facade exports."
+        ],
+        "remaining": [
+          "Implement the typed scoreboard module and export it through the narrowest certification/public contract surface needed by tests.",
+          "Populate initial inventory, deletion ledger, root discovery records, and lower-authority promotion guard-plan rows from the scoped sources.",
+          "Add the Phase 1 certification tests and any trybuild harness entries needed to prove the plan rows are enforced."
+        ],
         "findings": [],
-        "verification": []
+        "verification": [
+          "Plan turn only; no acceptance checks were run and qa_status remains not_started. Structural evidence inspected: _docs/worth/worth-query-graph-authority-hardening-gate.md Phase 1 requires machine-readable inventory/deletion ledger, compiler-led root discovery, unclassified-source failure, and lower-authority compile-fail guards; crates/worth-kernel/src/query_adoption/report.rs shows an existing coarse inventory validator to reuse but not widen into final graph-authority proof; crates/worth-topo/src/topology_operators/adoption/proof.rs shows current graph-obligation Consumer Kit adoption is selection/adoption proof and must be separated from executed graph authority in later phases; crates/worth-spatial/src/workload_platform/evidence_ledger/ledger.rs shows evidence-stage index products already exist and should be classified rather than replaced during Phase 1."
+        ]
       }
     },
     {
@@ -286,5 +305,24 @@
       }
     }
   ],
-  "history": []
+  "history": [
+    {
+      "at": "2026-06-19T18:18:15.379657+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 1 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-19T18:20:37.0078899Z",
+      "event": "phase_plan_recorded",
+      "detail": "Phase 1 plan recorded: build generic typed scoreboard first, seed root authority discovery/deletion ledger/lower-authority guard-plan rows, fail unclassified audited sources, and defer crate cleanup to later phases.",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-19T18:20:59.217625+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 1 plan",
+      "exit_code": 0
+    }
+  ]
 }
