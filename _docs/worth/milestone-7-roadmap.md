@@ -60,9 +60,10 @@ be too large for implementation planning and too easy to close dishonestly.
 The intended chain is:
 
 `Milestone 6` -> `Milestone 6.5` -> `Milestone 7.0` -> `Milestone 7.1` ->
-`Milestone 7.2` -> `Milestone 7.3` -> `Milestone 7.4` -> `Milestone 7.5` ->
-`Milestone 7.6` -> `Milestone 7.7` -> `Milestone 7.8` -> `Milestone 7.9` ->
-`Milestone 7.10` -> `Milestone 7.11` -> `Milestone 8`
+`Milestone 7.2` -> `Milestone 7.3` -> `Milestone 7.4` ->
+`Worth Query Graph Authority Hardening Gate` -> `Milestone 7.5` ->
+`Milestone 7.6` -> `Milestone 7.7` -> `Milestone 7.8` -> `Milestone 7.9`
+-> `Milestone 7.10` -> `Milestone 7.11` -> `Milestone 8`
 
 Each sub-milestone should leave behind a coherent, reviewable, replayable
 artifact boundary for the next one.
@@ -151,6 +152,30 @@ Closes:
 Done when:
 - the system can rebuild honest planar loops after split without manual fixture
   assembly
+
+## Worth Query Graph Authority Hardening Gate
+
+Refactor the `worth-topo`, `worth-spatial`, and `worth-kernel` production
+surfaces that became transitional after Forge Query Milestone 9.9 so later
+boolean phases consume Query graph touch obligation authority rather than local
+ceremony.
+
+Spec:
+- [worth-query-graph-authority-hardening-gate.md](./worth-query-graph-authority-hardening-gate.md)
+
+Closes:
+- topology operator graph authority catalog reconciliation
+- topology query-native receipt phase separation
+- spatial evidence / Query authority separation
+- evidence-stage index and raw-scan rejection
+- primitive construction graph authority cleanup
+- exact primitive birth selector contract or named Query API gap
+- split-ledger and loop-ledger exclusivity preservation after Query 9.9
+
+Done when:
+- every 9.9-relevant Worth production surface is either covered by Query graph
+  obligation authority, deleted, blocked by a named Query capability gap, or
+  explicit certified residue
 
 ## Milestone 7.5: Coplanar Overlap Region Extraction
 

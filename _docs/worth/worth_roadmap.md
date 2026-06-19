@@ -43,6 +43,12 @@ The operating rule is:
   `worth-spatial`, and `worth-topo` consume real Query support pinning,
   evidence reports, hard-prohibition boundaries, and authority-preserving
   runtime receipts instead of pre-Query synthetic proof paths
+- `Worth Query Graph Authority Hardening Gate`: Planned after Forge Query 9.9
+  and Worth 7.4; blocks broad 7.5+ boolean continuation until `worth-topo`,
+  `worth-spatial`, and `worth-kernel` consume Query Graph Touch Obligation
+  Authority without local graph legality, handoff-only execution claims, raw
+  evidence scans, or support-pinning ceremony competing with Query's Consumer
+  Kit
 - `Milestone 6.5`: Planned as the operational workload platform between exact
   planar contracts and booleans; hostile tests must consume real topology,
   binding, projection, retained replay, transform, response, and evidence rails
@@ -64,6 +70,8 @@ Worth topology domain structure gate:
 Worth Query-native hardening gate:
 - [query-native-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-gate.md)
 - [query-native-hardening-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-closeout.md)
+Worth Query graph authority hardening gate:
+- [worth-query-graph-authority-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth-query-graph-authority-hardening-gate.md)
 
 ## Global Adversarial Constraint
 
@@ -2683,6 +2691,7 @@ Worth is roadmap-complete only when:
 - [milestone-1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1.md)
 - [worth-topo-domain-structure-gate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-domain-structure-gate.md)
 - [query-native-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-gate.md)
+- [worth-query-graph-authority-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth-query-graph-authority-hardening-gate.md)
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements.md)
 - [test-requirements_pt2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements_pt2.md)
 - [metaboss_tier4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/metaboss_tier4.md)
