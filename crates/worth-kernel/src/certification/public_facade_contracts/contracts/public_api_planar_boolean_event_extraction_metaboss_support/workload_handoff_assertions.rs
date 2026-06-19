@@ -1,7 +1,7 @@
 use worth_kernel::workload_composition::WorkloadCompositionError;
 use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
 
-use super::super::reduced_pair_support;
+use super::reduced_pair_support;
 use super::subject::MetabossEventExtractionSubject;
 
 pub(crate) fn assert_split_handoff_requires_event_ledger_receipt(

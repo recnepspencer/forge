@@ -208,6 +208,22 @@ birth truth, and `worth-topo` remains the only topology authority.
   first-class Query surface with symbolic handles, lifecycle evidence, and
   denied-path diagnostics. Milestone 4 must use that surface for construction
   programs that are truly graph-shaped instead of caller-owned batch folklore.
+- `crates/forge-query/docs/AI_README.md`
+  The most important thing it protects is that Query is the ordinary
+  domain-facing runtime layer rather than a thin helper over lower runtimes.
+  Milestone 4 must therefore treat Query as the canonical runtime front door
+  and escalation boundary for Worth construction, replay, inspection, and proof
+  work.
+- `crates/forge-query/docs/foundations/consumer-kit.md`
+  The most important thing it protects is that downstream proof surfaces are
+  Query product surfaces, not consumer folklore. Milestone 4 must consume
+  Query-owned evidence-report, boundary-audit, support-snapshot, and
+  support-pinning boundaries where Worth needs Query-consumption proof.
+- `crates/forge-query/docs/foundations/hard-prohibitions.md`
+  The most important thing it protects is that Query boundary bypass is a
+  runtime-owned prohibition surface with structural enforcement. Milestone 4
+  must not rely on Worth-local grep folklore or local runtime workarounds where
+  Query now owns the anti-bypass contract.
 
 ## Adversarial Constraint
 
@@ -332,6 +348,18 @@ The kernel hardens the runtime just as much as the runtime launches the kernel.
 If Worth hits a real runtime boundary gap, the milestone should surface that as
 Query work, not bury it under local workaround code.
 
+Where Query already ships a closed downstream-proof surface, Milestone 4 must
+use that surface directly instead of preserving older Worth-local folklore:
+
+- Query-owned evidence-report surfaces for Query-consumption proof identity
+- Query-owned hard-prohibition registry and boundary-audit surfaces for
+  anti-bypass enforcement
+- Query-owned support-snapshot and support-pinning surfaces for runtime support
+  posture drift detection
+
+Worth may still emit Worth-owned proof artifacts for Worth semantics, but it
+must not rebuild Query-owned proof machinery locally once Query owns the lane.
+
 ### Mutation And Authoring Rules
 
 Primitive and body construction must use the Query mutation surfaces
@@ -413,6 +441,19 @@ Milestone 4 code and certification must use:
 to prove which Query families Worth is building on and where support remains
 deferred or unsupported.
 
+Where the consumed Query family already closes through the Consumer Kit,
+Milestone 4 must also use Query-owned proof surfaces instead of consumer-owned
+substitutes:
+
+- Query evidence-report declarations and canonical `ForgeQueryEvidenceIdentity`
+  surfaces for Query-owned report identity
+- Query hard-prohibition registry and boundary-audit surfaces for anti-bypass
+  proof
+- Query support snapshots and support-pinning contracts for support posture
+  drift proof
+- Query reference-consumer adoption / closure surfaces when Worth is proving it
+  has deleted pre-Query runtime folklore
+
 Milestone 4 must fail closed rather than:
 
 - assuming future temporal or async families already execute
@@ -422,6 +463,8 @@ Milestone 4 must fail closed rather than:
   as the future public facade
 - widening Worth-local runtime semantics just because the current Query surface
   is inconvenient
+- hand-rolling Query-owned digest reports, support-family bookkeeping, or grep
+  audits once the Query Consumer Kit owns those proof boundaries
 
 If one of these checks fails, the milestone should emit an explicit Query
 boundary gap report instead of "temporarily" hand-wiring the missing behavior
@@ -445,6 +488,9 @@ redefining them:
   current, branch, preview, and historical execution
 - inspection artifacts and projection-consumption receipts as the canonical
   explanation surfaces
+- Consumer Kit evidence-report, hard-prohibition, support-snapshot, and
+  support-pinning surfaces as the canonical downstream Query-consumption proof
+  surfaces
 
 ### Required Workflow-To-Query Mapping
 
@@ -508,6 +554,9 @@ Required enforcement directions:
   phases cannot accept earlier artifacts accidentally
 - Query anti-bypass must be testable through compile-fail or structural audit
   lanes, not left as a naming convention
+- where Query already owns the anti-bypass or support-posture proof lane,
+  Worth must consume the Query-owned audit or support-pin surface rather than
+  maintaining a duplicate local proof system
 - if a new required runtime subsystem is introduced, construction sites and
   propagation sites should fail to compile until the new subsystem is threaded
   through the milestone-owned pipeline
@@ -520,6 +569,9 @@ Expected enforcement lanes include:
 - compile-fail or visibility proof for bypassing crate facades
 - structural audit proof that public Worth workflow code does not import
   lower-runtime Query plumbing directly
+- Consumer-Kit-backed proof that Query-owned bypass prohibitions and support
+  posture requirements are enforced through Query-owned audits, reports, and
+  pinning contracts rather than Worth-local folklore
 - closeout proof that every required Query family is consumed through its
   documented public surface
 
@@ -6248,6 +6300,16 @@ story from being lost to history.
   - Query usage, if the boundary touches Query
 - document the Query runtime usage story explicitly in the relevant Worth docs
   so later engineers do not reintroduce local runtime folklore
+- where a Worth feature depends on Query proof posture, make the owning doc
+  teach the exact Query-owned proof lane too:
+  - Query evidence-report identity and report closure, when the feature emits
+    Query-consumption proof
+  - Query hard-prohibition and boundary-audit posture, when the feature relies
+    on anti-bypass guarantees
+  - Query support snapshot and support pinning posture, when the feature relies
+    on support-family closure or drift detection
+  - Query reference-consumer adoption / closure posture, when the feature
+    depends on Query-native hardening rather than legacy synthetic proof
 - use the `feature doc writer` skill when it exists in the working environment;
   if it is not available, use an equivalent feature-doc workflow that still
   enforces one-doc-per-feature ownership
@@ -6290,6 +6352,9 @@ At minimum, the milestone should leave behind usable crate-doc surfaces for:
   in the owning doc
 - the Query integration story is explicit anywhere the Worth feature depends on
   Query
+- the Query proof story is explicit anywhere the Worth feature depends on
+  Query-owned evidence reports, hard prohibitions, support pinning, or
+  reference-consumer adoption closure
 - the major Milestone 4 handoffs are covered by boundary docs rather than
   buried across several feature docs
 - there is one owning doc per shipped public feature instead of several
@@ -6361,6 +6426,9 @@ build on.
   - preview / branch surfaces for isolated branch-local construction work
   - inspection and projection-consumption surfaces for typed post-execution
     explanation
+  - Consumer-Kit-backed Query proof surfaces for evidence-report identity,
+    hard-prohibition enforcement, support posture pinning, and reference-
+    consumer closure where Worth is proving Query consumption itself
   - explicit Query boundary-gap escalation instead of Worth-local workaround
     semantics
 - admitted primitive family construction workflows over the Milestone 4 family
@@ -6450,6 +6518,10 @@ At minimum, Milestone 4 closeout must include:
 - `construction_rejection_locality_report`
 - `construction_phase_compile_fail_report`
 - `worth_query_antibypass_audit_report`
+- `query_consumer_kit_evidence_report_agreement`
+- `query_consumer_kit_boundary_audit_agreement`
+- `query_consumer_kit_support_pinning_agreement`
+- `query_consumer_kit_reference_adoption_agreement`
 - `query_runtime_authoring_surface_report`
 - `query_graph_composition_parity_report`
 - `query_existing_truth_binding_report`

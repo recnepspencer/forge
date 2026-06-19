@@ -17,7 +17,7 @@ fn main() {
     let _ = WorkloadEvidenceStageLinkSet {
         stage_index_identity: "index".to_string(),
         links: vec![link],
-        stage_offsets: [None; 26],
+        stage_offsets: [None; 27],
         link_set_identity: "set".to_string(),
     };
 }

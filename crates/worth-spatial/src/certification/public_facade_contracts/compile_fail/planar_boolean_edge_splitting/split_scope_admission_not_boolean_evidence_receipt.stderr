@@ -12,6 +12,11 @@ help: the following other types implement trait `BooleanEvidenceReceipt`
   | impl BooleanEvidenceReceipt for PlanarBooleanEventLedgerReceipt {
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanEventLedgerReceipt`
   |
+ ::: src/workload_platform/planar_boolean_loop_reconstruction/loop_reconstruction_ledger/receipt.rs
+  |
+  | impl BooleanEvidenceReceipt for PlanarBooleanLoopReconstructionLedgerReceipt {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanLoopReconstructionLedgerReceipt`
+  |
  ::: src/workload_platform/planar_boolean_events/pair_enumeration/receipt.rs
   |
   | impl BooleanEvidenceReceipt for PlanarBooleanSegmentPairEnumerationReceipt {

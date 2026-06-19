@@ -2,6 +2,8 @@ mod boundary;
 mod boundary_phase_five;
 mod boundary_phase_five_topology_ready_birth;
 mod branch_preview_basis;
+#[path = "../../certification/public_facade_contracts/compile_fail_contracts.rs"]
+mod compile_fail_contracts;
 mod compound_closeout_reports;
 mod compound_lowering;
 mod compound_lowering_catalog_failures;
@@ -17,6 +19,7 @@ mod corpus_replay_siege_rejections;
 mod corpus_simplex_ladder;
 mod geometry_cleanup_integration;
 mod legacy_deletion;
+mod loop_reconstruction_public_contracts;
 mod phase_eight_minimization;
 mod query_enforcement_adoption;
 mod query_evidence_report_adoption;

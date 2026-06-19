@@ -5,7 +5,7 @@ error: cannot construct `WorkloadEvidenceStageIndexProduct` with struct literal 
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 5 |         rows: Vec::new(),
   |         ---------------- private field
-6 |         stage_offsets: [None; 26],
+6 |         stage_offsets: [None; 27],
   |         ------------------------- private field
   |
   = note: ...and other private fields `counters` and `index_identity` that were not provided

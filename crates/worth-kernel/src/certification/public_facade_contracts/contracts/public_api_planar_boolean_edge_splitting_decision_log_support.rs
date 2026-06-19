@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::edge_splitting_persistent_naming_support::typed_topology_query_basis;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use worth_spatial::facade::planar_boolean_edge_splitting::{

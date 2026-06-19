@@ -1,12 +1,17 @@
+use topology::facade::{
+    PlanarBooleanLoopOperatorClassificationMatrix, PlanarBooleanLoopValidatorRegistrationPlan,
+};
 use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitEdgeChainLedgerReceipt;
 use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanEventLedgerReceipt, PlanarBooleanSegmentPairEnumerationReceipt,
 };
+use worth_spatial::facade::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionLedgerReceipt;
 use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
 
 use super::{
-    require_boolean_evidence, CompletedBooleanSplitHandoff, WorkloadCompositionError,
-    WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
+    require_boolean_evidence, CompletedBooleanLoopReconstructionHandoff,
+    CompletedBooleanSplitHandoff, PlanarBooleanLoopRuntimeRegistrationProof,
+    WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
 };
 use crate::workload_composition::boolean_evidence_requirement::map_boolean_ledger_error;
 use crate::workload_composition::{
@@ -175,6 +180,17 @@ impl WorthWorkload {
         )
     }
 
+    pub fn require_boolean_loop_reconstruction(
+        &self,
+        loop_ledger: &PlanarBooleanLoopReconstructionLedgerReceipt,
+    ) -> Result<(), WorkloadCompositionError> {
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            loop_ledger,
+            WorkloadStageRequirement::BooleanLoopReconstruction,
+        )
+    }
+
     pub fn with_completed_boolean_split_ledger(
         &self,
         split_ledger: &PlanarBooleanSplitEdgeChainLedgerReceipt,
@@ -210,6 +226,49 @@ impl WorthWorkload {
         Ok(CompletedBooleanSplitHandoff::new(
             completed_workload,
             split_ledger.clone(),
+        ))
+    }
+
+    pub fn with_completed_boolean_loop_reconstruction(
+        &self,
+        loop_ledger: &PlanarBooleanLoopReconstructionLedgerReceipt,
+        evidence_receipt: &worth_spatial::facade::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionEvidenceReceipt,
+        operator_matrix: &PlanarBooleanLoopOperatorClassificationMatrix,
+        validator_plan: &PlanarBooleanLoopValidatorRegistrationPlan,
+    ) -> Result<CompletedBooleanLoopReconstructionHandoff, WorkloadCompositionError> {
+        let mut rows = self.evidence_ledger.rows().to_vec();
+        rows.push(WorkloadEvidenceRow::from_boolean_evidence_receipt(
+            loop_ledger,
+        ));
+        let evidence_ledger = WorkloadEvidenceLedger::from_rows(rows)
+            .and_then(WorkloadEvidenceLedger::certify_complete)
+            .map_err(|error| {
+                map_boolean_ledger_error(error, WorkloadStageRequirement::BooleanLoopReconstruction)
+            })?;
+
+        let completed_workload = Self::compose(WorthWorkloadParts {
+            topology: self.topology.clone(),
+            geometry_binding: self.geometry_binding.clone(),
+            surface_support: self.surface_support.clone(),
+            projection: self.projection.clone(),
+            transform: self.transform.clone(),
+            retained_replay: self.retained_replay.clone(),
+            diagnostics: self.diagnostics.clone(),
+            response: self.response.clone(),
+            evidence_ledger,
+        })?;
+        let runtime_registration_proof = PlanarBooleanLoopRuntimeRegistrationProof::certify(
+            loop_ledger,
+            &completed_workload,
+            operator_matrix,
+            validator_plan,
+        )?;
+        Ok(CompletedBooleanLoopReconstructionHandoff::new(
+            completed_workload,
+            None,
+            loop_ledger.clone(),
+            evidence_receipt.clone(),
+            runtime_registration_proof,
         ))
     }
 }

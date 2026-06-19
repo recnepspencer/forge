@@ -16,8 +16,10 @@ pub struct PlanarBooleanSplitSourceEdgeCarrier {
     carrier_identity: String,
     start_source_endpoint_identity: String,
     start_projected_endpoint_fact_identity: String,
+    start_point_bits: [u64; 2],
     end_source_endpoint_identity: String,
     end_projected_endpoint_fact_identity: String,
+    end_point_bits: [u64; 2],
     local_frame_identity: String,
     projection_stage_identity: String,
     precision_basis_identity: String,
@@ -42,11 +44,19 @@ impl PlanarBooleanSplitSourceEdgeCarrier {
                 .start()
                 .projected_endpoint_fact_identity()
                 .to_string(),
+            start_point_bits: [
+                carrier.start().point()[0].to_bits(),
+                carrier.start().point()[1].to_bits(),
+            ],
             end_source_endpoint_identity: carrier.end().source_endpoint_identity().to_string(),
             end_projected_endpoint_fact_identity: carrier
                 .end()
                 .projected_endpoint_fact_identity()
                 .to_string(),
+            end_point_bits: [
+                carrier.end().point()[0].to_bits(),
+                carrier.end().point()[1].to_bits(),
+            ],
             local_frame_identity: carrier.local_frame_identity().to_string(),
             projection_stage_identity: carrier.projection_stage_identity().to_string(),
             precision_basis_identity: carrier.precision_basis_identity().to_string(),
@@ -97,12 +107,26 @@ impl PlanarBooleanSplitSourceEdgeCarrier {
         &self.start_projected_endpoint_fact_identity
     }
 
+    pub fn start_point_2d(&self) -> [f64; 2] {
+        [
+            f64::from_bits(self.start_point_bits[0]),
+            f64::from_bits(self.start_point_bits[1]),
+        ]
+    }
+
     pub fn end_source_endpoint_identity(&self) -> &str {
         &self.end_source_endpoint_identity
     }
 
     pub fn end_projected_endpoint_fact_identity(&self) -> &str {
         &self.end_projected_endpoint_fact_identity
+    }
+
+    pub fn end_point_2d(&self) -> [f64; 2] {
+        [
+            f64::from_bits(self.end_point_bits[0]),
+            f64::from_bits(self.end_point_bits[1]),
+        ]
     }
 
     pub fn local_frame_identity(&self) -> &str {

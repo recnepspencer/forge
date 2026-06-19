@@ -124,6 +124,46 @@ impl PlanarBooleanLoopOperatorClassificationMatrix {
     pub fn registry_identity(&self) -> &PlanarBooleanLoopBlueprintRegistryIdentity {
         &self.registry_identity
     }
+
+    pub fn without_operator_named(&self, operator_name: &str) -> Self {
+        let mut operators = self.operators.clone();
+        operators.retain(|operator| operator.operator_name() != operator_name);
+        Self {
+            operators,
+            registry_identity: self.registry_identity.clone(),
+        }
+    }
+
+    pub fn with_operator_classification(
+        &self,
+        operator_name: &str,
+        classification: super::classification::PlanarBooleanLoopOperatorClassification,
+    ) -> Self {
+        let operators = self
+            .operators
+            .iter()
+            .cloned()
+            .map(|operator| {
+                if operator.operator_name() == operator_name {
+                    PlanarBooleanLoopOperatorRow::new(
+                        operator.operator_name(),
+                        classification,
+                        operator.truth_authority(),
+                        operator.required_query_surface(),
+                        operator.topology_precedent(),
+                        operator.proof_obligations(),
+                        operator.support_warning(),
+                    )
+                } else {
+                    operator
+                }
+            })
+            .collect();
+        Self {
+            operators,
+            registry_identity: self.registry_identity.clone(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -149,5 +189,70 @@ impl PlanarBooleanLoopValidatorRegistrationPlan {
 
     pub fn registry_identity(&self) -> &PlanarBooleanLoopBlueprintRegistryIdentity {
         &self.registry_identity
+    }
+
+    pub fn without_validator_named(&self, validator_name: &str) -> Self {
+        let mut validators = self.validators.clone();
+        validators.retain(|validator| validator.validator_name() != validator_name);
+        Self {
+            validators,
+            registry_identity: self.registry_identity.clone(),
+        }
+    }
+
+    pub fn with_validator_runtime_lane(
+        &self,
+        validator_name: &str,
+        runtime_lane: super::classification::PlanarBooleanLoopValidatorRuntimeLane,
+    ) -> Self {
+        let validators = self
+            .validators
+            .iter()
+            .cloned()
+            .map(|validator| {
+                if validator.validator_name() == validator_name {
+                    PlanarBooleanLoopValidatorRow::new(
+                        validator.validator_name(),
+                        runtime_lane,
+                        validator.governs_topology_legality(),
+                        validator.proof_obligations(),
+                    )
+                } else {
+                    validator
+                }
+            })
+            .collect();
+        Self {
+            validators,
+            registry_identity: self.registry_identity.clone(),
+        }
+    }
+
+    pub fn with_validator_topology_legality(
+        &self,
+        validator_name: &str,
+        governs_topology_legality: bool,
+    ) -> Self {
+        let validators = self
+            .validators
+            .iter()
+            .cloned()
+            .map(|validator| {
+                if validator.validator_name() == validator_name {
+                    PlanarBooleanLoopValidatorRow::new(
+                        validator.validator_name(),
+                        validator.runtime_lane(),
+                        governs_topology_legality,
+                        validator.proof_obligations(),
+                    )
+                } else {
+                    validator
+                }
+            })
+            .collect();
+        Self {
+            validators,
+            registry_identity: self.registry_identity.clone(),
+        }
     }
 }

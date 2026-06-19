@@ -9,6 +9,9 @@
 
 #![forbid(unsafe_code)]
 
+extern crate self as worth_kernel;
+
+pub mod docs_closeout;
 pub mod query_adoption;
 pub mod workload_composition;
 

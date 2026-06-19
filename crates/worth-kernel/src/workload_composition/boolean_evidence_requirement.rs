@@ -73,6 +73,9 @@ fn boolean_stage_for_requirement(
             Some(WorkloadEvidenceStage::BooleanEventLedger)
         }
         WorkloadStageRequirement::BooleanSplit => Some(WorkloadEvidenceStage::BooleanSplit),
+        WorkloadStageRequirement::BooleanLoopReconstruction => {
+            Some(WorkloadEvidenceStage::BooleanLoopReconstruction)
+        }
         _ => None,
     }
 }

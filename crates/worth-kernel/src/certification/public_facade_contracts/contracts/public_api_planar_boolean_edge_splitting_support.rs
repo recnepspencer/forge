@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::metaboss_support::MetabossEventExtractionSubject;
 use std::collections::BTreeMap;
 use worth_spatial::facade::planar_boolean_edge_splitting::{

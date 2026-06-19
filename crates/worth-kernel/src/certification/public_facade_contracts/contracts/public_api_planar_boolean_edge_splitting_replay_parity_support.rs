@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::edge_splitting_decision_log_support::{
     build_decision_log_products_for_metaboss, DecisionLogMetabossProducts,
 };

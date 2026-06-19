@@ -103,6 +103,16 @@ fn recover_source_loop_carriers(
             recovered.source_face_identity().to_string(),
             recovered.source_loop_identity().to_string(),
             recovered.source_edge_identity().to_string(),
+            recovered.start_source_endpoint_identity().to_string(),
+            [
+                recovered.start_point_2d()[0].to_bits(),
+                recovered.start_point_2d()[1].to_bits(),
+            ],
+            recovered.end_source_endpoint_identity().to_string(),
+            [
+                recovered.end_point_2d()[0].to_bits(),
+                recovered.end_point_2d()[1].to_bits(),
+            ],
             recovered.loop_role(),
         );
         counters.recovered_source_carrier();

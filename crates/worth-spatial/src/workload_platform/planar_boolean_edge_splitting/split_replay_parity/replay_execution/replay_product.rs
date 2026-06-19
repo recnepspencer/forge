@@ -99,6 +99,26 @@ impl<'a> PlanarBooleanEdgeSplitReplayProduct<'a> {
 }
 
 impl PlanarBooleanEdgeSplitReplayProductCounters {
+    #[cfg(test)]
+    pub(crate) fn new(
+        closeout_rows_read: usize,
+        retained_replay_rows_read: usize,
+        replay_rows_emitted: usize,
+        event_extraction_reexecutions: usize,
+        candidate_index_reexecutions: usize,
+    ) -> Self {
+        Self {
+            closeout_rows_read,
+            retained_replay_rows_read,
+            checkpoint_rows_read: 0,
+            replay_rows_emitted,
+            closure_rows_emitted: 20,
+            split_stage_reexecutions: 1,
+            event_extraction_reexecutions,
+            candidate_index_reexecutions,
+        }
+    }
+
     fn from_manifest(
         replay_receipts: &ReplayReceiptSet,
         closure_manifest: &PlanarBooleanSplitReplayClosureManifest,
