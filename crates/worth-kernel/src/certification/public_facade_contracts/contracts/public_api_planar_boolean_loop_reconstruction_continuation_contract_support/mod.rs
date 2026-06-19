@@ -146,7 +146,7 @@ pub(crate) fn assert_loop_reconstruction_continuation_contract_preserves_real_ne
     }
 }
 
-fn completed_split_handoff_for(
+pub(crate) fn completed_split_handoff_for(
     subject: &MetabossEventExtractionSubject,
     replay_subject: &super::edge_splitting_replay_parity_support::EdgeSplitReplayParitySubject,
 ) -> CompletedBooleanSplitHandoff {
@@ -162,7 +162,7 @@ fn completed_split_handoff_for(
     completed_split_handoff
 }
 
-fn recovered_source_carriers(
+pub(crate) fn recovered_source_carriers(
     subject: &MetabossEventExtractionSubject,
     request: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanEdgeSplitRequest,
 ) -> PlanarBooleanSplitSourceEdgeCarrierSet {

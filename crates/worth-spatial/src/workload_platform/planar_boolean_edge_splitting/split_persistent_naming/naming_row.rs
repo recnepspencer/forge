@@ -105,6 +105,39 @@ impl PlanarBooleanSplitPersistentNameRow {
     pub fn subshape_signature_identity(&self) -> &str {
         &self.subshape_signature_identity
     }
+
+    #[cfg(test)]
+    pub(crate) fn with_source_edge_identity_for_tests(&self, source_edge_identity: &str) -> Self {
+        let artifact_kind = self.artifact_kind.as_str();
+        let persistent_name_identity = persistent_name_identity(
+            source_edge_identity,
+            artifact_kind,
+            &self.artifact_identity,
+            &self.identity_evolution_lineage_digest,
+        );
+        let row_identity = naming_row_identity(
+            source_edge_identity,
+            artifact_kind,
+            &self.artifact_identity,
+            &self.identity_evolution_result_digest,
+        );
+        let subshape_signature_identity = subshape_signature_row_identity(
+            &self.artifact_identity,
+            &self.identity_evolution_lineage_digest,
+        );
+        Self {
+            row_identity,
+            source_edge_identity: source_edge_identity.to_string(),
+            artifact_kind: self.artifact_kind,
+            artifact_identity: self.artifact_identity.clone(),
+            persistent_name_identity,
+            identity_evolution_query_digest: self.identity_evolution_query_digest.clone(),
+            identity_evolution_result_digest: self.identity_evolution_result_digest.clone(),
+            identity_evolution_lineage_digest: self.identity_evolution_lineage_digest.clone(),
+            event_cause_identities: self.event_cause_identities.clone(),
+            subshape_signature_identity,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

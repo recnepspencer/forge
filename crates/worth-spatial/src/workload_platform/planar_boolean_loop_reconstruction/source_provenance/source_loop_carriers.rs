@@ -10,6 +10,10 @@ pub struct PlanarBooleanLoopSourceCarrierRow {
     source_face_identity: String,
     source_loop_identity: String,
     source_edge_identity: String,
+    start_source_endpoint_identity: String,
+    start_point_bits: [u64; 2],
+    end_source_endpoint_identity: String,
+    end_point_bits: [u64; 2],
     loop_role: PlanarBooleanLoopRole,
 }
 
@@ -22,6 +26,10 @@ impl PlanarBooleanLoopSourceCarrierRow {
         source_face_identity: String,
         source_loop_identity: String,
         source_edge_identity: String,
+        start_source_endpoint_identity: String,
+        start_point_bits: [u64; 2],
+        end_source_endpoint_identity: String,
+        end_point_bits: [u64; 2],
         loop_role: PlanarBooleanLoopRole,
     ) -> Self {
         Self {
@@ -31,6 +39,10 @@ impl PlanarBooleanLoopSourceCarrierRow {
             source_face_identity,
             source_loop_identity,
             source_edge_identity,
+            start_source_endpoint_identity,
+            start_point_bits,
+            end_source_endpoint_identity,
+            end_point_bits,
             loop_role,
         }
     }
@@ -57,6 +69,28 @@ impl PlanarBooleanLoopSourceCarrierRow {
 
     pub fn source_edge_identity(&self) -> &str {
         &self.source_edge_identity
+    }
+
+    pub fn start_source_endpoint_identity(&self) -> &str {
+        &self.start_source_endpoint_identity
+    }
+
+    pub fn start_point_2d(&self) -> [f64; 2] {
+        [
+            f64::from_bits(self.start_point_bits[0]),
+            f64::from_bits(self.start_point_bits[1]),
+        ]
+    }
+
+    pub fn end_source_endpoint_identity(&self) -> &str {
+        &self.end_source_endpoint_identity
+    }
+
+    pub fn end_point_2d(&self) -> [f64; 2] {
+        [
+            f64::from_bits(self.end_point_bits[0]),
+            f64::from_bits(self.end_point_bits[1]),
+        ]
     }
 
     pub fn loop_role(&self) -> PlanarBooleanLoopRole {

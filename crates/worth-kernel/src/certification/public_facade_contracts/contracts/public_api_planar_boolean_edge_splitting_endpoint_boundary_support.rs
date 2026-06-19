@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::edge_splitting_raw_schedule_support::build_raw_edge_split_schedule_for_metaboss;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use worth_spatial::facade::planar_boolean_edge_splitting::{

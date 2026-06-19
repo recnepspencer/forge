@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::edge_splitting_interval_subdivision_support::build_endpoint_boundary_schedule_for_metaboss;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use worth_spatial::facade::planar_boolean_edge_splitting::{

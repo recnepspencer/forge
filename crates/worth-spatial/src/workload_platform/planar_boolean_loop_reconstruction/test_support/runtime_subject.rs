@@ -2,10 +2,11 @@ use crate::workload_platform::evidence_ledger::{WorkloadEvidenceLedger, Workload
 use crate::workload_platform::planar_boolean_edge_splitting::{
     raw_interval_entry, raw_point_entry, raw_schedule, raw_set_from_schedules,
     recover_source_edge_carriers_for_tests, source_carriers_for_tests,
-    split_subject_with_carriers_for_tests, PlanarBooleanDownstreamSplitConsumption,
-    PlanarBooleanDownstreamSplitConsumptionInput, PlanarBooleanEdgeSplitReplayParityCounters,
-    PlanarBooleanEdgeSplitReplayParityReceipt, PlanarBooleanEdgeSplitReplayParityRow,
-    PlanarBooleanEdgeSplitReplayParityRowKind,
+    split_subject_with_carriers_for_tests, PlanarBooleanCandidateIndexConsumptionGate,
+    PlanarBooleanCandidateIndexConsumptionInput, PlanarBooleanDownstreamSplitConsumption,
+    PlanarBooleanDownstreamSplitConsumptionInput, PlanarBooleanEdgeSplitReplayParityReceipt,
+    PlanarBooleanEdgeSplitRequest, PlanarBooleanEdgeSplitRequestInput,
+    PlanarBooleanEdgeSplitScopeAdmission, PlanarBooleanEdgeSplitScopeAdmissionInput,
     PlanarBooleanIntervalSubdivisionNormalizedScheduleSet,
     PlanarBooleanLoopReconstructionSplitConsumption,
     PlanarBooleanLoopReconstructionSplitConsumptionInput, PlanarBooleanMicroIntervalPolicy,
@@ -17,10 +18,13 @@ use crate::workload_platform::planar_boolean_edge_splitting::{
     PlanarBooleanSplitPersistentNamingReceipt, PlanarBooleanSplitSourceEdgeCarrierSet,
     PlanarBooleanSplitVertexIdentitySet, SourceEdgeCarrierRecoverySubject,
 };
+use crate::workload_platform::retained_replay_workload::ReplayReceiptSet;
 
 use super::super::request::{
     PlanarBooleanLoopReconstructionRequest, PlanarBooleanLoopReconstructionRequestInput,
 };
+use super::replay_parity_subject::replay_parity_receipt_for;
+use super::replay_support::retained_replay_receipt_chain;
 
 pub(crate) enum LoopFixtureEntryOrder {
     Canonical,
@@ -34,6 +38,7 @@ pub(crate) struct PreparedLoopReconstructionSubject {
     pub(crate) vertices: PlanarBooleanSplitVertexIdentitySet,
     pub(crate) fragments: PlanarBooleanSplitEdgeFragmentSet,
     pub(crate) overlap_chains: PlanarBooleanOverlapEdgeChainSet,
+    pub(crate) naming: PlanarBooleanSplitPersistentNamingReceipt,
     pub(crate) decision_log: PlanarBooleanSplitDecisionLogQueryResult,
     pub(crate) split_ledger_result: PlanarBooleanSplitEdgeChainLedgerQueryResult,
     pub(crate) loop_split_consumption: PlanarBooleanLoopReconstructionSplitConsumption,
@@ -67,7 +72,11 @@ pub(crate) fn prepared_loop_reconstruction_subject_with_tag(
         .expect("test support should provide at least one carrier");
     let source_edge_identity = anchor.source_edge_identity().to_string();
     let carrier_identity = anchor.carrier_identity().to_string();
-    let request_subject = split_subject_with_carriers_for_tests(carriers);
+    let replay_receipts = retained_replay_receipt_chain(tag);
+    let request_subject = request_subject_with_replay_evidence(
+        split_subject_with_carriers_for_tests(carriers),
+        &replay_receipts,
+    );
     let recovered_source_carriers = recover_source_edge_carriers_for_tests(&request_subject);
 
     let endpoint_boundary = raw_set_from_schedules(vec![raw_schedule(
@@ -144,8 +153,16 @@ pub(crate) fn prepared_loop_reconstruction_subject_with_tag(
     .execute()
     .expect("split ledger should execute");
 
-    let replay_parity =
-        replay_parity_receipt_for(&request_subject, &split_ledger_result, &decision_log);
+    let replay_parity = replay_parity_receipt_for(
+        &request_subject,
+        &split_ledger_result,
+        &decision_log,
+        &validation,
+        &naming,
+        &fragments,
+        &overlap_chains,
+        &replay_receipts,
+    );
     let evidence_ledger = WorkloadEvidenceLedger::from_rows(vec![
         WorkloadEvidenceRow::from_boolean_evidence_receipt(split_ledger_result.receipt()),
     ])
@@ -175,42 +192,47 @@ pub(crate) fn prepared_loop_reconstruction_subject_with_tag(
         vertices,
         fragments,
         overlap_chains,
+        naming,
         decision_log,
         split_ledger_result,
         loop_split_consumption,
     }
 }
 
-fn replay_parity_receipt_for(
-    request_subject: &SourceEdgeCarrierRecoverySubject,
-    split_ledger_result: &PlanarBooleanSplitEdgeChainLedgerQueryResult,
-    decision_log: &PlanarBooleanSplitDecisionLogQueryResult,
-) -> PlanarBooleanEdgeSplitReplayParityReceipt {
-    PlanarBooleanEdgeSplitReplayParityReceipt::new(
-        "retained-replay-stage".to_string(),
-        "replay-checkpoint".to_string(),
-        "replay-evidence".to_string(),
-        "replay-product".to_string(),
-        "replay-closure-manifest".to_string(),
-        request_subject.request.split_request_identity().to_string(),
-        request_subject.request.split_request_identity().to_string(),
-        split_ledger_result.receipt().receipt_identity().to_string(),
-        split_ledger_result.receipt().receipt_identity().to_string(),
-        split_ledger_result
-            .receipt()
-            .downstream_consumption_identity()
-            .to_string(),
-        split_ledger_result
-            .receipt()
-            .downstream_consumption_identity()
-            .to_string(),
-        vec![PlanarBooleanEdgeSplitReplayParityRow::new(
-            PlanarBooleanEdgeSplitReplayParityRowKind::DecisionLogReceipt,
-            decision_log.receipt().receipt_identity(),
-            decision_log.receipt().receipt_identity(),
-        )],
-        PlanarBooleanEdgeSplitReplayParityCounters::default(),
+fn request_subject_with_replay_evidence(
+    subject: SourceEdgeCarrierRecoverySubject,
+    replay_receipts: &ReplayReceiptSet,
+) -> SourceEdgeCarrierRecoverySubject {
+    let evidence = WorkloadEvidenceLedger::from_rows(vec![
+        WorkloadEvidenceRow::from_boolean_evidence_receipt(&subject.segment_pairs),
+        WorkloadEvidenceRow::from_boolean_evidence_receipt(&subject.ledger),
+        WorkloadEvidenceRow::from_replay_receipt_set(replay_receipts),
+    ])
+    .expect("replay-backed receipt evidence should index");
+    let gate = PlanarBooleanCandidateIndexConsumptionGate::admit(
+        PlanarBooleanCandidateIndexConsumptionInput::new(
+            &subject.ledger,
+            &subject.segment_pairs,
+            evidence.stage_index(),
+        ),
     )
+    .expect("candidate-index gate should admit with replay-backed evidence");
+    let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
+        &subject.ledger,
+        &gate,
+        evidence.stage_index(),
+    ))
+    .expect("split request should admit with replay-backed evidence");
+    let scope = PlanarBooleanEdgeSplitScopeAdmission::admit(
+        PlanarBooleanEdgeSplitScopeAdmissionInput::from_split_request(&request),
+    )
+    .expect("scope should admit with replay-backed request");
+    SourceEdgeCarrierRecoverySubject {
+        segment_pairs: subject.segment_pairs,
+        ledger: subject.ledger,
+        request,
+        scope,
+    }
 }
 
 fn raw_entries(

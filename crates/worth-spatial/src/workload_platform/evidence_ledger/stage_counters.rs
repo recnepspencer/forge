@@ -47,6 +47,7 @@ pub struct WorkloadEvidenceStageCounters {
     boolean_event_ledger_group_count: usize,
     boolean_event_ledger_relation_diagnostic_count: usize,
     boolean_split_count: usize,
+    boolean_loop_reconstruction_count: usize,
     boolean_classify_count: usize,
     boolean_assemble_count: usize,
     boolean_cleanup_count: usize,
@@ -216,6 +217,13 @@ impl WorkloadEvidenceStageCounters {
         }
     }
 
+    pub fn boolean_loop_reconstruction() -> Self {
+        Self {
+            boolean_loop_reconstruction_count: 1,
+            ..Self::default()
+        }
+    }
+
     pub fn boolean_classify() -> Self {
         Self {
             boolean_classify_count: 1,
@@ -341,6 +349,10 @@ impl WorkloadEvidenceStageCounters {
         self.boolean_split_count
     }
 
+    pub fn boolean_loop_reconstruction_count(self) -> usize {
+        self.boolean_loop_reconstruction_count
+    }
+
     pub fn boolean_classify_count(self) -> usize {
         self.boolean_classify_count
     }
@@ -390,6 +402,7 @@ impl WorkloadEvidenceStageCounters {
             + self.boolean_segment_pair_enumeration_count
             + self.boolean_event_ledger_count
             + self.boolean_split_count
+            + self.boolean_loop_reconstruction_count
             + self.boolean_classify_count
             + self.boolean_assemble_count
             + self.boolean_cleanup_count

@@ -805,8 +805,11 @@ artifacts before the loop ledger is assembled.
 
 **Consumes**
 - `PlanarBooleanAdmittedReconstructedLoopSet`
+- `PlanarBooleanBornLoopSet`
 - `PlanarBooleanLoopRoleOutcomeSet`
 - `PlanarBooleanLoopContainmentEvidencePostureSet`
+- `PlanarBooleanLoopSourceCarrierSet`
+- `PlanarBooleanSplitEdgeFragmentSet`
 
 **Produces**
 - `PlanarBooleanDegenerateLoopOutcomeSet`
@@ -818,6 +821,7 @@ artifacts before the loop ledger is assembled.
 
 **Relevant APIs**
 - reconstructed-loop and role products
+- source-loop carrier and split-fragment geometry products
 - degeneracy policy outcome kinds
 - typed degenerate-loop products
 
@@ -836,6 +840,8 @@ artifacts before the loop ledger is assembled.
 - Degeneracy posture is part of loop truth, not later cosmetic cleanup.
 - Keep degeneracy outcomes distinct from role outcomes so downstream phases know
   exactly what failed.
+- Zero-area classification must consume authoritative projected loop geometry,
+  not topology-only heuristics or incidental display ordering.
 
 **Open questions**
 - None.

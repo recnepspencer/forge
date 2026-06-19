@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::edge_splitting_support::recovered_carriers_for;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use std::collections::BTreeSet;

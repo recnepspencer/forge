@@ -107,6 +107,21 @@ pub(super) const REQUIRED_PHASE_2_VALIDATOR_LANES: &[(&str, Lane, bool)] = &[
         false,
     ),
     (
+        "ValidateBornLoopAttributionCoverage",
+        Lane::SpatialPreparedProductValidation,
+        false,
+    ),
+    (
+        "ValidateLoopIslandPartitionConsistency",
+        Lane::SpatialPreparedProductValidation,
+        false,
+    ),
+    (
+        "ValidateSourceLoopSplitAttributionConsistency",
+        Lane::SpatialPreparedProductValidation,
+        false,
+    ),
+    (
         "ValidateInnerOuterLoopFlagsConsistent",
         Lane::SpatialPreparedProductValidation,
         false,

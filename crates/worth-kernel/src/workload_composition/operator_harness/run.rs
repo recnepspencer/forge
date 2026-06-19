@@ -154,7 +154,10 @@ impl WorkloadStageRequirement {
             | Self::BooleanEventExtractionRequest
             | Self::BooleanSegmentPairEnumeration
             | Self::BooleanEventLedger
-            | Self::BooleanSplit => Err(OperatorWorkloadError::UnsupportedRequirement(self)),
+            | Self::BooleanSplit
+            | Self::BooleanLoopReconstruction => {
+                Err(OperatorWorkloadError::UnsupportedRequirement(self))
+            }
             Self::EvidenceLedger => Ok(None),
         }
     }

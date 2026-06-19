@@ -3,6 +3,6 @@ use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceStageIndexProduc
 fn main() {
     let _ = WorkloadEvidenceStageIndexProduct {
         rows: Vec::new(),
-        stage_offsets: [None; 26],
+        stage_offsets: [None; 27],
     };
 }

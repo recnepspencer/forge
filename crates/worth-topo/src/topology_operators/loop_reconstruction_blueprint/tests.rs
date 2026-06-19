@@ -74,6 +74,10 @@ fn phase_2_registry_closes_exact_required_inventory_and_derived_views() {
         .expect("carrier coverage validator should be registered")
         .requires_runtime_lane(Lane::SpatialPreparedProductValidation));
     assert!(plan
+        .validator("ValidateLoopIslandPartitionConsistency")
+        .expect("loop island partition validator should be registered")
+        .requires_runtime_lane(Lane::SpatialPreparedProductValidation));
+    assert!(plan
         .validator("ValidateLoopOperatorQueryProgression")
         .expect("operator progression validator should be registered")
         .requires_runtime_lane(Lane::TopologyDeclarationReview));
@@ -82,7 +86,7 @@ fn phase_2_registry_closes_exact_required_inventory_and_derived_views() {
         .expect("runtime registration validator should be registered")
         .requires_runtime_lane(Lane::QueryGraphInvariantPack));
     assert_eq!(registry.closeout().required_phase_2_operator_rows(), 60);
-    assert_eq!(registry.closeout().required_phase_2_validator_rows(), 43);
+    assert_eq!(registry.closeout().required_phase_2_validator_rows(), 46);
     assert_eq!(
         registry.closeout().topology_grouped_declaration_operators(),
         1

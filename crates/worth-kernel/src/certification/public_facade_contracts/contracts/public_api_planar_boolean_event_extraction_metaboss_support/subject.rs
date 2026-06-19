@@ -7,11 +7,9 @@ use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanIntervalEventExtraction, PlanarBooleanPointEventExtraction,
 };
 
-use super::super::event_ledger_support::{
-    ledger_from_certified_inputs, CertifiedEventLedgerInputs,
-};
-use super::super::predicate_binding_support::{self, BindingSubject};
+use super::event_ledger_support::{ledger_from_certified_inputs, CertifiedEventLedgerInputs};
 use super::expected_shape::MetabossExpectedLedgerShape;
+use super::predicate_binding_support::{self, BindingSubject};
 
 pub(crate) struct MetabossEventExtractionSubject {
     pair: BuiltBooleanOperandPairRecipe,

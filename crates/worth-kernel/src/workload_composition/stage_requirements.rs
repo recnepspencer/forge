@@ -22,6 +22,7 @@ pub enum WorkloadStageRequirement {
     BooleanSegmentPairEnumeration,
     BooleanEventLedger,
     BooleanSplit,
+    BooleanLoopReconstruction,
     EvidenceLedger,
 }
 
@@ -54,6 +55,7 @@ impl WorkloadStageRequirement {
             Self::BooleanSegmentPairEnumeration => "boolean segment-pair enumeration receipt",
             Self::BooleanEventLedger => "boolean event ledger receipt",
             Self::BooleanSplit => "boolean split receipt",
+            Self::BooleanLoopReconstruction => "boolean loop reconstruction receipt",
             Self::EvidenceLedger => "workload evidence ledger",
         }
     }
@@ -86,6 +88,7 @@ impl WorkloadStageRequirement {
             Self::BooleanSegmentPairEnumeration => "boolean_segment_pair_enumeration",
             Self::BooleanEventLedger => "boolean_event_ledger",
             Self::BooleanSplit => "boolean_split",
+            Self::BooleanLoopReconstruction => "boolean_loop_reconstruction",
             Self::EvidenceLedger => "evidence_ledger",
         }
     }

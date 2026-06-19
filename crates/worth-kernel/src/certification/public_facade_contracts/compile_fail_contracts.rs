@@ -3,6 +3,12 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[allow(dead_code)]
+#[path = "contracts/public_api_planar_boolean_loop_reconstruction_guard_coverage.rs"]
+mod loop_reconstruction_guard_coverage;
+
+use loop_reconstruction_guard_coverage::loop_reconstruction_compile_fail_fixtures;
+
 const PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE: &str =
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_kernel_summary_substitution.rs";
 
@@ -92,6 +98,11 @@ const COMPILE_FAIL_FIXTURES: &[&str] = &[
     PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES[0],
     PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES[1],
     PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES[2],
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/island_partition_not_forgeable.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/split_attribution_not_forgeable.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/role_outcome_boundary_not_forgeable.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/containment_posture_set_not_forgeable.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/degenerate_loop_boundary_not_forgeable.rs",
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_fields_not_public.rs",
     PLANAR_BOOLEAN_ENTRY_BASIS_KERNEL_SUMMARY_FIXTURE,
     "src/certification/public_facade_contracts/compile_fail/planar_boolean_entry_basis/public_planar_boolean_entry_basis_rejects_generic_ledger_substitution.rs",
@@ -169,6 +180,16 @@ fn kernel_public_boundary_rejects_planar_boolean_event_extraction_constructor_by
 fn kernel_public_boundary_rejects_incomplete_planar_boolean_edge_split_evidence() {
     for (fixture, expected_stderr) in PLANAR_BOOLEAN_EDGE_SPLITTING_EXPECTED_ERRORS {
         assert_compile_fail_fixture_with_stderr(fixture, expected_stderr);
+    }
+}
+
+#[test]
+fn kernel_public_boundary_rejects_planar_boolean_loop_reconstruction_constructor_bypass() {
+    for fixture in PLANAR_BOOLEAN_LOOP_RECONSTRUCTION_CORE_FIXTURES {
+        assert_compile_fail_fixture(fixture);
+    }
+    for fixture in loop_reconstruction_compile_fail_fixtures() {
+        assert_compile_fail_fixture(fixture);
     }
 }
 
@@ -269,3 +290,10 @@ fn compile_fail_target_dir(manifest_dir: &Path) -> PathBuf {
         .join("target")
         .join("worth-kernel-compile-fail")
 }
+const PLANAR_BOOLEAN_LOOP_RECONSTRUCTION_CORE_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/island_partition_not_forgeable.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/split_attribution_not_forgeable.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/role_outcome_boundary_not_forgeable.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/containment_posture_set_not_forgeable.rs",
+    "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/degenerate_loop_boundary_not_forgeable.rs",
+];

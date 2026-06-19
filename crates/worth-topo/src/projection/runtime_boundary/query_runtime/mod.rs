@@ -1,5 +1,7 @@
 mod adapters;
 mod contracts;
+#[cfg(test)]
+mod doc_contract;
 pub(crate) mod identity_authority;
 pub use identity_authority::{
     topology_query_runtime_phase_eight_compile_fail_targets,
@@ -27,6 +29,8 @@ mod tests;
 use forge_query::facade::{ForgeQueryRuntime, ForgeQueryWorkspace};
 
 pub use contracts::{TopologyRuntimeAdapters, TopologyRuntimeFailure, TopologyRuntimeSupport};
+#[cfg(test)]
+pub(crate) use doc_contract::topology_query_runtime_doc_contract;
 pub use mutation_support::{
     TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
     TopologyQueryMutationLaneExecutionShape, TopologyQueryMutationLaneSupportStatus,

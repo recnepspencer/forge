@@ -1,4 +1,7 @@
 use topology::facade::TopologyWorkloadReceipt;
+mod boolean_loop_reconstruction_closeout;
+mod boolean_loop_reconstruction_handoff;
+mod boolean_loop_reconstruction_products;
 mod boolean_split_handoff;
 mod boolean_stage_requirements;
 use worth_spatial::facade::workload_vocabulary::{
@@ -9,6 +12,11 @@ use worth_spatial::facade::workload_vocabulary::{
 };
 
 use super::{boolean_evidence_requirement::map_boolean_ledger_error, WorkloadStageRequirement};
+pub use boolean_loop_reconstruction_closeout::PlanarBooleanLoopReconstructionCloseoutInput;
+pub use boolean_loop_reconstruction_handoff::{
+    CompletedBooleanLoopReconstructionHandoff, PlanarBooleanLoopRuntimeRegistrationProof,
+};
+pub use boolean_loop_reconstruction_products::CompletedBooleanLoopReconstructionProducts;
 pub use boolean_split_handoff::CompletedBooleanSplitHandoff;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -170,17 +178,19 @@ fn require_matching_evidence_ledger(
     )
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorkloadCompositionError {
     UnsupportedStage(WorkloadStageRequirement),
     MissingEvidenceStage(WorkloadEvidenceStage),
     ManualEvidenceStage(WorkloadEvidenceStage),
     CounterlessEvidenceStage(WorkloadEvidenceStage),
     MismatchedEvidenceStage(WorkloadEvidenceStage),
+    LoopReconstructionCloseout(String),
+    LoopRuntimeRegistration(String),
 }
 
 impl WorkloadCompositionError {
-    pub fn human_reason(self) -> String {
+    pub fn human_reason(&self) -> String {
         match self {
             Self::UnsupportedStage(stage) => format!(
                 "{} is not admitted for operator composition",
@@ -201,6 +211,8 @@ impl WorkloadCompositionError {
                 "workload evidence ledger does not match the {} receipt",
                 stage.human_name()
             ),
+            Self::LoopReconstructionCloseout(reason) => reason.clone(),
+            Self::LoopRuntimeRegistration(reason) => reason.clone(),
         }
     }
 }

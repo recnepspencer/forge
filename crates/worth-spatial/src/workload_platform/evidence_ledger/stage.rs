@@ -23,6 +23,7 @@ pub enum WorkloadEvidenceStage {
     BooleanSegmentPairEnumeration,
     BooleanEventLedger,
     BooleanSplit,
+    BooleanLoopReconstruction,
     BooleanClassify,
     BooleanAssemble,
     BooleanCleanup,
@@ -44,13 +45,14 @@ pub enum BooleanEvidenceStageKind {
     SegmentPairEnumeration,
     EventLedger,
     Split,
+    LoopReconstruction,
     Classify,
     Assemble,
     Cleanup,
 }
 
 impl WorkloadEvidenceStage {
-    pub(crate) const STAGE_COUNT: usize = 26;
+    pub(crate) const STAGE_COUNT: usize = 27;
 
     pub const AUTHORITY_STAGES: [Self; 8] = [
         Self::Topology,
@@ -63,7 +65,7 @@ impl WorkloadEvidenceStage {
         Self::Response,
     ];
 
-    pub const BOOLEAN_STAGES: [Self; 17] = [
+    pub const BOOLEAN_STAGES: [Self; 18] = [
         Self::BooleanDeclarationEntry,
         Self::BooleanRoutePlan,
         Self::BooleanOperandPairConstruction,
@@ -78,6 +80,7 @@ impl WorkloadEvidenceStage {
         Self::BooleanSegmentPairEnumeration,
         Self::BooleanEventLedger,
         Self::BooleanSplit,
+        Self::BooleanLoopReconstruction,
         Self::BooleanClassify,
         Self::BooleanAssemble,
         Self::BooleanCleanup,
@@ -112,6 +115,7 @@ impl WorkloadEvidenceStage {
             Self::BooleanSegmentPairEnumeration => "boolean segment-pair enumeration evidence",
             Self::BooleanEventLedger => "boolean event ledger evidence",
             Self::BooleanSplit => "boolean split evidence",
+            Self::BooleanLoopReconstruction => "boolean loop reconstruction evidence",
             Self::BooleanClassify => "boolean classify evidence",
             Self::BooleanAssemble => "boolean assemble evidence",
             Self::BooleanCleanup => "boolean cleanup evidence",
@@ -147,9 +151,10 @@ impl WorkloadEvidenceStage {
             Self::BooleanSegmentPairEnumeration => 20,
             Self::BooleanEventLedger => 21,
             Self::BooleanSplit => 22,
-            Self::BooleanClassify => 23,
-            Self::BooleanAssemble => 24,
-            Self::BooleanCleanup => 25,
+            Self::BooleanLoopReconstruction => 23,
+            Self::BooleanClassify => 24,
+            Self::BooleanAssemble => 25,
+            Self::BooleanCleanup => 26,
         }
     }
 }
@@ -175,6 +180,7 @@ impl BooleanEvidenceStageKind {
             Self::SegmentPairEnumeration => WorkloadEvidenceStage::BooleanSegmentPairEnumeration,
             Self::EventLedger => WorkloadEvidenceStage::BooleanEventLedger,
             Self::Split => WorkloadEvidenceStage::BooleanSplit,
+            Self::LoopReconstruction => WorkloadEvidenceStage::BooleanLoopReconstruction,
             Self::Classify => WorkloadEvidenceStage::BooleanClassify,
             Self::Assemble => WorkloadEvidenceStage::BooleanAssemble,
             Self::Cleanup => WorkloadEvidenceStage::BooleanCleanup,

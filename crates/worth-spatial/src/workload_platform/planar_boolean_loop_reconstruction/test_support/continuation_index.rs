@@ -5,9 +5,11 @@ use crate::workload_platform::planar_boolean_edge_splitting::{
     PlanarBooleanSplitVertexIdentitySchedule, PlanarBooleanSplitVertexIdentitySet,
 };
 use crate::workload_platform::planar_boolean_loop_reconstruction::{
+    PlanarBooleanFragmentContinuationIndex, PlanarBooleanFragmentContinuationIndexInput,
     PlanarBooleanFragmentMembershipMap, PlanarBooleanLoopOverlapChainLineageMap,
-    PlanarBooleanLoopReconstructionRequest, PlanarBooleanLoopSourceCarrierSet,
-    PlanarBooleanLoopSourceProvenanceBundle, PlanarBooleanLoopSourceProvenanceRecoveryInput,
+    PlanarBooleanLoopReconstructionRequest, PlanarBooleanLoopSourceCarrierRow,
+    PlanarBooleanLoopSourceCarrierSet, PlanarBooleanLoopSourceProvenanceBundle,
+    PlanarBooleanLoopSourceProvenanceRecoveryInput,
 };
 
 use super::runtime_subject::{
@@ -18,6 +20,7 @@ pub(crate) struct PreparedLoopContinuationIndexSubject {
     pub(crate) subject: PreparedLoopReconstructionSubject,
     pub(crate) request: PlanarBooleanLoopReconstructionRequest,
     pub(crate) source_provenance: PlanarBooleanLoopSourceProvenanceBundle,
+    pub(crate) continuation_index: PlanarBooleanFragmentContinuationIndex,
 }
 
 pub(crate) fn prepared_loop_continuation_subject(
@@ -36,10 +39,21 @@ pub(crate) fn prepared_loop_continuation_subject(
         ),
     )
     .expect("source provenance should recover for continuation tests");
+    let continuation_index = PlanarBooleanFragmentContinuationIndex::admit(
+        PlanarBooleanFragmentContinuationIndexInput::from_request_and_provenance(
+            &request,
+            &source_provenance,
+            &subject.vertices,
+            &subject.fragments,
+            &subject.overlap_chains,
+        ),
+    )
+    .expect("continuation index should admit for continuation tests");
     PreparedLoopContinuationIndexSubject {
         subject,
         request,
         source_provenance,
+        continuation_index,
     }
 }
 
@@ -156,6 +170,51 @@ pub(crate) fn source_provenance_with_missing_fragment_membership(
             .to_string(),
         source_provenance.source_loop_carriers().clone(),
         fragment_membership_map,
+        source_provenance.overlap_chain_lineage_map().clone(),
+        source_provenance.counters(),
+    )
+}
+
+pub(crate) fn source_provenance_without_first_source_loop_carrier(
+    source_provenance: &PlanarBooleanLoopSourceProvenanceBundle,
+) -> PlanarBooleanLoopSourceProvenanceBundle {
+    let first_source_loop_identity = source_provenance
+        .source_loop_carriers()
+        .rows()
+        .first()
+        .map(PlanarBooleanLoopSourceCarrierRow::source_loop_identity)
+        .expect("test support requires at least one source loop carrier")
+        .to_string();
+    let rows = source_provenance
+        .source_loop_carriers()
+        .rows()
+        .iter()
+        .filter(|row| row.source_loop_identity() != first_source_loop_identity)
+        .cloned()
+        .collect::<Vec<_>>();
+    let source_loop_carriers = PlanarBooleanLoopSourceCarrierSet::new(
+        source_provenance
+            .source_loop_carriers()
+            .carrier_set_identity()
+            .to_string(),
+        source_provenance
+            .source_loop_carriers()
+            .request_identity()
+            .to_string(),
+        source_provenance
+            .source_loop_carriers()
+            .split_ledger_receipt_identity()
+            .to_string(),
+        rows,
+    );
+    PlanarBooleanLoopSourceProvenanceBundle::new(
+        source_provenance.bundle_identity().to_string(),
+        source_provenance.request_identity().to_string(),
+        source_provenance
+            .split_ledger_receipt_identity()
+            .to_string(),
+        source_loop_carriers,
+        source_provenance.fragment_membership_map().clone(),
         source_provenance.overlap_chain_lineage_map().clone(),
         source_provenance.counters(),
     )

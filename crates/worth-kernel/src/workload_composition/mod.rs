@@ -59,5 +59,8 @@ pub use workload_catalog::{
     WorkloadTopologyBreadth,
 };
 pub use worth_workload::{
-    CompletedBooleanSplitHandoff, WorkloadCompositionError, WorthWorkload, WorthWorkloadParts,
+    CompletedBooleanLoopReconstructionHandoff, CompletedBooleanLoopReconstructionProducts,
+    CompletedBooleanSplitHandoff, PlanarBooleanLoopReconstructionCloseoutInput,
+    PlanarBooleanLoopRuntimeRegistrationProof, WorkloadCompositionError, WorthWorkload,
+    WorthWorkloadParts,
 };

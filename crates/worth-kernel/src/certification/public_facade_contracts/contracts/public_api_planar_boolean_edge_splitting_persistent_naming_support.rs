@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::edge_splitting_split_vertex_identity_support::build_interval_subdivision_schedule_for_metaboss;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use forge_query::facade::ForgeQueryApplicationFacade;

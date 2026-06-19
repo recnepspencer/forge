@@ -49,6 +49,9 @@ impl WorkloadEvidenceStageCounters {
             }
             WorkloadEvidenceStage::BooleanEventLedger => self.boolean_event_ledger_count,
             WorkloadEvidenceStage::BooleanSplit => self.boolean_split_count,
+            WorkloadEvidenceStage::BooleanLoopReconstruction => {
+                self.boolean_loop_reconstruction_count
+            }
             WorkloadEvidenceStage::BooleanClassify => self.boolean_classify_count,
             WorkloadEvidenceStage::BooleanAssemble => self.boolean_assemble_count,
             WorkloadEvidenceStage::BooleanCleanup => self.boolean_cleanup_count,
