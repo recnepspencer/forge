@@ -25,6 +25,12 @@ pub(super) fn batch_execution_provenance(
     })
 }
 
+pub(super) fn batch_obligation_dispatch(
+    shared_admission: Option<&ForgeQueryWriteAdmissionExecutionRecord>,
+) -> Option<ForgeQueryAuthoritativeMutationObligationDispatch> {
+    shared_admission.and_then(|record| record.obligation_dispatch.clone())
+}
+
 pub(super) fn batch_decision_trace_envelope(
     shared_admission: Option<&ForgeQueryWriteAdmissionExecutionRecord>,
     combined_receipt: &ForgeQueryMutationReceipt,
@@ -36,7 +42,11 @@ pub(super) fn batch_decision_trace_envelope(
             .evidence_identity()
             .reporting_projection()
             .to_string();
-        ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
+        let obligation_dispatch_envelope_digest = record
+            .obligation_dispatch
+            .as_ref()
+            .and_then(ForgeQueryAuthoritativeMutationObligationDispatch::envelope_digest);
+        ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts_with_obligation_dispatch(
             record.family,
             record.entrypoint,
             &record.request_detail,
@@ -45,6 +55,7 @@ pub(super) fn batch_decision_trace_envelope(
             &record.decision_digest,
             &record.handoff_digest,
             record.execution_seam,
+            obligation_dispatch_envelope_digest,
             batch_request_detail,
             &commit_label,
             "mutation-batch-write",

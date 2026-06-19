@@ -8,7 +8,7 @@ use topology::facade::{
 use worth_geom::facade::PrimitiveStabilityClass;
 
 use crate::construction::authoring::{
-    require_primitive_construction_query_authority, PrimitiveConstructionQueryEntryError,
+    require_default_primitive_construction_query_authority, PrimitiveConstructionQueryEntryError,
 };
 use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::request::PrimitiveConstructionFamily;
@@ -57,7 +57,7 @@ pub(crate) fn prepare_primitive_construction_query_projection_consumption_surfac
         .map_err(PrimitiveConstructionQueryProjectionConsumptionParityError::QueryRuntime)?
         .contract_digest()
         .to_string();
-    require_primitive_construction_query_authority(workspace)
+    let authority_receipt = require_default_primitive_construction_query_authority(workspace)
         .map_err(PrimitiveConstructionQueryProjectionConsumptionParityError::QueryEntry)?;
     let outcome =
         match prepare_primitive_construction_certification_runtime_truth(intent.into_request()) {
@@ -105,6 +105,50 @@ pub(crate) fn prepare_primitive_construction_query_projection_consumption_surfac
                 .shape_participating("family", outcome.family().as_str())?
                 .value_participating("write-contract", write_contract_digest)?
                 .value_participating("query-contract", query_contract_digest)?
+                .value_participating(
+                    "query-authority-receipt",
+                    authority_receipt.authority_receipt_digest().to_string(),
+                )?
+                .value_participating(
+                    "query-authority-operating-context",
+                    authority_receipt
+                        .operating_context_identity_digest()
+                        .to_string(),
+                )?
+                .value_participating(
+                    "query-authority-basis",
+                    authority_receipt.authority_basis_digest().to_string(),
+                )?
+                .value_participating(
+                    "query-authority-configured-handle-support",
+                    authority_receipt
+                        .configured_handle_support_snapshot_digest()
+                        .to_string(),
+                )?
+                .value_participating(
+                    "query-authority-evaluated-support-snapshot",
+                    authority_receipt
+                        .evaluated_support_snapshot_digest()
+                        .to_string(),
+                )?
+                .value_participating(
+                    "query-authority-evaluated-source-matrix",
+                    authority_receipt
+                        .evaluated_support_source_matrix_digest()
+                        .to_string(),
+                )?
+                .value_participating(
+                    "query-authority-support-pin-contract",
+                    authority_receipt.support_pin_contract_digest().to_string(),
+                )?
+                .value_participating(
+                    "query-authority-support-pin-report",
+                    authority_receipt.support_pin_report_digest().to_string(),
+                )?
+                .usize_participating(
+                    "query-authority-support-pin-findings",
+                    authority_receipt.support_pin_finding_count(),
+                )?
                 .value_sequence_participating(
                     "required-query-families",
                     outcome

@@ -407,6 +407,10 @@ Real support pinning means typed row identity, live row digest binding, and a
 localized typed failure when a required row regresses. A checked-in list of row
 names or a local admission loop is not pinning.
 
+Graph obligation support pins are narrower: they bind required support posture
+by obligation kind, support lane, expected status, and budget digest where the
+consumer depends on a specific execution budget.
+
 The shipped boundary audit is honest about its mechanism. Associated-path
 coverage checks registry public-symbol suffixes. Method-call coverage is
 syntax/AST based and method-name resolved, not compiler-backed type
@@ -427,8 +431,119 @@ For downstream evidence and certification, they are the canonical lane.
 Read next:
 
 - [Consumer Kit](./foundations/consumer-kit.md)
+- [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 - [Hard Prohibitions](./foundations/hard-prohibitions.md)
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+
+## Graph Touch Obligation Authority
+
+Graph Touch Obligation Authority is one of Query's core runtime advantages.
+
+Most runtimes can traverse a DAG, run callbacks, or let callers attach
+validators near graph operations. That is not what this is.
+
+Graph Touch Obligation Authority lets Query understand that a graph touch
+carries semantic obligations. A write, read, live view, preview, branch
+operation, operator catalog entry, or construction step can declare what graph
+meaning it touches, and Query can derive the obligations that must follow from
+that touch.
+
+This enables something ordinary runtimes do not provide:
+
+- graph checks selected from declared touch meaning, not caller memory
+- obligation behavior that changes by operating world: authoritative, preview,
+  branch, live read, policy-aware mutation, construction, or downstream
+  adoption
+- one canonical path for blocking invariants, schema contracts, advisory
+  checks, preflight sequencing, capability-gap screens, and operating-context
+  gates
+- receipts, decision traces, mutation evidence, support rows, budgets, and
+  adoption manifests that all describe the same selected obligations
+- downstream crates proving they deleted local graph legality folklore instead
+  of rebuilding Query in miniature
+- budget-aware graph obligation execution that can deny honestly before broad
+  state load rather than hiding unbounded graph walks behind "validation"
+
+The practical effect is that graph semantics stop leaking into every caller.
+Consumers do not have to remember which checks apply, build local validator
+tables, run private graph walks, or invent per-crate legality systems. They
+declare the graph touch and operating world; Query selects, dispatches,
+budgets, executes, records, and proves the obligations.
+
+This is why it is not a DAG traversal helper. A DAG helper answers "what nodes
+are connected?" Graph Touch Obligation Authority answers "given this graph
+meaning, in this runtime world, what obligations does the system owe before
+this operation can be treated as honest?"
+
+The ordinary path is:
+
+```text
+touch descriptor + operating world descriptor + obligation index
+  -> selected obligations
+  -> dispatch plan
+  -> runtime executor verdict
+  -> receipt, trace, support row, and diagnostic evidence
+```
+
+Use this category when graph-shaped work needs automatic obligation selection
+from entity kinds, relation kinds, aspects, ownership moves, read shape, live
+retention, boundary posture, branch or preview posture, or other touch facts.
+The obligation kinds are
+`BlockingInvariant`, `SchemaContractValidator`, `AdvisoryObligation`,
+`PreflightSequencingObligation`, `CapabilityGapScreen`, and
+`OperatingContextGate`. The support statuses are `Supported`, `Unsupported`,
+`NotApplicable`, `DiagnosticOnly`, and `DeferredToBackstop`.
+
+Canonical kind labels are `blocking-invariant`,
+`schema-contract-validator`, `advisory-obligation`,
+`preflight-sequencing-obligation`, `capability-gap-screen`, and
+`operating-context-gate`. Canonical support status labels are `supported`,
+`unsupported`, `not-applicable`, `diagnostic-only`, and
+`deferred-to-backstop`.
+
+Budget honesty is part of the contract. Large graph or boolean-like operations
+can deny with `BudgetExceeded`; the evidence must preserve state-load counters,
+`budget-exceeded`, cost classes such as `sparse-topology`, and
+artifact-policy-gated diagnostics instead of implying unbounded automatic
+execution.
+
+The Consumer Kit is the ordinary downstream adoption path for graph obligation
+registration, selector coverage, support pinning, in-memory proof, bypass
+audit, adoption manifests, and residue manifests. If a consumer is building
+local ceremony for any of those jobs, treat that as a product gap or adoption
+residue, not as a parallel authority.
+
+Milestone 9.9 closure allows only explicit certified residue. Do not describe
+covered graph obligation authority as zero-residue everywhere; describe it as
+closed for covered lanes with any remaining downstream residue named in an
+owner-tagged manifest with caps and removal triggers.
+
+Use bypass audit as the named proof job when checking for local graph walks,
+local validator tables, or other consumer-owned ceremony.
+
+The covered lane vocabulary must match the `Milestone 9.9 Graph Touch Obligation Authority Hostile Certification Matrix`: graph composition, authoritative command batch, scalar mutation, effect-triggered write intent, declaration entry, contribution orchestration, read family, live read, preview mutation, preview intent, branch intent, policy-aware graph mutation, primitive construction birth, worth-topo operator catalog, and worth-kernel phase chain.
+Canonical covered lane labels are `graph-composition`,
+`authoritative-command-batch`, `scalar-mutation`,
+`effect-triggered-write-intent`, `declaration-entry`,
+`contribution-orchestration`, `read-family`, `live-read`,
+`preview-mutation`, `preview-intent`, `branch-intent`,
+`policy-aware-graph-mutation`, `primitive-construction-birth`,
+`worth-topo-operator-catalog`, and `worth-kernel-phase-chain`.
+
+The mistake to avoid is describing manual invariant packs as the primary
+covered graph obligation path. Manual invariant packs are compatibility/custom extension surfaces;
+registered graph obligations are the covered path.
+
+Do not reduce this to "index reads for a DAG." Milestone 9.9 closes graph
+obligation authority. Milestone 9.10 is separate: automatic graph read access
+planning and background index provisioning.
+
+Read next:
+
+- [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
+- [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 
 ## Aspects And Authority Lanes
@@ -1229,6 +1344,8 @@ Read next:
 
 - [Read Composition](./authoring/read-composition.md)
 - [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
+- [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Query Expressions And Result Shapes](./authoring/query-expressions-and-result-shapes.md)
 - [Registering Domain Invariants Through Query](./domain-capabilities/invariants/registering-domain-invariants-through-query.md)
 

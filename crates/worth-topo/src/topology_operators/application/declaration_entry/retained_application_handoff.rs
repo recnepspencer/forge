@@ -1,6 +1,9 @@
 #[cfg(test)]
 use forge_query::facade::ForgeQueryDeclarationReceipt;
-use forge_query::facade::{ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput};
+use forge_query::facade::{
+    ForgeQueryAuthoritativeMutationObligationDispatchProjection, ForgeQueryDeclarationEnvelope,
+    ForgeQueryDeclarationInput,
+};
 
 use crate::query_domain::TopologyQueryDomain;
 use crate::topology_operators::{
@@ -63,6 +66,14 @@ where
         self.contribution_artifact
             .contribution_composition()
             .contribution_digest()
+    }
+
+    pub(crate) fn graph_obligation_dispatch_projection(
+        &self,
+    ) -> Option<ForgeQueryAuthoritativeMutationObligationDispatchProjection> {
+        self.contribution_artifact
+            .graph_obligation_dispatch()
+            .map(|dispatch| dispatch.evidence_projection())
     }
 
     pub(crate) fn retain_accepted_query_contribution_semantic_projection(

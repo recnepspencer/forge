@@ -12,6 +12,12 @@ explains what kind of read actually ran.
 Use this when you need a graph neighborhood or traversal-shaped read and you do
 not want to rebuild that neighborhood manually from raw rows.
 
+If the read shape carries graph obligation meaning, Graph Touch Obligation
+Authority is the check-selection path. Read composition declares graph-shaped
+access; obligation authority decides which registered obligations, diagnostic
+postures, budgets, and evidence apply to that access in the current operating
+world.
+
 ## Why You Use It
 
 - you want one obvious happy path for bounded graph reads
@@ -19,6 +25,9 @@ not want to rebuild that neighborhood manually from raw rows.
 - you want traversal breadth and fallback posture attached to the result
 - you want a runtime surface that can grow toward richer graph-native reads
   without changing the mental model again
+- you need graph-bearing read evidence to stay aligned with the same obligation
+  vocabulary used by mutation, live-read, preview, branch, and construction
+  lanes
 
 This feature is especially useful when a domain layer would otherwise be
 tempted to:

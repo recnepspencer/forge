@@ -16,6 +16,8 @@ mod digest_protocol;
 #[cfg(test)]
 mod family;
 #[cfg(test)]
+mod graph_obligation_adoption;
+#[cfg(test)]
 #[path = "phase_chain/intent.rs"]
 pub(crate) mod intent;
 #[cfg(test)]
@@ -24,6 +26,8 @@ pub(crate) mod outcome;
 #[cfg(test)]
 #[path = "proof/mod.rs"]
 mod proof;
+#[cfg(test)]
+pub(crate) mod query_authority;
 #[cfg(test)]
 pub(crate) mod query_enforcement_adoption;
 #[cfg(test)]

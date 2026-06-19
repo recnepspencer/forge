@@ -197,6 +197,9 @@ impl TopologyRuntimeWriteAuthority {
             .collect::<Vec<_>>();
         let intents = match collection.as_str() {
             "TopologyEntity" => lower_topology_entity_insert(&runtime, &aspect_map)?.0,
+            crate::construction::TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION => {
+                lower_topology_entity_insert(&runtime, &aspect_map)?.0
+            }
             "TopologyRelation" => vec![MutationIntent::Create(CreateIntent::Relation(
                 lower_topology_relation_insert(&runtime, &aspect_map, &[], &BTreeMap::new())?,
             ))],

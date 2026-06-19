@@ -110,6 +110,12 @@ Some covered families end in a runtime handoff:
 - existing-truth probe routing
 - effect-triggered pending write intent execution
 
+Graph touch obligation authority is covered by the same admission posture when
+graph-shaped mutation or access needs obligation selection. Intent admission
+must preserve the touch descriptor, operating world descriptor, selected
+obligations, dispatch plan, executor verdict, and budget outcome instead of
+flattening the work into a local validator callback.
+
 For that effect-triggered family, the admitted review, binding, and final
 effect-intent receipt can preserve one typed write-adjacent trigger class such
 as ordinary effect follow-on, time-only wake, async completion, mixed-cause,
@@ -381,6 +387,8 @@ types.
 ## Related Docs
 
 - [Writes And Intent Boundaries](writes-and-intents.md)
+- [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](../authoring/graph-obligation-consumer-kit.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
 - [Existing Truth](../capabilities/existing-truth.md)
 - [Inspection](../capabilities/inspection.md)

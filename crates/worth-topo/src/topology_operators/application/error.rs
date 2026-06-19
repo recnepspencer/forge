@@ -18,6 +18,7 @@ pub enum TopologyMutationApplicationError {
         stop_stage: Option<ForgeQueryDeclarationEntryOrchestrationStage>,
         refusal_class: Option<TopologyDeclarationEntryRefusalClass>,
         recovery: Option<ForgeQueryRecoveryBrief>,
+        graph_obligation_envelope_digest: Option<String>,
         reason: String,
     },
     MissingCreatedEntityReference(String),
@@ -255,6 +256,16 @@ impl TopologyMutationApplicationError {
     pub(crate) fn declaration_entry_recovery_brief(&self) -> Option<&ForgeQueryRecoveryBrief> {
         match self {
             Self::DeclarationEntry { recovery, .. } => recovery.as_ref(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn declaration_entry_graph_obligation_envelope_digest(&self) -> Option<&str> {
+        match self {
+            Self::DeclarationEntry {
+                graph_obligation_envelope_digest,
+                ..
+            } => graph_obligation_envelope_digest.as_deref(),
             _ => None,
         }
     }

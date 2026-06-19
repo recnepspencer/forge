@@ -2,6 +2,7 @@ mod artifact;
 mod consumer_scope_strings;
 mod encoder;
 mod foundational;
+mod graph_application_scope_strings;
 mod scheme;
 mod scope;
 mod scope_strings;

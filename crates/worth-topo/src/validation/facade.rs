@@ -4,6 +4,10 @@ use serde::{Deserialize, Serialize};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
 use crate::validation::error::TopologyValidationError;
+use crate::validation::rule_identity::{
+    loop_wiring_rule, ownership_rule, radial_rings_rule, shell_closure_rule, vertex_disks_rule,
+};
+use crate::validation::TopologyValidationRuleIdentity;
 use crate::validation::{
     loop_wiring, naming, ownership, radial_rings, shell_closure, vertex_disks,
 };
@@ -25,6 +29,7 @@ pub enum TopologyValidationInputClass {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TopologyValidationRow {
     pub validator: String,
+    pub rule_identity: TopologyValidationRuleIdentity,
     pub phase: TopologyValidationPhase,
     pub input_class: TopologyValidationInputClass,
     pub status: String,
@@ -48,13 +53,13 @@ impl TopologyValidator {
 
         ownership::validate(view)?;
         rows.push(validation_row_with(
-            "ownership",
+            ownership_rule(),
             TopologyValidationPhase::DerivedMaterialization,
             TopologyValidationInputClass::MaterializedTopologyView,
         ));
         loop_wiring::validate(view)?;
         rows.push(validation_row_with(
-            "loop_wiring",
+            loop_wiring_rule(),
             TopologyValidationPhase::DerivedMaterialization,
             TopologyValidationInputClass::MaterializedTopologyView,
         ));
@@ -69,19 +74,19 @@ impl TopologyValidator {
         let mut rows = Self::materialized_validation_report(materialized)?.rows;
         radial_rings::validate(interpreted)?;
         rows.push(validation_row_with(
-            "radial_rings",
+            radial_rings_rule(),
             TopologyValidationPhase::DerivedInterpretation,
             TopologyValidationInputClass::InterpretedTopologyView,
         ));
         shell_closure::validate(interpreted)?;
         rows.push(validation_row_with(
-            "shell_closure",
+            shell_closure_rule(),
             TopologyValidationPhase::DerivedInterpretation,
             TopologyValidationInputClass::InterpretedTopologyView,
         ));
         vertex_disks::validate(interpreted)?;
         rows.push(validation_row_with(
-            "vertex_disks",
+            vertex_disks_rule(),
             TopologyValidationPhase::DerivedInterpretation,
             TopologyValidationInputClass::InterpretedTopologyView,
         ));
@@ -97,12 +102,13 @@ impl TopologyValidator {
 }
 
 fn validation_row_with(
-    validator: &'static str,
+    rule_identity: TopologyValidationRuleIdentity,
     phase: TopologyValidationPhase,
     input_class: TopologyValidationInputClass,
 ) -> TopologyValidationRow {
     TopologyValidationRow {
-        validator: validator.to_string(),
+        validator: rule_identity.name().to_string(),
+        rule_identity,
         phase,
         input_class,
         status: "passed".to_string(),

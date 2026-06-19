@@ -124,11 +124,17 @@ impl ForgeQueryWorkspace {
         &mut self,
         view: &super::ForgeQueryLiveView<T>,
     ) -> Vec<crate::memory_workspace::ForgeQueryEntity> {
-        self.read_live_intent(view)
-            .execute()
+        self.read_live_result(view)
             .expect("live view declaration admitted before workspace.read execution")
             .rows()
             .to_vec()
+    }
+
+    pub fn read_live_result<T>(
+        &mut self,
+        view: &super::ForgeQueryLiveView<T>,
+    ) -> Result<ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
+        self.read_live_intent(view).execute()
     }
 
     pub fn state_live_by_name(
@@ -151,7 +157,7 @@ impl ForgeQueryWorkspace {
             installation,
         ))?;
         let handoff = self.resolve_reviewed_admitted_live_read_execution_handoff(review)?;
-        let binding = self.into_runtime_live_read_execution_binding(handoff);
+        let binding = self.into_runtime_live_read_execution_binding(handoff)?;
         self.execute_bound_live_read_execution(binding)
     }
 

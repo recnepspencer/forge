@@ -63,6 +63,9 @@ Important boundary:
 - direct workspace write and batch helper seams are sealed from consumers
 - graph-shaped same-batch authoring belongs on `workspace.compose_graph(...)`,
   not on caller-owned command-batch choreography
+- graph touch obligations must be selected through Query's touch descriptor,
+  operating world descriptor, obligation index, dispatch envelope, executor
+  verdict, and support row evidence rather than local validator tables
 - backend-verified existing-truth lanes are public and typed through graph
   composition, but callers must read bridge-backed verification support rows
   before teaching them as ordinary bridge-backed production flows
@@ -120,3 +123,6 @@ Direct write receipts now carry:
 - verified assumption-set evidence on backend-verified existing-truth lanes,
   including assumption snapshot token, assumption snapshot digest, verified
   precondition digest, and verification read-set breadth
+- graph obligation dispatch and verdict evidence when a graph touch selected
+  registered obligations, including budget posture such as `BudgetExceeded`,
+  state-load counters, cost classes, and artifact-policy-gated diagnostics

@@ -20,6 +20,7 @@ impl ForgeQueryRuntime {
         mutation_metadata: ForgeQueryMutationMetadata,
         decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
         execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
+        obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let (_, mut target_collection, mut target_entity_identity) =
             classify_receipt_mutation_summary(&receipt);
@@ -57,6 +58,7 @@ impl ForgeQueryRuntime {
             summary.refresh_fallback,
             decision_trace_envelope,
             execution_provenance,
+            obligation_dispatch,
         ))
     }
 

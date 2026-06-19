@@ -325,6 +325,7 @@ fn graph_composition_denial_traces_distinguish_symbol_validation_from_lowering_f
             let relation = ForgeQueryGraphRelationSymbol::new(
                 ForgeQuerySymbolicTargetReference::new("leaked-edge")?
                     .in_target_collection("TaskEdge")?,
+                None,
             );
             graph.update_relation(&relation, |edge| edge.aspect("edge.kind", "blocks"))?;
             Ok(())

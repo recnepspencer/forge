@@ -271,6 +271,7 @@ impl RegistrationIdentityBytes {
             InvariantExecutionPoint::SnapshotPublication,
             InvariantExecutionPoint::CertificationBoundary,
             InvariantExecutionPoint::HarnessAudit,
+            InvariantExecutionPoint::GraphComposition,
         ] {
             self.bool(supported.supports(point));
         }

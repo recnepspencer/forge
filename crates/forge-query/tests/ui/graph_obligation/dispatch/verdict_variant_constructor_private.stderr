@@ -1,0 +1,11 @@
+error[E0223]: ambiguous associated type
+ --> tests/ui/graph_obligation/dispatch/verdict_variant_constructor_private.rs:4:13
+  |
+4 |     let _ = ForgeQueryGraphObligationVerdict::Block {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: if there were a trait named `Example` with associated type `Block` implemented for `ForgeQueryGraphObligationVerdict`, you could use the fully-qualified path
+  |
+4 -     let _ = ForgeQueryGraphObligationVerdict::Block {
+4 +     let _ = <ForgeQueryGraphObligationVerdict as Example>::Block {
+  |

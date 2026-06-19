@@ -2,6 +2,7 @@ mod artifact;
 mod contribution_input;
 mod contributions;
 mod declaration;
+mod declaration_stop;
 mod input;
 mod member_lowering;
 mod orchestration;
@@ -20,9 +21,9 @@ pub use contributions::{
     ForgeQueryGroupedContributionComposition, ForgeQueryGroupedContributionMemberContext,
     ForgeQueryGroupedContributionStop,
 };
-pub use declaration::{
-    ForgeQueryGroupedDeclarationChecked, ForgeQueryGroupedDeclarationStop,
-    ForgeQueryGroupedDeclarationStopKind,
+pub use declaration::ForgeQueryGroupedDeclarationChecked;
+pub use declaration_stop::{
+    ForgeQueryGroupedDeclarationStop, ForgeQueryGroupedDeclarationStopKind,
 };
 pub use input::ForgeQueryGroupedDeclarationInput;
 pub use orchestration::{

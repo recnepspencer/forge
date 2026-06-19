@@ -24,7 +24,10 @@ mod runtime_posture;
 #[cfg(test)]
 mod tests;
 
-use forge_query::facade::{ForgeQueryRuntime, ForgeQueryWorkspace};
+use forge_query::facade::{
+    ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationSupportLane,
+    ForgeQueryRuntime, ForgeQueryWorkspace,
+};
 
 pub use contracts::{TopologyRuntimeAdapters, TopologyRuntimeFailure, TopologyRuntimeSupport};
 pub use mutation_support::{
@@ -78,7 +81,76 @@ pub fn topology_runtime(
         .declaration_initialization(TopologyRuntimeDeclarationInitializationAdapter::new(
             adapters.declaration_initialization.clone(),
         ))
+        .graph_obligation(
+            crate::construction::topology_primitive_construction_birth_graph_obligation_registration(
+                ForgeQueryGraphObligationSupportLane::GraphComposition,
+                ForgeQueryGraphObligationOperatingWorldSelector::any_operating_world(),
+            ),
+        )
+        .graph_obligation(
+            crate::construction::topology_primitive_construction_birth_layout_violation_registration(
+                ForgeQueryGraphObligationSupportLane::GraphComposition,
+                ForgeQueryGraphObligationOperatingWorldSelector::any_operating_world(),
+            ),
+        )
         .support_profile(support_profile);
+    for registration in
+        crate::topology_operators::topology_operator_runtime_graph_obligation_registrations()
+    {
+        builder = builder.graph_obligation(registration);
+    }
+    if adapters
+        .support()
+        .supports_posture(runtime_posture::TopologyRuntimePostureCapability::AuthoritativeWrites)
+    {
+        builder = builder.existing_truth_verification(
+            TopologyExistingTruthVerificationAdapter::new(binding.clone()),
+        );
+    }
+    let runtime = builder.build_backend_from_parts().build()?;
+    runtime.workspace(name).map_err(Into::into)
+}
+
+#[cfg(test)]
+pub(crate) fn topology_runtime_without_primitive_birth_compose_obligation(
+    adapters: TopologyRuntimeAdapters,
+    name: impl Into<String>,
+) -> Result<ForgeQueryWorkspace, TopologyRuntimeFailure> {
+    let support_profile = adapters.support().support_profile();
+    let binding = adapters.binding.clone();
+    let write_binding = binding.clone();
+    let mut builder = ForgeQueryRuntime::builder()
+        .runtime_bridge(self::adapters::build_runtime_bridge(binding.clone())?)
+        .schema_adapter(self::adapters::TopologyRuntimeSchemaAdapter)
+        .source_adapter(TopologyRuntimeSourceAdapter::new(binding.clone()))
+        .snapshot_identity(TopologyRuntimeSnapshotIdentityAdapter::new(binding.clone()))
+        .write_authority(
+            self::adapters::write_authority::TopologyRuntimeWriteAuthority::new(write_binding),
+        )
+        .signal_sink(TopologyStaticSignalSink)
+        .subscription_activation(TopologySubscriptionActivation::new(
+            adapters.support().subscription_activation_evidence(),
+        ))
+        .preview_basis(adapters.support().preview_basis_adapter())
+        .inspector_evidence(TopologyInspectorEvidence::new(
+            adapters.support().write_receipt_evidence_label(),
+            adapters.support().inspector_evidence_label(),
+        ))
+        .declaration_initialization(TopologyRuntimeDeclarationInitializationAdapter::new(
+            adapters.declaration_initialization.clone(),
+        ))
+        .graph_obligation(
+            crate::construction::topology_primitive_construction_birth_layout_violation_registration(
+                ForgeQueryGraphObligationSupportLane::GraphComposition,
+                ForgeQueryGraphObligationOperatingWorldSelector::any_operating_world(),
+            ),
+        )
+        .support_profile(support_profile);
+    for registration in
+        crate::topology_operators::topology_operator_runtime_graph_obligation_registrations()
+    {
+        builder = builder.graph_obligation(registration);
+    }
     if adapters
         .support()
         .supports_posture(runtime_posture::TopologyRuntimePostureCapability::AuthoritativeWrites)

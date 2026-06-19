@@ -1,4 +1,7 @@
-use crate::runtime::ForgeQueryIntentExecutionProvenance;
+use crate::runtime::{
+    ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryGraphObligationAttachmentEvidence,
+    ForgeQueryIntentExecutionProvenance,
+};
 
 use super::super::ForgeQueryIntentDecisionTraceEnvelope;
 use super::ForgeQueryLiveReadReceipt;
@@ -18,6 +21,20 @@ impl ForgeQueryLiveReadResult {
         &self.receipt
     }
 
+    pub fn graph_obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.receipt.graph_obligation_dispatch()
+    }
+
+    pub fn graph_obligation_evidence(&self) -> Option<ForgeQueryGraphObligationAttachmentEvidence> {
+        self.receipt.graph_obligation_evidence()
+    }
+
+    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.receipt.graph_obligation_envelope_digest()
+    }
+
     pub(in crate::runtime) fn new(
         rows: Vec<crate::memory_workspace::ForgeQueryEntity>,
         receipt: ForgeQueryLiveReadReceipt,
@@ -32,6 +49,13 @@ impl ForgeQueryLiveReadResult {
     ) {
         self.receipt.decision_trace_envelope = Some(decision_trace_envelope);
         self.receipt.execution_provenance = Some(execution_provenance);
+    }
+
+    pub(in crate::runtime) fn attach_graph_obligation_dispatch(
+        &mut self,
+        dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
+    ) {
+        self.receipt.graph_obligation_dispatch = dispatch;
     }
 
     #[cfg(test)]

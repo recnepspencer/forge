@@ -6,8 +6,10 @@ use crate::intent_admission::{
     ForgeQueryAuthoritativeMutationBatchExecutionPlan, ForgeQueryAuthoritativeMutationExecutionPlan,
 };
 use crate::runtime::{
-    ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
-    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand,
+    ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryGraphCompositionBreadth,
+    ForgeQueryGraphCompositionProgram, ForgeQueryGraphTouchDescriptor,
+    ForgeQueryGraphTouchDescriptorDenial, ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryWriteCommand,
 };
 
 use super::{
@@ -19,6 +21,7 @@ use super::{
 pub struct ForgeQueryAuthoritativeMutationExecutionHandoff {
     command: ForgeQueryWriteCommand,
     verified_existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
+    obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
     request_digest: String,
     eligibility_digest: String,
     eligibility_trace: ForgeQueryIntentEligibilityTraceEvidence,
@@ -31,6 +34,7 @@ pub struct ForgeQueryAuthoritativeMutationBatchExecutionHandoff {
     commands: Vec<ForgeQueryWriteCommand>,
     graph_composition_breadth: ForgeQueryGraphCompositionBreadth,
     graph_composition_program: ForgeQueryGraphCompositionProgram,
+    obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
     request_digest: String,
     eligibility_digest: String,
     eligibility_trace: ForgeQueryIntentEligibilityTraceEvidence,
@@ -43,6 +47,7 @@ impl ForgeQueryAuthoritativeMutationExecutionHandoff {
         Self {
             command: plan.command().clone(),
             verified_existing_truth_assertion: plan.verified_existing_truth_assertion().cloned(),
+            obligation_dispatch: None,
             request_digest: plan.request_digest().to_string(),
             eligibility_digest: plan.eligibility_digest().to_string(),
             eligibility_trace: plan.eligibility_trace().clone(),
@@ -54,6 +59,7 @@ impl ForgeQueryAuthoritativeMutationExecutionHandoff {
                     .expect("authoritative mutation handoff requires execution seam"),
                 plan.decision_digest(),
                 command_handoff_fingerprint(plan.command()),
+                None,
             ),
         }
     }
@@ -70,6 +76,24 @@ impl ForgeQueryAuthoritativeMutationExecutionHandoff {
         ForgeQueryIntentAdmissionExecutionSeam::BackendWriteAuthorityRoute
     }
 
+    pub(crate) fn with_obligation_dispatch(
+        mut self,
+        obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
+    ) -> Self {
+        self.obligation_dispatch = obligation_dispatch;
+        self.handoff_digest = mutation_handoff_digest(
+            self.family(),
+            self.entrypoint(),
+            self.execution_seam(),
+            &self.decision_digest,
+            command_handoff_fingerprint(&self.command),
+            self.obligation_dispatch
+                .as_ref()
+                .map(ForgeQueryAuthoritativeMutationObligationDispatch::dispatch_digest),
+        );
+        self
+    }
+
     pub fn command(&self) -> &ForgeQueryWriteCommand {
         &self.command
     }
@@ -78,6 +102,12 @@ impl ForgeQueryAuthoritativeMutationExecutionHandoff {
         &self,
     ) -> Option<&ForgeQueryVerifiedExistingTruthAssertion> {
         self.verified_existing_truth_assertion.as_ref()
+    }
+
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.obligation_dispatch.as_ref()
     }
 
     pub fn request_digest(&self) -> &str {
@@ -108,6 +138,7 @@ impl ForgeQueryAuthoritativeMutationBatchExecutionHandoff {
             commands: commands.clone(),
             graph_composition_breadth: plan.batch_seed().graph_composition_breadth().clone(),
             graph_composition_program: plan.batch_seed().graph_composition_program().clone(),
+            obligation_dispatch: plan.obligation_dispatch().cloned(),
             request_digest: plan.request_digest().to_string(),
             eligibility_digest: plan.eligibility_digest().to_string(),
             eligibility_trace: plan.eligibility_trace().clone(),
@@ -119,6 +150,7 @@ impl ForgeQueryAuthoritativeMutationBatchExecutionHandoff {
                     .expect("authoritative mutation batch handoff requires execution seam"),
                 plan.decision_digest(),
                 batch_handoff_fingerprint(&commands),
+                None,
             ),
         }
     }
@@ -135,6 +167,24 @@ impl ForgeQueryAuthoritativeMutationBatchExecutionHandoff {
         ForgeQueryIntentAdmissionExecutionSeam::BackendWriteAuthorityRoute
     }
 
+    pub(crate) fn with_obligation_dispatch(
+        mut self,
+        obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
+    ) -> Self {
+        self.obligation_dispatch = obligation_dispatch;
+        self.handoff_digest = mutation_handoff_digest(
+            self.family(),
+            self.entrypoint(),
+            self.execution_seam(),
+            &self.decision_digest,
+            batch_handoff_fingerprint(&self.commands),
+            self.obligation_dispatch
+                .as_ref()
+                .map(ForgeQueryAuthoritativeMutationObligationDispatch::dispatch_digest),
+        );
+        self
+    }
+
     pub fn commands(&self) -> &[ForgeQueryWriteCommand] {
         &self.commands
     }
@@ -145,6 +195,22 @@ impl ForgeQueryAuthoritativeMutationBatchExecutionHandoff {
 
     pub fn graph_composition_program(&self) -> &ForgeQueryGraphCompositionProgram {
         &self.graph_composition_program
+    }
+
+    pub fn graph_touch_descriptor(
+        &self,
+    ) -> Result<ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial> {
+        ForgeQueryGraphTouchDescriptor::from_authoritative_mutation_batch(
+            &self.graph_composition_program,
+            &self.graph_composition_breadth,
+            &self.commands,
+        )
+    }
+
+    pub fn obligation_dispatch(
+        &self,
+    ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatch> {
+        self.obligation_dispatch.as_ref()
     }
 
     pub fn request_digest(&self) -> &str {
@@ -174,6 +240,7 @@ fn mutation_handoff_digest(
     execution_seam: ForgeQueryIntentAdmissionExecutionSeam,
     decision_digest: &str,
     fingerprint: ForgeQueryEvidenceIdentity,
+    obligation_dispatch_digest: Option<&str>,
 ) -> String {
     let decision_identity = forge_query_evidence_identity(
         ForgeQueryEvidenceScope::AuthoritativeMutationExecutionHandoff,
@@ -193,6 +260,10 @@ fn mutation_handoff_digest(
         )
         .field_evidence_identity(ForgeQueryEvidenceTag::new("decision"), &decision_identity)
         .field_evidence_identity(ForgeQueryEvidenceTag::new("fingerprint"), &fingerprint)
+        .optional_value(
+            ForgeQueryEvidenceTag::new("obligation_dispatch"),
+            obligation_dispatch_digest,
+        )
         .seal()
         .as_str()
         .to_string()

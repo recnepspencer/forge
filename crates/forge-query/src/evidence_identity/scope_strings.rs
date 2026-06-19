@@ -1,4 +1,5 @@
 use super::consumer_scope_strings::consumer_kit_evidence_scope_as_str;
+use super::graph_application_scope_strings::graph_application_evidence_scope_as_str;
 use super::scope::ForgeQueryEvidenceScope;
 
 pub(crate) fn evidence_scope_as_str(scope: ForgeQueryEvidenceScope) -> &'static str {
@@ -332,41 +333,57 @@ pub(crate) fn evidence_scope_as_str(scope: ForgeQueryEvidenceScope) -> &'static 
         | ForgeQueryEvidenceScope::ConsumerTestBackendResidueReport => {
             consumer_kit_evidence_scope_as_str(scope)
         }
-        ForgeQueryEvidenceScope::GraphCompositionDomainInvariantDenial => {
-            "graph-composition-domain-invariant-denial"
-        }
-        ForgeQueryEvidenceScope::GraphCompositionInvariantViolation => {
-            "graph-composition-invariant-violation"
-        }
-        ForgeQueryEvidenceScope::ReadDomainInvariantDenial => "read-domain-invariant-denial",
-        ForgeQueryEvidenceScope::ReadInvariantViolation => "read-invariant-violation",
-        ForgeQueryEvidenceScope::ApplicationSupportSectionPosture => {
-            "application-support-section-posture"
-        }
-        ForgeQueryEvidenceScope::ApplicationSupportReport => "application-support-report",
-        ForgeQueryEvidenceScope::ApplicationEvidenceIdentityBoundaryClosure => {
-            "application-evidence-identity-boundary-closure"
-        }
-        ForgeQueryEvidenceScope::ApplicationStopClassBoundaryClosure => {
-            "application-stop-class-boundary-closure"
-        }
-        ForgeQueryEvidenceScope::ApplicationSessionLabelBoundaryClosure => {
-            "application-session-label-boundary-closure"
-        }
-        ForgeQueryEvidenceScope::ApplicationIdentityBoundaryClosure => {
-            "application-identity-boundary-closure"
-        }
-        ForgeQueryEvidenceScope::ApplicationConsumerKitFamilyClosure => {
-            "application-consumer-kit-family-closure"
-        }
-        ForgeQueryEvidenceScope::ApplicationConsumerKitHostileCertification => {
-            "application-consumer-kit-hostile-certification"
-        }
-        ForgeQueryEvidenceScope::ApplicationConsumerKitReferenceResidue => {
-            "application-consumer-kit-reference-residue"
-        }
-        ForgeQueryEvidenceScope::ApplicationConsumerKitClosure => {
-            "application-consumer-kit-closure"
+        ForgeQueryEvidenceScope::GraphCompositionDomainInvariantDenial
+        | ForgeQueryEvidenceScope::GraphCompositionInvariantViolation
+        | ForgeQueryEvidenceScope::GraphTouchDescriptor
+        | ForgeQueryEvidenceScope::GraphTouchDescriptorRow
+        | ForgeQueryEvidenceScope::GraphObligationRuleIdentity
+        | ForgeQueryEvidenceScope::GraphObligationDispatchContext
+        | ForgeQueryEvidenceScope::GraphObligationDispatchPlan
+        | ForgeQueryEvidenceScope::GraphObligationDispatchEnvelope
+        | ForgeQueryEvidenceScope::GraphObligationExecutionBudget
+        | ForgeQueryEvidenceScope::GraphObligationExecutorContract
+        | ForgeQueryEvidenceScope::GraphObligationExecutionInput
+        | ForgeQueryEvidenceScope::GraphObligationExecutionContext
+        | ForgeQueryEvidenceScope::GraphObligationStateLoadPlan
+        | ForgeQueryEvidenceScope::GraphObligationStateLoadCounters
+        | ForgeQueryEvidenceScope::GraphObligationExecutionResultRow
+        | ForgeQueryEvidenceScope::GraphObligationExecutionResultEnvelope
+        | ForgeQueryEvidenceScope::GraphObligationReduction
+        | ForgeQueryEvidenceScope::GraphObligationDenialProjection
+        | ForgeQueryEvidenceScope::GraphObligationDenialProjectionRow
+        | ForgeQueryEvidenceScope::GraphObligationAttachmentEvidence
+        | ForgeQueryEvidenceScope::GraphObligationDenialAttachmentProjection
+        | ForgeQueryEvidenceScope::GraphObligationDenialAttachmentProjectionRow
+        | ForgeQueryEvidenceScope::GraphObligationMaterializedDispatch
+        | ForgeQueryEvidenceScope::GraphObligationSupportMatrixRow
+        | ForgeQueryEvidenceScope::GraphObligationSupportMatrix
+        | ForgeQueryEvidenceScope::GraphObligationTouchSelector
+        | ForgeQueryEvidenceScope::GraphObligationOperatingWorldSelector
+        | ForgeQueryEvidenceScope::GraphObligationOperatingWorldDescriptor
+        | ForgeQueryEvidenceScope::GraphObligationSupportPosture
+        | ForgeQueryEvidenceScope::GraphObligationRegistration
+        | ForgeQueryEvidenceScope::GraphObligationRegistrationCatalog
+        | ForgeQueryEvidenceScope::GraphObligationIndex
+        | ForgeQueryEvidenceScope::GraphObligationIndexEntry
+        | ForgeQueryEvidenceScope::GraphObligationIndexComplexityContract
+        | ForgeQueryEvidenceScope::GraphObligationIndexBuildCounters
+        | ForgeQueryEvidenceScope::GraphObligationSelection
+        | ForgeQueryEvidenceScope::GraphObligationSelectionCounters
+        | ForgeQueryEvidenceScope::GraphObligationIndexSupportRow
+        | ForgeQueryEvidenceScope::ReadDomainInvariantDenial
+        | ForgeQueryEvidenceScope::ReadInvariantViolation
+        | ForgeQueryEvidenceScope::ApplicationSupportSectionPosture
+        | ForgeQueryEvidenceScope::ApplicationSupportReport
+        | ForgeQueryEvidenceScope::ApplicationEvidenceIdentityBoundaryClosure
+        | ForgeQueryEvidenceScope::ApplicationStopClassBoundaryClosure
+        | ForgeQueryEvidenceScope::ApplicationSessionLabelBoundaryClosure
+        | ForgeQueryEvidenceScope::ApplicationIdentityBoundaryClosure
+        | ForgeQueryEvidenceScope::ApplicationConsumerKitFamilyClosure
+        | ForgeQueryEvidenceScope::ApplicationConsumerKitHostileCertification
+        | ForgeQueryEvidenceScope::ApplicationConsumerKitReferenceResidue
+        | ForgeQueryEvidenceScope::ApplicationConsumerKitClosure => {
+            graph_application_evidence_scope_as_str(scope)
         }
     }
 }

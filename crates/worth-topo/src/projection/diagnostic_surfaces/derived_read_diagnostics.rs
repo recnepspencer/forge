@@ -13,7 +13,12 @@ use crate::derived_topology::traversal_views::InterpretedTopologyView;
 #[cfg(test)]
 use crate::projection::diagnostic_surfaces::build_derived_equivalence_contract;
 use crate::projection::diagnostic_surfaces::DerivedEquivalenceContractReport;
-use crate::validation::DerivedTopologyValidationReport;
+use crate::validation::{
+    validate_interpreted_topology, DerivedTopologyValidationReport,
+    RegisteredTopologyValidationReport, TopologyValidationError,
+};
+
+const DERIVED_READ_VALIDATION_SOURCE: &str = "worth.topo.derived_read.validation";
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DerivedInvalidationTargetRow {
@@ -54,10 +59,19 @@ pub struct DerivedFallbackReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DerivedValidationExecutionReport {
+    pub source: String,
+    pub execution_count: usize,
+    pub registered_rule_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DerivedReadDiagnostics {
     pub invalidation_report: DerivedInvalidationReport,
     pub rebuild_report: DerivedRebuildReport,
     pub fallback_report: DerivedFallbackReport,
+    pub validation_report: DerivedTopologyValidationReport,
+    pub validation_execution_report: DerivedValidationExecutionReport,
     pub equivalence_contract_report: DerivedEquivalenceContractReport,
 }
 
@@ -72,12 +86,34 @@ pub(crate) fn build_derived_read_diagnostics(
         invalidation_report: build_derived_invalidation_report(read_basis),
         rebuild_report: build_derived_rebuild_report(materialized, interpreted, validation),
         fallback_report: build_derived_fallback_report(read_basis, materialized),
+        validation_report: validation.clone(),
+        validation_execution_report: derived_validation_execution_report(validation.rows.len()),
         equivalence_contract_report: build_derived_equivalence_contract(
             read_basis,
             materialized,
             interpreted,
             validation,
         ),
+    }
+}
+
+pub(crate) fn derive_topology_validation_report(
+    materialized: &MaterializedTopologyView,
+    interpreted: &InterpretedTopologyView,
+) -> Result<DerivedTopologyValidationReport, TopologyValidationError> {
+    let report = validate_interpreted_topology(materialized, interpreted)?;
+    RegisteredTopologyValidationReport::from_report(report.clone())
+        .map_err(|error| TopologyValidationError::new("validation_registry", error))?;
+    Ok(report)
+}
+
+pub(crate) fn derived_validation_execution_report(
+    registered_rule_count: usize,
+) -> DerivedValidationExecutionReport {
+    DerivedValidationExecutionReport {
+        source: DERIVED_READ_VALIDATION_SOURCE.to_string(),
+        execution_count: 1,
+        registered_rule_count,
     }
 }
 
@@ -232,11 +268,9 @@ mod tests {
     use crate::derived_topology::materialized_graph::TopologyMaterializer;
     use crate::derived_topology::traversal_views::interpret_topology_view;
     use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
-    use crate::validation::{
-        reference_integrity::milestone_one_runtime_builder, validate_interpreted_topology,
-    };
+    use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
-    use super::build_derived_read_diagnostics;
+    use super::{build_derived_read_diagnostics, derive_topology_validation_report};
 
     #[test]
     fn derived_diagnostics_reports_are_explicit_and_deterministic() {
@@ -257,7 +291,7 @@ mod tests {
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
         let interpreted = interpret_topology_view(&materialized);
         let validation =
-            validate_interpreted_topology(&materialized, &interpreted).expect("validation");
+            derive_topology_validation_report(&materialized, &interpreted).expect("validation");
 
         let diagnostics = build_derived_read_diagnostics(
             &verified.read_basis(),
@@ -285,6 +319,14 @@ mod tests {
         assert!(diagnostics.rebuild_report.whole_view_rebuild);
         assert_eq!(
             diagnostics.rebuild_report.validation_row_count,
+            validation.rows.len()
+        );
+        assert_eq!(diagnostics.validation_report, validation);
+        assert_eq!(diagnostics.validation_execution_report.execution_count, 1);
+        assert_eq!(
+            diagnostics
+                .validation_execution_report
+                .registered_rule_count,
             validation.rows.len()
         );
         assert!(diagnostics.fallback_report.whole_view_materialization);

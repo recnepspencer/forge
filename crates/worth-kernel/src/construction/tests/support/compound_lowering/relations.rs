@@ -2,7 +2,7 @@ use worth_spatial::facade::anchor_selection::{
     AuthorSpatialAnchorSelectionIntent, SpatialAnchorMatchConstraintSpec,
     SpatialAnchorSelectionDeclarationEntry, SpatialAnchorSelectionFailureKind,
     SpatialAnchorSelectionStatus, SpatialConstraintError, SpatialLiesOnConstraintSpec,
-    SpatialPointsTowardConstraintSpec,
+    SpatialPointsTowardConstraintSpec, SpatialWitnessFailureClass,
 };
 use worth_spatial::facade::refs::{EmptySpatialWitnessCatalog, SpatialWitnessCatalog};
 use worth_spatial::facade::refs::{SpatialAnchorRef, SpatialFrameRef};
@@ -115,11 +115,9 @@ impl<S> ConstructionPointsTowardConstraintPlan<S> {
                 Some(SpatialAnchorSelectionFailureKind::Witness(class)) => {
                     Err(SpatialConstraintError::TargetWitnessFailure(class))
                 }
-                _ => {
-                    unreachable!(
-                        "points-toward declaration should reject only with witness failure"
-                    )
-                }
+                _ => Err(SpatialConstraintError::TargetWitnessFailure(
+                    SpatialWitnessFailureClass::Unsupported,
+                )),
             },
         }
     }

@@ -484,6 +484,56 @@ The suite must include:
   support report without private constructors, filesystem scanning, or
   caller-owned digest assembly
 
+## Milestone 9.9 Phase 20 Required Suite
+
+`Milestone 9.9 Graph Touch Obligation Authority Hostile Certification Matrix`
+is required for Phase 20. It must prove that graph touch obligation authority
+closes only when Query-owned selection, dispatch, execution status, reduction,
+budget, residue, consumer adoption, reference-consumer adoption, docs, and
+support rows agree.
+
+The closure record for this suite is
+[milestone-9.9-closeout.md](./milestone-9.9-closeout.md). That closeout is the
+source of truth for defended exclusions and accepted residue; this matrix is
+the required machine-checkable proof surface.
+
+The suite must include:
+
+- kind x lane x representative touch coverage proving every
+  `ForgeQueryGraphObligationKind` and every covered
+  `ForgeQueryGraphObligationSupportLane` participates in the certified matrix
+  with no fake no-op executor rows
+- support-status honesty proving `Supported`, `Unsupported`,
+  `NotApplicable`, `DiagnosticOnly`, and `DeferredToBackstop` all appear as
+  explicit support postures with budget and artifact-policy evidence
+- selection replay equivalence proving equivalent touch descriptor, operating
+  world descriptor, and obligation index inputs produce stable selection
+  digests, and intentionally unrelated touches produce exact no-match results
+  with lookup counters rather than fake candidates
+- false-fire and false-miss pressure proving representative collection,
+  relation, aspect, mutation-family, read-shape, and operating-world
+  perturbations do not silently select the wrong obligations
+- reduction algebra certification proving canonical ordering, duplicate rule
+  observation accounting, severity reduction, denial projection, and digest
+  stability under equivalent multi-obligation observations
+- execution budget certification proving broad state-load attempts produce
+  `BudgetExceeded` or a declared dense execution path before unbounded graph
+  walks, with exact state-load counters and artifact-policy-gated diagnostics
+- residue matrix certification proving every residue row has `introduced_in`,
+  `must_not_exceed_count`, and `removal_trigger`, and that residue count never
+  grows after introduction
+- Consumer Kit certification proving a downstream reference consumer can adopt
+  a covered graph obligation through Query-owned registration, selector
+  coverage, support pinning, in-memory proof, bypass audit, adoption manifest,
+  and residue manifest surfaces without local ceremony
+- worth-topo and worth-kernel reference-consumer agreement proving their
+  adoption manifests and residue manifests consume the same Query-owned proof
+  vocabulary rather than local validator or phase-chain folklore
+- docs agreement coverage proving AI guidance, support rows, and this
+  requirements matrix name the same certification surface and do not teach
+  manual invariant packs or consumer-local legality as the ordinary covered
+  path
+
 ## Section Index
 
 - [Milestones 1-4](./test-requirements-milestones-1-4.md)

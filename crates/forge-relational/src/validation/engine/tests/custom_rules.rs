@@ -2,6 +2,7 @@ use super::validation_engine_fixtures::*;
 use std::sync::Arc;
 
 pub(super) struct AlwaysViolatesCustomRule;
+pub(super) struct GraphCompositionViolatesCustomRule;
 pub(super) struct StructuralSurfaceRule;
 pub(super) struct PanicDuringPrepareRule;
 pub(super) struct PanicDuringEvaluateRule;
@@ -18,6 +19,41 @@ impl CustomInvariantRule for AlwaysViolatesCustomRule {
             display_name: Arc::from("Test Custom Violation"),
             operational: CustomInvariantOperationalMetadata {
                 execution_point: crate::validation::data::InvariantExecutionPoint::CommitBoundary,
+                groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
+                cost_class: crate::validation::data::InvariantCostClass::Touched,
+                failure_effect: crate::validation::data::InvariantFailureEffect::BlockCommit,
+            },
+        }
+    }
+
+    fn prepare_scope(
+        &self,
+        _planner: &mut CustomInvariantScopePlanner<'_>,
+    ) -> Result<Self::Scope, CustomInvariantPreparationError> {
+        Ok(())
+    }
+
+    fn evaluate(
+        &self,
+        _context: &CustomInvariantExecutionContext<'_>,
+        _scope: &Self::Scope,
+    ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
+        Ok(CustomInvariantVerdict::Violation)
+    }
+}
+
+impl CustomInvariantRule for GraphCompositionViolatesCustomRule {
+    type Scope = ();
+
+    fn descriptor(&self) -> CustomInvariantDescriptor {
+        CustomInvariantDescriptor {
+            identity: CustomInvariantSemanticIdentity {
+                rule_id: CustomInvariantRuleId::new("test.custom.graph-composition"),
+                semantic_version: CustomInvariantSemanticVersion::new(1, 0),
+            },
+            display_name: Arc::from("Test Graph Composition Custom Rule"),
+            operational: CustomInvariantOperationalMetadata {
+                execution_point: crate::validation::data::InvariantExecutionPoint::GraphComposition,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
                 cost_class: crate::validation::data::InvariantCostClass::Touched,
                 failure_effect: crate::validation::data::InvariantFailureEffect::BlockCommit,

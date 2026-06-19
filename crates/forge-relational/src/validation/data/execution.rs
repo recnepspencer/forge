@@ -23,10 +23,11 @@ pub enum InvariantExecutionPoint {
     SnapshotPublication,
     CertificationBoundary,
     HarnessAudit,
+    GraphComposition,
 }
 
 impl InvariantExecutionPoint {
-    pub const COUNT: usize = 5;
+    pub const COUNT: usize = 6;
 
     pub const fn class(self) -> InvariantClass {
         match self {
@@ -35,6 +36,7 @@ impl InvariantExecutionPoint {
             Self::SnapshotPublication => InvariantClass::SnapshotAudit,
             Self::CertificationBoundary => InvariantClass::SnapshotAudit,
             Self::HarnessAudit => InvariantClass::HarnessHeavy,
+            Self::GraphComposition => InvariantClass::AlwaysOnStructural,
         }
     }
 
@@ -45,6 +47,7 @@ impl InvariantExecutionPoint {
             Self::SnapshotPublication => "snapshot_publication",
             Self::CertificationBoundary => "certification_boundary",
             Self::HarnessAudit => "harness_audit",
+            Self::GraphComposition => "graph_composition",
         }
     }
 }

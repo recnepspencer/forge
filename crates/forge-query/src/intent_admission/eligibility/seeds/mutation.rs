@@ -6,6 +6,7 @@ use crate::runtime::{
     command_declared_aspect_value_digest, ForgeQueryContinuityMutationDenial,
     ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthBindingDenial,
     ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
+    ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial,
     ForgeQueryMutationSymbolIdentity, ForgeQueryMutationTargetCollectionIdentity,
     ForgeQueryNamingMutationDenial, ForgeQuerySymbolicAspectReference,
     ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceDenial,
@@ -100,6 +101,16 @@ impl ForgeQueryAuthoritativeMutationBatchIntentSeed {
 
     pub fn graph_composition_program(&self) -> &ForgeQueryGraphCompositionProgram {
         &self.graph_composition_program
+    }
+
+    pub fn graph_touch_descriptor(
+        &self,
+    ) -> Result<ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial> {
+        ForgeQueryGraphTouchDescriptor::from_authoritative_mutation_batch(
+            &self.graph_composition_program,
+            &self.graph_composition_breadth,
+            &self.commands,
+        )
     }
 
     pub fn into_parts(

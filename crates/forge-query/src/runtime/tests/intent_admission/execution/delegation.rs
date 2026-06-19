@@ -128,6 +128,43 @@ fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_executi
 }
 
 #[test]
+fn effect_write_intent_denies_when_graph_obligations_require_pre_execution_touch_descriptor() {
+    let mut runtime = intent_runtime_with_collection_obligation(TestIntentAuthority, "Task");
+    let live = runtime
+        .declare_live_view::<Value>(
+            "tasks.effect-obligation",
+            task_live_request(),
+            task_schema(),
+        )
+        .expect("live should declare");
+    let effect = runtime
+        .declare_effect::<Value>(ForgeQueryEffectDeclaration::write_intent(
+            "effects.obligation-reconcile",
+            ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+            "strategy.intent.reconcile",
+        ))
+        .expect("write-intent effect should declare");
+    runtime
+        .write(ForgeQueryWriteCommand::UpdateAspect {
+            entity_identity: crate::memory_workspace::admit_authored_entity_label("task-1"),
+            aspect_path: "title.value".to_string(),
+            value: json!("title from write"),
+        })
+        .expect("write should queue pending effect intent");
+
+    let error = runtime
+        .execute_next_effect_write_intent(&effect, "1.0", "effect.intent.input.v1")
+        .expect_err("effect write intent should stop before execution without touch descriptor");
+
+    match error {
+        ForgeQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing { effect_name } => {
+            assert_eq!(effect_name, "effects.obligation-reconcile");
+        }
+        other => panic!("unexpected effect graph obligation error: {other:?}"),
+    }
+}
+
+#[test]
 fn scalar_write_delegates_to_canonical_admission_and_execution_handoff() {
     let mut delegated_runtime = intent_runtime_with_authority(TestIntentAuthority);
     let command = ForgeQueryWriteCommand::UpdateAspect {
@@ -172,4 +209,31 @@ fn scalar_write_delegates_to_canonical_admission_and_execution_handoff() {
         delegated.admission_family(),
         Some("authoritative-mutation-intent")
     );
+}
+
+fn intent_runtime_with_collection_obligation<T: ForgeQueryIntentAuthorityAdapter + 'static>(
+    authority: T,
+    collection: &str,
+) -> ForgeQueryRuntime {
+    complete_backend_from_parts_builder()
+        .support_profile(intent_support_profile())
+        .intent_authority(authority)
+        .graph_obligation(
+            ForgeQueryGraphObligationRegistration::schema_contract_validator(
+                ForgeQueryGraphObligationRuleIdentity::new(
+                    "test.effect-graph-obligation",
+                    collection,
+                    "v1",
+                )
+                .unwrap(),
+                ForgeQueryGraphTouchSelector::collection(collection).unwrap(),
+                ForgeQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
+            )
+            .with_support_posture(ForgeQueryGraphObligationSupportPosture::supported(
+                ForgeQueryGraphObligationSupportLane::EffectTriggeredWriteIntent,
+            )),
+        )
+        .build_backend_from_parts()
+        .build()
+        .expect("runtime should build with intent authority and graph obligation")
 }

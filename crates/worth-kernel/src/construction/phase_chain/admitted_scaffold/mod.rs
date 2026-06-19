@@ -1,24 +1,17 @@
-#[cfg(test)]
 mod admitted_artifact;
-#[cfg(test)]
 mod birth_proof_support;
 pub(crate) mod family_birth_input;
-#[cfg(test)]
 mod topology_ready_birth;
 
-#[cfg(test)]
 use self::topology_ready_birth::prepare_primitive_construction_topology_ready_birth;
 use super::digest::digest_owned_parts;
 use super::request::{PrimitiveConstructionPhaseError, PrimitiveConstructionRequest};
 use worth_geom::facade::{
     PrimitiveConditioningWitness, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
 };
-#[cfg(test)]
 use worth_primitives::PrimitiveConstructionBirthSynopsisContract;
-#[cfg(test)]
 use worth_primitives::PrimitiveConstructionFamilyKey;
 
-#[cfg(test)]
 pub(crate) use self::admitted_artifact::PreparedPrimitiveConstructionAdmittedArtifact;
 #[cfg(test)]
 pub(crate) use self::birth_proof_support::PrimitiveConstructionBirthPlacementFacts;
@@ -28,9 +21,7 @@ pub(crate) struct PrimitiveConstructionAdmittedRealizationPosture {
     attempted_strategies: Vec<PrimitiveRealizationStrategy>,
     conditioning_witness: PrimitiveConditioningWitness,
     stability_class: PrimitiveStabilityClass,
-    #[cfg(test)]
     realization_digest: String,
-    #[cfg(test)]
     realization_geometry_digest: String,
 }
 
@@ -51,18 +42,15 @@ impl PrimitiveConstructionAdmittedRealizationPosture {
         self.stability_class
     }
 
-    #[cfg(test)]
     pub(crate) fn realization_digest(&self) -> &str {
         &self.realization_digest
     }
 
-    #[cfg(test)]
     pub(crate) fn realization_geometry_digest(&self) -> &str {
         &self.realization_geometry_digest
     }
 }
 
-#[cfg(test)]
 pub(crate) struct PrimitiveConstructionAdmittedBirthTopologyTruth {
     family: PrimitiveConstructionFamilyKey,
     birth_contract: PrimitiveConstructionBirthSynopsisContract,
@@ -80,7 +68,6 @@ pub(crate) struct PrimitiveConstructionAdmittedBirthTopologyTruth {
     birth_mapping_digest: String,
 }
 
-#[cfg(test)]
 impl PrimitiveConstructionAdmittedBirthTopologyTruth {
     pub(crate) fn family(&self) -> PrimitiveConstructionFamilyKey {
         self.family
@@ -139,7 +126,6 @@ impl PrimitiveConstructionAdmittedBirthTopologyTruth {
     }
 }
 
-#[cfg(test)]
 struct PreparedPrimitiveConstructionAdmittedRuntimeInputs {
     birth_topology_truth: PrimitiveConstructionAdmittedBirthTopologyTruth,
     realization_posture: PrimitiveConstructionAdmittedRealizationPosture,
@@ -147,43 +133,55 @@ struct PreparedPrimitiveConstructionAdmittedRuntimeInputs {
         topology::facade::TopologyPrimitiveConstructionQueryAdmittedHandoff,
 }
 
-#[cfg(test)]
 pub(crate) fn prepare_primitive_construction_admitted_artifact(
     request: &PrimitiveConstructionRequest,
 ) -> Result<PreparedPrimitiveConstructionAdmittedArtifact, PrimitiveConstructionPhaseError> {
     let prepared = prepare_primitive_construction_admitted_runtime_inputs(request)?;
-    Ok(
-        PreparedPrimitiveConstructionAdmittedArtifact::from_topology_query_admitted_handoff(
-            prepared.topology_query_admitted_handoff,
-            #[cfg(test)]
-            prepared
-                .birth_topology_truth
-                .consequence_digest()
-                .to_string(),
-            #[cfg(test)]
-            prepared
-                .birth_topology_truth
-                .birth_mapping_digest()
-                .to_string(),
-            prepared.realization_posture.conditioning_witness().clone(),
-            prepared.realization_posture.selected_strategy(),
-            prepared.realization_posture.attempted_strategies().to_vec(),
-            prepared.realization_posture.stability_class(),
-            #[cfg(test)]
-            prepared
-                .realization_posture
-                .realization_digest()
-                .to_string(),
-            #[cfg(test)]
-            prepared
-                .realization_posture
-                .realization_geometry_digest()
-                .to_string(),
-        ),
+    Ok(admitted_artifact_from_prepared_runtime_inputs(prepared))
+}
+
+pub(crate) fn prepare_primitive_construction_executed_admitted_artifact(
+    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
+    request: &PrimitiveConstructionRequest,
+) -> Result<PreparedPrimitiveConstructionAdmittedArtifact, PrimitiveConstructionPhaseError> {
+    let prepared = prepare_primitive_construction_admitted_runtime_inputs(request)?;
+    let compose_execution = topology::facade::execute_primitive_construction_birth_compose(
+        workspace,
+        prepared.topology_query_admitted_handoff.clone(),
+    )
+    .map_err(PrimitiveConstructionPhaseError::TopologyBirthCompose)?;
+    Ok(admitted_artifact_from_prepared_runtime_inputs(prepared)
+        .with_topology_compose_evidence(compose_execution.evidence().clone()))
+}
+
+fn admitted_artifact_from_prepared_runtime_inputs(
+    prepared: PreparedPrimitiveConstructionAdmittedRuntimeInputs,
+) -> PreparedPrimitiveConstructionAdmittedArtifact {
+    PreparedPrimitiveConstructionAdmittedArtifact::from_topology_query_admitted_handoff(
+        prepared.topology_query_admitted_handoff,
+        prepared
+            .birth_topology_truth
+            .consequence_digest()
+            .to_string(),
+        prepared
+            .birth_topology_truth
+            .birth_mapping_digest()
+            .to_string(),
+        prepared.realization_posture.conditioning_witness().clone(),
+        prepared.realization_posture.selected_strategy(),
+        prepared.realization_posture.attempted_strategies().to_vec(),
+        prepared.realization_posture.stability_class(),
+        prepared
+            .realization_posture
+            .realization_digest()
+            .to_string(),
+        prepared
+            .realization_posture
+            .realization_geometry_digest()
+            .to_string(),
     )
 }
 
-#[cfg(test)]
 fn prepare_primitive_construction_admitted_runtime_inputs(
     request: &PrimitiveConstructionRequest,
 ) -> Result<PreparedPrimitiveConstructionAdmittedRuntimeInputs, PrimitiveConstructionPhaseError> {

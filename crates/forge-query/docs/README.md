@@ -58,6 +58,11 @@ artifact, orchestration, grouping, and recovery model.
   [capabilities/basis-capability-lifecycle.md](./capabilities/basis-capability-lifecycle.md)
 - if you need cross-runtime “why” (not `workspace.inspect` alone):
   [capabilities/cross-runtime-causal-inspection.md](./capabilities/cross-runtime-causal-inspection.md)
+- if you need graph touch obligation selection, support rows, or downstream
+  graph-obligation proof:
+  [authoring/graph-touch-obligation-authority.md](./authoring/graph-touch-obligation-authority.md)
+- if you need the Milestone 9.9 closure record for graph obligation authority:
+  [_docs/forge-query/milestone-9.9-closeout.md](../../../_docs/forge-query/milestone-9.9-closeout.md)
 - if you need lower-runtime routing (not direct crate imports):
   [domain-capabilities/lower-runtime-capability-routing.md](./domain-capabilities/lower-runtime-capability-routing.md)
 - if you need contribution lane map:
@@ -74,6 +79,9 @@ artifact, orchestration, grouping, and recovery model.
 ## Authoring (feature docs)
 
 - [Collections, cursors, ordering, and aggregations](./authoring/collections-cursors-ordering-and-aggregations.md)
+- [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
+- [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Planner parallel admission and scale posture](./authoring/planner-parallel-admission-and-scale-posture.md)
 
 ## Execution (feature docs)

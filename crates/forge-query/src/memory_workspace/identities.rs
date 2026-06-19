@@ -245,6 +245,11 @@ impl ForgeQueryEntityIdentity {
         }
     }
 
+    pub fn relational_entity_record_parts(&self) -> Option<RelationalBridgeRecordIdentityParts> {
+        self.relational_record_parts()
+            .filter(|parts| parts.kind() == RelationalBridgeRecordIdentityKind::Entity)
+    }
+
     pub fn evidence_identity(&self) -> ForgeQueryEvidenceIdentity {
         match self {
             Self::RelationalRecord { relational_record } => {

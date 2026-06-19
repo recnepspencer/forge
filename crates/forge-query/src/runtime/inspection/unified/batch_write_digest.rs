@@ -8,6 +8,7 @@ use crate::runtime::{
     ForgeQueryBatchMutationEvidence, ForgeQueryGraphCompositionBreadth,
     ForgeQueryGraphCompositionEvidence, ForgeQueryGraphCompositionLifecycleOutcomes,
     ForgeQueryGraphCompositionProgram, ForgeQueryGraphCompositionResolutionMap,
+    ForgeQueryGraphObligationAttachmentEvidence,
 };
 
 #[path = "batch_write_digest_components.rs"]
@@ -27,6 +28,7 @@ pub(super) struct ForgeQueryBatchWriteDigestInputs<'a> {
     pub journal_position_identities: &'a [ForgeQueryEvidenceIdentity],
     pub component_operations: &'a [ForgeQueryBatchWriteComponentInspection],
     pub graph_composition_resolution_map: &'a ForgeQueryGraphCompositionResolutionMap,
+    pub graph_obligation_evidence: Option<&'a ForgeQueryGraphObligationAttachmentEvidence>,
     pub touched_aspect_paths: &'a [String],
     pub affected_live_view_ids: &'a [String],
     pub affected_derived_view_ids: &'a [String],
@@ -319,6 +321,12 @@ pub(super) fn build_batch_write_receipt_inspection_digest(
         .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("graph_resolution_identity"),
             graph_resolution_identities.iter(),
+        )
+        .optional_value(
+            ForgeQueryEvidenceTag::new("graph_obligation_evidence"),
+            inputs
+                .graph_obligation_evidence
+                .map(ForgeQueryGraphObligationAttachmentEvidence::evidence_digest),
         )
         .field_evidence_identity_sequence(
             ForgeQueryEvidenceTag::new("touched_aspect_path"),

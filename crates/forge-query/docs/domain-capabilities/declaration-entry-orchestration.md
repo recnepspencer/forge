@@ -193,6 +193,12 @@ The plan exposes that sequencing law directly:
 - `explicit_caller_handoff_steps()`
 - `orchestration_identity_digest()`
 
+If a declaration-orchestration step touches graph-shaped authority, the graph
+obligation selector remains Query-owned. The orchestration plan may carry touch
+descriptor, operating world descriptor, dispatch plan, executor verdict, and
+budget evidence, but it must not replace graph touch obligation authority with
+local validator dispatch.
+
 The plan also exposes the materialization and cost policy directly:
 
 - `materialization_policy()`
@@ -643,6 +649,7 @@ passing. Plans and transcripts therefore explain:
 
 ## Related Docs
 
+- [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)

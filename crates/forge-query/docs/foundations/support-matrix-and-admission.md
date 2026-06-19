@@ -121,6 +121,69 @@ Support snapshots are projections of this matrix. They are not a second support
 authority. Support pins bind to typed row identity and live row digests; a
 local list of required family names is not real pinning.
 
+## Graph Obligation Rows
+
+Graph touch obligation support rows must name the same covered obligation kinds
+as the graph authority, certification, and Consumer Kit docs:
+
+- `BlockingInvariant`
+- `SchemaContractValidator`
+- `AdvisoryObligation`
+- `PreflightSequencingObligation`
+- `CapabilityGapScreen`
+- `OperatingContextGate`
+
+They must use the same support status vocabulary:
+
+- `Supported`
+- `Unsupported`
+- `NotApplicable`
+- `DiagnosticOnly`
+- `DeferredToBackstop`
+
+Budget posture is part of row honesty. Docs and support rows must name
+`BudgetExceeded`, `budget-exceeded`, state-load counters, cost classes such as
+`sparse-topology`, and artifact-policy-gated diagnostics when large graph or
+boolean-like operations can exceed the admitted proof budget.
+
+Canonical kind labels are `blocking-invariant`,
+`schema-contract-validator`, `advisory-obligation`,
+`preflight-sequencing-obligation`, `capability-gap-screen`, and
+`operating-context-gate`. Canonical support status labels are `supported`,
+`unsupported`, `not-applicable`, `diagnostic-only`, and
+`deferred-to-backstop`.
+
+The `Milestone 9.9 Graph Touch Obligation Authority Hostile Certification Matrix`
+uses this covered lane vocabulary:
+
+- graph composition
+- authoritative command batch
+- scalar mutation
+- effect-triggered write intent
+- declaration entry
+- contribution orchestration
+- read family
+- live read
+- preview mutation
+- preview intent
+- branch intent
+- policy-aware graph mutation
+- primitive construction birth
+- worth-topo operator catalog
+- worth-kernel phase chain
+
+Canonical covered lane labels are `graph-composition`,
+`authoritative-command-batch`, `scalar-mutation`,
+`effect-triggered-write-intent`, `declaration-entry`,
+`contribution-orchestration`, `read-family`, `live-read`,
+`preview-mutation`, `preview-intent`, `branch-intent`,
+`policy-aware-graph-mutation`, `primitive-construction-birth`,
+`worth-topo-operator-catalog`, and `worth-kernel-phase-chain`.
+
+Support rows may deny, defer, or mark a lane not applicable, but they must keep
+the lane visible. A collapsed "batch" row is not a graph obligation support
+row.
+
 ## Small Example
 
 ```rust
@@ -319,6 +382,8 @@ For deeper checks:
 
 ## Related Docs
 
+- [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
+- [Graph Obligation Consumer Kit](../authoring/graph-obligation-consumer-kit.md)
 - [Workspace Overview](workspace-overview.md)
 - [State](state.md)
 - [Intent Admission](../execution/intent-admission.md)

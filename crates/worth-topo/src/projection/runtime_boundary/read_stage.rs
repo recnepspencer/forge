@@ -11,10 +11,12 @@ use crate::derived_topology::materialized_graph::{
 };
 #[cfg(test)]
 use crate::derived_topology::traversal_views::{interpret_topology_view, InterpretedTopologyView};
+#[cfg(test)]
+use crate::projection::diagnostic_surfaces::derived_read_diagnostics::derive_topology_validation_report;
 #[cfg(not(test))]
 use crate::validation::TopologyValidationError;
 #[cfg(test)]
-use crate::validation::{validate_interpreted_topology, TopologyValidationError};
+use crate::validation::TopologyValidationError;
 
 #[derive(Debug)]
 pub(crate) enum TopologyReadStageError {
@@ -94,7 +96,7 @@ pub(crate) fn stage_topology_read_from_view(
 ) -> Result<StagedTopologyRead, TopologyReadStageError> {
     let materialized = TopologyMaterializer::materialize_from_truth(read_view)?;
     let interpreted = interpret_topology_view(&materialized);
-    let validation = validate_interpreted_topology(&materialized, &interpreted)?;
+    let validation = derive_topology_validation_report(&materialized, &interpreted)?;
     Ok(StagedTopologyRead {
         materialized,
         interpreted,

@@ -54,7 +54,9 @@ pub(in crate::intent_admission::certification) fn certified_read_intent_fixture(
     let handoff = workspace
         .resolve_reviewed_admitted_read_execution_handoff(review.clone())
         .expect("read handoff should admit");
-    let binding = workspace.into_runtime_read_execution_binding(handoff.clone());
+    let binding = workspace
+        .into_runtime_read_execution_binding(handoff.clone())
+        .expect("read binding should prepare");
     let result = workspace
         .execute_bound_read_execution(binding.clone())
         .expect("read binding should execute");
@@ -89,7 +91,9 @@ pub(in crate::intent_admission::certification) fn read_delegation_parity_fixture
     let current_handoff = canonical_current
         .resolve_reviewed_admitted_read_execution_handoff(current_review)
         .expect("canonical current handoff should admit");
-    let current_binding = canonical_current.into_runtime_read_execution_binding(current_handoff);
+    let current_binding = canonical_current
+        .into_runtime_read_execution_binding(current_handoff)
+        .expect("canonical current binding should prepare");
     let current_canonical = canonical_current
         .execute_bound_read_execution(current_binding)
         .expect("canonical current read should execute");
@@ -116,7 +120,9 @@ pub(in crate::intent_admission::certification) fn read_delegation_parity_fixture
     let basis_handoff = canonical_basis
         .resolve_reviewed_admitted_read_execution_handoff(basis_review)
         .expect("canonical basis handoff should admit");
-    let basis_binding = canonical_basis.into_runtime_read_execution_binding(basis_handoff);
+    let basis_binding = canonical_basis
+        .into_runtime_read_execution_binding(basis_handoff)
+        .expect("canonical basis binding should prepare");
     let basis_canonical = canonical_basis
         .execute_bound_read_execution(basis_binding)
         .expect("canonical basis read should execute");

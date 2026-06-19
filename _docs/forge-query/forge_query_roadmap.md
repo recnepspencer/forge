@@ -3566,7 +3566,7 @@ staffing allows; adoption and certification close strictly last.
 - full topo milestone-one catalog and kernel phase-chain adoption residue
 - bypass audit and architectural certification matrix pass
 
-## Milestone 9.10: Graph Read Access Planning And Automatic Index Provisioning
+## Milestone 9.10: Graph Read Access Planning And Declarative Index Admission
 
 ### Goal
 
@@ -4151,7 +4151,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Bounded relational materialization | Milestone 4 | Relation materialization descriptors, traversal bounds | Eager materialization stays within declared scope | Milestone 13 execution parity + geometry/chip domain suites |
 | Subgraph-scoped queries | Milestone 4 | Scope/traversal boundary descriptors | Traversal breadth remains bounded and explainable | Milestone 13 geometry/chip domain suites |
 | Relation traversal expressions | Milestones 1, 2, and 4 | Traversal nodes, validated relation-edge constraints | Illegal traversals reject; legal traversals stay bounded | Milestone 13 validation rejection + domain suites |
-| Graph read access planning and automatic index provisioning | Milestone 9.10 | Access-shape descriptors, required index sets, budget estimates, access admission envelopes, graph access receipts | Covered graph reads execute through admitted access postures, with no hidden N+1 traversal and no unbounded background indexing | Milestone 9.10 no-N+1, memory-budget, and access-plan replay certification + Milestone 13 execution parity |
+| Graph read access planning and declarative index admission | Milestone 9.10 | Access-shape descriptors, required index sets, budget estimates, access admission envelopes, graph access receipts | Covered graph reads execute through admitted access postures, with no hidden N+1 traversal and no unbounded background indexing | Milestone 9.10 no-N+1, memory-budget, and access-plan replay certification + Milestone 13 execution parity |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
 | Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |

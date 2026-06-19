@@ -223,6 +223,7 @@ pub(crate) use evidence_identities::{
 };
 #[cfg(test)]
 mod fallback_seam_counters;
+mod graph_obligation_registration;
 mod handle_contract;
 mod inspection;
 mod intent;
@@ -259,6 +260,7 @@ mod read_composition_walks;
 mod remask_posture;
 mod retained_rows;
 mod runtime_api_contract;
+mod runtime_authoritative_mutation_obligation_dispatch;
 mod runtime_authoritative_mutation_routing;
 mod runtime_batch_write_entrypoints;
 mod runtime_batch_write_intents;
@@ -273,8 +275,10 @@ mod runtime_intent_phase_four_execution;
 mod runtime_intent_phase_three_resolution;
 mod runtime_intents;
 mod runtime_journal_replay;
+mod runtime_non_authoritative_obligation_dispatch;
 mod runtime_probe_routing_intents;
 mod runtime_read_intents;
+mod runtime_read_obligation_dispatch;
 mod runtime_reads_programs;
 mod runtime_session_lowering;
 mod runtime_sessions;
@@ -392,9 +396,9 @@ pub use effect::{
 };
 #[allow(unused_imports)]
 pub use error::{
-    ForgeQueryRuntimeDeclarationFailureKind, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeLookupFailureKind, ForgeQueryRuntimeMissingArtifactKind,
-    ForgeQueryRuntimeMissingComponent, ForgeQueryStopClass,
+    ForgeQueryGraphObligationDenial, ForgeQueryRuntimeDeclarationFailureKind,
+    ForgeQueryRuntimeError, ForgeQueryRuntimeLookupFailureKind,
+    ForgeQueryRuntimeMissingArtifactKind, ForgeQueryRuntimeMissingComponent, ForgeQueryStopClass,
 };
 #[cfg(test)]
 pub(crate) use fallback_seam_counters::{
@@ -469,7 +473,7 @@ pub use intent::{
     ForgeQueryIntentDenialEvidence, ForgeQueryIntentExecution,
     ForgeQueryIntentExecutionFailureEvidence, ForgeQueryIntentExecutionKind,
     ForgeQueryIntentExecutionProvenance, ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
-    ForgeQueryPreviewIntentReceipt,
+    ForgeQueryPreviewIntentReceipt, ForgeQueryTouchBearingIntentDeclaration,
 };
 #[allow(unused_imports)]
 pub use journal_position::{ForgeQueryJournalPosition, ForgeQueryJournalPositionAuthority};
@@ -497,6 +501,7 @@ pub use mixed_cause_delivery::{
     ForgeQueryRuntimeDeliveryCoalescingKind, ForgeQueryRuntimeMixedCauseDelivery,
     ForgeQueryRuntimeMixedCauseLaneKind, ForgeQueryRuntimeMixedCauseMemberKind,
 };
+pub(crate) use mutation::registrations_from_relational_invariant_catalog;
 use mutation::{admit_continuity_intent, admit_naming_intent};
 pub(crate) use mutation::{
     command_declared_aspect_value_digest, command_declared_aspect_value_identity,
@@ -505,6 +510,9 @@ pub(crate) use mutation::{
 pub use mutation::{
     ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,
     ForgeQueryAspectMutationOperationKind, ForgeQueryAspectValue,
+    ForgeQueryAuthoritativeMutationObligationDispatch,
+    ForgeQueryAuthoritativeMutationObligationDispatchProjection,
+    ForgeQueryAuthoritativeMutationObligationDispatchProjectionRow,
     ForgeQueryContinuityMutationDenial, ForgeQueryContinuityMutationDenialKind,
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityMutationIntent,
     ForgeQueryContinuityMutationOutcomeClass, ForgeQueryDeleteMutationBuilder,
@@ -520,13 +528,51 @@ pub use mutation::{
     ForgeQueryGraphCompositionDomainInvariantDenial,
     ForgeQueryGraphCompositionInvariantPackContext,
     ForgeQueryGraphCompositionInvariantPackViolation, ForgeQueryGraphEntitySymbol,
-    ForgeQueryGraphRelationMutationBuilder, ForgeQueryGraphRelationSymbol,
-    ForgeQueryMutationBatchBuilder, ForgeQueryMutationMetadata, ForgeQueryNamingMutationDenial,
-    ForgeQueryNamingMutationDenialKind, ForgeQueryNamingMutationFamily,
-    ForgeQueryNamingMutationIntent, ForgeQuerySymbolicAspectReference,
-    ForgeQuerySymbolicAspectReferenceFamily, ForgeQuerySymbolicTargetReference,
-    ForgeQuerySymbolicTargetReferenceDenial, ForgeQuerySymbolicTargetReferenceDenialKind,
-    ForgeQuerySymbolicTargetReferenceFamily, ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryGraphMutationPolicyGateEvidence, ForgeQueryGraphMutationPolicyGateVerdict,
+    ForgeQueryGraphObligationArtifactPolicy, ForgeQueryGraphObligationAttachmentEvidence,
+    ForgeQueryGraphObligationBudgetExceededPolicy,
+    ForgeQueryGraphObligationDenialAttachmentProjection,
+    ForgeQueryGraphObligationDenialAttachmentProjectionRow,
+    ForgeQueryGraphObligationDenialProjection, ForgeQueryGraphObligationDenialProjectionRow,
+    ForgeQueryGraphObligationDiagnosticMaterialization, ForgeQueryGraphObligationDispatchContext,
+    ForgeQueryGraphObligationDispatchContextKind, ForgeQueryGraphObligationDispatchEnvelope,
+    ForgeQueryGraphObligationDispatchEnvelopeBuilder, ForgeQueryGraphObligationDispatchError,
+    ForgeQueryGraphObligationDispatchPlan, ForgeQueryGraphObligationDispatchPlanDraft,
+    ForgeQueryGraphObligationExecutionBudget, ForgeQueryGraphObligationExecutionContext,
+    ForgeQueryGraphObligationExecutionCostClass, ForgeQueryGraphObligationExecutionInput,
+    ForgeQueryGraphObligationExecutionResultEnvelope, ForgeQueryGraphObligationExecutionResultRow,
+    ForgeQueryGraphObligationExecutionScope, ForgeQueryGraphObligationExecutionStatus,
+    ForgeQueryGraphObligationExecutorContract, ForgeQueryGraphObligationIndex,
+    ForgeQueryGraphObligationIndexBuildCounters, ForgeQueryGraphObligationIndexComplexityContract,
+    ForgeQueryGraphObligationIndexComplexityContractStatus, ForgeQueryGraphObligationIndexEntry,
+    ForgeQueryGraphObligationIndexSupportRow, ForgeQueryGraphObligationIndexSupportStatus,
+    ForgeQueryGraphObligationKind, ForgeQueryGraphObligationMaterializedDispatch,
+    ForgeQueryGraphObligationMatrixCertificationCase,
+    ForgeQueryGraphObligationOperatingWorldDescriptor,
+    ForgeQueryGraphObligationOperatingWorldDescriptorKind,
+    ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationPreflightWitness,
+    ForgeQueryGraphObligationReduction, ForgeQueryGraphObligationRegistration,
+    ForgeQueryGraphObligationRegistrationCatalog, ForgeQueryGraphObligationRegistrationDenial,
+    ForgeQueryGraphObligationRegistrationDenialKind, ForgeQueryGraphObligationRuleIdentity,
+    ForgeQueryGraphObligationSelection, ForgeQueryGraphObligationSelectionCounters,
+    ForgeQueryGraphObligationSelectorPerturbationCase, ForgeQueryGraphObligationStateAccessPolicy,
+    ForgeQueryGraphObligationStateLoadCounters, ForgeQueryGraphObligationStateLoadPlan,
+    ForgeQueryGraphObligationSupportLane, ForgeQueryGraphObligationSupportMatrix,
+    ForgeQueryGraphObligationSupportMatrixRow, ForgeQueryGraphObligationSupportPosture,
+    ForgeQueryGraphObligationSupportStatus, ForgeQueryGraphObligationVerdict,
+    ForgeQueryGraphReadTouchShape, ForgeQueryGraphRelationMutationBuilder,
+    ForgeQueryGraphRelationSymbol, ForgeQueryGraphScopedCustomInvariantRegistration,
+    ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchDescriptorDenial,
+    ForgeQueryGraphTouchDescriptorDenialKind, ForgeQueryGraphTouchDescriptorKind,
+    ForgeQueryGraphTouchDescriptorRow, ForgeQueryGraphTouchLifecycleFamily,
+    ForgeQueryGraphTouchReadVerb, ForgeQueryGraphTouchSelector, ForgeQueryMutationBatchBuilder,
+    ForgeQueryMutationMetadata, ForgeQueryNamingMutationDenial, ForgeQueryNamingMutationDenialKind,
+    ForgeQueryNamingMutationFamily, ForgeQueryNamingMutationIntent,
+    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicAspectReferenceFamily,
+    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceDenial,
+    ForgeQuerySymbolicTargetReferenceDenialKind, ForgeQuerySymbolicTargetReferenceFamily,
+    ForgeQueryVerifiedExistingTruthAssertion,
+    FORGE_QUERY_GRAPH_OBLIGATION_DISPATCH_ENVELOPE_SCHEME,
 };
 pub use mutation_surface::{
     ForgeQueryMutationSurfacePosture, ForgeQueryMutationSurfaceReport, ForgeQueryMutationSurfaceRow,
@@ -687,6 +733,8 @@ pub struct ForgeQueryRuntime {
     derived_dependency_index: ForgeQueryComputedDependencyIndex,
     effects: BTreeMap<String, ForgeQueryEffectRuntime>,
     effect_index: ForgeQueryEffectIndex,
+    graph_obligation_registration_catalog: ForgeQueryGraphObligationRegistrationCatalog,
+    graph_obligation_index: ForgeQueryGraphObligationIndex,
     next_run_id: u64,
 }
 

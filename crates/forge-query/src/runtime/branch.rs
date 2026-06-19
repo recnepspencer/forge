@@ -75,12 +75,16 @@ impl<'a> ForgeQueryBranchSession<'a> {
             message: denial.message().to_string(),
             evidence: ForgeQueryIntentDenialEvidence::new(&declaration, &denial, None),
         })?;
+        let obligation_dispatch = self
+            .runtime
+            .branch_intent_obligation_dispatch(&declaration)?;
         let receipt = ForgeQueryBranchIntentReceipt::new(
             &declaration,
             self.effect_policy,
             &self.basis_admission,
             &self.basis_snapshot_identity,
             admission,
+            obligation_dispatch,
         );
         self.intent_receipts.push(receipt.clone());
         Ok(receipt)

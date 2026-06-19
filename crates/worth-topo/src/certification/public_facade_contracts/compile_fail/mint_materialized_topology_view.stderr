@@ -6,12 +6,3 @@ error[E0432]: unresolved imports `topology::facade::MaterializationBreadthReport
   |     |                             |
   |     |                             no `MaterializationReport` in `facade`
   |     no `MaterializationBreadthReport` in `facade`
-  |
-note: found an item that was configured out
- --> src/facade.rs
-  |
-  | #[cfg(test)]
-  |       ---- the item is gated here
-  | pub use crate::derived_topology::materialized_graph::{
-  |     MaterializedTopologyView, TopologyMaterializer,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^

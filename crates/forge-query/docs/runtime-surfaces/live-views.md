@@ -7,6 +7,12 @@ truth. It defines what collection or entity surface you care about, which
 projected aspects belong in the surface, what view shape it uses, and how
 incremental updates should be delivered back to the consumer.
 
+When a live view declares graph-shaped access, Graph Touch Obligation Authority
+is the covered path for graph obligation meaning. The live view defines the
+retained read surface; obligation authority keeps graph checks, diagnostic
+posture, budgets, and evidence aligned with the declared touch instead of
+asking consumers to maintain separate local graph validators.
+
 ## Why You Use It
 
 - you need current truth as rows or view-shaped records
@@ -14,6 +20,8 @@ incremental updates should be delivered back to the consumer.
   mutation noise
 - you need a retained surface that computed state, effects, preview sessions,
   and inspection can all reuse
+- you need live-read graph obligations to use the same support, budget, and
+  evidence vocabulary as other graph-bearing Query lanes
 
 ## Stable Entry Points
 

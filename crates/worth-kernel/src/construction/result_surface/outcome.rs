@@ -9,7 +9,8 @@ mod outcome_rejection;
 
 #[cfg(test)]
 pub use crate::construction::tests::support::prepared_outcome::{
-    prepare_primitive_construction_outcome, PrimitiveConstructionPreparedOutcome,
+    prepare_primitive_construction_executed_outcome, prepare_primitive_construction_outcome,
+    PrimitiveConstructionPreparedOutcome,
 };
 #[cfg(test)]
 pub(crate) use geometry_recovery::PrimitiveConstructionRecoveryAction;

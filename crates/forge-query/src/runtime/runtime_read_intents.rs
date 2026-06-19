@@ -76,7 +76,7 @@ impl ForgeQueryWorkspace {
     pub(crate) fn into_runtime_read_execution_binding(
         &self,
         handoff: ForgeQueryReadExecutionHandoff,
-    ) -> ForgeQueryReadExecutionBinding {
+    ) -> Result<ForgeQueryReadExecutionBinding, ForgeQueryRuntimeError> {
         self.runtime.prepare_read_execution_binding(handoff)
     }
 
@@ -113,7 +113,7 @@ impl ForgeQueryWorkspace {
     pub(crate) fn into_runtime_live_read_execution_binding(
         &self,
         handoff: ForgeQueryLiveReadExecutionHandoff,
-    ) -> ForgeQueryLiveReadExecutionBinding {
+    ) -> Result<ForgeQueryLiveReadExecutionBinding, ForgeQueryRuntimeError> {
         self.runtime.prepare_live_read_execution_binding(handoff)
     }
 
@@ -180,8 +180,12 @@ impl ForgeQueryRuntime {
     pub(crate) fn prepare_read_execution_binding(
         &self,
         handoff: ForgeQueryReadExecutionHandoff,
-    ) -> ForgeQueryReadExecutionBinding {
-        ForgeQueryReadExecutionBinding::from_handoff(handoff)
+    ) -> Result<ForgeQueryReadExecutionBinding, ForgeQueryRuntimeError> {
+        let graph_obligation_dispatch = self.read_family_obligation_dispatch(&handoff)?;
+        Ok(ForgeQueryReadExecutionBinding::from_handoff(
+            handoff,
+            graph_obligation_dispatch,
+        ))
     }
 
     pub(crate) fn execute_read_execution_binding(
@@ -198,8 +202,12 @@ impl ForgeQueryRuntime {
             None => execute_runtime_current_read_graph(self, binding.read_family().read_graph()),
         }
         .map_err(ForgeQueryRuntimeError::ReadCompositionDenied)?;
+        result.attach_graph_obligation_dispatch(binding.graph_obligation_dispatch().cloned());
+        let obligation_dispatch_envelope_digest = binding
+            .graph_obligation_dispatch()
+            .and_then(|dispatch| dispatch.envelope_digest());
         let decision_trace_envelope =
-            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
+            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts_with_obligation_dispatch(
                 binding.family(),
                 binding.entrypoint(),
                 binding.read_family().family_name(),
@@ -208,6 +216,7 @@ impl ForgeQueryRuntime {
                 binding.handoff().decision_digest(),
                 binding.handoff().handoff_digest(),
                 binding.execution_seam(),
+                obligation_dispatch_envelope_digest,
                 binding.read_family().family_name(),
                 result.receipt().result_digest(),
                 binding.execution_seam().as_str(),
@@ -279,8 +288,12 @@ impl ForgeQueryRuntime {
     pub(crate) fn prepare_live_read_execution_binding(
         &self,
         handoff: ForgeQueryLiveReadExecutionHandoff,
-    ) -> ForgeQueryLiveReadExecutionBinding {
-        ForgeQueryLiveReadExecutionBinding::from_handoff(handoff)
+    ) -> Result<ForgeQueryLiveReadExecutionBinding, ForgeQueryRuntimeError> {
+        let graph_obligation_dispatch = self.live_read_obligation_dispatch(&handoff)?;
+        Ok(ForgeQueryLiveReadExecutionBinding::from_handoff(
+            handoff,
+            graph_obligation_dispatch,
+        ))
     }
 
     pub(crate) fn execute_live_read_execution_binding(
@@ -304,8 +317,12 @@ impl ForgeQueryRuntime {
             &rows,
         );
         let mut result = ForgeQueryLiveReadResult::new(rows, receipt);
+        result.attach_graph_obligation_dispatch(binding.graph_obligation_dispatch().cloned());
+        let obligation_dispatch_envelope_digest = binding
+            .graph_obligation_dispatch()
+            .and_then(|dispatch| dispatch.envelope_digest());
         let decision_trace_envelope =
-            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
+            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts_with_obligation_dispatch(
                 binding.family(),
                 binding.entrypoint(),
                 binding.installation().view_name(),
@@ -314,6 +331,7 @@ impl ForgeQueryRuntime {
                 binding.handoff().decision_digest(),
                 binding.handoff().handoff_digest(),
                 binding.execution_seam(),
+                obligation_dispatch_envelope_digest,
                 binding.installation().view_name(),
                 result.receipt().result_digest(),
                 "live-view-read",

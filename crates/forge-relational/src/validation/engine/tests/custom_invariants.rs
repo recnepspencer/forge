@@ -33,6 +33,47 @@ fn engine_executes_custom_invariant_packets() {
 }
 
 #[test]
+fn engine_executes_graph_composition_custom_invariant_packets() {
+    let runtime = RelationalRuntimeApi::builder()
+        .schema_registry(RelationalSchemaRegistry::new())
+        .custom_invariant(
+            CustomInvariantRegistration::new(GraphCompositionViolatesCustomRule).unwrap(),
+        )
+        .build();
+
+    let results = InvariantEngine::new(&runtime).execute(
+        InvariantExecutionRequest::from_profile_with_contract(
+            InvariantRequestProfile::GraphComposition,
+            &runtime,
+            InvariantObservation::committed(runtime.storage_access().current_state()),
+            runtime.current_version_id(),
+            None,
+            None,
+        ),
+    );
+
+    assert_eq!(results.results().len(), 1);
+    assert_eq!(
+        results.results()[0].execution_point,
+        crate::validation::data::InvariantExecutionPoint::GraphComposition
+    );
+    assert_eq!(
+        results.metadata().max_cost(),
+        crate::validation::data::InvariantCostClass::Touched
+    );
+    match &results.results()[0].rule {
+        InvariantReportedRule::Custom(identity) => {
+            assert_eq!(identity.rule_id.as_str(), "test.custom.graph-composition");
+        }
+        other => panic!("expected graph composition custom invariant result, got {other:?}"),
+    }
+    assert!(matches!(
+        results.results()[0].verdict,
+        crate::validation::data::InvariantVerdict::Violation(_)
+    ));
+}
+
+#[test]
 fn engine_executes_custom_packets_against_real_structural_surfaces() {
     let runtime = RelationalRuntimeApi::builder()
         .schema_registry(RelationalSchemaRegistry::new())

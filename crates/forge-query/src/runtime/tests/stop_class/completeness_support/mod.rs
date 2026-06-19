@@ -1,6 +1,7 @@
 use super::super::support::*;
 
 pub(super) mod runtime_paths;
+mod variant_keys;
 
 use runtime_paths::{
     intent_commit_denied_error, intent_execution_routing_failed_error,
@@ -8,6 +9,7 @@ use runtime_paths::{
     preview_promotion_stale_basis_error, preview_promotion_write_failed_error,
     read_domain_invariant_denied_error,
 };
+pub(super) use variant_keys::{runtime_error_variant_key, stop_class_variant_key};
 
 pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError> {
     let binding = existing_binding();
@@ -123,6 +125,23 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<ForgeQueryRuntimeError
         ForgeQueryRuntimeError::ExistingTruthProbeDenied(probe_denial),
         ForgeQueryRuntimeError::MutationBindingDenied(binding_denial),
         ForgeQueryRuntimeError::MutationContinuityDenied(continuity_denial),
+        ForgeQueryRuntimeError::GraphObligationTouchDescriptorDenied(
+            ForgeQueryGraphTouchDescriptorDenial::new(
+                ForgeQueryGraphTouchDescriptorDenialKind::ProgramComponentCountMismatch,
+                "program and commands disagree",
+            ),
+        ),
+        ForgeQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing {
+            effect_name: "effect.graph-obligation".to_string(),
+        },
+        ForgeQueryRuntimeError::GraphObligationIntentTouchDescriptorMissing {
+            intent_name: "intent.graph-obligation".to_string(),
+        },
+        ForgeQueryRuntimeError::GraphMutationPolicyContextDenied {
+            expected: crate::policy_basis::PolicyExecutionModeRequest::GraphMutation,
+            actual: crate::policy_basis::PolicyExecutionModeRequest::CurrentRead,
+            policy_tenant_admission_digest: "policy-admission:wrong-mode".to_string(),
+        },
         ForgeQueryRuntimeError::GraphCompositionDenied(graph_denial),
         ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(graph_domain_denial),
         ForgeQueryRuntimeError::MutationNamingDenied(naming_denial),
@@ -224,134 +243,6 @@ pub(super) fn representative_runtime_generated_stop_errors() -> Vec<ForgeQueryRu
         preview_promotion_rebinding_required_error(),
         preview_promotion_write_failed_error(),
     ]
-}
-
-pub(super) fn runtime_error_variant_key(error: &ForgeQueryRuntimeError) -> &'static str {
-    match error {
-        ForgeQueryRuntimeError::MissingBackend => "missing_backend",
-        ForgeQueryRuntimeError::MissingRuntimeBridge => "missing_runtime_bridge",
-        ForgeQueryRuntimeError::MissingSchemaAdapter => "missing_schema_adapter",
-        ForgeQueryRuntimeError::MissingSnapshotIdentityAdapter => {
-            "missing_snapshot_identity_adapter"
-        }
-        ForgeQueryRuntimeError::MissingSourceAdapter => "missing_source_adapter",
-        ForgeQueryRuntimeError::MissingWriteAuthority => "missing_write_authority",
-        ForgeQueryRuntimeError::MissingSignalSink => "missing_signal_sink",
-        ForgeQueryRuntimeError::MissingSubscriptionActivation => "missing_subscription_activation",
-        ForgeQueryRuntimeError::MissingPreviewBasis => "missing_preview_basis",
-        ForgeQueryRuntimeError::MissingInspectorEvidence => "missing_inspector_evidence",
-        ForgeQueryRuntimeError::MissingIntentAuthority => "missing_intent_authority",
-        ForgeQueryRuntimeError::ExistingTruthAssertionDenied(_) => {
-            "existing_truth_assertion_denied"
-        }
-        ForgeQueryRuntimeError::ExistingTruthProbeDenied(_) => "existing_truth_probe_denied",
-        ForgeQueryRuntimeError::MutationBindingDenied(_) => "mutation_binding_denied",
-        ForgeQueryRuntimeError::MutationContinuityDenied(_) => "mutation_continuity_denied",
-        ForgeQueryRuntimeError::GraphCompositionDenied(_) => "graph_composition_denied",
-        ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(_) => {
-            "graph_composition_domain_invariant_denied"
-        }
-        ForgeQueryRuntimeError::MutationNamingDenied(_) => "mutation_naming_denied",
-        ForgeQueryRuntimeError::MutationTargetReferenceDenied(_) => {
-            "mutation_target_reference_denied"
-        }
-        ForgeQueryRuntimeError::ReadCompositionDenied(_) => "read_composition_denied",
-        ForgeQueryRuntimeError::ReadCompositionDomainInvariantDenied(_) => {
-            "read_composition_domain_invariant_denied"
-        }
-        ForgeQueryRuntimeError::Workspace(_) => "workspace",
-        ForgeQueryRuntimeError::Program(_) => "program",
-        ForgeQueryRuntimeError::UnknownProgram(_) => "unknown_program",
-        ForgeQueryRuntimeError::UnknownOperation { .. } => "unknown_operation",
-        ForgeQueryRuntimeError::MissingLiveView(_) => "missing_live_view",
-        ForgeQueryRuntimeError::MissingLiveSubscription(_) => "missing_live_subscription",
-        ForgeQueryRuntimeError::MissingDerivedView(_) => "missing_derived_view",
-        ForgeQueryRuntimeError::MissingEffect(_) => "missing_effect",
-        ForgeQueryRuntimeError::MissingPendingWriteIntent(_) => "missing_pending_write_intent",
-        ForgeQueryRuntimeError::RetainedRowDecode { .. } => "retained_row_decode",
-        ForgeQueryRuntimeError::ComputedDeclaration { .. } => "computed_declaration",
-        ForgeQueryRuntimeError::EffectDeclaration { .. } => "effect_declaration",
-        ForgeQueryRuntimeError::LiveSubscriptionInstallation { .. } => {
-            "live_subscription_installation"
-        }
-        ForgeQueryRuntimeError::UnsupportedAuthorityRequirement(_) => {
-            "unsupported_authority_requirement"
-        }
-        ForgeQueryRuntimeError::ExistingTruthAssertionRequiresAuthorityLane { .. } => {
-            "existing_truth_assertion_requires_authority_lane"
-        }
-        ForgeQueryRuntimeError::IntentCommitDenied { .. } => "intent_commit_denied",
-        ForgeQueryRuntimeError::IntentExecutionRoutingFailed { .. } => {
-            "intent_execution_routing_failed"
-        }
-        ForgeQueryRuntimeError::EffectPolicyDenied(_) => "effect_policy_denied",
-        ForgeQueryRuntimeError::PreviewPromotionStaleBasis(_) => "preview_promotion_stale_basis",
-        ForgeQueryRuntimeError::SharedReadStaleBasis { .. } => "shared_read_stale_basis",
-        ForgeQueryRuntimeError::JournalReplayDenied(_) => "journal_replay_denied",
-        ForgeQueryRuntimeError::PreviewPromotionAtomicBatchUnsupported(_) => {
-            "preview_promotion_atomic_batch_unsupported"
-        }
-        ForgeQueryRuntimeError::PreviewPromotionRebindingRequired(_) => {
-            "preview_promotion_rebinding_required"
-        }
-        ForgeQueryRuntimeError::PreviewPromotionWriteFailed { .. } => {
-            "preview_promotion_write_failed"
-        }
-        ForgeQueryRuntimeError::InvariantRegistration { .. } => "invariant_registration",
-        ForgeQueryRuntimeError::SessionLabelCollision { .. } => "session_label_collision",
-        ForgeQueryRuntimeError::PreviewOperationEffectDenied { .. } => {
-            "preview_operation_effect_denied"
-        }
-        ForgeQueryRuntimeError::UnsupportedFacadeFamily(_) => "unsupported_facade_family",
-    }
-}
-
-pub(super) fn stop_class_variant_key(stop_class: ForgeQueryStopClass<'_>) -> &'static str {
-    match stop_class {
-        ForgeQueryStopClass::MissingRuntimeComponent { .. } => "missing_runtime_component",
-        ForgeQueryStopClass::ExistingTruthAssertionDenied { .. } => {
-            "existing_truth_assertion_denied"
-        }
-        ForgeQueryStopClass::ExistingTruthProbeDenied { .. } => "existing_truth_probe_denied",
-        ForgeQueryStopClass::MutationBindingDenied { .. } => "mutation_binding_denied",
-        ForgeQueryStopClass::MutationContinuityDenied { .. } => "mutation_continuity_denied",
-        ForgeQueryStopClass::GraphCompositionDenied { .. } => "graph_composition_denied",
-        ForgeQueryStopClass::GraphCompositionDomainInvariantDenied { .. } => {
-            "graph_composition_domain_invariant_denied"
-        }
-        ForgeQueryStopClass::MutationNamingDenied { .. } => "mutation_naming_denied",
-        ForgeQueryStopClass::MutationTargetReferenceDenied { .. } => {
-            "mutation_target_reference_denied"
-        }
-        ForgeQueryStopClass::ReadCompositionDenied { .. } => "read_composition_denied",
-        ForgeQueryStopClass::ReadCompositionDomainInvariantDenied { .. } => {
-            "read_composition_domain_invariant_denied"
-        }
-        ForgeQueryStopClass::Workspace { .. } => "workspace",
-        ForgeQueryStopClass::Program { .. } => "program",
-        ForgeQueryStopClass::RuntimeLookupFailed { .. } => "runtime_lookup_failed",
-        ForgeQueryStopClass::MissingRuntimeArtifact { .. } => "missing_runtime_artifact",
-        ForgeQueryStopClass::SharedReadStaleBasis { .. } => "shared_read_stale_basis",
-        ForgeQueryStopClass::JournalReplayDenied { .. } => "journal_replay_denied",
-        ForgeQueryStopClass::RuntimeDeclarationFailed { .. } => "runtime_declaration_failed",
-        ForgeQueryStopClass::PreviewOperationEffectDenied { .. } => {
-            "preview_operation_effect_denied"
-        }
-        ForgeQueryStopClass::SessionLabelCollision { .. } => "session_label_collision",
-        ForgeQueryStopClass::UnsupportedAuthorityRequirement { .. } => {
-            "unsupported_authority_requirement"
-        }
-        ForgeQueryStopClass::ExistingTruthAssertionRequiresAuthorityLane { .. } => {
-            "existing_truth_assertion_requires_authority_lane"
-        }
-        ForgeQueryStopClass::IntentCommitDenied { .. } => "intent_commit_denied",
-        ForgeQueryStopClass::IntentExecutionRoutingFailed { .. } => {
-            "intent_execution_routing_failed"
-        }
-        ForgeQueryStopClass::EffectPolicyDenied { .. } => "effect_policy_denied",
-        ForgeQueryStopClass::PreviewPromotionDenied { .. } => "preview_promotion_denied",
-        ForgeQueryStopClass::FamilyAdmissionDenied { .. } => "family_admission_denied",
-    }
 }
 
 pub(super) fn existing_binding() -> ForgeQueryExistingTruthTargetBinding {

@@ -1,35 +1,46 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::validation::data::{CustomInvariantRegistration, CustomInvariantSemanticIdentity};
+use crate::validation::data::{
+    CustomInvariantRegistration, CustomInvariantSemanticIdentity, InvariantExecutionPoint,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DuplicateCustomInvariantRegistration {
     pub(crate) identity: CustomInvariantSemanticIdentity,
+    pub(crate) execution_point: InvariantExecutionPoint,
 }
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FrozenCustomInvariantRegistry {
     registrations: Arc<[CustomInvariantRegistration]>,
     #[cfg(test)]
-    index_by_identity: Arc<BTreeMap<CustomInvariantSemanticIdentity, usize>>,
+    index_by_identity_and_execution_point:
+        Arc<BTreeMap<(CustomInvariantSemanticIdentity, InvariantExecutionPoint), usize>>,
 }
 
 impl FrozenCustomInvariantRegistry {
     pub(crate) fn from_registrations(
         registrations: Vec<CustomInvariantRegistration>,
     ) -> Result<Self, DuplicateCustomInvariantRegistration> {
-        let mut index_by_identity = BTreeMap::new();
+        let mut index_by_identity_and_execution_point = BTreeMap::new();
         for (index, registration) in registrations.iter().enumerate() {
             let identity = registration.descriptor().identity.clone();
-            if index_by_identity.insert(identity.clone(), index).is_some() {
-                return Err(DuplicateCustomInvariantRegistration { identity });
+            let execution_point = registration.execution_point();
+            if index_by_identity_and_execution_point
+                .insert((identity.clone(), execution_point), index)
+                .is_some()
+            {
+                return Err(DuplicateCustomInvariantRegistration {
+                    identity,
+                    execution_point,
+                });
             }
         }
         Ok(Self {
             registrations: registrations.into(),
             #[cfg(test)]
-            index_by_identity: Arc::new(index_by_identity),
+            index_by_identity_and_execution_point: Arc::new(index_by_identity_and_execution_point),
         })
     }
 
@@ -45,9 +56,10 @@ impl FrozenCustomInvariantRegistry {
     pub(crate) fn get(
         &self,
         identity: &CustomInvariantSemanticIdentity,
+        execution_point: InvariantExecutionPoint,
     ) -> Option<&CustomInvariantRegistration> {
-        self.index_by_identity
-            .get(identity)
+        self.index_by_identity_and_execution_point
+            .get(&(identity.clone(), execution_point))
             .and_then(|index| self.registrations.get(*index))
     }
 }
@@ -67,7 +79,10 @@ mod tests {
     };
 
     #[derive(Clone, Copy)]
-    struct RegistryRule(&'static str);
+    struct RegistryRule {
+        rule_id: &'static str,
+        execution_point: InvariantExecutionPoint,
+    }
 
     impl CustomInvariantRule for RegistryRule {
         type Scope = ();
@@ -75,12 +90,12 @@ mod tests {
         fn descriptor(&self) -> CustomInvariantDescriptor {
             CustomInvariantDescriptor {
                 identity: CustomInvariantSemanticIdentity {
-                    rule_id: CustomInvariantRuleId::new(self.0),
+                    rule_id: CustomInvariantRuleId::new(self.rule_id),
                     semantic_version: CustomInvariantSemanticVersion::new(1, 0),
                 },
-                display_name: Arc::from(self.0),
+                display_name: Arc::from(self.rule_id),
                 operational: CustomInvariantOperationalMetadata {
-                    execution_point: InvariantExecutionPoint::CommitBoundary,
+                    execution_point: self.execution_point,
                     groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
                     cost_class: InvariantCostClass::Touched,
                     failure_effect: InvariantFailureEffect::BlockCommit,
@@ -105,23 +120,80 @@ mod tests {
     }
 
     #[test]
-    fn frozen_registry_rejects_duplicate_semantic_identity() {
-        let left = CustomInvariantRegistration::new(RegistryRule("dup.rule")).unwrap();
-        let right = CustomInvariantRegistration::new(RegistryRule("dup.rule")).unwrap();
+    fn frozen_registry_rejects_duplicate_semantic_identity_at_same_execution_point() {
+        let left = CustomInvariantRegistration::new(registry_rule(
+            "dup.rule",
+            InvariantExecutionPoint::CommitBoundary,
+        ))
+        .unwrap();
+        let right = CustomInvariantRegistration::new(registry_rule(
+            "dup.rule",
+            InvariantExecutionPoint::CommitBoundary,
+        ))
+        .unwrap();
 
         let error =
             FrozenCustomInvariantRegistry::from_registrations(vec![left, right]).unwrap_err();
         assert_eq!(error.identity.rule_id.as_str(), "dup.rule");
+        assert_eq!(
+            error.execution_point,
+            InvariantExecutionPoint::CommitBoundary
+        );
+    }
+
+    #[test]
+    fn frozen_registry_allows_one_semantic_identity_at_distinct_execution_points() {
+        let commit_backstop = CustomInvariantRegistration::new(registry_rule(
+            "paired.rule",
+            InvariantExecutionPoint::CommitBoundary,
+        ))
+        .unwrap();
+        let graph_composition = CustomInvariantRegistration::new(registry_rule(
+            "paired.rule",
+            InvariantExecutionPoint::GraphComposition,
+        ))
+        .unwrap();
+        let identity = commit_backstop.descriptor().identity.clone();
+
+        let registry = FrozenCustomInvariantRegistry::from_registrations(vec![
+            commit_backstop,
+            graph_composition,
+        ])
+        .unwrap();
+
+        assert_eq!(registry.len(), 2);
+        assert!(registry
+            .get(&identity, InvariantExecutionPoint::CommitBoundary)
+            .is_some());
+        assert!(registry
+            .get(&identity, InvariantExecutionPoint::GraphComposition)
+            .is_some());
     }
 
     #[test]
     fn frozen_registry_supports_stable_lookup() {
-        let registration = CustomInvariantRegistration::new(RegistryRule("lookup.rule")).unwrap();
+        let registration = CustomInvariantRegistration::new(registry_rule(
+            "lookup.rule",
+            InvariantExecutionPoint::CommitBoundary,
+        ))
+        .unwrap();
         let identity = registration.descriptor().identity.clone();
         let registry =
             FrozenCustomInvariantRegistry::from_registrations(vec![registration]).unwrap();
 
         assert_eq!(registry.len(), 1);
-        assert!(registry.get(&identity).is_some());
+        assert!(registry
+            .get(&identity, InvariantExecutionPoint::CommitBoundary)
+            .is_some());
+    }
+
+    fn registry_rule(
+        rule_id: &'static str,
+        execution_point: InvariantExecutionPoint,
+    ) -> RegistryRule {
+        RegistryRule {
+            rule_id,
+            execution_point,
+        }
     }
 }

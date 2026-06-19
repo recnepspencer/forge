@@ -111,6 +111,7 @@ impl InvariantRule {
             InvariantExecutionPoint::SnapshotPublication,
             InvariantExecutionPoint::CertificationBoundary,
             InvariantExecutionPoint::HarnessAudit,
+            InvariantExecutionPoint::GraphComposition,
         ]
         .into_iter()
         .filter(|point| self.supports_execution_point(*point))

@@ -7,6 +7,19 @@ pub(in super::super) enum ConsumerStopRoute<'a> {
     ExistingTruthProbeDenied(ForgeQueryExistingTruthProbeDenialKind),
     MutationBindingDenied(ForgeQueryExistingTruthBindingDenialKind),
     MutationContinuityDenied(ForgeQueryContinuityMutationDenialKind),
+    GraphObligationTouchDescriptorDenied(ForgeQueryGraphTouchDescriptorDenialKind),
+    GraphObligationEffectTouchDescriptorMissing,
+    GraphObligationIntentTouchDescriptorMissing,
+    GraphMutationPolicyContextDenied {
+        expected: crate::policy_basis::PolicyExecutionModeRequest,
+        actual: crate::policy_basis::PolicyExecutionModeRequest,
+    },
+    GraphMutationPolicyGateDenied {
+        verdict: ForgeQueryGraphMutationPolicyGateVerdict,
+    },
+    GraphObligationDenied {
+        blocking_count: usize,
+    },
     GraphCompositionDenied(ForgeQueryGraphCompositionDenialKind),
     GraphCompositionDomainInvariantDenied {
         hook_family: &'a str,
@@ -59,6 +72,28 @@ pub(in super::super) fn route_consumer_stop_class(
         }
         ForgeQueryStopClass::MutationContinuityDenied { denial } => {
             ConsumerStopRoute::MutationContinuityDenied(denial.kind())
+        }
+        ForgeQueryStopClass::GraphObligationTouchDescriptorDenied { denial } => {
+            ConsumerStopRoute::GraphObligationTouchDescriptorDenied(denial.kind())
+        }
+        ForgeQueryStopClass::GraphObligationEffectTouchDescriptorMissing { .. } => {
+            ConsumerStopRoute::GraphObligationEffectTouchDescriptorMissing
+        }
+        ForgeQueryStopClass::GraphObligationIntentTouchDescriptorMissing { .. } => {
+            ConsumerStopRoute::GraphObligationIntentTouchDescriptorMissing
+        }
+        ForgeQueryStopClass::GraphMutationPolicyContextDenied {
+            expected, actual, ..
+        } => ConsumerStopRoute::GraphMutationPolicyContextDenied { expected, actual },
+        ForgeQueryStopClass::GraphMutationPolicyGateDenied { evidence } => {
+            ConsumerStopRoute::GraphMutationPolicyGateDenied {
+                verdict: evidence.verdict(),
+            }
+        }
+        ForgeQueryStopClass::GraphObligationDenied { denial } => {
+            ConsumerStopRoute::GraphObligationDenied {
+                blocking_count: denial.blocking_count(),
+            }
         }
         ForgeQueryStopClass::GraphCompositionDenied { denial } => {
             ConsumerStopRoute::GraphCompositionDenied(denial.kind())

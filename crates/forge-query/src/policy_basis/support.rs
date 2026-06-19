@@ -82,6 +82,7 @@ pub fn runtime_backed_policy_tenant_admission_support_profile(
         PolicyExecutionModeRequest::CurrentRead,
         PolicyExecutionModeRequest::BranchRead,
         PolicyExecutionModeRequest::HistoricalRead,
+        PolicyExecutionModeRequest::GraphMutation,
     ];
     let deferred_execution_modes = vec![
         PolicyExecutionModeRequest::HistoricalDiff,

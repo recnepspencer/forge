@@ -1,3 +1,6 @@
+use forge_query::facade::{
+    ForgeQueryGraphObligationDispatchContextKind, ForgeQueryGraphObligationSupportLane,
+};
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::successor_runtime_support::{
@@ -130,9 +133,94 @@ fn assert_query_anchor_matches_execution(
     assert!(!anchor.contribution_digest().is_empty());
     assert!(anchor.envelope_digest().metadata().entry_count() > 0);
     assert!(anchor.receipt_digest().metadata().entry_count() > 0);
+    assert_graph_obligation_evidence_matches_execution(execution);
     assert!(semantic_projection
         .fallback_explanation_detail()
         .contains("fallback"));
+}
+
+fn assert_graph_obligation_evidence_matches_execution(
+    execution: &crate::topology_operators::application::TopologyDeclaredMutationArtifact,
+) {
+    let orchestration = execution.graph_obligation_orchestration().expect(
+        "rewire successor declaration should retain orchestration graph obligation evidence",
+    );
+    let graph_composition = execution.graph_composition_obligation().expect(
+        "rewire successor graph composition should retain execution graph obligation evidence",
+    );
+    assert_eq!(
+        orchestration.context_kind(),
+        Some(ForgeQueryGraphObligationDispatchContextKind::ContributionComposed)
+    );
+    assert_eq!(
+        graph_composition.context_kind(),
+        Some(ForgeQueryGraphObligationDispatchContextKind::GraphComposition)
+    );
+    assert!(orchestration.operating_world_digest().is_some());
+    assert!(graph_composition.operating_world_digest().is_some());
+    assert_ne!(
+        orchestration.operating_world_digest(),
+        graph_composition.operating_world_digest(),
+        "declaration orchestration currently dispatches in configured-domain-handle world while graph composition dispatches in committed-authority world",
+    );
+    assert_eq!(
+        orchestration.rows().len(),
+        1,
+        "orchestration graph obligation should project exactly one rule row"
+    );
+    assert_eq!(
+        graph_composition.rows().len(),
+        1,
+        "execution graph obligation should project exactly one rule row"
+    );
+    let orchestration_row = &orchestration.rows()[0];
+    let graph_composition_row = &graph_composition.rows()[0];
+    assert_eq!(
+        orchestration_row.rule_identity_digest(),
+        graph_composition_row.rule_identity_digest()
+    );
+    assert_eq!(
+        orchestration_row.rule_name(),
+        graph_composition_row.rule_name()
+    );
+    assert_eq!(
+        orchestration_row.support_lane(),
+        ForgeQueryGraphObligationSupportLane::ContributionOrchestration
+    );
+    assert_eq!(
+        graph_composition_row.support_lane(),
+        ForgeQueryGraphObligationSupportLane::GraphComposition
+    );
+    assert_eq!(orchestration_row.verdict(), "advise");
+    assert_eq!(graph_composition_row.verdict(), "advise");
+    assert_eq!(
+        execution.graph_obligation_envelope_digest(),
+        orchestration.envelope_digest()
+    );
+    assert_eq!(
+        execution
+            .mutation_evidence()
+            .graph_obligation_envelope_digest(),
+        orchestration.envelope_digest()
+    );
+    assert_eq!(
+        execution
+            .mutation_evidence()
+            .graph_obligation_dispatch_digest(),
+        Some(orchestration.dispatch_digest())
+    );
+    assert_eq!(
+        execution
+            .mutation_evidence()
+            .graph_obligation_execution_point(),
+        orchestration.context_kind()
+    );
+    assert_eq!(
+        execution
+            .mutation_evidence()
+            .graph_obligation_selected_count(),
+        orchestration.rows().len()
+    );
 }
 
 #[test]

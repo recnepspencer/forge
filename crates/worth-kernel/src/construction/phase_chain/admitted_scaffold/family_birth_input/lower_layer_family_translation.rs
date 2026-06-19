@@ -1,9 +1,6 @@
-#[cfg(test)]
 use super::super::super::request::PrimitiveConstructionFamily;
-#[cfg(test)]
 use worth_primitives::PrimitiveConstructionFamilyKey;
 
-#[cfg(test)]
 pub(super) fn to_lower_layer_birth_family(
     family: PrimitiveConstructionFamily,
 ) -> PrimitiveConstructionFamilyKey {

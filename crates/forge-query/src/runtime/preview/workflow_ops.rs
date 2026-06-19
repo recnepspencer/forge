@@ -104,8 +104,15 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     promoted_writes += 1;
                 }
                 Err(error) => {
-                    return Err(ForgeQueryRuntimeError::PreviewPromotionWriteFailed {
-                        evidence: ForgeQueryPreviewPromotionDenialEvidence::write_failed(
+                    let graph_obligation_denial = match &error {
+                        ForgeQueryRuntimeError::GraphObligationDenied(denial) => {
+                            Some(denial.projection().clone())
+                        }
+                        _ => None,
+                    };
+                    let reason = error.to_string();
+                    let evidence = if let Some(denial) = graph_obligation_denial {
+                        ForgeQueryPreviewPromotionDenialEvidence::write_failed_with_graph_obligation_denial(
                             self.effect_policy,
                             &self.basis_admission,
                             &self.basis_snapshot_identity,
@@ -114,9 +121,23 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                             promoted_writes,
                             index + 1,
                             self.handle_bindings.len(),
-                            error.to_string(),
-                        ),
-                    });
+                            denial,
+                            reason,
+                        )
+                    } else {
+                        ForgeQueryPreviewPromotionDenialEvidence::write_failed(
+                            self.effect_policy,
+                            &self.basis_admission,
+                            &self.basis_snapshot_identity,
+                            &promotion_snapshot_identity,
+                            staged_preview_write_count,
+                            promoted_writes,
+                            index + 1,
+                            self.handle_bindings.len(),
+                            reason,
+                        )
+                    };
+                    return Err(ForgeQueryRuntimeError::PreviewPromotionWriteFailed { evidence });
                 }
             }
         }
@@ -206,11 +227,15 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             message: denial.message().to_string(),
             evidence: ForgeQueryIntentDenialEvidence::new(&declaration, &denial, None),
         })?;
+        let obligation_dispatch = self
+            .runtime
+            .preview_intent_obligation_dispatch(&declaration)?;
         let receipt = ForgeQueryPreviewIntentReceipt::new(
             &declaration,
             self.effect_policy,
             &self.basis_admission,
             admission,
+            obligation_dispatch,
         );
         self.intent_receipts.push(receipt.clone());
         self.execution_evidence

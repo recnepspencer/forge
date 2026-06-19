@@ -56,6 +56,26 @@ pub enum ForgeQueryStopClass<'a> {
     MutationContinuityDenied {
         denial: &'a ForgeQueryContinuityMutationDenial,
     },
+    GraphObligationTouchDescriptorDenied {
+        denial: &'a ForgeQueryGraphTouchDescriptorDenial,
+    },
+    GraphObligationEffectTouchDescriptorMissing {
+        effect_name: &'a str,
+    },
+    GraphObligationIntentTouchDescriptorMissing {
+        intent_name: &'a str,
+    },
+    GraphMutationPolicyContextDenied {
+        expected: crate::policy_basis::PolicyExecutionModeRequest,
+        actual: crate::policy_basis::PolicyExecutionModeRequest,
+        policy_tenant_admission_digest: &'a str,
+    },
+    GraphMutationPolicyGateDenied {
+        evidence: &'a crate::runtime::ForgeQueryGraphMutationPolicyGateEvidence,
+    },
+    GraphObligationDenied {
+        denial: &'a ForgeQueryGraphObligationDenial,
+    },
     GraphCompositionDenied {
         denial: &'a ForgeQueryGraphCompositionDenial,
     },

@@ -9,7 +9,7 @@ use crate::runtime::{
     ForgeQueryGraphCompositionAssumptionSummary, ForgeQueryGraphCompositionBreadth,
     ForgeQueryGraphCompositionEvidence, ForgeQueryGraphCompositionLifecycleOutcomes,
     ForgeQueryGraphCompositionLineageSummary, ForgeQueryGraphCompositionProgram,
-    ForgeQueryGraphCompositionResolutionMap,
+    ForgeQueryGraphCompositionResolutionMap, ForgeQueryGraphObligationAttachmentEvidence,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,6 +23,7 @@ pub struct ForgeQueryBatchWriteReceiptInspection {
     graph_composition_program: Option<ForgeQueryGraphCompositionProgram>,
     graph_composition_evidence: Option<ForgeQueryGraphCompositionEvidence>,
     graph_composition_resolution_map: ForgeQueryGraphCompositionResolutionMap,
+    graph_obligation_evidence: Option<ForgeQueryGraphObligationAttachmentEvidence>,
     write_receipt_count: usize,
     commit_identities: Vec<ForgeQueryCommitIdentity>,
     journal_position_identities: Vec<ForgeQueryEvidenceIdentity>,
@@ -55,6 +56,7 @@ impl ForgeQueryBatchWriteReceiptInspection {
         let graph_composition_program = receipt.graph_composition_program().cloned();
         let graph_composition_evidence = receipt.graph_composition_evidence();
         let graph_composition_resolution_map = receipt.graph_composition_resolution_map().clone();
+        let graph_obligation_evidence = receipt.graph_obligation_evidence();
         let touched_aspect_paths = receipt.touched_aspect_paths().to_vec();
         let affected_live_view_ids = receipt.affected_live_view_ids().to_vec();
         let affected_derived_view_ids = receipt.affected_derived_view_ids().to_vec();
@@ -72,6 +74,7 @@ impl ForgeQueryBatchWriteReceiptInspection {
                 journal_position_identities: &journal_position_identities,
                 component_operations: &component_operations,
                 graph_composition_resolution_map: &graph_composition_resolution_map,
+                graph_obligation_evidence: graph_obligation_evidence.as_ref(),
                 touched_aspect_paths: &touched_aspect_paths,
                 affected_live_view_ids: &affected_live_view_ids,
                 affected_derived_view_ids: &affected_derived_view_ids,
@@ -86,6 +89,7 @@ impl ForgeQueryBatchWriteReceiptInspection {
             graph_composition_program,
             graph_composition_evidence,
             graph_composition_resolution_map,
+            graph_obligation_evidence,
             write_receipt_count: receipt.write_count(),
             commit_identities,
             journal_position_identities,
@@ -149,6 +153,18 @@ impl ForgeQueryBatchWriteReceiptInspection {
 
     pub fn graph_composition_resolution_map(&self) -> &ForgeQueryGraphCompositionResolutionMap {
         &self.graph_composition_resolution_map
+    }
+
+    pub fn graph_obligation_evidence(
+        &self,
+    ) -> Option<&ForgeQueryGraphObligationAttachmentEvidence> {
+        self.graph_obligation_evidence.as_ref()
+    }
+
+    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
+        self.graph_obligation_evidence
+            .as_ref()
+            .and_then(ForgeQueryGraphObligationAttachmentEvidence::envelope_digest)
     }
 
     pub fn write_receipt_count(&self) -> usize {

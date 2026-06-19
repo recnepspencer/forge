@@ -1,6 +1,7 @@
 mod boundary;
 mod boundary_phase_five;
 mod boundary_phase_five_topology_ready_birth;
+mod boundary_public_queryless_entry;
 mod branch_preview_basis;
 mod compound_closeout_reports;
 mod compound_lowering;
@@ -18,6 +19,7 @@ mod corpus_simplex_ladder;
 mod geometry_cleanup_integration;
 mod legacy_deletion;
 mod phase_eight_minimization;
+mod query_authority;
 mod query_enforcement_adoption;
 mod query_evidence_report_adoption;
 mod realization_reports;

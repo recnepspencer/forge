@@ -17,8 +17,12 @@ use crate::transactions::data::{
     BulkRelationCreateIntent, CreateIntent, DeleteRelationIntent, EntitySpec, MergedCommitPlan,
     MutationIntent, RelationMutationIntent, TransactionId,
 };
-use crate::validation::data::{InvariantFailureEffect, InvariantVerdict};
+use crate::validation::data::{
+    InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantVerdict,
+};
 use crate::validation::engine::InvariantPlanScopeClass;
+
+mod graph_composition_selection;
 
 #[test]
 fn commit_boundary_short_circuits_when_plan_contract_cannot_touch_profile_groups() {
@@ -43,6 +47,32 @@ fn commit_boundary_short_circuits_when_plan_contract_cannot_touch_profile_groups
     let results = InvariantAccess::new(&runtime).commit_boundary(&plan);
 
     assert!(results.results().is_empty());
+}
+
+#[test]
+fn graph_composition_plan_uses_graph_composition_execution_profile() {
+    let runtime = runtime_with_invariants(
+        InvariantCatalog::default(),
+        RelationalExecutionModel::SerialAuthority,
+    );
+    let plan = MergedCommitPlan {
+        transaction_id: TransactionId(11),
+        merged_intents: vec![MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(1),
+            client_key: ClientKey::raw("graph-composition-profile"),
+            fields: crate::transactions::data::AspectFieldPatch::default(),
+        }))],
+    };
+
+    let results = InvariantAccess::new(&runtime).graph_composition_plan(&plan);
+
+    assert_eq!(
+        results.metadata().execution_point(),
+        InvariantExecutionPoint::GraphComposition
+    );
+    assert_eq!(results.metadata().max_cost(), InvariantCostClass::Touched);
+    assert!(results.metadata().has_merged_plan());
 }
 
 #[test]

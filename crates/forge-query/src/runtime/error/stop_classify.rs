@@ -69,6 +69,30 @@ pub(super) fn classify_stop_class(error: &ForgeQueryRuntimeError) -> ForgeQueryS
         ForgeQueryRuntimeError::MutationContinuityDenied(denial) => {
             ForgeQueryStopClass::MutationContinuityDenied { denial }
         }
+        ForgeQueryRuntimeError::GraphObligationTouchDescriptorDenied(denial) => {
+            ForgeQueryStopClass::GraphObligationTouchDescriptorDenied { denial }
+        }
+        ForgeQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing { effect_name } => {
+            ForgeQueryStopClass::GraphObligationEffectTouchDescriptorMissing { effect_name }
+        }
+        ForgeQueryRuntimeError::GraphObligationIntentTouchDescriptorMissing { intent_name } => {
+            ForgeQueryStopClass::GraphObligationIntentTouchDescriptorMissing { intent_name }
+        }
+        ForgeQueryRuntimeError::GraphMutationPolicyContextDenied {
+            expected,
+            actual,
+            policy_tenant_admission_digest,
+        } => ForgeQueryStopClass::GraphMutationPolicyContextDenied {
+            expected: *expected,
+            actual: *actual,
+            policy_tenant_admission_digest,
+        },
+        ForgeQueryRuntimeError::GraphMutationPolicyGateDenied(evidence) => {
+            ForgeQueryStopClass::GraphMutationPolicyGateDenied { evidence }
+        }
+        ForgeQueryRuntimeError::GraphObligationDenied(denial) => {
+            ForgeQueryStopClass::GraphObligationDenied { denial }
+        }
         ForgeQueryRuntimeError::GraphCompositionDenied(denial) => {
             ForgeQueryStopClass::GraphCompositionDenied { denial }
         }
