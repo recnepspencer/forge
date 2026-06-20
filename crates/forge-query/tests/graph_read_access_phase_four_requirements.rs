@@ -112,9 +112,9 @@ fn changing_one_traversal_relation_localizes_requirement_row_change() {
     assert_eq!(
         changed_slots,
         [
-            "slot:directional_adjacency:forward:2:single_relation:none:none:declaration_traversal:none:none",
-            "slot:traversal_workset:forward:2:single_relation:none:none:declaration_traversal:none:none",
-            "slot:visited_set:forward:2:single_relation:none:none:declaration_traversal:none:none"
+            "slot:directional_adjacency:forward:2:single_relation:none:none:declaration_traversal:none:none:none",
+            "slot:traversal_workset:forward:2:single_relation:none:none:declaration_traversal:none:none:none",
+            "slot:visited_set:forward:2:single_relation:none:none:declaration_traversal:none:none:none"
         ]
     );
 }

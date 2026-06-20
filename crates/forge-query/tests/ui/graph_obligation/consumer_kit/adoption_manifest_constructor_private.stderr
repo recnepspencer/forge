@@ -11,6 +11,6 @@ error[E0624]: associated function `new` is private
    | |         registration: &ForgeQueryGraphObligationConsumerRegistrationDeclaration,
    | |         selector_coverage: &ForgeQueryGraphObligationSelectorCoverageDeclaration,
 ...  |
-   | |         in_memory_proof: &ForgeQueryGraphObligationInMemoryProof,
+   | |         execution_proof: Option<&ForgeQueryGraphObligationExecutionProof>,
    | |     ) -> Self {
    | |_____________- private associated function defined here

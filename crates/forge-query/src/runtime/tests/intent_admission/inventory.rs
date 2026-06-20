@@ -49,7 +49,7 @@ fn family_inventory_freezes_current_read_common_path() {
     assert_eq!(
         read_row.common_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "workspace.compose_read(declaration); workspace.execute_read_family(&family); workspace.execute_read_family_in_basis_context(&family, &context); workspace.read_family_intent(&family).execute(); workspace.read_family_in_basis_context_intent(&family, &context).execute(); workspace.read(&view); workspace.read_live_intent(&view).execute()"
+            "workspace.compose_read(declaration); workspace.execute_read_family(&family); workspace.execute_read_family_with_access_plan(&family, plan); workspace.execute_read_family_in_basis_context(&family, &context); workspace.execute_read_family_in_basis_context_with_access_plan(&family, &context, plan); workspace.read_family_intent(&family).execute(); workspace.read_family_in_basis_context_intent(&family, &context).execute(); workspace.read(&view); workspace.read_live_intent(&view).execute()"
         )
     );
     assert_eq!(

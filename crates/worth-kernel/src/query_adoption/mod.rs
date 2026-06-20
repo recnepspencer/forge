@@ -5,6 +5,7 @@ mod closeout;
 mod composition_honesty;
 mod consumer_kit;
 mod evidence_reports;
+pub mod graph_read_access;
 mod performance_counters;
 mod registry;
 mod report;
@@ -33,6 +34,10 @@ pub use composition_honesty::{
 pub use consumer_kit::{
     current_kernel_query_consumer_kit_adoption_status, WorthKernelQueryConsumerKitAdoptionError,
     WorthKernelQueryConsumerKitAdoptionStatus,
+};
+pub use graph_read_access::{
+    current_worth_kernel_construction_graph_read_access_adoption,
+    WorthKernelGraphReadAccessAdoptionError, WorthKernelGraphReadAccessAdoptionReport,
 };
 pub use performance_counters::{
     current_worth_phase_eight_performance_counter_report, WorthPhaseEightDiagnosticPolicy,

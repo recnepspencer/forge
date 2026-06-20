@@ -86,7 +86,6 @@ crates/forge-query/src/query_context/execution.rs
 crates/forge-query/src/query_context/tests.rs
 crates/forge-query/src/runtime.rs
 crates/forge-query/src/runtime/async_result_state.rs
-crates/forge-query/src/runtime/delivery.rs
 crates/forge-query/src/runtime/computed/surface.rs
 crates/forge-query/src/runtime/handle_contract.rs
 crates/forge-query/src/runtime/inspection/intent.rs

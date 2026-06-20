@@ -224,6 +224,7 @@ pub struct QuerySubscriptionDiagnosticSemanticLabels {
     bridge_slice_labels: Vec<String>,
     basis_posture_label: String,
     signal_strategy_class_label: String,
+    live_graph_access_posture_label: String,
     support_posture_label: String,
     denial_or_coverage_class_label: String,
     labels_identity: ForgeQueryEvidenceIdentity,
@@ -237,6 +238,7 @@ impl QuerySubscriptionDiagnosticSemanticLabels {
         bridge_slice_labels: Vec<String>,
         basis_posture_label: String,
         signal_strategy_class_label: String,
+        live_graph_access_posture_label: String,
         support_posture_label: String,
         denial_or_coverage_class_label: String,
     ) -> Self {
@@ -247,6 +249,7 @@ impl QuerySubscriptionDiagnosticSemanticLabels {
             &bridge_slice_labels,
             &basis_posture_label,
             &signal_strategy_class_label,
+            &live_graph_access_posture_label,
             &support_posture_label,
             &denial_or_coverage_class_label,
         );
@@ -257,6 +260,7 @@ impl QuerySubscriptionDiagnosticSemanticLabels {
             bridge_slice_labels,
             basis_posture_label,
             signal_strategy_class_label,
+            live_graph_access_posture_label,
             support_posture_label,
             denial_or_coverage_class_label,
             labels_identity,
@@ -285,6 +289,10 @@ impl QuerySubscriptionDiagnosticSemanticLabels {
 
     pub fn signal_strategy_class_label(&self) -> &str {
         &self.signal_strategy_class_label
+    }
+
+    pub fn live_graph_access_posture_label(&self) -> &str {
+        &self.live_graph_access_posture_label
     }
 
     pub fn support_posture_label(&self) -> &str {
@@ -1288,6 +1296,7 @@ fn semantic_labels_for_support(
             .request_kind()
             .as_str()
             .to_string(),
+        declaration.live_graph_access_posture().as_str().to_string(),
         support_posture.as_str().to_string(),
         denial_or_coverage_class_label.to_string(),
     )
@@ -1329,6 +1338,9 @@ fn semantic_labels_for_denied_bundle(
                     .to_string()
             })
             .unwrap_or_else(|| "not_lowered".to_string()),
+        declaration
+            .map(|value| value.live_graph_access_posture().as_str().to_string())
+            .unwrap_or_else(|| selection.live_graph_access_posture_label().to_string()),
         support
             .map(|value| value.support_posture().as_str().to_string())
             .unwrap_or_else(|| "not_reported".to_string()),
@@ -1379,7 +1391,7 @@ fn omitted_stages_after_failure(
 }
 
 fn semantic_label_count(labels: &QuerySubscriptionDiagnosticSemanticLabels) -> usize {
-    7 + labels.bridge_slice_labels().len()
+    8 + labels.bridge_slice_labels().len()
 }
 
 fn validate_denied_selection_context(

@@ -21,6 +21,7 @@ use super::patch_group::QueryPatchGroupKind;
 use super::posture::{
     QuerySubscriptionBasisPosture, QuerySubscriptionBridgePosture, QuerySubscriptionCostPosture,
 };
+use super::selection_live_graph_access::QuerySubscriptionLiveGraphAccessPosture;
 use super::signal_strategy::QuerySubscriptionSignalStrategyRequestKind;
 use super::slice::{QuerySubscriptionSliceIntent, QuerySubscriptionSlicePart};
 use super::slice_budget::QuerySubscriptionSliceBudget;
@@ -192,6 +193,7 @@ pub(super) fn diagnostic_selection_context_denied_identity(
     query_family_label: &str,
     declaration_family_label: &str,
     basis_posture_label: &str,
+    live_graph_access_posture_label: &str,
 ) -> ForgeQueryEvidenceIdentity {
     ForgeQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
         .field_shape(
@@ -211,6 +213,10 @@ pub(super) fn diagnostic_selection_context_denied_identity(
         .field_shape(
             ForgeQueryEvidenceTag::new("basis_posture"),
             basis_posture_label,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("live_graph_access_posture"),
+            live_graph_access_posture_label,
         )
         .seal()
 }
@@ -542,6 +548,7 @@ pub(super) fn diagnostic_semantic_labels_identity(
     bridge_slice_labels: &[String],
     basis_posture_label: &str,
     signal_strategy_class_label: &str,
+    live_graph_access_posture_label: &str,
     support_posture_label: &str,
     denial_or_coverage_class_label: &str,
 ) -> ForgeQueryEvidenceIdentity {
@@ -569,6 +576,10 @@ pub(super) fn diagnostic_semantic_labels_identity(
         .field_shape(
             ForgeQueryEvidenceTag::new("signal_strategy_class"),
             signal_strategy_class_label,
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("live_graph_access_posture"),
+            live_graph_access_posture_label,
         )
         .field_shape(
             ForgeQueryEvidenceTag::new("support_posture"),
@@ -862,6 +873,7 @@ pub(super) fn query_subscription_declaration_identity(
     cost_posture: &QuerySubscriptionCostPosture,
     basis_posture: &QuerySubscriptionBasisPosture,
     bridge_posture: &QuerySubscriptionBridgePosture,
+    live_graph_access_posture: &QuerySubscriptionLiveGraphAccessPosture,
     future_selection: &QuerySubscriptionFutureSelection,
     equivalence_identity: &ForgeQueryEvidenceIdentity,
     slice_intent: &QuerySubscriptionSliceIntent,
@@ -891,6 +903,10 @@ pub(super) fn query_subscription_declaration_identity(
         .field_shape(
             ForgeQueryEvidenceTag::new("bridge"),
             bridge_posture.as_str(),
+        )
+        .field_shape(
+            ForgeQueryEvidenceTag::new("live_graph_access_posture"),
+            live_graph_access_posture.as_str(),
         )
         .field_evidence_identity(
             ForgeQueryEvidenceTag::new("future_selection"),

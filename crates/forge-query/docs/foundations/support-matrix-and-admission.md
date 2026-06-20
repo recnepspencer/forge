@@ -184,22 +184,90 @@ Support rows may deny, defer, or mark a lane not applicable, but they must keep
 the lane visible. A collapsed "batch" row is not a graph obligation support
 row.
 
+## Graph Read Access Planning Rows
+
+Graph read access planning is the Milestone 9.10 access and cost contract for
+declared graph reads. It is separate from graph touch obligation authority:
+obligation rows describe graph meaning that must be checked, while graph read
+access rows describe the access structures required to read graph-shaped data
+without hidden N+1 traversal or unbounded local materialization.
+
+The declaration is the authoring surface. The access plan is the accountability
+surface. Support rows must make it clear whether a graph read executes inline,
+uses bounded ephemeral access structures, streams, requires a persistent index,
+requires async materialization, requires store-backed capability, requires
+domain capability registration, or denies.
+
+The graph read access admission posture vocabulary is:
+
+- `inline_indexed`
+- `bounded_ephemeral_index`
+- `admitted_paged_streaming`
+- `paged_streaming_required`
+- `persistent_index_required`
+- `async_materialization_required`
+- `store_backed_capability_required`
+- `access_capability_registration_required`
+- `denied`
+
+The graph read access denial vocabulary is:
+
+- `budget_exceeded`
+- `required_async_materialization`
+- `required_access_capability_registration`
+- `required_persistent_index`
+- `unsupported_graph_index_support`
+
+The graph read access requirement vocabulary is:
+
+- `directional_adjacency`
+- `reverse_adjacency`
+- `predicate_support`
+- `ordering_support`
+- `traversal_workset`
+- `visited_set`
+- `dedup_set`
+- `proof_support`
+- `result_buffer`
+- `materialization_lifecycle`
+- `live_maintenance_support`
+- `domain_operation_capability_registration`
+
+The required capability owner vocabulary is:
+
+- `query_runtime`
+- `lower_runtime`
+- `persistent_store`
+- `domain_registration`
+- `async_materializer`
+
+Broad boolean graph reads and high-fanout traversals must not be described as
+ordinary inline reads unless their admitted access plan proves that posture. If
+the budget is exceeded, docs and support rows must preserve the typed denial
+and suggested posture instead of recommending local relation loops or broad RAM
+expansion.
+
+Receipt proof is part of support honesty. A read that claims graph-read access
+planning support must expose the consumed plan digest, admission digest,
+requirement-set digest, plan-consumption digest, and execution counters through
+the read receipt.
+
 ## Small Example
 
 ```rust
 use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
 
-let workspace = runtime.workspace("support").unwrap();
+let workspace = runtime.workspace("support")?;
 
 let matrix = workspace.public_support_matrix();
-let live = matrix.row_for_family(ForgeQueryRuntimeFacadeFamily::Live).unwrap();
+let live = matrix.row_for_family(ForgeQueryRuntimeFacadeFamily::Live)?;
 
 assert_eq!(live.status().as_str(), "supported");
 assert!(!live.support_contract_digest().is_empty());
 
 workspace
     .admit_public_api_family(ForgeQueryRuntimeFacadeFamily::Live)
-    .unwrap();
+    ?;
 ```
 
 This is the smallest honest example because it shows both sides: inspect the
@@ -210,15 +278,15 @@ support matrix, then ask for executable admission.
 ```rust
 use forge_query::facade::{ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily};
 
-let workspace = runtime.workspace("future-gates").unwrap();
+let workspace = runtime.workspace("future-gates")?;
 let matrix = workspace.public_support_matrix();
 
-let temporal = matrix.row("temporal").unwrap();
-let async_resource = matrix.row("async-resource").unwrap();
-let downstream_delivery = matrix.row("downstream-delivery-contract").unwrap();
+let temporal = matrix.row("temporal")?;
+let async_resource = matrix.row("async-resource")?;
+let downstream_delivery = matrix.row("downstream-delivery-contract")?;
 let intent = matrix
     .row_for_family(ForgeQueryRuntimeFacadeFamily::Intent)
-    .unwrap();
+    ?;
 
 assert_eq!(temporal.status().as_str(), "supported");
 assert_eq!(temporal.teaching_posture().as_str(), "support-gate-only");

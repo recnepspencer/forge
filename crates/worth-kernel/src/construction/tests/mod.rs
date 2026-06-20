@@ -22,6 +22,7 @@ mod geometry_cleanup_integration;
 mod legacy_deletion;
 mod loop_reconstruction_public_contracts;
 mod phase_eight_minimization;
+mod query_access_planning;
 mod query_authority;
 mod query_enforcement_adoption;
 mod query_evidence_report_adoption;

@@ -11,9 +11,27 @@ pub enum ForgeQueryGraphReadAccessRequirementKind {
     ResultBuffer,
     MaterializationLifecycle,
     LiveMaintenanceSupport,
+    DomainOperationCapabilityRegistration,
 }
 
 impl ForgeQueryGraphReadAccessRequirementKind {
+    pub fn all() -> &'static [Self] {
+        &[
+            Self::DirectionalAdjacency,
+            Self::ReverseAdjacency,
+            Self::PredicateSupport,
+            Self::OrderingSupport,
+            Self::TraversalWorkset,
+            Self::VisitedSet,
+            Self::DedupSet,
+            Self::ProofSupport,
+            Self::ResultBuffer,
+            Self::MaterializationLifecycle,
+            Self::LiveMaintenanceSupport,
+            Self::DomainOperationCapabilityRegistration,
+        ]
+    }
+
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::DirectionalAdjacency => "directional_adjacency",
@@ -27,6 +45,9 @@ impl ForgeQueryGraphReadAccessRequirementKind {
             Self::ResultBuffer => "result_buffer",
             Self::MaterializationLifecycle => "materialization_lifecycle",
             Self::LiveMaintenanceSupport => "live_maintenance_support",
+            Self::DomainOperationCapabilityRegistration => {
+                "domain_operation_capability_registration"
+            }
         }
     }
 }

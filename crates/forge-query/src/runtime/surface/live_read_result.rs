@@ -1,6 +1,6 @@
 use crate::runtime::{
     ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryGraphObligationAttachmentEvidence,
-    ForgeQueryIntentExecutionProvenance,
+    ForgeQueryIntentExecutionProvenance, ForgeQueryLiveGraphReadAccessReceipt,
 };
 
 use super::super::ForgeQueryIntentDecisionTraceEnvelope;
@@ -35,6 +35,10 @@ impl ForgeQueryLiveReadResult {
         self.receipt.graph_obligation_envelope_digest()
     }
 
+    pub fn live_graph_read_access(&self) -> Option<&ForgeQueryLiveGraphReadAccessReceipt> {
+        self.receipt.live_graph_read_access()
+    }
+
     pub(in crate::runtime) fn new(
         rows: Vec<crate::memory_workspace::ForgeQueryEntity>,
         receipt: ForgeQueryLiveReadReceipt,
@@ -56,6 +60,13 @@ impl ForgeQueryLiveReadResult {
         dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
     ) {
         self.receipt.graph_obligation_dispatch = dispatch;
+    }
+
+    pub(in crate::runtime) fn attach_live_graph_read_access(
+        &mut self,
+        receipt: ForgeQueryLiveGraphReadAccessReceipt,
+    ) {
+        self.receipt.live_graph_read_access = Some(receipt);
     }
 
     #[cfg(test)]

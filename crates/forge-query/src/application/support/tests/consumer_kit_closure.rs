@@ -214,7 +214,12 @@ fn reference_consumer_residue_publication_names_backend_applicability() {
         .reference_consumer_residue()
         .clone();
 
-    assert_eq!(residue.query_owned_residue_count(), 0);
+    assert_eq!(
+        residue.query_owned_residue_count(),
+        0,
+        "{:?}",
+        residue.breakdown()
+    );
     assert_eq!(residue.defended_residue_count(), 3);
     assert_eq!(residue.breakdown().report_digest_residue_count(), 0);
     assert_eq!(residue.breakdown().prohibition_audit_residue_count(), 0);

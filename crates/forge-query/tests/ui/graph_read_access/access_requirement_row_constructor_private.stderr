@@ -1,39 +1,64 @@
-error[E0451]: fields `kind`, `rebuild_basis`, `relation_name`, `relation_authority`, `relation_direction`, `relation_depth`, `fanout_posture`, `predicate_family`, `predicate_field_authorities`, `ordering_posture`, `ordering_field_authorities`, `traversal_operator`, `lifecycle_class`, `result_pressure`, `invalidation_basis`, `complexity_contract` and `memory_estimate_basis` of struct `ForgeQueryGraphReadAccessRequirementRow` are private
-  --> tests/ui/graph_read_access/access_requirement_row_constructor_private.rs:9:9
+error: cannot construct `ForgeQueryGraphReadAccessRequirementRow` with struct literal syntax due to private fields
+  --> tests/ui/graph_read_access/access_requirement_row_constructor_private.rs:8:13
    |
  8 |     let _ = ForgeQueryGraphReadAccessRequirementRow {
-   |             --------------------------------------- in this type
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  9 |         kind: ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
-   |         ^^^^ private field
+   |         -------------------------------------------------------------------- private field
 10 |         rebuild_basis: ForgeQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
-   |         ^^^^^^^^^^^^^ private field
+   |         -------------------------------------------------------------------------------- private field
 11 |         relation_name: None,
-   |         ^^^^^^^^^^^^^ private field
+   |         ------------------- private field
 12 |         relation_authority: None,
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------ private field
 13 |         relation_direction: None,
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------ private field
 14 |         relation_depth: None,
-   |         ^^^^^^^^^^^^^^ private field
+   |         -------------------- private field
 15 |         fanout_posture: None,
-   |         ^^^^^^^^^^^^^^ private field
+   |         -------------------- private field
 16 |         predicate_family: None,
-   |         ^^^^^^^^^^^^^^^^ private field
+   |         ---------------------- private field
 17 |         predicate_field_authorities: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------------------- private field
 18 |         ordering_posture: None,
-   |         ^^^^^^^^^^^^^^^^ private field
+   |         ---------------------- private field
 19 |         ordering_field_authorities: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------------- private field
 20 |         traversal_operator: None,
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------ private field
 21 |         lifecycle_class: None,
-   |         ^^^^^^^^^^^^^^^ private field
+   |         --------------------- private field
 22 |         result_pressure: None,
-   |         ^^^^^^^^^^^^^^^ private field
+   |         --------------------- private field
 23 |         invalidation_basis: ForgeQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------------------------------------------ private field
 24 |         complexity_contract: ForgeQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
-   |         ^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------------------------------------------- private field
 25 |         memory_estimate_basis: ForgeQueryGraphReadAccessMemoryEstimateBasis::RelationDegreeBound,
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ---------------------------------------------------------------------------------------- private field
+   |
+   = note: ...and other private field `operation_capability_requirement` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+ 8 -     let _ = ForgeQueryGraphReadAccessRequirementRow {
+ 9 -         kind: ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+10 -         rebuild_basis: ForgeQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
+11 -         relation_name: None,
+12 -         relation_authority: None,
+13 -         relation_direction: None,
+14 -         relation_depth: None,
+15 -         fanout_posture: None,
+16 -         predicate_family: None,
+17 -         predicate_field_authorities: Vec::new(),
+18 -         ordering_posture: None,
+19 -         ordering_field_authorities: Vec::new(),
+20 -         traversal_operator: None,
+21 -         lifecycle_class: None,
+22 -         result_pressure: None,
+23 -         invalidation_basis: ForgeQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
+24 -         complexity_contract: ForgeQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
+25 -         memory_estimate_basis: ForgeQueryGraphReadAccessMemoryEstimateBasis::RelationDegreeBound,
+26 -     };
+ 8 +     let _ = ForgeQueryGraphReadAccessRequirementRow::new(_, _, _, _, _);
+   |

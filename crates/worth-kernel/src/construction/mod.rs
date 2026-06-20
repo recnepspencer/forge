@@ -27,6 +27,8 @@ pub(crate) mod outcome;
 #[path = "proof/mod.rs"]
 mod proof;
 #[cfg(test)]
+pub(crate) mod query_access_planning;
+#[cfg(test)]
 pub(crate) mod query_authority;
 #[cfg(test)]
 pub(crate) mod query_enforcement_adoption;

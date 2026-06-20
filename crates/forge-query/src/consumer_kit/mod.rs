@@ -3,6 +3,7 @@ pub(crate) mod consumer_residue;
 pub(crate) mod evidence_report;
 pub(crate) mod evidence_report_adoption;
 pub(crate) mod graph_obligation_adoption;
+pub(crate) mod graph_read_bypass_audit;
 pub(crate) mod prohibition_registry;
 pub(crate) mod support_pinning;
 pub(crate) mod support_snapshot;
@@ -58,6 +59,19 @@ pub use graph_obligation_adoption::{
     ForgeQueryGraphObligationSelectorCoverageDeclaration,
     ForgeQueryGraphObligationSelectorCoverageRow, ForgeQueryGraphObligationSupportPin,
     ForgeQueryGraphObligationSupportPinFinding,
+};
+pub use graph_read_bypass_audit::{
+    forge_query_graph_read_bypass_registry, graph_read_bypass_adoption, graph_read_bypass_audit,
+    ForgeQueryGraphReadBypassAdoption, ForgeQueryGraphReadBypassAdoptionError,
+    ForgeQueryGraphReadBypassAdoptionErrorKind, ForgeQueryGraphReadBypassAdoptionManifest,
+    ForgeQueryGraphReadBypassAdoptionProof, ForgeQueryGraphReadBypassAudit,
+    ForgeQueryGraphReadBypassAuthorityViolation, ForgeQueryGraphReadBypassClass,
+    ForgeQueryGraphReadBypassCounters, ForgeQueryGraphReadBypassDetection,
+    ForgeQueryGraphReadBypassFinding, ForgeQueryGraphReadBypassRegistryRow,
+    ForgeQueryGraphReadBypassReport, ForgeQueryGraphReadBypassReportResidueCertification,
+    ForgeQueryGraphReadBypassResidueCertification, ForgeQueryGraphReadBypassResidueError,
+    ForgeQueryGraphReadBypassResidueErrorKind, ForgeQueryGraphReadBypassResidueManifest,
+    ForgeQueryGraphReadBypassResidueRow,
 };
 pub use prohibition_registry::{
     hard_prohibition_compile_fail_fixtures, hard_prohibition_documentation_rows,

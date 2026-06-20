@@ -111,6 +111,34 @@ impl ForgeQueryRuntime {
         self.backend.support_profile()
     }
 
+    pub fn graph_index_inventory(&self) -> ForgeQueryGraphIndexInventory {
+        self.backend.support_profile().graph_index_inventory()
+    }
+
+    pub(crate) fn admit_graph_read_access_for_family(
+        &self,
+        family: &ForgeQueryReadFamily,
+    ) -> Result<ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessShapeExplanationError>
+    {
+        crate::runtime::admit_graph_read_access_for_family_with_inventory(
+            family,
+            self.graph_index_inventory(),
+        )
+    }
+
+    pub(crate) fn admit_graph_read_access_for_family_in_authority(
+        &self,
+        family: &ForgeQueryReadFamily,
+        authority: &ForgeQueryGraphReadAccessAuthorityContext,
+    ) -> Result<ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessShapeExplanationError>
+    {
+        crate::runtime::admit_graph_read_access_for_family_in_authority_with_inventory(
+            family,
+            authority,
+            self.graph_index_inventory(),
+        )
+    }
+
     pub(super) fn admit_facade_family(
         &self,
         family: ForgeQueryRuntimeFacadeFamily,

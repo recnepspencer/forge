@@ -6,9 +6,9 @@ use super::{
 };
 use crate::runtime::{
     ForgeQueryAdmittedGraphReadRelationDirection, ForgeQueryGraphReadFanoutPosture,
-    ForgeQueryGraphReadLifecycleClass, ForgeQueryGraphReadOrderingPosture,
-    ForgeQueryGraphReadPredicateFamily, ForgeQueryGraphReadResultPressure,
-    ForgeQueryGraphReadTraversalOperator,
+    ForgeQueryGraphReadLifecycleClass, ForgeQueryGraphReadOperationCapabilityRequirement,
+    ForgeQueryGraphReadOrderingPosture, ForgeQueryGraphReadPredicateFamily,
+    ForgeQueryGraphReadResultPressure, ForgeQueryGraphReadTraversalOperator,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -27,6 +27,7 @@ pub struct ForgeQueryGraphReadAccessRequirementRow {
     traversal_operator: Option<ForgeQueryGraphReadTraversalOperator>,
     lifecycle_class: Option<ForgeQueryGraphReadLifecycleClass>,
     result_pressure: Option<ForgeQueryGraphReadResultPressure>,
+    operation_capability_requirement: Option<ForgeQueryGraphReadOperationCapabilityRequirement>,
     invalidation_basis: ForgeQueryGraphReadAccessInvalidationBasis,
     complexity_contract: ForgeQueryGraphReadAccessComplexityContract,
     memory_estimate_basis: ForgeQueryGraphReadAccessMemoryEstimateBasis,
@@ -89,6 +90,12 @@ impl ForgeQueryGraphReadAccessRequirementRow {
         self.result_pressure.as_ref()
     }
 
+    pub fn operation_capability_requirement(
+        &self,
+    ) -> Option<&ForgeQueryGraphReadOperationCapabilityRequirement> {
+        self.operation_capability_requirement.as_ref()
+    }
+
     pub fn invalidation_basis(&self) -> &ForgeQueryGraphReadAccessInvalidationBasis {
         &self.invalidation_basis
     }
@@ -103,7 +110,7 @@ impl ForgeQueryGraphReadAccessRequirementRow {
 
     pub fn semantic_slot_key(&self) -> String {
         format!(
-            "slot:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            "slot:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
             self.kind.as_str(),
             self.relation_direction
                 .as_ref()
@@ -135,13 +142,17 @@ impl ForgeQueryGraphReadAccessRequirementRow {
             self.result_pressure
                 .as_ref()
                 .map(|pressure| pressure.as_str())
-                .unwrap_or("none")
+                .unwrap_or("none"),
+            self.operation_capability_requirement
+                .as_ref()
+                .map(|requirement| requirement.digest_part())
+                .unwrap_or_else(|| "none".to_string())
         )
     }
 
     pub fn digest_part(&self) -> String {
         format!(
-            "requirement:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            "requirement:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
             self.kind.as_str(),
             self.rebuild_basis.as_str(),
             self.relation_name.as_deref().unwrap_or("none"),
@@ -190,6 +201,10 @@ impl ForgeQueryGraphReadAccessRequirementRow {
                 .as_ref()
                 .map(|pressure| pressure.as_str())
                 .unwrap_or("none"),
+            self.operation_capability_requirement
+                .as_ref()
+                .map(|requirement| requirement.digest_part())
+                .unwrap_or_else(|| "none".to_string()),
             self.invalidation_basis.as_str(),
             self.complexity_contract.as_str(),
             self.memory_estimate_basis.as_str()
@@ -218,6 +233,7 @@ impl ForgeQueryGraphReadAccessRequirementRow {
             traversal_operator: None,
             lifecycle_class: None,
             result_pressure: None,
+            operation_capability_requirement: None,
             invalidation_basis,
             complexity_contract,
             memory_estimate_basis,
@@ -303,6 +319,14 @@ impl ForgeQueryGraphReadAccessRequirementRow {
         result_pressure: ForgeQueryGraphReadResultPressure,
     ) -> Self {
         self.result_pressure = Some(result_pressure);
+        self
+    }
+
+    pub(crate) fn with_operation_capability_requirement(
+        mut self,
+        operation_capability_requirement: ForgeQueryGraphReadOperationCapabilityRequirement,
+    ) -> Self {
+        self.operation_capability_requirement = Some(operation_capability_requirement);
         self
     }
 }

@@ -1,7 +1,16 @@
-error[E0451]: field `reference` of struct `ForgeQueryGraphRelationSymbol` is private
- --> tests/ui/runtime_graph_relation_symbol_constructor_private.rs:7:9
+error: cannot construct `ForgeQueryGraphRelationSymbol` with struct literal syntax due to private fields
+ --> tests/ui/runtime_graph_relation_symbol_constructor_private.rs:6:13
   |
 6 |     let _ = ForgeQueryGraphRelationSymbol {
-  |             ----------------------------- in this type
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 7 |         reference,
-  |         ^^^^^^^^^ private field
+  |         --------- private field
+  |
+  = note: ...and other private field `relation_kind_id` that was not provided
+help: you might have meant to use the `new` associated function
+  |
+6 -     let _ = ForgeQueryGraphRelationSymbol {
+7 -         reference,
+8 -     };
+6 +     let _ = ForgeQueryGraphRelationSymbol::new(_, _);
+  |

@@ -258,6 +258,18 @@ pub struct ForgeQueryReadReceipt {
     pub(super) relationship_proof_support_profile: Option<RelationshipProofSupportProfile>,
     pub(super) breadth: ForgeQueryReadBreadth,
     pub(super) materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
+    pub(super) graph_read_access_plan:
+        Option<crate::runtime::ForgeQueryAdmittedGraphReadAccessPlan>,
+    pub(super) graph_read_access_plan_consumption:
+        Option<crate::runtime::ForgeQueryGraphReadAccessPlanConsumption>,
+    pub(super) ephemeral_graph_index_receipt:
+        Option<crate::runtime::ForgeQueryEphemeralGraphIndexReceipt>,
+    pub(super) graph_read_streaming_receipt:
+        Option<crate::runtime::ForgeQueryGraphReadStreamingReceipt>,
+    pub(super) graph_read_access_summary:
+        Option<crate::runtime::ForgeQueryGraphReadAccessReceiptSummary>,
+    pub(super) graph_read_access_complexity_counters:
+        Option<crate::runtime::ForgeQueryGraphReadAccessComplexityCounters>,
     pub(super) graph_obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,

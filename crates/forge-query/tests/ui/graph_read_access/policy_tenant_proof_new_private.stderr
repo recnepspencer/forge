@@ -10,6 +10,7 @@ error[E0624]: associated function `new` is private
   | |         read_graph_digest: impl Into<String>,
   | |         policy_tenant_posture: ForgeQueryGraphReadPolicyTenantPosture,
   | |         relationship_proof_posture: ForgeQueryGraphReadRelationshipProofBindingPosture,
-  | |         relationship_proof_admission_digest: Option<String>,
+... |
+  | |         authority_receipt_digest: impl Into<String>,
   | |     ) -> Self {
   | |_____________- private associated function defined here

@@ -122,7 +122,7 @@ where
     )?;
     let pre_mutation_query = TopologyReadProofHarness::current_head();
     let pre_mutation_rewire = pre_mutation_query
-        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
+        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 4)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let chosen_successor_identity = pre_mutation_rewire
         .cycle_identities()
@@ -144,7 +144,7 @@ where
 
     let post_mutation_query = TopologyReadProofHarness::current_head();
     let local_rewire = post_mutation_query
-        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
+        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 4)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let loop_cycle = post_mutation_query
         .loop_cycle(&mut workspace, &moved_half_edge_identity, 6)

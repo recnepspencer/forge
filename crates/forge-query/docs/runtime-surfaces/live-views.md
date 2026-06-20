@@ -13,6 +13,14 @@ retained read surface; obligation authority keeps graph checks, diagnostic
 posture, budgets, and evidence aligned with the declared touch instead of
 asking consumers to maintain separate local graph validators.
 
+Graph Read Access Planning is the accountability lane for the access structures
+behind that same graph-shaped live read. If a live view needs adjacency,
+predicate support, ordering support, frontier state, live maintenance, or a
+typed required-capability posture, those requirements must be visible in the
+admitted access plan and in the live read or mutation-maintenance receipt. Do
+not treat live maintenance as permission to hide caller-owned graph walking
+behind a retained view.
+
 ## Why You Use It
 
 - you need current truth as rows or view-shaped records
@@ -209,6 +217,9 @@ What gets observed:
 - Use [Intent Admission](../execution/intent-admission.md) when the caller
   needs the covered live-read intent path rather than `workspace.read(...)`
   convenience alone.
+- Use [Graph Read Access Planning](../authoring/graph-read-access-planning.md)
+  when a graph-shaped live view needs proof of runtime-owned access structures,
+  exact maintenance counters, or no caller-owned N+1 traversal.
 - Use the workspace overview when you need the whole runtime story around live
   views.
 

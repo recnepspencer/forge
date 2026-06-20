@@ -26,15 +26,26 @@ pub(in crate::certification::projection_closeout::tests) fn seeded_sheet_disk_wo
     TopologyDeclaredQuerySurfaces,
     DerivedTopologyReadBasis,
 ) {
-    let mut runtime = milestone_one_runtime_builder()
-        .expect(" milestone one runtime builder")
-        .build();
-    let verified = seed_milestone_one_primitive_through_schema_execution(
-        &mut runtime,
+    seeded_primitive_workspace(
         stem,
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
-    .expect("verified primitive");
+}
+
+pub(in crate::certification::projection_closeout::tests) fn seeded_primitive_workspace(
+    stem: &str,
+    primitive: &MilestoneOnePrimitiveCase,
+) -> (
+    ForgeQueryWorkspace,
+    TopologyDeclaredQuerySurfaces,
+    DerivedTopologyReadBasis,
+) {
+    let mut runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
+        .build();
+    let verified =
+        seed_milestone_one_primitive_through_schema_execution(&mut runtime, stem, primitive)
+            .expect("verified primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, stem).expect("workspace should build");
     let surfaces =

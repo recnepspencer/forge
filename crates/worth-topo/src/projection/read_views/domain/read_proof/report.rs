@@ -6,6 +6,7 @@ use forge_query::facade::{
 };
 
 use super::fallback::TopologyReadFallbackPosture;
+use super::graph_access::TopologyReadGraphAccessProof;
 use crate::projection::runtime_boundary::read_lowering::{
     TopologyReadLoweringArtifact, TopologyReadRelationshipProofPosture,
 };
@@ -61,6 +62,7 @@ pub struct TopologyReadRequestReport {
     pub(crate) row_scan_fallback_count: usize,
     pub(crate) whole_view_fallback_count: usize,
     pub(crate) repeated_rediscovery_denied_count: usize,
+    pub(crate) graph_access_proof: Option<TopologyReadGraphAccessProof>,
 }
 
 impl TopologyReadRequestReport {
@@ -85,6 +87,7 @@ impl TopologyReadRequestReport {
             row_scan_fallback_count: 0,
             whole_view_fallback_count: 0,
             repeated_rediscovery_denied_count: 0,
+            graph_access_proof: TopologyReadGraphAccessProof::from_receipt(receipt),
         }
     }
 }

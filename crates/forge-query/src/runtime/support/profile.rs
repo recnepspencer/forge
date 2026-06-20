@@ -13,6 +13,7 @@ use super::{
     ForgeQueryRuntimeSupportDenial,
 };
 use crate::runtime::{ForgeQueryAuthorityLane, ForgeQueryEffectPolicy};
+use crate::runtime::{ForgeQueryGraphIndexSupportRow, ForgeQueryGraphReadAccessRequirementKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeSupportProfile {
@@ -21,6 +22,7 @@ pub struct ForgeQueryRuntimeSupportProfile {
     bridge_backed_verification_support_rows:
         Vec<ForgeQueryBridgeBackedVerificationSupportProfileRow>,
     graph_composition_capability_support_rows: Vec<ForgeQueryGraphCompositionCapabilitySupportRow>,
+    pub(super) graph_index_support_rows: Vec<ForgeQueryGraphIndexSupportRow>,
 }
 
 impl ForgeQueryRuntimeSupportProfile {
@@ -32,6 +34,7 @@ impl ForgeQueryRuntimeSupportProfile {
                 default_bridge_backed_verification_support_rows(),
             graph_composition_capability_support_rows:
                 default_graph_composition_capability_support_rows(),
+            graph_index_support_rows: default_graph_index_support_rows(),
         }
     }
 
@@ -360,6 +363,14 @@ impl ForgeQueryRuntimeSupportProfile {
 
         Ok(())
     }
+}
+
+pub(super) fn default_graph_index_support_rows() -> Vec<ForgeQueryGraphIndexSupportRow> {
+    ForgeQueryGraphReadAccessRequirementKind::all()
+        .iter()
+        .cloned()
+        .map(ForgeQueryGraphIndexSupportRow::for_requirement_kind)
+        .collect()
 }
 
 fn _keep_types_visible(

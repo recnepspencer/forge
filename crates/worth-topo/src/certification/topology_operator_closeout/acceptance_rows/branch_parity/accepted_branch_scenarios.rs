@@ -202,7 +202,7 @@ where
     )?;
     let topology_read = TopologyReadProofHarness::current_head();
     let neighborhood = topology_read
-        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
+        .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 4)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let chosen_successor_identity =
         neighborhood

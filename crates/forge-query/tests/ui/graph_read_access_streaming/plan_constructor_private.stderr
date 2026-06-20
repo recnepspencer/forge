@@ -1,0 +1,25 @@
+error: cannot construct `ForgeQueryGraphReadStreamingPlan` with struct literal syntax due to private fields
+  --> tests/ui/graph_read_access_streaming/plan_constructor_private.rs:6:13
+   |
+ 6 |       let _ = ForgeQueryGraphReadStreamingPlan {
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 7 |           digest: String::new(),
+   |           --------------------- private field
+ 8 |           admission_digest: String::new(),
+   |           ------------------------------- private field
+ 9 |           requirement_set_digest: String::new(),
+   |           ------------------------------------- private field
+10 | /         page_budget: ForgeQueryGraphReadStreamingPageBudget {
+11 | |             digest: String::new(),
+12 | |             max_page_width: 1,
+13 | |             max_resident_frontier: 1,
+14 | |             max_resident_visited: 1,
+15 | |             max_page_result_bytes: 1,
+16 | |         },
+   | |_________- private field
+17 |           canonical_result_basis_digest: String::new(),
+   |           -------------------------------------------- private field
+18 |           replay_basis_digest: String::new(),
+   |           ---------------------------------- private field
+   |
+   = note: ...and other private field `planned_frontier_page_count_floor` that was not provided

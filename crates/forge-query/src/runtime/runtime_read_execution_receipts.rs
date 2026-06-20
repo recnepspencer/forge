@@ -1,0 +1,92 @@
+use super::*;
+use crate::intent_admission::ForgeQueryReadExecutionBinding;
+
+pub(crate) fn provision_graph_indexes_for_read_binding(
+    binding: &ForgeQueryReadExecutionBinding,
+    snapshot_identity_digest: &str,
+) -> Result<Option<ForgeQueryEphemeralGraphIndexReceipt>, ForgeQueryRuntimeError> {
+    provision_ephemeral_graph_indexes_for_read_execution(
+        binding.graph_read_access_plan(),
+        snapshot_identity_digest,
+    )
+    .map_err(|error| {
+        ForgeQueryRuntimeError::ReadCompositionDenied(ForgeQueryReadDenial::new(
+            ForgeQueryReadDenialKind::BasisPreflightDenied,
+            error.as_str(),
+        ))
+    })
+}
+
+pub(crate) fn attach_graph_read_access_receipt(
+    executed_read: &mut super::read_composition_runtime::ForgeQueryExecutedReadGraph,
+    binding: &ForgeQueryReadExecutionBinding,
+    snapshot_identity_digest: &str,
+    ephemeral_graph_index_receipt: Option<ForgeQueryEphemeralGraphIndexReceipt>,
+) {
+    let graph_read_access_plan_consumption =
+        ForgeQueryGraphReadAccessPlanConsumption::from_plan_binding_and_execution_counters(
+            binding.graph_read_access_plan(),
+            binding.binding_digest(),
+            executed_read.graph_read_access_execution_counters().clone(),
+        );
+    let graph_read_streaming_receipt = streaming_receipt_for_admitted_read_result(
+        binding.graph_read_access_plan(),
+        snapshot_identity_digest,
+        executed_read.result().receipt().result_digest(),
+        executed_read.result().rows().len(),
+    );
+    executed_read.result_mut().attach_graph_read_access_plan(
+        binding.graph_read_access_plan().clone(),
+        graph_read_access_plan_consumption,
+        ephemeral_graph_index_receipt,
+        graph_read_streaming_receipt,
+    );
+}
+
+pub(crate) fn attach_graph_obligation_dispatch(
+    executed_read: &mut super::read_composition_runtime::ForgeQueryExecutedReadGraph,
+    binding: &ForgeQueryReadExecutionBinding,
+) {
+    executed_read
+        .result_mut()
+        .attach_graph_obligation_dispatch(binding.graph_obligation_dispatch().cloned());
+}
+
+pub(crate) fn attach_read_intent_execution_evidence(
+    executed_read: &mut super::read_composition_runtime::ForgeQueryExecutedReadGraph,
+    binding: &ForgeQueryReadExecutionBinding,
+    snapshot_identity: &crate::ForgeQueryEvidenceIdentity,
+) {
+    let obligation_dispatch_envelope_digest = binding
+        .graph_obligation_dispatch()
+        .and_then(|dispatch| dispatch.envelope_digest());
+    let decision_trace_envelope =
+        ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts_with_obligation_dispatch(
+            binding.family(),
+            binding.entrypoint(),
+            binding.read_family().family_name(),
+            binding.handoff().request_digest(),
+            binding.handoff().eligibility_trace().clone(),
+            binding.handoff().decision_digest(),
+            binding.handoff().handoff_digest(),
+            binding.execution_seam(),
+            obligation_dispatch_envelope_digest,
+            binding.read_family().family_name(),
+            executed_read.result().receipt().result_digest(),
+            binding.execution_seam().as_str(),
+        );
+    let execution_provenance =
+        ForgeQueryIntentExecutionProvenance::for_shared_execution_typed_parts(
+            binding.family(),
+            binding.entrypoint(),
+            binding.execution_seam(),
+            binding.handoff().decision_digest(),
+            binding.handoff().handoff_digest(),
+            binding.binding_digest(),
+            executed_read.result().receipt().result_digest(),
+            snapshot_identity,
+        );
+    executed_read
+        .result_mut()
+        .attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
+}

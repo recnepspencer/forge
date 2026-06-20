@@ -58,6 +58,15 @@ pub(crate) fn consumer_kit_evidence_scope_as_str(scope: ForgeQueryEvidenceScope)
         ForgeQueryEvidenceScope::ConsumerTestBackendResidueReport => {
             "consumer-test-backend-residue-report"
         }
+        ForgeQueryEvidenceScope::ConsumerGraphReadBypassFinding => {
+            "consumer-graph-read-bypass-finding"
+        }
+        ForgeQueryEvidenceScope::ConsumerGraphReadBypassReport => {
+            "consumer-graph-read-bypass-report"
+        }
+        ForgeQueryEvidenceScope::ConsumerGraphReadBypassResidue => {
+            "consumer-graph-read-bypass-residue"
+        }
         _ => unreachable!("consumer kit scope helper called with non-consumer scope"),
     }
 }

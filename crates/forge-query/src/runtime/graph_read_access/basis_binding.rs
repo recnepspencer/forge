@@ -1,14 +1,16 @@
-use crate::runtime::ForgeQueryReadGraph;
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryGraphReadBasisPosture {
     RuntimeCurrent,
+    PreviewAdmitted,
+    BranchAdmitted,
 }
 
 impl ForgeQueryGraphReadBasisPosture {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::RuntimeCurrent => "runtime_current",
+            Self::PreviewAdmitted => "preview_admitted",
+            Self::BranchAdmitted => "branch_admitted",
         }
     }
 }
@@ -59,6 +61,9 @@ impl ForgeQueryGraphReadBasisBinding {
 pub enum ForgeQueryGraphReadRelationshipProofBindingPosture {
     NotRequired,
     DescriptorAdmittedSyntheticRuntime,
+    DescriptorAdmittedRuntimeCurrent,
+    DescriptorAdmittedPreview,
+    DescriptorAdmittedBranch,
 }
 
 impl ForgeQueryGraphReadRelationshipProofBindingPosture {
@@ -66,6 +71,9 @@ impl ForgeQueryGraphReadRelationshipProofBindingPosture {
         match self {
             Self::NotRequired => "not_required",
             Self::DescriptorAdmittedSyntheticRuntime => "descriptor_admitted_synthetic_runtime",
+            Self::DescriptorAdmittedRuntimeCurrent => "descriptor_admitted_runtime_current",
+            Self::DescriptorAdmittedPreview => "descriptor_admitted_preview",
+            Self::DescriptorAdmittedBranch => "descriptor_admitted_branch",
         }
     }
 }
@@ -76,17 +84,25 @@ pub struct ForgeQueryGraphReadPolicyTenantProofBinding {
     policy_tenant_posture: ForgeQueryGraphReadPolicyTenantPosture,
     relationship_proof_posture: ForgeQueryGraphReadRelationshipProofBindingPosture,
     relationship_proof_admission_digest: Option<String>,
+    policy_tenant_admission_digest: Option<String>,
+    authority_receipt_digest: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryGraphReadPolicyTenantPosture {
     SyntheticRuntimeCurrentRead,
+    AdmittedCurrentRead,
+    AdmittedPreviewRead,
+    AdmittedBranchRead,
 }
 
 impl ForgeQueryGraphReadPolicyTenantPosture {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::SyntheticRuntimeCurrentRead => "synthetic_runtime_current_read",
+            Self::AdmittedCurrentRead => "admitted_current_read",
+            Self::AdmittedPreviewRead => "admitted_preview_read",
+            Self::AdmittedBranchRead => "admitted_branch_read",
         }
     }
 }
@@ -110,15 +126,27 @@ impl ForgeQueryGraphReadPolicyTenantProofBinding {
         self.relationship_proof_admission_digest.as_deref()
     }
 
+    pub fn policy_tenant_admission_digest(&self) -> Option<&str> {
+        self.policy_tenant_admission_digest.as_deref()
+    }
+
+    pub fn authority_receipt_digest(&self) -> &str {
+        &self.authority_receipt_digest
+    }
+
     pub(crate) fn digest_part(&self) -> String {
         format!(
-            "policy_tenant_proof:{}:{}:{}:{}",
+            "policy_tenant_proof:{}:{}:{}:{}:{}:{}",
             self.read_graph_digest,
             self.policy_tenant_posture.as_str(),
             self.relationship_proof_posture.as_str(),
             self.relationship_proof_admission_digest
                 .as_deref()
-                .unwrap_or("none")
+                .unwrap_or("none"),
+            self.policy_tenant_admission_digest
+                .as_deref()
+                .unwrap_or("none"),
+            self.authority_receipt_digest
         )
     }
 
@@ -127,40 +155,16 @@ impl ForgeQueryGraphReadPolicyTenantProofBinding {
         policy_tenant_posture: ForgeQueryGraphReadPolicyTenantPosture,
         relationship_proof_posture: ForgeQueryGraphReadRelationshipProofBindingPosture,
         relationship_proof_admission_digest: Option<String>,
+        policy_tenant_admission_digest: Option<String>,
+        authority_receipt_digest: impl Into<String>,
     ) -> Self {
         Self {
             read_graph_digest: read_graph_digest.into(),
             policy_tenant_posture,
             relationship_proof_posture,
             relationship_proof_admission_digest,
+            policy_tenant_admission_digest,
+            authority_receipt_digest: authority_receipt_digest.into(),
         }
     }
-}
-
-pub(crate) fn bind_graph_read_basis_for_read_graph(
-    read_graph: &ForgeQueryReadGraph,
-) -> (
-    ForgeQueryGraphReadBasisBinding,
-    ForgeQueryGraphReadPolicyTenantProofBinding,
-) {
-    let basis = ForgeQueryGraphReadBasisBinding::new(
-        read_graph.digest(),
-        read_graph.schema_basis().as_str(),
-        ForgeQueryGraphReadBasisPosture::RuntimeCurrent,
-    );
-    let relationship_proof_admission_digest = read_graph
-        .relationship_proof_admission()
-        .map(|admission| admission.identity().as_str().to_string());
-    let posture = if relationship_proof_admission_digest.is_some() {
-        ForgeQueryGraphReadRelationshipProofBindingPosture::DescriptorAdmittedSyntheticRuntime
-    } else {
-        ForgeQueryGraphReadRelationshipProofBindingPosture::NotRequired
-    };
-    let policy_tenant_proof = ForgeQueryGraphReadPolicyTenantProofBinding::new(
-        read_graph.digest(),
-        ForgeQueryGraphReadPolicyTenantPosture::SyntheticRuntimeCurrentRead,
-        posture,
-        relationship_proof_admission_digest,
-    );
-    (basis, policy_tenant_proof)
 }

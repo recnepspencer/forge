@@ -111,4 +111,16 @@ impl ForgeQueryGraphReadOperationCapabilityRequirement {
     pub fn matched_relations(&self) -> &[String] {
         &self.matched_relations
     }
+
+    pub(crate) fn digest_part(&self) -> String {
+        format!(
+            "operation_capability_requirement:{}:{}:{}:{}:{}:{}",
+            self.kind.as_str(),
+            self.domain_owner,
+            self.operation_name,
+            self.support_family,
+            self.read_graph_digest,
+            self.matched_relations.join(",")
+        )
+    }
 }

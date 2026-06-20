@@ -4,7 +4,8 @@ use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::runtime::{
     ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryIntentConsumerInspection,
-    ForgeQueryIntentExecutionProvenance, ForgeQueryRuntimeLiveSubscriptionInstallation,
+    ForgeQueryIntentExecutionProvenance, ForgeQueryLiveGraphReadAccessReceipt,
+    ForgeQueryRuntimeLiveSubscriptionInstallation,
 };
 
 use super::read_receipt_support::materialized_result_digest;
@@ -23,6 +24,7 @@ pub struct ForgeQueryLiveReadReceipt {
     row_count: usize,
     materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     pub(super) graph_obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
+    pub(super) live_graph_read_access: Option<ForgeQueryLiveGraphReadAccessReceipt>,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
 }
@@ -57,6 +59,7 @@ impl ForgeQueryLiveReadReceipt {
             row_count: rows.len(),
             materialized_fact_posture,
             graph_obligation_dispatch: None,
+            live_graph_read_access: None,
             decision_trace_envelope: None,
             execution_provenance: None,
         }
@@ -134,6 +137,10 @@ impl ForgeQueryLiveReadReceipt {
             .map(|dispatch| dispatch.attachment_evidence())
     }
 
+    pub fn live_graph_read_access(&self) -> Option<&ForgeQueryLiveGraphReadAccessReceipt> {
+        self.live_graph_read_access.as_ref()
+    }
+
     pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {
         self.decision_trace_envelope.as_ref()
     }
@@ -179,6 +186,7 @@ impl ForgeQueryLiveReadReceipt {
             row_count,
             materialized_fact_posture: None,
             graph_obligation_dispatch: None,
+            live_graph_read_access: None,
             decision_trace_envelope: None,
             execution_provenance: None,
         }

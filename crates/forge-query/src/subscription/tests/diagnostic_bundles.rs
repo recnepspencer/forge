@@ -72,6 +72,10 @@ fn admitted_diagnostic_bundle_carries_offline_semantic_labels_and_canonical_dige
             .as_str()
     );
     assert_eq!(
+        bundle.semantic_labels().live_graph_access_posture_label(),
+        artifacts.declaration.live_graph_access_posture().as_str()
+    );
+    assert_eq!(
         bundle.semantic_labels().support_posture_label(),
         support_report.support_posture().as_str()
     );
@@ -149,6 +153,10 @@ fn denied_diagnostic_bundle_localizes_declaration_failure_and_omits_later_stages
     assert_eq!(
         bundle.semantic_labels().query_family_label(),
         selection.family().as_str()
+    );
+    assert_eq!(
+        bundle.semantic_labels().live_graph_access_posture_label(),
+        selection.live_graph_access_posture().as_str()
     );
     assert_eq!(bundle.support_report_projection(), None);
     assert_eq!(
@@ -414,6 +422,10 @@ fn selection_denied_diagnostic_bundle_localizes_family_selection_failure_and_omi
     assert_eq!(
         bundle.semantic_labels().basis_posture_label(),
         "current_head"
+    );
+    assert_eq!(
+        bundle.semantic_labels().live_graph_access_posture_label(),
+        "selection_denied"
     );
     assert_eq!(bundle.support_report_projection(), None);
     assert_eq!(

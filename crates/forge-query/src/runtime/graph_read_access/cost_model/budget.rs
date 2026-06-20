@@ -1,7 +1,7 @@
 use super::{ForgeQueryGraphReadAccessCostEstimate, ForgeQueryGraphReadAccessCostEstimateDigest};
 use crate::identity::hash_parts;
 
-pub(crate) const DEFAULT_INLINE_EPHEMERAL_INDEX_BYTES: usize = 4096;
+pub(crate) const DEFAULT_INLINE_EPHEMERAL_INDEX_BYTES: usize = 5120;
 pub(crate) const DEFAULT_INLINE_EPHEMERAL_RESULT_BYTES: usize = 2048;
 pub(crate) const DEFAULT_INLINE_EPHEMERAL_INTERMEDIATE_SET_SIZE: usize = 16;
 
@@ -57,7 +57,6 @@ impl ForgeQueryGraphReadBudget {
     ) -> ForgeQueryGraphReadBudgetCheck {
         let class = if estimate.supported().index_bytes() > self.max_inline_index_bytes
             || estimate.supported().result_bytes() > self.max_inline_result_bytes
-            || estimate.intrinsic().intermediate_set_size() > self.max_inline_intermediate_set_size
         {
             ForgeQueryGraphReadBudgetClass::exceeds_inline_ephemeral_budget()
         } else {
@@ -131,7 +130,11 @@ impl ForgeQueryGraphReadBudgetClass {
 pub struct ForgeQueryGraphReadBudgetCheck {
     budget_digest: String,
     cost_estimate_digest: String,
+    max_inline_index_bytes: usize,
+    max_inline_result_bytes: usize,
+    max_inline_intermediate_set_size: usize,
     class: ForgeQueryGraphReadBudgetClass,
+    inline_ephemeral_allowance: ForgeQueryGraphReadInlineEphemeralAllowance,
 }
 
 impl ForgeQueryGraphReadBudgetCheck {
@@ -143,8 +146,24 @@ impl ForgeQueryGraphReadBudgetCheck {
         &self.cost_estimate_digest
     }
 
+    pub fn max_inline_index_bytes(&self) -> usize {
+        self.max_inline_index_bytes
+    }
+
+    pub fn max_inline_result_bytes(&self) -> usize {
+        self.max_inline_result_bytes
+    }
+
+    pub fn max_inline_intermediate_set_size(&self) -> usize {
+        self.max_inline_intermediate_set_size
+    }
+
     pub fn class(&self) -> &ForgeQueryGraphReadBudgetClass {
         &self.class
+    }
+
+    pub fn inline_ephemeral_allowance(&self) -> &ForgeQueryGraphReadInlineEphemeralAllowance {
+        &self.inline_ephemeral_allowance
     }
 
     fn new(
@@ -152,10 +171,58 @@ impl ForgeQueryGraphReadBudgetCheck {
         estimate_digest: &ForgeQueryGraphReadAccessCostEstimateDigest,
         class: ForgeQueryGraphReadBudgetClass,
     ) -> Self {
+        let inline_ephemeral_allowance =
+            ForgeQueryGraphReadInlineEphemeralAllowance::from_class(&class);
         Self {
             budget_digest: budget.digest().as_str().to_string(),
             cost_estimate_digest: estimate_digest.as_str().to_string(),
+            max_inline_index_bytes: budget.max_inline_index_bytes(),
+            max_inline_result_bytes: budget.max_inline_result_bytes(),
+            max_inline_intermediate_set_size: budget.max_inline_intermediate_set_size(),
             class,
+            inline_ephemeral_allowance,
         }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ForgeQueryGraphReadInlineEphemeralAllowanceKind {
+    Allowed,
+    Rejected,
+}
+
+impl ForgeQueryGraphReadInlineEphemeralAllowanceKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Allowed => "allowed",
+            Self::Rejected => "rejected",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryGraphReadInlineEphemeralAllowance {
+    kind: ForgeQueryGraphReadInlineEphemeralAllowanceKind,
+}
+
+impl ForgeQueryGraphReadInlineEphemeralAllowance {
+    pub fn kind(&self) -> &ForgeQueryGraphReadInlineEphemeralAllowanceKind {
+        &self.kind
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        self.kind.as_str()
+    }
+
+    fn from_class(class: &ForgeQueryGraphReadBudgetClass) -> Self {
+        let kind = match class.kind() {
+            ForgeQueryGraphReadBudgetClassKind::InlineEphemeralCandidate => {
+                ForgeQueryGraphReadInlineEphemeralAllowanceKind::Allowed
+            }
+            ForgeQueryGraphReadBudgetClassKind::ExceedsInlineEphemeralBudget => {
+                ForgeQueryGraphReadInlineEphemeralAllowanceKind::Rejected
+            }
+        };
+        Self { kind }
     }
 }

@@ -1,4 +1,4 @@
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGraphReadMemoryByteEstimate {
     adjacency_bytes: usize,
     reverse_adjacency_bytes: usize,
@@ -12,6 +12,20 @@ pub struct ForgeQueryGraphReadMemoryByteEstimate {
 }
 
 impl ForgeQueryGraphReadMemoryByteEstimate {
+    pub(crate) fn empty() -> Self {
+        Self {
+            adjacency_bytes: 0,
+            reverse_adjacency_bytes: 0,
+            frontier_bytes: 0,
+            visited_bytes: 0,
+            dedup_bytes: 0,
+            predicate_bytes: 0,
+            ordering_bytes: 0,
+            proof_bytes: 0,
+            result_bytes: 0,
+        }
+    }
+
     pub fn adjacency_bytes(&self) -> usize {
         self.adjacency_bytes
     }

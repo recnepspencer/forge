@@ -1,0 +1,5 @@
+error[E0599]: no method named `with_index_name` found for reference `&ForgeQueryGraphReadFamilyIndexContract` in the current scope
+ --> tests/ui/graph_read_access_persistent_requirement/raw_index_name_on_family_contract_forbidden.rs:5:26
+  |
+5 |         let _ = contract.with_index_name("caller-provided-index-name");
+  |                          ^^^^^^^^^^^^^^^ method not found in `&ForgeQueryGraphReadFamilyIndexContract`

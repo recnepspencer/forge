@@ -64,4 +64,35 @@ impl ForgeQueryReadResult {
     ) {
         self.receipt.graph_obligation_dispatch = dispatch;
     }
+
+    pub(in crate::runtime) fn attach_graph_read_access_plan(
+        &mut self,
+        plan: crate::runtime::ForgeQueryAdmittedGraphReadAccessPlan,
+        plan_consumption: crate::runtime::ForgeQueryGraphReadAccessPlanConsumption,
+        ephemeral_graph_index_receipt: Option<crate::runtime::ForgeQueryEphemeralGraphIndexReceipt>,
+        graph_read_streaming_receipt: Option<crate::runtime::ForgeQueryGraphReadStreamingReceipt>,
+    ) {
+        let graph_read_access_summary =
+            crate::runtime::ForgeQueryGraphReadAccessReceiptSummary::from_execution_parts(
+                self.receipt.read_graph_digest(),
+                &plan,
+                &plan_consumption,
+                ephemeral_graph_index_receipt.as_ref(),
+                graph_read_streaming_receipt.as_ref(),
+            );
+        let graph_read_access_complexity_counters =
+            crate::runtime::ForgeQueryGraphReadAccessComplexityCounters::from_execution_parts(
+                &plan,
+                &plan_consumption,
+                ephemeral_graph_index_receipt.as_ref(),
+                graph_read_streaming_receipt.as_ref(),
+            );
+        self.receipt.graph_read_access_plan = Some(plan);
+        self.receipt.graph_read_access_plan_consumption = Some(plan_consumption);
+        self.receipt.ephemeral_graph_index_receipt = ephemeral_graph_index_receipt;
+        self.receipt.graph_read_streaming_receipt = graph_read_streaming_receipt;
+        self.receipt.graph_read_access_summary = Some(graph_read_access_summary);
+        self.receipt.graph_read_access_complexity_counters =
+            Some(graph_read_access_complexity_counters);
+    }
 }

@@ -18,6 +18,7 @@ enum QuerySubscriptionDiagnosticSelectionContextKind {
         query_family_label: String,
         declaration_family_label: String,
         basis_posture_label: String,
+        live_graph_access_posture_label: String,
         context_identity: ForgeQueryEvidenceIdentity,
     },
 }
@@ -53,12 +54,14 @@ impl QuerySubscriptionDiagnosticSelectionContext {
             None => format!("selection_unresolved:{}:none", live.live_family().as_str()),
         };
         let declaration_family_label = format!("not_declared:{query_family_label}");
+        let live_graph_access_posture_label = "selection_denied".to_string();
         let source_identity = error.diagnostic().source_identity().clone();
         let context_identity = diagnostic_selection_context_denied_identity(
             &source_identity,
             &query_family_label,
             &declaration_family_label,
             live.basis_posture().as_str(),
+            &live_graph_access_posture_label,
         );
         Self {
             kind: QuerySubscriptionDiagnosticSelectionContextKind::Denied {
@@ -66,6 +69,7 @@ impl QuerySubscriptionDiagnosticSelectionContext {
                 query_family_label,
                 declaration_family_label,
                 basis_posture_label: live.basis_posture().as_str().to_string(),
+                live_graph_access_posture_label,
                 context_identity,
             },
         }
@@ -103,6 +107,18 @@ impl QuerySubscriptionDiagnosticSelectionContext {
                 basis_posture_label,
                 ..
             } => basis_posture_label,
+        }
+    }
+
+    pub fn live_graph_access_posture_label(&self) -> &str {
+        match &self.kind {
+            QuerySubscriptionDiagnosticSelectionContextKind::Selected { selection, .. } => {
+                selection.live_graph_access_posture().as_str()
+            }
+            QuerySubscriptionDiagnosticSelectionContextKind::Denied {
+                live_graph_access_posture_label,
+                ..
+            } => live_graph_access_posture_label,
         }
     }
 

@@ -15,6 +15,7 @@ pub struct ForgeQueryGraphReadAccessRequirementCounters {
     proof_support_count: usize,
     materialization_lifecycle_count: usize,
     live_maintenance_support_count: usize,
+    domain_operation_capability_registration_count: usize,
 }
 
 impl ForgeQueryGraphReadAccessRequirementCounters {
@@ -70,6 +71,10 @@ impl ForgeQueryGraphReadAccessRequirementCounters {
         self.live_maintenance_support_count
     }
 
+    pub fn domain_operation_capability_registration_count(&self) -> usize {
+        self.domain_operation_capability_registration_count
+    }
+
     pub(crate) fn from_rows(rows: &[ForgeQueryGraphReadAccessRequirementRow]) -> Self {
         Self {
             row_count: rows.len(),
@@ -114,6 +119,10 @@ impl ForgeQueryGraphReadAccessRequirementCounters {
             live_maintenance_support_count: count_kind(
                 rows,
                 &ForgeQueryGraphReadAccessRequirementKind::LiveMaintenanceSupport,
+            ),
+            domain_operation_capability_registration_count: count_kind(
+                rows,
+                &ForgeQueryGraphReadAccessRequirementKind::DomainOperationCapabilityRegistration,
             ),
         }
     }

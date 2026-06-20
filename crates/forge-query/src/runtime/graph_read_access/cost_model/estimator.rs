@@ -1,7 +1,9 @@
 use super::{
-    ForgeQueryGraphReadAccessCostEstimate, ForgeQueryGraphReadCostEstimateCounters,
-    ForgeQueryGraphReadCostEvidence, ForgeQueryGraphReadIntrinsicCostEstimate,
-    ForgeQueryGraphReadMemoryByteEstimate, ForgeQueryGraphReadSupportedCostEstimate,
+    ForgeQueryGraphReadAccessCostEstimate, ForgeQueryGraphReadCostAttributionRow,
+    ForgeQueryGraphReadCostEstimateCounters, ForgeQueryGraphReadCostEvidence,
+    ForgeQueryGraphReadIntrinsicCostContribution, ForgeQueryGraphReadIntrinsicCostEstimate,
+    ForgeQueryGraphReadMemoryByteEstimate, ForgeQueryGraphReadSupportedCostContribution,
+    ForgeQueryGraphReadSupportedCostEstimate,
 };
 use crate::runtime::{
     ForgeQueryGraphReadAccessRequirementKind, ForgeQueryGraphReadAccessRequirementRow,
@@ -19,8 +21,9 @@ pub fn estimate_graph_read_access_cost(
     requirements: &ForgeQueryGraphReadAccessRequirementSet,
     evidence: ForgeQueryGraphReadCostEvidence,
 ) -> ForgeQueryGraphReadAccessCostEstimate {
-    let intrinsic = estimate_intrinsic_cost(requirements.rows());
-    let supported = estimate_supported_cost(requirements.rows());
+    let attribution_rows = estimate_cost_attribution_rows(requirements.rows());
+    let intrinsic = estimate_intrinsic_cost(&attribution_rows);
+    let supported = estimate_supported_cost(&attribution_rows);
     let counters = estimate_cost_counters(requirements.rows());
     ForgeQueryGraphReadAccessCostEstimate::new(
         requirements.digest().as_str(),
@@ -28,27 +31,31 @@ pub fn estimate_graph_read_access_cost(
         intrinsic,
         supported,
         counters,
+        attribution_rows,
     )
 }
 
 fn estimate_intrinsic_cost(
-    rows: &[ForgeQueryGraphReadAccessRequirementRow],
+    rows: &[ForgeQueryGraphReadCostAttributionRow],
 ) -> ForgeQueryGraphReadIntrinsicCostEstimate {
     let frontier_breadth = rows
         .iter()
-        .filter_map(relation_frontier_breadth)
+        .map(|row| row.intrinsic().frontier_breadth())
         .sum::<usize>()
         .max(1);
     let edge_touches = rows
         .iter()
-        .filter_map(relation_edge_touch_estimate)
+        .map(|row| row.intrinsic().edge_touches())
         .sum::<usize>();
     let candidate_roots = rows
         .iter()
-        .map(candidate_root_pressure)
+        .map(|row| row.intrinsic().candidate_roots())
         .sum::<usize>()
         .max(1);
-    let intermediate_set_size = rows.iter().map(intermediate_set_pressure).sum::<usize>();
+    let intermediate_set_size = rows
+        .iter()
+        .map(|row| row.intrinsic().intermediate_set_size())
+        .sum::<usize>();
     ForgeQueryGraphReadIntrinsicCostEstimate::new(
         frontier_breadth,
         edge_touches,
@@ -58,46 +65,102 @@ fn estimate_intrinsic_cost(
 }
 
 fn estimate_supported_cost(
-    rows: &[ForgeQueryGraphReadAccessRequirementRow],
+    rows: &[ForgeQueryGraphReadCostAttributionRow],
 ) -> ForgeQueryGraphReadSupportedCostEstimate {
-    let mut memory = ForgeQueryGraphReadMemoryByteEstimate::default();
-    let mut allocation_lifecycle_count = 0;
+    let mut memory = ForgeQueryGraphReadMemoryByteEstimate::empty();
+    let allocation_lifecycle_count = rows
+        .iter()
+        .map(|row| row.supported().allocation_lifecycle_count())
+        .sum::<usize>();
     for row in rows {
-        match row.kind() {
-            ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency => {
-                memory.add_adjacency_bytes(relation_memory_bytes(row));
-            }
-            ForgeQueryGraphReadAccessRequirementKind::ReverseAdjacency => {
-                memory.add_reverse_adjacency_bytes(relation_memory_bytes(row));
-            }
-            ForgeQueryGraphReadAccessRequirementKind::TraversalWorkset => {
-                memory.add_frontier_bytes(frontier_memory_bytes(row));
-            }
-            ForgeQueryGraphReadAccessRequirementKind::VisitedSet => {
-                memory.add_visited_bytes(set_memory_bytes(row));
-            }
-            ForgeQueryGraphReadAccessRequirementKind::DedupSet => {
-                memory.add_dedup_bytes(set_memory_bytes(row));
-            }
-            ForgeQueryGraphReadAccessRequirementKind::PredicateSupport => {
-                memory.add_predicate_bytes(predicate_memory_bytes(row));
-            }
-            ForgeQueryGraphReadAccessRequirementKind::OrderingSupport => {
-                memory.add_ordering_bytes(ordering_memory_bytes(row));
-            }
-            ForgeQueryGraphReadAccessRequirementKind::ProofSupport => {
-                memory.add_proof_bytes(UNKNOWN_PROOF_BYTES);
-            }
-            ForgeQueryGraphReadAccessRequirementKind::ResultBuffer => {
-                memory.add_result_bytes(result_memory_bytes(row));
-            }
-            ForgeQueryGraphReadAccessRequirementKind::MaterializationLifecycle
-            | ForgeQueryGraphReadAccessRequirementKind::LiveMaintenanceSupport => {
-                allocation_lifecycle_count += 1;
-            }
-        }
+        add_memory_contribution(&mut memory, row.supported().memory());
     }
     ForgeQueryGraphReadSupportedCostEstimate::new(memory, allocation_lifecycle_count)
+}
+
+fn estimate_cost_attribution_rows(
+    rows: &[ForgeQueryGraphReadAccessRequirementRow],
+) -> Vec<ForgeQueryGraphReadCostAttributionRow> {
+    rows.iter().map(estimate_cost_attribution_row).collect()
+}
+
+fn estimate_cost_attribution_row(
+    row: &ForgeQueryGraphReadAccessRequirementRow,
+) -> ForgeQueryGraphReadCostAttributionRow {
+    ForgeQueryGraphReadCostAttributionRow::new(
+        row.digest_part(),
+        row.kind().clone(),
+        intrinsic_contribution(row),
+        supported_contribution(row),
+    )
+}
+
+fn intrinsic_contribution(
+    row: &ForgeQueryGraphReadAccessRequirementRow,
+) -> ForgeQueryGraphReadIntrinsicCostContribution {
+    ForgeQueryGraphReadIntrinsicCostContribution::new(
+        relation_frontier_breadth(row).unwrap_or(0),
+        relation_edge_touch_estimate(row).unwrap_or(0),
+        candidate_root_pressure(row),
+        intermediate_set_pressure(row),
+    )
+}
+
+fn supported_contribution(
+    row: &ForgeQueryGraphReadAccessRequirementRow,
+) -> ForgeQueryGraphReadSupportedCostContribution {
+    let mut memory = ForgeQueryGraphReadMemoryByteEstimate::empty();
+    let mut allocation_lifecycle_count = 0;
+    match row.kind() {
+        ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency => {
+            memory.add_adjacency_bytes(relation_memory_bytes(row));
+        }
+        ForgeQueryGraphReadAccessRequirementKind::ReverseAdjacency => {
+            memory.add_reverse_adjacency_bytes(relation_memory_bytes(row));
+        }
+        ForgeQueryGraphReadAccessRequirementKind::TraversalWorkset => {
+            memory.add_frontier_bytes(frontier_memory_bytes(row));
+        }
+        ForgeQueryGraphReadAccessRequirementKind::VisitedSet => {
+            memory.add_visited_bytes(set_memory_bytes(row));
+        }
+        ForgeQueryGraphReadAccessRequirementKind::DedupSet => {
+            memory.add_dedup_bytes(set_memory_bytes(row));
+        }
+        ForgeQueryGraphReadAccessRequirementKind::PredicateSupport => {
+            memory.add_predicate_bytes(predicate_memory_bytes(row));
+        }
+        ForgeQueryGraphReadAccessRequirementKind::OrderingSupport => {
+            memory.add_ordering_bytes(ordering_memory_bytes(row));
+        }
+        ForgeQueryGraphReadAccessRequirementKind::ProofSupport => {
+            memory.add_proof_bytes(UNKNOWN_PROOF_BYTES);
+        }
+        ForgeQueryGraphReadAccessRequirementKind::ResultBuffer => {
+            memory.add_result_bytes(result_memory_bytes(row));
+        }
+        ForgeQueryGraphReadAccessRequirementKind::MaterializationLifecycle
+        | ForgeQueryGraphReadAccessRequirementKind::LiveMaintenanceSupport
+        | ForgeQueryGraphReadAccessRequirementKind::DomainOperationCapabilityRegistration => {
+            allocation_lifecycle_count = 1;
+        }
+    }
+    ForgeQueryGraphReadSupportedCostContribution::new(memory, allocation_lifecycle_count)
+}
+
+fn add_memory_contribution(
+    target: &mut ForgeQueryGraphReadMemoryByteEstimate,
+    contribution: &ForgeQueryGraphReadMemoryByteEstimate,
+) {
+    target.add_adjacency_bytes(contribution.adjacency_bytes());
+    target.add_reverse_adjacency_bytes(contribution.reverse_adjacency_bytes());
+    target.add_frontier_bytes(contribution.frontier_bytes());
+    target.add_visited_bytes(contribution.visited_bytes());
+    target.add_dedup_bytes(contribution.dedup_bytes());
+    target.add_predicate_bytes(contribution.predicate_bytes());
+    target.add_ordering_bytes(contribution.ordering_bytes());
+    target.add_proof_bytes(contribution.proof_bytes());
+    target.add_result_bytes(contribution.result_bytes());
 }
 
 fn estimate_cost_counters(

@@ -1,7 +1,7 @@
 use super::{
-    ForgeQueryGraphReadComplexityContract, ForgeQueryGraphReadCostEstimateCounters,
-    ForgeQueryGraphReadCostEstimateStatus, ForgeQueryGraphReadCostEvidence,
-    ForgeQueryGraphReadMemoryByteEstimate,
+    ForgeQueryGraphReadComplexityContract, ForgeQueryGraphReadCostAttributionRow,
+    ForgeQueryGraphReadCostEstimateCounters, ForgeQueryGraphReadCostEstimateStatus,
+    ForgeQueryGraphReadCostEvidence, ForgeQueryGraphReadMemoryByteEstimate,
 };
 use crate::identity::hash_parts;
 
@@ -123,6 +123,7 @@ pub struct ForgeQueryGraphReadAccessCostEstimate {
     intrinsic: ForgeQueryGraphReadIntrinsicCostEstimate,
     supported: ForgeQueryGraphReadSupportedCostEstimate,
     counters: ForgeQueryGraphReadCostEstimateCounters,
+    attribution_rows: Vec<ForgeQueryGraphReadCostAttributionRow>,
 }
 
 impl ForgeQueryGraphReadAccessCostEstimate {
@@ -154,12 +155,17 @@ impl ForgeQueryGraphReadAccessCostEstimate {
         &self.counters
     }
 
+    pub fn attribution_rows(&self) -> &[ForgeQueryGraphReadCostAttributionRow] {
+        &self.attribution_rows
+    }
+
     pub(crate) fn new(
         requirement_set_digest: impl Into<String>,
         evidence: &ForgeQueryGraphReadCostEvidence,
         intrinsic: ForgeQueryGraphReadIntrinsicCostEstimate,
         supported: ForgeQueryGraphReadSupportedCostEstimate,
         counters: ForgeQueryGraphReadCostEstimateCounters,
+        attribution_rows: Vec<ForgeQueryGraphReadCostAttributionRow>,
     ) -> Self {
         let requirement_set_digest = requirement_set_digest.into();
         let complexity_contract = ForgeQueryGraphReadComplexityContract::from_cost_dimensions(
@@ -176,6 +182,7 @@ impl ForgeQueryGraphReadAccessCostEstimate {
             intrinsic.digest_part(),
             supported.digest_part(),
             counters.digest_part(),
+            attribution_rows_digest_part(&attribution_rows),
         ];
         Self {
             digest: ForgeQueryGraphReadAccessCostEstimateDigest::from_parts(&parts),
@@ -185,6 +192,17 @@ impl ForgeQueryGraphReadAccessCostEstimate {
             intrinsic,
             supported,
             counters,
+            attribution_rows,
         }
     }
+}
+
+fn attribution_rows_digest_part(rows: &[ForgeQueryGraphReadCostAttributionRow]) -> String {
+    format!(
+        "attribution_rows:{}",
+        rows.iter()
+            .map(|row| row.digest_part())
+            .collect::<Vec<_>>()
+            .join("|")
+    )
 }

@@ -565,14 +565,85 @@ covered graph obligation path. Manual invariant packs are compatibility/custom e
 registered graph obligations are the covered path.
 
 Do not reduce this to "index reads for a DAG." Milestone 9.9 closes graph
-obligation authority. Milestone 9.10 is separate: automatic graph read access
-planning and background index provisioning.
+obligation authority. Milestone 9.10 is separate: graph read access planning,
+admitted access postures, typed required-capability or materialization
+postures, and receipt-backed no-N+1 proof.
 
 Read next:
 
 - [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
 - [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+
+## Graph Read Access Planning
+
+Graph read access planning is one of Query's core runtime advantages. It lets
+Query take a declared graph-shaped read and prove, before and after execution,
+which access structures made that read honest.
+
+The thing Query does here that ordinary ORMs, graph helpers, reactive runtimes,
+and application frameworks do not do is make graph-read access a proof-bearing
+runtime lane. Query does not merely run a traversal, infer an index behind the
+caller, or ask the caller to trust that a helper avoided N+1 work. It derives
+the required adjacency, predicate, ordering, frontier, visited-set, result, live
+maintenance, streaming, persistent-index, or materialization support from the
+read declaration; admits or denies that shape against typed runtime support;
+and then emits receipts proving which plan was consumed and which counters were
+observed.
+
+The declaration is the authoring surface. The access plan is the accountability
+surface. Query derives access requirements from read declarations, admits those
+requirements against runtime support rows and budgets, and proves execution
+through the read receipt's access-plan consumption counters.
+
+This is not graph touch obligation authority. Obligation authority decides which
+graph meaning must be checked. Graph read access planning decides which access
+structures are required to read graph-shaped data without caller-owned relation
+loops, hidden N+1 traversal, broad RAM expansion, or surface-local graph caches.
+
+This is also not a magic "route resources" or "automatic index everything"
+feature. The endpoints and access shapes stay visible as declared read families,
+admitted access plans, typed required-capability postures, and receipt fields.
+If Query cannot prove a safe runtime-owned path, it returns a typed denial or a
+typed required posture instead of silently crossing into caller-owned traversal.
+
+Use this category when a task mentions graph read cost, adjacency indexes,
+frontier scans, broad boolean graph predicates, read-family access plans,
+streaming graph reads, persistent index requirements, async materialization, or
+receipt counters for no-N+1 proof.
+
+The access admission postures are `inline_indexed`,
+`bounded_ephemeral_index`, `admitted_paged_streaming`,
+`paged_streaming_required`, `persistent_index_required`,
+`async_materialization_required`, `store_backed_capability_required`,
+`access_capability_registration_required`, and `denied`.
+
+The denial kinds are `budget_exceeded`, `required_async_materialization`,
+`required_access_capability_registration`, `required_persistent_index`, and
+`unsupported_graph_index_support`.
+
+The required capability owners are `query_runtime`, `lower_runtime`,
+`persistent_store`, `domain_registration`, and `async_materializer`.
+
+Representative access requirement rows include `directional_adjacency`,
+`reverse_adjacency`, `predicate_support`, `ordering_support`,
+`traversal_workset`, `visited_set`, `dedup_set`, `proof_support`,
+`result_buffer`, `materialization_lifecycle`, `live_maintenance_support`, and
+`domain_operation_capability_registration`.
+
+Receipt proof fields include `graph_read_access_plan_consumption`,
+`ephemeral_graph_index_receipt`, `graph_read_streaming_receipt`,
+`live_graph_read_access`, and `graph_read_access_summary`.
+
+The mistake to avoid is saying a graph read is safe because the helper is
+friendly. A graph read is safe only when the admitted access plan and receipt
+prove the selected posture ran and the counters show no caller-owned N+1 work.
+
+Read next:
+
+- [Graph Read Access Planning](./authoring/graph-read-access-planning.md)
+- [Read Composition](./authoring/read-composition.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 
 ## Aspects And Authority Lanes

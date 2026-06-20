@@ -210,10 +210,12 @@ When a downstream crate adopts graph obligations, it should be able to prove:
 Manual invariant packs are compatibility/custom extension surfaces, not the
 primary covered graph obligation path.
 
-Milestone 9.10 covers automatic graph read access planning and background index
-provisioning. Do not use that future scope to bypass Milestone 9.9 obligation
-authority. Reads can already carry graph obligation meaning; 9.10 changes how
-read access and indexes are planned, not whether obligations belong to Query.
+Milestone 9.10 covers graph read access planning: derived access requirements,
+typed admission or denial, runtime-owned support rows, and receipt-backed
+no-N+1 proof for declared graph-shaped reads. Do not use that scope to bypass
+Milestone 9.9 obligation authority. Reads can already carry graph obligation
+meaning; graph read access planning changes how read access structures are
+admitted and proved, not whether obligations belong to Query.
 
 ## Related Docs
 
