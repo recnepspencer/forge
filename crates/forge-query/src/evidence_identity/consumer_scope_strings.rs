@@ -50,11 +50,22 @@ pub(crate) fn consumer_kit_evidence_scope_as_str(scope: ForgeQueryEvidenceScope)
         }
         ForgeQueryEvidenceScope::ConsumerSupportPinFinding => "consumer-support-pin-finding",
         ForgeQueryEvidenceScope::ConsumerSupportPinReport => "consumer-support-pin-report",
+        ForgeQueryEvidenceScope::ConsumerResidueFinding => "consumer-residue-finding",
+        ForgeQueryEvidenceScope::ConsumerResidueReport => "consumer-residue-report",
         ForgeQueryEvidenceScope::ConsumerTestBackendResidueFinding => {
             "consumer-test-backend-residue-finding"
         }
         ForgeQueryEvidenceScope::ConsumerTestBackendResidueReport => {
             "consumer-test-backend-residue-report"
+        }
+        ForgeQueryEvidenceScope::ConsumerGraphReadBypassFinding => {
+            "consumer-graph-read-bypass-finding"
+        }
+        ForgeQueryEvidenceScope::ConsumerGraphReadBypassReport => {
+            "consumer-graph-read-bypass-report"
+        }
+        ForgeQueryEvidenceScope::ConsumerGraphReadBypassResidue => {
+            "consumer-graph-read-bypass-residue"
         }
         _ => unreachable!("consumer kit scope helper called with non-consumer scope"),
     }

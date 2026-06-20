@@ -379,6 +379,7 @@ The required Consumer Kit families are:
 - `support-snapshot`
 - `support-pinning`
 - `in-memory-test-backend`
+- `consumer-residue-audit`
 - `reference-consumer-adoption`
 
 Use this category when a downstream crate is about to hand-roll report structs,
@@ -400,8 +401,36 @@ Choose the surface by proof job:
   regressions
 - use `in_memory_test_runtime()` and `ForgeQueryTestBackendSchema` when tests
   need a real `ForgeQueryWorkspace` without adapter or receipt fabrication
-- use the adoption and residue audits when a consumer must prove it deleted
+- use `query_consumer_residue_audit(...)` when a consumer must prove it did
+  not rebuild Query proof locally through report structs, proof structs, raw
+  support-row spelunking, support-matrix row searches, debug-derived proof
+  strings, or delimiter-derived proof strings
+- use the adoption audits when a reference consumer must prove it deleted
   Query-owned folklore rather than merely hiding it
+
+`query_consumer_residue_audit(...)` returns a typed
+`ForgeQueryConsumerResidueReport`, not a lint string. The report carries typed
+findings, finding identities, report identity, audited source paths, skipped
+non-Rust source count, and a source-inventory digest. Consumers should assert
+that report and inventory evidence directly. They should not build local source
+manifests, local residue classes, local scanners, or local replacement
+matrices around it.
+
+Milestone `9.8` closure for `consumer-residue-audit` is backed by typed
+consumer-residue certification evidence. Do not "certify" this family by
+checking that a test name or marker string appears in source text. The
+certification evidence must come from Query-owned detector execution, the
+reference-consumer audit report, and the report/inventory identities those
+surfaces produce.
+
+Do not confuse `query_consumer_residue_audit(...)` with the Milestone `9.9`
+graph-obligation local ceremony audit. The generic residue audit owns
+Query-proof folklore across Consumer Kit adoption: fake reports, fake proofs,
+raw support rows, row searches, debug proof strings, and delimiter proof
+strings. The graph-obligation audit is a narrower specialized lane for manual
+graph obligation ceremony such as local invariant packs, validator phase
+chains, and graph-obligation support pins. Use both only when both proof
+families are actually in play.
 
 Real support pinning means typed row identity, live row digest binding, and a
 localized typed failure when a required row regresses. A checked-in list of row
@@ -536,14 +565,85 @@ covered graph obligation path. Manual invariant packs are compatibility/custom e
 registered graph obligations are the covered path.
 
 Do not reduce this to "index reads for a DAG." Milestone 9.9 closes graph
-obligation authority. Milestone 9.10 is separate: automatic graph read access
-planning and background index provisioning.
+obligation authority. Milestone 9.10 is separate: graph read access planning,
+admitted access postures, typed required-capability or materialization
+postures, and receipt-backed no-N+1 proof.
 
 Read next:
 
 - [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
 - [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+
+## Graph Read Access Planning
+
+Graph read access planning is one of Query's core runtime advantages. It lets
+Query take a declared graph-shaped read and prove, before and after execution,
+which access structures made that read honest.
+
+The thing Query does here that ordinary ORMs, graph helpers, reactive runtimes,
+and application frameworks do not do is make graph-read access a proof-bearing
+runtime lane. Query does not merely run a traversal, infer an index behind the
+caller, or ask the caller to trust that a helper avoided N+1 work. It derives
+the required adjacency, predicate, ordering, frontier, visited-set, result, live
+maintenance, streaming, persistent-index, or materialization support from the
+read declaration; admits or denies that shape against typed runtime support;
+and then emits receipts proving which plan was consumed and which counters were
+observed.
+
+The declaration is the authoring surface. The access plan is the accountability
+surface. Query derives access requirements from read declarations, admits those
+requirements against runtime support rows and budgets, and proves execution
+through the read receipt's access-plan consumption counters.
+
+This is not graph touch obligation authority. Obligation authority decides which
+graph meaning must be checked. Graph read access planning decides which access
+structures are required to read graph-shaped data without caller-owned relation
+loops, hidden N+1 traversal, broad RAM expansion, or surface-local graph caches.
+
+This is also not a magic "route resources" or "automatic index everything"
+feature. The endpoints and access shapes stay visible as declared read families,
+admitted access plans, typed required-capability postures, and receipt fields.
+If Query cannot prove a safe runtime-owned path, it returns a typed denial or a
+typed required posture instead of silently crossing into caller-owned traversal.
+
+Use this category when a task mentions graph read cost, adjacency indexes,
+frontier scans, broad boolean graph predicates, read-family access plans,
+streaming graph reads, persistent index requirements, async materialization, or
+receipt counters for no-N+1 proof.
+
+The access admission postures are `inline_indexed`,
+`bounded_ephemeral_index`, `admitted_paged_streaming`,
+`paged_streaming_required`, `persistent_index_required`,
+`async_materialization_required`, `store_backed_capability_required`,
+`access_capability_registration_required`, and `denied`.
+
+The denial kinds are `budget_exceeded`, `required_async_materialization`,
+`required_access_capability_registration`, `required_persistent_index`, and
+`unsupported_graph_index_support`.
+
+The required capability owners are `query_runtime`, `lower_runtime`,
+`persistent_store`, `domain_registration`, and `async_materializer`.
+
+Representative access requirement rows include `directional_adjacency`,
+`reverse_adjacency`, `predicate_support`, `ordering_support`,
+`traversal_workset`, `visited_set`, `dedup_set`, `proof_support`,
+`result_buffer`, `materialization_lifecycle`, `live_maintenance_support`, and
+`domain_operation_capability_registration`.
+
+Receipt proof fields include `graph_read_access_plan_consumption`,
+`ephemeral_graph_index_receipt`, `graph_read_streaming_receipt`,
+`live_graph_read_access`, and `graph_read_access_summary`.
+
+The mistake to avoid is saying a graph read is safe because the helper is
+friendly. A graph read is safe only when the admitted access plan and receipt
+prove the selected posture ran and the counters show no caller-owned N+1 work.
+
+Read next:
+
+- [Graph Read Access Planning](./authoring/graph-read-access-planning.md)
+- [Read Composition](./authoring/read-composition.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 
 ## Aspects And Authority Lanes

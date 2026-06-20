@@ -13,6 +13,7 @@ use super::posture::{
     QuerySubscriptionBridgePosture, QuerySubscriptionCostPosture,
 };
 use super::selection::QuerySubscriptionFamilySelection;
+use super::selection_live_graph_access::QuerySubscriptionLiveGraphAccessPosture;
 use super::slice::{
     QuerySubscriptionSliceIntent, QuerySubscriptionSliceKind, QuerySubscriptionSlicePart,
 };
@@ -25,6 +26,7 @@ pub struct QuerySubscriptionDeclarationArtifact {
     cost_posture: QuerySubscriptionCostPosture,
     basis_posture: QuerySubscriptionBasisPosture,
     bridge_posture: QuerySubscriptionBridgePosture,
+    live_graph_access_posture: QuerySubscriptionLiveGraphAccessPosture,
     equivalence_identity: crate::evidence_identity::ForgeQueryEvidenceIdentity,
     slice_intent: QuerySubscriptionSliceIntent,
     delivery_intent: QuerySubscriptionDeliveryIntent,
@@ -53,6 +55,10 @@ impl QuerySubscriptionDeclarationArtifact {
 
     pub fn bridge_posture(&self) -> &QuerySubscriptionBridgePosture {
         &self.bridge_posture
+    }
+
+    pub fn live_graph_access_posture(&self) -> &QuerySubscriptionLiveGraphAccessPosture {
+        &self.live_graph_access_posture
     }
 
     pub fn equivalence_identity(&self) -> &crate::evidence_identity::ForgeQueryEvidenceIdentity {
@@ -202,6 +208,7 @@ pub fn declare_query_subscription(
         selection.cost_posture(),
         selection.basis_posture(),
         selection.bridge_posture(),
+        selection.live_graph_access_posture(),
         selection.future_selection(),
         &equivalence_identity,
         &slice_intent,
@@ -209,7 +216,7 @@ pub fn declare_query_subscription(
         selection.work_budget().max_admitted_slice_count(),
         &slice_budget,
     );
-    counters.declaration_digest_part_count = 17;
+    counters.declaration_digest_part_count = 18;
     let declaration_digest =
         QuerySubscriptionDeclarationDigest::from_evidence_identity(&declaration_identity);
 
@@ -219,6 +226,7 @@ pub fn declare_query_subscription(
         cost_posture: selection.cost_posture().clone(),
         basis_posture: selection.basis_posture().clone(),
         bridge_posture: selection.bridge_posture().clone(),
+        live_graph_access_posture: *selection.live_graph_access_posture(),
         equivalence_identity,
         slice_intent,
         delivery_intent,

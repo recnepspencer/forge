@@ -3,6 +3,10 @@ use super::{
     ForgeQueryReadBuiltInOperatorDenial, ForgeQueryReadBuiltInOperatorDenialReason,
     ForgeQueryReadRelationshipProofDenial,
 };
+use crate::runtime::{
+    ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessExecutionCounters,
+    ForgeQueryGraphReadPersistentArtifactAudit,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryReadDenialKind {
@@ -54,12 +58,56 @@ impl ForgeQueryReadScopeShapeMismatch {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryReadAccessPlanBindingMismatch {
+    admitted_read_graph_digest: String,
+    execution_read_graph_digest: String,
+    provided_plan_digest: String,
+    provided_admission_digest: String,
+}
+
+impl ForgeQueryReadAccessPlanBindingMismatch {
+    pub fn admitted_read_graph_digest(&self) -> &str {
+        &self.admitted_read_graph_digest
+    }
+
+    pub fn execution_read_graph_digest(&self) -> &str {
+        &self.execution_read_graph_digest
+    }
+
+    pub fn provided_plan_digest(&self) -> &str {
+        &self.provided_plan_digest
+    }
+
+    pub fn provided_admission_digest(&self) -> &str {
+        &self.provided_admission_digest
+    }
+
+    pub(in crate::runtime) fn new(
+        admitted_read_graph_digest: impl Into<String>,
+        execution_read_graph_digest: impl Into<String>,
+        provided_plan_digest: impl Into<String>,
+        provided_admission_digest: impl Into<String>,
+    ) -> Self {
+        Self {
+            admitted_read_graph_digest: admitted_read_graph_digest.into(),
+            execution_read_graph_digest: execution_read_graph_digest.into(),
+            provided_plan_digest: provided_plan_digest.into(),
+            provided_admission_digest: provided_admission_digest.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryReadDenial {
     kind: ForgeQueryReadDenialKind,
     message: String,
     built_in_operator_denial: Option<ForgeQueryReadBuiltInOperatorDenial>,
     relationship_proof_denial: Option<ForgeQueryReadRelationshipProofDenial>,
     scope_shape_mismatch: Option<ForgeQueryReadScopeShapeMismatch>,
+    access_plan_binding_mismatch: Option<ForgeQueryReadAccessPlanBindingMismatch>,
+    graph_read_access_admission: Option<ForgeQueryGraphReadAccessAdmission>,
+    graph_read_access_execution_counters: Option<ForgeQueryGraphReadAccessExecutionCounters>,
+    graph_read_persistent_artifact_audit: Option<ForgeQueryGraphReadPersistentArtifactAudit>,
 }
 
 impl ForgeQueryReadDenial {
@@ -83,17 +131,82 @@ impl ForgeQueryReadDenial {
         self.scope_shape_mismatch.as_ref()
     }
 
-    pub(in crate::runtime) fn new(
-        kind: ForgeQueryReadDenialKind,
-        message: impl Into<String>,
-    ) -> Self {
+    pub fn access_plan_binding_mismatch(&self) -> Option<&ForgeQueryReadAccessPlanBindingMismatch> {
+        self.access_plan_binding_mismatch.as_ref()
+    }
+
+    pub fn graph_read_access_admission(&self) -> Option<&ForgeQueryGraphReadAccessAdmission> {
+        self.graph_read_access_admission.as_ref()
+    }
+
+    pub fn graph_read_access_execution_counters(
+        &self,
+    ) -> Option<&ForgeQueryGraphReadAccessExecutionCounters> {
+        self.graph_read_access_execution_counters.as_ref()
+    }
+
+    pub fn graph_read_persistent_artifact_audit(
+        &self,
+    ) -> Option<&ForgeQueryGraphReadPersistentArtifactAudit> {
+        self.graph_read_persistent_artifact_audit.as_ref()
+    }
+
+    pub(crate) fn new(kind: ForgeQueryReadDenialKind, message: impl Into<String>) -> Self {
         Self {
             kind,
             message: message.into(),
             built_in_operator_denial: None,
             relationship_proof_denial: None,
             scope_shape_mismatch: None,
+            access_plan_binding_mismatch: None,
+            graph_read_access_admission: None,
+            graph_read_access_execution_counters: None,
+            graph_read_persistent_artifact_audit: None,
         }
+    }
+
+    pub(crate) fn with_access_plan_binding_mismatch(
+        mut self,
+        access_plan_binding_mismatch: ForgeQueryReadAccessPlanBindingMismatch,
+    ) -> Self {
+        self.access_plan_binding_mismatch = Some(access_plan_binding_mismatch);
+        self
+    }
+
+    pub(crate) fn with_graph_read_access_admission(
+        mut self,
+        graph_read_access_admission: ForgeQueryGraphReadAccessAdmission,
+    ) -> Self {
+        self.graph_read_access_admission = Some(graph_read_access_admission);
+        self
+    }
+
+    pub(crate) fn with_graph_read_access_execution_counters(
+        mut self,
+        graph_read_access_execution_counters: ForgeQueryGraphReadAccessExecutionCounters,
+    ) -> Self {
+        self.graph_read_access_execution_counters = Some(graph_read_access_execution_counters);
+        self
+    }
+
+    pub(crate) fn with_graph_read_persistent_artifact_audit(
+        mut self,
+        graph_read_persistent_artifact_audit: ForgeQueryGraphReadPersistentArtifactAudit,
+    ) -> Self {
+        self.graph_read_persistent_artifact_audit = Some(graph_read_persistent_artifact_audit);
+        self
+    }
+
+    pub(crate) fn with_graph_read_persistent_artifact_audit_for_admission(
+        self,
+        admission: &ForgeQueryGraphReadAccessAdmission,
+    ) -> Self {
+        if admission.persistent_index_requirement().is_some() {
+            return self.with_graph_read_persistent_artifact_audit(
+                ForgeQueryGraphReadPersistentArtifactAudit::declaration_only_stop(),
+            );
+        }
+        self
     }
 
     pub(in crate::runtime) fn new_built_in_operator_denied(
@@ -109,6 +222,10 @@ impl ForgeQueryReadDenial {
             )),
             relationship_proof_denial: None,
             scope_shape_mismatch: None,
+            access_plan_binding_mismatch: None,
+            graph_read_access_admission: None,
+            graph_read_access_execution_counters: None,
+            graph_read_persistent_artifact_audit: None,
         }
     }
 
@@ -122,6 +239,10 @@ impl ForgeQueryReadDenial {
             built_in_operator_denial: None,
             relationship_proof_denial: Some(denial),
             scope_shape_mismatch: None,
+            access_plan_binding_mismatch: None,
+            graph_read_access_admission: None,
+            graph_read_access_execution_counters: None,
+            graph_read_persistent_artifact_audit: None,
         }
     }
 
@@ -140,6 +261,10 @@ impl ForgeQueryReadDenial {
             built_in_operator_denial: None,
             relationship_proof_denial: None,
             scope_shape_mismatch: Some(ForgeQueryReadScopeShapeMismatch { expected, actual }),
+            access_plan_binding_mismatch: None,
+            graph_read_access_admission: None,
+            graph_read_access_execution_counters: None,
+            graph_read_persistent_artifact_audit: None,
         }
     }
 }

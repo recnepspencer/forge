@@ -125,6 +125,50 @@ impl ForgeQueryReadReceipt {
         self.materialized_fact_posture.as_ref()
     }
 
+    pub fn graph_read_access_plan(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryAdmittedGraphReadAccessPlan> {
+        self.graph_read_access_plan.as_ref()
+    }
+
+    pub fn graph_read_access_admission(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryGraphReadAccessAdmission> {
+        self.graph_read_access_plan
+            .as_ref()
+            .map(|plan| plan.admission())
+    }
+
+    pub fn graph_read_access_plan_consumption(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryGraphReadAccessPlanConsumption> {
+        self.graph_read_access_plan_consumption.as_ref()
+    }
+
+    pub fn ephemeral_graph_index_receipt(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryEphemeralGraphIndexReceipt> {
+        self.ephemeral_graph_index_receipt.as_ref()
+    }
+
+    pub fn graph_read_streaming_receipt(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryGraphReadStreamingReceipt> {
+        self.graph_read_streaming_receipt.as_ref()
+    }
+
+    pub fn graph_read_access_summary(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryGraphReadAccessReceiptSummary> {
+        self.graph_read_access_summary.as_ref()
+    }
+
+    pub fn graph_read_access_complexity_counters(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryGraphReadAccessComplexityCounters> {
+        self.graph_read_access_complexity_counters.as_ref()
+    }
+
     pub fn graph_obligation_dispatch(
         &self,
     ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatch> {
@@ -206,6 +250,12 @@ impl ForgeQueryReadReceipt {
                 execution_materialized_relation_count: 0,
             },
             materialized_fact_posture: None,
+            graph_read_access_plan: None,
+            graph_read_access_plan_consumption: None,
+            ephemeral_graph_index_receipt: None,
+            graph_read_streaming_receipt: None,
+            graph_read_access_summary: None,
+            graph_read_access_complexity_counters: None,
             graph_obligation_dispatch: None,
             decision_trace_envelope: None,
             execution_provenance: None,

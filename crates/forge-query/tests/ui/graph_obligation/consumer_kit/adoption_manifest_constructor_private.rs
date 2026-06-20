@@ -1,9 +1,9 @@
 use forge_query::facade::consumer_kit::{
     ForgeQueryGraphObligationAdoptionManifest,
     ForgeQueryGraphObligationConsumerRegistrationDeclaration,
-    ForgeQueryGraphObligationInMemoryProof, ForgeQueryGraphObligationLocalCeremonyAudit,
-    ForgeQueryGraphObligationResidueManifest, ForgeQueryGraphObligationSelectorCoverageDeclaration,
-    ForgeQueryGraphObligationSupportPin,
+    ForgeQueryGraphObligationExecutionProof, ForgeQueryGraphObligationInMemoryProof,
+    ForgeQueryGraphObligationLocalCeremonyAudit, ForgeQueryGraphObligationResidueManifest,
+    ForgeQueryGraphObligationSelectorCoverageDeclaration, ForgeQueryGraphObligationSupportPin,
 };
 
 fn main() {
@@ -16,6 +16,7 @@ fn main() {
         todo::<ForgeQueryGraphObligationResidueManifest>(),
         todo::<ForgeQueryGraphObligationLocalCeremonyAudit>(),
         todo::<ForgeQueryGraphObligationInMemoryProof>(),
+        None::<&ForgeQueryGraphObligationExecutionProof>,
     );
 }
 

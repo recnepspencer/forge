@@ -1,0 +1,12 @@
+error[E0624]: associated function `for_requirement_kind` is private
+ --> tests/ui/graph_read_access_admission/access_case_constructor_private.rs:6:44
+  |
+6 |       let _ = ForgeQueryGraphReadAccessCase::for_requirement_kind(
+  |                                              ^^^^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: src/runtime/graph_read_access/access_admission/case_inventory.rs
+  |
+  | /     pub(crate) fn for_requirement_kind(
+  | |         requirement_kind: ForgeQueryGraphReadAccessRequirementKind,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

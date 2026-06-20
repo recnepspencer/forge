@@ -47,6 +47,12 @@ The main stable entry points are:
 - `in_memory_test_runtime()`
 - `ForgeQueryTestBackendSchema`
 - `evidence_report_adoption_audit()`
+- `query_consumer_residue_audit()`
+- `forge_query_consumer_residue_certification_evidence()`
+- `ForgeQueryConsumerResidueClass`
+- `ForgeQueryConsumerResidueReport`
+- `ForgeQueryConsumerResidueSourceInventory`
+- `ForgeQueryConsumerResidueCertificationCaseEvidence`
 - `query_test_backend_residue_audit()`
 
 Durable persisted kit archives are not the stable contract yet. Treat persisted
@@ -90,7 +96,14 @@ The kit is split by proof job:
    with localized findings when required posture regresses.
 6. The in-memory test backend builds a real `ForgeQueryWorkspace` over a
    declared test schema and fails closed for unsupported collections or lanes.
-7. Adoption and residue audits publish proof that covered consumer surfaces no
+7. The generic consumer-residue audit detects local Query proof folklore:
+   local Query reports, local Query proofs, raw support-row spelunking,
+   support-matrix row searches, debug-derived proof strings, and
+   delimiter-derived proof strings. Its report includes audited source paths,
+   skipped non-Rust source count, finding identities, report identity, and a
+   source-inventory digest so adoption tests can prove which downstream files
+   were actually audited.
+8. Adoption audits publish proof that covered reference-consumer surfaces no
    longer carry Query-owned folklore.
 
 ## Small Example
@@ -218,6 +231,8 @@ Useful things to inspect:
 - `ForgeQuerySupportSnapshot::snapshot_digest()`
 - `ForgeQuerySupportPinReport::findings()`
 - `ForgeQuerySupportPinReport::report_digest()`
+- `ForgeQueryConsumerResidueReport::findings()`
+- `ForgeQueryConsumerResidueFinding::residue_class()`
 - `ForgeQueryTestBackendResidueReport`
 - `support_report().consumer_kit_closure()`
 
@@ -240,6 +255,8 @@ assert_eq!(closure.reference_consumer_residue().query_owned_residue_count(), 0);
 - treating support pins as advisory warnings
 - checking in free-form strings as support row identity
 - fabricating mutation receipts in tests
+- building local Query proof with report structs, proof structs, raw support
+  rows, support-matrix row searches, debug strings, or delimiter-joined strings
 - implementing Query runtime adapter traits in a consumer test just to get a
   workspace
 - reading support posture from autocomplete instead of the support matrix or a

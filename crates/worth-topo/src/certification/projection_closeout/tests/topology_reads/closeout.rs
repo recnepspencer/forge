@@ -134,10 +134,10 @@ fn topology_read_proof_report_aggregates_request_and_parity_evidence_on_the_boun
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("sheet disk should expose successor source");
     let left_view = left_query
-        .local_rewire_neighborhood(&mut left_workspace, &moved_identity, 6)
+        .local_rewire_neighborhood(&mut left_workspace, &moved_identity, 4)
         .expect("left local rewire neighborhood should load");
     let right_view = right_query
-        .local_rewire_neighborhood(&mut right_workspace, &moved_identity, 6)
+        .local_rewire_neighborhood(&mut right_workspace, &moved_identity, 4)
         .expect("right local rewire neighborhood should load");
     let left_artifact = build_topology_read_view_parity_artifact(
         &verified.read_basis(),

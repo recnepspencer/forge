@@ -142,6 +142,10 @@ fn closed_consumer_kit_family_rows() -> Vec<ForgeQueryConsumerKitFamilyClosureRo
             "Shipped Test Backend Honesty Test",
         ),
         (
+            ForgeQueryConsumerKitFamilyName::ConsumerResidueAudit,
+            "Typed Consumer Residue Audit For Query Proof Folklore",
+        ),
+        (
             ForgeQueryConsumerKitFamilyName::ReferenceConsumerAdoption,
             "Reference Consumer Enforcement Adoption Test",
         ),

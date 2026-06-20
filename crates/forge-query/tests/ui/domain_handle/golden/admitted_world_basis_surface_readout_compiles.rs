@@ -41,18 +41,24 @@ impl ForgeQueryDomainOperatingContext<GeometryDomainEntry> for GeometryOperating
 }
 
 fn main() {
-    let basis = ForgeQueryApplicationFacade::runtime_backed_default()
+    let checked = match ForgeQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomainEntry)
         .with_operating_context(GeometryOperatingContext)
         .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .retained_world_basis();
+    {
+        Ok(value) => value,
+        Err(_) => return,
+    };
+    let admitted = match checked.admit() {
+        Ok(value) => value,
+        Err(_) => return,
+    };
+    let basis = admitted.retained_world_basis();
 
     let _ = basis.domain_key();
     let _ = basis.display_name();
     let _ = basis.operating_context_identity_digest();
-    let _ = basis.handle_identity_digest();
+    let _ = basis.handle_identity_for_reporting();
     let _ = basis.support_snapshot_digest();
+    let _ = basis.basis_lifecycle_support_for_reporting();
 }

@@ -4,13 +4,16 @@ use super::{
     ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryBranchOptions,
     ForgeQueryBranchSession, ForgeQueryComputedBuilder, ForgeQueryDerivedViewHandle,
     ForgeQueryDerivedViewMaintainer, ForgeQueryEffectBuilder, ForgeQueryEffectHandle,
-    ForgeQueryEffectIntentReceipt, ForgeQueryHandleContract, ForgeQueryIntentDeclaration,
-    ForgeQueryIntentReceipt, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
-    ForgeQueryMutationSurfaceReport, ForgeQueryPreviewOptions, ForgeQueryPreviewSession,
-    ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiFamilyContract,
-    ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimeStateSnapshot,
-    ForgeQueryRuntimeStateTarget, ForgeQueryWorkspaceLiveViewDeclaration, QuerySchemaView,
+    ForgeQueryEffectIntentReceipt, ForgeQueryGraphIndexInventory,
+    ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessAuthorityContext,
+    ForgeQueryGraphReadAccessShapeExplanationError, ForgeQueryGraphReadMaterializationRuntime,
+    ForgeQueryHandleContract, ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt,
+    ForgeQueryLiveView, ForgeQueryLiveViewBuilder, ForgeQueryMutationSurfaceReport,
+    ForgeQueryPreviewOptions, ForgeQueryPreviewSession, ForgeQueryReadFamily, ForgeQueryRuntime,
+    ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimePublicApiContract,
+    ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimePublicSupportMatrix,
+    ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeStateTarget,
+    ForgeQueryWorkspaceLiveViewDeclaration, QuerySchemaView,
 };
 use crate::memory_workspace::ForgeQuerySnapshotIdentity;
 use crate::program::ForgeQueryDerivedView;
@@ -59,6 +62,32 @@ impl ForgeQueryWorkspace {
 
     pub fn public_support_matrix(&self) -> ForgeQueryRuntimePublicSupportMatrix {
         self.runtime.public_support_matrix()
+    }
+
+    pub fn graph_index_inventory(&self) -> ForgeQueryGraphIndexInventory {
+        self.runtime.graph_index_inventory()
+    }
+
+    pub fn graph_read_materializations(&mut self) -> ForgeQueryGraphReadMaterializationRuntime<'_> {
+        ForgeQueryGraphReadMaterializationRuntime::new(&mut self.runtime)
+    }
+
+    pub(crate) fn admit_graph_read_access_for_family(
+        &self,
+        family: &ForgeQueryReadFamily,
+    ) -> Result<ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessShapeExplanationError>
+    {
+        self.runtime.admit_graph_read_access_for_family(family)
+    }
+
+    pub(crate) fn admit_graph_read_access_for_family_in_authority(
+        &self,
+        family: &ForgeQueryReadFamily,
+        authority: &ForgeQueryGraphReadAccessAuthorityContext,
+    ) -> Result<ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessShapeExplanationError>
+    {
+        self.runtime
+            .admit_graph_read_access_for_family_in_authority(family, authority)
     }
 
     pub fn public_mutation_surface_report(&self) -> ForgeQueryMutationSurfaceReport {

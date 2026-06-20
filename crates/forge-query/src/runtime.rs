@@ -224,6 +224,7 @@ pub(crate) use evidence_identities::{
 #[cfg(test)]
 mod fallback_seam_counters;
 mod graph_obligation_registration;
+mod graph_read_access;
 mod handle_contract;
 mod inspection;
 mod intent;
@@ -231,6 +232,7 @@ mod journal_position;
 mod journal_replay;
 mod live_subscription;
 mod live_subscription_accessors;
+mod live_subscription_delivery_routing;
 mod materialized_fact_posture;
 mod mixed_cause_delivery;
 mod mixed_cause_emission;
@@ -275,8 +277,11 @@ mod runtime_intent_phase_four_execution;
 mod runtime_intent_phase_three_resolution;
 mod runtime_intents;
 mod runtime_journal_replay;
+mod runtime_live_read_intents;
 mod runtime_non_authoritative_obligation_dispatch;
 mod runtime_probe_routing_intents;
+mod runtime_read_access_plan;
+mod runtime_read_execution_receipts;
 mod runtime_read_intents;
 mod runtime_read_obligation_dispatch;
 mod runtime_reads_programs;
@@ -299,6 +304,7 @@ mod workspace;
 mod workspace_contracts;
 mod workspace_declaration;
 mod workspace_graph;
+mod workspace_live_queries;
 mod workspace_mutations;
 mod workspace_queries;
 mod workspace_read_composition_support;
@@ -369,8 +375,8 @@ pub use concurrent_hostile_matrix::{
 };
 pub use delivery::ForgeQueryRuntimeDeliveryBatch;
 use delivery::{
-    register_live_subscription_index, route_live_subscription_delivery,
-    ForgeQueryRuntimeLiveSubscriptionActivation, ForgeQueryRuntimeLiveSubscriptionState,
+    register_live_subscription_index, ForgeQueryRuntimeLiveSubscriptionActivation,
+    ForgeQueryRuntimeLiveSubscriptionState,
 };
 use downstream_delivery_contract::project_downstream_delivery;
 pub use downstream_delivery_contract::{
@@ -404,6 +410,140 @@ pub use error::{
 pub(crate) use fallback_seam_counters::{
     forbidden_fallback_seam_invocation_count, record_forbidden_fallback_seam_invocation,
     reset_forbidden_fallback_seam_invocations, ForgeQueryForbiddenFallbackSeam,
+};
+pub(crate) use graph_read_access::match_graph_index_inventory_for_requirements;
+pub(crate) use graph_read_access::provision_ephemeral_graph_indexes_for_read_execution;
+pub(crate) use graph_read_access::streaming_receipt_for_admitted_read_result;
+#[allow(unused_imports)]
+pub use graph_read_access::{
+    admit_graph_read_access_authority,
+    admit_graph_read_access_authority_from_policy_tenant_request,
+    admit_graph_read_access_for_family, admit_graph_read_access_for_family_in_authority,
+    derive_graph_read_access_requirements, derive_graph_read_cost_evidence,
+    estimate_graph_read_access_cost, estimate_graph_read_access_cost_with_planning_observation,
+    explain_boolean_selectivity_shape_for_family,
+    explain_boolean_selectivity_shape_for_family_with_operation_registry,
+    explain_graph_read_access_requirement_outcome_for_family,
+    explain_graph_read_access_requirement_outcome_for_family_in_authority,
+    explain_graph_read_access_requirement_outcome_for_family_with_operation_registry,
+    explain_graph_read_access_requirements_for_family,
+    explain_graph_read_access_requirements_for_family_in_authority,
+    explain_graph_read_access_requirements_for_family_with_operation_registry,
+    explain_graph_read_access_shape_for_family,
+    explain_graph_read_access_shape_for_family_in_authority,
+    explain_graph_read_access_shape_for_family_with_operation_registry,
+    forge_query_graph_index_inventory, forge_query_graph_read_access_compile_fail_boundary_digest,
+    forge_query_graph_read_access_compile_fail_target_count,
+    forge_query_graph_read_access_compile_fail_targets,
+    forge_query_graph_read_proof_transition_manifest,
+    forge_query_graph_read_proof_transition_manifest_count,
+    forge_query_graph_read_proof_transition_manifest_digest,
+    match_current_graph_index_inventory_for_requirements,
+    plan_admitted_graph_read_access_for_family,
+    plan_admitted_graph_read_access_for_family_in_authority,
+    resolve_graph_read_operations_for_family_in_authority_with_registry,
+    resolve_graph_read_operations_for_family_with_registry,
+    try_derive_graph_read_access_requirements, ForgeQueryAdmittedBooleanExpressionBranch,
+    ForgeQueryAdmittedBooleanExpressionBranchKind, ForgeQueryAdmittedBooleanExpressionCounters,
+    ForgeQueryAdmittedBooleanExpressionTopology, ForgeQueryAdmittedBooleanPredicateExpression,
+    ForgeQueryAdmittedBooleanPredicateLeaf, ForgeQueryAdmittedGraphReadAccessPlan,
+    ForgeQueryAdmittedGraphReadOrderingField, ForgeQueryAdmittedGraphReadPredicateField,
+    ForgeQueryAdmittedGraphReadProjectionField, ForgeQueryAdmittedGraphReadRelation,
+    ForgeQueryAdmittedGraphReadRelationDirection, ForgeQueryAdmittedQuerySchemaReferences,
+    ForgeQueryBooleanExpressionAdmissionError, ForgeQueryBooleanExpressionAdmissionErrorKind,
+    ForgeQueryBooleanPredicateSelectivityRow, ForgeQueryBooleanPredicateTopology,
+    ForgeQueryBooleanSelectivityAdmissionPosture, ForgeQueryBooleanSelectivityBranch,
+    ForgeQueryBooleanSelectivityBranchKind, ForgeQueryBooleanSelectivityCounters,
+    ForgeQueryBooleanSelectivityShape, ForgeQueryBooleanSelectivityShapeDigest,
+    ForgeQueryBuiltInGraphReadOperation, ForgeQueryDomainRegisteredGraphReadOperation,
+    ForgeQueryEphemeralGraphIndex, ForgeQueryEphemeralGraphIndexAllocationRow,
+    ForgeQueryEphemeralGraphIndexCounters, ForgeQueryEphemeralGraphIndexLifecycleRegistry,
+    ForgeQueryEphemeralGraphIndexPlan, ForgeQueryEphemeralGraphIndexProvisioningError,
+    ForgeQueryEphemeralGraphIndexReceipt, ForgeQueryEphemeralGraphIndexScope,
+    ForgeQueryEphemeralGraphIndexScopeKind, ForgeQueryGraphIndexInventory,
+    ForgeQueryGraphIndexInventoryCounters, ForgeQueryGraphIndexInventoryMatch,
+    ForgeQueryGraphIndexInventoryMatchOutcome, ForgeQueryGraphIndexInventoryMatchReport,
+    ForgeQueryGraphIndexLifecycleClass, ForgeQueryGraphIndexLifecycleOwner,
+    ForgeQueryGraphIndexPosture, ForgeQueryGraphIndexSupportRow, ForgeQueryGraphIndexSupportState,
+    ForgeQueryGraphReadAccessAdmission, ForgeQueryGraphReadAccessAdmissionPosture,
+    ForgeQueryGraphReadAccessAuthorityContext, ForgeQueryGraphReadAccessAuthorityCounters,
+    ForgeQueryGraphReadAccessAuthorityDenial, ForgeQueryGraphReadAccessAuthorityDenialKind,
+    ForgeQueryGraphReadAccessAuthorityReceipt, ForgeQueryGraphReadAccessAuthorityRequest,
+    ForgeQueryGraphReadAccessBasisScope, ForgeQueryGraphReadAccessBasisScopeKind,
+    ForgeQueryGraphReadAccessCase, ForgeQueryGraphReadAccessCaseRegistry,
+    ForgeQueryGraphReadAccessComplexityContract, ForgeQueryGraphReadAccessCostEstimate,
+    ForgeQueryGraphReadAccessCostEstimateDigest, ForgeQueryGraphReadAccessDenial,
+    ForgeQueryGraphReadAccessDenialKind, ForgeQueryGraphReadAccessExecutionCounters,
+    ForgeQueryGraphReadAccessInvalidationBasis, ForgeQueryGraphReadAccessInventoryMatch,
+    ForgeQueryGraphReadAccessMemoryEstimateBasis, ForgeQueryGraphReadAccessPlanConsumption,
+    ForgeQueryGraphReadAccessPlanExplanation, ForgeQueryGraphReadAccessRebuildBasis,
+    ForgeQueryGraphReadAccessRequirementCounters,
+    ForgeQueryGraphReadAccessRequirementDerivationError,
+    ForgeQueryGraphReadAccessRequirementExplanationOutcome,
+    ForgeQueryGraphReadAccessRequirementKind, ForgeQueryGraphReadAccessRequirementRow,
+    ForgeQueryGraphReadAccessRequirementSet, ForgeQueryGraphReadAccessRequirementSetDigest,
+    ForgeQueryGraphReadAccessShape, ForgeQueryGraphReadAccessShapeDerivationCounters,
+    ForgeQueryGraphReadAccessShapeDigest, ForgeQueryGraphReadAccessShapeExplanation,
+    ForgeQueryGraphReadAccessShapeExplanationError, ForgeQueryGraphReadAdmittedSchemaFieldKind,
+    ForgeQueryGraphReadBasisBinding, ForgeQueryGraphReadBasisPosture, ForgeQueryGraphReadBudget,
+    ForgeQueryGraphReadBudgetCheck, ForgeQueryGraphReadBudgetClass,
+    ForgeQueryGraphReadBudgetClassKind, ForgeQueryGraphReadBudgetDigest,
+    ForgeQueryGraphReadBudgetExceededDenial, ForgeQueryGraphReadCheckpointInterval,
+    ForgeQueryGraphReadComplexityContract, ForgeQueryGraphReadComplexityContractKind,
+    ForgeQueryGraphReadCostAttributionRow, ForgeQueryGraphReadCostEstimateCounters,
+    ForgeQueryGraphReadCostEstimateStatus, ForgeQueryGraphReadCostEstimateStatusKind,
+    ForgeQueryGraphReadCostEvidence, ForgeQueryGraphReadFamilyIndexContract,
+    ForgeQueryGraphReadFanoutPosture, ForgeQueryGraphReadFrontierCursor,
+    ForgeQueryGraphReadInlineEphemeralAllowance, ForgeQueryGraphReadInlineEphemeralAllowanceKind,
+    ForgeQueryGraphReadIntrinsicCostContribution, ForgeQueryGraphReadIntrinsicCostEstimate,
+    ForgeQueryGraphReadLifecycleClass, ForgeQueryGraphReadMaterializationAdmittedJob,
+    ForgeQueryGraphReadMaterializationAdmittedLimits,
+    ForgeQueryGraphReadMaterializationCancellationReceipt,
+    ForgeQueryGraphReadMaterializationCheckpoint, ForgeQueryGraphReadMaterializationCounters,
+    ForgeQueryGraphReadMaterializationJob, ForgeQueryGraphReadMaterializationJobState,
+    ForgeQueryGraphReadMaterializationPolicy, ForgeQueryGraphReadMaterializationProgress,
+    ForgeQueryGraphReadMaterializationReceipt, ForgeQueryGraphReadMaterializationRecoveryHandle,
+    ForgeQueryGraphReadMaterializationRequest, ForgeQueryGraphReadMaterializationRequestError,
+    ForgeQueryGraphReadMaterializationResourceLimitReceipt,
+    ForgeQueryGraphReadMaterializationRuntime, ForgeQueryGraphReadMaterializedArtifact,
+    ForgeQueryGraphReadMaterializedRowProof, ForgeQueryGraphReadMemoryByteEstimate,
+    ForgeQueryGraphReadObservedCostEstimate, ForgeQueryGraphReadOperationCapabilityRequirement,
+    ForgeQueryGraphReadOperationCapabilityRequirementDeclaration,
+    ForgeQueryGraphReadOperationCapabilityRequirementKind, ForgeQueryGraphReadOperationOutcome,
+    ForgeQueryGraphReadOperationRegistration, ForgeQueryGraphReadOperationRegistry,
+    ForgeQueryGraphReadOperationResolution, ForgeQueryGraphReadOperationUnsupportedDenial,
+    ForgeQueryGraphReadOperationUnsupportedDenialKind,
+    ForgeQueryGraphReadOperationUnsupportedShapeDeclaration,
+    ForgeQueryGraphReadOrderingFieldAuthority, ForgeQueryGraphReadOrderingPosture,
+    ForgeQueryGraphReadPersistentArtifactAudit, ForgeQueryGraphReadPlanningObservation,
+    ForgeQueryGraphReadPolicyTenantAuthorityRequest, ForgeQueryGraphReadPolicyTenantPosture,
+    ForgeQueryGraphReadPolicyTenantProofBinding, ForgeQueryGraphReadPredicateFamily,
+    ForgeQueryGraphReadPredicateFieldAuthority, ForgeQueryGraphReadProofBoundaryEvidenceKind,
+    ForgeQueryGraphReadProofTransitionManifestRow, ForgeQueryGraphReadRegistryAdmissionError,
+    ForgeQueryGraphReadRelationAuthority, ForgeQueryGraphReadRelationshipProofBindingPosture,
+    ForgeQueryGraphReadRequiredCapabilityOwner, ForgeQueryGraphReadResolvedOperation,
+    ForgeQueryGraphReadResolvedOperationFamily, ForgeQueryGraphReadResolvedOperationKind,
+    ForgeQueryGraphReadResultPressure, ForgeQueryGraphReadRootPosture,
+    ForgeQueryGraphReadSchemaReferenceAdmissionError,
+    ForgeQueryGraphReadSchemaReferenceAdmissionErrorKind, ForgeQueryGraphReadStreamingCounters,
+    ForgeQueryGraphReadStreamingCursorDenial, ForgeQueryGraphReadStreamingCursorDenialKind,
+    ForgeQueryGraphReadStreamingCursorSession, ForgeQueryGraphReadStreamingPageBudget,
+    ForgeQueryGraphReadStreamingPageReceipt, ForgeQueryGraphReadStreamingPlan,
+    ForgeQueryGraphReadStreamingReceipt, ForgeQueryGraphReadSupportedCostContribution,
+    ForgeQueryGraphReadSupportedCostEstimate, ForgeQueryGraphReadTraversalOperator,
+    ForgeQueryLiveGraphReadAccessDenial, ForgeQueryLiveGraphReadAccessPlan,
+    ForgeQueryLiveGraphReadAccessPosture, ForgeQueryLiveGraphReadAccessReceipt,
+    ForgeQueryLiveGraphReadMaintenanceBudget, ForgeQueryLiveGraphReadMaintenanceCounters,
+    ForgeQueryLiveGraphReadMaintenanceReceipt, ForgeQueryLiveGraphReadMutationDeltaScope,
+    ForgeQueryPersistentGraphIndexRequirementCounters,
+    ForgeQueryPersistentGraphIndexRequirementDeclaration,
+    ForgeQueryPersistentGraphIndexRequirementReceipt, ForgeQueryPersistentGraphIndexRequirementRow,
+    ForgeQueryPredicateAnchorPosture, ForgeQueryPredicateOperandOperator,
+    ForgeQueryPredicateSelectivityClass, ForgeQueryTraversalPredicateOrderingPosture,
+};
+pub(crate) use graph_read_access::{
+    admit_graph_read_access_for_family_in_authority_with_inventory,
+    admit_graph_read_access_for_family_with_inventory,
 };
 pub use handle_contract::{
     ForgeQueryHandleContract, ForgeQueryHandleContractFamily, ForgeQueryHandleContractRow,
@@ -496,6 +636,7 @@ pub use live_subscription::{
     ForgeQueryRuntimeLiveSubscriptionBudgetPolicyIdentity,
     ForgeQueryRuntimeLiveSubscriptionInstallation,
 };
+use live_subscription_delivery_routing::route_live_subscription_delivery;
 #[allow(unused_imports)]
 pub use mixed_cause_delivery::{
     ForgeQueryRuntimeDeliveryCoalescingKind, ForgeQueryRuntimeMixedCauseDelivery,
@@ -684,17 +825,19 @@ pub use surface::{
     ForgeQueryGraphCompositionLineageEntry, ForgeQueryGraphCompositionLineageSummary,
     ForgeQueryGraphCompositionProgram, ForgeQueryGraphCompositionProgramStep,
     ForgeQueryGraphCompositionProgramStepKind, ForgeQueryGraphCompositionResolutionEntry,
-    ForgeQueryGraphCompositionResolutionMap, ForgeQueryInspectedArtifact,
+    ForgeQueryGraphCompositionResolutionMap, ForgeQueryGraphReadAccessComplexityCounters,
+    ForgeQueryGraphReadAccessReceiptSummary, ForgeQueryInspectedArtifact,
     ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryLiveArtifactBinding,
     ForgeQueryLiveArtifactBundle, ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadReceipt,
     ForgeQueryLiveReadResult, ForgeQueryLiveView, ForgeQueryMutationCausalityEvidence,
     ForgeQueryMutationFamily, ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetClass,
     ForgeQueryMutationTargetDescriptor, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome, ForgeQueryPatchBatch,
-    ForgeQueryReadBreadth, ForgeQueryReadBuiltInOperator, ForgeQueryReadBuiltInOperatorDenial,
-    ForgeQueryReadBuiltInOperatorDenialReason, ForgeQueryReadCompositionExtensionHookBoundary,
-    ForgeQueryReadCompositionExtensionHookFamily, ForgeQueryReadCompositionExtensionHookSupportRow,
-    ForgeQueryReadDenial, ForgeQueryReadDenialKind, ForgeQueryReadDomainInvariantDenial,
+    ForgeQueryReadAccessPlanBindingMismatch, ForgeQueryReadBreadth, ForgeQueryReadBuiltInOperator,
+    ForgeQueryReadBuiltInOperatorDenial, ForgeQueryReadBuiltInOperatorDenialReason,
+    ForgeQueryReadCompositionExtensionHookBoundary, ForgeQueryReadCompositionExtensionHookFamily,
+    ForgeQueryReadCompositionExtensionHookSupportRow, ForgeQueryReadDenial,
+    ForgeQueryReadDenialKind, ForgeQueryReadDomainInvariantDenial,
     ForgeQueryReadDomainInvariantSummary, ForgeQueryReadExecutionEngine,
     ForgeQueryReadFallbackClass, ForgeQueryReadFamily, ForgeQueryReadFamilyAdmission,
     ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph, ForgeQueryReadGraphFamily,

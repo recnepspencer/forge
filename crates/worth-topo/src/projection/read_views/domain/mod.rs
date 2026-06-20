@@ -7,22 +7,27 @@ mod views;
 
 #[allow(unused_imports)]
 pub(crate) use self::read_proof::{closeout, no_n_plus_one, parity, report};
+#[allow(unused_imports)]
 pub use self::read_proof::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
     TopologyReadAggregateReport, TopologyReadCloseoutReport, TopologyReadCloseoutRow,
     TopologyReadCloseoutStatus, TopologyReadDebtRow, TopologyReadExecutionAggregateRow,
     TopologyReadExecutionEngine, TopologyReadFallbackPosture, TopologyReadFamilyAggregateRow,
-    TopologyReadParityAggregateReport, TopologyReadParityAggregateRow, TopologyReadParityKind,
-    TopologyReadPhaseThreeBlocker, TopologyReadPhaseThreeBlockerRow,
-    TopologyReadPhaseThreeBlockerStatus, TopologyReadProofReport, TopologyReadRequestFamily,
-    TopologyReadRequestReport,
+    TopologyReadGraphAccessProof, TopologyReadParityAggregateReport,
+    TopologyReadParityAggregateRow, TopologyReadParityKind, TopologyReadPhaseThreeBlocker,
+    TopologyReadPhaseThreeBlockerRow, TopologyReadPhaseThreeBlockerStatus, TopologyReadProofReport,
+    TopologyReadRequestFamily, TopologyReadRequestReport,
 };
 #[allow(unused_imports)]
 pub(crate) use crate::projection::runtime_boundary::read_lowering::schema;
 pub use crate::projection::runtime_boundary::read_lowering::{
     TopologyReadLoweringPosture, TopologyReadRelationshipProofPosture,
 };
-pub use error::{TopologyReadError, TopologyReadErrorKind};
+#[allow(unused_imports)]
+pub use error::{
+    TopologyReadBudgetExceeded, TopologyReadError, TopologyReadErrorKind,
+    TopologyReadGraphAccessDenial,
+};
 pub use handle_reads::{
     TopologyConfiguredDomainReadSession, TopologyCurrentHeadReadHandleExt,
     TopologyCurrentHeadReadSession, TopologySnapshotReadOnlyReadHandleExt,

@@ -1,6 +1,7 @@
 use crate::query_context::AdmittedQueryBasisContext;
 use crate::runtime::{
-    ForgeQueryAuthoritativeMutationObligationDispatch, ForgeQueryReadFamily,
+    ForgeQueryAdmittedGraphReadAccessPlan, ForgeQueryAuthoritativeMutationObligationDispatch,
+    ForgeQueryLiveGraphReadAccessPlan, ForgeQueryReadFamily,
     ForgeQueryRuntimeLiveSubscriptionInstallation,
 };
 
@@ -15,6 +16,7 @@ use crate::intent_admission::{
 pub struct ForgeQueryReadExecutionBinding {
     handoff: ForgeQueryReadExecutionHandoff,
     graph_obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
+    graph_read_access_plan: ForgeQueryAdmittedGraphReadAccessPlan,
     binding_digest: String,
 }
 
@@ -22,6 +24,7 @@ pub struct ForgeQueryReadExecutionBinding {
 pub struct ForgeQueryLiveReadExecutionBinding {
     handoff: ForgeQueryLiveReadExecutionHandoff,
     graph_obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
+    live_graph_read_access_plan: ForgeQueryLiveGraphReadAccessPlan,
     binding_digest: String,
 }
 
@@ -29,12 +32,20 @@ impl ForgeQueryReadExecutionBinding {
     pub(crate) fn from_handoff(
         handoff: ForgeQueryReadExecutionHandoff,
         graph_obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
+        graph_read_access_plan: ForgeQueryAdmittedGraphReadAccessPlan,
     ) -> Self {
-        let binding_digest =
-            handoff_execution_binding_identity("read-execution", handoff.handoff_digest());
+        let binding_digest = handoff_execution_binding_identity(
+            "read-execution",
+            &format!(
+                "{}:{}",
+                handoff.handoff_digest(),
+                graph_read_access_plan.digest()
+            ),
+        );
         Self {
             handoff,
             graph_obligation_dispatch,
+            graph_read_access_plan,
             binding_digest,
         }
     }
@@ -69,6 +80,10 @@ impl ForgeQueryReadExecutionBinding {
         self.graph_obligation_dispatch.as_ref()
     }
 
+    pub fn graph_read_access_plan(&self) -> &ForgeQueryAdmittedGraphReadAccessPlan {
+        &self.graph_read_access_plan
+    }
+
     pub fn binding_digest(&self) -> &str {
         &self.binding_digest
     }
@@ -78,12 +93,20 @@ impl ForgeQueryLiveReadExecutionBinding {
     pub(crate) fn from_handoff(
         handoff: ForgeQueryLiveReadExecutionHandoff,
         graph_obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
+        live_graph_read_access_plan: ForgeQueryLiveGraphReadAccessPlan,
     ) -> Self {
-        let binding_digest =
-            handoff_execution_binding_identity("live-read-execution", handoff.handoff_digest());
+        let binding_digest = handoff_execution_binding_identity(
+            "live-read-execution",
+            &format!(
+                "{}:{}",
+                handoff.handoff_digest(),
+                live_graph_read_access_plan.digest()
+            ),
+        );
         Self {
             handoff,
             graph_obligation_dispatch,
+            live_graph_read_access_plan,
             binding_digest,
         }
     }
@@ -112,6 +135,10 @@ impl ForgeQueryLiveReadExecutionBinding {
         &self,
     ) -> Option<&ForgeQueryAuthoritativeMutationObligationDispatch> {
         self.graph_obligation_dispatch.as_ref()
+    }
+
+    pub fn live_graph_read_access_plan(&self) -> &ForgeQueryLiveGraphReadAccessPlan {
+        &self.live_graph_read_access_plan
     }
 
     pub fn binding_digest(&self) -> &str {

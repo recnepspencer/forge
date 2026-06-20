@@ -47,7 +47,8 @@ pub(crate) fn emit_time_only_live_subscription_delivery(
     let batch = emit_query_time_only_delivery_batch(active_subscriptions, window, cause)
         .map_err(|error| time_only_delivery_error(view_name, error))?;
     let delivery_receipt = batch.receipt().clone();
-    let runtime_batch = ForgeQueryRuntimeDeliveryBatch::from_query_delivery(view_name, &batch);
+    let runtime_batch =
+        ForgeQueryRuntimeDeliveryBatch::from_query_delivery(view_name, &batch, None);
     state.last_delivery = Some(ForgeQueryRuntimeRetainedDelivery::from_batch(
         &runtime_batch,
     ));

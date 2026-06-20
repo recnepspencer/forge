@@ -1,3 +1,4 @@
+use crate::consumer_kit::forge_query_consumer_residue_certification_evidence;
 use crate::ForgeQueryEvidenceIdentity;
 
 use super::certification_gate::{
@@ -46,8 +47,7 @@ impl ForgeQueryConsumerKitCertificationCase {
         required_signal: &'static str,
     ) -> Self {
         let evidence_source_paths = certification_source_paths_for_family(family);
-        let satisfied = !evidence_source_paths.is_empty()
-            && certification_source_contains(family, required_signal);
+        let satisfied = certification_case_satisfied(family, case_id, required_signal);
         let case_identity = consumer_kit_certification_case_identity(
             family,
             case_id,
@@ -106,8 +106,8 @@ pub(super) fn required_consumer_kit_certification_cases(
 ) -> Vec<ForgeQueryConsumerKitCertificationCase> {
     use ForgeQueryConsumerKitCertificationTier::{Adoption, CompileFail, Integration};
     use ForgeQueryConsumerKitFamilyName::{
-        BoundaryAudit, EvidenceReportKit, HardProhibitionRegistry, InMemoryTestBackend,
-        ReferenceConsumerAdoption, SupportPinning, SupportSnapshot,
+        BoundaryAudit, ConsumerResidueAudit, EvidenceReportKit, HardProhibitionRegistry,
+        InMemoryTestBackend, ReferenceConsumerAdoption, SupportPinning, SupportSnapshot,
     };
 
     [
@@ -154,6 +154,20 @@ pub(super) fn required_consumer_kit_certification_cases(
             "in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path",
         ),
         (
+            ConsumerResidueAudit,
+            "consumer-residue-proof-folklore-authority",
+            "generic consumer residue audit detects proof folklore through Query-owned classes",
+            Integration,
+            "typed-consumer-residue-certification-evidence",
+        ),
+        (
+            ConsumerResidueAudit,
+            "consumer-residue-false-positive-honesty",
+            "generic consumer residue audit rejects comments, strings, and ordinary formatting noise",
+            Integration,
+            "typed-consumer-residue-certification-evidence",
+        ),
+        (
             ReferenceConsumerAdoption,
             "reference-consumer-enforcement-adoption",
             "worth-kernel adopts Query-owned audit, pinning, and residue reports",
@@ -172,4 +186,22 @@ pub(super) fn required_consumer_kit_certification_cases(
         )
     })
     .collect()
+}
+
+fn certification_case_satisfied(
+    family: ForgeQueryConsumerKitFamilyName,
+    case_id: &'static str,
+    required_signal: &'static str,
+) -> bool {
+    if family == ForgeQueryConsumerKitFamilyName::ConsumerResidueAudit {
+        return forge_query_consumer_residue_certification_evidence()
+            .iter()
+            .any(|evidence| {
+                evidence.case_id() == case_id
+                    && evidence.satisfied()
+                    && !evidence.case_digest().is_empty()
+            });
+    }
+    !certification_source_paths_for_family(family).is_empty()
+        && certification_source_contains(family, required_signal)
 }

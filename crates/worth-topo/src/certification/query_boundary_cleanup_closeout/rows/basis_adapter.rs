@@ -18,7 +18,11 @@ pub(crate) fn certify_basis_adapter_row(
     ensure(basis_context.contains("pub(crate) enum TopologyReadExecutionTarget"))?;
     ensure(basis_context.contains("HistoricalSnapshot"))?;
     ensure(basis_context.contains("snapshot_identity: ForgeQuerySnapshotIdentity"))?;
-    ensure(family_execution.contains("execution_target.execute_family("))?;
+    ensure(
+        family_execution
+            .contains("execution_target.execute_family_with_explicit_graph_access_plan("),
+    )?;
+    ensure(basis_context.contains("execute_read_family_in_basis_context_with_access_plan"))?;
     ensure(handle_reads.contains("TopologyReadExecutionTarget::current_head()"))?;
     ensure(handle_reads.contains("TopologyReadExecutionTarget::historical_snapshot("))?;
     ensure(!contracts.contains("workspace_requires_historical_basis_context"))?;

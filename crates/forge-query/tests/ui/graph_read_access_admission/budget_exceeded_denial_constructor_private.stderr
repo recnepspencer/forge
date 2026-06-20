@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/graph_read_access_admission/budget_exceeded_denial_constructor_private.rs:4:54
+  |
+4 |       let _ = ForgeQueryGraphReadBudgetExceededDenial::new;
+  |                                                        ^^^ private associated function
+  |
+ ::: src/runtime/graph_read_access/access_admission/denial.rs
+  |
+  | /     pub(crate) fn new(
+  | |         max_inline_index_bytes: usize,
+  | |         estimated_index_bytes: usize,
+  | |         max_inline_result_bytes: usize,
+... |
+  | |         estimated_intermediate_set_size: usize,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

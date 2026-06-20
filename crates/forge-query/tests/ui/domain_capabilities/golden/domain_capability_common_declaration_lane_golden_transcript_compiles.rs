@@ -28,7 +28,7 @@ fn main() {
         .for_intent(&declaration)
         .inspects_query_preview(
             "topology.preview_conflict",
-            BridgePreviewSessionIdentity::new("preview-session:42"),
+            BridgePreviewSessionIdentity::from_stable_name("preview-session:42"),
         )
         .because("preview remains read-only while topology is inspected")
         .materialize();

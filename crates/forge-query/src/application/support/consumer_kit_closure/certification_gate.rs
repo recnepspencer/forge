@@ -118,6 +118,21 @@ const TEST_BACKEND_SOURCES: &[ForgeQueryConsumerKitCertificationSource] = &[
     },
 ];
 
+const CONSUMER_RESIDUE_AUDIT_SOURCES: &[ForgeQueryConsumerKitCertificationSource] = &[
+    ForgeQueryConsumerKitCertificationSource {
+        path: "crates/forge-query/src/consumer_kit/consumer_residue/tests.rs",
+        source: include_str!("../../../consumer_kit/consumer_residue/tests.rs"),
+    },
+    ForgeQueryConsumerKitCertificationSource {
+        path: "crates/forge-query/tests/consumer_residue_audit.rs",
+        source: include_str!("../../../../tests/consumer_residue_audit.rs"),
+    },
+    ForgeQueryConsumerKitCertificationSource {
+        path: "crates/forge-query/tests/consumer_residue_reference_adoption.rs",
+        source: include_str!("../../../../tests/consumer_residue_reference_adoption.rs"),
+    },
+];
+
 const REFERENCE_CONSUMER_SOURCES: &[ForgeQueryConsumerKitCertificationSource] = &[
     ForgeQueryConsumerKitCertificationSource {
         path: "crates/worth-kernel/src/construction/tests/query_enforcement_adoption.rs",
@@ -153,6 +168,7 @@ pub(super) fn certification_sources_for_family(
         ForgeQueryConsumerKitFamilyName::SupportSnapshot => SUPPORT_SNAPSHOT_SOURCES,
         ForgeQueryConsumerKitFamilyName::SupportPinning => SUPPORT_PINNING_SOURCES,
         ForgeQueryConsumerKitFamilyName::InMemoryTestBackend => TEST_BACKEND_SOURCES,
+        ForgeQueryConsumerKitFamilyName::ConsumerResidueAudit => CONSUMER_RESIDUE_AUDIT_SOURCES,
         ForgeQueryConsumerKitFamilyName::ReferenceConsumerAdoption => REFERENCE_CONSUMER_SOURCES,
     }
 }

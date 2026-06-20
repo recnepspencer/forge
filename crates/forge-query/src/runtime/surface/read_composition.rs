@@ -1,3 +1,4 @@
+use crate::authoring::ForgeQueryGraphReadDomainOperationDeclaration;
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::{
     forge_query_evidence_identity, ForgeQueryEvidenceScope, ForgeQueryEvidenceTag,
@@ -85,6 +86,7 @@ pub struct ForgeQueryReadGraph {
     scope_class: ForgeQueryReadScopeClass,
     schema_basis: SchemaBasisDigest,
     built_in_operators: Vec<ForgeQueryReadBuiltInOperator>,
+    domain_graph_operations: Vec<ForgeQueryGraphReadDomainOperationDeclaration>,
     declared_traversal_clause_count: usize,
     declared_traversal_depth_limit: usize,
     relationship_proof_admission: Option<RelationshipProofAdmission>,
@@ -112,6 +114,10 @@ impl ForgeQueryReadGraph {
 
     pub fn built_in_operators(&self) -> &[ForgeQueryReadBuiltInOperator] {
         &self.built_in_operators
+    }
+
+    pub fn domain_graph_operations(&self) -> &[ForgeQueryGraphReadDomainOperationDeclaration] {
+        &self.domain_graph_operations
     }
 
     pub fn query_digest(&self) -> &str {
@@ -168,6 +174,7 @@ impl ForgeQueryReadGraph {
         scope_class: ForgeQueryReadScopeClass,
         schema_basis: SchemaBasisDigest,
         built_in_operators: Vec<ForgeQueryReadBuiltInOperator>,
+        domain_graph_operations: Vec<ForgeQueryGraphReadDomainOperationDeclaration>,
         declared_traversal_clause_count: usize,
         declared_traversal_depth_limit: usize,
         relationship_proof_admission: Option<RelationshipProofAdmission>,
@@ -192,6 +199,12 @@ impl ForgeQueryReadGraph {
                     .iter()
                     .map(ForgeQueryReadBuiltInOperator::as_str),
             )
+            .field_value_sequence(
+                ForgeQueryEvidenceTag::new("domain_operation"),
+                domain_graph_operations
+                    .iter()
+                    .map(ForgeQueryGraphReadDomainOperationDeclaration::digest_part),
+            )
             .field_usize(
                 ForgeQueryEvidenceTag::new("declared_traversal_count"),
                 declared_traversal_clause_count,
@@ -215,6 +228,7 @@ impl ForgeQueryReadGraph {
             scope_class,
             schema_basis,
             built_in_operators,
+            domain_graph_operations,
             declared_traversal_clause_count,
             declared_traversal_depth_limit,
             relationship_proof_admission,
@@ -244,6 +258,18 @@ pub struct ForgeQueryReadReceipt {
     pub(super) relationship_proof_support_profile: Option<RelationshipProofSupportProfile>,
     pub(super) breadth: ForgeQueryReadBreadth,
     pub(super) materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
+    pub(super) graph_read_access_plan:
+        Option<crate::runtime::ForgeQueryAdmittedGraphReadAccessPlan>,
+    pub(super) graph_read_access_plan_consumption:
+        Option<crate::runtime::ForgeQueryGraphReadAccessPlanConsumption>,
+    pub(super) ephemeral_graph_index_receipt:
+        Option<crate::runtime::ForgeQueryEphemeralGraphIndexReceipt>,
+    pub(super) graph_read_streaming_receipt:
+        Option<crate::runtime::ForgeQueryGraphReadStreamingReceipt>,
+    pub(super) graph_read_access_summary:
+        Option<crate::runtime::ForgeQueryGraphReadAccessReceiptSummary>,
+    pub(super) graph_read_access_complexity_counters:
+        Option<crate::runtime::ForgeQueryGraphReadAccessComplexityCounters>,
     pub(super) graph_obligation_dispatch: Option<ForgeQueryAuthoritativeMutationObligationDispatch>,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,

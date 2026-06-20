@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `forge_query::facade::runtime::derive_graph_read_access_shape`
+ --> tests/ui/graph_read_access/raw_values_cannot_derive_access_shape.rs:1:5
+  |
+1 | use forge_query::facade::runtime::derive_graph_read_access_shape;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `derive_graph_read_access_shape` in `facade::runtime`

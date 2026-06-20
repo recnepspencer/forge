@@ -17,6 +17,9 @@ use super::posture::{
     QuerySubscriptionBridgePosture, QuerySubscriptionCostPosture,
 };
 use super::selection_future::validate_future_selection;
+use super::selection_live_graph_access::{
+    live_graph_access_posture_for_family, QuerySubscriptionLiveGraphAccessPosture,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionFamilySelection {
@@ -25,6 +28,7 @@ pub struct QuerySubscriptionFamilySelection {
     view_family: Option<LiveViewShapeFamily>,
     future_selection: QuerySubscriptionFutureSelection,
     cost_posture: QuerySubscriptionCostPosture,
+    live_graph_access_posture: QuerySubscriptionLiveGraphAccessPosture,
     basis_posture: QuerySubscriptionBasisPosture,
     bridge_posture: QuerySubscriptionBridgePosture,
     equivalence_basis: QuerySubscriptionEquivalenceBasis,
@@ -53,6 +57,10 @@ impl QuerySubscriptionFamilySelection {
 
     pub fn cost_posture(&self) -> &QuerySubscriptionCostPosture {
         &self.cost_posture
+    }
+
+    pub fn live_graph_access_posture(&self) -> &QuerySubscriptionLiveGraphAccessPosture {
+        &self.live_graph_access_posture
     }
 
     pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
@@ -196,6 +204,7 @@ pub fn select_query_subscription_family(
     counters.scratch_allocation_count = 1;
     let equivalence_basis = QuerySubscriptionEquivalenceBasis::new(&live, &classification);
     counters.equivalence_digest_part_count = equivalence_basis.digest_part_count() as u64;
+    let live_graph_access_posture = live_graph_access_posture_for_family(&classification.family);
 
     Ok(QuerySubscriptionFamilySelection {
         family: classification.family,
@@ -203,6 +212,7 @@ pub fn select_query_subscription_family(
         view_family: live.view_family,
         future_selection: live.future_selection,
         cost_posture: classification.cost_posture,
+        live_graph_access_posture,
         basis_posture: live.basis_posture,
         bridge_posture: classification.bridge_posture,
         equivalence_basis,

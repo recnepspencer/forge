@@ -1,0 +1,13 @@
+error[E0451]: fields `read_graph_digest`, `topology`, `branches` and `counters` of struct `ForgeQueryAdmittedBooleanPredicateExpression` are private
+  --> tests/ui/graph_read_access/admitted_boolean_expression_constructor_private.rs:9:9
+   |
+ 8 |     let _ = ForgeQueryAdmittedBooleanPredicateExpression {
+   |             -------------------------------------------- in this type
+ 9 |         read_graph_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+10 |         topology: ForgeQueryAdmittedBooleanExpressionTopology::ConjunctiveFlat,
+   |         ^^^^^^^^ private field
+11 |         branches: Vec::new(),
+   |         ^^^^^^^^ private field
+12 |         counters: todo!(),
+   |         ^^^^^^^^ private field

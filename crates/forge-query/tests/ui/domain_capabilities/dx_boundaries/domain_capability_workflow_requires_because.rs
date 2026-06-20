@@ -16,7 +16,7 @@ fn main() {
         .for_intent(&declaration)
         .plans_preview_mutation(
             "topology.preview_mutation",
-            BridgePreviewSessionIdentity::new("preview-session:77"),
+            BridgePreviewSessionIdentity::from_stable_name("preview-session:77"),
         )
         .materialize();
 }

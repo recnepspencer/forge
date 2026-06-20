@@ -2,10 +2,11 @@ use forge_query::facade::{
     admit_historical_evaluation_path, admit_query_basis_context, bind_query_basis_context,
     materialization_metadata_from_resolved, preflight_execution_basis,
     resolve_historical_materialization_path, resolve_runtime_current_snapshot_basis,
-    AdmittedQueryBasisContext, ForgeQueryReadFamily, ForgeQueryReadResult,
-    ForgeQuerySnapshotIdentity, ForgeQueryWorkspace, HistoricalCapabilityDescriptor,
-    HistoricalEvaluationRequest, HistoricalMaterializationDescriptor,
-    HistoricalPathReuseDescriptor, QueryBasisContextRequest, QueryContextBindingSource,
+    AdmittedQueryBasisContext, ForgeQueryAdmittedGraphReadAccessPlan, ForgeQueryReadFamily,
+    ForgeQueryReadResult, ForgeQuerySnapshotIdentity, ForgeQueryWorkspace,
+    HistoricalCapabilityDescriptor, HistoricalEvaluationRequest,
+    HistoricalMaterializationDescriptor, HistoricalPathReuseDescriptor, QueryBasisContextRequest,
+    QueryContextBindingSource,
 };
 
 use crate::projection::read_views::domain::error::TopologyReadError;
@@ -27,21 +28,48 @@ impl TopologyReadExecutionTarget {
         Self::HistoricalSnapshot { snapshot_identity }
     }
 
-    pub(crate) fn execute_family(
+    pub(crate) fn execute_family_with_explicit_graph_access_plan(
         &self,
         workspace: &mut ForgeQueryWorkspace,
         family: &ForgeQueryReadFamily,
     ) -> Result<ForgeQueryReadResult, TopologyReadError> {
         match self {
-            Self::CurrentHead => workspace.execute_read_family(family),
-            Self::HistoricalSnapshot { snapshot_identity } => workspace
-                .execute_read_family_in_basis_context(
-                    family,
-                    &historical_context_for_family(family, snapshot_identity)?,
-                ),
+            Self::CurrentHead => {
+                let plan = current_head_graph_access_plan(workspace, family)?;
+                workspace.execute_read_family_with_access_plan(family, plan)
+            }
+            Self::HistoricalSnapshot { snapshot_identity } => {
+                let context = historical_context_for_family(family, snapshot_identity)?;
+                let plan = basis_context_graph_access_plan(workspace, family, &context)?;
+                workspace
+                    .execute_read_family_in_basis_context_with_access_plan(family, &context, plan)
+            }
         }
-        .map_err(|error| TopologyReadError::read_family_execution_denied(format!("{error:?}")))
+        .map_err(TopologyReadError::from_query_runtime_error)
     }
+}
+
+fn current_head_graph_access_plan(
+    workspace: &mut ForgeQueryWorkspace,
+    family: &ForgeQueryReadFamily,
+) -> Result<ForgeQueryAdmittedGraphReadAccessPlan, TopologyReadError> {
+    workspace
+        .read_family_intent(family)
+        .review()
+        .and_then(|review| review.graph_read_access_plan())
+        .map_err(TopologyReadError::from_query_runtime_error)
+}
+
+fn basis_context_graph_access_plan(
+    workspace: &mut ForgeQueryWorkspace,
+    family: &ForgeQueryReadFamily,
+    context: &AdmittedQueryBasisContext,
+) -> Result<ForgeQueryAdmittedGraphReadAccessPlan, TopologyReadError> {
+    workspace
+        .read_family_in_basis_context_intent(family, context)
+        .review()
+        .and_then(|review| review.graph_read_access_plan())
+        .map_err(TopologyReadError::from_query_runtime_error)
 }
 
 fn historical_context_for_family(

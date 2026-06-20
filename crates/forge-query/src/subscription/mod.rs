@@ -84,6 +84,7 @@ mod runtime_certification;
 mod scale;
 mod selection;
 mod selection_future;
+mod selection_live_graph_access;
 mod signal_strategy;
 mod signal_strategy_accessors;
 mod slice;
@@ -272,7 +273,10 @@ pub use scale::{
     certify_query_subscription_scale_slope, QuerySubscriptionScaleCounterSnapshot,
     QuerySubscriptionScaleFixtureSize, QuerySubscriptionScaleSlopeReport,
 };
+#[allow(unused_imports)]
 pub use selection::{select_query_subscription_family, QuerySubscriptionFamilySelection};
+#[allow(unused_imports)]
+pub use selection_live_graph_access::QuerySubscriptionLiveGraphAccessPosture;
 pub use signal_strategy::{
     QuerySubscriptionSignalStrategyRequest, QuerySubscriptionSignalStrategyRequestKind,
 };

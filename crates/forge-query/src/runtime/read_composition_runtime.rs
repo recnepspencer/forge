@@ -11,14 +11,52 @@ use crate::query_context::{
     QueryContextFamily,
 };
 use crate::runtime::{
+    ForgeQueryEphemeralGraphIndexReceipt, ForgeQueryGraphReadAccessExecutionCounters,
     ForgeQueryReadBuiltInOperator, ForgeQueryReadDenial, ForgeQueryReadDenialKind,
     ForgeQueryReadGraph, ForgeQueryReadResult, ForgeQueryReadScopeClass, ForgeQueryRuntime,
 };
 
+use super::graph_read_access::ForgeQueryGraphReadAccessExecutionRecorder;
 use super::materialized_fact_posture::materialized_fact_posture_from_live_subscription_state;
 use super::read_composition_materialization::{
     materialize_query_context_rows, materialize_read_rows,
 };
+
+pub(in crate::runtime) struct ForgeQueryExecutedReadGraph {
+    result: ForgeQueryReadResult,
+    graph_read_access_execution_counters: ForgeQueryGraphReadAccessExecutionCounters,
+}
+
+impl ForgeQueryExecutedReadGraph {
+    pub(in crate::runtime) fn result(&self) -> &ForgeQueryReadResult {
+        &self.result
+    }
+
+    pub(in crate::runtime) fn result_mut(&mut self) -> &mut ForgeQueryReadResult {
+        &mut self.result
+    }
+
+    pub(in crate::runtime) fn graph_read_access_execution_counters(
+        &self,
+    ) -> &ForgeQueryGraphReadAccessExecutionCounters {
+        &self.graph_read_access_execution_counters
+    }
+
+    pub(in crate::runtime) fn record_ephemeral_index_receipt(
+        &mut self,
+        receipt: Option<&ForgeQueryEphemeralGraphIndexReceipt>,
+    ) {
+        let Some(receipt) = receipt else {
+            return;
+        };
+        self.graph_read_access_execution_counters
+            .record_ephemeral_index_allocations(receipt.counters().successful_allocation_count());
+    }
+
+    pub(in crate::runtime) fn into_result(self) -> ForgeQueryReadResult {
+        self.result
+    }
+}
 
 pub(super) fn classify_scope_shape_with_operators(
     validated: &crate::validation::ValidatedQueryBundle,
@@ -73,7 +111,7 @@ pub(super) fn runtime_basis_intent() -> ExecutionBasisIntent {
 pub(in crate::runtime) fn execute_runtime_current_read_graph(
     runtime: &mut ForgeQueryRuntime,
     read_graph: &ForgeQueryReadGraph,
-) -> Result<ForgeQueryReadResult, ForgeQueryReadDenial> {
+) -> Result<ForgeQueryExecutedReadGraph, ForgeQueryReadDenial> {
     let snapshot_identity = runtime.current_snapshot_identity();
     let snapshot_evidence_identity = snapshot_identity.evidence_identity();
     let identity = crate::basis::ResolvedSnapshotIdentity::new(
@@ -107,7 +145,10 @@ pub(in crate::runtime) fn execute_runtime_current_read_graph(
             execution_error_message(error),
         )
     })?;
+    let mut graph_read_access_recorder =
+        ForgeQueryGraphReadAccessExecutionRecorder::entered_executor();
     let rows = materialize_read_rows(runtime, read_graph)?;
+    graph_read_access_recorder.record_materialized_rows(rows.len());
     let receipt = crate::runtime::ForgeQueryReadReceipt::from_materialized_rows(
         read_graph,
         snapshot_identity,
@@ -119,14 +160,17 @@ pub(in crate::runtime) fn execute_runtime_current_read_graph(
         read_graph,
         &snapshot_evidence_identity,
     ));
-    Ok(ForgeQueryReadResult::new(rows, receipt))
+    Ok(ForgeQueryExecutedReadGraph {
+        graph_read_access_execution_counters: graph_read_access_recorder.finish(),
+        result: ForgeQueryReadResult::new(rows, receipt),
+    })
 }
 
 pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
     runtime: &mut ForgeQueryRuntime,
     read_graph: &ForgeQueryReadGraph,
     context: &AdmittedQueryBasisContext,
-) -> Result<ForgeQueryReadResult, ForgeQueryReadDenial> {
+) -> Result<ForgeQueryExecutedReadGraph, ForgeQueryReadDenial> {
     ensure_context_matches_read_graph(read_graph, context)?;
     let context_execution = execute_query_basis_context(context).map_err(|error| {
         ForgeQueryReadDenial::new(
@@ -146,13 +190,18 @@ pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
     } else {
         materialize_query_context_rows(&context_execution)
     };
+    let graph_read_access_execution_counters =
+        ForgeQueryGraphReadAccessExecutionCounters::observed_admitted_execution(rows.len());
     let receipt = crate::runtime::ForgeQueryReadReceipt::from_query_context_execution(
         read_graph,
         receipt_snapshot_identity,
         &context_execution,
         &rows,
     );
-    Ok(ForgeQueryReadResult::new(rows, receipt))
+    Ok(ForgeQueryExecutedReadGraph {
+        graph_read_access_execution_counters,
+        result: ForgeQueryReadResult::new(rows, receipt),
+    })
 }
 
 fn materialized_fact_posture_for_read_graph(

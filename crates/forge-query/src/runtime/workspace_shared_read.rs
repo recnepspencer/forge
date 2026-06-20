@@ -1,7 +1,6 @@
 use super::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQuerySharedReadContext,
-    ForgeQuerySharedReadCounters,
-    ForgeQueryWorkspace,
+    ForgeQuerySharedReadCounters, ForgeQueryWorkspace,
 };
 
 impl ForgeQueryWorkspace {

@@ -1,0 +1,327 @@
+use forge_query::facade::runtime::{
+    forge_query_graph_index_inventory, ForgeQueryGraphIndexInventoryMatchOutcome,
+    ForgeQueryGraphIndexLifecycleClass, ForgeQueryGraphIndexLifecycleOwner,
+    ForgeQueryGraphIndexPosture, ForgeQueryGraphIndexSupportState,
+    ForgeQueryGraphReadAccessAdmissionPosture, ForgeQueryGraphReadAccessDenialKind,
+    ForgeQueryGraphReadAccessRequirementKind, ForgeQueryGraphReadRequiredCapabilityOwner,
+};
+
+mod support;
+
+use support::graph_index_inventory::assertions::{
+    missing_match_for_requirement, requirement_row_digest_for_kind, support_match_for_kind,
+};
+use support::graph_index_inventory::read_families::{
+    predicate_collection_family, traversal_collection_family,
+};
+use support::graph_index_inventory::runtime_profiles::{
+    default_graph_support_workspace, profile_requiring_graph_access_capability_registration,
+    profile_requiring_store_backed_graph_index, profile_with_graph_support_temporarily_unavailable,
+    profile_without_graph_support, workspace_with_graph_support,
+};
+
+#[test]
+fn graph_index_inventory_digest_is_stable_for_the_same_runtime_assembly() {
+    let first = default_graph_support_workspace("graph-read-access.phase-seven.inventory.first");
+    let second = default_graph_support_workspace("graph-read-access.phase-seven.inventory.second");
+    let first_report = first.graph_index_inventory();
+    let second_report = second.graph_index_inventory();
+    let default_report = forge_query_graph_index_inventory();
+
+    assert_eq!(first_report.digest(), second_report.digest());
+    assert_eq!(first_report.digest(), default_report.digest());
+    assert_eq!(
+        first_report.rows().len(),
+        ForgeQueryGraphReadAccessRequirementKind::all().len()
+    );
+    for requirement_kind in ForgeQueryGraphReadAccessRequirementKind::all() {
+        assert!(
+            first_report
+                .row_for_requirement_kind(requirement_kind)
+                .is_some(),
+            "missing graph index inventory row for {requirement_kind:?}"
+        );
+    }
+}
+
+#[test]
+fn graph_index_inventory_digest_changes_when_runtime_assembly_changes() {
+    let default_workspace =
+        default_graph_support_workspace("graph-read-access.phase-seven.inventory.default");
+    let omitted_workspace = workspace_with_graph_support(
+        "graph-read-access.phase-seven.inventory.omitted",
+        profile_without_graph_support(
+            ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+        ),
+    );
+
+    assert_ne!(
+        default_workspace.graph_index_inventory().digest(),
+        omitted_workspace.graph_index_inventory().digest()
+    );
+}
+
+#[test]
+fn verified_graph_index_rows_carry_certified_support_state_and_required_bases() {
+    let inventory = default_graph_support_workspace("graph-read-access.phase-seven.certified")
+        .graph_index_inventory();
+
+    for row in inventory
+        .rows()
+        .iter()
+        .filter(|row| row.posture() == &ForgeQueryGraphIndexPosture::Verified)
+    {
+        assert!(row.support_state().certifies_verified_support());
+        assert!(!row.rebuild_basis().as_str().is_empty());
+        assert!(!row.invalidation_basis().as_str().is_empty());
+        assert!(!row.complexity_contract().as_str().is_empty());
+    }
+}
+
+#[test]
+fn graph_index_inventory_rows_localize_support_posture_without_generic_missing_index() {
+    let inventory = default_graph_support_workspace("graph-read-access.phase-seven.inventory.rows")
+        .graph_index_inventory();
+    let directional = inventory
+        .row_for_requirement_kind(&ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency)
+        .expect("directional adjacency support row should exist");
+    let live_maintenance = inventory
+        .row_for_requirement_kind(&ForgeQueryGraphReadAccessRequirementKind::LiveMaintenanceSupport)
+        .expect("live maintenance support row should exist");
+
+    assert_eq!(
+        directional.posture(),
+        &ForgeQueryGraphIndexPosture::Verified
+    );
+    assert_eq!(
+        directional.support_state(),
+        &ForgeQueryGraphIndexSupportState::Available
+    );
+    assert_eq!(
+        directional.lifecycle_owner(),
+        &ForgeQueryGraphIndexLifecycleOwner::QueryRuntime
+    );
+    assert_eq!(
+        directional.lifecycle_class(),
+        &ForgeQueryGraphIndexLifecycleClass::RuntimeMaintained
+    );
+    assert!(directional.owning_milestone().is_none());
+    assert_eq!(
+        live_maintenance.posture(),
+        &ForgeQueryGraphIndexPosture::RequiresAccessCapabilityRegistration
+    );
+    assert_eq!(
+        live_maintenance.lifecycle_owner(),
+        &ForgeQueryGraphIndexLifecycleOwner::DomainRegistration
+    );
+    assert_eq!(
+        live_maintenance.lifecycle_class(),
+        &ForgeQueryGraphIndexLifecycleClass::AccessCapabilityRegistrationRequired
+    );
+    assert_eq!(
+        live_maintenance.owning_milestone(),
+        Some("forge-query-9.10-live_maintenance_support")
+    );
+}
+
+#[test]
+fn admission_consumes_runtime_bound_graph_index_inventory_match_report_before_planning() {
+    let mut workspace = default_graph_support_workspace("graph-read-access.phase-seven.admission");
+    let family = predicate_collection_family(&mut workspace, "phase-seven-admission");
+    let review = workspace
+        .read_family_intent(&family)
+        .review()
+        .expect("review should be inspectable");
+    let admission = review
+        .graph_read_access_admission()
+        .expect("admission should be derivable");
+    let support = review
+        .graph_index_support()
+        .expect("support report should be derivable from review");
+    let plan = review
+        .graph_read_access_plan()
+        .expect("inline read should produce admitted plan");
+
+    assert_eq!(
+        support.digest(),
+        admission.graph_index_inventory_match_report().digest()
+    );
+    assert_eq!(support.digest(), plan.graph_index_support().digest());
+    assert_eq!(
+        support.inventory_digest(),
+        admission.graph_index_inventory().digest()
+    );
+    assert_eq!(
+        support.requirement_set_digest(),
+        admission.requirement_set().digest().as_str()
+    );
+    assert_eq!(
+        support.counters().matched_requirement_count(),
+        admission.requirement_set().rows().len()
+    );
+    assert_eq!(support.counters().generic_missing_index_count(), 0);
+    assert_eq!(
+        admission.posture(),
+        &ForgeQueryGraphReadAccessAdmissionPosture::InlineIndexed
+    );
+}
+
+#[test]
+fn missing_runtime_support_localizes_to_exact_requirement_row_and_denies_admission() {
+    let mut workspace = workspace_with_graph_support(
+        "graph-read-access.phase-seven.missing-directional",
+        profile_without_graph_support(
+            ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+        ),
+    );
+    let family = traversal_collection_family(&mut workspace, "phase-seven-missing-directional");
+    let review = workspace
+        .read_family_intent(&family)
+        .review()
+        .expect("review should derive through public read intent");
+    let admission = review
+        .graph_read_access_admission()
+        .expect("admission should derive denied posture");
+    let missing_requirement_digest = requirement_row_digest_for_kind(
+        admission.requirement_set(),
+        ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+    );
+    let missing_match = missing_match_for_requirement(
+        admission.graph_index_inventory_match_report().matches(),
+        &missing_requirement_digest,
+    );
+
+    assert_eq!(
+        missing_match.requirement_kind(),
+        &ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency
+    );
+    assert_eq!(
+        missing_match.resolved_admission_posture(),
+        &ForgeQueryGraphReadAccessAdmissionPosture::Denied
+    );
+    assert_eq!(
+        admission
+            .denial()
+            .expect("admission should be denied")
+            .kind(),
+        &ForgeQueryGraphReadAccessDenialKind::UnsupportedGraphIndexSupport
+    );
+}
+
+#[test]
+fn temporary_runtime_support_unavailability_maps_to_async_materialization_denial() {
+    let mut workspace = workspace_with_graph_support(
+        "graph-read-access.phase-seven.unavailable-predicate",
+        profile_with_graph_support_temporarily_unavailable(
+            ForgeQueryGraphReadAccessRequirementKind::PredicateSupport,
+        ),
+    );
+    let family = predicate_collection_family(&mut workspace, "phase-seven-unavailable-predicate");
+    let admission = workspace
+        .read_family_intent(&family)
+        .review()
+        .expect("review should derive")
+        .graph_read_access_admission()
+        .expect("admission should derive");
+    let predicate_match = support_match_for_kind(
+        admission.graph_index_inventory_match_report().matches(),
+        ForgeQueryGraphReadAccessRequirementKind::PredicateSupport,
+        ForgeQueryGraphIndexPosture::TemporarilyUnavailable,
+    );
+
+    assert_eq!(
+        predicate_match.resolved_admission_posture(),
+        &ForgeQueryGraphReadAccessAdmissionPosture::AsyncMaterializationRequired
+    );
+    assert_eq!(
+        admission
+            .denial()
+            .expect("admission should be denied")
+            .kind(),
+        &ForgeQueryGraphReadAccessDenialKind::RequiredAsyncMaterialization
+    );
+}
+
+#[test]
+fn capability_registration_required_support_maps_to_registration_denial() {
+    let mut workspace = workspace_with_graph_support(
+        "graph-read-access.phase-seven.registration-predicate",
+        profile_requiring_graph_access_capability_registration(
+            ForgeQueryGraphReadAccessRequirementKind::PredicateSupport,
+        ),
+    );
+    let family = predicate_collection_family(&mut workspace, "phase-seven-registration-predicate");
+    let admission = workspace
+        .read_family_intent(&family)
+        .review()
+        .expect("review should derive")
+        .graph_read_access_admission()
+        .expect("admission should derive");
+    let predicate_match = support_match_for_kind(
+        admission.graph_index_inventory_match_report().matches(),
+        ForgeQueryGraphReadAccessRequirementKind::PredicateSupport,
+        ForgeQueryGraphIndexPosture::RequiresAccessCapabilityRegistration,
+    );
+
+    assert_eq!(
+        predicate_match.required_capability_owner(),
+        &ForgeQueryGraphReadRequiredCapabilityOwner::DomainRegistration
+    );
+    assert_eq!(
+        admission
+            .denial()
+            .expect("admission should be denied")
+            .kind(),
+        &ForgeQueryGraphReadAccessDenialKind::RequiredAccessCapabilityRegistration
+    );
+}
+
+#[test]
+fn store_backed_required_support_is_visible_without_pretending_runtime_support_exists() {
+    let mut workspace = workspace_with_graph_support(
+        "graph-read-access.phase-seven.store-backed-predicate",
+        profile_requiring_store_backed_graph_index(
+            ForgeQueryGraphReadAccessRequirementKind::PredicateSupport,
+        ),
+    );
+    let inventory = workspace.graph_index_inventory();
+    let predicate_row = inventory
+        .row_for_requirement_kind(&ForgeQueryGraphReadAccessRequirementKind::PredicateSupport)
+        .expect("predicate support row should exist");
+    let family = predicate_collection_family(&mut workspace, "phase-seven-store-backed-predicate");
+    let admission = workspace
+        .read_family_intent(&family)
+        .review()
+        .expect("review should derive")
+        .graph_read_access_admission()
+        .expect("admission should derive");
+
+    assert_eq!(
+        predicate_row.posture(),
+        &ForgeQueryGraphIndexPosture::RequiresStoreBackedPersistentIndex
+    );
+    assert_eq!(
+        predicate_row.support_state(),
+        &ForgeQueryGraphIndexSupportState::StoreOwnedUnavailable
+    );
+    assert_eq!(
+        admission.posture(),
+        &ForgeQueryGraphReadAccessAdmissionPosture::Denied
+    );
+    assert_eq!(
+        admission
+            .denial()
+            .expect("admission should be denied")
+            .kind(),
+        &ForgeQueryGraphReadAccessDenialKind::RequiredPersistentIndex
+    );
+    assert!(admission
+        .graph_index_inventory_match_report()
+        .matches()
+        .iter()
+        .any(
+            |row| row.outcome() == &ForgeQueryGraphIndexInventoryMatchOutcome::ExactMatch
+                && row.support_posture()
+                    == &ForgeQueryGraphIndexPosture::RequiresStoreBackedPersistentIndex
+        ));
+}

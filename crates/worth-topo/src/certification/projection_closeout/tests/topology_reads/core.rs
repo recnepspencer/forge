@@ -179,11 +179,11 @@ fn topology_read_exposes_local_rewire_cycle_from_sheet_disk() {
     let handle = current_head_query_handle();
     let mut reads = handle.topology_reads(&mut workspace);
     let local_rewire = reads
-        .local_rewire_neighborhood(&moved_anchor, 6)
+        .local_rewire_neighborhood(&moved_anchor, 4)
         .expect("local rewire neighborhood should load");
 
     assert_eq!(local_rewire.moved_half_edge_identity, moved_identity);
-    assert_eq!(local_rewire.cycle_identities.len(), 6);
+    assert_eq!(local_rewire.cycle_identities.len(), 4);
     assert_eq!(
         local_rewire.cycle_identities.first(),
         Some(&moved_identity),
@@ -324,6 +324,16 @@ fn snapshot_topology_read_uses_historical_basis_context_receipt() {
     assert_eq!(loop_cycle.request_report.query_execution_count, 1);
     assert_eq!(loop_cycle.request_report.row_scan_fallback_count, 0);
     assert_eq!(loop_cycle.request_report.whole_view_fallback_count, 0);
+    let graph_access = loop_cycle
+        .request_report()
+        .graph_access_proof()
+        .expect("snapshot loop cycle should carry explicit graph access proof");
+    assert!(graph_access.planned_access_step_count() > 0);
+    assert_eq!(
+        graph_access.consumed_access_step_count(),
+        graph_access.planned_access_step_count()
+    );
+    assert!(graph_access.no_caller_owned_graph_work());
     let aggregate = reads.aggregate_report();
     assert_eq!(aggregate.query_runtime_current_execution_count, 0);
     assert_eq!(aggregate.query_runtime_historical_execution_count, 1);

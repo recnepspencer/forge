@@ -9,5 +9,6 @@ fn main() {
         local_ceremony_audit: todo!(),
         residue_manifest: todo!(),
         in_memory_proof: todo!(),
+        execution_proof: None,
     };
 }

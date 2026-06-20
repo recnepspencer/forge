@@ -1,8 +1,10 @@
 use forge_query::facade::{
-    ForgeQueryReadBuiltInOperator, ForgeQueryReadScopeClass, ForgeQuerySnapshotIdentity,
+    ForgeQueryGraphReadAccessAdmissionPosture, ForgeQueryReadBuiltInOperator,
+    ForgeQueryReadScopeClass, ForgeQuerySnapshotIdentity,
 };
 
 use super::fallback::TopologyReadFallbackPosture;
+use super::graph_access::TopologyReadGraphAccessProof;
 use super::report::{
     TopologyReadAggregateReport, TopologyReadDebtRow, TopologyReadExecutionAggregateRow,
     TopologyReadExecutionEngine, TopologyReadFamilyAggregateRow, TopologyReadRequestFamily,
@@ -116,6 +118,84 @@ impl TopologyReadRequestReport {
 
     pub fn repeated_rediscovery_denied_count(&self) -> usize {
         self.repeated_rediscovery_denied_count
+    }
+
+    pub fn graph_access_proof(&self) -> Option<&TopologyReadGraphAccessProof> {
+        self.graph_access_proof.as_ref()
+    }
+}
+
+impl TopologyReadGraphAccessProof {
+    pub fn admission_posture(&self) -> &ForgeQueryGraphReadAccessAdmissionPosture {
+        &self.admission_posture
+    }
+
+    pub fn plan_digest(&self) -> &str {
+        self.plan_digest.as_str()
+    }
+
+    pub fn admission_digest(&self) -> &str {
+        self.admission_digest.as_str()
+    }
+
+    pub fn requirement_set_digest(&self) -> &str {
+        self.requirement_set_digest.as_str()
+    }
+
+    pub fn cost_estimate_digest(&self) -> &str {
+        self.cost_estimate_digest.as_str()
+    }
+
+    pub fn budget_digest(&self) -> &str {
+        self.budget_digest.as_str()
+    }
+
+    pub fn graph_index_inventory_match_report_digest(&self) -> &str {
+        self.graph_index_inventory_match_report_digest.as_str()
+    }
+
+    pub fn planned_access_step_count(&self) -> usize {
+        self.planned_access_step_count
+    }
+
+    pub fn consumed_access_step_count(&self) -> usize {
+        self.consumed_access_step_count
+    }
+
+    pub fn executor_entry_count(&self) -> usize {
+        self.executor_entry_count
+    }
+
+    pub fn executor_strategy_rediscovery_count(&self) -> usize {
+        self.executor_strategy_rediscovery_count
+    }
+
+    pub fn edge_scan_execution_count(&self) -> usize {
+        self.edge_scan_execution_count
+    }
+
+    pub fn per_result_neighbor_lookup_count(&self) -> usize {
+        self.per_result_neighbor_lookup_count
+    }
+
+    pub fn persistent_artifact_bypass_count(&self) -> usize {
+        self.persistent_artifact_bypass_count
+    }
+
+    pub fn adjacency_buffer_build_count(&self) -> usize {
+        self.adjacency_buffer_build_count
+    }
+
+    pub fn frontier_buffer_build_count(&self) -> usize {
+        self.frontier_buffer_build_count
+    }
+
+    pub fn visited_buffer_build_count(&self) -> usize {
+        self.visited_buffer_build_count
+    }
+
+    pub fn result_buffer_build_count(&self) -> usize {
+        self.result_buffer_build_count
     }
 }
 

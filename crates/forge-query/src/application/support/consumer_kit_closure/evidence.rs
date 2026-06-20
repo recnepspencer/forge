@@ -179,6 +179,7 @@ pub(super) fn consumer_kit_docs_family_row_identity(
     test_requirements_present: bool,
     closeout_present: bool,
     ordinary_path_present: bool,
+    family_obligation_present: bool,
 ) -> ForgeQueryEvidenceIdentity {
     forge_query_evidence_identity(ForgeQueryEvidenceScope::ApplicationSupportReport)
         .field_shape(
@@ -201,6 +202,10 @@ pub(super) fn consumer_kit_docs_family_row_identity(
         .field_bool(
             ForgeQueryEvidenceTag::new("ordinary_path_present"),
             ordinary_path_present,
+        )
+        .field_bool(
+            ForgeQueryEvidenceTag::new("family_obligation_present"),
+            family_obligation_present,
         )
         .seal()
 }
@@ -286,6 +291,7 @@ pub(super) const fn required_consumer_kit_families() -> &'static [ForgeQueryCons
         ForgeQueryConsumerKitFamilyName::SupportSnapshot,
         ForgeQueryConsumerKitFamilyName::SupportPinning,
         ForgeQueryConsumerKitFamilyName::InMemoryTestBackend,
+        ForgeQueryConsumerKitFamilyName::ConsumerResidueAudit,
         ForgeQueryConsumerKitFamilyName::ReferenceConsumerAdoption,
     ]
 }

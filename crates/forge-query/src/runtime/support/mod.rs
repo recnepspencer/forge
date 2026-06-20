@@ -4,6 +4,7 @@ mod bridge_backed_verification_profile;
 mod denial;
 mod facade_families;
 mod graph_composition;
+mod graph_index_profile;
 mod profile;
 
 pub use authority_artifacts::{

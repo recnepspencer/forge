@@ -18,15 +18,20 @@ impl TopologyReadLedger {
         cycle_count: usize,
     ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyReadError> {
         let moved_identity_value = moved_identity.as_str();
-        let request = TopologyReadRequest::LocalRewireNeighborhood {
-            moved_half_edge_identity: moved_identity.clone(),
-            cycle_depth: u8::try_from(cycle_count)
-                .expect("supported traversal depth must fit in u8"),
-        };
         Self::require_supported_traversal_depth(
             TopologyReadRequestFamily::LocalRewireNeighborhood,
             cycle_count,
         )?;
+        let request = TopologyReadRequest::LocalRewireNeighborhood {
+            moved_half_edge_identity: moved_identity.clone(),
+            cycle_depth: u8::try_from(cycle_count).map_err(|_| {
+                TopologyReadError::unsupported_traversal_depth(
+                    TopologyReadRequestFamily::LocalRewireNeighborhood,
+                    cycle_count,
+                    usize::from(u8::MAX),
+                )
+            })?,
+        };
         let executed = execute_local_rewire_read(
             workspace,
             execution_target,

@@ -1,5 +1,6 @@
 pub(crate) mod closeout;
 pub(crate) mod fallback;
+pub(crate) mod graph_access;
 pub(crate) mod ledger;
 pub(crate) mod no_n_plus_one;
 #[allow(dead_code)]
@@ -14,6 +15,7 @@ pub use closeout::{
     TopologyReadPhaseThreeBlockerStatus,
 };
 pub use fallback::TopologyReadFallbackPosture;
+pub use graph_access::TopologyReadGraphAccessProof;
 pub use ledger::TopologyReadProofReport;
 pub use no_n_plus_one::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,

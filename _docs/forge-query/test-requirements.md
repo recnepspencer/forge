@@ -450,8 +450,48 @@ The suite must include:
 
 ## Milestone 9.8 Phase 9 Required Suite
 
+`Typed Consumer Residue Audit For Query Proof Folklore` is required for Phase
+9. It must prove that `query_consumer_residue_audit(...)` is the Query-owned
+authority for downstream Query-proof folklore residue, not a local grep list,
+local class registry, or compatibility-only test-backend scanner.
+
+The suite must include:
+
+- one independent hostile fixture per `ForgeQueryConsumerResidueClass`, proving
+  typed finding class, detection key, replacement lane, line/column, finding
+  identity scope, and report identity scope through the public facade
+- AST role coverage proving local Query report/proof structs, raw support row
+  type paths, support-matrix row searches, proof-like local bindings,
+  assignments, returns, and struct field values are detected by syntax role
+  rather than incidental source substrings
+- false-positive certification proving comments, doc comments, doc attributes,
+  string literals, raw strings, char literals, ordinary debug formatting,
+  ordinary delimiter joining, ordinary delimiter formatting, and unrelated
+  `row_for_family(...)` calls do not produce residue
+- exact-text multiplicity coverage proving repeated runtime/test-backend
+  residue in one source file emits repeated typed findings with distinct
+  coordinates rather than collapsing to the first site
+- registry agreement coverage proving every residue class has exactly one row,
+  every row has nonempty detection key, explanation, and replacement lane, AST
+  detection is reserved for proof-folklore classes, and replacement lanes point
+  to shipped Consumer Kit families
+- identity perturbation coverage proving identical inputs produce identical
+  report identities while consumer name, audited root set, finding set, and
+  source coordinates participate in canonical identity
+- compatibility coverage proving `query_test_backend_residue_audit(...)`
+  delegates to the generic registry, filters out proof-folklore classes, and
+  preserves legacy test-backend evidence scopes
+- reference-consumer adoption coverage proving real downstream roots can run
+  the generic audit without local residue classes, local scanners, or local
+  replacement matrices
+- sealed Query-owned root authority coverage proving downstream public callers
+  cannot suppress residue while Query-owned implementation certification can
+  classify Query roots through an unforgeable authority token
+
+## Milestone 9.8 Phase 10 Required Suite
+
 `Milestone 9.8 Consumer Kit Hostile Certification Matrix` is required for
-Phase 9. It must prove that the consumer kit closes as a support/profile
+Phase 10. It must prove that the consumer kit closes as a support/profile
 artifact only when docs, support rows, hostile certification, and
 reference-consumer adoption residue agree.
 
@@ -464,11 +504,15 @@ The suite must include:
   .consumer_kit_closure()` publishes a sealed canonical closure artifact for
   every required kit family:
   `evidence-report-kit`, `hard-prohibition-registry`, `boundary-audit`,
-  `support-snapshot`, `support-pinning`, `in-memory-test-backend`, and
-  `reference-consumer-adoption`
+  `support-snapshot`, `support-pinning`, `in-memory-test-backend`,
+  `consumer-residue-audit`, and `reference-consumer-adoption`
 - hostile matrix aggregation proving report misuse, seeded bypasses, support
-  snapshot/pin agreement, test backend residue, and reference-consumer residue
-  participate in one canonical certification digest
+  snapshot/pin agreement, test backend residue, generic consumer proof-folklore
+  residue, and reference-consumer residue participate in one canonical
+  certification digest
+- typed consumer-residue certification evidence proving
+  `consumer-residue-audit` closure comes from Query-owned detector execution,
+  not source marker or test-name string checks
 - sabotage coverage proving removing any required family evidence digest,
   reopening any family posture, breaking docs agreement, or publishing
   Query-owned reference-consumer residue prevents Milestone 9.8 from reporting
@@ -480,6 +524,11 @@ The suite must include:
   counts publish zero Query-owned report/digest residue, zero Query-prohibition
   audit residue, zero support-pinning residue, and defended worth-domain
   residue as explicit evidence
+- reference-consumer source-inventory coverage proving adoption tests assert the
+  generic audit report's audited source paths, skipped non-Rust source count,
+  source-inventory digest, report identity, and finding identities
+- compile-fail coverage proving downstream callers cannot forge Query-owned
+  implementation-root authority to suppress consumer-residue findings
 - DX coverage proving downstream callers can inspect closure through the
   support report without private constructors, filesystem scanning, or
   caller-owned digest assembly

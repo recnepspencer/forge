@@ -1,5 +1,12 @@
 //! Public API boundary for topology.
 
+pub fn topology_half_edge_next_relation_name(
+) -> Result<forge_query::facade::RelationName, forge_query::facade::AuthoringError> {
+    forge_query::facade::RelationName::new(
+        schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext.kind_name(),
+    )
+}
+
 pub use crate::brep::topology_graph::{
     TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
     TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyView, TopologyWire,
