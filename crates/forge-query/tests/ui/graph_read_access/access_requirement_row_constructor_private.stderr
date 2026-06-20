@@ -1,0 +1,39 @@
+error[E0451]: fields `kind`, `rebuild_basis`, `relation_name`, `relation_authority`, `relation_direction`, `relation_depth`, `fanout_posture`, `predicate_family`, `predicate_field_authorities`, `ordering_posture`, `ordering_field_authorities`, `traversal_operator`, `lifecycle_class`, `result_pressure`, `invalidation_basis`, `complexity_contract` and `memory_estimate_basis` of struct `ForgeQueryGraphReadAccessRequirementRow` are private
+  --> tests/ui/graph_read_access/access_requirement_row_constructor_private.rs:9:9
+   |
+ 8 |     let _ = ForgeQueryGraphReadAccessRequirementRow {
+   |             --------------------------------------- in this type
+ 9 |         kind: ForgeQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+   |         ^^^^ private field
+10 |         rebuild_basis: ForgeQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
+   |         ^^^^^^^^^^^^^ private field
+11 |         relation_name: None,
+   |         ^^^^^^^^^^^^^ private field
+12 |         relation_authority: None,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+13 |         relation_direction: None,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+14 |         relation_depth: None,
+   |         ^^^^^^^^^^^^^^ private field
+15 |         fanout_posture: None,
+   |         ^^^^^^^^^^^^^^ private field
+16 |         predicate_family: None,
+   |         ^^^^^^^^^^^^^^^^ private field
+17 |         predicate_field_authorities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         ordering_posture: None,
+   |         ^^^^^^^^^^^^^^^^ private field
+19 |         ordering_field_authorities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         traversal_operator: None,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+21 |         lifecycle_class: None,
+   |         ^^^^^^^^^^^^^^^ private field
+22 |         result_pressure: None,
+   |         ^^^^^^^^^^^^^^^ private field
+23 |         invalidation_basis: ForgeQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+24 |         complexity_contract: ForgeQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+25 |         memory_estimate_basis: ForgeQueryGraphReadAccessMemoryEstimateBasis::RelationDegreeBound,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field

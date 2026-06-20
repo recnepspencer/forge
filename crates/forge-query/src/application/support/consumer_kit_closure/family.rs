@@ -11,6 +11,7 @@ pub enum ForgeQueryConsumerKitFamilyName {
     SupportSnapshot,
     SupportPinning,
     InMemoryTestBackend,
+    ConsumerResidueAudit,
     ReferenceConsumerAdoption,
 }
 
@@ -23,6 +24,7 @@ impl ForgeQueryConsumerKitFamilyName {
             Self::SupportSnapshot => "support-snapshot",
             Self::SupportPinning => "support-pinning",
             Self::InMemoryTestBackend => "in-memory-test-backend",
+            Self::ConsumerResidueAudit => "consumer-residue-audit",
             Self::ReferenceConsumerAdoption => "reference-consumer-adoption",
         }
     }

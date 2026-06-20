@@ -174,6 +174,8 @@ pub enum ForgeQueryEvidenceScope {
     ConsumerSupportPinContractDocument,
     ConsumerSupportPinFinding,
     ConsumerSupportPinReport,
+    ConsumerResidueFinding,
+    ConsumerResidueReport,
     ConsumerTestBackendResidueFinding,
     ConsumerTestBackendResidueReport,
     GraphCompositionDomainInvariantDenial,

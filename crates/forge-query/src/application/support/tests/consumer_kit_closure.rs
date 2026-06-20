@@ -4,6 +4,7 @@ use crate::application::{
     ForgeQueryConsumerKitFamilyClosureRow, ForgeQueryConsumerKitReferenceResidue,
     ForgeQueryMilestoneClosureStatus,
 };
+use crate::consumer_kit::forge_query_consumer_residue_certification_evidence;
 use std::collections::BTreeSet;
 
 #[test]
@@ -201,6 +202,7 @@ fn docs_agreement_uses_the_required_family_set_without_string_drift() {
         assert!(row.test_requirements_present());
         assert!(row.closeout_present());
         assert!(row.ordinary_path_present());
+        assert!(row.family_obligation_present());
         assert!(row.agrees());
     }
     assert!(!agreement.agreement_digest().is_empty());
@@ -273,6 +275,8 @@ fn hostile_certification_names_required_case_coverage() {
     assert!(case_ids.contains("support-snapshot-live-matrix-equivalence"));
     assert!(case_ids.contains("support-pinning-drift-localization"));
     assert!(case_ids.contains("in-memory-test-backend-equivalence"));
+    assert!(case_ids.contains("consumer-residue-proof-folklore-authority"));
+    assert!(case_ids.contains("consumer-residue-false-positive-honesty"));
     assert!(case_ids.contains("reference-consumer-enforcement-adoption"));
     assert!(certification.missing_case_ids().is_empty());
     assert!(certification.case_rows().iter().all(|case| {
@@ -281,6 +285,84 @@ fn hostile_certification_names_required_case_coverage() {
             && !case.required_signal().is_empty()
             && !case.evidence_source_paths().is_empty()
     }));
+}
+
+#[test]
+fn consumer_residue_certification_cases_are_backed_by_typed_evidence() {
+    let evidence = forge_query_consumer_residue_certification_evidence();
+    let evidence_case_ids = evidence
+        .iter()
+        .map(|row| row.case_id())
+        .collect::<BTreeSet<_>>();
+    let closure = milestone_nine_eight_consumer_kit_closure();
+
+    assert!(evidence_case_ids.contains("consumer-residue-proof-folklore-authority"));
+    assert!(evidence_case_ids.contains("consumer-residue-false-positive-honesty"));
+    assert!(evidence
+        .iter()
+        .all(|row| row.satisfied() && !row.case_digest().is_empty()));
+    assert!(closure
+        .hostile_certification()
+        .case_rows()
+        .iter()
+        .any(|row| {
+            row.case_id() == "consumer-residue-proof-folklore-authority"
+                && row.required_signal() == "typed-consumer-residue-certification-evidence"
+                && row.satisfied()
+        }));
+    assert!(closure
+        .hostile_certification()
+        .case_rows()
+        .iter()
+        .any(|row| {
+            row.case_id() == "consumer-residue-false-positive-honesty"
+                && row.required_signal() == "typed-consumer-residue-certification-evidence"
+                && row.satisfied()
+        }));
+}
+
+#[test]
+fn milestone_9_8_consumer_kit_hostile_certification_matrix_closes_all_required_families() {
+    let closure = milestone_nine_eight_consumer_kit_closure();
+    let certified_families = closure
+        .hostile_certification()
+        .case_rows()
+        .iter()
+        .map(|case| case.family())
+        .collect::<BTreeSet<_>>();
+    let support_families = closure
+        .kit_families()
+        .iter()
+        .map(|row| row.family_name())
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(closure.status(), ForgeQueryMilestoneClosureStatus::Closed);
+    assert_eq!(
+        support_families.len(),
+        ForgeQueryConsumerKitClosure::required_families().len()
+    );
+    assert_eq!(support_families, certified_families);
+    assert!(closure
+        .kit_families()
+        .iter()
+        .all(|row| row.status() == ForgeQueryMilestoneClosureStatus::Closed));
+    assert!(closure
+        .hostile_certification()
+        .case_rows()
+        .iter()
+        .any(|case| case.case_id() == "consumer-residue-proof-folklore-authority"));
+    assert!(closure
+        .hostile_certification()
+        .case_rows()
+        .iter()
+        .any(|case| case.case_id() == "consumer-residue-false-positive-honesty"));
+    assert_eq!(
+        closure
+            .reference_consumer_residue()
+            .query_owned_residue_count(),
+        0
+    );
+    assert!(closure.docs_agree_with_support_profile());
 }
 
 fn workspace_docs_root() -> std::path::PathBuf {

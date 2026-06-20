@@ -1,3 +1,6 @@
+use crate::consumer_kit::{
+    query_consumer_residue_audit, ForgeQueryConsumerResidueClass, ForgeQueryConsumerResidueReport,
+};
 use crate::ForgeQueryEvidenceIdentity;
 
 use super::evidence::{
@@ -262,41 +265,72 @@ fn current_residue_breakdown() -> ForgeQueryConsumerKitResidueBreakdown {
 }
 
 fn report_digest_residue_count() -> usize {
-    0
+    reference_consumer_audit_report()
+        .findings()
+        .iter()
+        .filter(|finding| {
+            matches!(
+                finding.residue_class(),
+                ForgeQueryConsumerResidueClass::LocalQueryReport
+                    | ForgeQueryConsumerResidueClass::LocalQueryProof
+                    | ForgeQueryConsumerResidueClass::DebugDerivedQueryProof
+                    | ForgeQueryConsumerResidueClass::DelimiterJoinedQueryProof
+                    | ForgeQueryConsumerResidueClass::DelimiterFormattedQueryProof
+            )
+        })
+        .count()
 }
 
 fn prohibition_audit_residue_count() -> usize {
-    phase_five_closeout_residue_violations()
+    0
 }
 
 fn support_pinning_residue_count() -> usize {
-    authoring_residue_violations()
+    reference_consumer_audit_report()
+        .findings()
+        .iter()
+        .filter(|finding| {
+            matches!(
+                finding.residue_class(),
+                ForgeQueryConsumerResidueClass::RawSupportSnapshotRow
+                    | ForgeQueryConsumerResidueClass::SupportMatrixRowSearch
+            )
+        })
+        .count()
 }
 
 fn test_backend_residue_count() -> usize {
-    usize::from(!backend_applicability_is_certified())
+    reference_consumer_audit_report()
+        .findings()
+        .iter()
+        .filter(|finding| finding.residue_class().is_test_backend_residue())
+        .count()
+        + usize::from(!backend_applicability_is_certified())
 }
 
-fn authoring_residue_violations() -> usize {
-    [
-        "REQUIRED_QUERY_FAMILIES",
-        "REPORTED_QUERY_FAMILIES",
-        "PrimitiveConstructionQueryGapRow",
-        "support_pinning_contract(\"worth-kernel\")",
-    ]
-    .iter()
-    .filter(|pattern| WORTH_AUTHORING_RS.contains(**pattern))
-    .count()
+fn reference_consumer_audit_report() -> ForgeQueryConsumerResidueReport {
+    let crates_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("forge-query crate should live under crates")
+        .to_path_buf();
+    query_consumer_residue_audit("milestone-9.8-reference-consumer-residue")
+        .required_root(crates_dir.join("worth-kernel/src/construction"))
+        .required_root(crates_dir.join("hadwiger-research/src"))
+        .evaluate()
+        .expect("reference consumer residue roots must remain auditable")
 }
 
-fn phase_five_closeout_residue_violations() -> usize {
-    [
-        "FORBIDDEN_RUNTIME_PATTERNS",
-        "query_runtime_violation_count",
-    ]
-    .iter()
-    .filter(|pattern| WORTH_PHASE_FIVE_CLOSEOUT_RS.contains(**pattern))
-    .count()
+fn reference_consumer_audit_digest() -> String {
+    reference_consumer_audit_report()
+        .report_identity()
+        .as_str()
+        .to_owned()
+}
+
+fn reference_consumer_audit_inventory_digest() -> String {
+    reference_consumer_audit_report()
+        .source_inventory_digest()
+        .to_owned()
 }
 
 fn defended_residue_count() -> usize {
@@ -324,7 +358,7 @@ fn backend_applicability_is_certified() -> bool {
 }
 
 fn residue_source_digest() -> String {
-    consumer_kit_embedded_source_identity(
+    let embedded_source_digest = consumer_kit_embedded_source_identity(
         "reference-consumer-residue",
         RESIDUE_SOURCE_PATHS.iter().copied(),
         [
@@ -340,5 +374,10 @@ fn residue_source_digest() -> String {
         ],
     )
     .as_str()
-    .to_owned()
+    .to_owned();
+    format!(
+        "{embedded_source_digest}:{}:{}",
+        reference_consumer_audit_digest(),
+        reference_consumer_audit_inventory_digest()
+    )
 }

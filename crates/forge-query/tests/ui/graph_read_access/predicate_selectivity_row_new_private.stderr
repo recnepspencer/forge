@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/graph_read_access/predicate_selectivity_row_new_private.rs:4:55
+  |
+4 |       let _ = ForgeQueryBooleanPredicateSelectivityRow::new;
+  |                                                         ^^^ private associated function
+  |
+ ::: src/runtime/graph_read_access/selectivity_shape/row.rs
+  |
+  | /     pub(crate) fn new(
+  | |         aspect: impl Into<String>,
+  | |         field: impl Into<String>,
+  | |         family: impl Into<String>,
+... |
+  | |         selectivity_class: ForgeQueryPredicateSelectivityClass,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

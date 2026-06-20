@@ -47,8 +47,8 @@ artifact, orchestration, grouping, and recovery model.
   [Recipes](./domain-capabilities/recipes/README.md)
 - if you need runtime posture and support context first:
   [foundations/support-matrix-and-admission.md](./foundations/support-matrix-and-admission.md)
-- if you need downstream consumer proof, support pins, audits, or test
-  workspaces:
+- if you need downstream consumer proof, support pins, audits, generic
+  consumer-residue-audit coverage, or test workspaces:
   [foundations/consumer-kit.md](./foundations/consumer-kit.md)
 - if you need store-backed vs runtime-backed honesty:
   [foundations/query-operating-modes.md](./foundations/query-operating-modes.md)

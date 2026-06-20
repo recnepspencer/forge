@@ -50,6 +50,8 @@ pub(crate) fn consumer_kit_evidence_scope_as_str(scope: ForgeQueryEvidenceScope)
         }
         ForgeQueryEvidenceScope::ConsumerSupportPinFinding => "consumer-support-pin-finding",
         ForgeQueryEvidenceScope::ConsumerSupportPinReport => "consumer-support-pin-report",
+        ForgeQueryEvidenceScope::ConsumerResidueFinding => "consumer-residue-finding",
+        ForgeQueryEvidenceScope::ConsumerResidueReport => "consumer-residue-report",
         ForgeQueryEvidenceScope::ConsumerTestBackendResidueFinding => {
             "consumer-test-backend-residue-finding"
         }

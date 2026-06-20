@@ -1,0 +1,15 @@
+error[E0451]: fields `branch_kind`, `expression_path`, `anchor_posture`, `traversal_predicate_ordering_posture` and `predicate_rows` of struct `ForgeQueryBooleanSelectivityBranch` are private
+  --> tests/ui/graph_read_access/boolean_selectivity_branch_constructor_private.rs:8:9
+   |
+ 7 |     let _ = ForgeQueryBooleanSelectivityBranch {
+   |             ---------------------------------- in this type
+ 8 |         branch_kind: ForgeQueryBooleanSelectivityBranchKind::ConjunctiveRoot,
+   |         ^^^^^^^^^^^ private field
+ 9 |         expression_path: "root".to_string(),
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         anchor_posture: ForgeQueryPredicateAnchorPosture::NoPredicateAnchor,
+   |         ^^^^^^^^^^^^^^ private field
+11 |         traversal_predicate_ordering_posture: ForgeQueryTraversalPredicateOrderingPosture::NoPredicate,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         predicate_rows: Vec::new(),
+   |         ^^^^^^^^^^^^^^ private field

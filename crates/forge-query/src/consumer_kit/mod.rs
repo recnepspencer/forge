@@ -1,4 +1,5 @@
 pub(crate) mod boundary_audit;
+pub(crate) mod consumer_residue;
 pub(crate) mod evidence_report;
 pub(crate) mod evidence_report_adoption;
 pub(crate) mod graph_obligation_adoption;
@@ -20,6 +21,15 @@ pub use boundary_audit::{
     ForgeQueryBoundaryAuditSourceInventoryFile, ForgeQueryBoundaryAuditSourceSet,
     ForgeQueryBoundaryAuditSourceSite, ForgeQueryBoundaryAuditSyntaxClass,
     ForgeQueryHardProhibitionBoundaryAudit,
+};
+pub use consumer_residue::{
+    forge_query_consumer_residue_certification_evidence, forge_query_consumer_residue_registry,
+    forge_query_test_backend_residue_classes, query_consumer_residue_audit,
+    ForgeQueryConsumerResidueAudit, ForgeQueryConsumerResidueCertificationCaseEvidence,
+    ForgeQueryConsumerResidueClass, ForgeQueryConsumerResidueDetection,
+    ForgeQueryConsumerResidueFinding, ForgeQueryConsumerResidueQueryOwnedRootAuthority,
+    ForgeQueryConsumerResidueRegistryRow, ForgeQueryConsumerResidueReport,
+    ForgeQueryConsumerResidueSourceInventory, ForgeQueryConsumerResidueSourceSite,
 };
 pub use evidence_report::{
     EvidenceReport, EvidenceReportDeclaration, EvidenceReportError, EvidenceReportErrorKind,

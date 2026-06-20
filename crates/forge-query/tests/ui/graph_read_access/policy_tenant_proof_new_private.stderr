@@ -1,0 +1,15 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/graph_read_access/policy_tenant_proof_new_private.rs:4:58
+  |
+4 |       let _ = ForgeQueryGraphReadPolicyTenantProofBinding::new;
+  |                                                            ^^^ private associated function
+  |
+ ::: src/runtime/graph_read_access/basis_binding.rs
+  |
+  | /     pub(crate) fn new(
+  | |         read_graph_digest: impl Into<String>,
+  | |         policy_tenant_posture: ForgeQueryGraphReadPolicyTenantPosture,
+  | |         relationship_proof_posture: ForgeQueryGraphReadRelationshipProofBindingPosture,
+  | |         relationship_proof_admission_digest: Option<String>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

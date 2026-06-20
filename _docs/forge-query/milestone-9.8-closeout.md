@@ -22,6 +22,7 @@ Query support posture without reimplementing Forge Query internals.
 - `support-snapshot`
 - `support-pinning`
 - `in-memory-test-backend`
+- `consumer-residue-audit`
 - `reference-consumer-adoption`
 
 ## Closure Rule
@@ -29,7 +30,12 @@ Query support posture without reimplementing Forge Query internals.
 Milestone 9.8 reports `Closed` only when every required family publishes a
 closed evidence row with a nonempty digest, documentation agrees with the
 support/profile family set, the hostile certification matrix is closed, and
-the reference consumer publishes zero Query-owned folklore residue.
+the generic consumer-residue audit plus reference-consumer adoption publish
+zero Query-owned folklore residue. The `consumer-residue-audit` rows are backed
+by typed certification evidence, not by source-text marker checks. The
+reference-consumer residue digest includes the generic audit report identity and
+source-inventory digest so closure changes when the audited downstream source
+set changes.
 
 ## Reference Consumer Residue
 
@@ -37,6 +43,15 @@ the reference consumer publishes zero Query-owned folklore residue.
 covered report/digest folklore, Query-prohibition audit folklore, and
 support-pinning folklore. Remaining construction digest helpers are defended as
 worth-domain artifact identity rather than Query evidence identity.
+
+The generic `consumer-residue-audit` family is the Query-owned authority for
+proof-folklore cleanup. It covers local Query reports, local Query proofs, raw
+support-row spelunking, support-matrix row searches, debug-derived proof
+strings, delimiter-joined proof strings, and delimiter-formatted proof strings.
+Consumers do not provide their own class registry, scanner, or replacement
+matrix. The shipped report publishes typed findings, finding identities, report
+identity, audited source paths, skipped non-Rust source count, and a
+source-inventory digest.
 
 The in-memory test backend is published as a consumer-kit family. For current
 `worth-kernel` construction, backend adoption is classified by applicability:

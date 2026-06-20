@@ -329,6 +329,8 @@ pub(crate) fn evidence_scope_as_str(scope: ForgeQueryEvidenceScope) -> &'static 
         | ForgeQueryEvidenceScope::ConsumerSupportPinContractDocument
         | ForgeQueryEvidenceScope::ConsumerSupportPinFinding
         | ForgeQueryEvidenceScope::ConsumerSupportPinReport
+        | ForgeQueryEvidenceScope::ConsumerResidueFinding
+        | ForgeQueryEvidenceScope::ConsumerResidueReport
         | ForgeQueryEvidenceScope::ConsumerTestBackendResidueFinding
         | ForgeQueryEvidenceScope::ConsumerTestBackendResidueReport => {
             consumer_kit_evidence_scope_as_str(scope)

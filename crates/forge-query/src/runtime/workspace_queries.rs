@@ -120,6 +120,26 @@ impl ForgeQueryWorkspace {
             .execute()
     }
 
+    pub fn explain_graph_read_access_shape(
+        &self,
+        family: &ForgeQueryReadFamily,
+    ) -> Result<
+        super::ForgeQueryGraphReadAccessShapeExplanation,
+        super::ForgeQueryGraphReadAccessShapeExplanationError,
+    > {
+        super::explain_graph_read_access_shape_for_family(family)
+    }
+
+    pub fn explain_boolean_selectivity_shape(
+        &self,
+        family: &ForgeQueryReadFamily,
+    ) -> Result<
+        super::ForgeQueryBooleanSelectivityShape,
+        super::ForgeQueryGraphReadAccessShapeExplanationError,
+    > {
+        super::explain_boolean_selectivity_shape_for_family(family)
+    }
+
     pub fn read<T>(
         &mut self,
         view: &super::ForgeQueryLiveView<T>,
