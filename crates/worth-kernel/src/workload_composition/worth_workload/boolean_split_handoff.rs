@@ -4,6 +4,7 @@ use worth_spatial::facade::planar_boolean_edge_splitting::{
     PlanarBooleanSplitChainValidationReceipt, PlanarBooleanSplitDecisionLogReceipt,
     PlanarBooleanSplitEdgeChainLedgerReceipt, PlanarBooleanSplitPersistentNamingReceipt,
 };
+use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceBooleanReceiptLookupProduct;
 
 use super::{WorkloadCompositionError, WorthWorkload};
 
@@ -40,8 +41,14 @@ impl CompletedBooleanSplitHandoff {
     }
 
     pub fn require_boolean_split(&self) -> Result<(), WorkloadCompositionError> {
+        self.require_boolean_split_lookup().map(|_| ())
+    }
+
+    pub fn require_boolean_split_lookup(
+        &self,
+    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadCompositionError> {
         self.completed_workload
-            .require_boolean_split(&self.split_ledger_receipt)
+            .require_boolean_split_lookup(&self.split_ledger_receipt)
     }
 
     pub fn admit_downstream_split_consumption(

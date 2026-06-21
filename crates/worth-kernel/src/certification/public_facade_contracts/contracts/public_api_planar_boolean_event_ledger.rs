@@ -1,11 +1,16 @@
 use worth_kernel::workload_composition::{
     PlanarBooleanEventExtractionRequest, WorkloadCompositionError,
 };
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, complete_ledger_stage_snapshot,
+};
 use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanCollinearRelationKind, PlanarBooleanEventLedger,
     PlanarBooleanEventLedgerDenialKind,
 };
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
+use worth_spatial::facade::workload_vocabulary::{
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+};
 
 #[path = "public_api_planar_boolean_collinear_relations_support/mod.rs"]
 #[allow(dead_code)]
@@ -25,7 +30,6 @@ use collinear_relation_support::SyntheticCollinearRelation;
 use event_ledger_support::{
     certified_inputs_for_collinear_relation, ledger_for_collinear_relation,
     ledger_for_point_relation, pair_and_ledger_for_collinear_relation,
-    CounterlessEventLedgerEvidence,
 };
 use point_event_support::SyntheticPointRelation;
 
@@ -302,11 +306,12 @@ fn worth_workload_requires_real_event_ledger_evidence() {
         admitted
             .require_boolean_event_ledger(&ledger)
             .expect("real event-ledger receipt evidence should pass");
-        let counters = admitted
-            .evidence_ledger()
-            .row_for_stage(WorkloadEvidenceStage::BooleanEventLedger)
-            .expect("event-ledger row should exist")
-            .counters();
+        let counters = complete_ledger_stage_snapshot(
+            admitted.evidence_ledger(),
+            WorkloadEvidenceStage::BooleanEventLedger,
+        )
+        .expect("event-ledger row should exist")
+        .counters();
         assert_eq!(counters.boolean_event_ledger_count(), 1);
         assert_eq!(
             counters.boolean_event_ledger_group_count(),
@@ -331,8 +336,10 @@ fn worth_workload_requires_real_event_ledger_evidence() {
 
         let counterless = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &CounterlessEventLedgerEvidence::new(&ledger),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanEventLedger,
+                ledger.event_ledger_identity(),
+                WorkloadEvidenceStageCounters::default(),
             )],
         );
         assert_eq!(

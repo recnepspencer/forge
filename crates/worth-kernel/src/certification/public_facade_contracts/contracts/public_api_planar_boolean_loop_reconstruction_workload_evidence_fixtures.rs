@@ -2,10 +2,6 @@ use worth_kernel::workload_composition::{
     PlanarBooleanLoopRuntimeRegistrationProof, WorkloadStageRequirement,
 };
 use worth_spatial::facade::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionLedgerReceipt;
-use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
-};
 
 pub(crate) fn assert_runtime_registration_proof(
     proof: &PlanarBooleanLoopRuntimeRegistrationProof,
@@ -35,35 +31,3 @@ pub(crate) fn assert_runtime_registration_proof(
         "boolean_loop_reconstruction"
     );
 }
-
-pub(crate) struct CounterlessLoopLedgerEvidence {
-    identity: String,
-}
-
-impl CounterlessLoopLedgerEvidence {
-    pub(crate) fn new(identity: &str) -> Self {
-        Self {
-            identity: identity.to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for CounterlessLoopLedgerEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::LoopReconstruction
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.identity
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Admitted
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::default()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for CounterlessLoopLedgerEvidence {}

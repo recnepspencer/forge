@@ -6,10 +6,12 @@ use worth_kernel::workload_composition::{
     PlanarBooleanOperandPairIdentity, PlanarBooleanOperation, WorkloadCatalog,
     WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
 };
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, certification_only_unsupported_stage_row,
+    complete_ledger_stage_snapshot, complete_ledger_with_additional_rows,
+};
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
@@ -35,20 +37,23 @@ fn worth_workload_requires_real_precision_agreement_evidence() {
 
         let admitted = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &precision,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanPrecisionAgreement,
+                precision.precision_agreement_identity(),
+                WorkloadEvidenceStageCounters::boolean_precision_agreement(),
             )],
         );
         admitted
             .require_boolean_precision_agreement(&precision)
             .expect("real precision evidence should pass");
         assert_eq!(
-            admitted
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanPrecisionAgreement)
-                .expect("precision row should exist")
-                .counters()
-                .boolean_precision_agreement_count(),
+            complete_ledger_stage_snapshot(
+                admitted.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanPrecisionAgreement,
+            )
+            .expect("precision row should exist")
+            .counters()
+            .boolean_precision_agreement_count(),
             1
         );
     });
@@ -70,8 +75,10 @@ fn worth_workload_rejects_foreign_precision_agreement_evidence_row() {
 
         let mismatched = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &foreign_precision,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanPrecisionAgreement,
+                foreign_precision.precision_agreement_identity(),
+                WorkloadEvidenceStageCounters::boolean_precision_agreement(),
             )],
         );
         assert_eq!(
@@ -112,8 +119,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_precision_ro
 
         let counterless = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &CounterlessPrecisionEvidence::new(&precision),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanPrecisionAgreement,
+                precision.precision_agreement_identity(),
+                WorkloadEvidenceStageCounters::default(),
             )],
         );
         assert_eq!(
@@ -127,8 +136,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_precision_ro
 
         let unsupported = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &SupportMismatchedPrecisionEvidence::new(&precision),
+            vec![certification_only_unsupported_stage_row(
+                WorkloadEvidenceStage::BooleanPrecisionAgreement,
+                precision.precision_agreement_identity(),
+                WorkloadEvidenceStageCounters::boolean_precision_agreement(),
             )],
         );
         assert_eq!(
@@ -153,95 +164,37 @@ fn precision_stage_counters_count_only_real_receipt_backed_rows() {
         let workload = rebuild_left_workload(
             &pair,
             vec![
-                WorkloadEvidenceRow::from_boolean_evidence_receipt(&precision),
+                certification_only_admitted_stage_row(
+                    WorkloadEvidenceStage::BooleanPrecisionAgreement,
+                    precision.precision_agreement_identity(),
+                    WorkloadEvidenceStageCounters::boolean_precision_agreement(),
+                ),
                 WorkloadEvidenceRow::new(WorkloadEvidenceStage::BooleanSplit, "manual split"),
             ],
         );
 
         assert_eq!(
-            workload
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanPrecisionAgreement)
-                .expect("precision row should exist")
-                .counters()
-                .boolean_precision_agreement_count(),
+            complete_ledger_stage_snapshot(
+                workload.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanPrecisionAgreement,
+            )
+            .expect("precision row should exist")
+            .counters()
+            .boolean_precision_agreement_count(),
             1
         );
         assert_eq!(
-            workload
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanSplit)
-                .expect("manual split row should exist")
-                .counters()
-                .total_receipt_backed_counters(),
+            complete_ledger_stage_snapshot(
+                workload.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanSplit,
+            )
+            .expect("manual split row should exist")
+            .counters()
+            .total_receipt_backed_counters(),
             0
         );
     });
 }
-
-struct CounterlessPrecisionEvidence {
-    digest: String,
-}
-
-impl CounterlessPrecisionEvidence {
-    fn new(precision: &PlanarBooleanCommonPlanePrecisionAgreedRequest) -> Self {
-        Self {
-            digest: precision.precision_agreement_identity().to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for CounterlessPrecisionEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::PrecisionAgreement
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Admitted
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::default()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for CounterlessPrecisionEvidence {}
-
-struct SupportMismatchedPrecisionEvidence {
-    digest: String,
-}
-
-impl SupportMismatchedPrecisionEvidence {
-    fn new(precision: &PlanarBooleanCommonPlanePrecisionAgreedRequest) -> Self {
-        Self {
-            digest: precision.precision_agreement_identity().to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for SupportMismatchedPrecisionEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::PrecisionAgreement
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Unsupported
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::boolean_precision_agreement()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for SupportMismatchedPrecisionEvidence {}
 
 fn precision_from_pair(
     pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,
@@ -292,11 +245,7 @@ fn rebuild_left_workload(
     boolean_rows: Vec<WorkloadEvidenceRow>,
 ) -> WorthWorkload {
     let left = pair.left().workload();
-    let mut rows = left.evidence_ledger().rows().to_vec();
-    rows.extend(boolean_rows);
-    let ledger = WorkloadEvidenceLedger::from_rows(rows)
-        .expect("precision evidence rows should stay inspectable")
-        .certify_complete()
+    let ledger = complete_ledger_with_additional_rows(left.evidence_ledger(), boolean_rows)
         .expect("classical stages should remain complete");
 
     WorthWorkload::compose(WorthWorkloadParts {

@@ -24,7 +24,7 @@ def render_prompt(state: dict[str, Any], state_path: Path) -> str:
 def render_contract(
     state: dict[str, Any], state_path: Path, context: dict[str, Any]
 ) -> str:
-    relative = state.get("contract_template", DEFAULT_CONTRACT_TEMPLATE)
+    relative = state.get("contract_template") or DEFAULT_CONTRACT_TEMPLATE
     contract_path = resolve_config_path(state_path, relative)
     contract = contract_path.read_text(encoding="utf-8")
     return render_template(contract, context)

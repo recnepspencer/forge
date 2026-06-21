@@ -55,6 +55,7 @@ pub mod consumer_kit {
         ForgeQueryGraphObligationConsumerKit, ForgeQueryGraphObligationConsumerKitError,
         ForgeQueryGraphObligationConsumerKitErrorKind,
         ForgeQueryGraphObligationConsumerRegistrationDeclaration,
+        ForgeQueryGraphObligationExecutionBackedAdoptionProof,
         ForgeQueryGraphObligationExecutionProof, ForgeQueryGraphObligationExecutionProofRow,
         ForgeQueryGraphObligationInMemoryProof,
         ForgeQueryGraphObligationInMemorySelectedObligation,

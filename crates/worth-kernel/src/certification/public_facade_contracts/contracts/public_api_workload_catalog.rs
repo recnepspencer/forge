@@ -118,8 +118,11 @@ mod tests {
             let replay = built
                 .workload()
                 .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::RetainedReplay)
-                .expect("retained replay evidence row");
+                .link_required_stages(&[WorkloadEvidenceStage::RetainedReplay])
+                .expect("typed retained replay evidence link")
+                .link_for_stage(WorkloadEvidenceStage::RetainedReplay)
+                .cloned()
+                .expect("retained replay evidence link");
 
             assert!(replay.counters().retained_artifact_count() > 0);
             assert!(replay.counters().replay_checkpoint_count() > 0);
@@ -141,8 +144,11 @@ mod tests {
                 let replay = built
                     .workload()
                     .evidence_ledger()
-                    .row_for_stage(WorkloadEvidenceStage::RetainedReplay)
-                    .expect("retained replay evidence row");
+                    .link_required_stages(&[WorkloadEvidenceStage::RetainedReplay])
+                    .expect("typed retained replay evidence link")
+                    .link_for_stage(WorkloadEvidenceStage::RetainedReplay)
+                    .cloned()
+                    .expect("retained replay evidence link");
 
                 assert!(replay.counters().retained_artifact_count() > 0);
                 assert!(replay.counters().replay_checkpoint_count() > 0);

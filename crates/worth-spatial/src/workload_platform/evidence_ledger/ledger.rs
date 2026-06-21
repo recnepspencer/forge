@@ -1,7 +1,8 @@
 use super::{
-    BooleanEvidenceReceipt, WorkloadEvidenceCounters, WorkloadEvidenceGuard,
+    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority,
+    WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceCounters, WorkloadEvidenceGuard,
     WorkloadEvidenceGuardError, WorkloadEvidenceRow, WorkloadEvidenceStage,
-    WorkloadEvidenceStageIndexProduct,
+    WorkloadEvidenceStageIndexProduct, WorkloadEvidenceStageLinkSet,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,7 +22,7 @@ impl WorkloadEvidenceLedger {
         })
     }
 
-    pub fn rows(&self) -> &[WorkloadEvidenceRow] {
+    pub(crate) fn rows(&self) -> &[WorkloadEvidenceRow] {
         self.stage_index.rows()
     }
 
@@ -58,7 +59,7 @@ impl WorkloadEvidenceLedger {
         WorkloadEvidenceGuard::new(self.stage_index())
     }
 
-    pub fn evidence_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&str> {
+    pub(crate) fn evidence_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&str> {
         self.stage_index.evidence_for_stage(stage)
     }
 
@@ -70,26 +71,25 @@ impl WorkloadEvidenceLedger {
         self.missing_authority_stage().is_none()
     }
 
-    pub fn row_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&WorkloadEvidenceRow> {
+    pub(crate) fn row_for_stage(
+        &self,
+        stage: WorkloadEvidenceStage,
+    ) -> Option<&WorkloadEvidenceRow> {
         self.stage_index.row_for_stage(stage)
     }
 
-    pub fn boolean_row_for_receipt<T: BooleanEvidenceReceipt>(
+    pub fn require_boolean_receipt_lookup<T: BooleanEvidenceReceipt + 'static>(
         &self,
         receipt: &T,
-    ) -> Option<&WorkloadEvidenceRow> {
-        self.row_for_stage(receipt.boolean_stage().evidence_stage())
+    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceLedgerError> {
+        self.stage_index.require_boolean_receipt_lookup(receipt)
     }
 
-    pub fn matched_boolean_row_for_receipt<T: BooleanEvidenceReceipt + 'static>(
+    pub fn link_required_stages(
         &self,
-        receipt: &T,
-    ) -> Result<&WorkloadEvidenceRow, WorkloadEvidenceLedgerError> {
-        self.stage_index.require_boolean_receipt(receipt)?;
-        self.row_for_stage(receipt.boolean_stage().evidence_stage())
-            .ok_or(WorkloadEvidenceLedgerError::MissingBooleanStage(
-                receipt.boolean_stage().evidence_stage(),
-            ))
+        stages: &[WorkloadEvidenceStage],
+    ) -> Result<WorkloadEvidenceStageLinkSet, WorkloadEvidenceLedgerError> {
+        self.stage_index.link_required_stages(stages)
     }
 
     fn first_manual_authority_stage(&self) -> Option<WorkloadEvidenceStage> {
@@ -102,7 +102,7 @@ impl WorkloadEvidenceLedger {
 }
 
 impl CompleteWorkloadEvidenceLedger {
-    pub fn rows(&self) -> &[WorkloadEvidenceRow] {
+    pub(crate) fn rows(&self) -> &[WorkloadEvidenceRow] {
         self.ledger.rows()
     }
 
@@ -118,26 +118,15 @@ impl CompleteWorkloadEvidenceLedger {
         self.ledger.stage_index()
     }
 
-    pub fn evidence_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&str> {
+    pub(crate) fn evidence_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&str> {
         self.ledger.evidence_for_stage(stage)
     }
 
-    pub fn row_for_stage(&self, stage: WorkloadEvidenceStage) -> Option<&WorkloadEvidenceRow> {
-        self.ledger.row_for_stage(stage)
-    }
-
-    pub fn boolean_row_for_receipt<T: BooleanEvidenceReceipt>(
+    pub(crate) fn row_for_stage(
         &self,
-        receipt: &T,
+        stage: WorkloadEvidenceStage,
     ) -> Option<&WorkloadEvidenceRow> {
-        self.ledger.boolean_row_for_receipt(receipt)
-    }
-
-    pub fn matched_boolean_row_for_receipt<T: BooleanEvidenceReceipt + 'static>(
-        &self,
-        receipt: &T,
-    ) -> Result<&WorkloadEvidenceRow, WorkloadEvidenceLedgerError> {
-        self.ledger.matched_boolean_row_for_receipt(receipt)
+        self.ledger.row_for_stage(stage)
     }
 
     pub fn require_boolean_receipt<T: BooleanEvidenceReceipt + 'static>(
@@ -145,6 +134,29 @@ impl CompleteWorkloadEvidenceLedger {
         receipt: &T,
     ) -> Result<(), WorkloadEvidenceLedgerError> {
         self.stage_index().require_boolean_receipt(receipt)
+    }
+
+    pub fn require_boolean_receipt_lookup<T: BooleanEvidenceReceipt + 'static>(
+        &self,
+        receipt: &T,
+    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceLedgerError> {
+        self.stage_index().require_boolean_receipt_lookup(receipt)
+    }
+
+    pub fn link_required_stages(
+        &self,
+        stages: &[WorkloadEvidenceStage],
+    ) -> Result<WorkloadEvidenceStageLinkSet, WorkloadEvidenceLedgerError> {
+        self.stage_index().link_required_stages(stages)
+    }
+
+    pub fn with_boolean_evidence_receipt<T: BooleanEvidenceRowAuthority + 'static>(
+        &self,
+        receipt: &T,
+    ) -> Result<Self, WorkloadEvidenceLedgerError> {
+        let mut rows = self.rows().to_vec();
+        rows.push(WorkloadEvidenceRow::from_boolean_evidence_receipt(receipt));
+        WorkloadEvidenceLedger::from_rows(rows)?.certify_complete()
     }
 
     pub fn into_ledger(self) -> WorkloadEvidenceLedger {

@@ -17,9 +17,9 @@ use crate::topology_operators::{
 };
 
 impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
-    pub(crate) fn finish_composed_membership_execution<I>(
+    fn finish_composed_membership_execution<I>(
         &mut self,
-        _mode: TopologyMutationApplicationMode,
+        mode: TopologyMutationApplicationMode,
         retained_handoff: TopologyRetainedApplicationHandoff<I>,
         semantic_family_key: &'static str,
         sequence: &TopologyDeclaredMutationSequence,
@@ -32,6 +32,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             self,
             retained_handoff,
             semantic_family_key,
+            mode,
             sequence,
             receipt,
             crate::projection::runtime_boundary::query_runtime::TopologyQueryMutationLaneExecutionShape::GraphComposition,

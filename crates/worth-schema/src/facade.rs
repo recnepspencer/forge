@@ -61,6 +61,11 @@ pub mod platform {
             PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime,
         };
         pub use crate::data::authority::topology_class::TopologyClass;
+        pub use crate::data::authority::touched_graph_basis::{
+            worth_topology_touched_graph_digest, WorthTopologyGraphLifecyclePosture,
+            WorthTopologyTouchedAspect, WorthTopologyTouchedGraphCounters,
+            WorthTopologyTouchedOperatingWorldPosture, WorthTopologyTouchedScope,
+        };
     }
 }
 

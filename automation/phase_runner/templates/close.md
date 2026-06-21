@@ -23,6 +23,14 @@ gaps that remain — named and owned per the debt law, not silently dropped — 
 the exact verification commands. Then set `status` and `qa_status` by the
 contract.
 
+If this phase has a deletion ledger, closeout must audit the actual exported
+symbols and files, not only the ledger row labels. Do not advance while a target
+listed as `delete` or `collapse` is still available through an ordinary public
+facade, or while a local ceremony/local guard/proof-obligation surface remains
+public without an explicit certification-only boundary or capped residue row.
+When in doubt, mark the phase `regressed`, record the public `file:line`, and
+return to `repair`.
+
 This is the only turn allowed to advance to the next phase: if a later phase
 exists, set the cursor to it at turn `plan`; if this was the last phase, set
 `current` to null and set `completed_at`. Do this only when the phase is

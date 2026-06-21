@@ -22,9 +22,9 @@ use worth_spatial::facade::workload_binding::{
 };
 use worth_spatial::facade::workload_vocabulary::{
     DiagnosticWorkload, GeometryBindingWorkload, ProjectionWorkload, ResponseWorkload,
-    RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload, WorkloadEvidenceBacking,
-    WorkloadEvidenceGuardError, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
-    WorkloadEvidenceRow, WorkloadEvidenceStage,
+    RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload, WorkloadEvidenceGuardError,
+    WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow,
+    WorkloadEvidenceStage,
 };
 
 use crate::public_api_retained_replay_workload::contract_subject::{
@@ -43,14 +43,10 @@ fn evidence_ledger_requires_source_receipts_for_every_completed_stage() {
             .expect("all authority stages should certify completion");
 
         assert_eq!(complete.counters().rows(), 8);
-        assert!(complete
-            .rows()
-            .iter()
-            .all(|row| row.backing() == WorkloadEvidenceBacking::Receipt));
-        assert!(complete
-            .rows()
-            .iter()
-            .all(|row| row.counters().total_receipt_backed_counters() > 0));
+        complete
+            .guards()
+            .assert_counters_are_receipt_backed()
+            .expect("complete ledger rows should be receipt-backed with counters");
 
         let simple_stage_receipts =
             WorkloadEvidenceLedger::from_rows(receipt_backed_rows(&receipts))

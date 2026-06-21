@@ -53,6 +53,7 @@ fn upstream_binding_key(row: &WorkloadEvidenceRow) -> String {
 fn backing_key(backing: WorkloadEvidenceBacking) -> &'static str {
     match backing {
         WorkloadEvidenceBacking::Receipt => "receipt",
+        WorkloadEvidenceBacking::CertificationOnly => "certification-only",
         WorkloadEvidenceBacking::Manual => "manual",
     }
 }

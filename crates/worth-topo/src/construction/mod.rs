@@ -4,11 +4,12 @@ mod query_native_boundary;
 
 pub(crate) use query_native_boundary::topology_primitive_construction_birth_layout_violation_registration;
 pub use query_native_boundary::{
-    execute_primitive_construction_birth_compose,
     prepare_primitive_construction_query_admitted_handoff,
     prepare_primitive_construction_query_admitted_handoff_from_synopsis,
     prepare_primitive_construction_query_envelope, prepare_primitive_construction_query_handoff,
     prepare_primitive_construction_query_receipt,
+    run_primitive_construction_birth_declared_touched_basis_compose,
+    topology_primitive_construction_birth_graph_authority_proof,
     topology_primitive_construction_birth_graph_obligation_registration,
     TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
     TopologyConstructionQueryFactKind, TopologyConstructionQueryFactProvenance,
@@ -18,7 +19,10 @@ pub use query_native_boundary::{
     TopologyPrimitiveConstructionBirthComposeEvidence,
     TopologyPrimitiveConstructionBirthComposeExecution,
     TopologyPrimitiveConstructionBirthComposeExecutionError,
-    TopologyPrimitiveConstructionBirthComposeProgram, TopologyPrimitiveConstructionBirthFamily,
+    TopologyPrimitiveConstructionBirthComposeProgram,
+    TopologyPrimitiveConstructionBirthDeclaredTouchedBasis,
+    TopologyPrimitiveConstructionBirthFamily,
+    TopologyPrimitiveConstructionBirthGraphAuthorityProof,
     TopologyPrimitiveConstructionBirthMaterializationCoverage,
     TopologyPrimitiveConstructionBirthSelectedObligationRow,
     TopologyPrimitiveConstructionBirthTopologyKind,

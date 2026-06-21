@@ -13,9 +13,9 @@ extern crate self as worth_kernel;
 
 pub mod docs_closeout;
 pub mod query_adoption;
+pub mod query_graph_authority_gate;
 pub mod workload_composition;
 
 #[cfg(test)]
 mod binding;
-#[cfg(test)]
 mod construction;

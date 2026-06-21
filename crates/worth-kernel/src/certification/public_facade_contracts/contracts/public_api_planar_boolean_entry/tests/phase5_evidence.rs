@@ -1,5 +1,12 @@
 use worth_kernel::workload_composition::{WorkloadCompositionError, WorkloadStageRequirement};
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
+use worth_spatial::{
+    certification::workload_evidence::{
+        certification_only_admitted_stage_row, certification_only_unsupported_stage_row,
+    },
+    facade::workload_vocabulary::{
+        WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+    },
+};
 
 #[path = "phase5_evidence_fixture.rs"]
 mod fixture;
@@ -7,7 +14,6 @@ mod fixture;
 use fixture::{
     boolean_blocker_row, boolean_declaration_row, boolean_harness, boolean_pair_row,
     boolean_route_row, rebuild_left_workload, run_with_large_stack, stage_row,
-    CounterlessBooleanRouteEvidence, SupportMismatchedBooleanRouteEvidence,
 };
 
 #[test]
@@ -62,8 +68,10 @@ fn boolean_evidence_ledger_rejects_missing_or_mismatched_boolean_stage_rows() {
 
         let counterless = rebuild_left_workload(
             &harness,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &CounterlessBooleanRouteEvidence::new(&harness.route),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanRoutePlan,
+                harness.route.query_support_digest(),
+                WorkloadEvidenceStageCounters::default(),
             )],
         );
         assert_eq!(
@@ -77,8 +85,10 @@ fn boolean_evidence_ledger_rejects_missing_or_mismatched_boolean_stage_rows() {
 
         let unsupported = rebuild_left_workload(
             &harness,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &SupportMismatchedBooleanRouteEvidence::new(&harness.route),
+            vec![certification_only_unsupported_stage_row(
+                WorkloadEvidenceStage::BooleanRoutePlan,
+                harness.route.query_support_digest(),
+                WorkloadEvidenceStageCounters::boolean_route(),
             )],
         );
         assert_eq!(

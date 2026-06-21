@@ -61,9 +61,10 @@ The intended chain is:
 
 `Milestone 6` -> `Milestone 6.5` -> `Milestone 7.0` -> `Milestone 7.1` ->
 `Milestone 7.2` -> `Milestone 7.3` -> `Milestone 7.4` ->
-`Worth Query Graph Authority Hardening Gate` -> `Milestone 7.5` ->
-`Milestone 7.6` -> `Milestone 7.7` -> `Milestone 7.8` -> `Milestone 7.9`
--> `Milestone 7.10` -> `Milestone 7.11` -> `Milestone 8`
+`Worth Query Graph Authority Hardening Gate` ->
+`Worth Touched Graph Authority Gate` -> `Milestone 7.5` -> `Milestone 7.6`
+-> `Milestone 7.7` -> `Milestone 7.8` -> `Milestone 7.9` ->
+`Milestone 7.10` -> `Milestone 7.11` -> `Milestone 8`
 
 Each sub-milestone should leave behind a coherent, reviewable, replayable
 artifact boundary for the next one.
@@ -176,6 +177,35 @@ Done when:
 - every 9.9-relevant Worth production surface is either covered by Query graph
   obligation authority, deleted, blocked by a named Query capability gap, or
   explicit certified residue
+
+## Worth Touched Graph Authority Gate
+
+Refactor the remaining topology, spatial, and kernel production surfaces so
+touched graph authority becomes the single source for graph-legality work
+before overlap extraction resumes.
+
+Roadmap:
+- [touched-graph-roadmap.md](./touched-graph-roadmap.md)
+
+Spec:
+- [worth-touched-graph-authority-gate.md](./worth-touched-graph-authority-gate.md)
+
+Closes:
+- typed touched graph basis produced by every graph-affecting operator/stage
+- Query obligation selection from touched graph basis
+- Query 9.10 graph read access planning adoption for covered Worth graph reads,
+  including no-N+1, index-posture, budget, and access receipt proof
+- topology validator and invariant derivation from touched graph closure
+- derived invalidation, dirty propagation, replay, evidence lookup, conflict,
+  cache/equivalence, undo, public API, and diagnostics from the same basis
+- deletion of static/global validator packs, broad evidence scans, slow
+  compatibility adapters, and operator-local validator declarations where the
+  touched graph replacement exists
+
+Done when:
+- `Milestone 7.5` can consume touched graph proof for overlap-region extraction
+  rather than inventing local validator, evidence, dirty-region, replay, or
+  diagnostic rules
 
 ## Milestone 7.5: Coplanar Overlap Region Extraction
 

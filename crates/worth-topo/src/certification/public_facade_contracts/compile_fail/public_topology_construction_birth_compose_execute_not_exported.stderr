@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `topology::facade::execute_primitive_construction_birth_compose`
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_construction_birth_compose_execute_not_exported.rs:1:5
+  |
+1 | use topology::facade::execute_primitive_construction_birth_compose;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `execute_primitive_construction_birth_compose` in `facade`

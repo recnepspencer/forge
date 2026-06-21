@@ -15,7 +15,6 @@ pub enum PlanarBooleanLoopOperatorProofObligation {
     QueryGraphCompositionDomainInvariantDenial,
     QueryInvariantRegistrationArtifact,
     TypedGraphCompositionDomainInvariantDenial,
-    ExplicitFutureSupportPosture,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

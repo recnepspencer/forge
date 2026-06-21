@@ -1,3 +1,6 @@
+use super::collinear_relation_support::{self, SyntheticCollinearRelation};
+use super::point_event_support::{self, SyntheticPointRelation};
+use super::predicate_binding_support;
 use worth_kernel::workload_composition::{
     BuiltBooleanOperandPairRecipe, PlanarBooleanCommonPlaneReducedOperandPairRequest,
     PlanarBooleanEventExtractionRequest,
@@ -7,14 +10,6 @@ use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanEventLedgerReceipt, PlanarBooleanEventPredicateBinding,
     PlanarBooleanIntervalEventExtraction, PlanarBooleanPointEventExtraction,
 };
-use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
-};
-
-use super::collinear_relation_support::{self, SyntheticCollinearRelation};
-use super::point_event_support::{self, SyntheticPointRelation};
-use super::predicate_binding_support;
 
 pub(crate) struct CertifiedEventLedgerInputs {
     pub(crate) event_request: PlanarBooleanEventExtractionRequest,
@@ -148,35 +143,3 @@ fn reduced_pair_from_subject(
 ) -> PlanarBooleanCommonPlaneReducedOperandPairRequest {
     subject.reduced_pair.clone()
 }
-
-pub(crate) struct CounterlessEventLedgerEvidence {
-    identity: String,
-}
-
-impl CounterlessEventLedgerEvidence {
-    pub(crate) fn new(receipt: &PlanarBooleanEventLedgerReceipt) -> Self {
-        Self {
-            identity: receipt.event_ledger_identity().to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for CounterlessEventLedgerEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::EventLedger
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.identity
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Admitted
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::default()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for CounterlessEventLedgerEvidence {}

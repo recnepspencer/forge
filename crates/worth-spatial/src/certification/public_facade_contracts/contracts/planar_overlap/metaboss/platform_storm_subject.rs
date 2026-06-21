@@ -13,6 +13,8 @@ use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
 };
 
+use crate::public_api_workload_vocabulary::evidence_ledger_receipts::counter_backed_rows;
+
 use super::storm_extraction_subject::{
     certify_projected_storm_context, certify_projected_storm_extraction_bundle,
 };
@@ -90,24 +92,13 @@ pub(crate) fn certify_platform_storm_with_transform(
 pub(crate) fn manual_stage_substitution_error(
     stage: WorkloadEvidenceStage,
 ) -> Result<(), WorkloadEvidenceLedgerError> {
-    let built = WorkloadCatalog::coplanar_overlap_storm()
-        .with_transform(TransformRecipe::HostileCancellation)
-        .declared(format!(
-            "MB-M6-1 manual {} substitution",
-            stage.human_name()
-        ))
-        .build()
-        .expect("platform storm workload should build");
-    let rows = built
-        .workload()
-        .evidence_ledger()
-        .rows()
-        .iter()
+    let rows = counter_backed_rows("MB-M6-1 manual authority substitution")
+        .into_iter()
         .map(|row| {
             if row.stage() == stage {
                 WorkloadEvidenceRow::new(stage, row.evidence_identity())
             } else {
-                row.clone()
+                row
             }
         })
         .collect();

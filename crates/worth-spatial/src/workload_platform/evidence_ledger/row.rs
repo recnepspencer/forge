@@ -91,6 +91,39 @@ impl WorkloadEvidenceRow {
         }
     }
 
+    pub(crate) fn certification_only_admitted(
+        stage: WorkloadEvidenceStage,
+        evidence_identity: impl Into<String>,
+        counters: WorkloadEvidenceStageCounters,
+    ) -> Self {
+        Self {
+            stage,
+            evidence_identity: evidence_identity.into(),
+            backing: WorkloadEvidenceBacking::CertificationOnly,
+            support: WorkloadEvidenceSupport::Admitted,
+            counters,
+            receipt_type_id: None,
+            upstream_stage_binding: None,
+        }
+    }
+
+    pub(crate) fn certification_only_with_support(
+        stage: WorkloadEvidenceStage,
+        evidence_identity: impl Into<String>,
+        support: WorkloadEvidenceSupport,
+        counters: WorkloadEvidenceStageCounters,
+    ) -> Self {
+        Self {
+            stage,
+            evidence_identity: evidence_identity.into(),
+            backing: WorkloadEvidenceBacking::CertificationOnly,
+            support,
+            counters,
+            receipt_type_id: None,
+            upstream_stage_binding: None,
+        }
+    }
+
     pub fn stage(&self) -> WorkloadEvidenceStage {
         self.stage
     }
@@ -140,6 +173,7 @@ impl WorkloadEvidenceRow {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorkloadEvidenceBacking {
     Receipt,
+    CertificationOnly,
     Manual,
 }
 

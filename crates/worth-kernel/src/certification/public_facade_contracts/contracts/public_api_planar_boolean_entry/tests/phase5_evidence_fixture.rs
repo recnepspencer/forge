@@ -2,13 +2,16 @@ use worth_kernel::workload_composition::{
     BuiltBooleanOperandPairRecipe, PlanarBooleanBlockerEvidenceReceipt, PlanarBooleanDeclaration,
     PlanarBooleanEntryBasis, PlanarBooleanExecutionLane, PlanarBooleanFamily,
     PlanarBooleanOperandPairConstructionReceipt, PlanarBooleanOperandPairIdentity,
-    PlanarBooleanOperation, PlanarBooleanSupportPosture, PlanarBooleanSupportReceipt,
-    WorkloadCatalog, WorthWorkload, WorthWorkloadParts,
+    PlanarBooleanOperation, PlanarBooleanSupportReceipt, WorkloadCatalog, WorthWorkload,
+    WorthWorkloadParts,
+};
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, complete_ledger_stage_snapshot,
+    complete_ledger_with_additional_rows, CertifiedWorkloadEvidenceStageSnapshot,
 };
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedger, WorkloadEvidenceRow,
-    WorkloadEvidenceStage, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    CompleteWorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceStageCounters,
 };
 
 use super::super::support::certified_boolean_readiness_workload_receipt;
@@ -89,11 +92,7 @@ pub(crate) fn rebuild_left_workload(
     boolean_rows: Vec<WorkloadEvidenceRow>,
 ) -> WorthWorkload {
     let left = harness.pair.left().workload();
-    let mut rows = left.evidence_ledger().rows().to_vec();
-    rows.extend(boolean_rows);
-    let ledger = WorkloadEvidenceLedger::from_rows(rows)
-        .expect("boolean ledger rows should stay inspectable")
-        .certify_complete()
+    let ledger = complete_ledger_with_additional_rows(left.evidence_ledger(), boolean_rows)
         .expect("classical authority stages should remain complete");
 
     WorthWorkload::compose(WorthWorkloadParts {
@@ -111,92 +110,36 @@ pub(crate) fn rebuild_left_workload(
 }
 
 pub(crate) fn boolean_declaration_row(harness: &BooleanHarness) -> WorkloadEvidenceRow {
-    WorkloadEvidenceRow::from_boolean_evidence_receipt(&harness.declaration)
+    certification_only_admitted_stage_row(
+        WorkloadEvidenceStage::BooleanDeclarationEntry,
+        harness.declaration.query_declaration_digest(),
+        WorkloadEvidenceStageCounters::boolean_declaration(),
+    )
 }
 
-pub(crate) fn boolean_route_row<T: BooleanEvidenceRowAuthority>(
-    receipt: &T,
-) -> WorkloadEvidenceRow {
-    WorkloadEvidenceRow::from_boolean_evidence_receipt(receipt)
+pub(crate) fn boolean_route_row(receipt: &PlanarBooleanSupportReceipt) -> WorkloadEvidenceRow {
+    certification_only_admitted_stage_row(
+        WorkloadEvidenceStage::BooleanRoutePlan,
+        receipt.query_support_digest(),
+        WorkloadEvidenceStageCounters::boolean_route(),
+    )
 }
 
 pub(crate) fn boolean_pair_row(harness: &BooleanHarness) -> WorkloadEvidenceRow {
-    WorkloadEvidenceRow::from_boolean_evidence_receipt(&harness.pair_construction)
+    certification_only_admitted_stage_row(
+        WorkloadEvidenceStage::BooleanOperandPairConstruction,
+        harness.pair_construction.construction_digest(),
+        WorkloadEvidenceStageCounters::boolean_operand_pair(),
+    )
 }
 
 pub(crate) fn boolean_blocker_row(harness: &BooleanHarness) -> WorkloadEvidenceRow {
-    WorkloadEvidenceRow::from_boolean_evidence_receipt(&harness.blocker_evidence)
+    certification_only_admitted_stage_row(
+        WorkloadEvidenceStage::BooleanBlockerProvenance,
+        harness.blocker_evidence.blocker_digest(),
+        WorkloadEvidenceStageCounters::boolean_blocker(),
+    )
 }
-
-pub(crate) struct CounterlessBooleanRouteEvidence {
-    digest: String,
-    support: WorkloadEvidenceSupport,
-}
-
-impl CounterlessBooleanRouteEvidence {
-    pub(crate) fn new(route: &PlanarBooleanSupportReceipt) -> Self {
-        let support = match route.posture() {
-            PlanarBooleanSupportPosture::Admitted => WorkloadEvidenceSupport::Admitted,
-            PlanarBooleanSupportPosture::VisibleNotAdmitted => WorkloadEvidenceSupport::Unsupported,
-        };
-        Self {
-            digest: route.query_support_digest().to_string(),
-            support,
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for CounterlessBooleanRouteEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::RoutePlan
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        self.support
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::default()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for CounterlessBooleanRouteEvidence {}
-
-pub(crate) struct SupportMismatchedBooleanRouteEvidence {
-    digest: String,
-}
-
-impl SupportMismatchedBooleanRouteEvidence {
-    pub(crate) fn new(route: &PlanarBooleanSupportReceipt) -> Self {
-        Self {
-            digest: route.query_support_digest().to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for SupportMismatchedBooleanRouteEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::RoutePlan
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Unsupported
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::boolean_route()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for SupportMismatchedBooleanRouteEvidence {}
 
 fn pair_identity(pair: &BuiltBooleanOperandPairRecipe) -> PlanarBooleanOperandPairIdentity {
     PlanarBooleanOperandPairIdentity::new(pair.operand_pair_identity())
@@ -206,8 +149,8 @@ fn pair_identity(pair: &BuiltBooleanOperandPairRecipe) -> PlanarBooleanOperandPa
 pub(crate) fn stage_row(
     ledger: &CompleteWorkloadEvidenceLedger,
     stage: WorkloadEvidenceStage,
-) -> &WorkloadEvidenceRow {
-    ledger.row_for_stage(stage).expect("expected evidence row")
+) -> CertifiedWorkloadEvidenceStageSnapshot {
+    complete_ledger_stage_snapshot(ledger, stage).expect("expected evidence row")
 }
 
 pub(crate) fn run_with_large_stack(body: impl FnOnce() + Send + 'static) {

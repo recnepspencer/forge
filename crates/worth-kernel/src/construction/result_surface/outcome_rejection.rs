@@ -1,18 +1,13 @@
-#[cfg(test)]
 use super::super::digest::digest_owned_parts;
-#[cfg(test)]
 use super::super::request::{
     PrimitiveConstructionFamily, PrimitiveConstructionGeometryError,
     PrimitiveConstructionPhaseError,
 };
-#[cfg(test)]
 use super::super::result::PrimitiveConstructionResultError;
-#[cfg(test)]
 use super::geometry_recovery::{
     geometry_recovery_actions_for_rejection_class, geometry_recovery_receipts_for_rejection_class,
     GeometryRecoveryActionFactReceipt, PrimitiveConstructionRecoveryAction,
 };
-#[cfg(test)]
 use worth_geom::facade::{
     PrimitiveConditioningWitness, PrimitiveRealizationExhaustionReason,
     PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -59,7 +54,6 @@ impl PrimitiveConstructionRejectionLocality {
     }
 }
 
-#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionRejectedOutcome {
     family: PrimitiveConstructionFamily,
@@ -75,7 +69,6 @@ pub struct PrimitiveConstructionRejectedOutcome {
     failure_digest: String,
 }
 
-#[cfg(test)]
 impl PrimitiveConstructionRejectedOutcome {
     pub(crate) fn new(
         family: PrimitiveConstructionFamily,
@@ -187,7 +180,6 @@ impl PrimitiveConstructionRejectedOutcome {
         }
     }
 
-    #[cfg(test)]
     pub fn family(&self) -> PrimitiveConstructionFamily {
         self.family
     }
@@ -200,7 +192,6 @@ impl PrimitiveConstructionRejectedOutcome {
         self.rejection_locality
     }
 
-    #[cfg(test)]
     pub fn failure_digest(&self) -> &str {
         &self.failure_digest
     }
@@ -209,18 +200,29 @@ impl PrimitiveConstructionRejectedOutcome {
         geometry_recovery_actions_for_rejection_class(self.rejection_class)
     }
 
-    #[cfg(test)]
     pub fn recovery_fact_receipts(&self) -> &[GeometryRecoveryActionFactReceipt] {
         &self.recovery_fact_receipts
     }
 }
 
-#[cfg(test)]
 pub(crate) fn rejected_outcome(
     family: PrimitiveConstructionFamily,
     error: &PrimitiveConstructionResultError,
 ) -> PrimitiveConstructionRejectedOutcome {
     match error {
+        PrimitiveConstructionResultError::MissingExecutedGraphAuthorityEvidence => {
+            PrimitiveConstructionRejectedOutcome::new(
+                family,
+                PrimitiveConstructionRejectionClass::TopologyExecution,
+                PrimitiveConstructionRejectionLocality::Execution,
+                Vec::new(),
+                None,
+                None,
+                None,
+                None,
+                error.to_string(),
+            )
+        }
         PrimitiveConstructionResultError::Phase(phase) => match phase {
             PrimitiveConstructionPhaseError::InvalidRequest { .. } => {
                 PrimitiveConstructionRejectedOutcome::new(

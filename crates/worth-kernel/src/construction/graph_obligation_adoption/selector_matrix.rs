@@ -16,6 +16,11 @@ pub(crate) struct PrimitiveConstructionGraphObligationSelectorPrecisionRow {
     descriptor_digest: String,
     expected_selected_count: usize,
     selected_count: usize,
+    attempted_bucket_lookup_count: usize,
+    candidate_registration_count: usize,
+    denied_row_count: usize,
+    residue_row_count: usize,
+    registration_full_scan_count: usize,
 }
 
 struct PrimitiveConstructionGraphObligationSelectorPrecisionCase {
@@ -40,6 +45,26 @@ impl PrimitiveConstructionGraphObligationSelectorPrecisionRow {
     pub(crate) fn selected_count(&self) -> usize {
         self.selected_count
     }
+
+    pub(crate) fn attempted_bucket_lookup_count(&self) -> usize {
+        self.attempted_bucket_lookup_count
+    }
+
+    pub(crate) fn candidate_registration_count(&self) -> usize {
+        self.candidate_registration_count
+    }
+
+    pub(crate) fn denied_row_count(&self) -> usize {
+        self.denied_row_count
+    }
+
+    pub(crate) fn residue_row_count(&self) -> usize {
+        self.residue_row_count
+    }
+
+    pub(crate) fn registration_full_scan_count(&self) -> usize {
+        self.registration_full_scan_count
+    }
 }
 
 pub(crate) fn primitive_construction_graph_obligation_selector_precision_matrix() -> Result<
@@ -57,11 +82,20 @@ pub(crate) fn primitive_construction_graph_obligation_selector_precision_matrix(
         .into_iter()
         .map(|precision_case| {
             let proof = workspace.prove_selection(&precision_case.descriptor, &operating_world);
+            let counters = proof.selection_counters();
+            let selected_count = proof.selected_obligation_count();
             Ok(PrimitiveConstructionGraphObligationSelectorPrecisionRow {
                 label: precision_case.label,
                 descriptor_digest: precision_case.descriptor.descriptor_digest().to_string(),
                 expected_selected_count: precision_case.expected_selected_count,
-                selected_count: proof.selected_obligation_count(),
+                selected_count,
+                attempted_bucket_lookup_count: counters.attempted_bucket_lookup_count(),
+                candidate_registration_count: counters.candidate_registration_count(),
+                denied_row_count: counters
+                    .candidate_registration_count()
+                    .saturating_sub(selected_count),
+                residue_row_count: 0,
+                registration_full_scan_count: counters.registration_full_scan_count(),
             })
         })
         .collect()
@@ -85,7 +119,7 @@ fn selector_precision_descriptors() -> Result<
         },
         PrimitiveConstructionGraphObligationSelectorPrecisionCase {
             label: "wrong-mutation-family",
-            expected_selected_count: 1,
+            expected_selected_count: 0,
             descriptor: ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
                 TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
                 ForgeQueryMutationFamily::Update,
@@ -96,7 +130,7 @@ fn selector_precision_descriptors() -> Result<
         },
         PrimitiveConstructionGraphObligationSelectorPrecisionCase {
             label: "wrong-aspect-operation",
-            expected_selected_count: 1,
+            expected_selected_count: 0,
             descriptor: ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
                 TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
                 ForgeQueryMutationFamily::Insert,
@@ -107,7 +141,7 @@ fn selector_precision_descriptors() -> Result<
         },
         PrimitiveConstructionGraphObligationSelectorPrecisionCase {
             label: "wrong-aspect-path",
-            expected_selected_count: 1,
+            expected_selected_count: 0,
             descriptor: ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
                 TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
                 ForgeQueryMutationFamily::Insert,
@@ -118,7 +152,7 @@ fn selector_precision_descriptors() -> Result<
         },
         PrimitiveConstructionGraphObligationSelectorPrecisionCase {
             label: "read-not-mutation",
-            expected_selected_count: 1,
+            expected_selected_count: 0,
             descriptor: ForgeQueryGraphTouchDescriptor::read_family(
                 TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
                 [ForgeQueryGraphTouchReadVerb::ObservesCollection],

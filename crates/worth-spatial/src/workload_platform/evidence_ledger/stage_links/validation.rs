@@ -24,7 +24,14 @@ pub(crate) fn link_required_stages(
         if !row.is_receipt_backed() {
             return Err(WorkloadEvidenceLedgerError::ManualAuthorityStage(*stage));
         }
+        if stage.is_boolean_stage() && !row.counters().has_receipt_backed_counter_for_stage(*stage)
+        {
+            return Err(WorkloadEvidenceLedgerError::CounterlessBooleanStage(*stage));
+        }
         if !row.is_admitted() {
+            if stage.is_boolean_stage() {
+                return Err(WorkloadEvidenceLedgerError::UnsupportedBooleanStage(*stage));
+            }
             return Err(WorkloadEvidenceLedgerError::UnadmittedAuthorityStage(
                 *stage,
             ));

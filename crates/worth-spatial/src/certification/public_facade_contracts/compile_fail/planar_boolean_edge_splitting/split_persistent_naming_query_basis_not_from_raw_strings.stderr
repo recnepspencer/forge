@@ -8,7 +8,7 @@ note: if you're trying to build a new `PlanarBooleanSplitPersistentNamingQueryBa
  --> src/workload_platform/planar_boolean_edge_splitting/split_persistent_naming/input.rs
   |
   | /     pub fn from_topology_query_artifacts(
-  | |         topology_domain_handle: &TopologyCurrentHeadConfiguredDomainHandle,
+  | |         topology_domain_handle: &TopologyCurrentHeadQueryBasisEvidence,
   | |         naming_attachment_report: &NamingAttachmentReport,
   | |     ) -> Result<Self, PlanarBooleanSplitPersistentNamingDenial> {
   | |_______________________________________________________________^

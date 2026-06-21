@@ -7,10 +7,8 @@ use crate::construction::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
 };
-#[cfg(test)]
 mod request_invalidity;
 mod request_placement;
-#[cfg(test)]
 pub(crate) use request_invalidity::primitive_construction_invalid_request_reason;
 pub(crate) use request_placement::placement_of;
 pub(crate) use request_placement::PrimitiveConstructionPlacement;
@@ -152,7 +150,6 @@ impl PrimitiveConstructionRequest {
         Self::new(geometry, parts)
     }
 
-    #[cfg(test)]
     pub(crate) fn geometry(&self) -> &PrimitiveConstructionGeometry {
         &self.geometry
     }

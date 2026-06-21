@@ -2,19 +2,22 @@ use worth_kernel::workload_composition::{
     PlanarBooleanCommonPlaneReducedOperandPairRequest, WorkloadCompositionError,
     WorkloadStageRequirement,
 };
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, certification_only_unsupported_stage_row,
+    complete_ledger_stage_snapshot,
+};
 use worth_spatial::facade::planar_boolean_common_plane::PlanarBooleanCommonPlaneOperandSide;
 use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanCandidateIndexFallbackPosture, PlanarBooleanCandidateIndexLifecycleOutcome,
     PlanarBooleanCandidateIndexStrategy, PlanarBooleanCanonicalSegmentSet,
     PlanarBooleanSegmentPairEnumerationReceipt,
 };
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
+use worth_spatial::facade::workload_vocabulary::{
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+};
 
 #[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
 mod reduced_pair_support;
-#[path = "public_api_planar_boolean_segment_pair_enumeration_support.rs"]
-mod segment_pair_support;
-
 #[test]
 fn query_candidate_index_product_owns_rows_counters_culls_and_fallback_posture() {
     reduced_pair_support::run_with_large_stack(|| {
@@ -166,11 +169,12 @@ fn worth_workload_requires_real_segment_pair_enumeration_evidence() {
         admitted
             .require_boolean_segment_pair_enumeration(&receipt)
             .expect("real pair-enumeration receipt evidence should pass");
-        let evidence_counters = admitted
-            .evidence_ledger()
-            .row_for_stage(WorkloadEvidenceStage::BooleanSegmentPairEnumeration)
-            .expect("pair-enumeration evidence row should exist")
-            .counters();
+        let evidence_counters = complete_ledger_stage_snapshot(
+            admitted.evidence_ledger(),
+            WorkloadEvidenceStage::BooleanSegmentPairEnumeration,
+        )
+        .expect("pair-enumeration evidence row should exist")
+        .counters();
         assert_eq!(
             evidence_counters.boolean_segment_pair_enumeration_count(),
             1
@@ -229,8 +233,10 @@ fn segment_pair_enumeration_rejects_missing_or_synthetic_pair_rows() {
 
         let counterless = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &segment_pair_support::CounterlessSegmentPairEnumerationEvidence::new(&receipt),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanSegmentPairEnumeration,
+                receipt.segment_pair_enumeration_identity(),
+                WorkloadEvidenceStageCounters::default(),
             )],
         );
         assert_eq!(
@@ -244,10 +250,10 @@ fn segment_pair_enumeration_rejects_missing_or_synthetic_pair_rows() {
 
         let unsupported = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &segment_pair_support::SupportMismatchedSegmentPairEnumerationEvidence::new(
-                    &receipt,
-                ),
+            vec![certification_only_unsupported_stage_row(
+                WorkloadEvidenceStage::BooleanSegmentPairEnumeration,
+                receipt.segment_pair_enumeration_identity(),
+                WorkloadEvidenceStageCounters::boolean_segment_pair_enumeration(receipt.counters()),
             )],
         );
         assert_eq!(
@@ -261,10 +267,10 @@ fn segment_pair_enumeration_rejects_missing_or_synthetic_pair_rows() {
 
         let wrong_counter_family = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &segment_pair_support::WrongCounterFamilySegmentPairEnumerationEvidence::new(
-                    &receipt,
-                ),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanSegmentPairEnumeration,
+                receipt.segment_pair_enumeration_identity(),
+                WorkloadEvidenceStageCounters::boolean_event_extraction_request(),
             )],
         );
         assert_eq!(

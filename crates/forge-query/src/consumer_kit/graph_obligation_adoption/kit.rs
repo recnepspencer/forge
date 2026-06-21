@@ -9,10 +9,10 @@ use super::error::{
 use super::{
     ForgeQueryGraphObligationAdoptionManifest, ForgeQueryGraphObligationAdoptionProof,
     ForgeQueryGraphObligationConsumerRegistrationDeclaration,
-    ForgeQueryGraphObligationExecutionProof, ForgeQueryGraphObligationInMemoryProof,
-    ForgeQueryGraphObligationInMemoryTestWorkspace, ForgeQueryGraphObligationLocalCeremonyAudit,
-    ForgeQueryGraphObligationResidueManifest, ForgeQueryGraphObligationSelectorCoverageDeclaration,
-    ForgeQueryGraphObligationSupportPin,
+    ForgeQueryGraphObligationExecutionBackedAdoptionProof, ForgeQueryGraphObligationExecutionProof,
+    ForgeQueryGraphObligationInMemoryProof, ForgeQueryGraphObligationInMemoryTestWorkspace,
+    ForgeQueryGraphObligationLocalCeremonyAudit, ForgeQueryGraphObligationResidueManifest,
+    ForgeQueryGraphObligationSelectorCoverageDeclaration, ForgeQueryGraphObligationSupportPin,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -134,15 +134,21 @@ impl ForgeQueryGraphObligationConsumerKit {
 
     pub fn prove_adoption_with_execution(
         self,
-    ) -> Result<ForgeQueryGraphObligationAdoptionProof, ForgeQueryGraphObligationConsumerKitError>
-    {
-        if self.execution_proof.is_none() {
-            return Err(ForgeQueryGraphObligationConsumerKitError::new(
+    ) -> Result<
+        ForgeQueryGraphObligationExecutionBackedAdoptionProof,
+        ForgeQueryGraphObligationConsumerKitError,
+    > {
+        let execution_proof = self.execution_proof.clone().ok_or_else(|| {
+            ForgeQueryGraphObligationConsumerKitError::new(
                 ForgeQueryGraphObligationConsumerKitErrorKind::MissingInMemoryProof,
                 "graph obligation adoption closeout requires a real execution proof",
-            ));
-        }
-        self.prove_adoption()
+            )
+        })?;
+        let adoption_proof = self.prove_adoption()?;
+        Ok(ForgeQueryGraphObligationExecutionBackedAdoptionProof::new(
+            adoption_proof,
+            execution_proof,
+        ))
     }
 
     pub fn prove_adoption(

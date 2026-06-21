@@ -269,8 +269,11 @@ fn retained_catalog_evidence(world: &'static str) -> RetainedCancellationCatalog
     let catalog_replay = catalog
         .workload()
         .evidence_ledger()
-        .row_for_stage(WorkloadEvidenceStage::RetainedReplay)
-        .expect("retained cancellation catalog replay row")
+        .link_required_stages(&[WorkloadEvidenceStage::RetainedReplay])
+        .expect("retained cancellation catalog replay stage link")
+        .link_for_stage(WorkloadEvidenceStage::RetainedReplay)
+        .cloned()
+        .expect("retained cancellation catalog replay link")
         .counters();
     RetainedCancellationCatalogEvidence {
         ledger: catalog.workload().evidence_ledger().clone(),

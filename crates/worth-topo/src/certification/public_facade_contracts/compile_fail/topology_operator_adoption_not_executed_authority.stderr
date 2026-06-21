@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> src/certification/public_facade_contracts/compile_fail/topology_operator_adoption_not_executed_authority.rs:7:77
+  |
+7 |         let _ = topology_primitive_construction_birth_graph_authority_proof(&proof);
+  |                 ----------------------------------------------------------- ^^^^^^ expected `&...`, found `&ForgeQueryGraphObligationAdoptionProof`
+  |                 |
+  |                 arguments to this function are incorrect
+  |
+  = note: expected reference `&TopologyPrimitiveConstructionBirthComposeExecution`
+             found reference `&ForgeQueryGraphObligationAdoptionProof`
+note: function defined here
+ --> src/construction/query_native_boundary/compose_execution/execution.rs
+  |
+  | pub fn topology_primitive_construction_birth_graph_authority_proof(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

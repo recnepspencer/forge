@@ -14,5 +14,6 @@ fn main() {
         &raw_point_events,
         &raw_interval_events,
         &raw_segment_carriers,
+        None,
     ));
 }

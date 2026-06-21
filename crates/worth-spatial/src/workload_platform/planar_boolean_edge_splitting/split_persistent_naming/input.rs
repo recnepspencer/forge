@@ -7,8 +7,7 @@ use crate::workload_platform::planar_boolean_edge_splitting::{
     split_edge_fragments::PlanarBooleanSplitEdgeFragmentSet,
     split_vertex_identity::PlanarBooleanSplitVertexIdentitySet,
 };
-use topology::facade::NamingAttachmentReport;
-use topology::query_domain::TopologyCurrentHeadConfiguredDomainHandle;
+use topology::facade::{NamingAttachmentReport, TopologyCurrentHeadQueryBasisEvidence};
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -20,7 +19,7 @@ pub struct PlanarBooleanSplitPersistentNamingQueryBasis {
 
 impl PlanarBooleanSplitPersistentNamingQueryBasis {
     pub fn from_topology_query_artifacts(
-        topology_domain_handle: &TopologyCurrentHeadConfiguredDomainHandle,
+        topology_domain_handle: &TopologyCurrentHeadQueryBasisEvidence,
         naming_attachment_report: &NamingAttachmentReport,
     ) -> Result<Self, PlanarBooleanSplitPersistentNamingDenial> {
         if !naming_attachment_report.fully_named {
@@ -42,7 +41,6 @@ impl PlanarBooleanSplitPersistentNamingQueryBasis {
                 .handle_identity_digest()
                 .to_string(),
             persistent_name_live_view_identity: topology_domain_handle
-                .retained_world_basis()
                 .support_snapshot_digest()
                 .to_string(),
             naming_attachment_report_identity: naming_attachment_report_identity(

@@ -36,10 +36,6 @@ impl EdgeSplitValidatorRow {
         self.governs_topology_legality
     }
 
-    pub fn proof_obligations(&self) -> &'static [EdgeSplitValidatorProofObligation] {
-        self.proof_obligations
-    }
-
     pub fn requires_runtime_lane(&self, runtime_lane: EdgeSplitValidatorRuntimeLane) -> bool {
         self.runtime_lane == runtime_lane
     }

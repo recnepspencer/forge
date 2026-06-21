@@ -1,3 +1,4 @@
+#[cfg(test)]
 use crate::workload_platform::evidence_ledger::{
     WorkloadEvidenceLedgerError, WorkloadEvidenceStage,
 };
@@ -36,6 +37,7 @@ impl PlanarBooleanEdgeSplitRequestDenial {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn from_event_ledger_evidence_error(
         error: WorkloadEvidenceLedgerError,
         event_ledger_identity: impl Into<String>,
@@ -60,6 +62,7 @@ impl PlanarBooleanEdgeSplitRequestDenial {
     }
 }
 
+#[cfg(test)]
 fn split_request_denial_kind_for_event_ledger_evidence_error(
     error: &WorkloadEvidenceLedgerError,
 ) -> PlanarBooleanEdgeSplitRequestDenialKind {

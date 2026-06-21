@@ -35,9 +35,18 @@ fn shell_with_hole_layout_violation_denies_at_compose_graph_obligation() {
         1,
     )
     .expect("layout-violation synopsis should still reach compose for runtime denial");
+    let declared_touched_basis =
+        super::super::TopologyPrimitiveConstructionBirthDeclaredTouchedBasis::from_admitted_handoff(
+            &handoff,
+        )
+        .expect("admitted construction handoff should lower to touched basis");
 
-    let error = super::super::execute_primitive_construction_birth_compose(&mut workspace, handoff)
-        .expect_err("layout violation must be denied by runtime graph obligation");
+    let error = super::super::execute_primitive_construction_birth_compose(
+        &mut workspace,
+        handoff,
+        declared_touched_basis,
+    )
+    .expect_err("layout violation must be denied by runtime graph obligation");
 
     match error {
         super::super::TopologyPrimitiveConstructionBirthComposeExecutionError::Runtime(

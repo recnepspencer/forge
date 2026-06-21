@@ -3250,6 +3250,7 @@ dependencies = [
  "worth-kernel",
  "worth-math",
  "worth-primitives",
+ "worth-schema",
  "worth-topo",
 ]
 

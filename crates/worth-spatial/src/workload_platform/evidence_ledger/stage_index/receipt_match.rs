@@ -3,11 +3,12 @@ use crate::workload_platform::evidence_ledger::{
 };
 
 use super::product::WorkloadEvidenceStageIndexProduct;
+use super::receipt_lookup::WorkloadEvidenceBooleanReceiptLookupProduct;
 
-pub(crate) fn match_boolean_receipt<T: BooleanEvidenceReceipt + 'static>(
+pub(crate) fn match_boolean_receipt_lookup<T: BooleanEvidenceReceipt + 'static>(
     product: &WorkloadEvidenceStageIndexProduct,
     receipt: &T,
-) -> Result<(), WorkloadEvidenceLedgerError> {
+) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceLedgerError> {
     let stage = receipt.boolean_stage().evidence_stage();
     let row = product
         .row_for_stage(stage)
@@ -36,5 +37,12 @@ pub(crate) fn match_boolean_receipt<T: BooleanEvidenceReceipt + 'static>(
             }
         });
     }
-    Ok(())
+    Ok(WorkloadEvidenceBooleanReceiptLookupProduct::new(
+        receipt.boolean_stage(),
+        stage,
+        row.evidence_identity(),
+        row.support(),
+        row.counters(),
+        product.index_identity(),
+    ))
 }

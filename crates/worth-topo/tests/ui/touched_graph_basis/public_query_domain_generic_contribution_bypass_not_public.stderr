@@ -1,0 +1,11 @@
+error[E0603]: module `query_domain` is private
+ --> tests/ui/touched_graph_basis/public_query_domain_generic_contribution_bypass_not_public.rs:6:15
+  |
+6 | use topology::query_domain::{
+  |               ^^^^^^^^^^^^ private module
+  |
+note: the module `query_domain` is defined here
+ --> src/lib.rs
+  |
+  | mod query_domain;
+  | ^^^^^^^^^^^^^^^^

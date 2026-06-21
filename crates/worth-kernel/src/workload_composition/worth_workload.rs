@@ -1,4 +1,5 @@
 use topology::facade::TopologyWorkloadReceipt;
+mod boolean_chain_handoff;
 mod boolean_loop_reconstruction_closeout;
 mod boolean_loop_reconstruction_handoff;
 mod boolean_loop_reconstruction_products;
@@ -12,6 +13,9 @@ use worth_spatial::facade::workload_vocabulary::{
 };
 
 use super::{boolean_evidence_requirement::map_boolean_ledger_error, WorkloadStageRequirement};
+pub use boolean_chain_handoff::{
+    BooleanChainIntegrationCounters, BooleanChainIntegrationHandoff, BooleanChainResidueRow,
+};
 pub use boolean_loop_reconstruction_closeout::PlanarBooleanLoopReconstructionCloseoutInput;
 pub use boolean_loop_reconstruction_handoff::{
     CompletedBooleanLoopReconstructionHandoff, PlanarBooleanLoopRuntimeRegistrationProof,
@@ -187,6 +191,7 @@ pub enum WorkloadCompositionError {
     MismatchedEvidenceStage(WorkloadEvidenceStage),
     LoopReconstructionCloseout(String),
     LoopRuntimeRegistration(String),
+    BooleanChainHandoff(String),
 }
 
 impl WorkloadCompositionError {
@@ -213,6 +218,7 @@ impl WorkloadCompositionError {
             ),
             Self::LoopReconstructionCloseout(reason) => reason.clone(),
             Self::LoopRuntimeRegistration(reason) => reason.clone(),
+            Self::BooleanChainHandoff(reason) => reason.clone(),
         }
     }
 }
@@ -228,18 +234,86 @@ fn require_admitted(
     }
 }
 
-fn require_evidence_stage(
+pub(super) fn require_evidence_stage(
     ledger: &CompleteWorkloadEvidenceLedger,
     stage: WorkloadEvidenceStage,
     expected_identity: &str,
 ) -> Result<(), WorkloadCompositionError> {
-    let actual_identity = ledger
-        .evidence_for_stage(stage)
-        .ok_or(WorkloadCompositionError::MissingEvidenceStage(stage))?;
-    if actual_identity == expected_identity {
+    let stage_link_set = ledger
+        .link_required_stages(&[stage])
+        .map_err(|error| match error {
+            worth_spatial::facade::workload_vocabulary::WorkloadEvidenceLedgerError::MissingAuthorityStage(missing_stage) => {
+                WorkloadCompositionError::MissingEvidenceStage(missing_stage)
+            }
+            worth_spatial::facade::workload_vocabulary::WorkloadEvidenceLedgerError::ManualAuthorityStage(manual_stage) => {
+                WorkloadCompositionError::ManualEvidenceStage(manual_stage)
+            }
+            worth_spatial::facade::workload_vocabulary::WorkloadEvidenceLedgerError::CounterlessBooleanStage(counterless_stage) => {
+                WorkloadCompositionError::CounterlessEvidenceStage(counterless_stage)
+            }
+            worth_spatial::facade::workload_vocabulary::WorkloadEvidenceLedgerError::UnsupportedBooleanStage(unsupported_stage) => {
+                stage_requirement_for_boolean_evidence_stage(unsupported_stage)
+                    .map(WorkloadCompositionError::UnsupportedStage)
+                    .unwrap_or(WorkloadCompositionError::MismatchedEvidenceStage(unsupported_stage))
+            }
+            worth_spatial::facade::workload_vocabulary::WorkloadEvidenceLedgerError::UnadmittedAuthorityStage(unadmitted_stage) => {
+                WorkloadCompositionError::MismatchedEvidenceStage(unadmitted_stage)
+            }
+            _ => WorkloadCompositionError::MismatchedEvidenceStage(stage),
+        })?;
+    if stage_link_set.links_to_identity(stage, expected_identity) {
         Ok(())
     } else {
         Err(WorkloadCompositionError::MismatchedEvidenceStage(stage))
+    }
+}
+
+fn stage_requirement_for_boolean_evidence_stage(
+    stage: WorkloadEvidenceStage,
+) -> Option<WorkloadStageRequirement> {
+    match stage {
+        WorkloadEvidenceStage::BooleanDeclarationEntry => {
+            Some(WorkloadStageRequirement::BooleanDeclarationEntry)
+        }
+        WorkloadEvidenceStage::BooleanRoutePlan => Some(WorkloadStageRequirement::BooleanRoutePlan),
+        WorkloadEvidenceStage::BooleanOperandPairConstruction => {
+            Some(WorkloadStageRequirement::BooleanOperandPairConstruction)
+        }
+        WorkloadEvidenceStage::BooleanBlockerProvenance => {
+            Some(WorkloadStageRequirement::BooleanBlockerProvenance)
+        }
+        WorkloadEvidenceStage::BooleanPrecisionAgreement => {
+            Some(WorkloadStageRequirement::BooleanPrecisionAgreement)
+        }
+        WorkloadEvidenceStage::BooleanSharedPlaneIdentity => {
+            Some(WorkloadStageRequirement::BooleanSharedPlaneIdentity)
+        }
+        WorkloadEvidenceStage::BooleanLocalFrameSelection => {
+            Some(WorkloadStageRequirement::BooleanLocalFrameSelection)
+        }
+        WorkloadEvidenceStage::BooleanOperandAProjectionConsumption => {
+            Some(WorkloadStageRequirement::BooleanOperandAProjectionConsumption)
+        }
+        WorkloadEvidenceStage::BooleanOperandBProjectionConsumption => {
+            Some(WorkloadStageRequirement::BooleanOperandBProjectionConsumption)
+        }
+        WorkloadEvidenceStage::BooleanReducedOperandPair => {
+            Some(WorkloadStageRequirement::BooleanReducedOperandPair)
+        }
+        WorkloadEvidenceStage::BooleanEventExtractionRequest => {
+            Some(WorkloadStageRequirement::BooleanEventExtractionRequest)
+        }
+        WorkloadEvidenceStage::BooleanSegmentPairEnumeration => {
+            Some(WorkloadStageRequirement::BooleanSegmentPairEnumeration)
+        }
+        WorkloadEvidenceStage::BooleanEventLedger => {
+            Some(WorkloadStageRequirement::BooleanEventLedger)
+        }
+        WorkloadEvidenceStage::BooleanSplit => Some(WorkloadStageRequirement::BooleanSplit),
+        WorkloadEvidenceStage::BooleanLoopReconstruction => {
+            Some(WorkloadStageRequirement::BooleanLoopReconstruction)
+        }
+        _ => None,
     }
 }
 

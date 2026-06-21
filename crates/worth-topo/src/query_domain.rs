@@ -132,6 +132,32 @@ pub type TopologySnapshotReadOnlyConfiguredDomainHandle =
 pub type TopologySnapshotReadOnlyConfiguredDomainHandleChecked =
     ForgeQueryConfiguredDomainHandleChecked<TopologyQueryDomain, TopologySnapshotReadOnlyContext>;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TopologyCurrentHeadQueryBasisEvidence {
+    handle_identity_digest: String,
+    support_snapshot_digest: String,
+}
+
+impl TopologyCurrentHeadQueryBasisEvidence {
+    fn from_admitted_handle(handle: &TopologyCurrentHeadConfiguredDomainHandle) -> Self {
+        Self {
+            handle_identity_digest: handle.handle_identity_digest().to_string(),
+            support_snapshot_digest: handle
+                .retained_world_basis()
+                .support_snapshot_digest()
+                .to_string(),
+        }
+    }
+
+    pub fn handle_identity_digest(&self) -> &str {
+        &self.handle_identity_digest
+    }
+
+    pub fn support_snapshot_digest(&self) -> &str {
+        &self.support_snapshot_digest
+    }
+}
+
 pub fn topology_query_domain() -> TopologyQueryDomain {
     TopologyQueryDomain::new()
 }
@@ -160,6 +186,20 @@ pub fn topology_query_domain_proof_root(
     query: &ForgeQueryApplicationFacade,
 ) -> ForgeQueryDomainEntryProofRoot<TopologyQueryDomain> {
     query.domain_proof_root(topology_query_domain())
+}
+
+pub fn topology_current_head_query_basis_evidence(
+    query: &ForgeQueryApplicationFacade,
+) -> Option<TopologyCurrentHeadQueryBasisEvidence> {
+    let handle = topology_query_domain_entry(query)
+        .with_operating_context(topology_current_head_authoritative_context())
+        .validate()
+        .ok()?
+        .admit()
+        .ok()?;
+    Some(TopologyCurrentHeadQueryBasisEvidence::from_admitted_handle(
+        &handle,
+    ))
 }
 
 impl ForgeQueryDomainEntryMarker for TopologyQueryDomain {

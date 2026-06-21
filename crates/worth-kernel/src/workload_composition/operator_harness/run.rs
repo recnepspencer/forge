@@ -37,8 +37,13 @@ impl OperatorRun {
         if let Some(stage) = stage {
             workload
                 .evidence_ledger()
-                .evidence_for_stage(stage)
-                .ok_or(OperatorWorkloadError::MissingRequiredStage(stage))?;
+                .link_required_stages(&[stage])
+                .map_err(|error| match error {
+                    worth_spatial::facade::workload_vocabulary::WorkloadEvidenceLedgerError::MissingAuthorityStage(missing_stage) => {
+                        OperatorWorkloadError::MissingRequiredStage(missing_stage)
+                    }
+                    other => OperatorWorkloadError::EvidenceStageBindingFailed(other),
+                })?;
         }
         let evidence_binding = OperatorEvidenceBinding::from_ledger(
             workload.evidence_ledger(),

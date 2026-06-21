@@ -1,12 +1,15 @@
-use forge_query::facade::ForgeQueryBatchWriteReceipt;
+use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQueryWorkspace};
 
+use super::super::admitted_handoff::TopologyPrimitiveConstructionQueryAdmittedHandoff;
 use super::super::birth_synopsis::TopologyPrimitiveConstructionBirthFamily;
 use super::super::surface_vocab::TopologyConstructionQueryMutationSurface;
 use super::coverage::TopologyPrimitiveConstructionBirthMaterializationCoverage;
+use super::error::TopologyPrimitiveConstructionBirthComposeExecutionError;
 use super::obligation_registration::{
     TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
     TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_LAYOUT_VIOLATION_COLLECTION,
 };
+use super::touched_basis::TopologyPrimitiveConstructionBirthDeclaredTouchedBasis;
 use crate::construction::query_native_boundary::digest_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -90,9 +93,20 @@ impl TopologyPrimitiveConstructionBirthComposeProgram {
         &self.program_digest
     }
 
-    pub(crate) fn execute(
+    pub(super) fn execute_declared_touched_basis_checked(
         &self,
-        workspace: &mut forge_query::facade::ForgeQueryWorkspace,
+        workspace: &mut ForgeQueryWorkspace,
+        admitted_handoff: &TopologyPrimitiveConstructionQueryAdmittedHandoff,
+        declared_touched_basis: &TopologyPrimitiveConstructionBirthDeclaredTouchedBasis,
+    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyPrimitiveConstructionBirthComposeExecutionError>
+    {
+        declared_touched_basis.require_matches_handoff(admitted_handoff)?;
+        Ok(self.execute_checked_graph_write(workspace)?)
+    }
+
+    fn execute_checked_graph_write(
+        &self,
+        workspace: &mut ForgeQueryWorkspace,
     ) -> Result<ForgeQueryBatchWriteReceipt, forge_query::facade::ForgeQueryRuntimeError> {
         workspace.compose_graph(|graph| {
             for birth_entity in &self.birth_entities {

@@ -1,8 +1,11 @@
 use worth_kernel::workload_composition::{
     WorkloadCatalog, WorkloadCompositionError, WorthWorkload, WorthWorkloadParts,
 };
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, complete_ledger_with_additional_rows,
+};
 use worth_spatial::facade::workload_vocabulary::{
-    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
 
 #[test]
@@ -52,8 +55,10 @@ fn boolean_catalog_and_entry_surfaces_require_workload_backed_construction() {
 
         let real = rebuilt_left_workload(
             &harness,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &harness.pair_construction,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanOperandPairConstruction,
+                harness.pair_construction.construction_digest(),
+                WorkloadEvidenceStageCounters::boolean_operand_pair(),
             )],
         );
         real.require_boolean_operand_pair_construction(&harness.pair_construction)
@@ -85,11 +90,7 @@ fn rebuilt_left_workload(
     boolean_rows: Vec<WorkloadEvidenceRow>,
 ) -> WorthWorkload {
     let left = harness.pair.left().workload();
-    let mut rows = left.evidence_ledger().rows().to_vec();
-    rows.extend(boolean_rows);
-    let ledger = WorkloadEvidenceLedger::from_rows(rows)
-        .expect("catalog fence ledger should stay inspectable")
-        .certify_complete()
+    let ledger = complete_ledger_with_additional_rows(left.evidence_ledger(), boolean_rows)
         .expect("classical stages should remain complete");
 
     WorthWorkload::compose(WorthWorkloadParts {

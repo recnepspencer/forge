@@ -11,6 +11,7 @@ use super::super::{
     TopologyMutationApplicationRunner, TopologyQueryBindingIndex,
     TopologyRetainedApplicationHandoff,
 };
+use super::orchestration_boundary::operating_world_for_application_mode;
 use crate::query_domain::TopologyQueryDomain;
 
 pub(super) fn lower_mutation_sequence(
@@ -31,7 +32,7 @@ pub(super) fn finalize_lowered_mutations<I>(
     retained_handoff: TopologyRetainedApplicationHandoff<I>,
     lowered_mutations: ForgeQueryMutationBatchBuilder,
     semantic_family_key: &'static str,
-    _mode: TopologyMutationApplicationMode,
+    mode: TopologyMutationApplicationMode,
     sequence: &TopologyDeclaredMutationSequence,
 ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
 where
@@ -42,6 +43,42 @@ where
         retained_handoff,
         lowered_mutations,
         semantic_family_key,
+        mode,
         sequence,
     )
+}
+
+pub(crate) fn ensure_declared_touched_basis_covers_sequence<I>(
+    retained_handoff: &TopologyRetainedApplicationHandoff<I>,
+    sequence: &TopologyDeclaredMutationSequence,
+    mode: TopologyMutationApplicationMode,
+) -> Result<(), TopologyMutationApplicationError>
+where
+    I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
+{
+    let proof = retained_handoff.declared_touched_basis_proof();
+    if proof.covers_sequence(sequence)
+        && proof.basis().operating_world() == &operating_world_for_application_mode(mode)
+    {
+        return Ok(());
+    }
+    Err(TopologyMutationApplicationError::DeclarationEntry {
+        family: sequence
+            .families()
+            .first()
+            .copied()
+            .unwrap_or(crate::topology_operators::TopologyMutationFamily::CreateTopologyEntity),
+        stop_class: super::super::TopologyDeclarationEntryStopClass::BasisMismatch,
+        stop_stage: None,
+        refusal_class: Some(
+            super::super::error::TopologyDeclarationEntryRefusalClass::AuthorityTransitionRequired,
+        ),
+        recovery: None,
+        graph_obligation_envelope_digest: None,
+        reason: format!(
+            "declared touched graph basis `{}` does not cover mutation sequence `{}` before commit",
+            proof.basis_digest(),
+            sequence.topology_mutation_digest().digest.digest_hex
+        ),
+    })
 }

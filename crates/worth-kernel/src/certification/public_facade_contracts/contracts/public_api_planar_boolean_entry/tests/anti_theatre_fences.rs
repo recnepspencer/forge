@@ -3,9 +3,11 @@ use worth_kernel::workload_composition::{
     PlanarBooleanExecutionLane, PlanarBooleanFamily, PlanarBooleanOperation, WorkloadCatalog,
     WorkloadCompositionError,
 };
+use worth_spatial::certification::workload_evidence::{
+    complete_ledger_with_additional_rows, ledger_with_manual_stage_substitution,
+};
 use worth_spatial::facade::workload_vocabulary::{
-    CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
-    WorkloadEvidenceRow, WorkloadEvidenceStage,
+    WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
 };
 
 use super::support::certified_boolean_readiness_workload_receipt;
@@ -18,10 +20,13 @@ fn boolean_public_contract_rejects_raw_topology_or_summary_based_entry() {
             .build()
             .expect("catalog pair should build");
 
-        let error = manually_substituted_topology_ledger(built.left().workload().evidence_ledger())
-            .expect("manual topology ledger should stay inspectable")
-            .certify_complete()
-            .expect_err("manual topology substitution must fail before boolean entry can use it");
+        let error = ledger_with_manual_stage_substitution(
+            built.left().workload().evidence_ledger(),
+            WorkloadEvidenceStage::Topology,
+        )
+        .expect("manual topology ledger should stay inspectable")
+        .certify_complete()
+        .expect_err("manual topology substitution must fail before boolean entry can use it");
 
         assert_eq!(
             error,
@@ -127,12 +132,9 @@ fn rebuilt_workload(
     harness: &BlockerHarness,
     boolean_rows: Vec<WorkloadEvidenceRow>,
 ) -> worth_kernel::workload_composition::WorthWorkload {
-    let mut rows = harness.workload.evidence_ledger().rows().to_vec();
-    rows.extend(boolean_rows);
-    let ledger = WorkloadEvidenceLedger::from_rows(rows)
-        .expect("boolean fence ledger should stay inspectable")
-        .certify_complete()
-        .expect("classical stages should remain complete");
+    let ledger =
+        complete_ledger_with_additional_rows(harness.workload.evidence_ledger(), boolean_rows)
+            .expect("classical stages should remain complete");
 
     worth_kernel::workload_composition::WorthWorkload::compose(
         worth_kernel::workload_composition::WorthWorkloadParts {
@@ -148,23 +150,6 @@ fn rebuilt_workload(
         },
     )
     .expect("recomposed boolean fence workload should certify")
-}
-
-fn manually_substituted_topology_ledger(
-    ledger: &CompleteWorkloadEvidenceLedger,
-) -> Result<WorkloadEvidenceLedger, WorkloadEvidenceLedgerError> {
-    let rows = ledger
-        .rows()
-        .iter()
-        .map(|row| {
-            if row.stage() == WorkloadEvidenceStage::Topology {
-                WorkloadEvidenceRow::new(WorkloadEvidenceStage::Topology, row.evidence_identity())
-            } else {
-                row.clone()
-            }
-        })
-        .collect();
-    WorkloadEvidenceLedger::from_rows(rows)
 }
 
 fn run_with_large_stack(test: impl FnOnce() + Send + 'static) {

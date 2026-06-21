@@ -1,4 +1,6 @@
-use crate::workload_platform::evidence_ledger::WorkloadEvidenceStage;
+use crate::workload_platform::evidence_ledger::{
+    WorkloadEvidenceStage, WorkloadEvidenceStageLookupCounters,
+};
 
 use super::identity::stage_link_set_identity;
 use super::link::WorkloadEvidenceStageLink;
@@ -8,17 +10,20 @@ pub struct WorkloadEvidenceStageLinkSet {
     stage_index_identity: String,
     links: Vec<WorkloadEvidenceStageLink>,
     stage_offsets: [Option<usize>; WorkloadEvidenceStage::STAGE_COUNT],
+    lookup_counters: WorkloadEvidenceStageLookupCounters,
     link_set_identity: String,
 }
 
 impl WorkloadEvidenceStageLinkSet {
     pub(crate) fn new(stage_index_identity: String, links: Vec<WorkloadEvidenceStageLink>) -> Self {
         let stage_offsets = build_stage_offsets(&links);
+        let lookup_counters = WorkloadEvidenceStageLookupCounters::indexed(links.len());
         let link_set_identity = stage_link_set_identity(&stage_index_identity, &links);
         Self {
             stage_index_identity,
             links,
             stage_offsets,
+            lookup_counters,
             link_set_identity,
         }
     }
@@ -33,6 +38,10 @@ impl WorkloadEvidenceStageLinkSet {
 
     pub fn links(&self) -> &[WorkloadEvidenceStageLink] {
         &self.links
+    }
+
+    pub fn lookup_counters(&self) -> WorkloadEvidenceStageLookupCounters {
+        self.lookup_counters
     }
 
     pub fn link_for_stage(

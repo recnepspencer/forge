@@ -3,11 +3,15 @@ use worth_kernel::workload_composition::{
     PlanarBooleanCommonPlaneReducedOperandPairRequest, PlanarBooleanEventExtractionRequest,
     WorkloadCompositionError, WorkloadStageRequirement,
 };
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, certification_only_unsupported_stage_row,
+    complete_ledger_stage_snapshot,
+};
 use worth_spatial::facade::planar_boolean_common_plane::PlanarBooleanCommonPlaneReducedOperandPairReceipt;
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
+use worth_spatial::facade::workload_vocabulary::{
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+};
 
-#[path = "public_api_planar_boolean_event_extraction_request_support.rs"]
-mod event_request_support;
 #[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
 mod reduced_pair_support;
 
@@ -178,20 +182,23 @@ fn worth_workload_requires_real_event_extraction_request_evidence() {
 
         let admitted = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &event_request,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanEventExtractionRequest,
+                event_request.event_extraction_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_event_extraction_request(),
             )],
         );
         admitted
             .require_boolean_event_extraction_request(&event_request)
             .expect("real event-extraction request evidence should pass");
         assert_eq!(
-            admitted
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanEventExtractionRequest)
-                .expect("event-extraction request row should exist")
-                .counters()
-                .boolean_event_extraction_request_count(),
+            complete_ledger_stage_snapshot(
+                admitted.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanEventExtractionRequest,
+            )
+            .expect("event-extraction request row should exist")
+            .counters()
+            .boolean_event_extraction_request_count(),
             1
         );
     });
@@ -230,10 +237,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_event_reques
 
         let counterless = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &event_request_support::CounterlessEventExtractionRequestEvidence::new(
-                    &event_request,
-                ),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanEventExtractionRequest,
+                event_request.event_extraction_request_identity(),
+                WorkloadEvidenceStageCounters::default(),
             )],
         );
         assert_eq!(
@@ -247,10 +254,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_event_reques
 
         let unsupported = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &event_request_support::SupportMismatchedEventExtractionRequestEvidence::new(
-                    &event_request,
-                ),
+            vec![certification_only_unsupported_stage_row(
+                WorkloadEvidenceStage::BooleanEventExtractionRequest,
+                event_request.event_extraction_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_event_extraction_request(),
             )],
         );
         assert_eq!(
@@ -264,10 +271,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_event_reques
 
         let wrong_counter_family = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &event_request_support::WrongCounterFamilyEventExtractionRequestEvidence::new(
-                    &event_request,
-                ),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanEventExtractionRequest,
+                event_request.event_extraction_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_reduced_operand_pair(),
             )],
         );
         assert_eq!(
@@ -310,8 +317,10 @@ fn worth_workload_rejects_foreign_event_extraction_request_evidence_row() {
 
         let mismatched = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &foreign_event_request,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanEventExtractionRequest,
+                foreign_event_request.event_extraction_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_event_extraction_request(),
             )],
         );
         assert_eq!(

@@ -1,8 +1,8 @@
 use crate::runtime::{
     ForgeQueryGraphObligationExecutionStatus, ForgeQueryGraphObligationKind,
     ForgeQueryGraphObligationRegistration, ForgeQueryGraphObligationSelection,
-    ForgeQueryGraphObligationSupportLane, ForgeQueryGraphObligationSupportPosture,
-    ForgeQueryGraphObligationSupportStatus,
+    ForgeQueryGraphObligationSelectionCounters, ForgeQueryGraphObligationSupportLane,
+    ForgeQueryGraphObligationSupportPosture, ForgeQueryGraphObligationSupportStatus,
 };
 
 use super::super::kit_digest;
@@ -12,6 +12,7 @@ pub struct ForgeQueryGraphObligationInMemoryProof {
     selected_obligation_count: usize,
     selected_obligations: Vec<ForgeQueryGraphObligationInMemorySelectedObligation>,
     execution_statuses: Vec<ForgeQueryGraphObligationExecutionStatus>,
+    selection_counters: ForgeQueryGraphObligationSelectionCounters,
     selection_digest: String,
     proof_digest: String,
 }
@@ -51,6 +52,7 @@ impl ForgeQueryGraphObligationInMemoryProof {
             selected_obligation_count: selection.matched_obligation_count(),
             selected_obligations,
             execution_statuses,
+            selection_counters: selection.counters().clone(),
             selection_digest: selection.selection_digest().to_string(),
             proof_digest,
         }
@@ -72,6 +74,10 @@ impl ForgeQueryGraphObligationInMemoryProof {
 
     pub fn execution_statuses(&self) -> &[ForgeQueryGraphObligationExecutionStatus] {
         &self.execution_statuses
+    }
+
+    pub fn selection_counters(&self) -> &ForgeQueryGraphObligationSelectionCounters {
+        &self.selection_counters
     }
 
     pub fn selection_digest(&self) -> &str {

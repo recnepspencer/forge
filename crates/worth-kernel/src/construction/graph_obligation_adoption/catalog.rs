@@ -19,9 +19,8 @@ use crate::construction::request::{PrimitiveConstructionFamily, PRIMITIVE_CONSTR
 
 pub(crate) const PRIMITIVE_CONSTRUCTION_GRAPH_OBLIGATION_FAMILY: &str =
     "worth-kernel.primitive-construction";
-pub(crate) const PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_OPERATION: &str =
-    "insert:primitive-construction.birth";
-pub(crate) const PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_PATH: &str = "primitive-construction.birth";
+pub(crate) const PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_OPERATION: &str = "set:topology.kind";
+pub(crate) const PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_PATH: &str = "topology.kind";
 
 #[derive(Clone, Debug)]
 pub(crate) struct PrimitiveConstructionGraphObligationCatalog {
@@ -97,8 +96,16 @@ pub(crate) fn primitive_construction_birth_touch_descriptor(
         TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
         ForgeQueryMutationFamily::Insert,
         None,
-        [PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_OPERATION],
-        [PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_PATH],
+        [
+            PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_OPERATION,
+            "set:topology.structure",
+            "set:naming.persistent_name",
+        ],
+        [
+            PRIMITIVE_CONSTRUCTION_BIRTH_ASPECT_PATH,
+            "topology.structure",
+            "naming.persistent_name",
+        ],
     )
 }
 

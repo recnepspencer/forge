@@ -2,8 +2,8 @@ use super::counters::PlanarBooleanLoopReconstructionLedgerCounters;
 use super::identity::{downstream_consumption_identity, receipt_identity};
 use super::ledger::PlanarBooleanLoopReconstructionLedger;
 use crate::workload_platform::evidence_ledger::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceReceiptSealed, BooleanEvidenceRowAuthority,
+    BooleanEvidenceStageKind, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -109,5 +109,7 @@ impl BooleanEvidenceReceipt for PlanarBooleanLoopReconstructionLedgerReceipt {
         WorkloadEvidenceStageCounters::boolean_loop_reconstruction()
     }
 }
+
+impl BooleanEvidenceReceiptSealed for PlanarBooleanLoopReconstructionLedgerReceipt {}
 
 impl BooleanEvidenceRowAuthority for PlanarBooleanLoopReconstructionLedgerReceipt {}

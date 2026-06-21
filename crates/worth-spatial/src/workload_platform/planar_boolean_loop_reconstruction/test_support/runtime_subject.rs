@@ -1,4 +1,6 @@
-use crate::workload_platform::evidence_ledger::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
+use crate::workload_platform::evidence_ledger::{
+    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+};
 use crate::workload_platform::planar_boolean_edge_splitting::{
     raw_interval_entry, raw_point_entry, raw_schedule, raw_set_from_schedules,
     recover_source_edge_carriers_for_tests, source_carriers_for_tests,
@@ -217,10 +219,18 @@ fn request_subject_with_replay_evidence(
         ),
     )
     .expect("candidate-index gate should admit with replay-backed evidence");
+    let event_ledger_lookup = evidence
+        .require_boolean_receipt_lookup(&subject.ledger)
+        .expect("typed event-ledger lookup should admit with replay-backed evidence");
+    let retained_replay_links = evidence
+        .stage_index()
+        .link_required_stages(&[WorkloadEvidenceStage::RetainedReplay])
+        .expect("retained replay stage link should admit");
     let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         &subject.ledger,
         &gate,
-        evidence.stage_index(),
+        &event_ledger_lookup,
+        Some(&retained_replay_links),
     ))
     .expect("split request should admit with replay-backed evidence");
     let scope = PlanarBooleanEdgeSplitScopeAdmission::admit(

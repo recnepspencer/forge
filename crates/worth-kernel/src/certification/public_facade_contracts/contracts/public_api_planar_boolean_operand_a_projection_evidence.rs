@@ -8,10 +8,12 @@ use worth_kernel::workload_composition::{
     PlanarBooleanOperandPairIdentity, PlanarBooleanOperation, WorkloadCatalog,
     WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
 };
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, certification_only_unsupported_stage_row,
+    complete_ledger_stage_snapshot, complete_ledger_with_additional_rows,
+};
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
@@ -37,20 +39,23 @@ fn worth_workload_requires_real_operand_a_projection_evidence() {
 
         let admitted = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &operand_a,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanOperandAProjectionConsumption,
+                operand_a.operand_a_projection_identity(),
+                WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption(),
             )],
         );
         admitted
             .require_boolean_operand_a_projection_consumption(&operand_a)
             .expect("real operand-A evidence should pass");
         assert_eq!(
-            admitted
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanOperandAProjectionConsumption)
-                .expect("operand-A row should exist")
-                .counters()
-                .boolean_operand_a_projection_consumption_count(),
+            complete_ledger_stage_snapshot(
+                admitted.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanOperandAProjectionConsumption,
+            )
+            .expect("operand-A row should exist")
+            .counters()
+            .boolean_operand_a_projection_consumption_count(),
             1
         );
     });
@@ -83,8 +88,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_operand_a_ro
 
         let counterless = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &CounterlessOperandAProjectionEvidence::new(&operand_a),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanOperandAProjectionConsumption,
+                operand_a.operand_a_projection_identity(),
+                WorkloadEvidenceStageCounters::default(),
             )],
         );
         assert_eq!(
@@ -98,8 +105,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_operand_a_ro
 
         let unsupported = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &SupportMismatchedOperandAProjectionEvidence::new(&operand_a),
+            vec![certification_only_unsupported_stage_row(
+                WorkloadEvidenceStage::BooleanOperandAProjectionConsumption,
+                operand_a.operand_a_projection_identity(),
+                WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption(),
             )],
         );
         assert_eq!(
@@ -129,8 +138,10 @@ fn worth_workload_rejects_foreign_operand_a_projection_evidence_row() {
 
         let mismatched = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &foreign_operand_a,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanOperandAProjectionConsumption,
+                foreign_operand_a.operand_a_projection_identity(),
+                WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption(),
             )],
         );
         assert_eq!(
@@ -143,70 +154,6 @@ fn worth_workload_rejects_foreign_operand_a_projection_evidence_row() {
         );
     });
 }
-
-struct CounterlessOperandAProjectionEvidence {
-    digest: String,
-}
-
-impl CounterlessOperandAProjectionEvidence {
-    fn new(operand_a: &PlanarBooleanCommonPlaneOperandAProjectedRequest) -> Self {
-        Self {
-            digest: operand_a.operand_a_projection_identity().to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for CounterlessOperandAProjectionEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::OperandAProjectionConsumption
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Admitted
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::default()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for CounterlessOperandAProjectionEvidence {}
-
-struct SupportMismatchedOperandAProjectionEvidence {
-    digest: String,
-}
-
-impl SupportMismatchedOperandAProjectionEvidence {
-    fn new(operand_a: &PlanarBooleanCommonPlaneOperandAProjectedRequest) -> Self {
-        Self {
-            digest: operand_a.operand_a_projection_identity().to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for SupportMismatchedOperandAProjectionEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::OperandAProjectionConsumption
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Unsupported
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for SupportMismatchedOperandAProjectionEvidence {}
 
 fn operand_a_projection_from_pair(
     pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,
@@ -269,11 +216,7 @@ fn rebuild_left_workload(
     boolean_rows: Vec<WorkloadEvidenceRow>,
 ) -> WorthWorkload {
     let left = pair.left().workload();
-    let mut rows = left.evidence_ledger().rows().to_vec();
-    rows.extend(boolean_rows);
-    let ledger = WorkloadEvidenceLedger::from_rows(rows)
-        .expect("operand-A evidence rows should stay inspectable")
-        .certify_complete()
+    let ledger = complete_ledger_with_additional_rows(left.evidence_ledger(), boolean_rows)
         .expect("classical stages should remain complete");
 
     WorthWorkload::compose(WorthWorkloadParts {

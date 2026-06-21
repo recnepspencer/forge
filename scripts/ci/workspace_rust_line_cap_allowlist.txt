@@ -284,6 +284,25 @@ crates/worth-schema/src/data/authority/gateway.rs
 crates/worth-schema/src/data/explanation/mod.rs
 crates/worth-schema/src/data/seed/primitive_corpus.rs
 crates/worth-schema/src/data/tracing/mod.rs
+# Worth touched graph authority gate phase 2 scoped residue.
+# Owner: worth touched graph authority gate.
+# Removal trigger: split workload evidence counters into per-stage modules.
+crates/worth-spatial/src/workload_platform/evidence_ledger/stage_counters.rs
+# Owner: worth touched graph authority gate.
+# Removal trigger: split canonical schedule ordering scenarios by ordering pressure family.
+crates/worth-spatial/src/workload_platform/planar_boolean_edge_splitting/canonical_schedule_ordering/tests.rs
+# Owner: worth touched graph authority gate.
+# Removal trigger: split proof-chain tests by admitted, denied, replay, and public-boundary families.
+crates/worth-spatial/src/workload_platform/planar_boolean_edge_splitting/proof_chain_tests.rs
+# Owner: worth touched graph authority gate.
+# Removal trigger: split projection fact parity evidence basis by basis construction and denial classification.
+crates/worth-spatial/src/workload_platform/projection_fact_parity/evidence_basis.rs
+# Owner: worth touched graph authority gate.
+# Removal trigger: split user response source adapters by source family.
+crates/worth-spatial/src/workload_platform/user_response/source_adapters/mod.rs
+# Owner: worth touched graph authority gate.
+# Removal trigger: split topology operator query workflow handle implementation by declaration, route, receipt, envelope, continuation, and recovery method families.
+crates/worth-topo/src/topology_operators/query_workflow/handle_impl.rs
 crates/forge-foundational/src/facade.rs
 crates/worth-topo/src/certification/milestone_two.rs
 crates/worth-topo/src/certification/read_view.rs

@@ -1,5 +1,4 @@
 use super::super::request::{PrimitiveConstructionPhaseError, PrimitiveConstructionRequest};
-#[cfg(test)]
 use super::birth_proof_support::PrimitiveConstructionBirthPlacementFacts;
 
 mod birth_scaffold;
@@ -14,7 +13,6 @@ mod topology_counts;
 pub(super) struct PrimitiveConstructionAdmittedBirthInput {
     birth_topology_truth: super::PrimitiveConstructionAdmittedBirthTopologyTruth,
     realization_posture: super::PrimitiveConstructionAdmittedRealizationPosture,
-    #[cfg(test)]
     placement_facts: PrimitiveConstructionBirthPlacementFacts,
 }
 
@@ -40,7 +38,6 @@ impl PrimitiveConstructionAdmittedBirthInput {
         (self.birth_topology_truth, self.realization_posture)
     }
 
-    #[cfg(test)]
     pub(super) fn placement_facts(&self) -> PrimitiveConstructionBirthPlacementFacts {
         self.placement_facts
     }

@@ -35,10 +35,14 @@ pub(crate) fn recovered_carriers_for(
         ),
     )
     .expect("candidate-index gate should admit before split request");
+    let event_ledger_lookup = evidence
+        .require_boolean_receipt_lookup(ledger)
+        .expect("typed event-ledger lookup should admit before split request");
     let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         ledger,
         &gate,
-        evidence.stage_index(),
+        &event_ledger_lookup,
+        None,
     ))
     .expect("split request should admit from event ledger and candidate-index gate");
     let scope = PlanarBooleanEdgeSplitScopeAdmission::admit(

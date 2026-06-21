@@ -3,21 +3,20 @@ use worth_kernel::workload_composition::{
     PlanarBooleanCommonPlaneReducedOperandPairRequest, WorkloadCompositionError,
     WorkloadStageRequirement,
 };
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, certification_only_unsupported_stage_row,
+    complete_ledger_stage_snapshot,
+};
 use worth_spatial::facade::planar_boolean_common_plane::{
     PlanarBooleanCommonPlaneReducedOperandPairDenialKind,
     PlanarBooleanCommonPlaneReducedOperandPairReceipt,
 };
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
+use worth_spatial::facade::workload_vocabulary::{
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+};
 
-#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_fake_evidence.rs"]
-mod fake_evidence;
 #[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
 mod reduced_pair_support;
-
-use fake_evidence::{
-    CounterlessReducedOperandPairEvidence, SupportMismatchedReducedOperandPairEvidence,
-    WrongCounterFamilyReducedOperandPairEvidence,
-};
 
 #[test]
 fn reduced_operand_pair_request_converges_across_construction_paths() {
@@ -183,26 +182,32 @@ fn reduced_operand_pair_evidence_row_replays_to_one_identity_across_construction
         )
         .expect("advanced reduced pair should preserve identity");
 
-        let ordinary_row = reduced_pair_support::rebuild_left_workload(
+        let ordinary_workload = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &ordinary,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanReducedOperandPair,
+                ordinary.reduced_operand_pair_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_reduced_operand_pair(),
             )],
+        );
+        let ordinary_row = complete_ledger_stage_snapshot(
+            ordinary_workload.evidence_ledger(),
+            WorkloadEvidenceStage::BooleanReducedOperandPair,
         )
-        .evidence_ledger()
-        .row_for_stage(WorkloadEvidenceStage::BooleanReducedOperandPair)
-        .expect("ordinary reduced-pair evidence row")
-        .clone();
-        let advanced_row = reduced_pair_support::rebuild_left_workload(
+        .expect("ordinary reduced-pair evidence row");
+        let advanced_workload = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &advanced,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanReducedOperandPair,
+                advanced.reduced_operand_pair_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_reduced_operand_pair(),
             )],
+        );
+        let advanced_row = complete_ledger_stage_snapshot(
+            advanced_workload.evidence_ledger(),
+            WorkloadEvidenceStage::BooleanReducedOperandPair,
         )
-        .evidence_ledger()
-        .row_for_stage(WorkloadEvidenceStage::BooleanReducedOperandPair)
-        .expect("advanced reduced-pair evidence row")
-        .clone();
+        .expect("advanced reduced-pair evidence row");
 
         assert_eq!(
             ordinary_row.evidence_identity(),
@@ -237,20 +242,23 @@ fn worth_workload_requires_real_reduced_operand_pair_evidence() {
 
         let admitted = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &reduced_pair,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanReducedOperandPair,
+                reduced_pair.reduced_operand_pair_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_reduced_operand_pair(),
             )],
         );
         admitted
             .require_boolean_reduced_operand_pair(&reduced_pair)
             .expect("real reduced-pair evidence should pass");
         assert_eq!(
-            admitted
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanReducedOperandPair)
-                .expect("reduced-pair row should exist")
-                .counters()
-                .boolean_reduced_operand_pair_count(),
+            complete_ledger_stage_snapshot(
+                admitted.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanReducedOperandPair,
+            )
+            .expect("reduced-pair row should exist")
+            .counters()
+            .boolean_reduced_operand_pair_count(),
             1
         );
     });
@@ -287,8 +295,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_reduced_pair
 
         let counterless = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &CounterlessReducedOperandPairEvidence::new(&reduced_pair),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanReducedOperandPair,
+                reduced_pair.reduced_operand_pair_request_identity(),
+                WorkloadEvidenceStageCounters::default(),
             )],
         );
         assert_eq!(
@@ -302,8 +312,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_reduced_pair
 
         let unsupported = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &SupportMismatchedReducedOperandPairEvidence::new(&reduced_pair),
+            vec![certification_only_unsupported_stage_row(
+                WorkloadEvidenceStage::BooleanReducedOperandPair,
+                reduced_pair.reduced_operand_pair_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_reduced_operand_pair(),
             )],
         );
         assert_eq!(
@@ -317,8 +329,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_reduced_pair
 
         let wrong_counter_family = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &WrongCounterFamilyReducedOperandPairEvidence::new(&reduced_pair),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanReducedOperandPair,
+                reduced_pair.reduced_operand_pair_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_operand_a_projection_consumption(),
             )],
         );
         assert_eq!(
@@ -357,8 +371,10 @@ fn worth_workload_rejects_foreign_reduced_pair_evidence_row() {
 
         let mismatched = reduced_pair_support::rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &foreign_reduced_pair,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanReducedOperandPair,
+                foreign_reduced_pair.reduced_operand_pair_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_reduced_operand_pair(),
             )],
         );
         assert_eq!(

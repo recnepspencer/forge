@@ -43,7 +43,8 @@ The complete consumer path must cover these jobs:
   specific execution budget
 - in-memory proof: run adoption tests against a real Query workspace
 - execution-backed adoption: connect selected obligations to real executor rows
-  with `prove_execution_with(...)` and `prove_adoption_with_execution()`
+  with `prove_execution_with(...)` and `prove_adoption_with_execution()`,
+  producing `ForgeQueryGraphObligationExecutionBackedAdoptionProof`
 - bypass audit: detect local validator tables, local graph walks, private
   legality graphs, and other local ceremony
 - adoption manifests: record what moved from consumer folklore into Query
@@ -157,7 +158,7 @@ let proof = graph_obligation_consumer_kit("worth-topo")
     .prove_adoption_with_execution()
     .unwrap();
 
-assert!(proof.execution_proof().is_some());
+assert!(proof.execution_proof().has_real_executor_rows());
 assert!(proof.manifest().execution_proof_digest().is_some());
 ```
 

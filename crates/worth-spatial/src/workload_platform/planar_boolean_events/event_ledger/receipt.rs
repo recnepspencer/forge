@@ -1,6 +1,6 @@
 use crate::workload_platform::evidence_ledger::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceReceiptSealed, BooleanEvidenceRowAuthority,
+    BooleanEvidenceStageKind, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 use crate::workload_platform::planar_boolean_events::{
     PlanarBooleanCollinearRelation, PlanarBooleanEventGroup, PlanarBooleanIntervalEvent,
@@ -140,6 +140,8 @@ impl BooleanEvidenceReceipt for PlanarBooleanEventLedgerReceipt {
         WorkloadEvidenceStageCounters::boolean_event_ledger(self.counters)
     }
 }
+
+impl BooleanEvidenceReceiptSealed for PlanarBooleanEventLedgerReceipt {}
 
 impl BooleanEvidenceRowAuthority for PlanarBooleanEventLedgerReceipt {}
 

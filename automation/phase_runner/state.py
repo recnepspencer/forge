@@ -29,7 +29,13 @@ def save_state(path: Path, state: dict[str, Any]) -> None:
     state = public_state(state)
     trim_history(state)
     state["state_revision"] = int(state.get("state_revision", 0)) + 1
+    if path.exists():
+        backup_path(path).write_bytes(path.read_bytes())
     path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
+
+def backup_path(path: Path) -> Path:
+    return path.with_name(f"{path.name}.bak")
 
 
 def trim_history(state: dict[str, Any]) -> None:

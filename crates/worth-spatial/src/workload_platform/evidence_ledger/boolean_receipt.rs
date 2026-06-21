@@ -1,6 +1,9 @@
 use super::{BooleanEvidenceStageKind, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport};
 
-pub trait BooleanEvidenceReceipt {
+pub(crate) use crate::trusted_boolean_evidence_authority::Seal as BooleanEvidenceReceiptSealed;
+
+#[allow(private_bounds)]
+pub trait BooleanEvidenceReceipt: crate::trusted_boolean_evidence_authority::Seal {
     fn boolean_stage(&self) -> BooleanEvidenceStageKind;
     fn evidence_identity(&self) -> &str;
     fn evidence_support(&self) -> WorkloadEvidenceSupport;

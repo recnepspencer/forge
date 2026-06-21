@@ -2,6 +2,7 @@ use forge_query::facade::{
     ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphObligationRegistration,
     ForgeQueryGraphObligationRuleIdentity, ForgeQueryGraphObligationSupportLane,
     ForgeQueryGraphObligationSupportPosture, ForgeQueryGraphTouchSelector,
+    ForgeQueryMutationFamily,
 };
 
 pub const TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION: &str =
@@ -20,8 +21,19 @@ pub fn topology_primitive_construction_birth_graph_obligation_registration(
             "v1",
         )
         .expect("primitive construction birth graph obligation identity is static and non-empty"),
-        ForgeQueryGraphTouchSelector::collection(
+        ForgeQueryGraphTouchSelector::declared_mutation_collection(
             TOPOLOGY_PRIMITIVE_CONSTRUCTION_BIRTH_COMPOSE_COLLECTION,
+            ForgeQueryMutationFamily::Insert,
+            [
+                "set:topology.kind",
+                "set:topology.structure",
+                "set:naming.persistent_name",
+            ],
+            [
+                "topology.kind",
+                "topology.structure",
+                "naming.persistent_name",
+            ],
         )
         .expect("primitive construction birth selector is static and non-empty"),
         operating_world_selector,

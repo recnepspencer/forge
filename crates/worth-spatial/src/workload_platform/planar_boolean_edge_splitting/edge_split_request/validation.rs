@@ -1,5 +1,8 @@
 use super::denial::{PlanarBooleanEdgeSplitRequestDenial, PlanarBooleanEdgeSplitRequestDenialKind};
 use super::input::PlanarBooleanEdgeSplitRequestInput;
+use crate::workload_platform::evidence_ledger::{
+    BooleanEvidenceStageKind, WorkloadEvidenceStage, WorkloadEvidenceSupport,
+};
 use crate::workload_platform::planar_boolean_edge_splitting::PlanarBooleanCandidateIndexConsumptionGate;
 use crate::workload_platform::planar_boolean_events::PlanarBooleanEventLedgerReceipt;
 
@@ -20,15 +23,53 @@ fn require_event_ledger_evidence(
     input: &PlanarBooleanEdgeSplitRequestInput<'_>,
     event_ledger: &PlanarBooleanEventLedgerReceipt,
 ) -> Result<(), PlanarBooleanEdgeSplitRequestDenial> {
-    input
-        .stage_index()
-        .require_boolean_receipt(event_ledger)
-        .map_err(|error| {
-            PlanarBooleanEdgeSplitRequestDenial::from_event_ledger_evidence_error(
-                error,
-                event_ledger.event_ledger_identity(),
-            )
-        })
+    let lookup = input.event_ledger_lookup();
+    if lookup.boolean_stage() != BooleanEvidenceStageKind::EventLedger
+        || lookup.evidence_stage() != WorkloadEvidenceStage::BooleanEventLedger
+        || lookup.evidence_identity() != event_ledger.event_ledger_identity()
+    {
+        return Err(PlanarBooleanEdgeSplitRequestDenial::new(
+            PlanarBooleanEdgeSplitRequestDenialKind::MismatchedEventLedgerEvidence,
+            event_ledger.event_ledger_identity(),
+            "edge split request requires a typed lookup product for the same event ledger receipt",
+        ));
+    }
+    if lookup.support() != WorkloadEvidenceSupport::Admitted {
+        return Err(PlanarBooleanEdgeSplitRequestDenial::new(
+            PlanarBooleanEdgeSplitRequestDenialKind::UnsupportedEventLedgerEvidence,
+            event_ledger.event_ledger_identity(),
+            "edge split request requires admitted event-ledger evidence lookup",
+        ));
+    }
+    require_retained_replay_links_bind_event_ledger_lookup(input)
+}
+
+fn require_retained_replay_links_bind_event_ledger_lookup(
+    input: &PlanarBooleanEdgeSplitRequestInput<'_>,
+) -> Result<(), PlanarBooleanEdgeSplitRequestDenial> {
+    let Some(retained_replay_links) = input.retained_replay_stage_links() else {
+        return Ok(());
+    };
+    if retained_replay_links.stage_index_identity()
+        != input.event_ledger_lookup().stage_index_identity()
+    {
+        return Err(PlanarBooleanEdgeSplitRequestDenial::new(
+            PlanarBooleanEdgeSplitRequestDenialKind::MismatchedEventLedgerEvidence,
+            input.event_ledger().event_ledger_identity(),
+            "edge split request retained replay stage links must come from the same evidence-stage index as the event-ledger lookup product",
+        ));
+    }
+    if retained_replay_links
+        .link_for_stage(WorkloadEvidenceStage::RetainedReplay)
+        .is_none()
+    {
+        return Err(PlanarBooleanEdgeSplitRequestDenial::new(
+            PlanarBooleanEdgeSplitRequestDenialKind::MissingEventLedgerEvidence,
+            input.event_ledger().event_ledger_identity(),
+            "edge split request retained replay linkage must contain the retained replay evidence stage",
+        ));
+    }
+    Ok(())
 }
 
 fn require_gate_binds_event_ledger(

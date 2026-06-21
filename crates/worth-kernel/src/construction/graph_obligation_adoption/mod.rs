@@ -1,9 +1,7 @@
 mod catalog;
-#[cfg(test)]
 mod family_execution_matrix;
 mod proof;
 mod residue;
-#[cfg(test)]
 mod selector_matrix;
 
 #[cfg(test)]
@@ -15,8 +13,8 @@ pub(crate) use catalog::{
     primitive_construction_graph_obligation_support_matrix,
     primitive_construction_graph_obligation_support_pin,
 };
-#[cfg(test)]
 pub(crate) use family_execution_matrix::{
+    primitive_construction_graph_obligation_execution_closeout_passes,
     primitive_construction_graph_obligation_execution_matrix,
     primitive_construction_graph_obligation_replay_pair,
 };
@@ -28,5 +26,4 @@ pub(crate) use residue::{
     primitive_construction_phase_eighteen_family_count_gap,
     PHASE_EIGHTEEN_SPEC_PRIMITIVE_FAMILY_COUNT,
 };
-#[cfg(test)]
 pub(crate) use selector_matrix::primitive_construction_graph_obligation_selector_precision_matrix;

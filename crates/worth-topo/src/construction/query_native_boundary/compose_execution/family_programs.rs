@@ -10,7 +10,7 @@ use super::program::{
     TopologyPrimitiveConstructionBirthComposeProgram, TopologyPrimitiveConstructionBirthEntity,
 };
 
-pub(crate) fn build_primitive_construction_birth_compose_program(
+pub(super) fn build_primitive_construction_birth_compose_program(
     handoff: &TopologyPrimitiveConstructionQueryAdmittedHandoff,
 ) -> TopologyPrimitiveConstructionBirthComposeProgram {
     let family = handoff.topology_query_handoff().family();

@@ -70,9 +70,6 @@ fn consumer_kit_proves_adoption_without_local_ceremony() {
     assert!(proof.local_ceremony_audit().is_clean());
     assert_eq!(proof.residue_manifest().rows().len(), 0);
     assert_eq!(proof.in_memory_proof().selected_obligation_count(), 1);
-    assert!(proof
-        .execution_proof()
-        .expect("execution proof")
-        .has_real_executor_rows());
+    assert!(proof.execution_proof().has_real_executor_rows());
     assert!(proof.manifest().execution_proof_digest().is_some());
 }

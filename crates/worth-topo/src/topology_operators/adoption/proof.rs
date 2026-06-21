@@ -10,10 +10,8 @@ use super::catalog::{
     topology_operator_graph_obligation_support_matrix,
     topology_operator_graph_obligation_support_pin, topology_operator_relation_touch_descriptor,
 };
-use super::residue::{
-    topology_operator_graph_obligation_local_ceremony_audit,
-    topology_operator_graph_obligation_residue_manifest,
-};
+use super::residue::topology_operator_graph_obligation_local_ceremony_audit;
+use super::residue::topology_operator_graph_obligation_residue_manifest;
 
 pub fn topology_operator_graph_obligation_adoption_proof(
 ) -> Result<ForgeQueryGraphObligationAdoptionProof, ForgeQueryGraphObligationConsumerKitError> {

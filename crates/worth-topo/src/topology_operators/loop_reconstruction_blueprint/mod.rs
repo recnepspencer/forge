@@ -20,7 +20,8 @@ pub use classification::{
 };
 pub use closeout::{PlanarBooleanLoopBlueprintCloseout, PlanarBooleanLoopBlueprintCloseoutDenial};
 pub use operator_row::PlanarBooleanLoopOperatorRow;
-pub use proof_obligation::{
+#[cfg(test)]
+pub(crate) use proof_obligation::{
     PlanarBooleanLoopOperatorProofObligation, PlanarBooleanLoopValidatorProofObligation,
 };
 pub use registry::{

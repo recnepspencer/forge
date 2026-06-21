@@ -87,10 +87,23 @@ pub(crate) fn certify_public_facade_row(
     ensure(compile_fail_contracts.contains("public_projection_surface_entry_not_exported.rs"))?;
     ensure(compile_fail_contracts.contains("public_bridge_registration_entry_not_exported.rs"))?;
     ensure(compile_fail_contracts.contains("public_runtime_builder_not_exported_from_facade.rs"))?;
+    ensure(compile_fail_contracts.contains("topology_query_raw_handoff_not_admitted.rs"))?;
+    ensure(
+        compile_fail_contracts
+            .contains("topology_query_admitted_handoff_not_executed_authority.rs"),
+    )?;
+    ensure(compile_fail_contracts.contains("topology_query_receipt_not_executed_authority.rs"))?;
+    ensure(
+        compile_fail_contracts.contains("topology_operator_adoption_not_executed_authority.rs"),
+    )?;
+    ensure(
+        compile_fail_contracts
+            .contains("public_topology_birth_graph_authority_proof_not_forgeable.rs"),
+    )?;
 
     closed_row(
         TopologyQueryBoundaryCleanupArea::PublicFacade,
-        "the topology-facing public surface is limited to query-domain entry, handle-bound reads, runtime support, and report vocabulary; it no longer teaches raw projection declarations, maintainers, manual derived-diagnostics helper assembly, or bridge-registration wiring as competing topology entry workflows",
+        "the topology-facing public surface is limited to query-domain entry, handle-bound reads, runtime support, report vocabulary, and execution-derived graph authority proof accessors; it no longer teaches raw projection declarations, maintainers, manual derived-diagnostics helper assembly, bridge-registration wiring, or lower-authority query handoffs as competing topology entry workflows",
         Some("src/query_domain.rs"),
         [
             "src/lib.rs",

@@ -18,6 +18,9 @@ pub use classification::{
 };
 pub use closeout::{EdgeSplitBlueprintCloseout, EdgeSplitBlueprintCloseoutDenial};
 pub use operator_row::EdgeSplitOperatorRow;
-pub use proof_obligation::{EdgeSplitOperatorProofObligation, EdgeSplitValidatorProofObligation};
+#[cfg(test)]
+pub(crate) use proof_obligation::{
+    EdgeSplitOperatorProofObligation, EdgeSplitValidatorProofObligation,
+};
 pub use registry::EdgeSplitOperatorBlueprint;
 pub use validator_row::EdgeSplitValidatorRow;

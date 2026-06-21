@@ -7,6 +7,7 @@ use worth_primitives::{truth_digest_parts, TruthDigestScope};
 use worth_spatial::facade::planar_boolean_loop_reconstruction::{
     PlanarBooleanLoopReconstructionEvidenceReceipt, PlanarBooleanLoopReconstructionLedgerReceipt,
 };
+use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceBooleanReceiptLookupProduct;
 
 use super::{CompletedBooleanLoopReconstructionProducts, WorkloadCompositionError, WorthWorkload};
 
@@ -79,8 +80,15 @@ impl CompletedBooleanLoopReconstructionHandoff {
     }
 
     pub fn require_boolean_loop_reconstruction(&self) -> Result<(), WorkloadCompositionError> {
+        self.require_boolean_loop_reconstruction_lookup()
+            .map(|_| ())
+    }
+
+    pub fn require_boolean_loop_reconstruction_lookup(
+        &self,
+    ) -> Result<WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadCompositionError> {
         self.completed_workload
-            .require_boolean_loop_reconstruction(&self.loop_ledger_receipt)
+            .require_boolean_loop_reconstruction_lookup(&self.loop_ledger_receipt)
     }
 }
 

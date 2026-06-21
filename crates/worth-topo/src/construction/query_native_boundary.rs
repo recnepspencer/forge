@@ -23,12 +23,15 @@ pub use birth_synopsis::{
 };
 pub(crate) use compose_execution::topology_primitive_construction_birth_layout_violation_registration;
 pub use compose_execution::{
-    execute_primitive_construction_birth_compose,
+    run_primitive_construction_birth_declared_touched_basis_compose,
+    topology_primitive_construction_birth_graph_authority_proof,
     topology_primitive_construction_birth_graph_obligation_registration,
     TopologyPrimitiveConstructionBirthComposeEvidence,
     TopologyPrimitiveConstructionBirthComposeExecution,
     TopologyPrimitiveConstructionBirthComposeExecutionError,
     TopologyPrimitiveConstructionBirthComposeProgram,
+    TopologyPrimitiveConstructionBirthDeclaredTouchedBasis,
+    TopologyPrimitiveConstructionBirthGraphAuthorityProof,
     TopologyPrimitiveConstructionBirthMaterializationCoverage,
     TopologyPrimitiveConstructionBirthSelectedObligationRow,
     TopologyPrimitiveConstructionBirthTopologyKind,

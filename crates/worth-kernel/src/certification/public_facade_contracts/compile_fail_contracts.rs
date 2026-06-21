@@ -52,6 +52,13 @@ const PLANAR_BOOLEAN_EDGE_SPLITTING_EXPECTED_ERRORS: &[(&str, &str)] = &[
     ),
 ];
 
+const WORTH_GRAPH_AUTHORITY_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/worth_graph_authority/raw_gate_certifier_not_exported.rs",
+    "src/certification/public_facade_contracts/compile_fail/worth_graph_authority/inventory_row_fields_private.rs",
+    "src/certification/public_facade_contracts/compile_fail/worth_graph_authority/closeout_certifier_not_exported.rs",
+    "src/certification/public_facade_contracts/compile_fail/worth_graph_authority/closeout_matrix_row_fields_private.rs",
+];
+
 const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_prepare_helpers_demoted.rs",
@@ -114,6 +121,8 @@ const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_workload_catalog_static_fixture_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/workload_catalog/public_workload_catalog_rejects_raw_topology_rows_for_nmt.rs",
     "src/certification/public_facade_contracts/compile_fail/workload_operator/operator_evidence_binding_fields_private.rs",
+    WORTH_GRAPH_AUTHORITY_FIXTURES[0],
+    WORTH_GRAPH_AUTHORITY_FIXTURES[1],
     "src/certification/public_facade_contracts/compile_fail/authority/public_binding_and_anchoring_authoring_exports_demoted.rs",
     "src/certification/public_facade_contracts/compile_fail/results/public_canonical_artifact_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/results/public_prepared_result_constructor_not_exported.rs",
@@ -181,6 +190,19 @@ fn kernel_public_boundary_rejects_planar_boolean_event_extraction_constructor_by
 fn kernel_public_boundary_rejects_incomplete_planar_boolean_edge_split_evidence() {
     for (fixture, expected_stderr) in PLANAR_BOOLEAN_EDGE_SPLITTING_EXPECTED_ERRORS {
         assert_compile_fail_fixture_with_stderr(fixture, expected_stderr);
+    }
+}
+
+#[test]
+fn kernel_public_boundary_rejects_worth_graph_authority_gate_forgery() {
+    for fixture in WORTH_GRAPH_AUTHORITY_FIXTURES {
+        assert_compile_fail_fixture(fixture);
+    }
+    for guard in
+        worth_kernel::query_graph_authority_gate::current_worth_lower_authority_promotion_guard_plan(
+        )
+    {
+        assert_compile_fail_fixture(guard.planned_compile_fail_path());
     }
 }
 
