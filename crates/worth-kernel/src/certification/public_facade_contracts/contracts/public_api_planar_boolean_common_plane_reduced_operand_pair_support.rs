@@ -10,7 +10,8 @@ use worth_kernel::workload_composition::{
     PlanarBooleanOperandPairIdentity, PlanarBooleanOperation, WorkloadCatalog, WorthWorkload,
     WorthWorkloadParts,
 };
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
+use worth_spatial::certification::workload_evidence::complete_ledger_with_additional_rows;
+use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceRow;
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
 mod entry_support;
@@ -173,11 +174,7 @@ pub(crate) fn rebuild_left_workload(
     boolean_rows: Vec<WorkloadEvidenceRow>,
 ) -> WorthWorkload {
     let left = pair.left().workload();
-    let mut rows = left.evidence_ledger().rows().to_vec();
-    rows.extend(boolean_rows);
-    let ledger = WorkloadEvidenceLedger::from_rows(rows)
-        .expect("reduced-pair evidence rows should stay inspectable")
-        .certify_complete()
+    let ledger = complete_ledger_with_additional_rows(left.evidence_ledger(), boolean_rows)
         .expect("classical stages should remain complete");
 
     WorthWorkload::compose(WorthWorkloadParts {

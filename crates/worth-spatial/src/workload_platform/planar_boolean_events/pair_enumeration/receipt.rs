@@ -1,6 +1,6 @@
 use crate::workload_platform::evidence_ledger::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    BooleanEvidenceReceipt, BooleanEvidenceReceiptSealed, BooleanEvidenceRowAuthority,
+    BooleanEvidenceStageKind, WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
 };
 
 use super::counters::PlanarBooleanSegmentPairEnumerationCounters;
@@ -106,5 +106,7 @@ impl BooleanEvidenceReceipt for PlanarBooleanSegmentPairEnumerationReceipt {
         WorkloadEvidenceStageCounters::boolean_segment_pair_enumeration(self.counters())
     }
 }
+
+impl BooleanEvidenceReceiptSealed for PlanarBooleanSegmentPairEnumerationReceipt {}
 
 impl BooleanEvidenceRowAuthority for PlanarBooleanSegmentPairEnumerationReceipt {}

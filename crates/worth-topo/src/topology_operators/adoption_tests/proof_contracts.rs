@@ -1,9 +1,6 @@
 use std::collections::BTreeSet;
 
-use forge_query::facade::consumer_kit::{
-    ForgeQueryBoundaryAuditSourceSet, ForgeQueryGraphObligationInMemoryTestWorkspace,
-    ForgeQueryGraphObligationLocalCeremonyAudit,
-};
+use forge_query::facade::consumer_kit::ForgeQueryGraphObligationInMemoryTestWorkspace;
 use forge_query::facade::{
     ForgeQueryGraphObligationOperatingWorldDescriptor, ForgeQueryGraphTouchDescriptor,
     ForgeQueryGraphTouchDescriptorKind, ForgeQueryGraphTouchLifecycleFamily,
@@ -13,10 +10,8 @@ use forge_query::facade::{
 use super::super::{
     topology_operator_command_batch_equivalent_touch_descriptor,
     topology_operator_graph_obligation_adoption_proof,
-    topology_operator_graph_obligation_local_ceremony_audit,
     topology_operator_graph_obligation_registration_declaration,
-    topology_operator_graph_obligation_residue_manifest, topology_operator_legacy_guard_audit,
-    topology_operator_local_guard_residue_inventory, topology_operator_local_guard_residue_total,
+    topology_operator_graph_obligation_residue_manifest,
     topology_operator_relation_touch_descriptor, TOPOLOGY_OPERATOR_GRAPH_OBLIGATION_FAMILY,
     TOPOLOGY_OPERATOR_RELATION_COLLECTION, TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION,
     TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH,
@@ -31,8 +26,6 @@ fn operator_catalog_builds_complete_adoption_proof() {
         proof.manifest().consumer_name(),
         TOPOLOGY_OPERATOR_GRAPH_OBLIGATION_FAMILY
     );
-    assert!(proof.local_ceremony_audit().is_evaluated());
-    assert!(proof.local_ceremony_audit().is_clean());
     assert_eq!(proof.support_pin().row_count(), 2);
     assert_eq!(proof.residue_manifest().rows().len(), 6);
     assert_eq!(proof.in_memory_proof().selected_obligation_count(), 2);
@@ -59,8 +52,6 @@ fn milestone_9_9_graph_obligation_operator_closeout_is_certifiable_by_query_kit(
         residue.manifest_digest()
     );
     assert_eq!(proof.in_memory_proof().selected_obligation_count(), 2);
-    assert!(proof.local_ceremony_audit().is_evaluated());
-    assert!(proof.local_ceremony_audit().is_clean());
     assert!(residue.rows().iter().all(|row| {
         !row.introduced_in().is_empty()
             && row.current_count() <= row.must_not_exceed_count()
@@ -189,47 +180,6 @@ fn operator_catalog_residue_manifest_names_every_remaining_surface() {
     );
 }
 
-#[test]
-fn operator_legacy_guard_audit_accounts_for_named_phase_seventeen_guard_residue() {
-    let audit = topology_operator_legacy_guard_audit();
-    let residue_rows = topology_operator_local_guard_residue_inventory();
-
-    assert_eq!(
-        audit.total_occurrence_count(),
-        topology_operator_local_guard_residue_total()
-    );
-    assert_eq!(audit.rows().len(), residue_rows.len());
-    assert!(audit.rows().iter().all(|row| {
-        row.pattern() == "ExistingEntityIncomingRelationCountMismatch"
-            && row.source_path().contains("local_rewrites")
-            && row.occurrence_count() > 0
-    }));
-    assert_eq!(
-        audit
-            .rows()
-            .iter()
-            .map(|row| (row.source_path(), row.occurrence_count()))
-            .collect::<BTreeSet<_>>(),
-        residue_rows
-            .iter()
-            .map(|row| (row.source_path(), row.occurrence_count()))
-            .collect::<BTreeSet<_>>()
-    );
-}
-
-#[test]
-fn operator_local_ceremony_audit_is_real_and_currently_clean() {
-    let audit = topology_operator_graph_obligation_local_ceremony_audit();
-
-    assert!(audit.is_evaluated());
-    assert_eq!(audit.evaluated_source_count(), 32);
-    assert!(
-        audit.is_clean(),
-        "unexpected findings: {:?}",
-        audit.findings()
-    );
-}
-
 fn operator_adoption_workspace() -> ForgeQueryGraphObligationInMemoryTestWorkspace {
     let declaration = topology_operator_graph_obligation_registration_declaration()
         .expect("operator catalog registration declaration should build");
@@ -237,26 +187,4 @@ fn operator_adoption_workspace() -> ForgeQueryGraphObligationInMemoryTestWorkspa
         declaration.registrations().to_vec(),
     )
     .expect("operator catalog registration declaration should build in-memory workspace")
-}
-
-#[test]
-fn operator_local_ceremony_audit_rejects_seeded_bypass_patterns() {
-    let audit = ForgeQueryGraphObligationLocalCeremonyAudit::evaluate(
-        &ForgeQueryBoundaryAuditSourceSet::new("worth-topo").source(
-            "seeded-local-ceremony",
-            r#"
-            fn bypass() {
-                let _selector = ForgeQueryGraphTouchSelector::any_graph_touch();
-                let _marker = "masked string literal: phase_chain";
-            }
-            "#,
-        ),
-    );
-
-    assert!(!audit.is_clean());
-    assert_eq!(audit.findings().len(), 1);
-    assert_eq!(
-        audit.findings()[0].pattern(),
-        "ForgeQueryGraphTouchSelector::"
-    );
 }

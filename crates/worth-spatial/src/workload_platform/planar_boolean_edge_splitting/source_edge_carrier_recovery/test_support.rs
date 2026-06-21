@@ -70,10 +70,14 @@ pub(crate) fn subject_with_ledger(
         ),
     )
     .expect("candidate-index gate should admit");
+    let event_ledger_lookup = evidence
+        .require_boolean_receipt_lookup(&ledger)
+        .expect("typed event-ledger lookup should admit");
     let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         &ledger,
         &gate,
-        evidence.stage_index(),
+        &event_ledger_lookup,
+        None,
     ))
     .expect("split request should admit");
     let scope = PlanarBooleanEdgeSplitScopeAdmission::admit(

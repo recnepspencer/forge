@@ -125,7 +125,9 @@ impl PlanarBooleanLoopOperatorClassificationMatrix {
         &self.registry_identity
     }
 
-    pub fn without_operator_named(&self, operator_name: &str) -> Self {
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(crate) fn without_operator_named(&self, operator_name: &str) -> Self {
         let mut operators = self.operators.clone();
         operators.retain(|operator| operator.operator_name() != operator_name);
         Self {
@@ -134,7 +136,9 @@ impl PlanarBooleanLoopOperatorClassificationMatrix {
         }
     }
 
-    pub fn with_operator_classification(
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(crate) fn with_operator_classification(
         &self,
         operator_name: &str,
         classification: super::classification::PlanarBooleanLoopOperatorClassification,
@@ -191,7 +195,9 @@ impl PlanarBooleanLoopValidatorRegistrationPlan {
         &self.registry_identity
     }
 
-    pub fn without_validator_named(&self, validator_name: &str) -> Self {
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(crate) fn without_validator_named(&self, validator_name: &str) -> Self {
         let mut validators = self.validators.clone();
         validators.retain(|validator| validator.validator_name() != validator_name);
         Self {
@@ -200,7 +206,9 @@ impl PlanarBooleanLoopValidatorRegistrationPlan {
         }
     }
 
-    pub fn with_validator_runtime_lane(
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(crate) fn with_validator_runtime_lane(
         &self,
         validator_name: &str,
         runtime_lane: super::classification::PlanarBooleanLoopValidatorRuntimeLane,
@@ -228,7 +236,9 @@ impl PlanarBooleanLoopValidatorRegistrationPlan {
         }
     }
 
-    pub fn with_validator_topology_legality(
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(crate) fn with_validator_topology_legality(
         &self,
         validator_name: &str,
         governs_topology_legality: bool,

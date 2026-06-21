@@ -3,11 +3,15 @@ pub(crate) mod evidence_ledger_receipts;
 mod honesty_guards;
 
 use topology::facade::TopologyWorkload;
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, complete_ledger_with_additional_rows,
+};
 use worth_spatial::facade::workload_vocabulary::{
     DiagnosticWorkload, GeometryBindingWorkload, ProjectionWorkload, ResponseWorkload,
     RetainedReplayWorkload, SpatialWorkloadStage, SurfaceSupportWorkload, TransformWorkload,
     WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow,
-    WorkloadEvidenceStage, WorkloadStageDenial, WorkloadStagePosture, WorkloadStageSupport,
+    WorkloadEvidenceStage, WorkloadEvidenceStageCounters, WorkloadStageDenial,
+    WorkloadStagePosture, WorkloadStageSupport,
 };
 
 use self::evidence_ledger_receipts::counter_backed_rows;
@@ -90,10 +94,10 @@ fn workload_vocabulary_preserves_authority_boundaries() {
         assert_eq!(topology.envelope().counters().declaration_rows(), 1);
         assert_eq!(ledger.counters().rows(), 8);
         assert!(ledger.covers_authority_stages());
-        assert!(ledger
-            .rows()
-            .iter()
-            .all(WorkloadEvidenceRow::is_receipt_backed));
+        ledger
+            .guards()
+            .assert_counters_are_receipt_backed()
+            .expect("ledger rows should be receipt-backed with counters");
         assert!(response.envelope().posture().reason().contains("admitted"));
     });
 }
@@ -175,17 +179,51 @@ fn workload_evidence_ledger_exposes_stage_index_product_as_lookup_authority() {
         let stage_index = ledger.stage_index();
 
         assert!(!stage_index.index_identity().is_empty());
-        assert_eq!(stage_index.counters().row_count(), ledger.rows().len());
+        assert_eq!(stage_index.counters().row_count(), ledger.counters().rows());
         assert_eq!(stage_index.counters().indexed_stage_count(), 8);
         assert_eq!(stage_index.counters().duplicate_stage_count(), 0);
         assert_eq!(stage_index.counters().manual_row_count(), 0);
         assert_eq!(stage_index.counters().unadmitted_row_count(), 0);
+        let projection_link = stage_index
+            .link_required_stages(&[WorkloadEvidenceStage::Projection])
+            .expect("projection stage link should be typed")
+            .link_for_stage(WorkloadEvidenceStage::Projection)
+            .cloned()
+            .expect("projection link should exist");
+        let ledger_projection_link = ledger
+            .link_required_stages(&[WorkloadEvidenceStage::Projection])
+            .expect("ledger projection stage link should be typed")
+            .link_for_stage(WorkloadEvidenceStage::Projection)
+            .cloned()
+            .expect("ledger projection link should exist");
+        assert_eq!(projection_link, ledger_projection_link);
+    });
+}
+
+#[test]
+fn certification_only_rows_cannot_satisfy_production_stage_links() {
+    run_stack_heavy_test(|| {
+        let complete = WorkloadEvidenceLedger::from_rows(counter_backed_rows("cert-only boundary"))
+            .expect("counter-backed rows should build a ledger")
+            .certify_complete()
+            .expect("classical authority rows should certify");
+        let with_certification_row = complete_ledger_with_additional_rows(
+            &complete,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
+                "synthetic shared-plane identity",
+                WorkloadEvidenceStageCounters::boolean_shared_plane_identity(),
+            )],
+        )
+        .expect("certification-only row should remain inspectable");
+
         assert_eq!(
-            stage_index.evidence_for_stage(WorkloadEvidenceStage::Projection),
-            ledger.evidence_for_stage(WorkloadEvidenceStage::Projection)
+            with_certification_row
+                .link_required_stages(&[WorkloadEvidenceStage::BooleanSharedPlaneIdentity])
+                .expect_err("certification-only rows must not become production stage links"),
+            WorkloadEvidenceLedgerError::ManualAuthorityStage(
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity
+            )
         );
-        assert!(stage_index
-            .row_for_stage(WorkloadEvidenceStage::Projection)
-            .is_some_and(WorkloadEvidenceRow::is_receipt_backed));
     });
 }

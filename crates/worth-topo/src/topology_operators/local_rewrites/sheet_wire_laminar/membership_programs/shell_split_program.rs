@@ -1,20 +1,39 @@
-use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQuerySymbolicTargetReference};
+use forge_query::facade::ForgeQuerySymbolicTargetReference;
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::shared::bind_existing_relation_handle;
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
+    ensure_declared_touched_basis_covers_sequence_before_write, TopologyDeclaredMutationArtifact,
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
+    TopologyRetainedApplicationHandoff,
 };
 use crate::topology_operators::topology_relation_dependency_path;
+use crate::topology_operators::{
+    TopologyDeclaredMutationSequence, TopologyMutationApplicationMode,
+};
 
 impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
-    pub(crate) fn compose_shell_split_program(
+    pub(crate) fn compose_shell_split_program<I>(
         &mut self,
+        retained_handoff: TopologyRetainedApplicationHandoff<I>,
+        mode: TopologyMutationApplicationMode,
+        semantic_family_key: &'static str,
         program: super::super::shell_face_rehome_support::ShellFaceSplitProgram,
+        sequence: &TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
+    where
+        I: forge_query::facade::ForgeQueryDeclarationInput<
+            crate::query_domain::TopologyQueryDomain,
+        >,
+    {
+        ensure_declared_touched_basis_covers_sequence_before_write(
+            &retained_handoff,
+            sequence,
+            mode.clone(),
+        )?;
         let retained_shell_id = program
             .retained_shell_id
             .expect("resolved shell split program always sets retained shell id");
@@ -85,7 +104,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 *face_relation_id,
             )?;
 
-        self.workspace
+        let receipt = self
+            .workspace
             .compose_graph(|graph| {
                 let shell_symbol = graph.insert_entity(
                     created_shell_key.clone(),
@@ -164,6 +184,13 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 )?;
                 Ok(())
             })
-            .map_err(TopologyMutationApplicationError::from)
+            .map_err(TopologyMutationApplicationError::from)?;
+        self.finish_composed_membership_execution(
+            mode,
+            retained_handoff,
+            semantic_family_key,
+            sequence,
+            receipt,
+        )
     }
 }

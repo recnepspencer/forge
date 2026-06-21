@@ -49,6 +49,14 @@ The operating rule is:
   Authority without local graph legality, handoff-only execution claims, raw
   evidence scans, or support-pinning ceremony competing with Query's Consumer
   Kit
+- `Worth Touched Graph Authority Gate`: Planned after the Query Graph Authority
+  Hardening Gate and before broad 7.5; blocks overlap extraction until
+  graph-affecting Worth operators produce a typed touched graph basis and
+  Query obligation selection, Query 9.10 graph read access planning, validators,
+  invariants, invalidation, replay, evidence lookup, conflict, cache/equivalence,
+  undo, public proof, and diagnostics derive from that same basis instead of
+  static/global packs, caller-owned graph-read folklore, or slow compatibility
+  adapters
 - `Milestone 6.5`: Planned as the operational workload platform between exact
   planar contracts and booleans; hostile tests must consume real topology,
   binding, projection, retained replay, transform, response, and evidence rails
@@ -72,6 +80,9 @@ Worth Query-native hardening gate:
 - [query-native-hardening-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/query-native-hardening-closeout.md)
 Worth Query graph authority hardening gate:
 - [worth-query-graph-authority-hardening-gate.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth-query-graph-authority-hardening-gate.md)
+Worth touched graph authority gate:
+- [touched-graph-roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/touched-graph-roadmap.md)
+- [worth-touched-graph-authority-gate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-touched-graph-authority-gate.md)
 
 ## Global Adversarial Constraint
 

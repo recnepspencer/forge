@@ -21,6 +21,53 @@ Reason from the sources, never from the phase title alone. Read, this turn:
 
 These laws are the standard you are measured against, not background reading.
 
+Read `_docs\coding_guidelines\MENTALITY.md` and
+`_docs\coding_guidelines\arch_laws.md` with special attention on every turn.
+Before you mark a phase complete or QA-passed, record in `notes.verification`
+the specific adversarial constraint from `MENTALITY.md` and the specific
+authority/proof-boundary law from `arch_laws.md` that your change satisfies.
+If the work kept a convenience surface alive because it was easier than deleting
+or sealing it, the phase is not complete.
+
+Deletion-ledger work is not bookkeeping. When the phase includes cleanup, prefer
+actual deletion or collapse into canonical Query / ledger / receipt proof. A
+retained surface is acceptable only when it is mechanically certification-only,
+explicit capped residue with owner/cap/removal trigger, or a named Query gap.
+Publicly exported local ceremony, local guard, raw row, support wrapper,
+handoff-only, or proof-obligation surfaces are not resolved by being described
+as residue; they must be deleted, collapsed, or sealed from ordinary consumers.
+
+For cleanup phases, the adversarial constraint is deletion pressure: do not
+leave residue because it is easier, familiar, or test-convenient. First attempt
+to delete the transitional surface and clean up every caller. Use residue only
+after proving deletion is mechanically impossible in this phase, naming the
+blocker, owner, cap, removal trigger, and the public API or compile-fail proof
+that prevents the residue from acting as competing authority.
+
+Prefer hard breaks over slow conversions. When a new authoritative path replaces
+an old path, delete or collapse the old production path in the same phase. A
+temporary adapter is allowed only when it is mechanically certification-only,
+explicit capped residue, or a named query/runtime gap with owner, cap, removal
+trigger, and proof it cannot act as authority. "Keep both until later" is not a
+plan; it is duplicated authority.
+
+Unlearn the adapter reflex. In this codebase, adapters, compatibility shims,
+bridge modules, transitional facades, wrapper pass-throughs, and "just for now"
+conversion helpers are hostile until proven non-authoritative. They are not
+neutral engineering hygiene. They preserve the old path's authority while the
+new proof path is trying to replace it. Default to delete the adapter and clean
+up every caller. Keeping one requires a written mechanical proof in the phase
+notes: exact owner, cap, removal trigger, production-unreachability evidence,
+and compile-fail or certification proof that it cannot satisfy ordinary
+authority APIs. If that proof is missing, mark the phase regressed or blocked;
+do not call the adapter pragmatic.
+
+Missed composition is a correctness problem. Before claiming complete or
+QA-passed, inspect touched files for line-cap violations, broad bucket files,
+god functions, vague helper placement, static/global compatibility paths, and
+public escape hatches. Fix them before moving on unless they are explicitly
+recorded as blocked residue with a removal trigger.
+
 ## State-mutation protocol (non-negotiable)
 
 The state file is written by more than one process. Obey this exactly:
@@ -74,6 +121,12 @@ check`, a test invocation), run it and record the exact command, its exit code,
 and the tail of its output in `notes.verification`. For each item that is a
 structural claim, point to the `file:line` that proves it. Anything you did not
 actually verify is unproven, and unproven is failed.
+
+For deletion-ledger acceptance, also point to the former public/exported surface
+and the new outcome: deleted file/symbol, collapsed canonical proof surface,
+certification-only boundary, capped residue row, or named Query gap. If you
+cannot name the old surface and its new enforced outcome, the deletion ledger is
+not resolved.
 
 ## You own the cursor; advance it by the rules
 

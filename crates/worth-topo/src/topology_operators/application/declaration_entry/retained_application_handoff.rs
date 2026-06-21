@@ -8,6 +8,7 @@ use forge_query::facade::{
 use crate::query_domain::TopologyQueryDomain;
 use crate::topology_operators::{
     validated_topology_retained_contribution_semantic_projection,
+    TopologyDeclaredTouchedGraphBasis, TopologyDeclaredTouchedGraphBasisProof,
     TopologyOperatorContributionArtifact, TopologyRetainedContributionSemanticProjection,
 };
 
@@ -18,16 +19,25 @@ where
     I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
 {
     contribution_artifact: TopologyOperatorContributionArtifact<I>,
+    declared_touched_basis: TopologyDeclaredTouchedGraphBasis<I>,
 }
 
 impl<I> TopologyRetainedApplicationHandoff<I>
 where
     I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
 {
-    pub(crate) fn new(contribution_artifact: TopologyOperatorContributionArtifact<I>) -> Self {
+    pub(crate) fn new(
+        contribution_artifact: TopologyOperatorContributionArtifact<I>,
+        declared_touched_basis: TopologyDeclaredTouchedGraphBasis<I>,
+    ) -> Self {
         Self {
             contribution_artifact,
+            declared_touched_basis,
         }
+    }
+
+    pub(crate) fn declared_touched_basis_proof(&self) -> &TopologyDeclaredTouchedGraphBasisProof {
+        self.declared_touched_basis.proof()
     }
 
     pub(crate) fn declaration_family_key(&self) -> &'static str {

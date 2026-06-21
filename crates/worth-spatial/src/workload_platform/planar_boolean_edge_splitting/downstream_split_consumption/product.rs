@@ -44,7 +44,7 @@ impl PlanarBooleanDownstreamSplitConsumption {
                 .len(),
         );
         counters.consumed_replay_parity_rows(input.replay_parity_receipt().parity_rows().len());
-        counters.consumed_stage_index_rows(input.stage_index().rows().len());
+        counters.consumed_stage_index_rows(input.stage_index().counters().row_count());
         let consumption_identity = downstream_split_consumption_identity(
             input.split_ledger_receipt().receipt_identity(),
             input.decision_log_receipt().receipt_identity(),

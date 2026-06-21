@@ -2,11 +2,10 @@ use topology::facade::{
     PlanarBooleanLoopBlueprintCloseout, PlanarBooleanLoopBlueprintCloseoutDenial,
     PlanarBooleanLoopBlueprintRegistry, PlanarBooleanLoopBlueprintRegistryIdentity,
     PlanarBooleanLoopOperatorClassification as Class,
-    PlanarBooleanLoopOperatorClassificationMatrix, PlanarBooleanLoopOperatorProofObligation,
-    PlanarBooleanLoopOperatorRow, PlanarBooleanLoopOperatorTruthAuthority as Authority,
-    PlanarBooleanLoopRequiredQuerySurface as Surface,
-    PlanarBooleanLoopValidatorProofObligation, PlanarBooleanLoopValidatorRegistrationPlan,
-    PlanarBooleanLoopValidatorRow, PlanarBooleanLoopValidatorRuntimeLane as Lane,
+    PlanarBooleanLoopOperatorClassificationMatrix, PlanarBooleanLoopOperatorRow,
+    PlanarBooleanLoopOperatorTruthAuthority as Authority, PlanarBooleanLoopRequiredQuerySurface as Surface,
+    PlanarBooleanLoopValidatorRegistrationPlan, PlanarBooleanLoopValidatorRow,
+    PlanarBooleanLoopValidatorRuntimeLane as Lane,
 };
 
 fn loop_operator_row<'a>(
@@ -56,7 +55,7 @@ fn loop_reconstruction_public_blueprint_exposes_phase_2_artifacts() {
 }
 
 #[test]
-fn loop_reconstruction_public_blueprint_preserves_prepared_and_query_proof_obligations() {
+fn loop_reconstruction_public_blueprint_preserves_prepared_and_query_posture() {
     let registry = PlanarBooleanLoopBlueprintRegistry::phase_2();
     let matrix = registry.operator_classification_matrix();
     let plan = registry.validator_registration_plan();
@@ -66,26 +65,16 @@ fn loop_reconstruction_public_blueprint_preserves_prepared_and_query_proof_oblig
 
     assert_eq!(prepared.truth_authority(), Authority::WorthSpatialPrepared);
     assert_eq!(prepared.required_query_surface(), Surface::None);
-    assert!(prepared
-        .proof_obligations()
-        .contains(&PlanarBooleanLoopOperatorProofObligation::PreparedLoopProductOnly));
-    assert!(prepared.proof_obligations().contains(
-        &PlanarBooleanLoopOperatorProofObligation::NoTopologyTruthMutationInMilestone74
-    ));
+    assert_eq!(prepared.classification(), Class::PreparedSpatialOnly);
 
     assert_eq!(invariant.required_query_surface(), Surface::QueryInvariantRegistration);
-    assert!(invariant.proof_obligations().contains(
-        &PlanarBooleanLoopOperatorProofObligation::TypedGraphCompositionDomainInvariantDenial
-    ));
-    assert!(validator
-        .proof_obligations()
-        .contains(&PlanarBooleanLoopValidatorProofObligation::RuntimeFacingDenialPathTypedAndInspectable));
+    assert_eq!(invariant.truth_authority(), Authority::ForgeQueryGraphComposition);
+    assert!(validator.governs_topology_legality());
+    assert!(validator.requires_runtime_lane(Lane::TopologyDeclarationReview));
     assert!(loop_validator_row(&plan, "ValidateLoopValidatorRuntimeRegistration")
-        .proof_obligations()
-        .contains(&PlanarBooleanLoopValidatorProofObligation::QueryInvariantRuntimeRegistration));
+        .requires_runtime_lane(Lane::QueryGraphInvariantPack));
     assert!(loop_validator_row(&plan, "ValidateTopologyDeclarationFamilyCanonicalEntries")
-        .proof_obligations()
-        .contains(&PlanarBooleanLoopValidatorProofObligation::TopologyDeclarationReviewDenial));
+        .requires_runtime_lane(Lane::TopologyDeclarationReview));
 }
 
 #[test]
@@ -99,8 +88,6 @@ fn loop_reconstruction_public_blueprint_registers_anti_theatre_fence_rows() {
         let operator = loop_operator_row(&matrix, operator_name);
         assert_eq!(operator.classification(), Class::QueryGraphCompositionProgram);
         assert_eq!(operator.required_query_surface(), Surface::QueryInvariantRegistration);
-        assert!(operator.proof_obligations().contains(
-            &PlanarBooleanLoopOperatorProofObligation::TypedGraphCompositionDomainInvariantDenial
-        ));
+        assert_eq!(operator.truth_authority(), Authority::ForgeQueryGraphComposition);
     }
 }

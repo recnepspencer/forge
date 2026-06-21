@@ -170,8 +170,8 @@ fn assert_downstream_consumption_counters_match_real_split_authority(
             .completed_workload()
             .evidence_ledger()
             .stage_index()
-            .rows()
-            .len()
+            .counters()
+            .row_count()
     );
     assert_eq!(consumption.counters().foreign_receipts_rejected(), 0);
     assert_eq!(consumption.counters().missing_receipts_rejected(), 0);

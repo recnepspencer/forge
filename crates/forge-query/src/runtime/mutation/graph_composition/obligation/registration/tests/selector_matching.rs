@@ -1,5 +1,6 @@
 use crate::runtime::{
-    ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphTouchLifecycleFamily,
+    ForgeQueryGraphObligationOperatingWorldSelector, ForgeQueryGraphTouchDescriptor,
+    ForgeQueryGraphTouchLifecycleFamily, ForgeQueryGraphTouchReadVerb,
     ForgeQueryGraphTouchSelector, ForgeQueryMutationFamily,
 };
 use forge_relational::facade::identity::KindId;
@@ -77,6 +78,51 @@ fn relation_kind_id_selector_is_not_a_collection_string_alias() {
         .matches_descriptor(&descriptor));
     assert!(!ForgeQueryGraphTouchSelector::relation_kind_id(7).matches_descriptor(&descriptor));
     assert!(!collection_selector.matches_descriptor(&descriptor));
+}
+
+#[test]
+fn declared_mutation_collection_selector_requires_all_declared_facts() {
+    let selector = ForgeQueryGraphTouchSelector::declared_mutation_collection(
+        "topology.primitive_birth",
+        ForgeQueryMutationFamily::Insert,
+        ["set:topology.kind"],
+        ["topology.kind"],
+    )
+    .expect("declared mutation selector");
+    let matching = ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
+        "topology.primitive_birth",
+        ForgeQueryMutationFamily::Insert,
+        None,
+        ["set:topology.kind", "set:topology.structure"],
+        ["topology.kind", "topology.structure"],
+    )
+    .expect("matching descriptor");
+    let wrong_mutation = ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
+        "topology.primitive_birth",
+        ForgeQueryMutationFamily::Update,
+        None,
+        ["set:topology.kind"],
+        ["topology.kind"],
+    )
+    .expect("wrong mutation descriptor");
+    let wrong_aspect = ForgeQueryGraphTouchDescriptor::declared_mutation_collection(
+        "topology.primitive_birth",
+        ForgeQueryMutationFamily::Insert,
+        None,
+        ["set:topology.structure"],
+        ["topology.structure"],
+    )
+    .expect("wrong aspect descriptor");
+    let read_shape = ForgeQueryGraphTouchDescriptor::read_family(
+        "topology.primitive_birth",
+        [ForgeQueryGraphTouchReadVerb::ObservesCollection],
+    )
+    .expect("read descriptor");
+
+    assert!(selector.matches_descriptor(&matching));
+    assert!(!selector.matches_descriptor(&wrong_mutation));
+    assert!(!selector.matches_descriptor(&wrong_aspect));
+    assert!(!selector.matches_descriptor(&read_shape));
 }
 
 #[test]

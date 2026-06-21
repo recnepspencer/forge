@@ -55,7 +55,7 @@ fn kernel_construction_adoption_proof_selects_real_primitive_birth_obligation() 
     assert_eq!(proof.in_memory_proof().selected_obligation_count(), 1);
     assert_eq!(proof.local_ceremony_audit().evaluated_source_count(), 9);
     assert!(proof.local_ceremony_audit().is_clean());
-    assert_eq!(proof.residue_manifest().rows().len(), 4);
+    assert_eq!(proof.residue_manifest().rows().len(), 3);
     assert!(proof
         .residue_manifest()
         .rows()
@@ -69,7 +69,7 @@ fn kernel_construction_adoption_proof_selects_real_primitive_birth_obligation() 
     assert!(proof.residue_manifest().rows().iter().any(|row| row.class()
         == "kernel-primitive-family-cardinality-gap"
         && row.current_count() == 1));
-    assert!(proof
+    assert!(!proof
         .residue_manifest()
         .rows()
         .iter()
@@ -126,7 +126,7 @@ fn kernel_construction_selector_coverage_matches_registration_selector() {
 }
 
 #[test]
-fn kernel_construction_selector_precision_matrix_documents_current_collection_boundary() {
+fn kernel_construction_selector_precision_matrix_proves_exact_birth_boundary() {
     let rows = primitive_construction_graph_obligation_selector_precision_matrix()
         .expect("selector precision matrix");
 
@@ -135,12 +135,37 @@ fn kernel_construction_selector_precision_matrix_documents_current_collection_bo
     assert!(rows
         .iter()
         .all(|row| row.selected_count() == row.expected_selected_count()));
+    assert!(rows
+        .iter()
+        .all(|row| row.attempted_bucket_lookup_count() > 0));
+    assert!(rows
+        .iter()
+        .all(|row| row.registration_full_scan_count() == 0));
+    assert_eq!(
+        rows.iter()
+            .map(|row| row.candidate_registration_count())
+            .sum::<usize>(),
+        rows.iter().map(|row| row.selected_count()).sum::<usize>()
+            + rows.iter().map(|row| row.denied_row_count()).sum::<usize>()
+    );
+    assert_eq!(
+        rows.iter()
+            .map(|row| row.residue_row_count())
+            .sum::<usize>(),
+        0
+    );
     assert_eq!(
         rows.iter()
             .filter(|row| row.selected_count() == 0)
             .map(|row| row.label())
             .collect::<Vec<_>>(),
-        vec!["unrelated-collection"]
+        vec![
+            "unrelated-collection",
+            "wrong-mutation-family",
+            "wrong-aspect-operation",
+            "wrong-aspect-path",
+            "read-not-mutation"
+        ]
     );
 }
 
@@ -156,7 +181,7 @@ fn handoff_only_result_remains_visible_residue_not_covered_execution() {
     let residue = primitive_construction_graph_obligation_residue_manifest()
         .expect("kernel residue manifest");
 
-    assert!(result.topology_compose_evidence().is_none());
+    assert!(!result.result_digest().is_empty());
     assert!(residue
         .rows()
         .iter()

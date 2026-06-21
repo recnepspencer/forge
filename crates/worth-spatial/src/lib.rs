@@ -81,3 +81,7 @@ mod witness_resolution;
 mod workload_platform;
 
 pub mod facade;
+
+mod trusted_boolean_evidence_authority {
+    pub trait Seal {}
+}

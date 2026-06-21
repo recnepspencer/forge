@@ -2,7 +2,11 @@
 mod workload_evidence_support;
 
 use workload_evidence_support::{
-    assert_loop_closeout_rejects_malformed_runtime_registration_artifacts,
+    assert_boolean_chain_accepts_only_completed_receipts_and_query_proof,
+    assert_boolean_chain_query_proof_does_not_rewrite_ledger_identities,
+    assert_boolean_chain_residue_manifest_is_capped_and_non_authority,
+    assert_large_admitted_boolean_chain_scales_with_declared_breadth,
+    assert_loop_closeout_exposes_certified_runtime_registration_artifacts,
     assert_loop_ledger_rejects_manual_or_counterless_evidence,
     assert_loop_ledger_replay_branch_preserves_workload_requirement,
     assert_loop_ledger_satisfies_workload_requirement_and_runtime_registration,
@@ -30,6 +34,26 @@ fn boolean_loop_reconstruction_stage_requirement_maps_only_to_loop_ledger_receip
 }
 
 #[test]
-fn boolean_loop_reconstruction_closeout_rejects_malformed_runtime_registration_artifacts() {
-    assert_loop_closeout_rejects_malformed_runtime_registration_artifacts();
+fn boolean_loop_reconstruction_closeout_exposes_certified_runtime_registration_artifacts() {
+    assert_loop_closeout_exposes_certified_runtime_registration_artifacts();
+}
+
+#[test]
+fn boolean_chain_7_5_handoff_accepts_ledger_receipts_plus_query_proof() {
+    assert_boolean_chain_accepts_only_completed_receipts_and_query_proof();
+}
+
+#[test]
+fn boolean_chain_query_proof_does_not_rewrite_split_or_loop_ledger_identity() {
+    assert_boolean_chain_query_proof_does_not_rewrite_ledger_identities();
+}
+
+#[test]
+fn boolean_chain_remaining_prep_ceremony_is_capped_residue() {
+    assert_boolean_chain_residue_manifest_is_capped_and_non_authority();
+}
+
+#[test]
+fn large_admitted_boolean_prep_workload_scales_with_declared_breadth() {
+    assert_large_admitted_boolean_chain_scales_with_declared_breadth();
 }

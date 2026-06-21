@@ -18,7 +18,9 @@ use worth_spatial::facade::planar_boolean_edge_splitting::{
     PlanarBooleanSplitSourceEdgeCarrierRecoveryInput, PlanarBooleanSplitSourceEdgeCarrierSet,
     PlanarBooleanSplitVertexIdentitySet,
 };
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
+use worth_spatial::facade::workload_vocabulary::{
+    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+};
 
 pub(crate) fn assert_split_decision_log_matches_metaboss(subject: &MetabossEventExtractionSubject) {
     let products = build_decision_log_products_for_metaboss(subject);
@@ -147,10 +149,20 @@ fn split_request_for_metaboss(
         ),
     )
     .expect("metaboss candidate-index gate should admit before split request");
+    let event_ledger_lookup = evidence
+        .require_boolean_receipt_lookup(ledger)
+        .expect("typed event-ledger lookup should admit before split request");
+    let retained_replay_stage_links = subject.pair().left().replay_receipts().map(|_| {
+        evidence
+            .stage_index()
+            .link_required_stages(&[WorkloadEvidenceStage::RetainedReplay])
+            .expect("retained replay stage link should admit when replay evidence is present")
+    });
     PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         ledger,
         &gate,
-        evidence.stage_index(),
+        &event_ledger_lookup,
+        retained_replay_stage_links.as_ref(),
     ))
     .expect("metaboss split request should admit before decision logging")
 }

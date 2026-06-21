@@ -8,7 +8,12 @@ use worth_kernel::workload_composition::{
     PlanarBooleanOperation, PlanarBooleanOutcomeReceipt, WorkloadCatalog, WorthWorkload,
     WorthWorkloadParts,
 };
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, complete_ledger_with_additional_rows,
+};
+use worth_spatial::facade::workload_vocabulary::{
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+};
 
 const KERNEL_SUMMARY_FIXTURE_IDENTITY: &str =
     "public_planar_boolean_entry_basis_rejects_kernel_summary_substitution";
@@ -86,15 +91,29 @@ pub(crate) fn closeout_harness_named(query_scope: &'static str) -> PlanarBoolean
     let admitted_workload = rebuild_left_workload(
         pair.left().workload(),
         vec![
-            WorkloadEvidenceRow::from_boolean_evidence_receipt(&declaration),
-            WorkloadEvidenceRow::from_boolean_evidence_receipt(&route),
-            WorkloadEvidenceRow::from_boolean_evidence_receipt(&pair_construction),
+            certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanDeclarationEntry,
+                declaration.query_declaration_digest(),
+                WorkloadEvidenceStageCounters::boolean_declaration(),
+            ),
+            certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanRoutePlan,
+                route.query_support_digest(),
+                WorkloadEvidenceStageCounters::boolean_route(),
+            ),
+            certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanOperandPairConstruction,
+                pair_construction.construction_digest(),
+                WorkloadEvidenceStageCounters::boolean_operand_pair(),
+            ),
         ],
     );
     let blocked_workload = rebuild_left_workload(
         pair.left().workload(),
-        vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-            &blocker_evidence,
+        vec![certification_only_admitted_stage_row(
+            WorkloadEvidenceStage::BooleanBlockerProvenance,
+            blocker_evidence.blocker_digest(),
+            WorkloadEvidenceStageCounters::boolean_blocker(),
         )],
     );
     let evidence_proof = PlanarBoolean7_0EvidenceProof::certify(
@@ -149,11 +168,7 @@ fn rebuild_left_workload(
     workload: &WorthWorkload,
     boolean_rows: Vec<WorkloadEvidenceRow>,
 ) -> WorthWorkload {
-    let mut rows = workload.evidence_ledger().rows().to_vec();
-    rows.extend(boolean_rows);
-    let ledger = WorkloadEvidenceLedger::from_rows(rows)
-        .expect("boolean closeout ledger should stay inspectable")
-        .certify_complete()
+    let ledger = complete_ledger_with_additional_rows(workload.evidence_ledger(), boolean_rows)
         .expect("classical workload stages should remain complete");
 
     WorthWorkload::compose(WorthWorkloadParts {

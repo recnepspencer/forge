@@ -18,16 +18,16 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let retained_handoff = orchestrate_topology_declaration_entry(
             TopologyMutationFamily::AttachBoundaryMembership,
             declaration.clone(),
+            mode.clone(),
         )?;
 
         let sequence = declaration.clone().into_mutation_sequence();
-        let receipt = self.compose_face_inner_loop_program(&sequence, bindings)?;
-        self.finish_composed_membership_execution(
-            mode,
+        self.compose_face_inner_loop_program(
             retained_handoff,
+            mode,
             TopologyCreateInnerLoopOnExistingFaceDeclaration::SEMANTIC_FAMILY_KEY,
             &sequence,
-            receipt,
+            bindings,
         )
     }
 }

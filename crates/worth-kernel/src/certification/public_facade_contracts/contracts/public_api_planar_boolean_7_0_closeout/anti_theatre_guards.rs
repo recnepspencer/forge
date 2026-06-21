@@ -1,9 +1,9 @@
 use worth_kernel::workload_composition::{
     PlanarBooleanBlockerEvidenceReceipt, PlanarBooleanOperandPairConstructionReceipt, WorthWorkload,
 };
+use worth_spatial::certification::workload_evidence::ledger_with_manual_stage_substitution;
 use worth_spatial::facade::workload_vocabulary::{
-    CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedger, WorkloadEvidenceLedgerError,
-    WorkloadEvidenceRow, WorkloadEvidenceStage,
+    CompleteWorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceStage,
 };
 
 use super::PlanarBoolean7_0CloseoutError;
@@ -11,7 +11,7 @@ use super::PlanarBoolean7_0CloseoutError;
 pub(super) fn topology_guard_identity(
     ledger: &CompleteWorkloadEvidenceLedger,
 ) -> Result<&'static str, PlanarBoolean7_0CloseoutError> {
-    let error = manually_substituted_topology_ledger(ledger)
+    let error = ledger_with_manual_stage_substitution(ledger, WorkloadEvidenceStage::Topology)
         .and_then(|ledger| ledger.certify_complete())
         .expect_err("manual topology substitution must fail");
     match error {
@@ -42,21 +42,4 @@ pub(super) fn catalog_guard_identity(
         .require_boolean_operand_pair_construction(pair_construction)
         .map(|_| "catalog-pair-stage")
         .map_err(|_| PlanarBoolean7_0CloseoutError::InvalidAntiTheatreGuard("catalog"))
-}
-
-fn manually_substituted_topology_ledger(
-    ledger: &CompleteWorkloadEvidenceLedger,
-) -> Result<WorkloadEvidenceLedger, WorkloadEvidenceLedgerError> {
-    let rows = ledger
-        .rows()
-        .iter()
-        .map(|row| {
-            if row.stage() == WorkloadEvidenceStage::Topology {
-                WorkloadEvidenceRow::new(WorkloadEvidenceStage::Topology, row.evidence_identity())
-            } else {
-                row.clone()
-            }
-        })
-        .collect();
-    WorkloadEvidenceLedger::from_rows(rows)
 }

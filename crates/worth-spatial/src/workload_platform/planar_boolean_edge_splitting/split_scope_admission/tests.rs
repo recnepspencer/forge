@@ -162,10 +162,14 @@ fn request_subject(include_source_carriers: bool) -> EdgeSplitScopeSubject {
         ),
     )
     .expect("candidate-index consumption gate should admit");
+    let event_ledger_lookup = evidence
+        .require_boolean_receipt_lookup(&event_ledger)
+        .expect("typed event-ledger lookup should admit");
     let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         &event_ledger,
         &gate,
-        evidence.stage_index(),
+        &event_ledger_lookup,
+        None,
     ))
     .expect("split request should admit before scope classification");
     EdgeSplitScopeSubject { request }

@@ -41,6 +41,9 @@ impl ForgeQueryGraphObligationTouchLookupKey {
             "relation-kind-id" => Self::RelationKindId(KindId(selector_u32_value(selector))),
             "aspect-path" => Self::AspectPath(selector_value(selector)),
             "declared-aspect-operation" => Self::DeclaredAspectOperation(selector_value(selector)),
+            "declared-mutation-collection" => {
+                Self::Collection(declared_mutation_collection_name(selector))
+            }
             "mutation-family" => {
                 Self::MutationFamily(mutation_family_from_selector_value(selector))
             }
@@ -140,6 +143,14 @@ fn selector_u32_value(selector: &ForgeQueryGraphTouchSelector) -> u32 {
     selector_value(selector)
         .parse()
         .expect("relation kind id selector value is numeric")
+}
+
+fn declared_mutation_collection_name(selector: &ForgeQueryGraphTouchSelector) -> String {
+    selector_value(selector)
+        .split('|')
+        .next()
+        .expect("declared mutation collection selector includes collection")
+        .to_string()
 }
 
 fn mutation_family_from_selector_value(

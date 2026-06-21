@@ -1,4 +1,4 @@
-use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQuerySymbolicTargetReference};
+use forge_query::facade::ForgeQuerySymbolicTargetReference;
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
@@ -7,18 +7,35 @@ use super::shared::{
 };
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
+    ensure_declared_touched_basis_covers_sequence_before_write, TopologyDeclaredMutationArtifact,
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
+    TopologyRetainedApplicationHandoff,
 };
 use crate::topology_operators::topology_relation_dependency_path;
-use crate::topology_operators::TopologyDeclaredMutationSequence;
+use crate::topology_operators::{
+    TopologyDeclaredMutationSequence, TopologyMutationApplicationMode,
+};
 
 impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
-    pub(crate) fn compose_wire_rehome_program(
+    pub(crate) fn compose_wire_rehome_program<I>(
         &mut self,
+        retained_handoff: TopologyRetainedApplicationHandoff<I>,
+        mode: TopologyMutationApplicationMode,
+        semantic_family_key: &'static str,
         program: super::super::wire_rehome_support::WireRehomeProgram,
         sequence: &TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
+    where
+        I: forge_query::facade::ForgeQueryDeclarationInput<
+            crate::query_domain::TopologyQueryDomain,
+        >,
+    {
+        ensure_declared_touched_basis_covers_sequence_before_write(
+            &retained_handoff,
+            sequence,
+            mode.clone(),
+        )?;
         let members = sequence.members().collect::<Vec<_>>();
         let retired_wire_binding =
             crate::topology_operators::application::bindings::query_entity_binding(
@@ -100,7 +117,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 ?,
             );
         }
-        self.workspace
+        let receipt = self
+            .workspace
             .compose_graph(|graph| {
                 graph.insert_entity(created_wire_key.clone(), "TopologyEntity", |mutation| {
                     mutation
@@ -165,14 +183,35 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 )?;
                 Ok(())
             })
-            .map_err(TopologyMutationApplicationError::from)
+            .map_err(TopologyMutationApplicationError::from)?;
+        self.finish_composed_membership_execution(
+            mode,
+            retained_handoff,
+            semantic_family_key,
+            sequence,
+            receipt,
+        )
     }
 
-    pub(crate) fn compose_wire_split_program(
+    pub(crate) fn compose_wire_split_program<I>(
         &mut self,
+        retained_handoff: TopologyRetainedApplicationHandoff<I>,
+        mode: TopologyMutationApplicationMode,
+        semantic_family_key: &'static str,
         program: super::super::wire_rehome_support::WireSplitProgram,
+        sequence: &TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
+    where
+        I: forge_query::facade::ForgeQueryDeclarationInput<
+            crate::query_domain::TopologyQueryDomain,
+        >,
+    {
+        ensure_declared_touched_basis_covers_sequence_before_write(
+            &retained_handoff,
+            sequence,
+            mode.clone(),
+        )?;
         let retained_wire_id = program
             .retained_wire_id
             .expect("resolved wire split program always sets retained wire id");
@@ -245,7 +284,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 ?,
             );
         }
-        self.workspace
+        let receipt = self
+            .workspace
             .compose_graph(|graph| {
                 graph.insert_entity(created_wire_key.clone(), "TopologyEntity", |mutation| {
                     mutation
@@ -303,6 +343,13 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 }
                 Ok(())
             })
-            .map_err(TopologyMutationApplicationError::from)
+            .map_err(TopologyMutationApplicationError::from)?;
+        self.finish_composed_membership_execution(
+            mode,
+            retained_handoff,
+            semantic_family_key,
+            sequence,
+            receipt,
+        )
     }
 }

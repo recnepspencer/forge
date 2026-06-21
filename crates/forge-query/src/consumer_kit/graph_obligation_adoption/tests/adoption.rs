@@ -6,7 +6,8 @@ use crate::runtime::{
     ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchReadVerb, ForgeQueryGraphTouchSelector,
 };
 use crate::{
-    graph_obligation_consumer_kit, ForgeQueryGraphObligationConsumerKitErrorKind,
+    graph_obligation_consumer_kit, ForgeQueryGraphObligationAdoptionProof,
+    ForgeQueryGraphObligationConsumerKitErrorKind,
     ForgeQueryGraphObligationConsumerRegistrationDeclaration,
     ForgeQueryGraphObligationLocalCeremonyAudit, ForgeQueryGraphObligationResidueManifest,
     ForgeQueryGraphObligationSelectorCoverageDeclaration, ForgeQueryGraphObligationSupportPin,
@@ -25,38 +26,40 @@ fn consumer_kit_builds_manifest_from_query_surfaces_only() {
         [ForgeQueryGraphTouchReadVerb::ObservesCollection],
     )
     .unwrap();
-    let proof = graph_obligation_consumer_kit("worth-kernel")
-        .register_obligations(
-            ForgeQueryGraphObligationConsumerRegistrationDeclaration::for_runtime_family(
-                "worth-kernel-validity",
-                [registration],
+    let proof: ForgeQueryGraphObligationAdoptionProof =
+        graph_obligation_consumer_kit("worth-kernel")
+            .register_obligations(
+                ForgeQueryGraphObligationConsumerRegistrationDeclaration::for_runtime_family(
+                    "worth-kernel-validity",
+                    [registration],
+                )
+                .unwrap(),
             )
-            .unwrap(),
-        )
-        .declare_selector_coverage(
-            ForgeQueryGraphObligationSelectorCoverageDeclaration::required([(
-                "active face read coverage",
-                ForgeQueryGraphTouchSelector::collection("worth_faces").unwrap(),
-            )]),
-        )
-        .pin_support(ForgeQueryGraphObligationSupportPin::supported_with_budget(
-            [(
-                ForgeQueryGraphObligationKind::BlockingInvariant,
-                ForgeQueryGraphObligationSupportLane::AssemblyIndexSelection,
-                ForgeQueryGraphObligationExecutionBudget::selection_only_deferred_execution(),
-            )],
-        ))
-        .audit_local_ceremony(evaluated_clean_audit("worth-kernel"))
-        .account_for_residue(ForgeQueryGraphObligationResidueManifest::empty())
-        .prove_in_memory_selection(
-            &touch,
-            &ForgeQueryGraphObligationOperatingWorldDescriptor::any_committed_authority(),
-        )
-        .unwrap()
-        .prove_adoption()
-        .unwrap();
+            .declare_selector_coverage(
+                ForgeQueryGraphObligationSelectorCoverageDeclaration::required([(
+                    "active face read coverage",
+                    ForgeQueryGraphTouchSelector::collection("worth_faces").unwrap(),
+                )]),
+            )
+            .pin_support(ForgeQueryGraphObligationSupportPin::supported_with_budget(
+                [(
+                    ForgeQueryGraphObligationKind::BlockingInvariant,
+                    ForgeQueryGraphObligationSupportLane::AssemblyIndexSelection,
+                    ForgeQueryGraphObligationExecutionBudget::selection_only_deferred_execution(),
+                )],
+            ))
+            .audit_local_ceremony(evaluated_clean_audit("worth-kernel"))
+            .account_for_residue(ForgeQueryGraphObligationResidueManifest::empty())
+            .prove_in_memory_selection(
+                &touch,
+                &ForgeQueryGraphObligationOperatingWorldDescriptor::any_committed_authority(),
+            )
+            .unwrap()
+            .prove_adoption()
+            .unwrap();
 
     assert_eq!(proof.manifest().consumer_name(), "worth-kernel");
+    let _manifest = proof.manifest();
     assert_eq!(proof.in_memory_proof().selected_obligation_count(), 1);
     assert_eq!(proof.in_memory_proof().selected_obligations().len(), 1);
     assert_eq!(proof.support_pin().row_count(), 1);

@@ -5,13 +5,15 @@ use worth_kernel::workload_composition::{
     PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest, PlanarBooleanDeclaration,
     PlanarBooleanEntryBasis, PlanarBooleanExecutionLane, PlanarBooleanFamily,
     PlanarBooleanOperandPairIdentity, PlanarBooleanOperation, WorkloadCatalog,
-    WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
+    WorkloadCompositionError, WorthWorkload, WorthWorkloadParts,
+};
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, certification_only_unsupported_stage_row,
+    complete_ledger_stage_snapshot, complete_ledger_with_additional_rows,
 };
 use worth_spatial::facade::planar_boolean_common_plane::PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt;
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
@@ -35,22 +37,32 @@ fn worth_workload_requires_real_shared_plane_identity_evidence() {
             )
         );
 
-        let admitted = rebuild_left_workload(
+        let certification_only = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &shared_plane,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
+                shared_plane.shared_plane_identified_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_shared_plane_identity(),
             )],
         );
-        admitted
-            .require_boolean_shared_plane_identity(&shared_plane)
-            .expect("real shared-plane identity evidence should pass");
         assert_eq!(
-            admitted
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanSharedPlaneIdentity)
-                .expect("shared-plane row should exist")
-                .counters()
-                .boolean_shared_plane_identity_count(),
+            certification_only
+                .require_boolean_shared_plane_identity(&shared_plane)
+                .expect_err(
+                    "certification-only shared-plane rows must not satisfy production evidence"
+                ),
+            WorkloadCompositionError::ManualEvidenceStage(
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity
+            )
+        );
+        assert_eq!(
+            complete_ledger_stage_snapshot(
+                certification_only.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
+            )
+            .expect("shared-plane row should exist")
+            .counters()
+            .boolean_shared_plane_identity_count(),
             1
         );
     });
@@ -72,15 +84,17 @@ fn worth_workload_rejects_foreign_shared_plane_identity_evidence_row() {
 
         let mismatched = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &foreign_shared_plane,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
+                foreign_shared_plane.shared_plane_identified_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_shared_plane_identity(),
             )],
         );
         assert_eq!(
             mismatched
                 .require_boolean_shared_plane_identity(&shared_plane)
-                .expect_err("foreign shared-plane identity evidence must fail"),
-            WorkloadCompositionError::MismatchedEvidenceStage(
+                .expect_err("certification-only foreign shared-plane evidence must fail before identity matching"),
+            WorkloadCompositionError::ManualEvidenceStage(
                 WorkloadEvidenceStage::BooleanSharedPlaneIdentity
             )
         );
@@ -114,31 +128,35 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_shared_plane
 
         let counterless = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &CounterlessSharedPlaneEvidence::new(&shared_plane),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
+                shared_plane.shared_plane_identified_request_identity(),
+                WorkloadEvidenceStageCounters::default(),
             )],
         );
         assert_eq!(
             counterless
                 .require_boolean_shared_plane_identity(&shared_plane)
-                .expect_err("counterless shared-plane row must fail"),
-            WorkloadCompositionError::CounterlessEvidenceStage(
+                .expect_err("certification-only counterless shared-plane row must fail before counter matching"),
+            WorkloadCompositionError::ManualEvidenceStage(
                 WorkloadEvidenceStage::BooleanSharedPlaneIdentity
             )
         );
 
         let unsupported = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &SupportMismatchedSharedPlaneEvidence::new(&shared_plane),
+            vec![certification_only_unsupported_stage_row(
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
+                shared_plane.shared_plane_identified_request_identity(),
+                WorkloadEvidenceStageCounters::boolean_shared_plane_identity(),
             )],
         );
         assert_eq!(
             unsupported
                 .require_boolean_shared_plane_identity(&shared_plane)
-                .expect_err("support-mismatched shared-plane row must fail"),
-            WorkloadCompositionError::UnsupportedStage(
-                WorkloadStageRequirement::BooleanSharedPlaneIdentity
+                .expect_err("certification-only support-mismatched shared-plane row must fail before support matching"),
+            WorkloadCompositionError::ManualEvidenceStage(
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity
             )
         );
     });
@@ -155,99 +173,37 @@ fn shared_plane_stage_counters_count_only_real_receipt_backed_rows() {
         let workload = rebuild_left_workload(
             &pair,
             vec![
-                WorkloadEvidenceRow::from_boolean_evidence_receipt(&shared_plane),
+                certification_only_admitted_stage_row(
+                    WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
+                    shared_plane.shared_plane_identified_request_identity(),
+                    WorkloadEvidenceStageCounters::boolean_shared_plane_identity(),
+                ),
                 WorkloadEvidenceRow::new(WorkloadEvidenceStage::BooleanSplit, "manual split"),
             ],
         );
 
         assert_eq!(
-            workload
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanSharedPlaneIdentity)
-                .expect("shared-plane row should exist")
-                .counters()
-                .boolean_shared_plane_identity_count(),
+            complete_ledger_stage_snapshot(
+                workload.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanSharedPlaneIdentity,
+            )
+            .expect("shared-plane row should exist")
+            .counters()
+            .boolean_shared_plane_identity_count(),
             1
         );
         assert_eq!(
-            workload
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanSplit)
-                .expect("manual split row should exist")
-                .counters()
-                .total_receipt_backed_counters(),
+            complete_ledger_stage_snapshot(
+                workload.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanSplit,
+            )
+            .expect("manual split row should exist")
+            .counters()
+            .total_receipt_backed_counters(),
             0
         );
     });
 }
-
-struct CounterlessSharedPlaneEvidence {
-    digest: String,
-}
-
-impl CounterlessSharedPlaneEvidence {
-    fn new(shared_plane: &PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest) -> Self {
-        Self {
-            digest: shared_plane
-                .shared_plane_identified_request_identity()
-                .to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for CounterlessSharedPlaneEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::SharedPlaneIdentity
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Admitted
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::default()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for CounterlessSharedPlaneEvidence {}
-
-struct SupportMismatchedSharedPlaneEvidence {
-    digest: String,
-}
-
-impl SupportMismatchedSharedPlaneEvidence {
-    fn new(shared_plane: &PlanarBooleanCommonPlaneSharedPlaneIdentifiedRequest) -> Self {
-        Self {
-            digest: shared_plane
-                .shared_plane_identified_request_identity()
-                .to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for SupportMismatchedSharedPlaneEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::SharedPlaneIdentity
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Unsupported
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::boolean_shared_plane_identity()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for SupportMismatchedSharedPlaneEvidence {}
 
 fn shared_plane_from_pair(
     pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,
@@ -305,11 +261,7 @@ fn rebuild_left_workload(
     boolean_rows: Vec<WorkloadEvidenceRow>,
 ) -> WorthWorkload {
     let left = pair.left().workload();
-    let mut rows = left.evidence_ledger().rows().to_vec();
-    rows.extend(boolean_rows);
-    let ledger = WorkloadEvidenceLedger::from_rows(rows)
-        .expect("shared-plane evidence rows should stay inspectable")
-        .certify_complete()
+    let ledger = complete_ledger_with_additional_rows(left.evidence_ledger(), boolean_rows)
         .expect("classical stages should remain complete");
 
     WorthWorkload::compose(WorthWorkloadParts {

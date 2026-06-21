@@ -58,16 +58,6 @@ pub(crate) fn primitive_construction_graph_obligation_residue_manifest(
             "the spec and kernel primitive family inventory agree, or a seventh family is added and covered by compose execution",
             "kept as explicit residue so the phase cannot silently certify six families as the seven-family adversarial requirement",
         )?,
-        ForgeQueryGraphObligationResidueRow::explicit(
-            "kernel-birth-selector-conjunction-gap",
-            "worth-kernel primitive construction graph-obligation selector",
-            "forge-query-9.9-phase-18",
-            1,
-            1,
-            "primitive birth obligation selection is still keyed by the topology birth collection, so same-collection descriptors with wrong mutation family, aspect operation, aspect path, or read shape still select",
-            "the runtime exposes a conjunctive selector or equivalent exact descriptor contract for collection plus mutation/aspect/read shape",
-            "kept as explicit residue so broad collection selection is not mistaken for exact primitive birth obligation adoption",
-        )?,
     ])
 }
 

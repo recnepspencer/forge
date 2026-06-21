@@ -55,7 +55,8 @@ where
         + forge_query::facade::ForgeQueryDeclarationInput<crate::query_domain::TopologyQueryDomain>
         + Clone,
 {
-    let retained_handoff = orchestrate_topology_declaration_entry(D::FAMILY, declaration.clone())?;
+    let retained_handoff =
+        orchestrate_topology_declaration_entry(D::FAMILY, declaration.clone(), mode.clone())?;
     let sequence = declaration.clone().into_mutation_sequence();
     let lowered_mutations =
         lower_mutation_sequence(runner, &sequence, bindings, &Default::default())?;

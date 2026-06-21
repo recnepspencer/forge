@@ -1,4 +1,4 @@
-use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQuerySymbolicTargetReference};
+use forge_query::facade::ForgeQuerySymbolicTargetReference;
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
@@ -7,19 +7,35 @@ use super::shared::{
 };
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
+    ensure_declared_touched_basis_covers_sequence_before_write, TopologyDeclaredMutationArtifact,
     TopologyMutationApplicationError, TopologyMutationApplicationRunner,
+    TopologyRetainedApplicationHandoff,
 };
 use crate::topology_operators::{
     topology_relation_dependency_path, TopologyDeclaredMutationSequence,
+    TopologyMutationApplicationMode,
 };
 
 impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
-    pub(crate) fn compose_shell_rehome_program(
+    pub(crate) fn compose_shell_rehome_program<I>(
         &mut self,
+        retained_handoff: TopologyRetainedApplicationHandoff<I>,
+        mode: TopologyMutationApplicationMode,
+        semantic_family_key: &'static str,
         program: super::super::shell_face_rehome_support::ShellFaceRehomeProgram,
         sequence: &TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
+    where
+        I: forge_query::facade::ForgeQueryDeclarationInput<
+            crate::query_domain::TopologyQueryDomain,
+        >,
+    {
+        ensure_declared_touched_basis_covers_sequence_before_write(
+            &retained_handoff,
+            sequence,
+            mode.clone(),
+        )?;
         let members = sequence.members().collect::<Vec<_>>();
         let retired_shell_binding =
             crate::topology_operators::application::bindings::query_entity_binding(
@@ -150,7 +166,8 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             );
         }
 
-        self.workspace
+        let receipt = self
+            .workspace
             .compose_graph(|graph| {
                 graph.insert_entity(created_shell_key.clone(), "TopologyEntity", |mutation| {
                     mutation
@@ -254,6 +271,13 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
                 )?;
                 Ok(())
             })
-            .map_err(TopologyMutationApplicationError::from)
+            .map_err(TopologyMutationApplicationError::from)?;
+        self.finish_composed_membership_execution(
+            mode,
+            retained_handoff,
+            semantic_family_key,
+            sequence,
+            receipt,
+        )
     }
 }

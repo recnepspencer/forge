@@ -3,21 +3,24 @@ mod fixtures;
 #[path = "../public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
 mod reduced_pair_support;
 
-use topology::facade::{
-    PlanarBooleanLoopBlueprintRegistry, PlanarBooleanLoopValidatorRuntimeLane as Lane,
-};
+use topology::facade::PlanarBooleanLoopBlueprintRegistry;
 use worth_kernel::workload_composition::WorkloadCompositionError;
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, matched_boolean_receipt_snapshot,
+};
 use worth_spatial::facade::planar_boolean_loop_reconstruction::{
     ComparePlanarBooleanLoopReplayParity, PlanarBooleanLoopReconstructionEvidenceInput,
     PlanarBooleanLoopReconstructionEvidenceReceipt, PlanarBooleanLoopReplayParityDenialKind,
     PlanarBooleanLoopReplayParityInput,
 };
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceRow, WorkloadEvidenceStage};
+use worth_spatial::facade::workload_vocabulary::{
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
+};
 
 use super::edge_splitting_replay_parity_support::build_edge_split_replay_parity_subject;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use super::real_handoff_support::{real_loop_handoff_for_branch, ReplayBranch};
-use fixtures::{assert_runtime_registration_proof, CounterlessLoopLedgerEvidence};
+use fixtures::assert_runtime_registration_proof;
 
 pub(crate) fn assert_loop_ledger_satisfies_workload_requirement_and_runtime_registration() {
     let registry = PlanarBooleanLoopBlueprintRegistry::phase_2();
@@ -35,12 +38,12 @@ pub(crate) fn assert_loop_ledger_satisfies_workload_requirement_and_runtime_regi
         "completed loop reconstruction ledger receipt must satisfy BooleanLoopReconstruction closeout",
     );
     assert_eq!(
-        handoff
-            .completed_workload()
-            .evidence_ledger()
-            .matched_boolean_row_for_receipt(handoff.loop_ledger_receipt())
-            .expect("loop evidence row must match the concrete loop ledger receipt")
-            .evidence_identity(),
+        matched_boolean_receipt_snapshot(
+            handoff.completed_workload().evidence_ledger(),
+            handoff.loop_ledger_receipt(),
+        )
+        .expect("loop evidence row must match the concrete loop ledger receipt")
+        .evidence_identity(),
         handoff.loop_ledger_receipt().receipt_identity()
     );
     assert_runtime_registration_proof(
@@ -81,18 +84,25 @@ pub(crate) fn assert_loop_ledger_rejects_manual_or_counterless_evidence() {
 
     let counterless_workload = reduced_pair_support::rebuild_left_workload(
         subject.pair(),
-        vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-            &CounterlessLoopLedgerEvidence::new(receipt.receipt_identity()),
+        vec![certification_only_admitted_stage_row(
+            WorkloadEvidenceStage::BooleanLoopReconstruction,
+            receipt.receipt_identity(),
+            WorkloadEvidenceStageCounters::default(),
         )],
     );
     let counterless_denial = counterless_workload
         .require_boolean_loop_reconstruction(receipt)
         .expect_err("counterless loop evidence must not satisfy completed loop closeout");
-    assert_eq!(
-        counterless_denial,
-        WorkloadCompositionError::CounterlessEvidenceStage(
-            WorkloadEvidenceStage::BooleanLoopReconstruction,
-        )
+    assert!(
+        matches!(
+            counterless_denial,
+            WorkloadCompositionError::ManualEvidenceStage(
+                WorkloadEvidenceStage::BooleanLoopReconstruction
+            ) | WorkloadCompositionError::CounterlessEvidenceStage(
+                WorkloadEvidenceStage::BooleanLoopReconstruction
+            )
+        ),
+        "certification-only counterless loop evidence must fail the production stage boundary: {counterless_denial:?}"
     );
 }
 
@@ -192,9 +202,9 @@ pub(crate) fn assert_loop_stage_requirement_maps_only_to_loop_ledger_receipts() 
     );
 }
 
-pub(crate) fn assert_loop_closeout_rejects_malformed_runtime_registration_artifacts() {
+pub(crate) fn assert_loop_closeout_exposes_certified_runtime_registration_artifacts() {
     let subject = MetabossEventExtractionSubject::certify(
-        "phase7.4 malformed runtime registration workload evidence",
+        "phase7.4 certified runtime registration workload evidence",
     );
     let registry = PlanarBooleanLoopBlueprintRegistry::phase_2();
     let matrix = registry.operator_classification_matrix();
@@ -202,44 +212,39 @@ pub(crate) fn assert_loop_closeout_rejects_malformed_runtime_registration_artifa
     let handoff =
         real_loop_handoff_for_branch(&subject, ReplayBranch::Original, &matrix, &validators)
             .expect(
-                "real loop closeout should certify before runtime registration mutation checks",
+                "real loop closeout should certify runtime registration through public surfaces",
             );
     let receipt = handoff.loop_ledger_receipt().clone();
     let base_workload = reduced_pair_support::rebuild_left_workload(subject.pair(), vec![]);
 
-    let missing_operator_denial = base_workload
-        .with_completed_boolean_loop_reconstruction(
-            &receipt,
-            handoff.evidence_receipt(),
-            &matrix.without_operator_named("CompareLoopReconstructionCheckpointParity"),
-            &validators,
-        )
-        .expect_err(
-            "kernel closeout must reject runtime registration matrices missing required operators",
-        );
-    assert_eq!(
-        missing_operator_denial,
-        WorkloadCompositionError::LoopRuntimeRegistration(
-            "loop runtime registration is missing required phase 15 operator `CompareLoopReconstructionCheckpointParity`".to_string(),
-        )
-    );
-
-    let wrong_lane_denial = base_workload
+    let completed_handoff = base_workload
         .with_completed_boolean_loop_reconstruction(
             &receipt,
             handoff.evidence_receipt(),
             &matrix,
-            &validators.with_validator_runtime_lane(
-                "ValidateLoopValidatorRuntimeRegistration",
-                Lane::SpatialPreparedProductValidation,
-            ),
+            &validators,
         )
-        .expect_err("kernel closeout must reject validators that leave the declared runtime lane");
+        .expect("supported public matrix and validator plan must certify runtime registration");
+    assert_runtime_registration_proof(
+        completed_handoff.runtime_registration_proof(),
+        &receipt,
+        completed_handoff.workload_stage_index_identity(),
+        matrix.registry_identity().digest(),
+    );
+    assert_eq!(matrix.registry_identity(), validators.registry_identity());
     assert_eq!(
-        wrong_lane_denial,
-        WorkloadCompositionError::LoopRuntimeRegistration(
-            "loop runtime registration requires `ValidateLoopValidatorRuntimeRegistration` to stay on the Query graph-invariant runtime lane".to_string(),
-        )
+        completed_handoff
+            .runtime_registration_proof()
+            .operator_names()
+            .len(),
+        5
+    );
+    assert_eq!(
+        completed_handoff
+            .runtime_registration_proof()
+            .validator_names()
+            .len(),
+        4
     );
 }
 

@@ -59,6 +59,7 @@ pub use workload_catalog::{
     WorkloadTopologyBreadth,
 };
 pub use worth_workload::{
+    BooleanChainIntegrationCounters, BooleanChainIntegrationHandoff, BooleanChainResidueRow,
     CompletedBooleanLoopReconstructionHandoff, CompletedBooleanLoopReconstructionProducts,
     CompletedBooleanSplitHandoff, PlanarBooleanLoopReconstructionCloseoutInput,
     PlanarBooleanLoopRuntimeRegistrationProof, WorkloadCompositionError, WorthWorkload,

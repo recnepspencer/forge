@@ -28,6 +28,8 @@ use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
 };
 
+use crate::public_api_workload_vocabulary::evidence_ledger_receipts::counter_backed_rows;
+
 use super::super::dirty_planar_clean_fail::subject::dirty_clean_fail_with_topology_seed;
 
 pub(crate) struct NmtRadialFanSubject {
@@ -263,21 +265,16 @@ pub(crate) fn mismatched_replay_denial() -> NmtRadialFanDenial {
 }
 
 pub(crate) fn manual_stage_substitution_errors() -> Vec<WorkloadEvidenceLedgerError> {
-    let fan = radial_fan_subject("mb-m6-nmt-1-manual-authority", 4);
     WorkloadEvidenceStage::AUTHORITY_STAGES
         .into_iter()
         .map(|stage| {
-            let rows = fan
-                .catalog
-                .workload()
-                .evidence_ledger()
-                .rows()
-                .iter()
+            let rows = counter_backed_rows("mb-m6-nmt-1-manual-authority")
+                .into_iter()
                 .map(|row| {
                     if row.stage() == stage {
                         WorkloadEvidenceRow::new(stage, row.evidence_identity())
                     } else {
-                        row.clone()
+                        row
                     }
                 })
                 .collect();

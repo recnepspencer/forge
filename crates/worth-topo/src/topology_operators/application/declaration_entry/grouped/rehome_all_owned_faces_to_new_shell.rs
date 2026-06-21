@@ -19,19 +19,20 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let retained_handoff = orchestrate_topology_declaration_entry(
             TopologyMutationFamily::AttachShellOrWireMembership,
             declaration.clone(),
+            mode.clone(),
         )?;
 
         let sequence = declaration.clone().into_mutation_sequence();
         let program = parse_shell_face_rehome_program(&sequence).expect(
             "canonical shell rehome declaration should lower to a parseable composed shell program",
         );
-        let receipt = self.compose_shell_rehome_program(program, &sequence, bindings)?;
-        self.finish_composed_membership_execution(
-            mode,
+        self.compose_shell_rehome_program(
             retained_handoff,
+            mode,
             TopologyRehomeAllOwnedFacesToNewShellDeclaration::SEMANTIC_FAMILY_KEY,
+            program,
             &sequence,
-            receipt,
+            bindings,
         )
     }
 }

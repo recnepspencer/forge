@@ -1,37 +1,25 @@
-error[E0451]: fields `upstream_stage` and `upstream_evidence_identity` of struct `WorkloadEvidenceStageBinding` are private
- --> src/certification/public_facade_contracts/compile_fail/workload_operators/operator_stage_links_not_hand_filled.rs:8:9
-  |
-7 |     let _binding = WorkloadEvidenceStageBinding {
-  |                    ---------------------------- in this type
-8 |         upstream_stage: WorkloadEvidenceStage::Projection,
-  |         ^^^^^^^^^^^^^^ private field
-9 |         upstream_evidence_identity: "projection".to_string(),
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-
-error[E0451]: fields `stage`, `evidence_identity`, `link_identity` and `counters` of struct `WorkloadEvidenceStageLink` are private
-  --> src/certification/public_facade_contracts/compile_fail/workload_operators/operator_stage_links_not_hand_filled.rs:12:9
-   |
-11 |     let link = WorkloadEvidenceStageLink {
-   |                ------------------------- in this type
-12 |         stage: WorkloadEvidenceStage::Projection,
-   |         ^^^^^ private field
-13 |         evidence_identity: "projection".to_string(),
-   |         ^^^^^^^^^^^^^^^^^ private field
-14 |         link_identity: "link".to_string(),
-   |         ^^^^^^^^^^^^^ private field
-15 |         counters: WorkloadEvidenceStageCounters::default(),
-   |         ^^^^^^^^ private field
-
-error[E0451]: fields `stage_index_identity`, `links`, `stage_offsets` and `link_set_identity` of struct `WorkloadEvidenceStageLinkSet` are private
-  --> src/certification/public_facade_contracts/compile_fail/workload_operators/operator_stage_links_not_hand_filled.rs:18:9
+error: cannot construct `WorkloadEvidenceStageLinkSet` with struct literal syntax due to private fields
+  --> src/certification/public_facade_contracts/compile_fail/workload_operators/operator_stage_links_not_hand_filled.rs:17:13
    |
 17 |     let _ = WorkloadEvidenceStageLinkSet {
-   |             ---------------------------- in this type
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 18 |         stage_index_identity: "index".to_string(),
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------- private field
 19 |         links: vec![link],
-   |         ^^^^^ private field
+   |         ----------------- private field
 20 |         stage_offsets: [None; 27],
-   |         ^^^^^^^^^^^^^ private field
+   |         ------------------------- private field
 21 |         link_set_identity: "set".to_string(),
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------ private field
+   |
+   = note: ...and other private field `lookup_counters` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+17 -     let _ = WorkloadEvidenceStageLinkSet {
+18 -         stage_index_identity: "index".to_string(),
+19 -         links: vec![link],
+20 -         stage_offsets: [None; 27],
+21 -         link_set_identity: "set".to_string(),
+22 -     };
+17 +     let _ = WorkloadEvidenceStageLinkSet::new(_, _);
+   |

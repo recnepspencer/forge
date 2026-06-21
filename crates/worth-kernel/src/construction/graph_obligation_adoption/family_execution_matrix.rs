@@ -7,10 +7,13 @@ use topology::runtime_support::{topology_runtime, TopologyRuntimeAdapters};
 
 use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::outcome::{
-    prepare_primitive_construction_executed_outcome, PrimitiveConstructionPreparedOutcome,
+    prepare_primitive_construction_executed_outcome, PrimitiveConstructionExecutedPreparedOutcome,
 };
 use crate::construction::request::{PrimitiveConstructionFamily, PRIMITIVE_CONSTRUCTION_FAMILIES};
-use crate::construction::result::prepare_primitive_construction_executed_result;
+use crate::construction::result::{
+    prepare_primitive_construction_executed_result,
+    ExecutedPrimitiveConstructionGraphAuthorityResult,
+};
 use crate::construction::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
@@ -118,15 +121,28 @@ pub(crate) fn primitive_construction_graph_obligation_replay_pair(
     )
 }
 
+pub(crate) fn primitive_construction_graph_obligation_execution_closeout_passes() -> bool {
+    let rows = primitive_construction_graph_obligation_execution_matrix();
+    rows.len() == PRIMITIVE_CONSTRUCTION_FAMILIES.len()
+        && rows.iter().all(|row| {
+            row.selected_count() == 1
+                && !row.result_digest().is_empty()
+                && !row.outcome_digest().is_empty()
+                && !row.evidence_digest().is_empty()
+                && !row.envelope_digest().is_empty()
+                && row.execution_status()
+                    == Some(ForgeQueryGraphObligationExecutionStatus::Executed)
+                && row.has_authoritative_dispatch_identity()
+        })
+}
+
 fn execute_primitive_family_graph_obligation_case(
     family: PrimitiveConstructionFamily,
     label: &str,
 ) -> PrimitiveConstructionGraphObligationExecutionMatrixRow {
     let intent = representative_intent(family);
     let result = execute_primitive_family_result_with_compose_evidence(&intent, label);
-    let evidence = result
-        .topology_compose_evidence()
-        .expect("executed primitive construction result must expose compose evidence");
+    let evidence = result.topology_compose_evidence();
     let outcome_digest = execute_primitive_family_outcome_evidence_digest(intent, label);
 
     primitive_family_execution_matrix_row_from_evidence(&result, evidence, &outcome_digest)
@@ -135,7 +151,7 @@ fn execute_primitive_family_graph_obligation_case(
 fn execute_primitive_family_result_with_compose_evidence(
     intent: &PrimitiveConstructionIntent,
     label: &str,
-) -> crate::construction::result::PreparedPrimitiveConstructionResult {
+) -> ExecutedPrimitiveConstructionGraphAuthorityResult {
     let family = intent.family();
     let mut result_workspace =
         phase_eighteen_workspace(&format!("{label}.result.{}", family.as_str()));
@@ -151,17 +167,17 @@ fn execute_primitive_family_outcome_evidence_digest(
     let mut outcome_workspace =
         phase_eighteen_workspace(&format!("{label}.outcome.{}", family.as_str()));
     let outcome = prepare_primitive_construction_executed_outcome(&mut outcome_workspace, intent);
-    let PrimitiveConstructionPreparedOutcome::Accepted(accepted) = outcome else {
+    let PrimitiveConstructionExecutedPreparedOutcome::Accepted(accepted) = outcome else {
         panic!("executed primitive construction outcome should be accepted");
     };
     assert_eq!(accepted.graph_obligation_selected_count(), 1);
-    assert!(accepted.topology_compose_evidence_digest().is_some());
-    assert!(accepted.graph_obligation_envelope_digest().is_some());
+    assert!(!accepted.topology_compose_evidence_digest().is_empty());
+    assert!(!accepted.graph_obligation_envelope_digest().is_empty());
     accepted.outcome_digest().to_string()
 }
 
 fn primitive_family_execution_matrix_row_from_evidence(
-    result: &crate::construction::result::PreparedPrimitiveConstructionResult,
+    result: &ExecutedPrimitiveConstructionGraphAuthorityResult,
     evidence: &topology::facade::TopologyPrimitiveConstructionBirthComposeEvidence,
     outcome_digest: &str,
 ) -> PrimitiveConstructionGraphObligationExecutionMatrixRow {

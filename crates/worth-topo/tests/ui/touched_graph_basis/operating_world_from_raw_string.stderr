@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `topology::facade::TopologyTouchedOperatingWorldIdentityDigest`
+ --> tests/ui/touched_graph_basis/operating_world_from_raw_string.rs:3:36
+  |
+3 |     TopologyTouchedOperatingWorld, TopologyTouchedOperatingWorldIdentityDigest,
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                                    |
+  |                                    no `TopologyTouchedOperatingWorldIdentityDigest` in `facade`
+  |                                    help: a similar name exists in the module: `TopologyTouchedOperatingWorldPosture`

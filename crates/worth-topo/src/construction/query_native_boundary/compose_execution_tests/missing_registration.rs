@@ -40,9 +40,18 @@ fn admitted_birth_compose_fails_closed_without_primitive_birth_obligation_regist
         counts.supported_body_count,
     )
     .expect("family synopsis should admit to topology handoff");
+    let declared_touched_basis =
+        super::super::TopologyPrimitiveConstructionBirthDeclaredTouchedBasis::from_admitted_handoff(
+            &handoff,
+        )
+        .expect("admitted construction handoff should lower to touched basis");
 
-    let error = super::super::execute_primitive_construction_birth_compose(&mut workspace, handoff)
-        .expect_err("compose must fail closed when primitive birth obligation is not registered");
+    let error = super::super::execute_primitive_construction_birth_compose(
+        &mut workspace,
+        handoff,
+        declared_touched_basis,
+    )
+    .expect_err("compose must fail closed when primitive birth obligation is not registered");
 
     assert!(matches!(
         error,

@@ -1,26 +1,19 @@
-#[cfg(test)]
 use super::admitted_scaffold::PreparedPrimitiveConstructionAdmittedArtifact;
-#[cfg(test)]
 use super::digest::digest_owned_parts;
-#[cfg(test)]
 use super::request::PrimitiveConstructionFamily;
-#[cfg(test)]
 use topology::facade::{
     TopologyConstructionQueryFactProvenance, TopologyConstructionQueryInspectionSurface,
     TopologyConstructionQueryMutationSurface, TopologyConstructionQueryReadSurface,
     TopologyPrimitiveConstructionQueryAdmittedHandoff,
 };
-#[cfg(test)]
 use worth_geom::facade::{
     PrimitiveConditioningWitness, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
 };
-#[cfg(test)]
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveSupportNormalClass,
 };
 
-#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct CanonicalPrimitiveConstructionArtifact {
     family: PrimitiveConstructionFamily,
@@ -44,7 +37,6 @@ pub(crate) struct CanonicalPrimitiveConstructionArtifact {
     artifact_digest: String,
 }
 
-#[cfg(test)]
 impl CanonicalPrimitiveConstructionArtifact {
     fn new(
         family: PrimitiveConstructionFamily,
@@ -135,7 +127,6 @@ impl CanonicalPrimitiveConstructionArtifact {
         self.family
     }
 
-    #[cfg(test)]
     pub fn topology_birth_class(&self) -> &str {
         &self.topology_birth_class
     }
@@ -156,52 +147,42 @@ impl CanonicalPrimitiveConstructionArtifact {
         self.stability_class
     }
 
-    #[cfg(test)]
     pub fn realization_digest(&self) -> &str {
         &self.realization_digest
     }
 
-    #[cfg(test)]
     pub fn realization_geometry_digest(&self) -> &str {
         &self.realization_geometry_digest
     }
 
-    #[cfg(test)]
     pub fn feature_conditioning_class(&self) -> PrimitiveFeatureConditioningClass {
         self.conditioning_witness().feature_conditioning_class()
     }
 
-    #[cfg(test)]
     pub fn support_normal_class(&self) -> PrimitiveSupportNormalClass {
         self.conditioning_witness().support_normal_class()
     }
 
-    #[cfg(test)]
     pub fn normalization_disposition(&self) -> PrimitiveNormalizationDisposition {
         self.conditioning_witness().normalization_disposition()
     }
 
-    #[cfg(test)]
     pub fn birth_truth_digest(&self) -> &str {
         &self.birth_digest
     }
 
-    #[cfg(test)]
     pub fn birth_completeness_digest(&self) -> &str {
         &self.birth_completeness_digest
     }
 
-    #[cfg(test)]
     pub fn topology_fact_digest(&self) -> &str {
         &self.topology_fact_digest
     }
 
-    #[cfg(test)]
     pub fn mutation_surface(&self) -> TopologyConstructionQueryMutationSurface {
         self.mutation_surface
     }
 
-    #[cfg(test)]
     pub fn read_surface(&self) -> TopologyConstructionQueryReadSurface {
         self.read_surface
     }
@@ -211,12 +192,10 @@ impl CanonicalPrimitiveConstructionArtifact {
         self.inspection_surface
     }
 
-    #[cfg(test)]
     pub fn fact_provenance(&self) -> TopologyConstructionQueryFactProvenance {
         self.fact_provenance
     }
 
-    #[cfg(test)]
     pub fn projection_receipt_digest(&self) -> &str {
         &self.projection_receipt_digest
     }
@@ -231,7 +210,6 @@ impl CanonicalPrimitiveConstructionArtifact {
         self.supported_body_count
     }
 
-    #[cfg(test)]
     pub fn artifact_digest(&self) -> &str {
         &self.artifact_digest
     }

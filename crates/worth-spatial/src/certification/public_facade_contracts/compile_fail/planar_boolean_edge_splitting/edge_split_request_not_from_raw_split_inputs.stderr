@@ -18,12 +18,12 @@ note: expected `&...`, found `&Vec<PlanarBooleanIntervalEvent>`
    |         ^^^^^^^^^^^^^^^^^^^^
    = note: expected reference `&PlanarBooleanCandidateIndexConsumptionGate`
               found reference `&Vec<PlanarBooleanIntervalEvent>`
-note: expected `&WorkloadEvidenceStageIndexProduct`, found `&Vec<PlanarBooleanSegmentCarrier>`
+note: expected `&...`, found `&Vec<PlanarBooleanSegmentCarrier>`
   --> src/certification/public_facade_contracts/compile_fail/planar_boolean_edge_splitting/edge_split_request_not_from_raw_split_inputs.rs:16:9
    |
 16 |         &raw_segment_carriers,
    |         ^^^^^^^^^^^^^^^^^^^^^
-   = note: expected reference `&WorkloadEvidenceStageIndexProduct`
+   = note: expected reference `&WorkloadEvidenceBooleanReceiptLookupProduct`
               found reference `&Vec<PlanarBooleanSegmentCarrier>`
 note: associated function defined here
   --> src/workload_platform/planar_boolean_edge_splitting/edge_split_request/input.rs

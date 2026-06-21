@@ -31,7 +31,10 @@ pub(in crate::runtime::mutation::graph_composition::obligation::index) fn select
         }
     }
     let candidate_registration_count = candidates.len();
-    let matched_registrations = deduplicate_selection_candidates(candidates);
+    let deduplicated_candidates = deduplicate_selection_candidates(candidates);
+    let deduplicated_candidate_count = deduplicated_candidates.len();
+    let matched_registrations =
+        filter_candidates_by_selector(deduplicated_candidates, touch_descriptor);
     let counters = ForgeQueryGraphObligationSelectionCounters::new(
         ForgeQueryGraphObligationSelectionCounterInput {
             touch_lookup_key_count: touch_keys.len(),
@@ -39,7 +42,7 @@ pub(in crate::runtime::mutation::graph_composition::obligation::index) fn select
             attempted_bucket_lookup_count,
             matched_bucket_count,
             candidate_registration_count,
-            deduplicated_candidate_count: matched_registrations.len(),
+            deduplicated_candidate_count,
             matched_obligation_count: matched_registrations.len(),
             registration_full_scan_count: 0,
         },
@@ -61,5 +64,19 @@ fn deduplicate_selection_candidates(
     candidates
         .into_iter()
         .filter(|registration| seen.insert(registration.registration_digest().to_string()))
+        .collect()
+}
+
+fn filter_candidates_by_selector(
+    candidates: Vec<ForgeQueryGraphObligationRegistration>,
+    touch_descriptor: &ForgeQueryGraphTouchDescriptor,
+) -> Vec<ForgeQueryGraphObligationRegistration> {
+    candidates
+        .into_iter()
+        .filter(|registration| {
+            registration
+                .touch_selector()
+                .matches_descriptor(touch_descriptor)
+        })
         .collect()
 }

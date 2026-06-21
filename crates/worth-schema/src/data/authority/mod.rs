@@ -13,6 +13,7 @@ pub(crate) mod geometry_binding;
 pub(crate) mod interpretation;
 pub(crate) mod precision_fallback;
 pub(crate) mod topology_class;
+pub(crate) mod touched_graph_basis;
 
 #[allow(unused_imports)]
 pub(crate) use commit_flow::{
@@ -45,3 +46,9 @@ pub use precision_fallback::{
 };
 #[allow(unused_imports)]
 pub use topology_class::TopologyClass;
+#[allow(unused_imports)]
+pub use touched_graph_basis::{
+    worth_topology_touched_graph_digest, WorthTopologyGraphLifecyclePosture,
+    WorthTopologyTouchedAspect, WorthTopologyTouchedGraphCounters,
+    WorthTopologyTouchedOperatingWorldPosture, WorthTopologyTouchedScope,
+};

@@ -56,7 +56,8 @@ impl PlanarBooleanLoopOperatorRow {
         self.topology_precedent
     }
 
-    pub fn proof_obligations(&self) -> &'static [PlanarBooleanLoopOperatorProofObligation] {
+    #[cfg(test)]
+    pub(crate) fn proof_obligations(&self) -> &'static [PlanarBooleanLoopOperatorProofObligation] {
         self.proof_obligations
     }
 

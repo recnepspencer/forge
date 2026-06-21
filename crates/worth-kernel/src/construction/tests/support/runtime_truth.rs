@@ -9,7 +9,7 @@ use crate::construction::outcome::{
 use crate::construction::request::PrimitiveConstructionRequest;
 use crate::construction::result::prepare_primitive_construction_result;
 use crate::construction::result::PrimitiveConstructionResultError;
-use crate::construction::tests::support::prepared_result::PreparedPrimitiveConstructionResult;
+use crate::construction::tests::support::prepared_result::PreparedPrimitiveConstructionHandoffResult;
 use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
 use topology::facade::{
     TopologyConstructionQueryFactProvenance, TopologyConstructionQueryInspectionSurface,
@@ -209,7 +209,7 @@ pub(crate) fn prepare_primitive_construction_certification_runtime_truth(
 fn admitted_runtime_truth_from_prepared_result(
     family: crate::construction::request::PrimitiveConstructionFamily,
     request: &PrimitiveConstructionRequest,
-    prepared: &PreparedPrimitiveConstructionResult,
+    prepared: &PreparedPrimitiveConstructionHandoffResult,
 ) -> PrimitiveConstructionAdmittedRuntimeTruth {
     let topology_query_envelope = prepared.topology_query_handoff().topology_query_envelope();
     PrimitiveConstructionAdmittedRuntimeTruth {

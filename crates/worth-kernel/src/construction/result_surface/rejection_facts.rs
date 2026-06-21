@@ -207,6 +207,19 @@ pub(crate) fn prepare_primitive_construction_rejected_facts(
     error: &PrimitiveConstructionResultError,
 ) -> PrimitiveConstructionRejectedFacts {
     match error {
+        PrimitiveConstructionResultError::MissingExecutedGraphAuthorityEvidence => {
+            PrimitiveConstructionRejectedFacts::new(
+                family,
+                PrimitiveConstructionRejectionClass::TopologyExecution,
+                PrimitiveConstructionRejectionLocality::Execution,
+                Vec::new(),
+                None,
+                None,
+                None,
+                None,
+                error.to_string(),
+            )
+        }
         PrimitiveConstructionResultError::Phase(phase) => match phase {
             PrimitiveConstructionPhaseError::InvalidRequest { .. } => {
                 PrimitiveConstructionRejectedFacts::new(

@@ -19,10 +19,11 @@ mod reduced_pair_support;
 use metaboss_support::MetabossEventExtractionSubject;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
     PlanarBooleanCandidateIndexConsumptionGate, PlanarBooleanCandidateIndexConsumptionInput,
-    PlanarBooleanEdgeSplitRequest, PlanarBooleanEdgeSplitRequestDenialKind,
-    PlanarBooleanEdgeSplitRequestInput,
+    PlanarBooleanEdgeSplitRequest, PlanarBooleanEdgeSplitRequestInput,
 };
-use worth_spatial::facade::workload_vocabulary::{WorkloadEvidenceLedger, WorkloadEvidenceRow};
+use worth_spatial::facade::workload_vocabulary::{
+    WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
+};
 
 #[test]
 fn edge_split_request_preserves_event_ledger_and_reduced_pair_identities() {
@@ -83,34 +84,20 @@ fn edge_split_request_requires_boolean_event_ledger_evidence_row() {
             MetabossEventExtractionSubject::certify("phase7.3 edge split missing ledger evidence");
         let segment_pairs = &subject.inputs().pair_worklist;
         let ledger = subject.ledger();
-        let gate_evidence = WorkloadEvidenceLedger::from_rows(vec![
-            WorkloadEvidenceRow::from_boolean_evidence_receipt(segment_pairs),
-            WorkloadEvidenceRow::from_boolean_evidence_receipt(ledger),
-        ])
-        .expect("candidate-index gate evidence should index");
-        let gate = PlanarBooleanCandidateIndexConsumptionGate::admit(
-            PlanarBooleanCandidateIndexConsumptionInput::new(
-                ledger,
-                segment_pairs,
-                gate_evidence.stage_index(),
-            ),
-        )
-        .expect("candidate-index gate should admit");
         let missing_ledger_evidence = WorkloadEvidenceLedger::from_rows(vec![
             WorkloadEvidenceRow::from_boolean_evidence_receipt(segment_pairs),
         ])
         .expect("hostile evidence should index before request admission");
 
-        let denial = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
-            ledger,
-            &gate,
-            missing_ledger_evidence.stage_index(),
-        ))
-        .expect_err("edge split request must require event-ledger evidence");
+        let denial = missing_ledger_evidence
+            .require_boolean_receipt_lookup(ledger)
+            .expect_err("edge split request input must require event-ledger evidence lookup");
 
         assert_eq!(
-            denial.kind(),
-            PlanarBooleanEdgeSplitRequestDenialKind::MissingEventLedgerEvidence
+            denial,
+            WorkloadEvidenceLedgerError::MissingBooleanStage(
+                WorkloadEvidenceStage::BooleanEventLedger
+            )
         );
     });
 }
@@ -136,10 +123,14 @@ fn metaboss_edge_split_request(
         ),
     )
     .expect("candidate-index gate should admit");
+    let event_ledger_lookup = evidence
+        .require_boolean_receipt_lookup(ledger)
+        .expect("typed event-ledger lookup should admit before split request");
     let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         ledger,
         &gate,
-        evidence.stage_index(),
+        &event_ledger_lookup,
+        None,
     ))
     .expect("edge split request should admit from event ledger and candidate-index gate");
     (request, gate)

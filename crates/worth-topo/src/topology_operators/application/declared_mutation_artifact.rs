@@ -14,6 +14,7 @@ use super::TopologyQueryMutationLaneExecutionShape;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::query_domain::TopologyQueryDomain;
 use crate::topology_operators::TopologyDeclaredMutationSequence;
+use crate::topology_operators::TopologyDeclaredTouchedGraphBasisProof;
 
 use super::{
     TopologyMutationApplicationError, TopologyPostWriteQueryArtifact,
@@ -30,6 +31,7 @@ pub(crate) use query_anchor::TopologyOperatorApplicationQueryAnchor;
 pub(crate) struct TopologyDeclaredMutationArtifact {
     post_write_query_artifact: TopologyPostWriteQueryArtifact,
     accepted_mutation_projection: TopologyAcceptedMutationProjection,
+    declared_touched_basis: TopologyDeclaredTouchedGraphBasisProof,
     graph_obligation_orchestration:
         Option<ForgeQueryAuthoritativeMutationObligationDispatchProjection>,
     #[cfg(test)]
@@ -77,6 +79,7 @@ impl TopologyDeclaredMutationArtifact {
                     sequence,
                     &accepted_query_contribution_semantic_projection,
                 ),
+            declared_touched_basis: retained_handoff.declared_touched_basis_proof().clone(),
             graph_obligation_orchestration,
             #[cfg(test)]
             query_anchor: TopologyOperatorApplicationQueryAnchor::from_retained_handoff(
@@ -93,6 +96,10 @@ impl TopologyDeclaredMutationArtifact {
 
     pub(crate) fn mutation_evidence(&self) -> TopologyMutationApplicationEvidence {
         self.mutation_evidence.clone()
+    }
+
+    pub(crate) fn declared_touched_basis(&self) -> &TopologyDeclaredTouchedGraphBasisProof {
+        &self.declared_touched_basis
     }
 
     pub(crate) fn graph_obligation_envelope_digest(&self) -> Option<&str> {

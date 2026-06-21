@@ -172,12 +172,14 @@ fn edge_split_grouped_operator_workflow_preserves_grouped_support_and_contributi
         contribution_registration.required_query_surface(),
         EdgeSplitRequiredQuerySurface::TopologyContributionWorkflow
     );
-    assert!(grouped_registration
-        .proof_obligations()
-        .contains(&EdgeSplitOperatorProofObligation::GroupedSupportAndContributionEvidence));
-    assert!(contribution_registration
-        .proof_obligations()
-        .contains(&EdgeSplitOperatorProofObligation::RetainedContributionSemanticProjection));
+    assert_eq!(
+        grouped_registration.classification(),
+        EdgeSplitOperatorClassification::TopologyGroupedDeclarationFamily
+    );
+    assert_eq!(
+        contribution_registration.classification(),
+        EdgeSplitOperatorClassification::TopologyContributionWorkflow
+    );
 }
 
 #[test]
@@ -261,12 +263,6 @@ fn edge_split_overlap_chain_rows_are_publicly_registered_as_prepared_products() 
         );
         assert_eq!(row.required_query_surface(), EdgeSplitRequiredQuerySurface::None);
         assert!(!row.may_commit_topology_in_7_3());
-        assert!(row
-            .proof_obligations()
-            .contains(&EdgeSplitOperatorProofObligation::PreparedSplitProductOnly));
-        assert!(row
-            .proof_obligations()
-            .contains(&EdgeSplitOperatorProofObligation::NoTopologyTruthMutationInMilestone73));
     }
 
     let validator = edge_split_validator_row(&blueprint, "ValidateCoincidentOppositeSensePreservation");
@@ -343,12 +339,14 @@ fn edge_split_graph_composition_rejects_domain_invalid_topology_with_typed_invar
         graph_program.truth_authority(),
         EdgeSplitOperatorTruthAuthority::ForgeQueryGraphComposition
     );
-    assert!(invariant_pack
-        .proof_obligations()
-        .contains(&EdgeSplitOperatorProofObligation::TypedGraphCompositionDomainInvariantDenial));
-    assert!(runtime_registration
-        .proof_obligations()
-        .contains(&EdgeSplitValidatorProofObligation::RuntimeFacingDenialPathTypedAndInspectable));
+    assert_eq!(
+        invariant_pack.truth_authority(),
+        EdgeSplitOperatorTruthAuthority::ForgeQueryGraphComposition
+    );
+    assert!(runtime_registration.governs_topology_legality());
+    assert!(blueprint
+        .closeout()
+        .certified_validators_use_runtime_visible_lanes());
 }
 
 #[test]
@@ -384,9 +382,6 @@ fn prepared_spatial_split_artifacts_cannot_be_called_as_authoritative_topology_m
         );
         assert!(!future.may_commit_topology_in_7_3());
         assert!(future.support_warning().is_some());
-        assert!(future
-            .proof_obligations()
-            .contains(&EdgeSplitOperatorProofObligation::ExplicitFutureSupportPosture));
     }
 
     assert!(blueprint

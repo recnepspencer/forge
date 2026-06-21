@@ -7,10 +7,12 @@ use worth_kernel::workload_composition::{
     PlanarBooleanOperandPairIdentity, PlanarBooleanOperation, WorkloadCatalog,
     WorkloadCompositionError, WorkloadStageRequirement, WorthWorkload, WorthWorkloadParts,
 };
+use worth_spatial::certification::workload_evidence::{
+    certification_only_admitted_stage_row, certification_only_unsupported_stage_row,
+    complete_ledger_stage_snapshot, complete_ledger_with_additional_rows,
+};
 use worth_spatial::facade::workload_vocabulary::{
-    BooleanEvidenceReceipt, BooleanEvidenceRowAuthority, BooleanEvidenceStageKind,
-    WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
-    WorkloadEvidenceStageCounters, WorkloadEvidenceSupport,
+    WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
@@ -36,20 +38,23 @@ fn worth_workload_requires_real_local_frame_selection_evidence() {
 
         let admitted = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &local_frame,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanLocalFrameSelection,
+                local_frame.local_frame_selection_identity(),
+                WorkloadEvidenceStageCounters::boolean_local_frame_selection(),
             )],
         );
         admitted
             .require_boolean_local_frame_selection(&local_frame)
             .expect("real local-frame selection evidence should pass");
         assert_eq!(
-            admitted
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanLocalFrameSelection)
-                .expect("local-frame row should exist")
-                .counters()
-                .boolean_local_frame_selection_count(),
+            complete_ledger_stage_snapshot(
+                admitted.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanLocalFrameSelection,
+            )
+            .expect("local-frame row should exist")
+            .counters()
+            .boolean_local_frame_selection_count(),
             1
         );
     });
@@ -71,8 +76,10 @@ fn worth_workload_rejects_foreign_local_frame_selection_evidence_row() {
 
         let mismatched = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &foreign_local_frame,
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanLocalFrameSelection,
+                foreign_local_frame.local_frame_selection_identity(),
+                WorkloadEvidenceStageCounters::boolean_local_frame_selection(),
             )],
         );
         assert_eq!(
@@ -113,8 +120,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_local_frame_
 
         let counterless = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &CounterlessLocalFrameEvidence::new(&local_frame),
+            vec![certification_only_admitted_stage_row(
+                WorkloadEvidenceStage::BooleanLocalFrameSelection,
+                local_frame.local_frame_selection_identity(),
+                WorkloadEvidenceStageCounters::default(),
             )],
         );
         assert_eq!(
@@ -128,8 +137,10 @@ fn worth_workload_rejects_manual_counterless_and_support_mismatched_local_frame_
 
         let unsupported = rebuild_left_workload(
             &pair,
-            vec![WorkloadEvidenceRow::from_boolean_evidence_receipt(
-                &SupportMismatchedLocalFrameEvidence::new(&local_frame),
+            vec![certification_only_unsupported_stage_row(
+                WorkloadEvidenceStage::BooleanLocalFrameSelection,
+                local_frame.local_frame_selection_identity(),
+                WorkloadEvidenceStageCounters::boolean_local_frame_selection(),
             )],
         );
         assert_eq!(
@@ -154,95 +165,37 @@ fn local_frame_stage_counters_count_only_real_receipt_backed_rows() {
         let workload = rebuild_left_workload(
             &pair,
             vec![
-                WorkloadEvidenceRow::from_boolean_evidence_receipt(&local_frame),
+                certification_only_admitted_stage_row(
+                    WorkloadEvidenceStage::BooleanLocalFrameSelection,
+                    local_frame.local_frame_selection_identity(),
+                    WorkloadEvidenceStageCounters::boolean_local_frame_selection(),
+                ),
                 WorkloadEvidenceRow::new(WorkloadEvidenceStage::BooleanSplit, "manual split"),
             ],
         );
 
         assert_eq!(
-            workload
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanLocalFrameSelection)
-                .expect("local-frame row should exist")
-                .counters()
-                .boolean_local_frame_selection_count(),
+            complete_ledger_stage_snapshot(
+                workload.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanLocalFrameSelection,
+            )
+            .expect("local-frame row should exist")
+            .counters()
+            .boolean_local_frame_selection_count(),
             1
         );
         assert_eq!(
-            workload
-                .evidence_ledger()
-                .row_for_stage(WorkloadEvidenceStage::BooleanSplit)
-                .expect("manual split row should exist")
-                .counters()
-                .total_receipt_backed_counters(),
+            complete_ledger_stage_snapshot(
+                workload.evidence_ledger(),
+                WorkloadEvidenceStage::BooleanSplit,
+            )
+            .expect("manual split row should exist")
+            .counters()
+            .total_receipt_backed_counters(),
             0
         );
     });
 }
-
-struct CounterlessLocalFrameEvidence {
-    digest: String,
-}
-
-impl CounterlessLocalFrameEvidence {
-    fn new(local_frame: &PlanarBooleanCommonPlaneLocalFrameSelectedRequest) -> Self {
-        Self {
-            digest: local_frame.local_frame_selection_identity().to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for CounterlessLocalFrameEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::LocalFrameSelection
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Admitted
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::default()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for CounterlessLocalFrameEvidence {}
-
-struct SupportMismatchedLocalFrameEvidence {
-    digest: String,
-}
-
-impl SupportMismatchedLocalFrameEvidence {
-    fn new(local_frame: &PlanarBooleanCommonPlaneLocalFrameSelectedRequest) -> Self {
-        Self {
-            digest: local_frame.local_frame_selection_identity().to_string(),
-        }
-    }
-}
-
-impl BooleanEvidenceReceipt for SupportMismatchedLocalFrameEvidence {
-    fn boolean_stage(&self) -> BooleanEvidenceStageKind {
-        BooleanEvidenceStageKind::LocalFrameSelection
-    }
-
-    fn evidence_identity(&self) -> &str {
-        &self.digest
-    }
-
-    fn evidence_support(&self) -> WorkloadEvidenceSupport {
-        WorkloadEvidenceSupport::Unsupported
-    }
-
-    fn evidence_counters(&self) -> WorkloadEvidenceStageCounters {
-        WorkloadEvidenceStageCounters::boolean_local_frame_selection()
-    }
-}
-
-impl BooleanEvidenceRowAuthority for SupportMismatchedLocalFrameEvidence {}
 
 fn local_frame_from_pair(
     pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,
@@ -302,11 +255,7 @@ fn rebuild_left_workload(
     boolean_rows: Vec<WorkloadEvidenceRow>,
 ) -> WorthWorkload {
     let left = pair.left().workload();
-    let mut rows = left.evidence_ledger().rows().to_vec();
-    rows.extend(boolean_rows);
-    let ledger = WorkloadEvidenceLedger::from_rows(rows)
-        .expect("local-frame evidence rows should stay inspectable")
-        .certify_complete()
+    let ledger = complete_ledger_with_additional_rows(left.evidence_ledger(), boolean_rows)
         .expect("classical stages should remain complete");
 
     WorthWorkload::compose(WorthWorkloadParts {

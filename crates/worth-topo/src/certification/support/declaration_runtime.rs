@@ -211,9 +211,9 @@ mod tests {
         execute_current_head_topology_declaration_outcome,
     };
     use crate::topology_operators::application::{
-        TopologyDeclarationEntryStopClass, TopologyDeclaredMutationArtifact,
-        TopologyMutationApplicationError, TopologyMutationApplicationOutcome,
-        TopologyRetainedApplicationHandoff,
+        TopologyDeclarationEntryStopClass, TopologyDeclarationMutationPayload,
+        TopologyDeclaredMutationArtifact, TopologyMutationApplicationError,
+        TopologyMutationApplicationOutcome, TopologyRetainedApplicationHandoff,
     };
     use crate::topology_operators::{
         TopologyCreateTopologyEntityDeclaration, TopologyCreateTopologyEntityFamily,
@@ -332,6 +332,13 @@ mod tests {
                     ),
                 )
                 .unwrap_or_else(|_| panic!("topology contribution-composed lane should admit")),
+            crate::topology_operators::TopologyDeclaredTouchedGraphBasis::from_sequence(
+                TopologyCreateTopologyEntityFamily::semantic_family_key(),
+                declaration.clone(),
+                &declaration.clone().into_mutation_sequence(),
+                crate::topology_operators::TopologyTouchedOperatingWorld::mainline(),
+            )
+            .expect("declared touched graph basis"),
         );
         let runtime =
             crate::validation::reference_integrity::build_milestone_one_runtime().expect("runtime");
@@ -349,6 +356,10 @@ mod tests {
             declaration.clone(),
         )
         .expect("declaration should execute through current-head runtime");
+        assert!(
+            !execution.declared_touched_basis().basis_digest().is_empty(),
+            "executed topology declaration must retain declared touched-basis proof"
+        );
         let mismatched_sequence =
             crate::topology_operators::TopologyDeclaredMutationSequence::concatenate([
                 declaration.declared_mutation_sequence(),

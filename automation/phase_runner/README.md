@@ -49,6 +49,24 @@ python automation/phase_runner/runner.py `
   --log automation/phase_runner/worth-query-graph-authority-hardening.jsonl
 ```
 
+The touched graph authority gate uses the same runner:
+
+```powershell
+python automation/phase_runner/runner.py `
+  automation/phase_runner/worth-touched-graph-authority-gate.json `
+  --loop `
+  --sleep-seconds 30 `
+  --log automation/phase_runner/worth-touched-graph-authority-gate.jsonl
+```
+
+By default, loop mode is recovery-aware. If validation, prompt rendering, or a
+Codex turn fails, the runner sends a recovery prompt into the same persisted
+Codex thread, records `runner_recovery_requested`, and then keeps looping after
+the recovery turn exits successfully. The runner also writes a `.bak` copy
+before each state save, so recovery can still resume the persisted Codex thread
+when the live state file is malformed JSON. Use `--no-recover` when you want
+local debugging to stop at the first runner failure.
+
 ## Boundary
 
 The runner knows generic phase state:
@@ -61,6 +79,13 @@ The runner knows generic phase state:
 
 It does not know what a crate, milestone, proof, or closeout means. Those belong
 in the config and templates.
+
+The bundled templates assume the spec owns the high-level phase order. A plan
+turn decomposes the current phase into category mini-plans with source surfaces,
+proof boundaries, first hard breaks or deletions, proof evidence, and blockers.
+Reviews prioritize missed composition, line-cap violations, static/global
+compatibility paths, and slow-conversion bridges as correctness findings, not
+optional cleanup.
 
 The state file drives execution through an explicit cursor:
 

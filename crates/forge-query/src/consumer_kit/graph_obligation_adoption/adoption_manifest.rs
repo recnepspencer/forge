@@ -164,3 +164,49 @@ impl ForgeQueryGraphObligationAdoptionProof {
         self.execution_proof.as_ref()
     }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryGraphObligationExecutionBackedAdoptionProof {
+    adoption_proof: ForgeQueryGraphObligationAdoptionProof,
+    execution_proof: ForgeQueryGraphObligationExecutionProof,
+}
+
+impl ForgeQueryGraphObligationExecutionBackedAdoptionProof {
+    pub(super) fn new(
+        adoption_proof: ForgeQueryGraphObligationAdoptionProof,
+        execution_proof: ForgeQueryGraphObligationExecutionProof,
+    ) -> Self {
+        Self {
+            adoption_proof,
+            execution_proof,
+        }
+    }
+
+    pub fn adoption_proof(&self) -> &ForgeQueryGraphObligationAdoptionProof {
+        &self.adoption_proof
+    }
+
+    pub fn manifest(&self) -> &ForgeQueryGraphObligationAdoptionManifest {
+        self.adoption_proof.manifest()
+    }
+
+    pub fn support_pin(&self) -> &ForgeQueryGraphObligationSupportPin {
+        self.adoption_proof.support_pin()
+    }
+
+    pub fn local_ceremony_audit(&self) -> &ForgeQueryGraphObligationLocalCeremonyAudit {
+        self.adoption_proof.local_ceremony_audit()
+    }
+
+    pub fn residue_manifest(&self) -> &ForgeQueryGraphObligationResidueManifest {
+        self.adoption_proof.residue_manifest()
+    }
+
+    pub fn in_memory_proof(&self) -> &ForgeQueryGraphObligationInMemoryProof {
+        self.adoption_proof.in_memory_proof()
+    }
+
+    pub fn execution_proof(&self) -> &ForgeQueryGraphObligationExecutionProof {
+        &self.execution_proof
+    }
+}

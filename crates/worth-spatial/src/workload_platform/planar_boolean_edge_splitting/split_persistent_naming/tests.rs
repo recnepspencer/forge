@@ -13,9 +13,9 @@ use super::{
     PlanarBooleanSplitPersistentNamingReceipt,
 };
 use forge_query::facade::ForgeQueryApplicationFacade;
-use topology::facade::{EntityId, NamingAttachmentReport, NamingAttachmentRow, PartitionId};
-use topology::query_domain::{
-    topology_current_head_authoritative_context, topology_query_domain_entry,
+use topology::facade::{
+    topology_current_head_query_basis_evidence, EntityId, NamingAttachmentReport,
+    NamingAttachmentRow, PartitionId, TopologyCurrentHeadQueryBasisEvidence,
 };
 
 #[test]
@@ -284,14 +284,10 @@ fn query_basis() -> PlanarBooleanSplitPersistentNamingQueryBasis {
     .expect("typed topology Query artifacts should produce split naming basis")
 }
 
-fn topology_domain_handle() -> topology::query_domain::TopologyCurrentHeadConfiguredDomainHandle {
+fn topology_domain_handle() -> TopologyCurrentHeadQueryBasisEvidence {
     let query = ForgeQueryApplicationFacade::runtime_backed_default();
-    topology_query_domain_entry(&query)
-        .with_operating_context(topology_current_head_authoritative_context())
-        .validate()
-        .expect("current-head topology context should validate")
-        .admit()
-        .expect("current-head topology context should admit")
+    topology_current_head_query_basis_evidence(&query)
+        .expect("current-head topology Query basis evidence should admit")
 }
 
 fn naming_attachment_report() -> NamingAttachmentReport {

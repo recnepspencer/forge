@@ -36,7 +36,8 @@ impl PlanarBooleanLoopValidatorRow {
         self.governs_topology_legality
     }
 
-    pub fn proof_obligations(&self) -> &'static [PlanarBooleanLoopValidatorProofObligation] {
+    #[cfg(test)]
+    pub(crate) fn proof_obligations(&self) -> &'static [PlanarBooleanLoopValidatorProofObligation] {
         self.proof_obligations
     }
 

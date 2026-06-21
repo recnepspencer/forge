@@ -61,7 +61,7 @@ fn residue_removal_trigger_for_class(class: &str) -> &'static str {
             "every incoming relation-count local guard is deleted behind a covered obligation envelope or moved to a narrower residue row with a lower cap"
         }
         _ => {
-            "the operator family has a covered catalog row, selector coverage, support pin, local ceremony audit, and runtime envelope test"
+            "the operator family has a covered catalog row, selector coverage, support pin, and runtime envelope test"
         }
     }
 }

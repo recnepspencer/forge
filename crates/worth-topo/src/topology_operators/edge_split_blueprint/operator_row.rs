@@ -55,7 +55,8 @@ impl EdgeSplitOperatorRow {
         self.topology_precedent
     }
 
-    pub fn proof_obligations(&self) -> &'static [EdgeSplitOperatorProofObligation] {
+    #[cfg(test)]
+    pub(crate) fn proof_obligations(&self) -> &'static [EdgeSplitOperatorProofObligation] {
         self.proof_obligations
     }
 

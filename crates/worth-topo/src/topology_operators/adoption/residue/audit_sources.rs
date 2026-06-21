@@ -1,4 +1,4 @@
-pub fn topology_operator_phase_seventeen_audit_sources(
+pub(super) fn topology_operator_phase_seventeen_audit_sources(
 ) -> [(&'static str, &'static str, &'static str); 32] {
     [
         source(
@@ -82,27 +82,27 @@ pub fn topology_operator_phase_seventeen_audit_sources(
             include_str!("../../local_rewrites/sheet_wire_laminar/membership_programs/mod.rs"),
         ),
         source(
-            "topology.local-rewrites.sheet-wire-laminar.membership-programs.face-inner-loop",
+            "topology.local-rewrites.sheet-wire-laminar.face-inner-loop-program",
             "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/face_inner_loop_program.rs",
             include_str!("../../local_rewrites/sheet_wire_laminar/membership_programs/face_inner_loop_program.rs"),
         ),
         source(
-            "topology.local-rewrites.sheet-wire-laminar.membership-programs.shared",
+            "topology.local-rewrites.sheet-wire-laminar.shared",
             "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shared.rs",
             include_str!("../../local_rewrites/sheet_wire_laminar/membership_programs/shared.rs"),
         ),
         source(
-            "topology.local-rewrites.sheet-wire-laminar.membership-programs.shell-membership",
+            "topology.local-rewrites.sheet-wire-laminar.shell-membership-program",
             "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shell_membership_program.rs",
             include_str!("../../local_rewrites/sheet_wire_laminar/membership_programs/shell_membership_program.rs"),
         ),
         source(
-            "topology.local-rewrites.sheet-wire-laminar.membership-programs.shell-split",
+            "topology.local-rewrites.sheet-wire-laminar.shell-split-program",
             "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shell_split_program.rs",
             include_str!("../../local_rewrites/sheet_wire_laminar/membership_programs/shell_split_program.rs"),
         ),
         source(
-            "topology.local-rewrites.sheet-wire-laminar.membership-programs.wire-membership",
+            "topology.local-rewrites.sheet-wire-laminar.wire-membership-program",
             "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/wire_membership_program.rs",
             include_str!("../../local_rewrites/sheet_wire_laminar/membership_programs/wire_membership_program.rs"),
         ),
@@ -167,7 +167,7 @@ pub fn topology_operator_phase_seventeen_audit_sources(
 const fn source(
     label: &'static str,
     path: &'static str,
-    content: &'static str,
+    contents: &'static str,
 ) -> (&'static str, &'static str, &'static str) {
-    (label, path, content)
+    (label, path, contents)
 }

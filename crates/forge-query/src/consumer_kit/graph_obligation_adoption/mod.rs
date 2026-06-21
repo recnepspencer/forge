@@ -13,6 +13,7 @@ mod tests;
 
 pub use adoption_manifest::{
     ForgeQueryGraphObligationAdoptionManifest, ForgeQueryGraphObligationAdoptionProof,
+    ForgeQueryGraphObligationExecutionBackedAdoptionProof,
 };
 pub use consumer_declaration::ForgeQueryGraphObligationConsumerRegistrationDeclaration;
 pub use error::{

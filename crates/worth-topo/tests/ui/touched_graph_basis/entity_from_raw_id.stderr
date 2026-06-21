@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/touched_graph_basis/entity_from_raw_id.rs:6:42
+  |
+6 |     let _entity = TopologyTouchedEntity::new(raw);
+  |                                          ^^^ private associated function
+  |
+ ::: src/topology_operators/touched_graph_basis/entity_relation.rs
+  |
+  |     pub(crate) const fn new(entity_id: EntityId) -> Self {
+  |     ---------------------------------------------------- private associated function defined here

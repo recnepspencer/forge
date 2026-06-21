@@ -9,6 +9,7 @@ mod stage_counters;
 mod stage_index;
 mod stage_links;
 
+pub(crate) use boolean_receipt::BooleanEvidenceReceiptSealed;
 pub use boolean_receipt::{BooleanEvidenceReceipt, BooleanEvidenceRowAuthority};
 pub use counters::WorkloadEvidenceCounters;
 pub use guard::{WorkloadEvidenceGuard, WorkloadEvidenceGuardError};
@@ -21,5 +22,8 @@ pub use row::{
 };
 pub use stage::{BooleanEvidenceStageKind, WorkloadEvidenceStage};
 pub use stage_counters::WorkloadEvidenceStageCounters;
-pub use stage_index::{WorkloadEvidenceStageIndexCounters, WorkloadEvidenceStageIndexProduct};
+pub use stage_index::{
+    WorkloadEvidenceBooleanReceiptLookupProduct, WorkloadEvidenceStageIndexCounters,
+    WorkloadEvidenceStageIndexProduct, WorkloadEvidenceStageLookupCounters,
+};
 pub use stage_links::{WorkloadEvidenceStageLink, WorkloadEvidenceStageLinkSet};

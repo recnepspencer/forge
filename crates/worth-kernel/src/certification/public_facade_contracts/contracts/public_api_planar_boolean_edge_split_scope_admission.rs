@@ -183,10 +183,14 @@ fn metaboss_edge_split_request(
         ),
     )
     .expect("candidate-index gate should admit");
+    let event_ledger_lookup = evidence
+        .require_boolean_receipt_lookup(ledger)
+        .expect("typed event-ledger lookup should admit before split request");
     let request = PlanarBooleanEdgeSplitRequest::admit(PlanarBooleanEdgeSplitRequestInput::new(
         ledger,
         &gate,
-        evidence.stage_index(),
+        &event_ledger_lookup,
+        None,
     ))
     .expect("edge split request should admit from event ledger and candidate-index gate");
     (request, gate)

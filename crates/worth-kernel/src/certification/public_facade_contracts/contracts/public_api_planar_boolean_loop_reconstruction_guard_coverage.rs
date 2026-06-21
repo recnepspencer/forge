@@ -39,6 +39,22 @@ const LOOP_RECONSTRUCTION_GUARD_COVERAGE: &[PlanarBooleanLoopGuardCoverage] = &[
         "synthetic loop ledger construction",
         "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/synthetic_loop_ledger_not_boolean_evidence_row.rs",
     ),
+    PlanarBooleanLoopGuardCoverage::compile_fail(
+        "raw split fragments are not boolean chain handoff",
+        "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/raw_split_fragments_not_boolean_chain_handoff.rs",
+    ),
+    PlanarBooleanLoopGuardCoverage::compile_fail(
+        "raw continuation maps are not boolean chain handoff",
+        "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/raw_continuation_index_not_boolean_chain_handoff.rs",
+    ),
+    PlanarBooleanLoopGuardCoverage::compile_fail(
+        "copied digests are not boolean chain handoff",
+        "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/copied_digest_not_boolean_chain_handoff.rs",
+    ),
+    PlanarBooleanLoopGuardCoverage::compile_fail(
+        "local graph legality rows are not boolean chain handoff",
+        "src/certification/public_facade_contracts/compile_fail/pb_loop_reconstruction/local_graph_legality_row_not_boolean_chain_handoff.rs",
+    ),
 ];
 
 impl PlanarBooleanLoopGuardCoverage {
