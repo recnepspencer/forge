@@ -120,6 +120,14 @@ pub fn certification_only_admitted_stage_row(
     WorkloadEvidenceRow::certification_only_admitted(stage, evidence_identity, counters)
 }
 
+pub fn certification_manual_stage_row_with_counters(
+    stage: WorkloadEvidenceStage,
+    evidence_identity: impl Into<String>,
+    counters: WorkloadEvidenceStageCounters,
+) -> WorkloadEvidenceRow {
+    WorkloadEvidenceRow::certification_manual_with_counters(stage, evidence_identity, counters)
+}
+
 /// Builds an unsupported receipt-backed row only for certification tests that
 /// need to prove production lookups reject weaker evidence posture.
 pub fn certification_only_unsupported_stage_row(

@@ -52,11 +52,12 @@ The operating rule is:
 - `Worth Touched Graph Authority Gate`: Planned after the Query Graph Authority
   Hardening Gate and before broad 7.5; blocks overlap extraction until
   graph-affecting Worth operators produce a typed touched graph basis and
-  Query obligation selection, Query 9.10 graph read access planning, validators,
-  invariants, invalidation, replay, evidence lookup, conflict, cache/equivalence,
-  undo, public proof, and diagnostics derive from that same basis instead of
-  static/global packs, caller-owned graph-read folklore, or slow compatibility
-  adapters
+  Query obligation selection, Query `9.10` graph read access inventory,
+  touched-authority-backed Query declarations, access-plan receipt adoption,
+  validators, invariants, invalidation, replay, evidence lookup, conflict,
+  cache/equivalence, undo, public proof, and diagnostics derive from that same
+  basis instead of static/global packs, caller-owned graph-read folklore, or
+  slow compatibility adapters
 - `Milestone 6.5`: Planned as the operational workload platform between exact
   planar contracts and booleans; hostile tests must consume real topology,
   binding, projection, retained replay, transform, response, and evidence rails

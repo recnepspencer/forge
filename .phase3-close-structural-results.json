@@ -1,0 +1,59 @@
+[
+  {
+    "name": "raw_workflow_query_domain_scan",
+    "exit_code": 0,
+    "evidence": {
+      "query_domain_public": false,
+      "workflow_fronts_cfg_test_only": true,
+      "orchestration_boundary": "basis line 34 before input line 59 before Query line 62"
+    }
+  },
+  {
+    "name": "basis_before_write_ordering_scan",
+    "exit_code": 0,
+    "evidence": {
+      "scalar": "prewrite guard line 231 before submit line 239",
+      "closeout": "receipt guard line 259 before artifact line 281",
+      "boundary_successor": "guard line 6 before compose_graph line 54",
+      "grouped_entries": "pass retained_handoff/mode and do not call raw finish closeout"
+    }
+  },
+  {
+    "name": "membership_bypass_scan",
+    "exit_code": 0,
+    "evidence": {
+      "finish_closeout": "private",
+      "evidence": [
+        "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/face_inner_loop_program.rs:18 compose_face_inner_loop_program guard line 7 before compose_graph",
+        "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/wire_membership_program.rs:20 compose_wire_rehome_program guard line 10 before compose_graph",
+        "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/wire_membership_program.rs:196 compose_wire_split_program guard line 10 before compose_graph",
+        "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shell_split_program.rs:18 compose_shell_split_program guard line 8 before compose_graph",
+        "crates/worth-topo/src/topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shell_membership_program.rs:20 compose_shell_rehome_program guard line 10 before compose_graph"
+      ]
+    }
+  },
+  {
+    "name": "construction_authority_scan",
+    "exit_code": 0,
+    "evidence": {
+      "program": "checked execute line 96 requires basis at line 103 before private graph write line 104 and compose_graph line 111",
+      "builder": "pub(super), not pub(crate)",
+      "raw_execute_export": "cfg(test) only",
+      "public_run": "requires TopologyPrimitiveConstructionBirthDeclaredTouchedBasis"
+    }
+  },
+  {
+    "name": "spatial_topology_separation_scan",
+    "exit_code": 0,
+    "evidence": "no spatial geometry/evidence receipt authority terms found in production topology operator/construction scope"
+  },
+  {
+    "name": "phase_scope_line_cap_scan",
+    "exit_code": 0,
+    "evidence": {
+      "rust_files": 633,
+      "over_cap_allowlisted": 3,
+      "unallowlisted_over_cap_count": 0
+    }
+  }
+]

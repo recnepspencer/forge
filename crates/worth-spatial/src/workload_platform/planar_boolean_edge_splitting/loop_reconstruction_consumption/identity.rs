@@ -16,6 +16,6 @@ pub(crate) fn loop_reconstruction_split_consumption_identity(
         split_request_identity,
         workload_stage_index_identity,
         counters.receipts_consumed(),
-        counters.stage_index_rows_consumed()
+        counters.spatial_lookup_indexed_lookups()
     )
 }

@@ -3,6 +3,10 @@ use super::denial::PlanarBooleanDownstreamSplitConsumptionDenial;
 use super::identity::downstream_split_consumption_identity;
 use super::input::PlanarBooleanDownstreamSplitConsumptionInput;
 use super::validation::validate_downstream_split_consumption_input;
+use crate::workload_platform::evidence_ledger::{
+    SpatialEvidenceLookupProductDigest, WorkloadEvidenceStageCounters,
+    WorkloadEvidenceStageLookupCounters, WorkloadEvidenceSupport,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlanarBooleanDownstreamSplitConsumption {
@@ -15,6 +19,11 @@ pub struct PlanarBooleanDownstreamSplitConsumption {
     persistent_naming_receipt_identity: String,
     replay_parity_receipt_identity: String,
     workload_stage_index_identity: String,
+    spatial_lookup_key: String,
+    spatial_lookup_product_digest: SpatialEvidenceLookupProductDigest,
+    spatial_support: WorkloadEvidenceSupport,
+    spatial_stage_counters: WorkloadEvidenceStageCounters,
+    spatial_lookup_counters: WorkloadEvidenceStageLookupCounters,
     counters: PlanarBooleanDownstreamSplitConsumptionCounters,
 }
 
@@ -44,13 +53,23 @@ impl PlanarBooleanDownstreamSplitConsumption {
                 .len(),
         );
         counters.consumed_replay_parity_rows(input.replay_parity_receipt().parity_rows().len());
-        counters.consumed_stage_index_rows(input.stage_index().counters().row_count());
+        counters.consumed_spatial_lookup_product(
+            input
+                .spatial_lookup()
+                .lookup_counters()
+                .indexed_lookup_count(),
+            input
+                .spatial_lookup()
+                .lookup_counters()
+                .raw_row_scan_count(),
+        );
         let consumption_identity = downstream_split_consumption_identity(
             input.split_ledger_receipt().receipt_identity(),
             input.decision_log_receipt().receipt_identity(),
             input.persistent_naming_receipt().receipt_identity(),
             input.replay_parity_receipt().receipt_identity(),
-            input.stage_index().index_identity(),
+            input.spatial_lookup().lookup_key().as_str(),
+            input.spatial_lookup().product_digest().as_str(),
             counters,
         );
         Ok(Self {
@@ -80,7 +99,16 @@ impl PlanarBooleanDownstreamSplitConsumption {
                 .replay_parity_receipt()
                 .receipt_identity()
                 .to_string(),
-            workload_stage_index_identity: input.stage_index().index_identity().to_string(),
+            workload_stage_index_identity: input
+                .spatial_lookup()
+                .lookup_key()
+                .stage_index_identity()
+                .to_string(),
+            spatial_lookup_key: input.spatial_lookup().lookup_key().as_str().to_string(),
+            spatial_lookup_product_digest: input.spatial_lookup().product_digest().clone(),
+            spatial_support: input.spatial_lookup().support(),
+            spatial_stage_counters: input.spatial_lookup().counters(),
+            spatial_lookup_counters: input.spatial_lookup().lookup_counters(),
             counters,
         })
     }
@@ -121,6 +149,26 @@ impl PlanarBooleanDownstreamSplitConsumption {
         &self.workload_stage_index_identity
     }
 
+    pub fn spatial_lookup_key(&self) -> &str {
+        &self.spatial_lookup_key
+    }
+
+    pub fn spatial_lookup_product_digest(&self) -> &SpatialEvidenceLookupProductDigest {
+        &self.spatial_lookup_product_digest
+    }
+
+    pub fn spatial_support(&self) -> WorkloadEvidenceSupport {
+        self.spatial_support
+    }
+
+    pub fn spatial_stage_counters(&self) -> WorkloadEvidenceStageCounters {
+        self.spatial_stage_counters
+    }
+
+    pub fn spatial_lookup_counters(&self) -> WorkloadEvidenceStageLookupCounters {
+        self.spatial_lookup_counters
+    }
+
     pub fn counters(&self) -> PlanarBooleanDownstreamSplitConsumptionCounters {
         self.counters
     }
@@ -135,13 +183,17 @@ impl PlanarBooleanDownstreamSplitConsumption {
             && !self.persistent_naming_receipt_identity.is_empty()
             && !self.replay_parity_receipt_identity.is_empty()
             && !self.workload_stage_index_identity.is_empty()
+            && !self.spatial_lookup_key.is_empty()
+            && !self.spatial_lookup_product_digest.as_str().is_empty()
             && self.counters.receipts_consumed() == 5
+            && self.counters.spatial_lookup_products_consumed() == 1
             && self.counters.split_chains_consumed() > 0
             && self.counters.fragment_rows_consumed() > 0
             && self.counters.vertex_rows_consumed() > 0
             && self.counters.persistent_name_rows_consumed() > 0
             && self.counters.replay_parity_rows_consumed() > 0
-            && self.counters.stage_index_rows_consumed() > 0
+            && self.counters.spatial_lookup_indexed_lookups() > 0
+            && self.counters.spatial_lookup_raw_row_scans() == 0
             && self.counters.foreign_receipts_rejected() == 0
             && self.counters.missing_receipts_rejected() == 0
             && self.counters.non_receipt_evidence_rejected() == 0

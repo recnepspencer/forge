@@ -4,9 +4,9 @@ use super::edge_splitting_split_vertex_identity_support::build_interval_subdivis
 use super::metaboss_support::MetabossEventExtractionSubject;
 use forge_query::facade::ForgeQueryApplicationFacade;
 use std::collections::BTreeSet;
-use topology::facade::{EntityId, NamingAttachmentReport, NamingAttachmentRow, PartitionId};
-use topology::query_domain::{
-    topology_current_head_authoritative_context, topology_query_domain_entry,
+use topology::facade::{
+    topology_current_head_query_basis_evidence, EntityId, NamingAttachmentReport,
+    NamingAttachmentRow, PartitionId,
 };
 use worth_spatial::facade::planar_boolean_edge_splitting::{
     PlanarBooleanSplitIdentityEvolutionOutcomeKind, PlanarBooleanSplitNamedArtifactKind,
@@ -119,12 +119,8 @@ fn assert_selector_and_signature_rows_reconcile(
 
 pub(crate) fn typed_topology_query_basis() -> PlanarBooleanSplitPersistentNamingQueryBasis {
     let query = ForgeQueryApplicationFacade::runtime_backed_default();
-    let topology_domain_handle = topology_query_domain_entry(&query)
-        .with_operating_context(topology_current_head_authoritative_context())
-        .validate()
-        .expect("metaboss topology Query context should validate")
-        .admit()
-        .expect("metaboss topology Query context should admit");
+    let topology_domain_handle = topology_current_head_query_basis_evidence(&query)
+        .expect("metaboss topology Query basis evidence should admit");
     let naming_attachment_report = NamingAttachmentReport {
         fully_named: true,
         orphan_persistent_name_ids: Vec::new(),

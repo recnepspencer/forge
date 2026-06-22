@@ -19,7 +19,6 @@ pub(crate) mod outcome;
 mod proof;
 #[cfg(test)]
 pub(crate) mod query_access_planning;
-#[cfg(test)]
 pub(crate) mod query_authority;
 #[cfg(test)]
 pub(crate) mod query_enforcement_adoption;

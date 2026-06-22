@@ -78,6 +78,10 @@ transitions:
 - force operators to produce it
 - define spatial touch authority
 - feed Query selection
+- inventory local Worth graph-read access folklore after Query `9.10`
+- express covered Worth graph reads as touched-authority-backed Query
+  declarations
+- adopt Query access plans and receipts as the only covered graph-read proof
 - derive validators, invalidation, evidence lookup, replay, conflict, cache,
   public proof, and diagnostics
 
@@ -104,6 +108,8 @@ The intended chain is:
 `Touched Graph Milestone 12` ->
 `Touched Graph Milestone 13` ->
 `Touched Graph Milestone 14` ->
+`Touched Graph Milestone 15` ->
+`Touched Graph Milestone 16` ->
 `Milestone 7.5`
 
 Each milestone should have its own implementation spec or runner state, its own
@@ -118,28 +124,30 @@ Topology branch:
 3. declared topology touched graph basis
 4. expanded topology touched graph closure
 5. selected Query graph obligations
-6. admitted Query graph read access plan
-7. selected topology validators and relational invariants
-8. derived invalidation plan
-9. replay scope
-10. conflict and independence proof
-11. cache and equivalence invalidation proof
-12. undo and transaction scope
-13. executed topology touched graph receipt
-14. public topology authority proof
-15. diagnostics and explanation surface
+6. covered graph-read access inventory and deletion ledger
+7. touched-authority-backed Query graph-read declarations
+8. adopted Query graph-read access plans and receipts
+9. selected topology validators and relational invariants
+10. derived invalidation plan
+11. replay scope
+12. conflict and independence proof
+13. cache and equivalence invalidation proof
+14. undo and transaction scope
+15. executed topology touched graph receipt
+16. public topology authority proof and diagnostics
 
 Spatial evidence branch:
 
 1. sealed boolean or spatial evidence receipt
 2. spatial touch authority product
 3. Query touch descriptor or Query adoption proof
-4. Query graph read access plan where evidence reads are covered graph reads
-5. spatial evidence lookup key and lookup product
-6. spatial replay scope
-7. spatial cache or equivalence proof
-8. public spatial authority proof
-9. diagnostics and explanation surface
+4. covered spatial graph-read access inventory
+5. touched-authority-backed Query graph-read declaration
+6. Query graph read access plan where evidence reads are covered graph reads
+7. spatial evidence lookup key and lookup product
+8. spatial replay scope
+9. spatial cache or equivalence proof
+10. public spatial authority proof and diagnostics
 
 The branches may share schema vocabulary, digest recipes, counters, and Query
 descriptor language. They may not share constructors, admission authority, or
@@ -154,15 +162,17 @@ proof ownership.
 | 3 | admitted topology operator intent | declared topology touched graph basis before Query/local execution | `worth-topo` | operator validator arrays, mutation records as proof, local touch languages | bypass fronts and operator-local validator declarations |
 | 4 | sealed boolean or spatial evidence receipt | spatial touch authority, Query descriptor/adoption proof, evidence lookup key | `worth-spatial` with `worth-schema` and `forge-query` | raw evidence rows, broad stage scans, copied receipt fields, public schema constructors | public projection/admission experiments, topology geometry-only lowering |
 | 5 | topology basis or spatial Query descriptor | selected Query graph obligations | `forge-query` | Worth-local selector copies, in-memory adoption as execution proof | broad selector adapters and local selector forks |
-| 6 | selected Query graph obligations plus covered Worth graph-read declarations | admitted Query graph read access plans, postures, counters, and receipts | `forge-query` with Worth reference consumers | caller-owned N+1 loops, ad hoc adjacency maps, unbounded automatic indexes, hidden broad scans | Worth-local graph-read folklore and broad read adapters |
-| 7 | expanded topology closure | selected topology validators and relational invariants | `worth-topo` | global validator packs, expectation arrays | static invariant packs and operator-local global validation |
-| 8 | expanded topology closure | derived invalidation and dirty propagation plan | `worth-topo` | whole-view rebuild by default, hidden projection expansion | broad derived rebuild paths |
-| 9 | topology basis or spatial touch authority | evidence lookup plan and lookup product | `worth-spatial` | raw evidence vectors, broad receipt scans | raw public evidence scans |
-| 10 | topology/spatial proof products | replay, undo, and transaction scope | owning crate plus `worth-kernel` | global replay, re-query rollback authority | replay/undo paths without proof scope |
-| 11 | touched closures and spatial authority products | conflict, independence, batch-admission proof | `worth-topo`, `worth-spatial`, `forge-query` | speculative lock-first conflict discovery | batch shortcuts without structural proof |
-| 12 | touched proof plus source authority digest | cache/equivalence proof | owning product crate | pointer identity, row count, operator family | cache keys without touched authority |
-| 13 | executed proof products | public read-only authority proof and diagnostics | public facades | raw constructors, support pins, local ceremony | public escape hatches |
-| 14 | certified milestone products | cross-crate closeout matrix | `worth-kernel` closeout pressure | prose claims, untested residue | uncapped adapters and stale doc claims |
+| 6 | selected Query graph obligations plus local Worth graph-read surfaces | graph-read access inventory and deletion ledger | `worth-kernel` closeout pressure with `forge-query` Consumer Kit | caller-owned N+1 loops, ad hoc adjacency maps, hidden broad scans, local support rows | unclassified graph-read folklore and broad read adapters |
+| 7 | touched authority products plus graph-read inventory | covered Query graph-read declarations and required access rows | `worth-topo`, `worth-spatial`, `worth-kernel` through `forge-query` | declaration wrappers around local traversal, copied access rows, strings as support | local declaration shims and access requirement mirrors |
+| 8 | covered graph-read declarations and Query support rows | admitted Query graph-read access plans, postures, counters, and receipts | `forge-query` with Worth reference consumers | caller-owned execution proof, unbounded automatic indexes, fabricated receipts, helper loops | migrated local loops, caches, fabricated receipts, broad read helpers |
+| 9 | expanded topology closure | selected topology validators and relational invariants | `worth-topo` | global validator packs, expectation arrays | static invariant packs and operator-local global validation |
+| 10 | expanded topology closure | derived invalidation and dirty propagation plan | `worth-topo` | whole-view rebuild by default, hidden projection expansion | broad derived rebuild paths |
+| 11 | topology basis or spatial touch authority | evidence lookup plan and lookup product | `worth-spatial` | raw evidence vectors, broad receipt scans | raw public evidence scans |
+| 12 | topology/spatial proof products | replay, undo, and transaction scope | owning crate plus `worth-kernel` | global replay, re-query rollback authority | replay/undo paths without proof scope |
+| 13 | touched closures and spatial authority products | conflict, independence, batch-admission proof | `worth-topo`, `worth-spatial`, `forge-query` | speculative lock-first conflict discovery | batch shortcuts without structural proof |
+| 14 | touched proof plus source authority digest | cache/equivalence proof | owning product crate | pointer identity, row count, operator family | cache keys without touched authority |
+| 15 | executed proof products | public read-only authority proof and diagnostics | public facades | raw constructors, support pins, local ceremony | public escape hatches |
+| 16 | certified milestone products | cross-crate closeout matrix | `worth-kernel` closeout pressure | prose claims, untested residue | uncapped adapters and stale doc claims |
 
 ## Milestone 1: Inventory And Hard Break Plan
 
@@ -217,6 +227,8 @@ Done when:
 
 ## Milestone 4: Spatial Geometry Evidence Touch Authority
 
+Spec: [`touched-graph-milestone-4-spatial-geometry-evidence-touch-authority.md`](./touched-graph-milestone-4-spatial-geometry-evidence-touch-authority.md)
+
 Freeze spatial and boolean geometry evidence as its own sealed touch authority,
 without laundering geometry evidence through topology basis construction.
 
@@ -230,6 +242,15 @@ Done when:
 - external callers cannot fake spatial receipts or implement admission traits
 - production spatial evidence does not route through `worth-topo`
 - old projection/admission/type-name bridges are deleted or capped
+- public closeout surfaces are
+  `worth_spatial::facade::workload_vocabulary` for spatial touch authority and
+  `worth_spatial::facade::query_adoption` for Query adoption status
+- Query adoption counters are read through
+  `current_spatial_query_consumer_kit_adoption_status`
+- Consumer Kit residue count: 1 capped row for the older spatial support
+  projection facade
+- Milestone 4 does not close Milestone 5 Query obligation selection
+- Milestone 4 does not close Milestones 6 through 8 graph-read access work
 
 ## Milestone 5: Query Obligation Selection From Touched Basis
 
@@ -246,36 +267,89 @@ Done when:
 - broad collection-only or lifecycle-only selector use is capped residue
 - selection breadth scales with touched descriptor breadth
 
-## Milestone 6: Query Graph Read Access Planning Hardening
+## Milestone 6: Worth Graph-Read Access Inventory And Hard Break
 
-Freeze Forge Query `9.10` graph read access planning as a second Query
-hardening pass over Worth now that Query can derive access postures, required
-indexes, budgets, and receipts from declared graph reads.
+Freeze every Worth graph-read access surface that still teaches local graph
+folklore after Query `9.10` exists.
 
 Closes:
-- covered Worth topology, spatial, and kernel graph-read declarations lower into
-  Query graph read access plans before execution
-- access posture rows distinguish admitted inline indexed, bounded ephemeral,
-  paged streaming, persistent-index-required, async-materialization-required,
-  store-backed-required, access-capability-required, and typed denial cases
-- exact counters for candidate roots, touched nodes, touched edges, frontier
-  width, visited/dedup breadth, resident bytes, and page count
-- consumer bypass audit for caller-owned N+1 relation loops, ad hoc adjacency
-  maps, manual frontier scans, local graph caches, and hidden broad reads
-- Query-gap or required-capability rows for graph-read access features Worth
-  needs but Query still cannot admit
+- typed inventory rows for covered topology, spatial, kernel, and test graph
+  reads that use relation loops, per-result neighbor lookup, ad hoc adjacency
+  maps, local graph caches, broad boolean scans, local support rows, or
+  fabricated receipts
+- deletion action, owner, cap, and removal trigger for every local graph-read
+  path that Query can express or should be taught to express
+- distinction between real touched authority inputs, Query graph touch
+  obligations, graph-read declarations, access requirement rows, and execution
+  receipts
+- Consumer Kit-backed bypass audit rows rather than Worth-local source greps or
+  support folklore
 
 Done when:
-- covered Worth graph reads execute only through admitted Query access plans or
-  typed Query postures
-- broad boolean and dense frontier reads deny, stream, require persistent index,
-  or require async/materialized support before expensive edge traversal starts
-- Worth deletes or caps local graph-read folklore rather than wrapping it behind
-  compatibility helpers
+- no covered Worth graph-read access surface is unclassified
+- local graph-read residue is capped by owner, count, and concrete Query access
+  capability trigger
+- broad boolean and dense frontier reads are named as Query access-plan work,
+  required-capability work, or deleted local folklore
+- no local support row, helper wrapper, or fixture receipt can be mistaken for
+  Query access authority
+
+## Milestone 7: Touched Authority To Query Access Declarations
+
+Freeze the translation from touched graph authority products into real Query
+graph-read declarations, read families, access requirements, and required
+capability rows.
+
+Closes:
+- topology closure and spatial touch authority lower into covered Query
+  graph-read declarations before any covered read executes
+- domain graph-read operations needed by Worth declare operation resolution,
+  access shape, selectivity posture, requirement rows, basis, policy, tenant,
+  and relationship-proof posture through Query-owned vocabulary
+- missing Query expressiveness becomes typed Query-gap or required-capability
+  posture, not a local Worth traversal adapter
+- declaration construction is sealed so raw ids, strings, mutation rows, local
+  support labels, and copied access rows cannot promote into executable read
+  authority
+
+Done when:
+- every covered touched graph read has either a Query declaration path or a
+  typed gap with owner, cap, and deletion trigger
+- access requirements are derived by Query from admitted declarations, not
+  hand-written in Worth
+- broad boolean graph predicates and dense frontier reads reach Query posture
+  admission instead of hidden local traversal
+- declaration tests prove touched authority is the input and admitted Query
+  access artifacts are the next proof product
+
+## Milestone 8: Worth Graph-Read Access Plan Adoption
+
+Freeze execution of covered Worth graph reads through admitted Query access
+plans, typed postures, counters, and receipts.
+
+Closes:
+- covered topology, spatial, and kernel graph reads execute only through
+  admitted Query graph-read access plans or typed Query postures
+- access posture rows distinguish inline indexed, bounded ephemeral, admitted
+  paged streaming, persistent-index-required, async-materialization-required,
+  store-backed-required, access-capability-registration-required, and denial
+  cases
+- exact counters for candidate roots, touched nodes, touched edges, frontier
+  width, visited/dedup breadth, resident bytes, page count, fallback count, and
+  no-caller-owned graph work
+- deletion of local loops, adjacency maps, broad read helpers, fabricated
+  receipts, and compatibility wrappers whose Query replacements exist
+
+Done when:
+- covered Worth graph reads consume admitted Query access plans or fail with a
+  typed Query denial/required posture before expensive edge traversal starts
 - access-plan receipts are available to later validator, invalidation, evidence,
   replay, conflict, cache, public proof, and diagnostic milestones
+- no covered lane performs caller-owned N+1 work, hidden broad scans, unbounded
+  background indexing, or fabricated execution proof
+- deletion manifests and closeout tests prove migrated local folklore is gone
 
-## Milestone 7: Validator And Invariant Derivation
+## Milestone 9: Validator And Invariant Derivation
 
 Freeze topology validator and invariant selection as a derived consequence of
 touched graph closure.
@@ -290,7 +364,7 @@ Done when:
 - global validator packs cannot satisfy ordinary operator closeout
 - adding a validator family without a touched predicate fails certification
 
-## Milestone 8: Derived Invalidation And Dirty Propagation
+## Milestone 10: Derived Invalidation And Dirty Propagation
 
 Freeze derived topology invalidation as a plan derived from touched graph
 closure.
@@ -305,7 +379,7 @@ Done when:
 - projection rebuild code does not hide dirty expansion
 - derived products without invalidation contracts cannot be consumed
 
-## Milestone 9: Evidence Lookup And Boolean Stage Indexing
+## Milestone 11: Evidence Lookup And Boolean Stage Indexing
 
 Freeze spatial and boolean evidence lookup around spatial touch authority and
 related topology touched graph identity.
@@ -320,7 +394,7 @@ Done when:
 - raw evidence vectors cannot act as public lookup products
 - Query descriptors and evidence lookup products cannot satisfy each other
 
-## Milestone 10: Replay, Undo, And Transaction Scope
+## Milestone 12: Replay, Undo, And Transaction Scope
 
 Freeze replay and undo boundaries as consumers of touched graph proof.
 
@@ -335,7 +409,7 @@ Done when:
 - rollback does not re-query authority already captured by proof products
 - hidden mutation outside undo scope fails closeout
 
-## Milestone 11: Conflict, Independence, And Batch Admission
+## Milestone 13: Conflict, Independence, And Batch Admission
 
 Freeze independence proof and conflict denial as touched graph products.
 
@@ -349,7 +423,7 @@ Done when:
 - disjoint operations batch-admit with separate proof products
 - closure conflicts deny or serialize with named reasons
 
-## Milestone 12: Cache, Equivalence, And Reuse Contracts
+## Milestone 14: Cache, Equivalence, And Reuse Contracts
 
 Freeze reuse as a touched graph equivalence claim.
 
@@ -365,7 +439,7 @@ Done when:
 - benign ordering noise preserves equivalence identity
 - different touched closures deny reuse
 
-## Milestone 13: Public API, Diagnostics, And Explainers
+## Milestone 15: Public API, Diagnostics, And Explainers
 
 Freeze public surfaces that expose touched graph proof without leaking
 constructors or internals.
@@ -381,7 +455,7 @@ Done when:
 - diagnostics localize rejection to exact touched graph facts or Query gaps
 - public APIs do not expose support pins, raw rows, or proof helpers
 
-## Milestone 14: Cross-Crate Closeout And 7.5 Readiness
+## Milestone 16: Cross-Crate Closeout And 7.5 Readiness
 
 Close the touched graph program only when every category consumes touched graph
 authority or is explicitly deleted, capped residue, or Query-gap.
@@ -418,6 +492,9 @@ The touched graph roadmap is complete only when:
 - every graph-affecting topology operator and boolean/spatial stage produces
   the correct touched authority product before execution
 - Query obligation selection consumes touched authority products
+- covered Worth graph reads have local folklore inventoried, lower from
+  touched authority into Query graph-read declarations, and execute only
+  through admitted Query access plans or typed Query postures
 - validators, invariants, invalidation, evidence lookup, replay, undo,
   conflict, cache, public proof, and diagnostics derive from those products
 - old static/global paths are deleted or mechanically sealed as residue

@@ -41,7 +41,10 @@ fn rendered_reference_matches_checked_in_consumer_documentation() {
         "/docs/foundations/hard-prohibitions.md"
     ));
 
-    assert_eq!(checked_in, render_hard_prohibition_reference());
+    assert_eq!(
+        checked_in.replace("\r\n", "\n"),
+        render_hard_prohibition_reference()
+    );
 }
 
 #[test]

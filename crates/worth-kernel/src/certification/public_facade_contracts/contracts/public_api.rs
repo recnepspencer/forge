@@ -40,6 +40,8 @@ mod public_api_query_composition_honesty;
 mod public_api_query_native_hardening_closeout;
 mod public_api_query_performance_counters;
 mod public_api_query_synthetic_proof;
+mod public_api_spatial_touch_cross_crate_closeout;
+mod public_api_spatial_touch_receipt_admission;
 mod public_api_workload_catalog;
 
 #[cfg(test)]

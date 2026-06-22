@@ -1,6 +1,11 @@
 mod boolean_evidence_ledger;
 pub(crate) mod evidence_ledger_receipts;
+mod feature_gate_leakage;
 mod honesty_guards;
+mod naming_honesty;
+mod public_facade_parity;
+mod spatial_touch_admission;
+mod surface_deletion_ledger;
 
 use topology::facade::TopologyWorkload;
 use worth_spatial::certification::workload_evidence::{

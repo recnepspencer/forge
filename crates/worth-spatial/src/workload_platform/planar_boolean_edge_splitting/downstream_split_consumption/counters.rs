@@ -6,7 +6,9 @@ pub struct PlanarBooleanDownstreamSplitConsumptionCounters {
     vertex_rows_consumed: usize,
     persistent_name_rows_consumed: usize,
     replay_parity_rows_consumed: usize,
-    stage_index_rows_consumed: usize,
+    spatial_lookup_products_consumed: usize,
+    spatial_lookup_indexed_lookups: usize,
+    spatial_lookup_raw_row_scans: usize,
     foreign_receipts_rejected: usize,
     missing_receipts_rejected: usize,
     non_receipt_evidence_rejected: usize,
@@ -37,8 +39,14 @@ impl PlanarBooleanDownstreamSplitConsumptionCounters {
         self.replay_parity_rows_consumed += count;
     }
 
-    pub(crate) fn consumed_stage_index_rows(&mut self, count: usize) {
-        self.stage_index_rows_consumed += count;
+    pub(crate) fn consumed_spatial_lookup_product(
+        &mut self,
+        indexed_lookups: usize,
+        raw_row_scans: usize,
+    ) {
+        self.spatial_lookup_products_consumed += 1;
+        self.spatial_lookup_indexed_lookups += indexed_lookups;
+        self.spatial_lookup_raw_row_scans += raw_row_scans;
     }
 
     pub(crate) fn rejected_foreign_receipt(&mut self) {
@@ -77,8 +85,16 @@ impl PlanarBooleanDownstreamSplitConsumptionCounters {
         self.replay_parity_rows_consumed
     }
 
-    pub fn stage_index_rows_consumed(self) -> usize {
-        self.stage_index_rows_consumed
+    pub fn spatial_lookup_products_consumed(self) -> usize {
+        self.spatial_lookup_products_consumed
+    }
+
+    pub fn spatial_lookup_indexed_lookups(self) -> usize {
+        self.spatial_lookup_indexed_lookups
+    }
+
+    pub fn spatial_lookup_raw_row_scans(self) -> usize {
+        self.spatial_lookup_raw_row_scans
     }
 
     pub fn foreign_receipts_rejected(self) -> usize {

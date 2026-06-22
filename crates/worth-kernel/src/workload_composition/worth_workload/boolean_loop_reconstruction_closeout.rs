@@ -86,18 +86,12 @@ impl CompletedBooleanSplitHandoff {
         &self,
         input: PlanarBooleanLoopReconstructionCloseoutInput<'_>,
     ) -> Result<CompletedBooleanLoopReconstructionHandoff, WorkloadCompositionError> {
-        let downstream_consumption = self
-            .admit_downstream_split_consumption(
-                input.split_decision_log_receipt,
-                input.split_validation_receipt,
-                input.split_persistent_naming_receipt,
-                input.split_replay_parity_receipt,
-            )
-            .map_err(|denial| {
-                WorkloadCompositionError::LoopReconstructionCloseout(
-                    denial.human_reason().to_string(),
-                )
-            })?;
+        let downstream_consumption = self.admit_downstream_split_consumption(
+            input.split_decision_log_receipt,
+            input.split_validation_receipt,
+            input.split_persistent_naming_receipt,
+            input.split_replay_parity_receipt,
+        )?;
         let loop_split_consumption = PlanarBooleanLoopReconstructionSplitConsumption::admit(
             PlanarBooleanLoopReconstructionSplitConsumptionInput::from_downstream_split_consumption(
                 &downstream_consumption,

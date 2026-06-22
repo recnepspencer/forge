@@ -5,11 +5,14 @@ mod boolean_loop_reconstruction_handoff;
 mod boolean_loop_reconstruction_products;
 mod boolean_split_handoff;
 mod boolean_stage_requirements;
+mod spatial_touch_authority;
+use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanDownstreamSplitConsumptionDenial;
 use worth_spatial::facade::workload_vocabulary::{
     BooleanEvidenceReceipt, CompleteWorkloadEvidenceLedger, DiagnosticWorkloadReceipt,
     GeometryBindingWorkloadReceipt, ProjectionWorkloadReceipt, ResponseWorkloadReceipt,
-    RetainedReplayWorkloadReceipt, SurfaceSupportWorkloadReceipt, TransformWorkloadReceipt,
-    WorkloadEvidenceStage, WorkloadStageSupport,
+    RetainedReplayWorkloadReceipt, SpatialEvidenceLookupDenial, SpatialGeometryEvidenceTouchDenial,
+    SpatialGeometryEvidenceTouchDenialKind, SurfaceSupportWorkloadReceipt,
+    TransformWorkloadReceipt, WorkloadEvidenceStage, WorkloadStageSupport,
 };
 
 use super::{boolean_evidence_requirement::map_boolean_ledger_error, WorkloadStageRequirement};
@@ -192,6 +195,9 @@ pub enum WorkloadCompositionError {
     LoopReconstructionCloseout(String),
     LoopRuntimeRegistration(String),
     BooleanChainHandoff(String),
+    SpatialTouchAuthority(SpatialGeometryEvidenceTouchDenial),
+    SpatialEvidenceLookup(SpatialEvidenceLookupDenial),
+    DownstreamSplitConsumption(PlanarBooleanDownstreamSplitConsumptionDenial),
 }
 
 impl WorkloadCompositionError {
@@ -219,7 +225,21 @@ impl WorkloadCompositionError {
             Self::LoopReconstructionCloseout(reason) => reason.clone(),
             Self::LoopRuntimeRegistration(reason) => reason.clone(),
             Self::BooleanChainHandoff(reason) => reason.clone(),
+            Self::SpatialTouchAuthority(denial) => denial.human_reason(),
+            Self::SpatialEvidenceLookup(denial) => denial.detail().to_string(),
+            Self::DownstreamSplitConsumption(denial) => denial.human_reason().to_string(),
         }
+    }
+
+    pub fn spatial_touch_denial(&self) -> Option<&SpatialGeometryEvidenceTouchDenial> {
+        match self {
+            Self::SpatialTouchAuthority(denial) => Some(denial),
+            _ => None,
+        }
+    }
+
+    pub fn spatial_touch_denial_kind(&self) -> Option<SpatialGeometryEvidenceTouchDenialKind> {
+        self.spatial_touch_denial().map(|denial| denial.kind())
     }
 }
 

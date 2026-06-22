@@ -14,12 +14,24 @@ Acceptance evidence:
 Work this phase's plan in `notes.plan`. If no usable plan exists, write a concise
 one before editing. Continue from the nearest unfinished item.
 
+Before editing each implementation slice, identify the exact plan checkpoint it
+serves: context/API, DX target, directory skeleton, implicit requirement,
+authority proof, deletion/collapse, test proof, or composition QA. If the plan
+is missing the checkpoint needed for the next edit, update the current phase's
+notes first so the work remains resumable.
+
 Work this phase's category plan item by item. Either complete the replacement
 and delete/collapse the prior production path in the same phase, or record the
 exact mechanical blocker that prevents the hard break. Do not leave both the old
 production path and the new proof path alive as a convenience bridge. Slow
 conversions are failed implementations unless the old path is certification-only,
 capped residue, or a named query/runtime gap.
+
+For each completed slice, record in `notes.done` what changed and what proves
+it. For unfinished slices, record in `notes.remaining` the exact next source
+surface and proof step. If implementation is large, stay on `implement`; do not
+force a review turn until every acceptance item has real implementation
+evidence or a precise blocker.
 
 Treat adapter creation as a defect until proven otherwise. Do not add a shim,
 wrapper, bridge, compatibility facade, pass-through conversion, or old-to-new

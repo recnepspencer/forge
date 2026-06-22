@@ -18,6 +18,7 @@ use worth_spatial::facade::workload_binding::PlanarLoopBoundaryCatalogProfile;
 pub struct WorkloadCatalogBooleanOperandPairRecipe {
     kind: WorkloadCatalogRecipeKind,
     declaration: String,
+    retained_replay_artifacts: bool,
 }
 
 impl WorkloadCatalogBooleanOperandPairRecipe {
@@ -25,11 +26,17 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
         Self {
             kind,
             declaration: kind.default_declaration().to_string(),
+            retained_replay_artifacts: false,
         }
     }
 
     pub fn declared(mut self, declaration: impl Into<String>) -> Self {
         self.declaration = declaration.into();
+        self
+    }
+
+    pub fn with_retained_replay_artifacts(mut self) -> Self {
+        self.retained_replay_artifacts = true;
         self
     }
 
@@ -186,7 +193,7 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
     }
 
     fn left_member_recipe(&self) -> super::catalog::WorkloadCatalogRecipe {
-        match self.kind {
+        let recipe = match self.kind {
             WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair => {
                 WorkloadCatalog::single_face_loop()
             }
@@ -223,12 +230,13 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
                 WorkloadCatalog::open_sheet()
             }
             _ => unreachable!("non-pair recipe kind cannot select a left operand member"),
-        }
-        .declared(format!("{} left operand", self.declaration))
+        };
+        self.apply_retained_replay_artifact_policy(recipe)
+            .declared(format!("{} left operand", self.declaration))
     }
 
     fn right_member_recipe(&self) -> super::catalog::WorkloadCatalogRecipe {
-        match self.kind {
+        let recipe = match self.kind {
             WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair => {
                 WorkloadCatalog::single_face_loop()
             }
@@ -266,8 +274,20 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
                 WorkloadCatalog::single_face_loop()
             }
             _ => unreachable!("non-pair recipe kind cannot select a right operand member"),
+        };
+        self.apply_retained_replay_artifact_policy(recipe)
+            .declared(format!("{} right operand", self.declaration))
+    }
+
+    fn apply_retained_replay_artifact_policy(
+        &self,
+        recipe: super::catalog::WorkloadCatalogRecipe,
+    ) -> super::catalog::WorkloadCatalogRecipe {
+        if self.retained_replay_artifacts {
+            recipe.with_retained_replay_artifacts()
+        } else {
+            recipe
         }
-        .declared(format!("{} right operand", self.declaration))
     }
 
     fn product_lane_reason(&self) -> String {

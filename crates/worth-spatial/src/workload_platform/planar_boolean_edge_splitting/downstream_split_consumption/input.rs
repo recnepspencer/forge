@@ -1,4 +1,6 @@
-use crate::workload_platform::evidence_ledger::WorkloadEvidenceStageIndexProduct;
+use crate::workload_platform::evidence_ledger::{
+    SpatialEvidenceLookupProduct, SpatialGeometryEvidenceTouchAuthority,
+};
 use crate::workload_platform::planar_boolean_edge_splitting::{
     PlanarBooleanEdgeSplitReplayParityReceipt, PlanarBooleanSplitChainValidationReceipt,
     PlanarBooleanSplitDecisionLogReceipt, PlanarBooleanSplitEdgeChainLedgerReceipt,
@@ -11,7 +13,8 @@ pub struct PlanarBooleanDownstreamSplitConsumptionInput<'a> {
     validation_receipt: &'a PlanarBooleanSplitChainValidationReceipt,
     persistent_naming_receipt: &'a PlanarBooleanSplitPersistentNamingReceipt,
     replay_parity_receipt: &'a PlanarBooleanEdgeSplitReplayParityReceipt,
-    stage_index: &'a WorkloadEvidenceStageIndexProduct,
+    spatial_touch_authority: &'a SpatialGeometryEvidenceTouchAuthority,
+    spatial_lookup: &'a SpatialEvidenceLookupProduct,
 }
 
 impl<'a> PlanarBooleanDownstreamSplitConsumptionInput<'a> {
@@ -21,7 +24,8 @@ impl<'a> PlanarBooleanDownstreamSplitConsumptionInput<'a> {
         validation_receipt: &'a PlanarBooleanSplitChainValidationReceipt,
         persistent_naming_receipt: &'a PlanarBooleanSplitPersistentNamingReceipt,
         replay_parity_receipt: &'a PlanarBooleanEdgeSplitReplayParityReceipt,
-        stage_index: &'a WorkloadEvidenceStageIndexProduct,
+        spatial_touch_authority: &'a SpatialGeometryEvidenceTouchAuthority,
+        spatial_lookup: &'a SpatialEvidenceLookupProduct,
     ) -> Self {
         Self {
             split_ledger_receipt,
@@ -29,7 +33,8 @@ impl<'a> PlanarBooleanDownstreamSplitConsumptionInput<'a> {
             validation_receipt,
             persistent_naming_receipt,
             replay_parity_receipt,
-            stage_index,
+            spatial_touch_authority,
+            spatial_lookup,
         }
     }
 
@@ -55,7 +60,11 @@ impl<'a> PlanarBooleanDownstreamSplitConsumptionInput<'a> {
         self.replay_parity_receipt
     }
 
-    pub(crate) fn stage_index(&self) -> &'a WorkloadEvidenceStageIndexProduct {
-        self.stage_index
+    pub(crate) fn spatial_touch_authority(&self) -> &'a SpatialGeometryEvidenceTouchAuthority {
+        self.spatial_touch_authority
+    }
+
+    pub(crate) fn spatial_lookup(&self) -> &'a SpatialEvidenceLookupProduct {
+        self.spatial_lookup
     }
 }

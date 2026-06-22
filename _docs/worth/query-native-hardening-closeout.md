@@ -19,11 +19,11 @@ audited_source_sets: 17
 admitted_source_sets: 9
 denied_source_sets: 5
 explicit_residue_source_sets: 3
-support_requirements: 9
-support_observed_rows: 3
-support_matched_required_rows: 9
-support_snapshot_rows_evaluated: 66
-boundary_audit_sources: 6
+support_requirements: 7
+support_observed_rows: 8
+support_matched_required_rows: 7
+support_snapshot_rows_evaluated: 68
+boundary_audit_sources: 5
 synthetic_denial_localization_rows: 5
 kernel_receipt_families: 8
 lower_crate_receipt_families: 2
