@@ -23,6 +23,20 @@ gaps that remain — named and owned per the debt law, not silently dropped — 
 the exact verification commands. Then set `status` and `qa_status` by the
 contract.
 
+Run a structural closeout checkpoint before advancing:
+
+- confirm the implemented directory skeleton matches the phase plan
+- list touched code and test files with line counts
+- split touched Rust files over 400 lines unless an explicit exemption exists
+- reject broad bucket files, vague helper modules, and god functions
+- confirm public facades aggregate read-only proof/status and do not implement
+  admission authority
+- confirm no adapter, shim, bridge, compatibility facade, local report, raw row,
+  copied field set, broad scan, or topology/Query substitution path can satisfy
+  the phase's ordinary authority contract
+- confirm tests include real public-boundary or integration proof, not only
+  helper-local synthetic fixtures
+
 If this phase has a deletion ledger, closeout must audit the actual exported
 symbols and files, not only the ledger row labels. Do not advance while a target
 listed as `delete` or `collapse` is still available through an ordinary public
